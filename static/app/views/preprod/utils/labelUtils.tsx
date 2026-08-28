@@ -160,7 +160,7 @@ export function getTrend(diff: number): {
   if (diff > 0) {
     return {
       variant: 'danger',
-      icon: <IconArrow direction="up" size="xs" />,
+      icon: <IconArrow size="xs" />,
     };
   }
 

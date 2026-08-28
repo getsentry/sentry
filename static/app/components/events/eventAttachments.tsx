@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   useDeleteEventAttachmentOptimistic,
@@ -24,6 +25,12 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
+
+const ATTACHMENT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: '1fr'},
+  {key: 'size', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 type EventAttachmentsProps = {
   event: Event;
@@ -123,7 +130,8 @@ function EventAttachmentsContent({
       )}
 
       {attachments.length > 0 && (
-        <StyledSimpleTable
+        <SimpleTable
+          columns={ATTACHMENT_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>
@@ -180,7 +188,7 @@ function EventAttachmentsContent({
               ) : null}
             </Fragment>
           ))}
-        </StyledSimpleTable>
+        </SimpleTable>
       )}
     </FoldSection>
   );
@@ -195,10 +203,6 @@ export function EventAttachments(props: EventAttachmentsProps) {
 
   return <EventAttachmentsContent {...props} />;
 }
-
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr auto auto;
-`;
 
 const Name = styled('div')`
   display: block;

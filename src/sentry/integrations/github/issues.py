@@ -31,7 +31,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
-PAGE_NUMBER_LIMIT = 1
+PAGE_LIMIT = 1
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
@@ -176,13 +176,13 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_NUMBER_LIMIT)
+        default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
 
-        assignees = self.get_allowed_assignees(default_repo) if default_repo else []
+        assignees = self.get_allowed_assignees(default_repo, PAGE_LIMIT) if default_repo else []
         labels: Sequence[tuple[str, str]] = []
         if default_repo:
             owner, repo = default_repo.split("/")
-            labels = self.get_repo_labels(owner, repo)
+            labels = self.get_repo_labels(owner, repo, PAGE_LIMIT)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
@@ -269,7 +269,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
     def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params)
+        default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -355,10 +355,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def get_allowed_assignees(self, repo: str) -> Sequence[tuple[str, str]]:
+    def get_allowed_assignees(
+        self, repo: str, page_number_limit: int | None = None
+    ) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
-            response = client.get_assignees(repo)
+            response = client.get_assignees(repo, page_number_limit=page_number_limit)
         except Exception as e:
             self.raise_error(e)
 
@@ -366,10 +368,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return (("", "Unassigned"),) + users
 
-    def get_repo_labels(self, owner: str, repo: str) -> Sequence[tuple[str, str]]:
+    def get_repo_labels(
+        self, owner: str, repo: str, page_number_limit: int | None = None
+    ) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
-            response = client.get_labels(owner, repo)
+            response = client.get_labels(owner, repo, page_number_limit=page_number_limit)
         except Exception as e:
             self.raise_error(e)
 

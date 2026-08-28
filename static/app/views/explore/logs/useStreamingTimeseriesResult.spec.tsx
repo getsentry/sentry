@@ -472,7 +472,7 @@ describe('useStreamingTimeseriesResult', () => {
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        wrapper: createWrapper({}),
       }
     );
 
@@ -486,7 +486,7 @@ describe('useStreamingTimeseriesResult', () => {
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        wrapper: createWrapper({}),
       }
     );
 
@@ -500,7 +500,7 @@ describe('useStreamingTimeseriesResult', () => {
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        wrapper: createWrapper({}),
       }
     );
 
@@ -514,7 +514,7 @@ describe('useStreamingTimeseriesResult', () => {
     const {result} = renderHook(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        wrapper: createWrapper({}),
       }
     );
 

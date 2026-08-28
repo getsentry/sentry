@@ -168,7 +168,6 @@ function DashboardTable({
                 e.stopPropagation();
                 openConfirmModal({
                   message: t('Are you sure you want to duplicate this dashboard?'),
-                  priority: 'primary',
                   onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
                 });
               }}

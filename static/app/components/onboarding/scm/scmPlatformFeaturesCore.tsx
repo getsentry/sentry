@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
-import debounce from 'lodash/debounce';
-import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
-import {Select} from '@sentry/scraps/select';
+import {Select, type StylesConfig} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
@@ -32,6 +32,7 @@ import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
   getPlatformInfo,
+  platformOptionGroups,
   platformOptions,
   shouldSuggestFramework,
   toSelectedSdk,
@@ -85,6 +86,7 @@ export function ScmPlatformFeaturesCore({
   selectedRepository,
 }: ScmPlatformFeaturesCoreProps) {
   const isOnboarding = analyticsFlow === 'onboarding';
+  const theme = useTheme();
   const {openModal} = useModal();
   const organization = useOrganization();
 
@@ -320,78 +322,36 @@ export function ScmPlatformFeaturesCore({
     }
   };
 
-  // Ensure the selected platform is always present in the dropdown options
-  // so the Select can resolve and display it. When the framework suggestion
-  // modal picks a key not in the static list, prepend it.
-  const manualPickerOptions = useMemo(() => {
-    const key = currentPlatformKey;
-    if (!key || platformOptions.some(o => o.value === key)) {
-      return platformOptions;
-    }
-    const info = getPlatformInfo(key);
-    if (!info) {
-      return platformOptions;
-    }
-    return [
-      {
-        value: info.id,
-        label: info.name,
-        textValue: `${info.name} ${info.id}`,
-        leadingItems: <PlatformIcon platform={info.id} size={16} alt="" />,
-      },
-      ...platformOptions,
-    ];
-  }, [currentPlatformKey]);
-
   const manualPickerFilteredOptions = useMemo(
     () =>
-      manualPickerOptions.filter(option =>
+      platformOptions.filter(option =>
         matchesPlatformOption(
           {label: option.label, value: option.value, data: option},
           manualPickerFilter
         )
       ),
-    [manualPickerFilter, manualPickerOptions]
+    [manualPickerFilter]
   );
 
-  const latestSearchValuesRef = useRef({
-    filter: manualPickerFilter,
-    options: manualPickerFilteredOptions,
-    organization,
-    analyticsFlow,
-  });
-
-  useEffect(() => {
-    latestSearchValuesRef.current = {
-      filter: manualPickerFilter,
-      options: manualPickerFilteredOptions,
-      organization,
-      analyticsFlow,
-    };
-  });
-
-  const debounceManualPickerSearch = useRef(
-    debounce(() => {
-      const {
-        filter,
-        options,
-        organization: currentOrganization,
-        analyticsFlow: flow,
-      } = latestSearchValuesRef.current;
-
-      if (!filter || flow !== 'project-creation') {
+  const debounceManualPickerSearch = useDebouncedCallback(
+    () => {
+      if (!manualPickerFilter || analyticsFlow !== 'project-creation') {
         return;
       }
 
       trackAnalytics('growth.platformpicker_search', {
-        organization: currentOrganization,
-        search: filter.toLowerCase(),
-        num_results: options.length,
+        organization,
+        search: manualPickerFilter.toLowerCase(),
+        num_results: manualPickerFilteredOptions.length,
         source: 'project-creation',
         variant: 'scm',
       });
-    }, DEFAULT_DEBOUNCE_DURATION)
-  ).current;
+    },
+    {
+      wait: DEFAULT_DEBOUNCE_DURATION,
+      onUnmount: debouncer => debouncer.flush(),
+    }
+  );
 
   function handleManualPickerSearch(query: string, {action}: {action: string}) {
     if (action !== 'input-change') {
@@ -400,6 +360,25 @@ export function ScmPlatformFeaturesCore({
     setManualPickerFilter(query);
     debounceManualPickerSearch();
   }
+
+  // Align the platform icons and section headings with the input text. Options
+  // reserve space for the menu-item inset, inner inset, checkmark, and
+  // leading-item gap. Must override the group padding shorthand: base already
+  // has a paddingLeft key before its padding shorthand, which would reset a
+  // paddingLeft override. Shared by both manual-picker Select variants below.
+  const manualPickerStyles: StylesConfig = {
+    container: base => ({...base, width: '100%'}),
+    menu: base => ({
+      ...base,
+      '& [role="menuitemradio"]': {
+        paddingLeft: theme.space.md,
+      },
+    }),
+    groupHeading: base => ({
+      ...base,
+      padding: `${theme.space.xs} ${theme.space.lg} ${theme.space.xs} calc(${theme.space.md} + ${theme.space.lg} + ${theme.form.md.fontSize} + ${theme.space.md})`,
+    }),
+  };
 
   // When the active platform is a manual (non-detected) pick, show the manual
   // picker so the selection stays visible (see showDetectedPlatforms below).
@@ -422,9 +401,9 @@ export function ScmPlatformFeaturesCore({
     >
       <Flex
         justify="between"
-        align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+        align={{zero: 'start', xl: 'center'}}
         gap="md"
-        direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+        direction={{zero: 'column', xl: 'row'}}
       >
         <Flex align="center" gap="sm">
           <Flex flexShrink={0}>
@@ -446,8 +425,8 @@ export function ScmPlatformFeaturesCore({
         ) : (
           <Grid
             columns={{
-              'screen:xs': '1fr',
-              'screen:md':
+              zero: '1fr',
+              '3xl':
                 resolvedPlatforms.length < 3
                   ? 'repeat(2, minmax(0, 1fr))'
                   : 'repeat(3, minmax(0, 1fr))',
@@ -507,25 +486,25 @@ export function ScmPlatformFeaturesCore({
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptions}
+          options={platformOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
-          styles={{container: base => ({...base, width: '100%'})}}
+          styles={manualPickerStyles}
         />
       ) : (
         <Select<(typeof platformOptions)[number]>
           placeholder={t('Search SDKs...')}
-          options={manualPickerOptions}
+          options={platformOptionGroups}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
           onInputChange={handleManualPickerSearch}
           clearable
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
-          styles={{container: base => ({...base, width: '100%'})}}
+          styles={manualPickerStyles}
         />
       )}
     </MotionStack>

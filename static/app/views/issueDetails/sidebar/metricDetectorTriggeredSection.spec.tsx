@@ -4,8 +4,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {
   DataConditionType,
@@ -58,6 +59,7 @@ describe('MetricDetectorTriggeredSection', () => {
   };
 
   beforeEach(() => {
+    ConfigStore.set('customerDomain', null);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -91,6 +93,11 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('links to an existing investigation for the selected open period', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
@@ -100,6 +107,15 @@ describe('MetricDetectorTriggeredSection', () => {
       method: 'POST',
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+        titleGeneration: {status: 'completed'},
+      },
+    });
     render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
       organization,
     });
@@ -107,14 +123,142 @@ describe('MetricDetectorTriggeredSection', () => {
     await screen.findByRole('region', {
       name: 'Seer Investigation',
     });
-    expect(await screen.findByText('Different investigation title')).toBeInTheDocument();
-    expect(screen.getByText('Different investigation summary text')).toBeInTheDocument();
+    expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
+    expect(
+      screen.getByText('All active releases increased together.')
+    ).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/4567/');
+    ).toHaveAttribute('href', '/explore/investigations/4567/');
+  });
+
+  it('hides an existing investigation summary until all summary fields are ready', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: 'Errors rose across releases',
+        summaryDescription: null,
+        titleGeneration: {status: 'failed'},
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+  });
+
+  it('keeps polling briefly while metadata generation is starting', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: null},
+        blocks: [
+          {
+            id: 'block-1',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'completed',
+            currentExecution: {status: 'completed'},
+          },
+        ],
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(2000));
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+    jest.useRealTimers();
+  });
+
+  it('keeps polling while a parallel branch is active after another branch fails', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: null},
+        blocks: [
+          {
+            id: 'block-1',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'failed',
+            currentExecution: {status: 'failed'},
+          },
+          {
+            id: 'block-2',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'running',
+            currentExecution: {status: 'running'},
+          },
+        ],
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(2000));
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+    jest.useRealTimers();
   });
 
   it('launches an investigation for the selected open period', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const organization = OrganizationFixture({
       slug: 'org-slug',
       features: ['investigations'],
@@ -130,9 +274,16 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {id: '4567'},
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
       organization,
     });
+
+    expect(
+      await screen.findByText(
+        'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Launch Investigation'})
@@ -153,6 +304,7 @@ describe('MetricDetectorTriggeredSection', () => {
         })
       );
     });
+    expect(router.location.pathname).toBe('/explore/investigations/4567/');
   });
 
   it('uses the latest open period when the displayed event is not linked to one', async () => {

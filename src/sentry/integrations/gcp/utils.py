@@ -12,6 +12,16 @@ GCP_MCP_URLS: tuple[str, ...] = (
     "https://cloudtrace.googleapis.com/mcp",
 )
 
+# Connection statuses returned by Seer's GCP verification endpoint. Mirrors
+# ConnectionStatus in seer/automation/agent/mcp/gcp_verification.py.
+GCP_CONNECTION_STATUSES: tuple[str, ...] = (
+    "connected",
+    "permission_denied",
+    "api_disabled",
+    "project_not_found",
+    "error",
+)
+
 
 def validate_gcp_project_id(project_id: str) -> None:
     if not GCP_PROJECT_ID_RE.match(project_id):

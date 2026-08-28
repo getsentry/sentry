@@ -4,10 +4,9 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
@@ -24,6 +23,11 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {normalizeMetricHistory} from 'getsentry/utils/billing';
+
+const BILLED_SEAT_COLUMNS: TableColumnConfig[] = [
+  {key: 'activeContributors', width: '1fr'},
+  {key: 'dateAdded', width: '1fr'},
+];
 
 export function BilledSeats({
   selectedProduct,
@@ -70,6 +74,7 @@ export function BilledSeats({
   return (
     <Fragment>
       <Table
+        columns={BILLED_SEAT_COLUMNS}
         hasBorderTop={
           // add a top border if there is info above this component in the panel
           // we can infer this by checking if there is at least one billed seat
@@ -94,13 +99,9 @@ export function BilledSeats({
         }
       >
         {seatsError ? (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
+          <SimpleTable.Error onRetry={refetch} />
         ) : seatsLoading ? (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
+          <SimpleTable.Loading />
         ) : billedSeats && billedSeats.length > 0 ? (
           billedSeats.map(seat => (
             <SimpleTable.Row key={seat.id}>
@@ -126,7 +127,6 @@ export function BilledSeats({
 }
 
 const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
-  grid-template-columns: 1fr 1fr;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
   border: none;
   border-top: ${p =>

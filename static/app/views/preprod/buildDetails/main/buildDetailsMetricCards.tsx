@@ -282,7 +282,6 @@ export function BuildDetailsMetricCards(props: BuildDetailsMetricCardsProps) {
                                 value={card.delta.percentageChange}
                                 minimumValue={0.001}
                                 preferredPolarity="-"
-                                colorize
                               />
                               {')'}
                             </Text>
