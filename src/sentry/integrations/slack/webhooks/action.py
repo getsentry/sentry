@@ -46,6 +46,10 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
+from sentry.integrations.slack.webhooks.actions.seer_agent import (
+    SEER_AGENT_WRITE_APPROVAL_ACTIONS,
+    handle_seer_agent_write_approval,
+)
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
@@ -772,6 +776,22 @@ class SlackActionEndpoint(Endpoint):
         # Actions list may be empty when receiving a dialog response.
 
         action_option, action_id = self.get_action_option(slack_request=slack_request)
+
+        if action_id in SEER_AGENT_WRITE_APPROVAL_ACTIONS:
+            action_data = slack_request.data.get("actions")
+            encoded_action_id = (
+                action_data[0].get("action_id", "")
+                if isinstance(action_data, list)
+                and action_data
+                and isinstance(action_data[0], Mapping)
+                else ""
+            )
+            routing_data = decode_action_id(encoded_action_id)
+            return handle_seer_agent_write_approval(
+                slack_request=slack_request,
+                action=SlackAction(action_id),
+                organization_id=routing_data.organization_id,
+            )
 
         # If a user is just clicking a button link we return a 200
         if action_option in (
