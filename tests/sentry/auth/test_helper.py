@@ -288,8 +288,6 @@ class HandleNewUserTest(AuthIdentityHandlerTest, HybridCloudTestMixin):
             )
 
         assert assigned_member.id == member.id
-        # Invite acceptance must still mark SSO linked, otherwise the first
-        # org page load fails sso_is_valid and bounces back to org login.
         assert getattr(assigned_member.flags, "sso:linked")
         assert not getattr(assigned_member.flags, "sso:invalid")
 
