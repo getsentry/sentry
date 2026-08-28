@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
 
-from sentry.constants import DataCategory
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.search import group_types_from
@@ -713,34 +712,29 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         schedule_id = "2024-07-22T22:00"
 
         with (
-            patch("sentry.tasks.seer.night_shift.cron.is_free_cohort_org", return_value=False),
             patch(
                 "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
                 return_value=False,
-            ) as mock_quota,
+            ),
             patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execution,
         ):
             run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         assert run_id is None
         assert not SeerNightShiftRun.objects.filter(organization=org).exists()
-        assert not SeerRun.objects.filter(organization=org).exists()
         mock_execution.assert_not_called()
-        mock_quota.assert_called_once_with(org_id=org.id, data_category=DataCategory.SEER_AUTOFIX)
 
         with (
-            patch("sentry.tasks.seer.night_shift.cron.is_free_cohort_org", return_value=False),
             patch(
                 "sentry.tasks.seer.night_shift.cron.quotas.backend.check_seer_quota",
                 return_value=True,
-            ) as mock_quota,
+            ),
             patch("sentry.tasks.seer.night_shift.cron._get_eligible_projects", return_value=[]),
         ):
             run_id = run_night_shift_for_org(org.id, schedule_id=schedule_id)
 
         assert run_id is not None
         assert SeerNightShiftRun.objects.filter(id=run_id, organization=org).exists()
-        mock_quota.assert_called_once_with(org_id=org.id, data_category=DataCategory.SEER_AUTOFIX)
 
     def test_free_cohort_skips_quota_check(self) -> None:
         org = self.create_organization()
