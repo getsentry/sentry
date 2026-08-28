@@ -4,6 +4,7 @@ export {
   ScrapsForm,
   toFieldErrors,
   type FieldErrors,
+  type CreateValidationErrorFn,
   defaultFormValidators,
   defineAppFieldGroup,
 } from './scrapsForm';

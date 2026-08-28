@@ -130,6 +130,7 @@ export const useScrapsForm = useAppForm;
 
 /** @public */
 export {defineAppFieldGroup};
+export type {CreateValidationErrorFn};
 
 export function ScrapsForm<TFormData, TFormErrorTypes extends FormErrorTypes>({
   form,

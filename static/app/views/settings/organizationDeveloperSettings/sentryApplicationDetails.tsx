@@ -1,7 +1,5 @@
 import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
-// eslint-disable-next-line no-restricted-imports
-import type {CreateValidationErrorFn} from '@tanstack/react-form';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -13,6 +11,7 @@ import {
   toFieldErrors,
   useScrapsForm,
 } from '@sentry/scraps/form';
+import type {CreateValidationErrorFn} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
