@@ -10,8 +10,8 @@ const productionEntryPoints = [
   // defined in rspack.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
   'static/app/serviceWorker/worker/worker.ts',
-  // exports used by scripts
-  'static/app/components/seer/markdown/embeds/schemas.ts',
+  // scripts are entry points
+  'scripts/*.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
