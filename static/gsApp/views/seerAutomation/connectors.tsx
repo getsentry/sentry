@@ -21,8 +21,7 @@ import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/int
 // telemetry Seer can read; the connectors page lists exactly those.
 const SEER_CONTEXT_FEATURE = 'seer-context';
 
-// staleTime: 0 refetches install status on every mount, matching the
-// integrations directory so returning here always reflects current state.
+// Cheap query to get all providers available to the org, plus their integration features.
 function configIntegrationsQueryOptions(orgSlug: string) {
   return apiOptions.as<{providers: IntegrationProvider[]}>()(
     '/organizations/$organizationIdOrSlug/config/integrations/',
@@ -33,12 +32,15 @@ function configIntegrationsQueryOptions(orgSlug: string) {
   );
 }
 
+// Get the installation status for all IntegrationFeatures.SEER_CONTEXT providers.
 function integrationsQueryOptions(orgSlug: string) {
   return apiOptions.as<Integration[]>()(
     '/organizations/$organizationIdOrSlug/integrations/',
     {
       path: {organizationIdOrSlug: orgSlug},
-      query: {includeConfig: 0},
+      // Config serialization is O(n) per integration, so if we want to includeConfig,
+      // filtering by seer_context becomes important.
+      query: {features: 'seer_context', includeConfig: 0},
       staleTime: 0,
     }
   );
@@ -57,9 +59,7 @@ export default function SeerConnectors() {
 function SeerConnectorsContent() {
   const organization = useOrganization();
 
-  // Get all providers available to the org, plus their integration features.
   const configQuery = useQuery(configIntegrationsQueryOptions(organization.slug));
-  // Get those providers' install status.
   const integrationsQuery = useQuery(integrationsQueryOptions(organization.slug));
 
   const isPending = configQuery.isPending || integrationsQuery.isPending;
