@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 from pydantic import BaseModel
 
@@ -1477,6 +1478,56 @@ class TestStartFeatureRun(TestCase):
         # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.
         assert "ref" not in body
         assert outbox.payload["viewer_context"]["organization_id"] == self.organization.id
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_sends_user_org_context_for_human_trigger(self, mock_request, _mock_access) -> None:
+        """Seer builds its tracing user from this alone -- without it the run reports none."""
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_feature_run(
+            feature_id="autofix_root_cause",
+            payload={"group_id": 1},
+            title="Autofix RCA",
+            flush=False,
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        user_org_context = outbox.payload["body"]["user_org_context"]
+        assert user_org_context["user_id"] == self.user.id
+        assert user_org_context["user_email"] == self.user.email
+        assert user_org_context["org_slug"] == self.organization.slug
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_omits_user_org_context_for_automated_trigger(self, mock_request, _mock_access) -> None:
+        """Night shift and the scanner have no user, and pay none of the lookup cost."""
+        client = SeerAgentClient(self.organization, user=None)
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={"candidates": [1, 2]},
+            title="Agentic triage",
+            flush=False,
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        assert "user_org_context" not in outbox.payload["body"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_omits_user_org_context_for_anonymous_user(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, user=AnonymousUser())
+        run = client.start_feature_run(
+            feature_id="night_shift",
+            payload={},
+            title="Agentic triage",
+            flush=False,
+        )
+
+        outbox = self._outbox_for(run)
+        assert outbox is not None and outbox.payload is not None
+        assert "user_org_context" not in outbox.payload["body"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")

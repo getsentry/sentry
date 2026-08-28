@@ -123,6 +123,9 @@ class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
+    # Present only for human-triggered runs. Seer attributes the run to this user in
+    # tracing; an automated trigger has no user to report.
+    user_org_context: NotRequired[dict[str, Any]]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
