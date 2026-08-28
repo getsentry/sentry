@@ -156,7 +156,9 @@ describe('useExploreSpansTable', () => {
 
   it('filters field-only refreshes to the current sample ids', async () => {
     const initialData = [{id: 'aaaaaaaaaaaaaaaa'}, {id: 'bbbbbbbbbbbbbbbb'}];
-    const expectedQuery = 'span.op:http id:[aaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbb]';
+    const query = 'span.op:http OR span.op:db';
+    const expectedQuery =
+      '(span.op:http OR span.op:db) id:[aaaaaaaaaaaaaaaa,bbbbbbbbbbbbbbbb]';
     const originalPageLinks =
       '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
       '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
@@ -222,18 +224,15 @@ describe('useExploreSpansTable', () => {
       ],
     });
 
-    const {result} = renderHookWithProviders(
-      () => useTestExploreSpansTable('span.op:http'),
-      {
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {cursor: '0:100:0'},
-          },
+    const {result} = renderHookWithProviders(() => useTestExploreSpansTable(query), {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {cursor: '0:100:0'},
         },
-      }
-    );
+      },
+    });
 
     await waitFor(() =>
       expect(result.current.spansTable.result.data).toEqual(initialData)
@@ -297,7 +296,7 @@ describe('useExploreSpansTable', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          query: 'span.op:http id:[aaaaaaaaaaaaaaaa]',
+          query: '(span.op:http) id:[aaaaaaaaaaaaaaaa]',
         }),
       ],
     });

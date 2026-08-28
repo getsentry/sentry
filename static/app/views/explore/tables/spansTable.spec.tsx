@@ -214,6 +214,21 @@ describe('SpansTable', () => {
     });
   }
 
+  it('shows a loading state before the initial rows resolve', () => {
+    const pendingResult = makeQueryResult([]);
+    Object.assign(pendingResult, {
+      isFetching: true,
+      isPending: true,
+      isSuccess: false,
+      status: 'pending',
+    });
+
+    renderTable({tableResult: pendingResult});
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByText('No spans found')).not.toBeInTheDocument();
+  });
+
   it('does not render or fetch span details when the feature is disabled', () => {
     const detailsMock = mockSpanDetails(firstRow, []);
 

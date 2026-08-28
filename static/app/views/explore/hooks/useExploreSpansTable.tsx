@@ -104,7 +104,9 @@ export function useExploreSpansTable({
     return;
   }, [fieldsKey, identityKey, requestState]);
   const constrainedQuery = visibleSamples
-    ? [query, `id:[${visibleSamples.spanIds.join(',')}]`].filter(Boolean).join(' ')
+    ? [query ? `(${query})` : '', `id:[${visibleSamples.spanIds.join(',')}]`]
+        .filter(Boolean)
+        .join(' ')
     : query;
 
   const canTriggerHighAccuracy = useCallback(
