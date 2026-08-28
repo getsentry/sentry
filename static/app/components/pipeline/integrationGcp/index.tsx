@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import type {
   GcpProjectResult,
   GcpVerificationInput,
@@ -129,7 +130,7 @@ function GcpCustomerConfigStep({
 
   useEffect(() => {
     if (advanceError) {
-      setFieldErrors(form, advanceError);
+      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
     }
   }, [advanceError, form]);
 

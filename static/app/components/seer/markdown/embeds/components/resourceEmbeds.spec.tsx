@@ -101,7 +101,6 @@ describe('Seer resource embeds', () => {
         id: '4c1f2e3d1234567890',
         eventTimestamp: '2026-08-25T16:37:12Z',
       },
-      level: 'block',
     });
 
     await waitFor(() => {
@@ -113,7 +112,6 @@ describe('Seer resource embeds', () => {
     renderEmbed({
       name: 'replay',
       data: {id: 'abcdef1234567890'},
-      level: 'block',
     });
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
