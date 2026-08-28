@@ -198,6 +198,29 @@ describe('TableWidgetVisualization', () => {
       expect($headers[1]).toHaveTextContent('count(span.duration)');
     });
 
+    it('Leaves aggregate and equation headers intact', () => {
+      // prettifyTagKey's pattern is unanchored, so running it over a whole
+      // expression would return the first attribute name and drop the rest.
+      const equation = 'equation|tags[a,number] + 1';
+      const aggregate = 'count(tags[foo,number])';
+      render(
+        <TableWidgetVisualization
+          tableData={{
+            data: [{[equation]: 1, [aggregate]: 2}],
+            meta: {
+              fields: {[equation]: 'number', [aggregate]: 'number'},
+              units: {[equation]: null, [aggregate]: null},
+            },
+          }}
+          columns={TabularColumnsFixture([{key: equation}, {key: aggregate}])}
+        />
+      );
+
+      const $headers = screen.getAllByRole('columnheader');
+      expect($headers[0]).toHaveTextContent('tags[a,number] + 1');
+      expect($headers[1]).toHaveTextContent('count(tags[foo,number])');
+    });
+
     it('Uses aliases for column names if supplied', () => {
       const aliases = {
         'count(span.duration)': 'span duration count',

@@ -16,6 +16,7 @@ import type {Column, ColumnValueType, Sort, SortKind} from 'sentry/utils/discove
 import {
   fieldAlignment,
   isEquation,
+  parseFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
@@ -142,6 +143,13 @@ export const FRAMELESS_STYLES = {
   height: '100%',
 };
 
+function prettifyColumnKey(key: string): string {
+  if (isEquation(key) || parseFunction(key)) {
+    return key;
+  }
+  return prettifyTagKey(key);
+}
+
 export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const {
     tableData,
@@ -233,7 +241,8 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const isStarredColumn = column.key === SpanFields.IS_STARRED_TRANSACTION;
           const hasAlias = !!aliases?.[column.key];
           const align = fieldAlignment(column.key, column.type as ColumnValueType);
-          let name: React.ReactNode = aliases?.[column.key] || prettifyTagKey(column.key);
+          let name: React.ReactNode =
+            aliases?.[column.key] || prettifyColumnKey(column.key);
           if (isStarredColumn && !hasAlias) {
             name = <IconStar isSolid size="md" variant="warning" />;
           } else if (isEquation(column.key)) {
@@ -390,7 +399,7 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
           const name: React.ReactNode = displayAsIcon ? (
             <IconStar isSolid size="md" variant="warning" />
           ) : (
-            aliases?.[column.key] || prettifyTagKey(column.key)
+            aliases?.[column.key] || prettifyColumnKey(column.key)
           );
           const tooltipTitle = displayAsIcon ? column.key : name;
 
