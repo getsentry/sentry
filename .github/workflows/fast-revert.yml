@@ -10,31 +10,45 @@ on:
         required: true
         description: '`name <email>` for triggering user'
 
-# disable all permissions -- we use the PAT's permissions instead
+# Disable the default token permissions; the GitHub App token below supplies access.
 permissions: {}
 
 jobs:
   revert:
     runs-on: ubuntu-latest
+    environment: fast-revert
     if: |
       github.event_name == 'workflow_dispatch' || github.event.label.name == 'Trigger: Revert'
     steps:
+      - name: fast-revert bot token
+        id: fast-revert-bot-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_FAST_REVERT_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_FAST_REVERT_BOT_PRIVATE_KEY }}
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          token: ${{ steps.fast-revert-bot-token.outputs.token }}
       - uses: getsentry/action-fast-revert@35b4b6c1f8f91b5911159568b3b15e531b5b8174 # v2.0.1
         with:
           pr: ${{ github.event.number || github.event.inputs.pr }}
           co_authored_by: ${{ github.event.inputs.co_authored_by || format('{0} <{1}+{0}@users.noreply.github.com>', github.event.sender.login, github.event.sender.id) }}
-          committer_name: getsentry-bot
-          committer_email: bot@sentry.io
-          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          committer_name: sentry-fast-revert-bot[bot]
+          committer_email: 322273150+sentry-fast-revert-bot[bot]@users.noreply.github.com
+          token: ${{ steps.fast-revert-bot-token.outputs.token }}
       - name: comment on failure
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          REPOSITORY_ID: ${{ github.event.repository.id }}
+          ISSUE_NUMBER: ${{ github.event.number || github.event.inputs.pr }}
+          GITHUB_TOKEN: ${{ steps.fast-revert-bot-token.outputs.token }}
         run: |
           curl \
               --silent \
               -X POST \
-              -H 'Authorization: token ${{ secrets.BUMP_SENTRY_TOKEN }}' \
-              -d'{"body": "revert failed (conflict? already reverted?) -- [check the logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"}' \
-              https://api.github.com/repositories/${{ github.event.repository.id }}/issues/${{ github.event.number || github.event.inputs.pr }}/comments
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -d"{\"body\": \"revert failed (conflict? already reverted?) -- [check the logs](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)\"}" \
+              "https://api.github.com/repositories/$REPOSITORY_ID/issues/$ISSUE_NUMBER/comments"
         if: failure()

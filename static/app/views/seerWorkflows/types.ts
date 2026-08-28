@@ -38,9 +38,19 @@ type SeerNightShiftRunExtras = {
   triggering_user_id?: number;
 };
 
+export type SeerNightShiftRunErrorType =
+  | 'no_quota'
+  | 'eligible_projects_failed'
+  | 'no_seer_access'
+  | 'invalid_shard_plan'
+  | 'shard_dispatch_failed'
+  | 'shard_delivery_failed'
+  | 'unknown';
+
 export type SeerNightShiftRun = {
   dateAdded: string;
   errorMessage: string | null;
+  errorType: SeerNightShiftRunErrorType | null;
   extras: SeerNightShiftRunExtras;
   id: string;
   issues: SeerNightShiftRunIssue[];
