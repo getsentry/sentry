@@ -479,7 +479,7 @@ function getFileEvidenceLink({
     icon: <IconFile />,
     prefix: t('File'),
     label: filename,
-    suffix: ` ${lines}`,
+    suffix: lines ? ` ${lines}` : undefined,
     tooltip: (
       <Fragment>
         {filePath}
