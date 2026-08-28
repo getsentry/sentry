@@ -198,6 +198,7 @@ class CodeMappingTreesHelper:
             logger.warning("No files matched for %s", frame_filename.raw_path)
             return []
 
+        # Keep repository identity so equal roots in different repositories stay ambiguous.
         unique_code_mappings = list(dict.fromkeys(code_mappings))
         if len({code_mapping.repo for code_mapping in unique_code_mappings}) > 1:
             logger.warning("More than one repo matched %s", frame_filename.raw_path)

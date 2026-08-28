@@ -71,6 +71,7 @@ class RepoTreesIntegration(ABC):
         with metrics.timer(f"{METRICS_KEY_PREFIX}.populate_repositories.duration"):
             repositories = self._populate_repositories()
             if repository_names is not None:
+                # Preserve the caller's repository priority while filtering.
                 repository_order = {name: index for index, name in enumerate(repository_names)}
                 repositories = sorted(
                     (

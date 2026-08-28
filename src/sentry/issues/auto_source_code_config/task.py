@@ -101,6 +101,7 @@ def process_event(
     if not frames_to_process:
         return [], []
 
+    # Java also uses inferred mappings to restore missing derived in-app rules.
     if not platform_config.creates_in_app_stack_trace_rules():
         frames_to_process = _get_uncovered_frames(
             frames_to_process,
