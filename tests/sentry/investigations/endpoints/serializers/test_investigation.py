@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.serializers import (
@@ -39,6 +40,27 @@ class InvestigationSerializerTest(TestCase):
             "blockCount": 0,
             "isFavorited": False,
             "titleGeneration": {"status": None},
+            "orchestration": None,
+        }
+
+    def test_serializes_compact_orchestration_state_without_a_mode(self) -> None:
+        heartbeat = timezone.now()
+        self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            phase="investigating",
+            status="processing",
+            notebook_revision=4,
+            heartbeat_at=heartbeat,
+        )
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert "mode" not in result
+        assert result["orchestration"] == {
+            "phase": "investigating",
+            "status": "processing",
+            "heartbeatAt": heartbeat,
+            "notebookRevision": 4,
         }
 
     def test_counts_only_active_blocks(self) -> None:
@@ -71,6 +93,7 @@ class InvestigationSerializerTest(TestCase):
             )
             self.create_investigation_block(investigation=investigation, position=0)
             self.create_investigation_favorite(investigation=investigation, user=self.user)
+            self.create_investigation_orchestration_run(investigation=investigation)
 
         first_batch = list(Investigation.objects.filter(organization=self.organization))
         serialize(
@@ -91,6 +114,7 @@ class InvestigationSerializerTest(TestCase):
             )
             self.create_investigation_block(investigation=investigation, position=0)
             self.create_investigation_favorite(investigation=investigation, user=self.user)
+            self.create_investigation_orchestration_run(investigation=investigation)
 
         second_batch = list(Investigation.objects.filter(organization=self.organization))
         with CaptureQueriesContext(connection) as second_queries:
@@ -105,6 +129,9 @@ class InvestigationSerializerTest(TestCase):
         counts = sorted(result["blockCount"] for result in results)
         # Only the setUp investigation has no blocks; every created one has exactly one.
         assert counts == [0] + [1] * (len(second_batch) - 1)
+        assert (
+            sum(result["orchestration"] is not None for result in results) == len(second_batch) - 1
+        )
 
 
 class InvestigationDetailsSerializerTest(TestCase):

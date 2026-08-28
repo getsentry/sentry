@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from unittest import mock
+from uuid import uuid4
 
 from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationRun,
     InvestigationSourceType,
     InvestigationStatus,
 )
@@ -59,6 +64,266 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert [item["title"] for item in response.data] == ["Checkout follow-up"]
         assert response.data[0]["blockCount"] == 0
         assert response.data[0]["isFavorited"] is False
+
+    def test_create_agentic_manual_investigation_awaiting_a_prompt(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "title": "Checkout investigation",
+                "source": {"type": "manual", "seed": {"release": "example-release"}},
+                "projectIds": [self.project.id],
+                "filters": {"environment": ["production"]},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert "mode" not in response.data
+        assert response.data["orchestration"] == {
+            "phase": "intake",
+            "status": "awaiting_input",
+            "heartbeatAt": None,
+            "notebookRevision": 0,
+        }
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        assert run.source == {
+            "type": "manual",
+            "projectScope": {"type": "investigation"},
+            "seed": {"release": "example-release"},
+        }
+        assert run.schema_version == 1
+        assert run.workflow_version == 1
+        assert run.generation == 1
+        assert run.notebook_revision == 0
+        assert run.projection["report"]["revision"] == 0
+        assert run.projection["pendingInput"]["missingFields"] == ["prompt"]
+        assert run.projection["broadScan"]["status"] == "blocked"
+
+    def test_create_agentic_manual_investigation_without_a_time_range_starts_scan(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate checkout latency"}},
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        assert run.phase == "broad_scan"
+        assert run.status == "pending"
+        assert run.projection["pendingInput"] is None
+        assert run.projection["broadScan"]["status"] == "queued"
+
+    def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "source": {"type": "manual", "prompt": "Investigate latency"},
+                "projectIds": [foreign_project.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert not InvestigationOrchestrationRun.objects.exists()
+
+    def test_read_and_accept_agentic_commands_idempotently(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+        InvestigationOrchestrationRun.objects.filter(investigation_id=creation.data["id"]).update(
+            seer_run_id=42
+        )
+        orchestration_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+
+        projection = self.client.get(orchestration_url)
+        assert projection.status_code == 200, projection.data
+        assert projection.data["runId"] == "42"
+        assert projection.data["workflowVersion"] == 1
+        assert projection.data["notebookRevision"] == 0
+
+        request_id = str(uuid4())
+        command = {
+            "requestId": request_id,
+            "expectedWorkflowVersion": 1,
+            "command": {
+                "type": "add_hypothesis",
+                "statement": "A recent release caused the regression",
+                "rationale": "The timing overlaps",
+            },
+        }
+        response = self.client.post(command_url, data=command, format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["requestId"] == request_id
+        assert response.data["accepted"] is True
+        assert response.data["duplicate"] is False
+        assert response.data["runId"] == "42"
+        assert response.data["workflowVersion"] == 2
+        assert response.data["projection"]["runId"] == "42"
+        assert response.data["projection"]["workflowVersion"] == 2
+        assert response.data["projection"]["phase"] == "broad_scan"
+        assert response.data["projection"]["hypotheses"] == []
+        stored = InvestigationOrchestrationCommand.objects.get(request_id=request_id)
+        assert stored.actor_id == self.user.id
+        assert stored.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert stored.payload == {
+            "statement": "A recent release caused the regression",
+            "rationale": "The timing overlaps",
+        }
+        assert stored.resulting_workflow_version == 2
+        assert stored.orchestration_run.projection["hypotheses"] == []
+        assert not Investigation.objects.get(id=creation.data["id"]).blocks.exists()
+
+        duplicate = self.client.post(command_url, data=command, format="json")
+        assert duplicate.status_code == 200, duplicate.data
+        assert duplicate.data["duplicate"] is True
+        assert duplicate.data["runId"] == "42"
+        assert duplicate.data["workflowVersion"] == 2
+        assert duplicate.data["projection"]["runId"] == "42"
+        assert InvestigationOrchestrationCommand.objects.filter(request_id=request_id).count() == 1
+
+        changed = deepcopy(command)
+        changed["command"]["statement"] = "A database lock caused the regression"
+        assert self.client.post(command_url, data=changed, format="json").status_code == 409
+
+        stale = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+        assert stale.status_code == 409
+        assert InvestigationOrchestrationCommand.objects.count() == 1
+
+    def test_orchestration_read_returns_not_found_for_a_manual_investigation(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Manual"
+        )
+        orchestration_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        assert self.client.get(orchestration_url).status_code == 404
+
+    def test_orchestration_command_returns_not_found_for_a_manual_investigation(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Manual"
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 404
+
+    def test_orchestration_command_requires_an_authenticated_user(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+
+        assert response.status_code in {401, 403}
+
+    def test_archived_investigation_rejects_commands_without_advancing_the_run(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+        detail_url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+        archived = self.client.delete(
+            detail_url,
+            data={"investigationVersion": creation.data["version"]},
+            format="json",
+        )
+        assert archived.status_code == 204
+        investigation = Investigation.objects.get(id=creation.data["id"])
+        assert investigation.status == InvestigationStatus.ARCHIVED
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
+        assert run.workflow_version == 1
+        assert not run.commands.exists()
 
     def test_list_includes_summary_when_projects_are_accessible(self) -> None:
         investigation = self.create_investigation(
