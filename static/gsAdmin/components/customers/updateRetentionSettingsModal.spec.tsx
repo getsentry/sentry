@@ -481,6 +481,148 @@ describe('UpdateRetentionSettingsModal', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
+  it('sends null for fields left at the plan default', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: null,
+            downsampled: null,
+          },
+        }),
+        logBytes: MetricHistoryFixture({
+          retention: {
+            standard: null,
+            downsampled: null,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    // Nothing is configured, so every field sits at the plan default.
+    expectSelectValue('Org Retention', null);
+    expectSelectValue('Spans Standard', null);
+    expectSelectValue('Spans Downsampled', null);
+    expectSelectValue('Logs Standard', null);
+    expectSelectValue('Logs Downsampled', null);
+
+    // Submit without touching a single field.
+    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/retention-settings/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
+            retentions: {
+              spans: {
+                standard: null,
+                downsampled: null,
+              },
+              logBytes: {
+                standard: null,
+                downsampled: null,
+              },
+            },
+          },
+        })
+      );
+    });
+
+    expect(onSuccess).toHaveBeenCalled();
+  });
+
+  it('keeps other fields null when only one field is set', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: null,
+            downsampled: null,
+          },
+        }),
+        logBytes: MetricHistoryFixture({
+          retention: {
+            standard: null,
+            downsampled: null,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    await selectRetention('Spans Standard', '90 days');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
+
+    // Selecting one value must not backfill the rest with plan values; the
+    // untouched fields stay null so the API keeps applying its own defaults.
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/retention-settings/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
+            retentions: {
+              spans: {
+                standard: 90,
+                downsampled: null,
+              },
+              logBytes: {
+                standard: null,
+                downsampled: null,
+              },
+            },
+          },
+        })
+      );
+    });
+
+    expect(onSuccess).toHaveBeenCalled();
+  });
+
   it('updates only spans retention', async () => {
     const subscription = SubscriptionFixture({
       organization,
