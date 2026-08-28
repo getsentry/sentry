@@ -169,8 +169,9 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
                 ),
                 {},
             )
-        error_message = error_details.get("error_message")
-        error_type = _resolve_error_type(error_details.get("error_type"), error_message)
+        error_message: str | None = error_details.get("error_message")
+        raw_error_type: str | None = error_details.get("error_type")
+        error_type = _resolve_error_type(raw_error_type, error_message)
         status = _get_status(error_type)
         group_titles_by_id = attrs.get("group_titles_by_id", {})
         group_short_ids_by_id = attrs.get("group_short_ids_by_id", {})
@@ -203,6 +204,7 @@ _LEGACY_ERROR_TYPES = {
     "Organization does not have Seer access": SeerNightShiftRunErrorType.NO_SEER_ACCESS,
     "Invalid Night Shift shard plan": SeerNightShiftRunErrorType.INVALID_SHARD_PLAN,
 }
+_ERROR_TYPES_BY_VALUE = {error_type.value: error_type for error_type in SeerNightShiftRunErrorType}
 _SKIPPED_ERROR_TYPES = {
     SeerNightShiftRunErrorType.NO_QUOTA,
     SeerNightShiftRunErrorType.NO_SEER_ACCESS,
@@ -210,15 +212,12 @@ _SKIPPED_ERROR_TYPES = {
 
 
 def _resolve_error_type(
-    raw_error_type: object, error_message: object
+    raw_error_type: str | None, error_message: str | None
 ) -> SeerNightShiftRunErrorType | None:
-    if isinstance(raw_error_type, str):
-        try:
-            return SeerNightShiftRunErrorType(raw_error_type)
-        except ValueError:
-            return SeerNightShiftRunErrorType.UNKNOWN
+    if raw_error_type is not None:
+        return _ERROR_TYPES_BY_VALUE.get(raw_error_type, SeerNightShiftRunErrorType.UNKNOWN)
 
-    if not isinstance(error_message, str):
+    if error_message is None:
         return None
     if error_type := _LEGACY_ERROR_TYPES.get(error_message):
         return error_type
