@@ -136,15 +136,9 @@ export function ConversationSpanDetail({
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <AiSpanStatusIcon node={node} />
-          <Stack flex="1" minWidth="0">
-            <InfoText title={title} mode="overflowOnly" size="lg" bold>
-              {title}
-            </InfoText>
-            <TraceDrawerComponents.SubtitleWithCopyButton
-              subTitle={`ID: ${node.id}`}
-              clipboardText={node.id}
-            />
-          </Stack>
+          <InfoText title={title} mode="overflowOnly" size="lg" bold>
+            {title}
+          </InfoText>
         </Flex>
         {onClose ? (
           <Button
@@ -156,6 +150,13 @@ export function ConversationSpanDetail({
           />
         ) : null}
       </Flex>
+
+      <Container flexShrink={0} minWidth="0">
+        <TraceDrawerComponents.SubtitleWithCopyButton
+          subTitle={`ID: ${node.id}`}
+          clipboardText={node.id}
+        />
+      </Container>
 
       <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
@@ -495,13 +496,11 @@ function EmptyTab({message}: {message: string}) {
 function SpanDetailSkeleton({embedded}: {embedded?: boolean}) {
   return (
     <SpanDetailCard embedded={embedded}>
-      <Flex align="center" gap="md" flexShrink={0}>
+      <Flex align="center" gap="lg" flexShrink={0}>
         <Placeholder height="16px" width="16px" />
-        <Stack gap="xs">
-          <Placeholder height="16px" width="180px" />
-          <Placeholder height="12px" width="120px" />
-        </Stack>
+        <Placeholder height="16px" width="180px" />
       </Flex>
+      <Placeholder height="14px" width="160px" />
       <Stack gap="md" flexShrink={0}>
         <Placeholder height="16px" width="60px" />
         <SpanMetadataSkeleton />
