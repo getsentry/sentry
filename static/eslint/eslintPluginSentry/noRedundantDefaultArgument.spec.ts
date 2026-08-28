@@ -83,6 +83,10 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       code: 'function foo({value = 0}) {} foo({value: 0, ...other});',
     },
     {
+      name: 'earlier object spread can supply the property',
+      code: 'function foo({value = 0}) {} foo({...other, value: 0});',
+    },
+    {
       name: 'unknown JSX component',
       code: '<Foo value={5} />;',
     },
@@ -97,6 +101,10 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
     {
       name: 'later JSX spread can override the prop',
       code: 'function Foo({value = 5}) { return null; } <Foo value={5} {...props} />;',
+    },
+    {
+      name: 'earlier JSX spread can supply the prop',
+      code: 'function Foo({value = 5}) { return null; } <Foo {...props} value={5} />;',
     },
     {
       name: 'intrinsic JSX element',
@@ -196,12 +204,6 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       ],
     },
     {
-      name: 'object spread before explicit property',
-      code: 'function foo({value = 5}) {} foo({...other, value: 5});',
-      output: 'function foo({value = 5}) {} foo({...other});',
-      errors: [{messageId: 'redundantDefaultValue'}],
-    },
-    {
       name: 'object argument before call spread stays aligned',
       code: 'function foo({value = 5}, ...rest) {} foo({value: 5}, ...values);',
       output: 'function foo({value = 5}, ...rest) {} foo({}, ...values);',
@@ -237,12 +239,6 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       name: 'boolean JSX shorthand',
       code: 'function Foo({enabled = true}) { return null; } <Foo enabled />;',
       output: 'function Foo({enabled = true}) { return null; } <Foo />;',
-      errors: [{messageId: 'redundantDefaultValue'}],
-    },
-    {
-      name: 'JSX spread before explicit prop',
-      code: 'function Foo({value = 5}) { return null; } <Foo {...props} value={5} />;',
-      output: 'function Foo({value = 5}) { return null; } <Foo {...props} />;',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
     {

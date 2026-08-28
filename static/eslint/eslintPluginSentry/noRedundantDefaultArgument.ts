@@ -366,7 +366,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           continue;
         }
         if (property.type === AST_NODE_TYPES.SpreadElement) {
-          break;
+          return;
         }
         if (property.type !== AST_NODE_TYPES.Property) {
           continue;
@@ -471,7 +471,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           continue;
         }
         if (attribute.type === AST_NODE_TYPES.JSXSpreadAttribute) {
-          break;
+          return;
         }
         if (attribute.name.type !== AST_NODE_TYPES.JSXIdentifier) {
           continue;
