@@ -7,32 +7,16 @@ import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import {isScmProvider, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 function MsTeamsConnection({
   Header,
   Body,
   provider,
 }: ModalRenderProps & {provider: IntegrationProvider}) {
-  const organization = useOrganization();
   const externalInstall = provider.metadata.aspects.externalInstall;
-
-  const handleMarketplaceClick = () => {
-    trackIntegrationAnalytics('integrations.installation_start', {
-      integration: provider.key,
-      integration_type: 'first_party',
-      is_scm: isScmProvider(provider),
-      organization,
-      view: MessagingIntegrationAnalyticsView.ONBOARDING,
-      already_installed: false,
-      variant: 'scm',
-    });
-  };
 
   return (
     <Fragment>
@@ -40,7 +24,7 @@ function MsTeamsConnection({
         <Text size="lg">{t('Installing Microsoft Teams Integration')}</Text>
       </Header>
       <Body>
-        <Stack gap="lg" align="start">
+        <Stack gap="xl" align="start">
           <Alert variant="info">
             {t(
               "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
@@ -52,7 +36,6 @@ function MsTeamsConnection({
               variant="primary"
               icon={<IconOpen />}
               href={externalInstall.url}
-              onClick={handleMarketplaceClick}
               external
             >
               {externalInstall.buttonText}

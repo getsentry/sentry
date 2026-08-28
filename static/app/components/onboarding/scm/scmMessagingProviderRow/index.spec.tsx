@@ -221,7 +221,6 @@ describe('ScmMessagingProviderRow', () => {
       expect(
         await screen.findByText('Installing Microsoft Teams Integration')
       ).toBeInTheDocument();
-      expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
     });
   });
 

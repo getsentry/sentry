@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {RowVisualState} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 
 interface RowActionsProps {

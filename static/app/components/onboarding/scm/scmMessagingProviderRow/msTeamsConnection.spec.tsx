@@ -1,45 +1,37 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-
-import * as integrationUtil from 'sentry/utils/integrationUtil';
+import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openMsTeamsConnectionModal} from './msTeamsConnection';
 
 const TEAMS_MARKETPLACE_URL = 'https://teams.microsoft.com/l/app/test-app-id';
 
-const providerBase = GitHubIntegrationProviderFixture({
-  key: 'msteams',
-  name: 'Microsoft Teams',
-  canAdd: false,
+function makeMsteamsProvider(externalInstall?: {
+  buttonText: string;
+  noticeText: string;
+  url: string;
+}) {
+  const base = GitHubIntegrationProviderFixture({
+    key: 'msteams',
+    name: 'Microsoft Teams',
+    canAdd: false,
+  });
+  return {
+    ...base,
+    metadata: {
+      ...base.metadata,
+      aspects: {...base.metadata.aspects, externalInstall},
+    },
+  };
+}
+
+const provider = makeMsteamsProvider({
+  url: TEAMS_MARKETPLACE_URL,
+  buttonText: 'Teams Marketplace',
+  noticeText: 'Visit the Teams Marketplace to install this integration.',
 });
-
-const provider = {
-  ...providerBase,
-  metadata: {
-    ...providerBase.metadata,
-    aspects: {
-      ...providerBase.metadata.aspects,
-      externalInstall: {
-        url: TEAMS_MARKETPLACE_URL,
-        buttonText: 'Teams Marketplace',
-        noticeText: 'Visit the Teams Marketplace to install this integration.',
-      },
-    },
-  },
-};
-
-const providerWithoutExternalInstall = {
-  ...providerBase,
-  metadata: {
-    ...providerBase.metadata,
-    aspects: {
-      ...providerBase.metadata.aspects,
-      externalInstall: undefined,
-    },
-  },
-};
+const providerWithoutExternalInstall = makeMsteamsProvider(undefined);
 
 describe('MsTeamsConnection modal', () => {
   const organization = OrganizationFixture();
@@ -53,29 +45,12 @@ describe('MsTeamsConnection modal', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
+        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation. Return to this tab when you're done."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toHaveAttribute(
       'href',
       TEAMS_MARKETPLACE_URL
-    );
-  });
-
-  it('fires installation_start analytics when the marketplace button is clicked', async () => {
-    const trackSpy = jest.spyOn(integrationUtil, 'trackIntegrationAnalytics');
-    renderGlobalModal({organization});
-    act(() => openMsTeamsConnectionModal(provider));
-
-    await userEvent.click(screen.getByRole('button', {name: 'Teams Marketplace'}));
-
-    expect(trackSpy).toHaveBeenCalledWith(
-      'integrations.installation_start',
-      expect.objectContaining({
-        integration: 'msteams',
-        view: 'onboarding',
-        variant: 'scm',
-      })
     );
   });
 
@@ -85,7 +60,7 @@ describe('MsTeamsConnection modal', () => {
 
     expect(
       screen.getByText(
-        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation."
+        "Visit the Teams Marketplace to add Sentry to a team and channel. You'll get a welcome message in the General channel to complete installation. Return to this tab when you're done."
       )
     ).toBeInTheDocument();
     expect(
