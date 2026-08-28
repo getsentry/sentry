@@ -1,51 +1,126 @@
-import {getEmbedLinkHref} from './resourceEmbedTestUtils';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
+
+function renderEmbed({
+  data,
+  level = 'block',
+}: {
+  data: Record<string, unknown>;
+  level?: 'block' | 'inline';
+}) {
+  const tag = `{% spansQuery %}${JSON.stringify(data)}{% /spansQuery %}`;
+  return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
+}
 
 describe('spans query embed', () => {
-  it('builds a samples-mode query', () => {
-    const href = getEmbedLinkHref('spansQuery', 'Span search', {
-      query: 'span.op:http.client',
-      mode: 'samples',
-      sort: '-span.duration',
-      statsPeriod: '24h',
+  it('previews five span samples', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: Array.from({length: 6}, (_, index) => ({
+          id: String(index + 1),
+          'span.description': `GET /api/${index + 1}`,
+          'span.duration': 100 + index,
+          'span.op': 'http.server',
+        })),
+      },
     });
 
-    expect(href).toContain('/organizations/org-slug/explore/traces/');
-    expect(href).toContain('mode=samples');
-    expect(href).toContain('query=span.op%3Ahttp.client');
-    expect(href).toContain('sort=-span.duration');
+    renderEmbed({
+      data: {
+        query: 'span.op:http.server',
+        mode: 'samples',
+        fields: ['span.description', 'span.op', 'span.duration'],
+        sort: '-span.duration',
+        statsPeriod: '24h',
+        title: 'Slow HTTP spans',
+      },
+    });
+
+    expect(await screen.findByText('GET /api/1')).toBeInTheDocument();
+    expect(screen.getByText('GET /api/5')).toBeInTheDocument();
+    expect(screen.queryByText('GET /api/6')).not.toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Slow HTTP spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/explore/traces/')
+    );
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+            field: ['span.description', 'span.op', 'span.duration'],
+            per_page: 5,
+            query: 'span.op:http.server',
+            sort: '-span.duration',
+            statsPeriod: '24h',
+          }),
+        })
+      );
+    });
   });
 
-  it('encodes group-bys and aggregates for aggregate mode', () => {
-    const href = getEmbedLinkHref('spansQuery', 'p95 by op', {
-      mode: 'aggregate',
-      groupBy: ['span.op'],
-      yAxes: ['p95(span.duration)'],
-      title: 'p95 by op',
+  it('previews aggregate spans using API field aliases', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'span.op': 'http.server',
+            p95_span_duration: 1234,
+          },
+        ],
+      },
     });
 
-    expect(href).toContain('mode=aggregate');
+    renderEmbed({
+      data: {
+        query: '',
+        mode: 'aggregate',
+        groupBy: ['span.op'],
+        yAxes: ['p95(span.duration)'],
+        sort: '-p95_span_duration',
+        statsPeriod: '7d',
+        title: 'p95 by span op',
+      },
+    });
 
-    const params = new URL(href, 'https://sentry.io').searchParams;
-    expect(params.getAll('aggregateField').map(field => JSON.parse(field))).toEqual([
-      {groupBy: 'span.op'},
-      {yAxes: ['p95(span.duration)']},
-    ]);
+    expect(await screen.findByText('http.server')).toBeInTheDocument();
+    expect(screen.getByText('1,234')).toBeInTheDocument();
+    expect(screen.getByText('Aggregate')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+            field: ['span.op', 'p95(span.duration)'],
+            per_page: 5,
+            sort: '-p95_span_duration',
+            statsPeriod: '7d',
+          }),
+        })
+      );
+    });
   });
 
-  it('coerces numeric project IDs so agent payloads still render', () => {
-    const href = getEmbedLinkHref('spansQuery', 'Issue Pageloads (Last 30 Days)', {
-      mode: 'aggregate',
-      query: 'span.op:pageload transaction:*issues*',
-      groupBy: ['transaction'],
-      yAxes: ['count()'],
-      statsPeriod: '30d',
-      projects: [11276],
-      title: 'Issue Pageloads (Last 30 Days)',
+  it('does not fetch data for an inline embed', () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
     });
 
-    expect(href).toContain('/organizations/org-slug/explore/traces/');
-    expect(href).toContain('project=11276');
-    expect(href).toContain('statsPeriod=30d');
-    expect(href).toContain('mode=aggregate');
+    renderEmbed({
+      data: {query: 'span.op:http.client', mode: 'samples'},
+      level: 'inline',
+    });
+
+    expect(screen.getByRole('link', {name: 'Span search'})).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 });
