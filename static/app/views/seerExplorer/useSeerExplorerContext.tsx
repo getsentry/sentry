@@ -198,13 +198,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         openSeerExplorerDrawer();
       }
     }
-  }, [
-    isPoppedOut,
-    isSidebarMode,
-    openSidebar,
-    openSeerExplorerDrawer,
-    organization,
-  ]);
+  }, [isPoppedOut, isSidebarMode, openSidebar, openSeerExplorerDrawer, organization]);
 
   const openSeerExplorer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
