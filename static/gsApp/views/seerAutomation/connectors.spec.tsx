@@ -15,26 +15,11 @@ import SeerConnectors from 'getsentry/views/seerAutomation/connectors';
 
 describe('SeerConnectors', () => {
   const organization = OrganizationFixture({
-    features: ['seer-infra-telemetry', 'seer-infra-telemetry-user-level-auth'],
+    features: ['seer-infra-telemetry'],
   });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-  });
-
-  it('redirects to Seer settings when user-level auth flag is missing', () => {
-    const orgWithoutUserAuth = OrganizationFixture({
-      features: ['seer-infra-telemetry'],
-    });
-
-    const {router} = render(<SeerConnectors />, {
-      organization: orgWithoutUserAuth,
-      initialRouterConfig: {
-        location: {pathname: `/settings/${orgWithoutUserAuth.slug}/seer/connectors/`},
-      },
-    });
-
-    expect(router.location.pathname).toBe(`/settings/${orgWithoutUserAuth.slug}/seer/`);
   });
 
   it('renders page with header and provider list', async () => {
