@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -212,6 +212,16 @@ export function MetricSelectRow({
     ).length === 1;
   const renderedFieldSelector = fieldSelector?.(shouldAutoSelectFirstColumn);
 
+  const fieldOption = useMemo(() => {
+    return {
+      isSelected: field.kind === FieldValueKind.FIELD,
+      disabledReason: hasOnlyAggregate
+        ? t('Add another aggregate before adding a field.')
+        : undefined,
+      onSelect: onSelectField,
+    };
+  }, [field.kind, hasOnlyAggregate, onSelectField]);
+
   return (
     <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper isFieldSelected={field.kind === FieldValueKind.FIELD}>
@@ -223,17 +233,7 @@ export function MetricSelectRow({
               ? getDisabledOptionReason
               : undefined
           }
-          fieldOption={
-            state.displayType === DisplayType.TABLE
-              ? {
-                  isSelected: field.kind === FieldValueKind.FIELD,
-                  disabledReason: hasOnlyAggregate
-                    ? t('Add another aggregate before adding a field.')
-                    : undefined,
-                  onSelect: onSelectField,
-                }
-              : undefined
-          }
+          fieldOption={state.displayType === DisplayType.TABLE ? fieldOption : undefined}
           onChange={onMetricChange}
         />
       </MetricSelectorWrapper>
