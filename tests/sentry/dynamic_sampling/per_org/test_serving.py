@@ -32,8 +32,6 @@ SERVING_BY_ORG_ID = {
     "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
     "dynamic-sampling.per_org.serving-org-ids": [ORG_ID],
 }
-RECALIBRATION_ON = {"dynamic-sampling.per_org.recalibration-rollout-rate": 1.0}
-RECALIBRATION_OFF = {"dynamic-sampling.per_org.recalibration-rollout-rate": 0.0}
 
 
 @pytest.fixture(autouse=True)
@@ -222,8 +220,8 @@ class TestGetTransactionSampleRates:
 
 @pytest.mark.django_db
 class TestGetRecalibrationFactor:
-    @override_options({**SERVING_ON, **RECALIBRATION_ON})
-    def test_serves_the_per_org_factor_inside_both_rollouts(
+    @override_options(SERVING_ON)
+    def test_serves_the_per_org_factor_inside_the_serving_rollout(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
         legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
@@ -233,7 +231,7 @@ class TestGetRecalibrationFactor:
         assert get_recalibration_factor(ORG_ID) == 3.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
 
-    @override_options({**SERVING_OFF, **RECALIBRATION_ON})
+    @override_options(SERVING_OFF)
     def test_serves_the_legacy_factor_outside_the_serving_rollout(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
@@ -243,7 +241,7 @@ class TestGetRecalibrationFactor:
         assert get_recalibration_factor(ORG_ID) == 2.0
         assert emitted_sources == [("recalibration_factor", "legacy")]
 
-    @override_options({**SERVING_BY_ORG_ID, **RECALIBRATION_ON})
+    @override_options(SERVING_BY_ORG_ID)
     def test_a_listed_org_serves_the_per_org_factor_at_a_rate_of_zero(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
@@ -254,7 +252,7 @@ class TestGetRecalibrationFactor:
         assert get_recalibration_factor(ORG_ID) == 3.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
 
-    @override_options({**SERVING_BY_ORG_ID, **RECALIBRATION_ON})
+    @override_options(SERVING_BY_ORG_ID)
     def test_an_unlisted_org_serves_the_legacy_factor(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
@@ -264,18 +262,7 @@ class TestGetRecalibrationFactor:
         assert get_recalibration_factor(other_org_id) == 2.0
         assert emitted_sources == [("recalibration_factor", "legacy")]
 
-    @override_options({**SERVING_ON, **RECALIBRATION_OFF})
-    def test_serves_the_legacy_factor_outside_the_recalibration_rollout(
-        self, emitted_sources: list[tuple[str, str]]
-    ) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
-        switch_org_to_per_org()
-        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
-
-        assert get_recalibration_factor(ORG_ID) == 2.0
-        assert emitted_sources == [("recalibration_factor", "legacy")]
-
-    @override_options({**SERVING_ON, **RECALIBRATION_ON})
+    @override_options(SERVING_ON)
     def test_a_missing_per_org_factor_is_the_identity_factor(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
