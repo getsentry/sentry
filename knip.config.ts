@@ -15,10 +15,6 @@ const productionEntryPoints = [
   // frontend experiemnt framework may be unused when we have no experiemnets
   'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
-  // Only used in stories (so far)
-  'static/app/components/core/quote/*.tsx',
-  'static/app/components/core/markdown/**/*.{ts,tsx}',
-  'static/app/components/core/revealOnHover/*.tsx',
   // TODO: Remove when wired into Seer Explorer
   'static/app/components/core/chat/thinkingBlock.tsx',
   'static/app/components/core/chat/toolCall.tsx',
@@ -26,10 +22,6 @@ const productionEntryPoints = [
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
-  'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
-  // TODO: Remove when the autofixRef embed consumes it (#122099)
-  'static/app/components/seer/autofixChatContext.tsx',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
   // TODO: Remove when wired into the React authentication flow

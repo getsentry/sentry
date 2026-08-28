@@ -1,1 +1,1 @@
-export {Quote, type QuoteProps} from './quote';
+export {Quote} from './quote';
