@@ -124,11 +124,11 @@ type ResolvedAvatarButtonProps = DistributedOmit<ButtonProps, 'size'> & {
   size: AvatarButtonSize;
 };
 
-function ResolvedAvatarButton({chonk: _chonk, ...props}: ResolvedAvatarButtonProps) {
+function AvatarButtonBase({chonk: _chonk, ...props}: ResolvedAvatarButtonProps) {
   return <Button {...props} />;
 }
 
-const StyledAvatarButton = styled(ResolvedAvatarButton)`
+const StyledAvatarButton = styled(AvatarButtonBase)`
   padding: 0;
   width: ${p => p.theme.form[p.size].height};
   min-width: ${p => p.theme.form[p.size].height};
