@@ -540,11 +540,7 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    # TODO: we want to support bash tools under the autofix-rca-in-seer feature
-    use_seer_rca_feature = not enable_bash_tools and features.has(
-        "organizations:autofix-rca-in-seer", group.organization, actor=user
-    )
-    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
+    if step == AutofixStep.ROOT_CAUSE and run_id is None:
         # Local import avoids a circular import (dispatch imports this module).
         from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 
@@ -554,6 +550,8 @@ def trigger_autofix_agent(
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
+            user=user,
+            enable_bash_tools=enable_bash_tools,
         )
         feature_run_id = feature_run.seer_run_state_id
         if feature_run_id is None:
@@ -928,7 +926,7 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
-def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+def should_open_autofix_pr_as_draft(organization: Organization) -> bool:
     """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
     return features.has(REVIEW_REQUEST_FLAG, organization)
 
@@ -969,7 +967,7 @@ def trigger_push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group, run_id),
-        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
         author=author,

@@ -126,7 +126,7 @@ def _sso_verification_required(email: str) -> bool:
     force_emails = options.get("auth.email-verification-at-signup.force-in-experiment") or []
     in_allowlist = any(glob_star_match(p, email) for p in force_emails)
 
-    return features.has("auth:email-verification-at-sso-signup") or in_allowlist
+    return options.get("auth.email-verification-at-signup.sso-enabled") or in_allowlist
 
 
 @dataclass
@@ -345,6 +345,55 @@ class AuthIdentityHandler:
         )
 
         return om
+
+    def _email_verified_via_pending_invite(self) -> bool:
+        """
+        A valid, approved invite token for this org in the session proves the user clicked a
+        link mailed to the invited address, treat that as sufficient proof of email ownership.
+        Not literally the same guarantee as completing the signup verification flow:
+        the invite token's own trust window (INVITE_DAYS_VALID) can outlive a single pipeline session,
+        so a click from days earlier still qualifies.
+
+        Best-effort: this only ever relaxes the verification requirement, so any failure here must fall back to
+        requiring verification as usual rather than block account creation.
+        """
+        try:
+            if self.request.user.is_authenticated:
+                # An existing (logged in) user that is invited to a new org and declines to link to the existing account
+                # ends up here.
+                # In a more complicated scenario (ex: user A is a member of org 1, user B is invited to org 1.
+                # User A's session is still active and they try to accept user B's invite - edge case but possible),
+                # if the existing (logged in) user is already a member of the org that is on the invitation,
+                # _get_invite() (used by invite_helper) looks up the invite by request.user_id first, which returns
+                # the membership for the logged-in user, not the invite that is in the session.
+                # To prevent this mix-up, bail if there is an auth'd user AND that user is already
+                # a member of the org on the invitation.
+                already_a_member = (
+                    organization_service.check_membership_by_id(
+                        user_id=self.request.user.id, organization_id=self.organization.id
+                    )
+                    is not None
+                )
+                if already_a_member:
+                    return False
+
+            invite_helper = ApiInviteHelper.from_session_or_email(
+                request=self.request,
+                organization_id=self.organization.id,
+                email=self.identity["email"],
+                logger=logger,
+            )
+            if (
+                invite_helper is None
+                or not invite_helper.valid_token
+                or not invite_helper.invite_approved
+            ):
+                return False
+            member = invite_helper.invite_context.member
+            return member is not None and member.email.lower() == self.identity["email"].lower()
+        except Exception:
+            logger.exception("sso.login-pipeline.invite-verification-check-failed")
+            return False
 
     def _get_auth_identity(self, **params: Any) -> AuthIdentity | None:
         try:
@@ -697,7 +746,10 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                is_trusted = is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                is_trusted = (
+                    is_email_verified_by_trusted_provider(self.provider.key, self.identity)
+                    or self._email_verified_via_pending_invite()
+                )
                 if not is_trusted and _sso_verification_required(self.identity["email"]):
                     return self._send_sso_verification_email_and_redirect(
                         self.identity["email"], state

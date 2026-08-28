@@ -395,20 +395,20 @@ describe('TraceTree', () => {
   describe('indicators', () => {
     it('measurements are converted to indicators', () => {
       const measurementValue = 1;
+      const transaction = makeTransaction({
+        start_timestamp: start,
+        timestamp: start + 2,
+        measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
+      });
       const tree = TraceTree.FromTrace(
         makeTrace({
-          transactions: [
-            makeTransaction({
-              start_timestamp: start,
-              timestamp: start + 2,
-              measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
-            }),
-          ],
+          transactions: [transaction],
         }),
         traceOptions
       );
       expect(tree.indicators).toHaveLength(1);
       expect(tree.indicators[0]!.start).toBe(start * 1e3 + measurementValue);
+      expect(tree.indicators[0]!.node.value).toBe(transaction);
     });
 
     it('zero measurements are not converted to indicators', () => {
@@ -907,8 +907,16 @@ describe('TraceTree', () => {
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
       expect(tree.vitals.get(span1!)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({key: 'fcp', measurement: {value: 100}}),
-          expect.objectContaining({key: 'lcp', measurement: {value: 200}}),
+          expect.objectContaining({
+            key: 'fcp',
+            measurement: {value: 100},
+            timestamp: start * 1e3 + 100,
+          }),
+          expect.objectContaining({
+            key: 'lcp',
+            measurement: {value: 200},
+            timestamp: start * 1e3 + 200,
+          }),
         ])
       );
 
@@ -1031,6 +1039,7 @@ describe('TraceTree', () => {
       const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
       expect(lcpIndicators).toHaveLength(1);
       expect(lcpIndicators[0]!.start).toBe(standaloneStart * 1e3 + 500);
+      expect(lcpIndicators[0]!.node.id).toBe('standalone-lcp-span');
     });
 
     it('applies standalone LCP measurement offset from trace origin when present', () => {

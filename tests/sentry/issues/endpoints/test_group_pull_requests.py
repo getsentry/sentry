@@ -25,6 +25,7 @@ from sentry.models.pullrequest import (
     PullRequestLifecycleState,
 )
 from sentry.models.repository import Repository
+from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
@@ -331,6 +332,25 @@ class GroupPullRequestsEndpointTest(APITestCase):
             "id": "seer",
             "agent": None,
         }
+
+    def test_returns_pull_request_after_issues_are_merged(self) -> None:
+        surviving_group = self.create_group(project=self.group.project)
+        self.create_linked_pull_request(key="1")
+
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
+
+        with self.tasks():
+            merge_groups([self.group.id], surviving_group.id)
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/"
+            f"{surviving_group.id}/pull-requests/"
+        )
+
+        assert response.status_code == 200
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
 
     def test_ignores_invalid_display_pull_request_attribution(self) -> None:
         pull_request, _ = self.create_linked_pull_request(key="1")

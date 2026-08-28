@@ -173,12 +173,7 @@ function AssigneeAvatar({
         }
       >
         <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
-          <ActorAvatar
-            actor={assignedTo}
-            className="avatar"
-            size={24}
-            hasTooltip={false}
-          />
+          <ActorAvatar actor={assignedTo} className="avatar" hasTooltip={false} />
           {label}
         </AssigneeAvatarContent>
       </Tooltip>
@@ -260,7 +255,6 @@ function CompactSuggestedAvatarStack({owners}: {owners: Actor[]}) {
           actor={owner}
           hasTooltip={false}
           key={`${owner.type}:${owner.id}`}
-          size={24}
           stackOrder={visibleOwners.length - index}
           suggested
         />

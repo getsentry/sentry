@@ -40,7 +40,7 @@ export function SupergroupFeedback({supergroupId}: SupergroupFeedbackProps) {
           <Flex gap="sm">
             <Button
               size="zero"
-              icon={<IconThumb direction="up" size="xs" />}
+              icon={<IconThumb size="xs" />}
               onClick={() => handleFeedback(true)}
               aria-label={t('Yes, this grouping is accurate')}
             />

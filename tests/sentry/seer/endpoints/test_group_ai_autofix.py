@@ -226,6 +226,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     metadata={},
                     status=0,
                 ),
+                repo_id=1,
                 missing_scopes=["contents"],
             )
         }
@@ -239,6 +240,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "warning_type": "github_app_permissions",
                 "repo_name": "getsentry/sentry",
                 "installation_id": "9999",
+                "installation_url": "https://github.com/settings/installations/9999/permissions/update",
             }
         ]
 

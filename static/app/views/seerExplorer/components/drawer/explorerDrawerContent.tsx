@@ -14,8 +14,10 @@ import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExpl
 export function ExplorerDrawerContent({
   getPageReferrer,
   initialQuery,
+  appendInitialQuery,
 }: {
   getPageReferrer: () => string;
+  appendInitialQuery?: boolean;
   initialQuery?: string;
 }) {
   const {onClose = () => {}} = useDrawerContentContext();
@@ -24,6 +26,7 @@ export function ExplorerDrawerContent({
     <SeerExplorerContent
       getPageReferrer={getPageReferrer}
       initialQuery={initialQuery}
+      appendInitialQuery={appendInitialQuery}
       onClose={onClose}
       renderHeader={({children, isPoppedOut}) => (
         <DrawerHeader hideBar hideCloseButtonText hideCloseButton={isPoppedOut}>

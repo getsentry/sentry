@@ -108,7 +108,6 @@ function getPaygPpe({
   const bucket = getBucket({
     buckets: activePlan.planCategories[category],
     events: reserved === RESERVED_BUDGET_QUOTA ? reserved : reserved + 1, // +1 to get the next bucket, if any
-    shouldMinimize: false,
   });
   return bucket.onDemandPrice ?? 0;
 }
@@ -208,7 +207,6 @@ export function SharedSpendLimitPriceTable({
         const pluralName = getPlanCategoryName({
           plan: activePlan,
           category,
-          capitalize: true,
         });
         const singularName =
           categoryInfo?.shortenedUnitName ??

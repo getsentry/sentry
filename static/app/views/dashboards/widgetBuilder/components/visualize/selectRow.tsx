@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -17,7 +18,6 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -235,7 +235,7 @@ export function SelectRow({
   } = useWidgetBuilderTraceItemConfig();
 
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   // Require both the immediate and debounced values: the debounced value gates
   // fetching while typing, and the immediate value tears the merge down the
   // moment the search is cleared (e.g. on close) instead of lingering for the

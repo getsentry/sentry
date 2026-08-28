@@ -3,6 +3,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {t, tct, tn} from 'sentry/locale';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 
 import type {ProjectConfig} from './types';
 
@@ -25,7 +26,10 @@ function formatProjectNames(slugs: string[]) {
 }
 
 export function ProjectSetupWarning({unconfiguredProjects, orgSlug}: Props) {
-  const names = formatProjectNames(unconfiguredProjects.map(project => project.slug));
+  const breakpoints = useBreakpoints();
+  const names = breakpoints.xs
+    ? formatProjectNames(unconfiguredProjects.map(project => project.slug))
+    : tn('%s project', '%s projects', unconfiguredProjects.length);
 
   return (
     <Alert variant="warning" showIcon>
