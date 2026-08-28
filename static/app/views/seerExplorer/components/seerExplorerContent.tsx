@@ -570,6 +570,7 @@ export function SeerExplorerContent({
       onTogglePictureInPicture={handleTogglePictureInPicture}
       sidebarPosition={sidebarPosition}
       onSidebarPositionChange={onSidebarPositionChange}
+      conversationsUrl={conversationsUrl}
     />
   );
 

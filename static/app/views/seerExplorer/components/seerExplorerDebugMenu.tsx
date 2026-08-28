@@ -4,6 +4,7 @@ import {Container} from '@sentry/scraps/layout';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerExplorerDebugMenuProps {
@@ -13,14 +14,17 @@ interface SeerExplorerDebugMenuProps {
   overrideBashModeEnabled: boolean;
   overrideCtxEngEnable: boolean;
   showThinking: boolean;
+  /** Production conversations URL for the current run; opens in a new tab. */
+  conversationsUrl?: string;
 }
 
 /**
  * Consolidated "Debug" dropdown holding the feature-flagged developer toggles
- * (Context Engine override, Force bash mode, Show thinking). The flag checks
- * live here so the parent doesn't thread them through — if no flags are enabled
- * the whole menu renders nothing. The toggle state stays lifted (it's consumed
- * elsewhere), so we only receive the current values and their toggle handlers.
+ * (Context Engine override, Force bash mode, Show thinking) plus an employee-only
+ * link to the conversation in Sentry. The flag checks live here so the parent
+ * doesn't thread them through — if nothing is available the whole menu renders
+ * nothing. Toggle state stays lifted (it's consumed elsewhere), so we only
+ * receive the current values and their toggle handlers.
  */
 export function SeerExplorerDebugMenu({
   overrideCtxEngEnable,
@@ -29,8 +33,10 @@ export function SeerExplorerDebugMenu({
   onOverrideBashModeToggle,
   showThinking,
   onShowThinkingToggle,
+  conversationsUrl,
 }: SeerExplorerDebugMenuProps) {
   const organization = useOrganization({allowNull: true});
+  const isSentryEmployee = useIsSentryEmployee();
   const showContextEngineToggle = !!organization?.features.includes(
     'seer-explorer-context-engine-fe-override-ui-flag'
   );
@@ -40,6 +46,7 @@ export function SeerExplorerDebugMenu({
   const showBashModeToggle = !!organization?.features.includes(
     'seer-explorer-allow-bash-mode'
   );
+  const showConversationLink = isSentryEmployee && !!conversationsUrl;
 
   const items: MenuItemProps[] = [
     ...(showContextEngineToggle
@@ -72,6 +79,15 @@ export function SeerExplorerDebugMenu({
             leadingItems: <Checkbox checked={showThinking} readOnly />,
             onAction: onShowThinkingToggle,
             closeOnSelect: false,
+          },
+        ]
+      : []),
+    ...(showConversationLink
+      ? [
+          {
+            key: 'conversation-in-sentry',
+            label: t('Conversation in Sentry'),
+            externalHref: conversationsUrl,
           },
         ]
       : []),

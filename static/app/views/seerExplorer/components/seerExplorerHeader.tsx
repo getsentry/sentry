@@ -44,6 +44,7 @@ interface SeerExplorerHeaderProps {
   overrideBashModeEnabled: boolean;
   overrideCtxEngEnable: boolean;
   showThinking: boolean;
+  conversationsUrl?: string;
   disableNewChatButton?: boolean;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
   sidebarPosition?: SeerExplorerSidebarPosition;
@@ -66,6 +67,7 @@ export function SeerExplorerHeader({
   sidebarPosition = 'auto',
   onSidebarPositionChange,
   disableNewChatButton = false,
+  conversationsUrl,
 }: SeerExplorerHeaderProps) {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
@@ -138,6 +140,7 @@ export function SeerExplorerHeader({
           onOverrideBashModeToggle={onOverrideBashModeToggle}
           showThinking={showThinking}
           onShowThinkingToggle={onShowThinkingToggle}
+          conversationsUrl={conversationsUrl}
         />
         <Flex display={{zero: 'none', '2xs': 'flex'}} align="center">
           <SeerExplorerHeaderActions {...actionsProps} />

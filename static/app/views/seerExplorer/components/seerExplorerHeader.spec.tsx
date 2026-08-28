@@ -1,7 +1,10 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
@@ -62,6 +65,33 @@ describe('SeerExplorerHeader', () => {
   }
 
   describe('Debug menu', () => {
+    const conversationsUrl =
+      'https://sentry.io/organizations/sentry/explore/agents/conversations/123/';
+
+    function asEmployee() {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            emails: [{email: 'bruno@sentry.io', is_verified: true, id: '1'}],
+          }),
+        })
+      );
+    }
+
+    function asNonEmployee() {
+      ConfigStore.loadInitialData(
+        ConfigFixture({
+          user: UserFixture({
+            emails: [{email: 'bruno@example.com', is_verified: true, id: '1'}],
+          }),
+        })
+      );
+    }
+
+    beforeEach(() => {
+      asNonEmployee();
+    });
+
     it('does not render when no debug feature flags are enabled', async () => {
       await renderHeader();
       expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
@@ -113,6 +143,38 @@ describe('SeerExplorerHeader', () => {
 
       await userEvent.click(screen.getByRole('menuitemradio', {name: /Context Engine/}));
       expect(onOverrideCtxEngEnableToggle).toHaveBeenCalled();
+    });
+
+    it('shows Conversation in Sentry for employees when a run URL is available', async () => {
+      asEmployee();
+      await renderHeader({conversationsUrl});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      const link = screen.getByRole('menuitemradio', {name: /Conversation in Sentry/});
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute('href', conversationsUrl);
+    });
+
+    it('hides Conversation in Sentry for non-employees', async () => {
+      await renderHeader({conversationsUrl}, orgWith('seer-explorer-thinking-blocks'));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Conversation in Sentry/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides Conversation in Sentry when there is no run URL', async () => {
+      asEmployee();
+      await renderHeader({}, orgWith('seer-explorer-thinking-blocks'));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Conversation in Sentry/})
+      ).not.toBeInTheDocument();
     });
   });
 
