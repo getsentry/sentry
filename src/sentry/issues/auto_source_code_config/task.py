@@ -145,6 +145,8 @@ def _get_usable_code_mappings(project: Project) -> list[RepositoryProjectPathCon
             organization_id=project.organization_id,
             organization_integration_id__isnull=False,
         )
+        # A generated empty root only proves the single file that produced it matched.
+        .exclude(automatically_generated=True, stack_root="")
         .select_related("project_repository__repository")
         .order_by("id")
     )

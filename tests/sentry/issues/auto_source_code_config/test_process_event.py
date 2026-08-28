@@ -339,7 +339,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             )
 
     def test_handle_existing_code_mapping(self) -> None:
-        self.create_repo_and_code_mapping(REPO1, "foo/", "src/foo/")
+        self.create_repo_and_code_mapping(REPO1, "", "src/")
 
         with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org") as get_trees_for_org:
             self._process_and_assert_configuration_changes(
@@ -445,10 +445,18 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     def test_single_file_path(self) -> None:
         """Test that single-file paths like Program.cs are handled correctly."""
         self._process_and_assert_configuration_changes(
-            repo_trees={REPO1: ["src/foo/bar.py"]},
+            repo_trees={REPO1: ["src/foo/bar.py", "src/other/baz.py"]},
             frames=[self.frame("bar.py", True)],
             platform="python",
             expected_new_code_mappings=[self.code_mapping("", "src/foo/")],
+        )
+
+        # The inferred empty stack root is not enough evidence to cover unrelated frames.
+        self._process_and_assert_configuration_changes(
+            repo_trees={REPO1: ["src/foo/bar.py", "src/other/baz.py"]},
+            frames=[self.frame("other/baz.py", True)],
+            platform="python",
+            expected_new_code_mappings=[self.code_mapping("other/", "src/other/")],
         )
 
     def test_dry_run_platform(self) -> None:
