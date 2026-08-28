@@ -14,9 +14,10 @@ import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExplor
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export function traceItemTagsToFunctionArguments(
+function traceItemTagsToFunctionArguments(
   numberTags: TagCollection,
-  stringTags: TagCollection
+  stringTags: TagCollection,
+  booleanTags: TagCollection
 ): FunctionArgument[] {
   return [
     ...Object.entries(numberTags).map(([key, tag]) => ({
@@ -26,6 +27,11 @@ export function traceItemTagsToFunctionArguments(
     })),
     ...Object.entries(stringTags).map(([key, tag]) => ({
       kind: FieldKind.TAG,
+      name: key,
+      label: tag.name,
+    })),
+    ...Object.entries(booleanTags).map(([key, tag]) => ({
+      kind: FieldKind.BOOLEAN,
       name: key,
       label: tag.name,
     })),
@@ -64,13 +70,13 @@ export function useExploreEquationBuilderConfig({
   );
 
   const functionArguments = useMemo(
-    () => traceItemTagsToFunctionArguments(numberTags, stringTags),
-    [numberTags, stringTags]
+    () => traceItemTagsToFunctionArguments(numberTags, stringTags, booleanTags),
+    [booleanTags, numberTags, stringTags]
   );
 
   const getFieldDefinition = useCallback(
     (key: string, attributeTexts?: readonly string[]) => {
-      const tag = numberTags[key] ?? stringTags[key];
+      const tag = numberTags[key] ?? stringTags[key] ?? booleanTags[key];
       return getExploreEquationFieldDefinition(
         key,
         tag?.kind,
@@ -78,7 +84,7 @@ export function useExploreEquationBuilderConfig({
         attributeTexts
       );
     },
-    [hasConditionalAggregates, numberTags, stringTags]
+    [booleanTags, hasConditionalAggregates, numberTags, stringTags]
   );
 
   const getSuggestedKey = useExploreSuggestedAttribute({

@@ -646,7 +646,10 @@ function InternalInput({
   );
 
   const onInputCommit = useCallback(() => {
-    let value = inputValue.trim() || argument.label;
+    // Filter args may intentionally be cleared; don't fall back to the prior label.
+    let value = isFilterParameter
+      ? inputValue.trim()
+      : inputValue.trim() || argument.label;
 
     if (defined(getSuggestedKey) && parameterDefinition?.kind === 'column') {
       value = getSuggestedKey(value) ?? value;
@@ -672,6 +675,7 @@ function InternalInput({
     });
     resetInputValue();
   }, [
+    isFilterParameter,
     inputValue,
     argument.label,
     getSuggestedKey,

@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
@@ -72,14 +72,17 @@ function useFilterValueItems({
     // Gate on the *debounced* key. `enabled` flips true as soon as the user types `:`,
     // but the query key still holds the previous empty key for one debounce window —
     // fetching then hits `/attributes//values/` and 404-retries.
+    //
+    // Do not use keepPreviousData: after switching keys in a compound filter, placeholder
+    // results from the prior key would be rewritten with the new key's clause.
     enabled: enabled && Boolean(getFilterTagValues && debouncedFilterKey),
-    placeholderData: keepPreviousData,
     staleTime: 30_000,
     retry: false,
   });
 
   return useMemo(() => {
-    if (!data?.length) {
+    // Hide results until debounce catches up to the key the cursor is editing.
+    if (!data?.length || debouncedFilterKey !== filterKey) {
       return [];
     }
 
@@ -93,7 +96,7 @@ function useFilterValueItems({
         hideCheck: true,
       };
     });
-  }, [data, filterKey]);
+  }, [data, debouncedFilterKey, filterKey]);
 }
 
 export function useConditionalFilterAutocomplete({

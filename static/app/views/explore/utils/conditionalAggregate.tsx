@@ -86,7 +86,6 @@ export type ConditionalAggregate = ParsedFunction;
 export {
   ensureSearchFilterArgument,
   escapeConditionalFilter,
-  unwrapSearchFilterArgument,
 } from 'sentry/components/arithmeticBuilder/conditionalFilter';
 
 /**

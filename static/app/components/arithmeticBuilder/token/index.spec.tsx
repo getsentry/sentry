@@ -1084,7 +1084,7 @@ describe('token', () => {
       ).getByRole('combobox', {name: 'Add a filter'});
 
       await userEvent.click(filterArg);
-      filterArg.setSelectionRange(0, 0);
+      (filterArg as HTMLInputElement).setSelectionRange(0, 0);
       fireEvent.keyUp(filterArg, {key: 'ArrowLeft', code: 'ArrowLeft'});
       await waitFor(() => {
         expect(screen.getByRole('option', {name: 'span.op:'})).toBeInTheDocument();
@@ -1113,7 +1113,7 @@ describe('token', () => {
       ).getByRole('combobox', {name: 'Add a filter'});
 
       await userEvent.click(filterArg);
-      filterArg.setSelectionRange(9, 9);
+      (filterArg as HTMLInputElement).setSelectionRange(9, 9);
       fireEvent.keyUp(filterArg, {key: 'ArrowLeft', code: 'ArrowLeft'});
 
       await waitFor(() => {
@@ -1231,6 +1231,36 @@ describe('token', () => {
       await userEvent.click(filterArg);
       await userEvent.clear(filterArg);
       await userEvent.click(getLastInput());
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(``,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('clears _if filter on Enter when the filter input is emptied', async () => {
+      const dispatch = jest.fn();
+      render(
+        <Tokens expression="avg_if(`span.op:db`,span.duration)" dispatch={dispatch} />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.clear(filterArg);
+      await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
         expect(dispatch).toHaveBeenCalledWith(

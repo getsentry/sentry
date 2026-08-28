@@ -3963,7 +3963,7 @@ export function getExploreEquationFieldDefinition(
  * Discover `_if` aggregates put a column first. EAP filter-first forms wrap the first
  * argument in backticks (`\`span.op:db\`` or empty `` ` ` ``).
  */
-export function usesDiscoverStyleConditionalAggregateArgs(
+function usesDiscoverStyleConditionalAggregateArgs(
   attributeTexts: readonly string[] | undefined
 ): boolean {
   if (!attributeTexts?.length) {
