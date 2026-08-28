@@ -28,8 +28,10 @@ from sentry.seer.endpoints.seer_rpc import (
     get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
+    get_user_details,
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
+    seer_method_registry,
 )
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
@@ -932,6 +934,41 @@ class TestGetMonitoringProviderConnections(APITestCase):
         )
 
         assert result.connections == []
+
+
+class TestGetUserDetails(APITestCase):
+    def test_returns_identity_for_org_member(self) -> None:
+        result = get_user_details(organization_id=self.organization.id, user_id=self.user.id)
+
+        assert result is not None
+        assert result.id == self.user.id
+        assert result.email == self.user.email
+        assert result.username == self.user.username
+        assert result.name == self.user.get_display_name()
+
+    def test_non_member_returns_none(self) -> None:
+        """Same answer as a missing user, so this can't be used to probe for accounts."""
+        other_org = self.create_organization()
+
+        result = get_user_details(organization_id=other_org.id, user_id=self.user.id)
+
+        assert result is None
+
+    def test_unknown_user_returns_none(self) -> None:
+        result = get_user_details(organization_id=self.organization.id, user_id=999999)
+
+        assert result is None
+
+    def test_inactive_user_returns_none(self) -> None:
+        inactive = self.create_user(is_active=False)
+        self.create_member(organization=self.organization, user=inactive)
+
+        result = get_user_details(organization_id=self.organization.id, user_id=inactive.id)
+
+        assert result is None
+
+    def test_registered_in_rpc_method_registry(self) -> None:
+        assert seer_method_registry["get_user_details"] is not None
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)

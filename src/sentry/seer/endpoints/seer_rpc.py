@@ -148,6 +148,7 @@ from sentry.seer.sentry_data_models import (
     SendSeerWebhookSuccessResponse,
     SpanAttribute,
     SpanAttributesResponse,
+    UserDetailsResponse,
 )
 from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -884,6 +885,33 @@ def get_monitoring_provider_connections(
     )
 
 
+def get_user_details(*, organization_id: int, user_id: int) -> UserDetailsResponse | None:
+    """Resolve a user id to their identity fields.
+
+    Seer holds a bare ``user_id`` from the viewer context and needs a name/email to
+    attribute a run to a person. Scoped to members of ``organization_id``: a user id from
+    outside the org resolves to ``None``, exactly as one that does not exist does, so a
+    caller cannot use this to probe for accounts.
+    """
+    users = user_service.get_many(
+        filter={
+            "user_ids": [user_id],
+            "organization_id": organization_id,
+            "is_active": True,
+        }
+    )
+    if not users:
+        return None
+
+    user = users[0]
+    return UserDetailsResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        name=user.get_display_name(),
+    )
+
+
 def refresh_monitoring_provider_token(
     *, identity_id: int
 ) -> RefreshMonitoringProviderTokenSuccessResponse | RefreshMonitoringProviderTokenErrorResponse:
@@ -979,6 +1007,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
+    "get_user_details": seer_rpc(get_user_details),
     "get_repo_installation_id": seer_rpc(get_repo_installation_id),
     #
     # Autofix

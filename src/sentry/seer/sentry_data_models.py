@@ -559,6 +559,20 @@ class GroupAssigneesResponse(_DictProxyMixin):
     assignees: dict[str, UserIdentity]
 
 
+class UserDetailsResponse(BaseModel):
+    """`get_user_details` returns the identity fields for one user.
+
+    Separate from `UserIdentity`, which several responses embed for many users at a time
+    and deliberately keeps to id/username. This one is asked for by user id, one at a
+    time, and carries the email.
+    """
+
+    id: int
+    email: str
+    username: str
+    name: str
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
