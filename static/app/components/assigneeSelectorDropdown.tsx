@@ -135,7 +135,6 @@ function AssigneeAvatar({
       <ActorAvatar
         actor={assignedTo}
         className="avatar"
-        size={24}
         tooltip={
           <Stack gap="xs" align="start">
             <Text as="div" align="left" wrap="nowrap">

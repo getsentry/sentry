@@ -36,6 +36,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {
@@ -95,6 +96,7 @@ const FilterBar = styled(Flex)`
 `;
 
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
+  {value: 'recommended', label: t('Recommended')},
   {value: 'seer', label: t('Recent Seer Activity')},
   {value: 'issue', label: t('Recent Issue Activity')},
   {value: 'events', label: t('Most events')},
@@ -102,6 +104,8 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
 ];
 
 const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
+
+const EMPTY_MEMBER_LIST: User[] = [];
 
 const activityRelativeOptions = ({
   arbitraryOptions,
@@ -171,7 +175,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const sort: OverviewSort =
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
-      ?.value ?? 'seer';
+      ?.value ?? 'recommended';
   const assignee = decodeScalar(location.query.assignee) ?? null;
   const view =
     decodeScalar(location.query.view) === 'in_progress' ? 'in_progress' : 'all';
@@ -294,18 +298,23 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     .flatMap(section => section.runs)
     .filter(run => run.pullRequests.length > 0)
     .map(run => run.seerRunId);
-  const scmWindows: string[][] = [];
-  for (let start = 0; start < orderedPrRunIds.length; start += SCM_WINDOW_SIZE) {
-    scmWindows.push(orderedPrRunIds.slice(start, start + SCM_WINDOW_SIZE));
-  }
-  const scmWindowsByRunId = new Map<string, string[][]>();
-  scmWindows.forEach((window, index) => {
-    const nextWindow = scmWindows[index + 1];
-    const toRequest = nextWindow ? [window, nextWindow] : [window];
-    for (const id of window) {
-      scmWindowsByRunId.set(id, toRequest);
+  const orderedPrRunIdsKey = orderedPrRunIds.join(',');
+  const scmWindowsByRunId = useMemo(() => {
+    const ids = orderedPrRunIdsKey ? orderedPrRunIdsKey.split(',') : [];
+    const windows: string[][] = [];
+    for (let start = 0; start < ids.length; start += SCM_WINDOW_SIZE) {
+      windows.push(ids.slice(start, start + SCM_WINDOW_SIZE));
     }
-  });
+    const map = new Map<string, string[][]>();
+    windows.forEach((window, index) => {
+      const nextWindow = windows[index + 1];
+      const toRequest = nextWindow ? [window, nextWindow] : [window];
+      for (const id of window) {
+        map.set(id, toRequest);
+      }
+    });
+    return map;
+  }, [orderedPrRunIdsKey]);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
     setCollapsedGroups(previous =>
@@ -383,12 +392,21 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           options={SORT_OPTIONS}
           onChange={selected => {
             trackFilterChanged('sort', selected.value);
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value);
+            setQueryParam(
+              'sort',
+              selected.value === 'recommended' ? undefined : selected.value
+            );
           }}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
+        {someUnconfigured && (
+          <ProjectSetupWarning
+            unconfiguredProjects={unconfiguredProjects}
+            orgSlug={organization.slug}
+          />
+        )}
       </FilterBar>
       {isError ? (
         <LoadingError onRetry={refetch} />
@@ -396,12 +414,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         <OverviewSkeleton />
       ) : (
         <Fragment>
-          {someUnconfigured && (
-            <ProjectSetupWarning
-              unconfiguredProjects={unconfiguredProjects}
-              orgSlug={organization.slug}
-            />
-          )}
           {allRuns.length === 0 ? (
             noRunsContent
           ) : assigneeRuns.length === 0 ? (
@@ -542,7 +554,9 @@ function OverviewSectionList({
                       requestScmWindow={requestScmWindow}
                       scmWindows={scmWindowsByRunId.get(run.seerRunId)}
                       projectConfig={projectConfigById.get(run.issue.project.id)}
-                      memberList={membersByProject.get(run.issue.project.slug) ?? []}
+                      memberList={
+                        membersByProject.get(run.issue.project.slug) ?? EMPTY_MEMBER_LIST
+                      }
                       assigneeReady={assigneeReady}
                     />
                   );

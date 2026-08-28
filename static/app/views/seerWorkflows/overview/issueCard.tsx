@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, memo, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -172,7 +172,7 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
+        <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>
     );
   }
@@ -207,12 +207,7 @@ function OverviewAction({
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton
-                  run={run}
-                  section={sectionKey}
-                  size="sm"
-                  variant="secondary"
-                />
+                <OpenSeerButton run={run} section={sectionKey} size="sm" />
               </ActionButtonBar>
             );
           })}
@@ -525,7 +520,7 @@ function PriorityAndAssignee({
   );
 }
 
-export function OverviewCard({
+export const OverviewCard = memo(function OverviewCardComponent({
   orgSlug,
   run,
   sectionKey,
@@ -560,6 +555,7 @@ export function OverviewCard({
       }
     }
   }, [inView, scmWindows, requestScmWindow]);
+  const headline = run.rootCause?.headline;
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
@@ -616,9 +612,14 @@ export function OverviewCard({
                   })
                 }
               >
-                {run.title}
+                {headline || run.title}
               </TitleLink>
             </Text>
+            {headline && (
+              <Text size="sm" variant="muted" ellipsis>
+                {run.title}
+              </Text>
+            )}
             <Flex wrap="wrap" gap="md" align="center">
               <Flex gap="xs" align="center">
                 <ProjectAvatar
@@ -695,7 +696,7 @@ export function OverviewCard({
       }
     />
   );
-}
+});
 
 function CardFrame({
   actions,

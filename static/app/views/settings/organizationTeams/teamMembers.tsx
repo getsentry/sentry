@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
@@ -32,7 +33,6 @@ import type {Member, Organization, Team, TeamMember} from 'sentry/types/organiza
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -84,7 +84,7 @@ function AddMemberDropdown({
   teamMembers: TeamMember[];
 }) {
   const [memberQuery, setMemberQuery] = useState('');
-  const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
+  const [debouncedMemberQuery] = useDebouncedValue(memberQuery, {wait: 50});
   const {data: orgMembers = [], isFetching: isOrgMembersFetching} = useQuery({
     ...apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
       path: {organizationIdOrSlug: organization.slug},

@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -33,7 +34,6 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {
@@ -288,7 +288,7 @@ function GroupBySelector({
   booleanTags,
 }: GroupBySelectorProps) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const hasSearch = debouncedSearch.length > 0;
 
   const {attributes: searchedStringTags, isLoading: stringLoading} =
@@ -632,7 +632,7 @@ function AttributeArgumentSelect({
   forceDisabled,
 }: AttributeArgumentSelectProps) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const hasSearch = debouncedSearch.length > 0;
 
   const supportedKinds = getSupportedAttributeKinds(parsedFunction?.name);

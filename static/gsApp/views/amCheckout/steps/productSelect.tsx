@@ -189,7 +189,6 @@ export function ProductSelect({
                               {getSingularCategoryName({
                                 plan: activePlan,
                                 category: category as DataCategory,
-                                hadCustomDynamicSampling: false,
                               })}
                               {' - '}
                               {eventPrice &&

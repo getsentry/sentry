@@ -77,7 +77,7 @@ const Deemphasize = styled('span')`
 
 function getDifferenceDirectionMarker(difference: number) {
   if (difference > 0) {
-    return <IconArrow direction="up" size="xs" />;
+    return <IconArrow size="xs" />;
   }
 
   if (difference < 0) {
