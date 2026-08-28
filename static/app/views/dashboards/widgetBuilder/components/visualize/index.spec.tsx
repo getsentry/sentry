@@ -2187,25 +2187,21 @@ describe('Visualize', () => {
       },
     });
 
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              field: ['span.op', 'sum(value,alpha_metric,counter,none)'],
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.TABLE,
-            },
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: ['span.op', 'sum(value,alpha_metric,counter,none)'],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     expect(await screen.findByRole('button', {name: 'alpha_metric'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
@@ -2227,28 +2223,24 @@ describe('Visualize', () => {
       },
     });
 
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              field: [
-                'sum(value,alpha_metric,counter,none)',
-                'sum(value,alpha_metric,counter,none)',
-              ],
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.TABLE,
-            },
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: [
+              'sum(value,alpha_metric,counter,none)',
+              'sum(value,alpha_metric,counter,none)',
+            ],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'alpha_metric'}))[0]!

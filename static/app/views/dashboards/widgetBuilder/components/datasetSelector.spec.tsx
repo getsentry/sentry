@@ -40,24 +40,20 @@ describe('DatasetSelector', () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
-    render(
-      <WidgetBuilderProvider>
-        <DatasetSelector />
-      </WidgetBuilderProvider>,
-      {
-        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.TABLE,
-              field: ['sum(value,alpha_metric,counter,none)'],
-            },
+    render(<DatasetSelector />, {
+      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+            field: ['sum(value,alpha_metric,counter,none)'],
           },
         },
-      }
-    );
+      },
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Application Metrics'})
