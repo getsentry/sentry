@@ -125,7 +125,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
   );
 }
 
-function EventViewHierarchy(props: Props) {
+export function EventViewHierarchy(props: Props) {
   const organization = useOrganization();
 
   if (!organization.features.includes('event-attachments')) {
@@ -134,5 +134,3 @@ function EventViewHierarchy(props: Props) {
 
   return <EventViewHierarchyContent {...props} />;
 }
-
-export {EventViewHierarchy};

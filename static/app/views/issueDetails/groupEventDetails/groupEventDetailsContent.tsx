@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, lazy, Suspense, useMemo, useRef} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -22,7 +22,6 @@ import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalD
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
-import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
@@ -88,6 +87,12 @@ import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/si
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+
+const EventViewHierarchy = lazy(() =>
+  import('sentry/components/events/eventViewHierarchy').then(module => ({
+    default: module.EventViewHierarchy,
+  }))
+);
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -349,7 +354,9 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
-      <EventViewHierarchy event={event} project={project} />
+      <Suspense fallback={null}>
+        <EventViewHierarchy event={event} project={project} />
+      </Suspense>
       <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
