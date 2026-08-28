@@ -5,6 +5,7 @@ import responses
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.auth.access import SystemAccess
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -94,7 +95,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         }
         validator = WorkflowValidator(
             data=self.valid_workflow,
-            context={"organization": self.organization, "request": self.make_request()},
+            context={
+                "organization": self.organization,
+                "request": self.make_request(),
+                "access": SystemAccess(),
+            },
         )
         validator.is_valid(raise_exception=True)
         self.workflow = validator.create(validator.validated_data)
@@ -373,7 +378,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         validator = WorkflowValidator(
             data=workflow_with_conditions,
-            context={"organization": self.organization, "request": self.make_request()},
+            context={
+                "organization": self.organization,
+                "request": self.make_request(),
+                "access": SystemAccess(),
+            },
         )
         validator.is_valid(raise_exception=True)
         workflow = validator.create(validator.validated_data)
