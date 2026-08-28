@@ -150,6 +150,8 @@ describe('SeerExplorerSidebarLayout', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    // @ts-expect-error - cleaning up the PiP stub
+    delete window.documentPictureInPicture;
   });
 
   it('renders content untouched (no split panel) when the flag is off', async () => {
@@ -420,6 +422,45 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'seer.explorer.global_panel.opened',
         expect.objectContaining({isDrawer: false})
+      )
+    );
+  });
+
+  it('tracks picture-in-picture open analytics when selecting Windowed', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const requestWindow = jest.fn().mockResolvedValue({
+      document: document.implementation.createHTMLDocument('pip'),
+      close: jest.fn(),
+      focus: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      closed: false,
+    });
+    Object.defineProperty(window, 'documentPictureInPicture', {
+      configurable: true,
+      writable: true,
+      value: {requestWindow, window: null},
+    });
+
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    const input = await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(input).toHaveFocus());
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+
+    await waitFor(() => expect(requestWindow).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'seer.explorer.pip.toggled',
+        expect.objectContaining({
+          action: 'opened',
+          surface: 'sidebar',
+          browser_width: expect.any(Number),
+          browser_height: expect.any(Number),
+        })
       )
     );
   });
