@@ -563,6 +563,84 @@ describe('AutofixEvidence', () => {
     });
   });
 
+  describe('EvidenceBash', () => {
+    it('renders command label from description', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'Run tests',
+        command: 'pytest tests/ -q',
+      });
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('Command: Run tests')).toBeInTheDocument();
+    });
+
+    it('renders a chip, not a link', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'Run tests',
+        command: 'pytest tests/ -q',
+      });
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      const chip = screen.queryByText('Command: Run tests');
+      expect(chip).toBeInTheDocument();
+      expect(chip!.closest('a')).toBeNull();
+    });
+
+    it('falls back to the command when description is absent', () => {
+      const toolCall = makeToolCall('bash', {command: 'pytest -q'});
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('Command: pytest -q')).toBeInTheDocument();
+    });
+
+    it('renders truncated label for long descriptions', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'this is a very long description that should be truncated',
+      });
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('Command: this is \u2026runcated')).toBeInTheDocument();
+    });
+
+    it('returns null when neither description nor command is present', () => {
+      expect(resolveProps(makeToolCall('bash'))).toBeNull();
+    });
+
+    it('returns null when args is invalid JSON', () => {
+      expect(
+        resolveProps({id: 'tc-1', function: 'bash', args: '{invalid json'})
+      ).toBeNull();
+    });
+  });
+
   describe('EvidenceGitSearch', () => {
     const FULL_SHA = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
     const COMMIT_URL = 'https://github.com/org/repo/commit/a1b2c3d';
