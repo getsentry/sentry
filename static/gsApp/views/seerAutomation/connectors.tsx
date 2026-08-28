@@ -56,9 +56,9 @@ export default function SeerConnectors() {
 function SeerConnectorsContent() {
   const organization = useOrganization();
 
-  // config/integrations lists all providers available to the org (feature-gated
-  // server-side); integrations gives their install status.
+  // Get all providers available to the org, plus their integration features.
   const configQuery = useQuery(configIntegrationsQueryOptions(organization.slug));
+  // Get those providers' install status.
   const integrationsQuery = useQuery(integrationsQueryOptions(organization.slug));
 
   const isPending = configQuery.isPending || integrationsQuery.isPending;
