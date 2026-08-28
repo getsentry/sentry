@@ -519,9 +519,8 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
             "pr_metrics.activity_doc.check_head_groups_capped",
             extra={"head_sha": head_sha, "app_slug": app_slug, "evicted_key": evicted_key},
         )
-        # Ambient rate for both head- and document-wide group caps: they bite on every
-        # CI-heavy PR rather than exceptionally, so what matters is the trend, which
-        # sampling resolves. The forward-path caps below are the rare ones.
+        # Ambient rate: both group caps bite on every CI-heavy PR, so the trend is what
+        # matters and sampling resolves it. The forward-path caps below are the rare ones.
         metrics.incr("pr_metrics.activity_doc.check_head_groups_capped")
     elif len(checks) >= MAX_CHECK_GROUPS:
         evicted_key = min(checks, key=lambda existing: _forward_priority(checks[existing]))

@@ -153,11 +153,9 @@ def select_verdict(
 
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
-        # error, not warning: handle_metrics persists this row before emission under
-        # the same gate, so its absence means that write failed and the PR will now
-        # never emit. Silent data loss wants an issue someone owns, not a counter —
-        # only ERROR reaches Sentry as one (the SDK sets event_level=None and the
-        # root `internal` handler is level ERROR).
+        # error, not warning: handle_metrics writes this row before emission, so its
+        # absence means that write failed and the PR will never emit. Only ERROR
+        # reaches Sentry as an issue, and silent data loss wants an owner.
         logger.error(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -946,9 +944,8 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
         activity_doc.human_participant_count(doc),
     )
     if legacy != reduced:
-        # error, not warning: the two reducers disagreeing is a correctness bug to be
-        # told about once, not a rate to trend, so it goes to Sentry rather than to a
-        # counter that is expected to read zero forever.
+        # error, not warning: the reducers disagreeing is a correctness bug to be told
+        # about once, not a rate to trend.
         logger.error(
             "pr_metrics.reducer_parity.mismatch",
             extra={
@@ -960,9 +957,8 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
             },
         )
     else:
-        # Only the match half is a counter, despite the name pairing: it tracks how
-        # much traffic still takes the legacy path, which is a rate that should drain
-        # to zero. Its mismatch counterpart is handled above.
+        # Only the match half is a counter: it tracks how much traffic still takes the
+        # legacy path, a rate that should drain to zero. Mismatch is the error above.
         metrics.incr("pr_metrics.reducer_parity.match", sample_rate=1.0)
 
 
@@ -1084,12 +1080,10 @@ def emit_pr_metrics_row(
     # and rides along on the emitted row, so the two can't diverge.
     attributions = active_attributions(pull_request)
     if not attributions:
-        # Deliberately left at the ambient sample rate while every other `reason` on
-        # this metric is unsampled: `untracked` is the webhook firehose — most PRs
-        # Sentry sees are never attributed — so sampling already resolves its rate,
-        # and the rare reasons are what needed an exact count. Both `untracked` call
-        # sites must keep the same rate: a tag value split across two rates still
-        # totals correctly, but stops being exact, which is the point of the others.
+        # Ambient rate while this metric's rarer reasons are unsampled: `untracked` is
+        # the webhook firehose, so sampling already resolves it. Keep both `untracked`
+        # sites on the same rate — one tag value split across two rates still totals
+        # correctly, but stops being exact.
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 

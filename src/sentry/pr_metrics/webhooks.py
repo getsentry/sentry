@@ -435,12 +435,10 @@ def handle_emission(
         return
 
     if not is_pr_tracked(pr):
-        # Deliberately left at the ambient sample rate while every other `reason` on
-        # this metric is unsampled: `untracked` is the webhook firehose — most PRs
-        # Sentry sees are never attributed — so sampling already resolves its rate,
-        # and the rare reasons are what needed an exact count. Both `untracked` call
-        # sites must keep the same rate: a tag value split across two rates still
-        # totals correctly, but stops being exact, which is the point of the others.
+        # Ambient rate while this metric's rarer reasons are unsampled: `untracked` is
+        # the webhook firehose, so sampling already resolves it. Keep both `untracked`
+        # sites on the same rate — one tag value split across two rates still totals
+        # correctly, but stops being exact.
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return
 
@@ -580,9 +578,8 @@ def handle_metrics(
         return
 
     if is_stale_github_pull_request_payload(pr, pull_request):
-        # Counted by the unsampled, provider-tagged
-        # `scm.webhook.pull_request.stale_snapshot` in lifecycle_mapping, which sees the
-        # same condition across every provider; this path keeps only the log, for the
+        # Counted by lifecycle_mapping's unsampled, provider-tagged
+        # `scm.webhook.pull_request.stale_snapshot`; this path keeps the log for its
         # delivery id.
         logger.info(
             "pr_metrics.metrics.stale_snapshot",

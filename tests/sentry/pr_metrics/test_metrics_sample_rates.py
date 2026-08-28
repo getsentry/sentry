@@ -1,22 +1,17 @@
 """Guards which pr_metrics counters are emitted at the ambient sample rate.
 
-Most of the module's counters sit on paths that fire a handful of times a day. At
-the ambient rate (``SENTRY_METRICS_SAMPLE_RATE``, 10% in production) such a
-counter resolves to roughly one surviving packet per reporting bucket, so its
-chart quantizes to the extrapolation factor and "never fired" is
-indistinguishable from "fired a few times". Those call sites pass
-``sample_rate=1.0``.
+Most of the module's counters fire a handful of times a day. Sampled, such a
+counter resolves to about one surviving packet per reporting bucket, so its chart
+quantizes and "never fired" is indistinguishable from "fired a few times". Those
+call sites pass ``sample_rate=1.0``.
 
-A handful carry enough volume that sampling already yields a precise rate, and
-unsampling them would only multiply packets. They stay ambient, and are listed
-here so that staying ambient is a decision rather than an oversight — a new
-counter is unsampled unless it is deliberately added below.
+A few carry enough volume that sampling already resolves their rate. They are
+listed below so that staying ambient is a decision rather than an oversight — a
+new counter is unsampled unless deliberately added here.
 
-The ``emit.skipped`` entries are the subtle case: ``sample_rate`` is per packet,
-so one metric name can carry both rates and still total correctly. What must not
-drift is a single *tag value* being split across rates — it would stay correct in
-aggregate but stop being exact. Both ``untracked`` sites are therefore pinned
-here together.
+``sample_rate`` is per packet, so one metric name can carry both rates and still
+total correctly. What must not drift is a single *tag value* split across rates:
+still correct in aggregate, but no longer exact. Hence both ``untracked`` entries.
 """
 
 import ast
