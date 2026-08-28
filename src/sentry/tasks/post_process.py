@@ -1140,7 +1140,6 @@ def _project_has_usable_code_mapping(project: Project) -> bool:
             organization_integration_id__isnull=False,
             organization_id=project.organization_id,
             project_repository__project_id=project.id,
-            project_repository__repository__integration_id__in=integration_ids,
             project_repository__repository__organization_id=project.organization_id,
             project_repository__repository__status=ObjectStatus.ACTIVE,
         ).exists()

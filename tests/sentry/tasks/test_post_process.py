@@ -1703,6 +1703,8 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
             project_id=other_project.id,
         )
 
+        # Blame uses the integration on the mapping, not the repository.
+        self.repo.update(integration_id=None)
         with patch(
             "sentry.integrations.services.integration.integration_service.get_integrations",
             return_value=[Mock(id=self.integration.id)],
