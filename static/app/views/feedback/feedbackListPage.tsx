@@ -1,15 +1,9 @@
 import type {ReactNode} from 'react';
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  Container,
-  Flex,
-  Grid,
-  Stack,
-  useResponsivePropValue,
-} from '@sentry/scraps/layout';
+import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -44,8 +38,8 @@ const userFeedbackFeedbackOptions = {
 
 function PageContent({
   feedbackProjectSlug,
-  hideTop,
   hasFeedbackContent,
+  hideTop,
   content,
 }: {
   content: ReactNode;
@@ -75,49 +69,67 @@ function PageContent({
       <ErrorBoundary>
         <Stack flex={1} align="stretch" gap="xl" background="primary" overflow="hidden">
           <Grid
-            overflow="hidden"
-            flex={1}
-            minHeight={0}
-            gap="xl"
-            padding="lg xl"
             columns={{
               zero: '1fr',
               '3xl': 'minmax(195px, 1fr) 1.5fr',
               '4xl': 'minmax(390px, 1fr) 2fr',
             }}
+            areas={{
+              zero: hideTop ? '"list"' : '"top" "list"',
+              '3xl': '"top top" "list details"',
+            }}
             rows={{
-              zero: hideTop ? '0fr minmax(0, 100vh)' : 'max-content 76vh',
+              zero: hideTop ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)',
               '3xl': 'max-content minmax(0, 1fr)',
             }}
-            areas={{
-              zero: hideTop ? "'.' 'content'" : "'top' 'content'",
-              '3xl': "'top top' 'list details'",
-            }}
+            flex={1}
+            minHeight={0}
+            gap="xl"
+            overflow="hidden"
+            padding="lg xl"
           >
-            {!hideTop && (
-              <Stack
-                flexGrow={1}
-                gap="md"
-                area="top"
-                direction={{zero: 'column', xl: 'row'}}
-                align={{zero: 'stretch', xl: 'start'}}
-              >
+            <Grid
+              gap="md"
+              area="top"
+              display={{zero: hideTop ? 'none' : 'grid', '3xl': 'grid'}}
+              areas={{
+                zero: `
+                    "filters"
+                    "search"
+                    "actions"
+                  `,
+                xl: `
+                    "filters actions"
+                    "search search"
+                  `,
+                '3xl': '"filters search actions"',
+              }}
+              columns={{
+                zero: '100%',
+                xl: '1fr auto',
+                '3xl': 'minmax(300px, auto) 1fr min-content',
+              }}
+              width="100%"
+            >
+              <Container area="filters" justifySelf={{zero: 'stretch', sm: 'start'}}>
                 <FeedbackFilters />
-                <Flex
-                  flexGrow={1}
-                  gap="md"
-                  direction={{zero: 'column', '3xl': 'row'}}
-                  align={{zero: 'stretch', '3xl': 'center'}}
-                >
-                  <Container flexGrow={1} minWidth={0}>
-                    <FeedbackSearch />
-                  </Container>
-                  <LinkButton {...createAlertAction} variant="primary">
+              </Container>
+              <Container area="search" minWidth={0}>
+                <FeedbackSearch />
+              </Container>
+              <Container
+                area="actions"
+                alignSelf="start"
+                justifySelf={{zero: 'stretch', sm: 'end'}}
+                width={{zero: '100%', sm: 'auto'}}
+              >
+                {buttonProps => (
+                  <LinkButton {...buttonProps} {...createAlertAction} variant="primary">
                     {t('Create Alert')}
                   </LinkButton>
-                </Flex>
-              </Stack>
-            )}
+                )}
+              </Container>
+            </Grid>
             {hasFeedbackContent ? (
               content
             ) : (
@@ -147,22 +159,18 @@ export default function FeedbackListPage() {
 
   useRedirectToFeedbackFromEvent();
 
-  // breakpoints.md (992px) maps to container.3xl (1024px)
-  const isMediumOrSmaller = useResponsivePropValue({zero: true, '3xl': false});
+  const isCompact = useResponsivePropValue({zero: true, '3xl': false});
   const [showItemPreview, setShowItemPreview] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number | null>(null);
 
-  // show feedback item preview when feedback is selected on med screens and smaller
-  useEffect(() => {
-    if (isMediumOrSmaller) {
-      setShowItemPreview(Boolean(feedbackId));
-      if (feedbackId) {
-        window.scrollTo(0, 0);
-      }
-    } else {
-      setShowItemPreview(false);
+  // Keep the selected feedback in sync with the route. CSS decides whether it replaces
+  // the list or appears beside it based on the available container width.
+  useLayoutEffect(() => {
+    setShowItemPreview(Boolean(feedbackId));
+    if (feedbackId && isCompact) {
+      window.scrollTo(0, 0);
     }
-  }, [isMediumOrSmaller, feedbackId]);
+  }, [feedbackId, isCompact]);
 
   useEffect(() => {
     setSelectedItemIndex(null);
@@ -192,65 +200,41 @@ export default function FeedbackListPage() {
     setShowItemPreview(true);
   };
 
-  const largeScreenView = (
+  const pageContent = (
     <Fragment>
-      <Stack area="list" gap="md">
-        <FeedbackSummaryCategories />
-        <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
-          <FeedbackList onItemSelect={() => {}} />
-        </Stack>
-      </Stack>
-
       <Stack
-        area="details"
-        border="primary"
-        radius="md"
-        flex={1}
-        minHeight={0}
-        overflow="hidden"
+        area="list"
+        gap="md"
+        display={{zero: showItemPreview ? 'none' : 'flex', '3xl': 'flex'}}
       >
-        <AnalyticsArea name="details">
-          <FeedbackItemLoader />
-        </AnalyticsArea>
-      </Stack>
-    </Fragment>
-  );
-
-  const smallerScreenView = (
-    <Fragment>
-      {showItemPreview ? (
-        <Stack
-          area="content"
-          border="primary"
-          radius="md"
-          flex={1}
-          minHeight={0}
-          overflow="hidden"
-        >
-          <AnalyticsArea name="details">
-            <FeedbackItemLoader onBackToList={handleBackToList} />
-          </AnalyticsArea>
-        </Stack>
-      ) : (
-        <Stack area="content" gap="md">
-          <FeedbackSummaryCategories />
-          <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
-            <FeedbackList onItemSelect={handleItemSelect} />
-            {selectedItemIndex !== null && (
+        <FeedbackSummaryCategories />
+        <FeedbackPanel>
+          <FeedbackList onItemSelect={handleItemSelect} />
+          {selectedItemIndex !== null && (
+            <Container display={{zero: 'block', '3xl': 'none'}}>
               <JumpToSelectedButton size="xs" onClick={handleJumpToSelectedItem}>
                 {t('Jump to selected item')}
               </JumpToSelectedButton>
-            )}
-          </Stack>
-        </Stack>
-      )}
+            </Container>
+          )}
+        </FeedbackPanel>
+      </Stack>
+
+      <Container
+        area={{zero: 'list', '3xl': 'details'}}
+        display={{zero: showItemPreview ? 'flex' : 'none', '3xl': 'flex'}}
+        minHeight={0}
+      >
+        <FeedbackPanel>
+          <AnalyticsArea name="details">
+            <FeedbackItemLoader onBackToList={handleBackToList} />
+          </AnalyticsArea>
+        </FeedbackPanel>
+      </Container>
     </Fragment>
   );
 
-  // on medium and smaller screens, hide the search & filters when feedback item is in view
-  const hideTop = isMediumOrSmaller && showItemPreview;
   const hasFeedbackContent = hasSetupOneFeedback || hasSlug;
-  const pageContent = isMediumOrSmaller ? smallerScreenView : largeScreenView;
   const titleContent = (
     <Fragment>
       {t('User Feedback')}
@@ -280,13 +264,21 @@ export default function FeedbackListPage() {
           </TopBar.Slot>
           <PageContent
             feedbackProjectSlug={feedbackProjectSlug}
-            hideTop={hideTop}
             hasFeedbackContent={hasFeedbackContent}
+            hideTop={showItemPreview}
             content={pageContent}
           />
         </FeedbackApiOptions>
       </Stack>
     </SentryDocumentTitle>
+  );
+}
+
+function FeedbackPanel({children}: {children: ReactNode}) {
+  return (
+    <Stack border="primary" radius="md" flex={1} minHeight={0} overflow="hidden">
+      {children}
+    </Stack>
   );
 }
 

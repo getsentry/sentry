@@ -28,14 +28,14 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when the autofixRef embed consumes it (#122099)
+  'static/app/components/seer/autofixChatContext.tsx',
   // TODO: Remove when wired into the connect repository modal
   'static/app/components/connectRepository/**/*.{ts,tsx}',
   // TODO: Remove when wired into the React authentication flow
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
-  // TODO: Remove when wired into the agentic onboarding flow
-  'static/app/views/onboarding/agenticProgress/agenticProgressList.tsx',
-  'static/app/views/onboarding/agenticProgress/useAgenticProgress.ts',
-  'static/app/views/onboarding/agenticProgress/useAgenticProgressInit.ts',
+  // React authentication routes are discovered dynamically by the frontend route registry
+  'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
   // https://github.com/getsentry/sentry/pull/121178
   'static/app/components/core/table/*.tsx',
   'static/app/components/core/dragHandle/*.tsx',

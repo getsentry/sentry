@@ -20,7 +20,7 @@ class MaybeCopyAttachmentIntoCacheTest(TestCase):
             blob_path=":hello",
         )
 
-    @mock.patch("sentry.reprocessing2.get_attachments_session")
+    @mock.patch("sentry.reprocessing2.get_session")
     @override_options({"objectstore.enable_for.attachments": 1})
     def test_objectstore_upload_stores_content_type(self, mock_get_session: mock.Mock) -> None:
         mock_get_session.return_value.put.return_value = "some-key"

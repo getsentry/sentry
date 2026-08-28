@@ -14,6 +14,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.conditional_get import ConditionalGetResponseMixin
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
@@ -186,7 +187,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
-class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
+class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -571,6 +572,7 @@ class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
             GithubAppPermissionsWarning(
                 repo_name=repo_name,
                 installation_id=info.installation_id,
+                installation_url=info.installation_url,
             ).dict()
             for repo_name, info in missing_perms.items()
         ]

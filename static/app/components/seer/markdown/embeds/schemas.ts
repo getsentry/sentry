@@ -25,6 +25,10 @@ const chartSeriesSchema = z.union([
   }),
 ]);
 
+// Agents often emit bare numbers for IDs; keep as a plain union (no .transform)
+// so gen:embed-widgets can still export JSON Schema.
+const idString = z.union([z.string(), z.number()]);
+
 /**
  * Page filters shared by every query embed. Seer supplies these separately from
  * the search string so the frontend can hand them to the canonical URL builders
@@ -32,7 +36,7 @@ const chartSeriesSchema = z.union([
  */
 const pageFilterFields = {
   projects: z
-    .array(z.string())
+    .array(idString)
     .optional()
     .describe('Project IDs. Omit for the "My Projects" selection.'),
   environments: z.array(z.string()).optional(),
@@ -212,7 +216,16 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Replay',
+        label: 'Inline',
+        level: 'inline',
+        data: {
+          id: '4c1f2e3d1234567890',
+          eventTimestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+      {
+        label: 'Block',
+        level: 'block',
         data: {
           id: '4c1f2e3d1234567890',
           eventTimestamp: '2026-08-25T16:37:12Z',

@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
+from sentry.integrations.utils.github_permissions import (
+    get_github_permissions_update_url,
+    get_missing_github_app_permissions,
+)
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import SEER_GITHUB_PROVIDERS
@@ -22,16 +25,30 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class MissingGithubPermissions:
     integration: RpcIntegration
+    repo_id: int
     # Empty when the installation has every required permission.
     missing_scopes: list[str]
 
     @property
     def installation_id(self) -> str:
-        """GitHub App installation id (Integration.external_id)."""
         return str(self.integration.external_id)
 
+    @property
+    def installation_url(self) -> str | None:
+        """Page where the user reviews and accepts the installation's updated
+        permissions. Org-owned installs live under a different namespace than
+        user-owned ones, so this branches on the account type. None when the
+        install's account is unknown and the path can't be built."""
+        return get_github_permissions_update_url(
+            str(self.integration.external_id),
+            self.integration.metadata.get("account_type"),
+            self.integration.name,
+        )
 
-def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissions | None:
+
+def get_github_missing_permissions(
+    integration_id: int, repo_id: int
+) -> MissingGithubPermissions | None:
     """Required GitHub App permissions the installation for `integration_id` is
     missing. Returns None if the integration no longer exists."""
     integration = integration_service.get_integration(integration_id=integration_id)
@@ -41,6 +58,7 @@ def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissi
     missing = get_missing_github_app_permissions(integration.metadata)
     return MissingGithubPermissions(
         integration=integration,
+        repo_id=repo_id,
         missing_scopes=[permission["expected"]["scope"] for permission in (missing or [])],
     )
 
@@ -152,7 +170,7 @@ def get_out_of_date_github_permissions(
         # 2. Map those repo names to their GitHub integration (org-scoped, active).
         for (repo, integration_id) in Repository.filter(org, github, active, name in repos):
             # 3. Ask GitHub which required app permissions that install is missing.
-            perms = get_github_missing_permissions(integration_id)
+            perms = get_github_missing_permissions(integration_id, repo_id)
             if perms.missing_scopes:
                 result[repo] = perms
 
@@ -163,19 +181,23 @@ def get_out_of_date_github_permissions(
         return {}
 
     # Org-scoped so a run can only surface permissions for repos in its own org.
-    repo_integration_ids = Repository.objects.filter(
-        organization_id=organization.id,
-        provider__in=SEER_GITHUB_PROVIDERS,
-        name__in=repo_names,
-        status=ObjectStatus.ACTIVE,
-    ).values_list("name", "integration_id")
+    repo_integration_ids = (
+        Repository.objects.filter(
+            organization_id=organization.id,
+            provider__in=SEER_GITHUB_PROVIDERS,
+            name__in=repo_names,
+            status=ObjectStatus.ACTIVE,
+        )
+        .order_by("name", "integration_id")
+        .values_list("id", "name", "integration_id")
+    )
 
     missing_by_repo: dict[str, MissingGithubPermissions] = {}
-    for repo_name, integration_id in repo_integration_ids:
+    for repo_id, repo_name, integration_id in repo_integration_ids:
         if not isinstance(integration_id, int):
             continue
 
-        perms = get_github_missing_permissions(integration_id)
+        perms = get_github_missing_permissions(integration_id, repo_id)
         if perms is not None and perms.missing_scopes:
             missing_by_repo[repo_name] = perms
 
@@ -198,7 +220,20 @@ def comment_on_out_of_date_github_permissions(
             continue
 
         integration = info.integration
-        url = f"https://github.com/settings/installations/{info.installation_id}/permissions/update"
+        url = info.installation_url
+        if url is None:
+            logger.error(
+                "autofix.permissions_comment.no_installation_url",
+                extra={
+                    "run_id": state.run_id,
+                    "organization_id": organization.id,
+                    "repo_id": info.repo_id,
+                    "integration_id": integration.id,
+                    "account_type": integration.metadata.get("account_type"),
+                },
+            )
+            continue
+
         body = (
             "⚠️ **Seer needs additional GitHub permissions**\n\n"
             "A Seer autofix tool failed because the Sentry GitHub App installation is "

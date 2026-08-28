@@ -240,3 +240,22 @@ def serialize_activation(
         raise ValueError(f"Unsupported activation result for method: {method}")
 
     return serialize(challenge, user, AuthMfaChallengeSerializer())
+
+
+class AuthRecoveryAccepted:
+    pass
+
+
+class AuthRecoveryAcceptedSerializerResponse(TypedDict):
+    detail: str
+
+
+class AuthRecoveryAcceptedSerializer(Serializer[AuthRecoveryAcceptedSerializerResponse]):
+    def serialize(
+        self,
+        obj: AuthRecoveryAccepted,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthRecoveryAcceptedSerializerResponse:
+        return {"detail": "If an eligible account exists, a recovery email has been sent."}

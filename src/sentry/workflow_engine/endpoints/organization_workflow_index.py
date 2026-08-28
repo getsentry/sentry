@@ -43,7 +43,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+    WorkflowParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -243,7 +249,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             WorkflowParams.SORT_BY,
             WorkflowParams.QUERY,
             WorkflowParams.ID,
+            WorkflowParams.DETECTOR,
             OrganizationParams.PROJECT,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

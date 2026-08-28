@@ -58,6 +58,15 @@ def test_completion_metadata_accepts_concise_variable_summary_lengths() -> None:
     )
 
 
+def test_completion_metadata_accepts_single_line_description() -> None:
+    assert (
+        _parse_completion_metadata(
+            completion_metadata(description="Checkout errors came from one endpoint.")
+        )
+        is not None
+    )
+
+
 def test_completion_metadata_ignores_extra_keys() -> None:
     payload = json.loads(completion_metadata())
     payload["confidence"] = 0.9
@@ -432,8 +441,15 @@ class InvestigationAgentTest(TestCase):
             "message": "The agent returned malformed or unsupported result JSON.",
         }
 
+    @patch("sentry.investigations.agent.record_investigation_failed")
+    @patch("sentry.investigations.agent.record_execution_cancelled")
     @patch("sentry.investigations.agent.interrupt_run")
-    def test_failed_execution_cancels_other_active_cells(self, interrupt_run: MagicMock) -> None:
+    def test_failed_execution_cancels_other_active_cells(
+        self,
+        interrupt_run: MagicMock,
+        record_cancelled: MagicMock,
+        record_investigation_failed: MagicMock,
+    ) -> None:
         sibling_block = self.create_investigation_block(
             investigation=self.investigation,
             kind="text",
@@ -467,28 +483,53 @@ class InvestigationAgentTest(TestCase):
             "message": "Cancelled because another cell in this investigation failed.",
         }
         assert sibling_execution.completed_at is not None
+        record_cancelled.assert_called_once_with(
+            sibling_execution, reason="investigation_execution_failed"
+        )
+        record_investigation_failed.assert_called_once_with(
+            self.investigation, reason="seer_execution_failed"
+        )
         interrupt_run.assert_called_once_with(self.organization, 43)
 
+    @patch("sentry.investigations.telemetry.metrics.incr")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
-    def test_failed_execution_records_sentry_metric(self, metrics_count: MagicMock) -> None:
+    def test_failed_execution_records_metrics(
+        self, metrics_count: MagicMock, metrics_incr: MagicMock
+    ) -> None:
         with self.captureOnCommitCallbacks(execute=True):
             synchronize_execution(self.execution, state(status="error", blocks=[]))
 
-        metrics_count.assert_called_once_with(
-            "investigations.execution.failed",
-            1,
-            attributes={
-                "reason": "seer_execution_failed",
-                "source_type": "manual",
-                "template": "manual",
-                "block_kind": "query",
-                "executor": "code_mode",
-            },
-        )
+        execution_attributes = {
+            "reason": "seer_execution_failed",
+            "source_type": "manual",
+            "template": "manual",
+            "block_kind": "query",
+            "executor": "code_mode",
+        }
+        investigation_attributes = {
+            "reason": "seer_execution_failed",
+            "source_type": "manual",
+            "template": "manual",
+        }
+        assert metrics_count.call_args_list == [
+            (("investigations.execution.failed", 1), {"attributes": execution_attributes}),
+            (("investigations.failed", 1), {"attributes": investigation_attributes}),
+        ]
+        assert metrics_incr.call_args_list == [
+            (
+                ("investigations.execution.failed",),
+                {"tags": execution_attributes, "sample_rate": 1.0},
+            ),
+            (
+                ("investigations.failed",),
+                {"tags": investigation_attributes, "sample_rate": 1.0},
+            ),
+        ]
 
+    @patch("sentry.investigations.agent.record_investigation_failed")
     @patch("sentry.investigations.agent.interrupt_run")
     def test_superseded_execution_failure_does_not_cancel_current_run(
-        self, interrupt_run: MagicMock
+        self, interrupt_run: MagicMock, record_investigation_failed: MagicMock
     ) -> None:
         current_run = self.create_seer_run(
             organization=self.organization,
@@ -512,6 +553,7 @@ class InvestigationAgentTest(TestCase):
         current_execution.refresh_from_db()
         assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
         assert current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        record_investigation_failed.assert_not_called()
         interrupt_run.assert_not_called()
 
     @patch("sentry.investigations.agent.interrupt_run")
@@ -1017,8 +1059,11 @@ class InvestigationAgentTest(TestCase):
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}
         assert len(link["params"]["query"]) == 2000
 
+    @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.record_title_generation_completed")
-    def test_title_uses_the_final_assistant_message(self, record_completed: MagicMock) -> None:
+    def test_title_uses_the_final_assistant_message(
+        self, record_title_completed: MagicMock, record_investigation_completed: MagicMock
+    ) -> None:
         self.investigation.title = "Untitled investigation"
         self.investigation.title_generation_status = "running"
         self.investigation.save(update_fields=["title", "title_generation_status"])
@@ -1041,7 +1086,8 @@ class InvestigationAgentTest(TestCase):
             "One endpoint drove most errors.\nRoll back the latest endpoint change."
         )
         assert self.investigation.title_generation_status == "completed"
-        record_completed.assert_called_once_with(self.investigation)
+        record_title_completed.assert_called_once_with(self.investigation)
+        record_investigation_completed.assert_called_once_with(self.investigation)
 
     def test_title_accepts_metadata_in_a_json_code_fence(self) -> None:
         self.investigation.update(
@@ -1067,8 +1113,11 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.summary == "Error volume crossed threshold"
         assert self.investigation.title_generation_status == "completed"
 
+    @patch("sentry.investigations.telemetry.metrics.incr")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
-    def test_invalid_title_records_sentry_metric(self, metrics_count: MagicMock) -> None:
+    def test_invalid_title_records_failure_metrics(
+        self, metrics_count: MagicMock, metrics_incr: MagicMock
+    ) -> None:
         self.investigation.update(
             title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
         )
@@ -1084,15 +1133,22 @@ class InvestigationAgentTest(TestCase):
 
         synchronize_title(self.investigation, run_state)
 
-        metrics_count.assert_called_once_with(
-            "investigations.title_generation.failed",
-            1,
-            attributes={
-                "source_type": "manual",
-                "template": "manual",
-                "reason": "invalid_result",
-            },
-        )
+        attributes = {
+            "source_type": "manual",
+            "template": "manual",
+            "reason": "invalid_result",
+        }
+        assert metrics_count.call_args_list == [
+            (("investigations.title_generation.failed", 1), {"attributes": attributes}),
+            (("investigations.failed", 1), {"attributes": attributes}),
+        ]
+        assert metrics_incr.call_args_list == [
+            (
+                ("investigations.title_generation.failed",),
+                {"tags": attributes, "sample_rate": 1.0},
+            ),
+            (("investigations.failed",), {"tags": attributes, "sample_rate": 1.0}),
+        ]
 
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_prompt_uses_specific_incident_source_context(
@@ -1117,6 +1173,9 @@ class InvestigationAgentTest(TestCase):
         assert "checkout-api" in prompt
         assert "at most 5 words" in prompt
         assert "summary_description" in prompt
+        assert "casual, plain language" in prompt
+        assert "1 or 2 short" in prompt
+        assert "Avoid headings and jargon" in prompt
 
     @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.SeerAgentClient")
@@ -1139,7 +1198,7 @@ class InvestigationAgentTest(TestCase):
         _maybe_start_title_generation(self.investigation, None)
 
         mock_client.return_value.start_run.assert_called_once()
-        record_completed.assert_called_once()
+        record_completed.assert_not_called()
 
     @patch("sentry.investigations.agent.SeerAgentClient")
     def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:

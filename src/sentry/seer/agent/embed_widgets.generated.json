@@ -240,7 +240,14 @@
     },
     "examples": [
       {
-        "label": "Replay",
+        "label": "Inline",
+        "data": {
+          "id": "4c1f2e3d1234567890",
+          "eventTimestamp": "2026-08-25T16:37:12Z"
+        }
+      },
+      {
+        "label": "Block",
         "data": {
           "id": "4c1f2e3d1234567890",
           "eventTimestamp": "2026-08-25T16:37:12Z"
@@ -659,7 +666,14 @@
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "environments": {
@@ -721,7 +735,14 @@
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "environments": {
@@ -796,7 +817,14 @@
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "environments": {
@@ -893,7 +921,14 @@
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "environments": {
@@ -989,7 +1024,14 @@
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "environments": {
@@ -1050,7 +1092,14 @@
           "description": "Project IDs. Omit for the \"My Projects\" selection.",
           "type": "array",
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
           }
         },
         "environments": {

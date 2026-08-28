@@ -1,6 +1,6 @@
 ---
 title: ToolCall
-description: A single agent tool call — a quiet read or an expanded query.
+description: A single agent tool call — its status, result, timing, and inputs.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
@@ -11,21 +11,23 @@ import {ToolCall} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {IconIssues} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/chat/toolCall');
 
 The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
-Like `ThinkingBlock`, it is built on an outline `Disclosure`: a leading glyph
-communicates lifecycle `status` (a spinner while running, a semantic icon once
-settled — see `ToolCallIndicator`), and the `title` is the toggle. A call only
-renders as an actual (toggleable) `Disclosure` when it has `children` to reveal
-— see [Detail](#detail); otherwise it's a plain row with no toggle affordance.
+Unlike the collapsible `ThinkingBlock` it lives in, a tool call is **not** itself
+a disclosure — it has no chevron and its detail is always visible. A leading
+glyph communicates lifecycle `status` (a spinner while running, a semantic icon
+once settled — see `ToolCallIndicator`), an optional `reference` chip trails the
+title, and a `durationMs` reads right-aligned in the meta slot.
 
 ## Anatomy
 
-A tool call collapses to a single title line, with an optional trailing
-`reference` chip pointing at the entity the call acted on.
+A tool call is a single title line: the status glyph, the `title`, an optional
+trailing `reference` chip pointing at the entity the call acted on, and the
+elapsed `durationMs`.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -33,6 +35,13 @@ A tool call collapses to a single title line, with an optional trailing
       title="Read trace waterfall"
       status="success"
       reference={{label: 'Trace', value: 'a3805648'}}
+      durationMs={6400}
+    />
+    <ToolCall
+      title="Read trace with span details"
+      status="success"
+      reference={{label: 'Span', value: 'a469c305'}}
+      durationMs={6600}
     />
   </Container>
 </Storybook.Demo>
@@ -42,20 +51,29 @@ A tool call collapses to a single title line, with an optional trailing
   title="Read trace waterfall"
   status="success"
   reference={{label: 'Trace', value: 'a3805648'}}
+  durationMs={6400}
 />
 ```
 
-## Output
+## Input
 
-When a call produces a primary result, pass `output` to surface it as a chip
-under an `Output:` label.
+Pass `input` to render the call's request under an `Input:` label. It is a slot,
+so give it a decomposed view — typically a `FormattedQuery`, which parses a
+Sentry search string (including boolean and parenthesized grouping) into query
+chips.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
     <ToolCall
       title="Query spans"
       status="success"
-      output={{label: 'Trace', value: 'a3805648'}}
+      reference={{label: 'Trace', value: 'a3805648'}}
+      durationMs={9400}
+      input={
+        <Text size="sm" monospace>
+          dataset:spans project:ml-service span.description:DSL
+        </Text>
+      }
     />
   </Container>
 </Storybook.Demo>
@@ -64,20 +82,58 @@ under an `Output:` label.
 <ToolCall
   title="Query spans"
   status="success"
-  output={{label: 'Trace', value: 'a3805648'}}
+  input={<FormattedQuery query="dataset:spans project:ml-service" />}
+/>
+```
+
+## Output
+
+Pass `output` to render the call's result under an `Output:` label — a result
+value, or on failure the error itself. Like `input`, it is a slot.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Query spans"
+      status="failure"
+      failureLabel="502"
+      output={
+        <Text size="sm" variant="danger" monospace>
+          Returned HTTP 502
+        </Text>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Query spans"
+  status="failure"
+  failureLabel="502"
+  output={<Text variant="danger">Returned HTTP 502</Text>}
 />
 ```
 
 ## Status
 
-The leading glyph reflects the call's lifecycle.
+The leading glyph reflects the call's lifecycle. A `failure` keeps that glyph and
+additionally hoists a chip into the trailing result slot — where a successful
+call shows its `reference` — carrying the `failureLabel` (typically the HTTP
+status code, e.g. `502`), so the outcome reads on the right rather than only as a
+small glyph on the far left.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
     <ToolCall title="Running query" status="loading" />
     <ToolCall title="Awaiting approval" status="pending" />
-    <ToolCall title="Query succeeded" status="success" />
-    <ToolCall title="Query failed" status="failure" />
+    <ToolCall title="Query succeeded" status="success" durationMs={9400} />
+    <ToolCall
+      title="Query failed"
+      status="failure"
+      failureLabel="502"
+      durationMs={9400}
+    />
   </Container>
 </Storybook.Demo>
 
@@ -112,9 +168,8 @@ Pass `notifications` to surface short status lines beneath a call.
 
 ## Links
 
-Give a `reference` or `output` chip a `to` to render it as a real link (an
-anchor supporting middle/cmd-click and keyboard access) rather than an
-`onClick` button.
+Give a `reference` chip a `to` to render it as a real link (an anchor supporting
+middle/cmd-click and keyboard access) rather than an `onClick` button.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -136,9 +191,9 @@ anchor supporting middle/cmd-click and keyboard access) rather than an
 
 ## Detail
 
-Pass `children` to tuck supplementary detail beneath the call — for example an
-expandable request/response. It lives in the collapsible panel, revealed by
-toggling the title.
+Pass `children` to tuck supplementary detail beneath the call — for example a
+request body. It renders inline, indented under the title; a tool call has no
+disclosure of its own.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -149,3 +204,40 @@ toggling the title.
     </ToolCall>
   </Container>
 </Storybook.Demo>
+
+```jsx
+<ToolCall title="Query spans" status="success">
+  <Text size="xs" variant="muted" monospace>
+    GET /api/0/organizations/sentry/traces/
+  </Text>
+</ToolCall>
+```
+
+## Resource icons
+
+`reference`/`output` take any `icon`, so a chip pointing at a Sentry resource
+— an issue, a trace, a replay — can use whichever glyph best identifies it.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Retrieve an issue"
+      status="success"
+      reference={{
+        value: 'Issue: SEER-123',
+        icon: <IconIssues />,
+        to: '/issues/123/',
+      }}
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+import {IconIssues} from 'sentry/icons';
+
+<ToolCall
+  title="Retrieve an issue"
+  status="success"
+  reference={{value: 'Issue: SEER-123', icon: <IconIssues />, to: '/issues/123/'}}
+/>;
+```

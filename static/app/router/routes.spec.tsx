@@ -136,6 +136,26 @@ describe('buildRoutes()', () => {
   });
 
   describe('explore route catch-all', () => {
+    it('matches investigation details before the catch-all', () => {
+      const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
+
+      spy.mockReturnValue(true);
+      let matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/explore/investigations/investigation-1/'
+      );
+      expect(matchedPaths).toContain('investigations/:investigationId/');
+      expect(matchedPaths).not.toContain('*');
+
+      spy.mockReturnValue(false);
+      matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/organizations/test-org/explore/investigations/investigation-1/'
+      );
+      expect(matchedPaths).toContain('investigations/:investigationId/');
+      expect(matchedPaths).not.toContain('*');
+    });
+
     it('catches unknown subpaths under /explore/', () => {
       const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 

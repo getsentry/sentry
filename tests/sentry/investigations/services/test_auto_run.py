@@ -201,7 +201,10 @@ class InvestigationAutoRunTest(TestCase):
         "sentry.tasks.seer.investigation.start_execution_run",
         side_effect=RuntimeError("Seer unavailable"),
     )
-    def test_dispatch_failure_cancels_other_active_cells(self, start_run: mock.Mock) -> None:
+    @mock.patch("sentry.tasks.seer.investigation.record_execution_failed")
+    def test_dispatch_failure_cancels_other_active_cells(
+        self, record_failed: mock.Mock, start_run: mock.Mock
+    ) -> None:
         failed_execution = self.create_investigation_block_execution(
             block=self.root,
             executor="code_mode",
@@ -229,4 +232,7 @@ class InvestigationAutoRunTest(TestCase):
             "code": "investigation_execution_failed",
             "message": "Cancelled because another cell in this investigation failed.",
         }
+        record_failed.assert_called_once_with(
+            failed_execution, reason="dispatch_failed", seer_run_id=None
+        )
         start_run.assert_called_once()

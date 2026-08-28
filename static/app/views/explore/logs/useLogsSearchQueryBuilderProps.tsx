@@ -4,6 +4,7 @@ import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
@@ -22,6 +23,8 @@ import type {EventValidationData} from 'sentry/views/explore/utils/validateEvent
 
 export function useLogsSearchQueryBuilderProps({
   attributeQuery,
+  arrayAttributes = {},
+  arraySecondaryAliases = {},
   booleanAttributes,
   booleanSecondaryAliases,
   numberAttributes,
@@ -36,9 +39,13 @@ export function useLogsSearchQueryBuilderProps({
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  arrayAttributes?: TagCollection;
+  arraySecondaryAliases?: TagCollection;
   attributeQuery?: string;
   validatedSearchQueryData?: EventValidationData;
 }) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const logsSearch = useQueryParamsSearch();
   const oldLogsSearch = usePrevious(logsSearch);
   const fields = useQueryParamsFields();
@@ -46,12 +53,14 @@ export function useLogsSearchQueryBuilderProps({
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
 
   const {
+    validatedArrayAttributes,
     validatedBooleanAttributes,
     validatedNumberAttributes,
     validatedStringAttributes,
     invalidFilterKeys,
   } = useMemo(() => {
     const localInvalidFilterKeys: string[] = [];
+    const localArrayAttributes = supportsArrays ? {...arrayAttributes} : {};
     const localBooleanAttributes = {...booleanAttributes};
     const localNumberAttributes = {...numberAttributes};
     const localStringAttributes = {...stringAttributes};
@@ -83,6 +92,14 @@ export function useLogsSearchQueryBuilderProps({
             };
           }
 
+          if (supportsArrays && item.attrType === 'array' && item.name) {
+            localArrayAttributes[item.name] ??= {
+              key: item.name,
+              name: prettifyAttributeName(item.name),
+              kind: FieldKind.ARRAY,
+            };
+          }
+
           continue;
         }
 
@@ -93,15 +110,18 @@ export function useLogsSearchQueryBuilderProps({
     }
 
     return {
+      validatedArrayAttributes: localArrayAttributes,
       validatedBooleanAttributes: localBooleanAttributes,
       validatedNumberAttributes: localNumberAttributes,
       validatedStringAttributes: localStringAttributes,
       invalidFilterKeys: localInvalidFilterKeys,
     };
   }, [
+    arrayAttributes,
     booleanAttributes,
     numberAttributes,
     stringAttributes,
+    supportsArrays,
     validatedSearchQueryData?.query.fields,
   ]);
 
@@ -138,10 +158,12 @@ export function useLogsSearchQueryBuilderProps({
       initialQuery,
       searchSource: 'ourlogs',
       onSearch,
+      arrayAttributes: validatedArrayAttributes,
       booleanAttributes: validatedBooleanAttributes,
       numberAttributes: validatedNumberAttributes,
       stringAttributes: validatedStringAttributes,
       itemType: TraceItemDataset.LOGS,
+      arraySecondaryAliases,
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
@@ -154,6 +176,7 @@ export function useLogsSearchQueryBuilderProps({
       invalidFilterKeys,
     }),
     [
+      arraySecondaryAliases,
       attributeQuery,
       booleanSecondaryAliases,
       caseInsensitive,
@@ -163,6 +186,7 @@ export function useLogsSearchQueryBuilderProps({
       setCaseInsensitive,
       stringSecondaryAliases,
       invalidFilterKeys,
+      validatedArrayAttributes,
       validatedBooleanAttributes,
       validatedNumberAttributes,
       validatedStringAttributes,
