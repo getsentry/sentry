@@ -76,12 +76,8 @@ function JsonTree({value}: {value: unknown}) {
 
 // Renders ```json code blocks as an interactive JSON tree, falling back to a
 // highlighted code block when the content isn't valid JSON. Only fenced code
-// blocks are handled; inline `code` spans are left untouched.
-//
-// Unknown {% tag %} tokens (e.g. Seer embeds in agent transcripts) render as
-// their original plaintext and skip DefaultTag reporting — this surface is
-// intentionally plain Markdown, not SeerMarkdown, so missing embed handlers
-// are expected rather than bugs.
+// blocks are handled; inline `code` spans are left untouched. Unknown {% tag %}
+// tokens fall through to default Markdown, which echoes their original source.
 const markdownComponents: MarkdownProps['components'] = {
   CodeBlock: ({children, lang, Default}) => {
     if (lang?.toLowerCase() === 'json') {
@@ -92,7 +88,6 @@ const markdownComponents: MarkdownProps['components'] = {
     }
     return <Default lang={lang}>{children}</Default>;
   },
-  Tag: ({raw}) => raw,
 };
 
 /** Fences raw AI content and renders it. Memoized since fencing scans the whole string. */

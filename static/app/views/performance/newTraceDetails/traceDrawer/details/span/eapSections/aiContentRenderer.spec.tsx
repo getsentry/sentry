@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
@@ -151,22 +149,11 @@ describe('AIContentRenderer', () => {
     }
   );
 
-  it('renders Seer-style embed tags as plaintext without reporting missing renderers', () => {
-    const captureException = jest.spyOn(Sentry, 'captureException');
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
+  it('renders Seer-style embed tags as plaintext via default Markdown', () => {
     const embed = '{% issue %}{"id":"PROJ-1"}{% /issue %}';
     const text = `Before ${embed} after`;
     const {container} = render(<AIContentRenderer text={text} inline />);
 
     expect(container).toHaveTextContent(text);
-    expect(captureException).not.toHaveBeenCalled();
-    expect(warn).not.toHaveBeenCalledWith(
-      expect.stringContaining('[Markdown] no renderer for tag'),
-      expect.anything()
-    );
-
-    captureException.mockRestore();
-    warn.mockRestore();
   });
 });
