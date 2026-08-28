@@ -31,7 +31,16 @@ export function GroupPreviewHovercard({
       position={shouldShowPositionTop ? 'top' : 'right'}
       hide={shouldNotPreview || hide}
       body={<div onClick={handleStackTracePreviewClick}>{body}</div>}
-      containerDisplayMode="inline"
+      // Group titles are truncated by an ancestor, so the trigger has to do its
+      // own truncating. An inline trigger ignores the max-width the hover
+      // overlay sets on it, leaving its layout box — and therefore the
+      // hovercard's anchor — out past the visible edge of a clipped title.
+      containerDisplayMode="inline-block"
+      style={{
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        verticalAlign: 'bottom',
+      }}
       {...props}
     >
       {children}
