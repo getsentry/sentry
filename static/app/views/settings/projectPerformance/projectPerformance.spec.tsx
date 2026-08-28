@@ -629,7 +629,9 @@ describe('projectPerformance', () => {
       threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
       allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
-      newValue: 5000,
+      // Keep the step delta small — 100 -> 5000 is 17 keypresses and flaked on
+      // the default 5s timeout under CI load.
+      newValue: 500,
       sliderIdentifier: {
         label: 'Minimum Time Saved',
         index: 0,
