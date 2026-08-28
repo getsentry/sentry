@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from django.db.models import Prefetch, prefetch_related_objects
 
@@ -15,6 +16,7 @@ from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -64,6 +66,8 @@ class SeerNightShiftRunResponse(TypedDict):
     dateAdded: str
     extras: dict[str, Any]
     errorMessage: str | None
+    errorType: SeerNightShiftRunErrorType | None
+    status: Literal["succeeded", "failed", "skipped"]
     results: list[SeerNightShiftRunResultResponse]
     issues: list[SeerNightShiftRunIssueResponse]
     seerRuns: list[SeerNightShiftSeerRunResponse]
@@ -155,14 +159,18 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         extras = obj.extras or {}
         # A dispatch failure records on the run; per-shard delivery failures record
         # on the shard, so surface either so a failed shard doesn't read as healthy.
-        shard_error = next(
+        shard_error: Mapping[str, Any] = next(
             (
-                s.extras["error_message"]
+                s.extras
                 for s in obj.shards.all()
-                if (s.extras or {}).get("error_message")
+                if (s.extras or {}).get("error_message") or (s.extras or {}).get("error_type")
             ),
-            None,
+            {},
         )
+        error_message = extras.get("error_message") or shard_error.get("error_message")
+        raw_error_type = extras.get("error_type") or shard_error.get("error_type")
+        error_type = _resolve_error_type(raw_error_type, error_message)
+        status = _get_status(error_type)
         group_titles_by_id = attrs.get("group_titles_by_id", {})
         group_short_ids_by_id = attrs.get("group_short_ids_by_id", {})
         pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
@@ -170,7 +178,9 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "id": str(obj.id),
             "dateAdded": obj.date_added.isoformat(),
             "extras": extras,
-            "errorMessage": extras.get("error_message") or shard_error,
+            "errorMessage": error_message,
+            "errorType": error_type,
+            "status": status,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [
                 _serialize_issue(
@@ -184,6 +194,46 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             # other kinds can produce runs.
             "triageStrategy": SeerWorkflowStrategy.AGENTIC_TRIAGE.value,
         }
+
+
+_LEGACY_ERROR_TYPES = {
+    "No Seer quota available": SeerNightShiftRunErrorType.NO_QUOTA,
+    "Failed to get eligible projects": SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED,
+    "Organization does not have Seer access": SeerNightShiftRunErrorType.NO_SEER_ACCESS,
+    "Invalid Night Shift shard plan": SeerNightShiftRunErrorType.INVALID_SHARD_PLAN,
+}
+_SKIPPED_ERROR_TYPES = {
+    SeerNightShiftRunErrorType.NO_QUOTA,
+    SeerNightShiftRunErrorType.NO_SEER_ACCESS,
+}
+
+
+def _resolve_error_type(
+    raw_error_type: object, error_message: object
+) -> SeerNightShiftRunErrorType | None:
+    if isinstance(raw_error_type, str):
+        try:
+            return SeerNightShiftRunErrorType(raw_error_type)
+        except ValueError:
+            return SeerNightShiftRunErrorType.UNKNOWN
+
+    if not isinstance(error_message, str):
+        return None
+    if error_type := _LEGACY_ERROR_TYPES.get(error_message):
+        return error_type
+    if re.fullmatch(r"Failed to dispatch \d+ of \d+ triage shards", error_message):
+        return SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED
+    return SeerNightShiftRunErrorType.UNKNOWN
+
+
+def _get_status(
+    error_type: SeerNightShiftRunErrorType | None,
+) -> Literal["succeeded", "failed", "skipped"]:
+    if error_type in _SKIPPED_ERROR_TYPES:
+        return "skipped"
+    if error_type is not None:
+        return "failed"
+    return "succeeded"
 
 
 def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResultResponse:

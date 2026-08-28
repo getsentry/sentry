@@ -1,6 +1,7 @@
 from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -39,6 +40,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(run.id)
         assert response.data[0]["errorMessage"] is None
+        assert response.data[0]["errorType"] is None
+        assert response.data[0]["status"] == "succeeded"
         assert response.data[0]["extras"] == {"foo": "bar"}
         assert len(response.data[0]["results"]) == 1
 
@@ -244,6 +247,51 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["errorMessage"] == "shard failed"
+        assert response.data[0]["errorType"] == "unknown"
+        assert response.data[0]["status"] == "failed"
+
+    def test_returns_structured_error_type_and_status(self) -> None:
+        run = SeerNightShiftRun.objects.create(
+            organization=self.organization,
+            extras={
+                "error_type": SeerNightShiftRunErrorType.NO_QUOTA.value,
+                "error_message": "Diagnostic details",
+            },
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["id"] == str(run.id)
+        assert response.data[0]["errorMessage"] == "Diagnostic details"
+        assert response.data[0]["errorType"] == "no_quota"
+        assert response.data[0]["status"] == "skipped"
+
+    def test_derives_structured_fields_for_legacy_errors(self) -> None:
+        run = SeerNightShiftRun.objects.create(
+            organization=self.organization,
+            extras={"error_message": "Failed to dispatch 1 of 3 triage shards"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["id"] == str(run.id)
+        assert response.data[0]["errorType"] == "shard_dispatch_failed"
+        assert response.data[0]["status"] == "failed"
+
+    def test_derives_skipped_status_for_legacy_errors(self) -> None:
+        run = SeerNightShiftRun.objects.create(
+            organization=self.organization,
+            extras={"error_message": "Organization does not have Seer access"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["id"] == str(run.id)
+        assert response.data[0]["errorType"] == "no_seer_access"
+        assert response.data[0]["status"] == "skipped"
 
     def test_runs_ordered_by_date_added_desc(self) -> None:
         older = SeerNightShiftRun.objects.create(organization=self.organization)
