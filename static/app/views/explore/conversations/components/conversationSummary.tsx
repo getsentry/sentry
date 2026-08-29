@@ -57,6 +57,12 @@ interface ConversationSummaryProps {
 }
 
 const VISIBLE_TOOL_COUNT = 6;
+/**
+ * Overflow tool-name tooltips hold a wrapped list of tags. The default tooltip
+ * width (225px) is too narrow for long tool names, and tags are nowrap, so they
+ * spill past the overlay unless we widen it and cap each tag to the content box.
+ */
+const TOOL_OVERFLOW_TOOLTIP_MAX_WIDTH = 320;
 
 export function ConversationSummary({
   nodes,
@@ -214,13 +220,21 @@ export function ConversationSummary({
                       size="sm"
                       variant="muted"
                       wrap="nowrap"
+                      maxWidth={TOOL_OVERFLOW_TOOLTIP_MAX_WIDTH}
                       title={
-                        <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
+                        <Flex
+                          wrap="wrap"
+                          gap="sm"
+                          paddingTop="xs"
+                          paddingBottom="xs"
+                          width="100%"
+                        >
                           {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
                             <ToolTag
                               key={name}
                               name={name}
                               hasError={aggregates.erroredToolNames.has(name)}
+                              maxWidth="100%"
                             />
                           ))}
                         </Flex>
@@ -518,13 +532,26 @@ export function ConversationAggregatesBar({
                 size="sm"
                 variant="muted"
                 wrap="nowrap"
+                maxWidth={TOOL_OVERFLOW_TOOLTIP_MAX_WIDTH}
                 title={
-                  <Flex wrap="wrap" gap="xs" paddingTop="xs" paddingBottom="xs">
+                  <Flex
+                    wrap="wrap"
+                    gap="xs"
+                    paddingTop="xs"
+                    paddingBottom="xs"
+                    width="100%"
+                  >
                     {aggregates.toolNames
                       .slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
                       .map(name => (
-                        <Tag key={name} variant="info">
-                          {name}
+                        <Tag
+                          key={name}
+                          variant="info"
+                          style={{maxWidth: '100%'}}
+                        >
+                          {/* Same flex/ellipsis caveat as ToolTag — nest Text so
+                              long names truncate inside the tooltip. */}
+                          <Text ellipsis>{name}</Text>
                         </Tag>
                       ))}
                   </Flex>
