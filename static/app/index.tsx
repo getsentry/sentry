@@ -1,3 +1,6 @@
+// Polyfills for ES2023+ methods not available in older browsers (e.g. Chrome < 110).
+import 'sentry/utils/toSortedPolyfill';
+
 // This is the entry point of Sentry's frontend application. Want to
 // understand how app boots? Read on!
 //
