@@ -63,9 +63,7 @@ export function getSpanInfoFromTransactionEvent(
     offendingSpans: offendingSpanIDs
       .map((spanID: any) => spansById[spanID])
       .filter(Boolean),
-    causeSpans: causeSpanIDs
-      .map((spanID: any) => spansById[spanID])
-      .filter(Boolean),
+    causeSpans: causeSpanIDs.map((spanID: any) => spansById[spanID]).filter(Boolean),
   };
 }
 
