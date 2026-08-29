@@ -166,6 +166,16 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
 
+def test_parse_has_attachments_filter() -> None:
+    assert parse_search_query("has_attachments:true") == [
+        SearchFilter(
+            key=SearchKey(name="has_attachments"),
+            operator="=",
+            value=SearchValue(raw_value=1),
+        )
+    ]
+
+
 class ConvertQueryValuesTest(TestCase):
     def test_valid_assign_me_converter(self) -> None:
         raw_value = "me"
