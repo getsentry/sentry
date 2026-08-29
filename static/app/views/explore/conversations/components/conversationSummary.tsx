@@ -57,11 +57,6 @@ interface ConversationSummaryProps {
 }
 
 const VISIBLE_TOOL_COUNT = 6;
-/**
- * Overflow tool-name tooltips hold a wrapped list of tags. The default tooltip
- * width (225px) is too narrow for long tool names, and tags are nowrap, so they
- * spill past the overlay unless we widen it and cap each tag to the content box.
- */
 const TOOL_OVERFLOW_TOOLTIP_MAX_WIDTH = 320;
 
 export function ConversationSummary({
@@ -545,8 +540,6 @@ export function ConversationAggregatesBar({
                       .slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
                       .map(name => (
                         <Tag key={name} variant="info" style={{maxWidth: '100%'}}>
-                          {/* Same flex/ellipsis caveat as ToolTag — nest Text so
-                              long names truncate inside the tooltip. */}
                           <Text ellipsis>{name}</Text>
                         </Tag>
                       ))}
