@@ -270,8 +270,13 @@ export function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (rawValue: unknown, map: Map<string, SelectOption<string>>) => {
-      // Coerce non-string values (e.g. numeric tag values returned by the API) to strings.
-      const value = typeof rawValue === 'string' ? rawValue : String(rawValue ?? '');
+      // Coerce non-string primitives (e.g. numeric tag values returned by the API) to strings.
+      const value =
+        typeof rawValue === 'string'
+          ? rawValue
+          : typeof rawValue === 'number' || typeof rawValue === 'boolean'
+            ? String(rawValue)
+            : '';
       if (!value) {
         return;
       }
@@ -329,7 +334,6 @@ export function FilterSelector({
     stagedFilterValues,
     searchQuery,
     canSelectMultipleValues,
-    globalFilter.tag.key,
     stagedOperator,
   ]);
 
