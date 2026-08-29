@@ -1,10 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import Any, TypedDict
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.workflow_engine.processors.evaluations.condition import DataConditionEvaluationArtifact
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorGroupKey,
@@ -13,7 +12,7 @@ from sentry.workflow_engine.types import (
 )
 
 from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact, EvaluationType
-from .condition_group import DataConditionGroupEvaluation
+from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEvaluationArtifact
 
 
 class DetectorEvaluationData(TypedDict):
@@ -35,8 +34,8 @@ class DetectorEvaluationOutcome(StrEnum):
 class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     event_id: str | None
     group_key: DetectorGroupKey
-    priority: DetectorPriorityLevel
-    trigger_evaluation: DataConditionEvaluationArtifact
+    priority: int
+    trigger_evaluation: DataConditionGroupEvaluationArtifact
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -77,18 +76,19 @@ class DetectorEvaluation(
             return DetectorEvaluationOutcome.TRIGGERED
         return DetectorEvaluationOutcome.NOT_TRIGGERED
 
-    @property
-    def artifact_fields(self) -> dict[str, Any]:
+    def _build_artifact(self, *, triggered: bool, error: str | None) -> DetectorEvaluationArtifact:
         # Each trigger group evaluation will log the value used in evaluation
         # We only need to extract the top level detector items for tracking here.
         event_data = self.data["event_data"] or {}
         event_id = event_data.get("event_id")
-        return {
-            "event_id": str(event_id) if event_id else None,
-            "group_key": self.data["group_key"],
-            "priority": self.priority.value,
-            "trigger_evaluation": self.data["trigger_group_evaluation"].to_artifact(),
-        }
+        return DetectorEvaluationArtifact(
+            triggered=triggered,
+            error=error,
+            event_id=str(event_id) if event_id else None,
+            group_key=self.data["group_key"],
+            priority=self.priority.value,
+            trigger_evaluation=self.data["trigger_group_evaluation"].to_artifact(),
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -135,7 +135,7 @@ class ProcessDetectorsResult:
         return [
             {
                 **self.artifact_data,
-                **evaluation.to_artifact(),
+                **asdict(evaluation.to_artifact()),
                 "outcome": evaluation.outcome,
             }
             for evaluation in self.evaluations.values()

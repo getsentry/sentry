@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
 from .condition import DataConditionEvaluation, DataConditionEvaluationArtifact
@@ -19,7 +20,7 @@ class GroupEvaluationData(TypedDict):
 class DataConditionGroupEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     logic_type: str
     result: bool
-    condition_evaluations: DataConditionEvaluationArtifact
+    condition_evaluations: Sequence[DataConditionEvaluationArtifact]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -27,7 +28,7 @@ class DataConditionGroupEvaluation(
     BaseWorkflowEngineEvaluation[
         bool,
         GroupEvaluationData,
-        DataConditionEvaluationArtifact,
+        DataConditionGroupEvaluationArtifact,
     ]
 ):
     """
@@ -44,13 +45,16 @@ class DataConditionGroupEvaluation(
     - triggered: bool - whether the group's conditions passed
     """
 
-    @property
-    def artifact_fields(self) -> dict[str, Any]:
+    def _build_artifact(
+        self, *, triggered: bool, error: str | None
+    ) -> DataConditionGroupEvaluationArtifact:
         logic_type = self.data["logic_type"]
-        return {
-            "logic_type": getattr(logic_type, "value", logic_type),
-            "result": self.result,
-            "condition_evaluations": [
+        return DataConditionGroupEvaluationArtifact(
+            triggered=triggered,
+            error=error,
+            logic_type=getattr(logic_type, "value", logic_type),
+            result=self.result,
+            condition_evaluations=[
                 evaluation.to_artifact() for evaluation in self.data["condition_evaluations"]
             ],
-        }
+        )
