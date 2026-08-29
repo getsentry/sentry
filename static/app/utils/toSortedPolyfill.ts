@@ -9,6 +9,7 @@ if (!Array.prototype.toSorted) {
     this: T[],
     compareFn?: (a: T, b: T) => number
   ): T[] {
+    // eslint-disable-next-line e18e/prefer-array-to-sorted
     return [...this].sort(compareFn);
   };
 }
