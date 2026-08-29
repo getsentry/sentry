@@ -66,15 +66,11 @@ describe('useErrorFilters', () => {
 
     const {result, router} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
-      initialRouterConfig: {
-        location: {pathname: '/', query: {f_e_issue: '22'}},
-      },
     });
 
     act(() => result.current.setFilters([PROJECT_OPTION]));
     await waitFor(() =>
       expect(router.location.query).toEqual({
-        f_e_issue: '22',
         f_e_project: PROJECT_OPTION.value,
       })
     );
@@ -82,7 +78,6 @@ describe('useErrorFilters', () => {
     act(() => result.current.setSearchTerm(SEARCH_FILTER));
     await waitFor(() =>
       expect(router.location.query).toEqual({
-        f_e_issue: '22',
         f_e_project: PROJECT_OPTION.value,
         f_e_search: SEARCH_FILTER,
       })
@@ -122,31 +117,6 @@ describe('useErrorFilters', () => {
     });
     expect(result.current.items).toStrictEqual([
       ERROR_1_JS_RANGEERROR!,
-      ERROR_3_JS_UNDEFINED!,
-    ]);
-  });
-
-  it('should filter by issue', () => {
-    const errorFrames = [
-      ERROR_1_JS_RANGEERROR!,
-      ERROR_2_NEXTJS_TYPEERROR!,
-      ERROR_3_JS_UNDEFINED!,
-    ];
-
-    const {result} = renderHook(useErrorFilters, {
-      initialProps: {errorFrames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_e_issue: ['22'],
-          },
-        },
-      },
-    });
-
-    expect(result.current.items).toStrictEqual([
-      ERROR_2_NEXTJS_TYPEERROR!,
       ERROR_3_JS_UNDEFINED!,
     ]);
   });

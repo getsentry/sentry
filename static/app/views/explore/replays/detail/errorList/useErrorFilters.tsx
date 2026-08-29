@@ -32,9 +32,6 @@ type Return = {
 };
 
 const FILTERS = {
-  issue: (item: ErrorFrame, issues: string[]) =>
-    issues.length === 0 || issues.includes(String(item.data.groupId)),
-
   level: (item: ErrorFrame, levels: string[]) =>
     levels.length === 0 || levels.includes(item.data.level.toLowerCase()),
 
@@ -50,7 +47,6 @@ const FILTERS = {
 export function useErrorFilters({errorFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery();
 
-  const issue = useMemo(() => decodeList(query.f_e_issue), [query.f_e_issue]);
   const level = useMemo(() => decodeList(query.f_e_level), [query.f_e_level]);
   const project = useMemo(() => decodeList(query.f_e_project), [query.f_e_project]);
   const searchTerm = decodeScalar(query.f_e_search, '').toLowerCase();
@@ -60,9 +56,9 @@ export function useErrorFilters({errorFrames}: Options): Return {
       filterItems({
         items: errorFrames,
         filterFns: FILTERS,
-        filterVals: {issue, project, level, searchTerm},
+        filterVals: {project, level, searchTerm},
       }),
-    [errorFrames, issue, project, level, searchTerm]
+    [errorFrames, project, level, searchTerm]
   );
 
   const getLevelOptions = useCallback(

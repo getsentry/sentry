@@ -58,7 +58,6 @@ const IssueErrorsColumn: ReplayTableColumn = {
   Component: props => {
     const {replay, to} = props;
     const organization = useOrganization();
-    const {groupId} = useParams<{groupId: string}>();
 
     if (replay.is_archived) {
       return null;
@@ -73,8 +72,6 @@ const IssueErrorsColumn: ReplayTableColumn = {
           pathname: makeReplaysPathname({path: `/${replay.id}/`, organization}),
           query: {
             ...(typeof to === 'string' ? undefined : to.query),
-            f_e_issue: groupId,
-            groupId,
             t_main: TabKey.ERRORS,
           },
         }}
