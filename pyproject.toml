@@ -410,7 +410,6 @@ module = [
     "fixtures.integrations.jira.mock",
     "fixtures.integrations.jira.stub_client",
     "fixtures.integrations.mock_service",
-    "fixtures.integrations.stub_service",
     "fixtures.page_objects.base",
     "fixtures.page_objects.dashboard_detail",
     "fixtures.page_objects.explore_logs",
