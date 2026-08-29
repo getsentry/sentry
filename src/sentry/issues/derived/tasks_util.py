@@ -99,7 +99,9 @@ def group_id_ranges_for_hash(
                 "max_scan_limit": _MAX_SCANNED_GROUP_IDS,
             },
         )
-        scan_limit = _MAX_SCANNED_GROUP_IDS
+        # Never clamp below two chunks: a lone boundary can't close a range, so we'd
+        # return nothing and the caller would take that to mean there was nothing to do.
+        scan_limit = max(_MAX_SCANNED_GROUP_IDS, chunk_size * 2)
 
     hash_predicate = "pipeline_hash IS NULL" if pipeline_hash is None else "pipeline_hash = %s"
     # The LIMIT lives in the innermost subquery to encourage Postgres to enforce

@@ -693,6 +693,19 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         # reached the end — the tail may not run past what we scanned.
         assert ranges == [(group_ids[0], group_ids[1])]
 
+    def test_clamp_never_drops_below_one_chunk(self) -> None:
+        group_ids = self._seed(3, self.HASH)
+
+        # Clamping below chunk_size would leave a single boundary, which can't close
+        # a range — the caller would read the empty result as "nothing to do".
+        with patch("sentry.issues.derived.tasks_util._MAX_SCANNED_GROUP_IDS", 1):
+            ranges = group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+
+        assert ranges == [
+            (group_ids[0], group_ids[2]),
+            (group_ids[2], group_ids[2] + 1),
+        ]
+
 
 @with_feature("projects:issue-action-log-write-to-db")
 class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):

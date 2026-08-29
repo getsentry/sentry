@@ -433,6 +433,7 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     name="sentry.issues.derived.tasks.heal_stale_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
+    processing_deadline_duration=60,
 )
 def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
