@@ -544,11 +544,7 @@ export function ConversationAggregatesBar({
                     {aggregates.toolNames
                       .slice(AGGREGATES_BAR_VISIBLE_TOOL_COUNT)
                       .map(name => (
-                        <Tag
-                          key={name}
-                          variant="info"
-                          style={{maxWidth: '100%'}}
-                        >
+                        <Tag key={name} variant="info" style={{maxWidth: '100%'}}>
                           {/* Same flex/ellipsis caveat as ToolTag — nest Text so
                               long names truncate inside the tooltip. */}
                           <Text ellipsis>{name}</Text>
