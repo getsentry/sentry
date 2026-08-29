@@ -1,11 +1,17 @@
 import functools
+import json
 from xml.etree import ElementTree
 
 import pytest
 
 from sentry.issues.formatting.formatter import (
-    Formatter,
+    Code,
+    Field,
+    Group,
+    JsonFormatter,
     MarkdownFormatter,
+    Section,
+    Text,
     XmlFormatter,
     slug,
 )
@@ -15,15 +21,15 @@ from sentry.issues.formatting.models import (
 )
 
 
-def title_section(model: EventObject, fmt: Formatter, limits: object) -> str:
-    return fmt.block("Title", model.title)
+def title_section(model: EventObject, limits: object) -> Section | None:
+    return Section(title="Title", groups=(Group(items=(Text(model.title),)),))
 
 
-def empty_section(model: EventObject, fmt: Formatter, limits: object) -> str:
-    return ""
+def empty_section(model: EventObject, limits: object) -> Section | None:
+    return None
 
 
-def boom_section(model: EventObject, fmt: Formatter, limits: object) -> str:
+def boom_section(model: EventObject, limits: object) -> Section | None:
     raise ValueError("boom")
 
 
@@ -91,16 +97,16 @@ def test_code_fence_outruns_backticks_in_content(text: str, expected_fence: str)
 def test_failing_section_without_a_name_does_not_escape() -> None:
     # the handler exists so one bad section can't sink the render; reading __name__ off an
     # arbitrary callable would make the handler itself raise
-    def boom(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    def boom(model: EventObject, limits: Limits) -> Section | None:
         raise ValueError("boom")
 
-    def ok(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-        return "survived"
+    def ok(model: EventObject, limits: Limits) -> Section | None:
+        return Section(title="Ok", groups=(Group(items=(Text("survived"),)),))
 
     out = MarkdownFormatter().render(
         EventObject(title="t"), [functools.partial(boom), ok], LIMITS_DEFAULT
     )
-    assert out == "survived"
+    assert out == "## Ok\nsurvived"
 
 
 @pytest.mark.parametrize("key", ["123abc", "\U0001f525", "###", "", "  ", "-x-"])
@@ -109,3 +115,69 @@ def test_slug_always_yields_a_legal_xml_name(key: str) -> None:
     # start with a digit; either would emit <> or <123> and break the parse
     out = XmlFormatter().field(key, "v")
     ElementTree.fromstring(f"<r>{out}</r>")
+
+
+def _fields_section(model: EventObject, limits: object) -> Section | None:
+    return Section(
+        title="HTTP Request",
+        groups=(Group(items=(Text("GET /x"), Field("Method", "GET"), Code("body"))),),
+    )
+
+
+def _repeating_section(model: EventObject, limits: object) -> Section | None:
+    return Section(
+        title="Exception",
+        groups=(
+            Group(items=(Text("ValueError: a"),)),
+            Group(items=(Text("KeyError: b"),)),
+        ),
+    )
+
+
+def test_json_renders_a_section_as_an_object() -> None:
+    out = JsonFormatter().render(EventObject(title="t"), [_fields_section], LIMITS_DEFAULT)
+    assert json.loads(out) == {"http_request": {"method": "GET", "text": "GET /x", "code": "body"}}
+
+
+def test_json_renders_repeating_groups_as_a_list() -> None:
+    # the shape a consumer keys off has to be visible, not implied by blank lines the way it is
+    # in the text formats
+    out = JsonFormatter().render(EventObject(title="t"), [_repeating_section], LIMITS_DEFAULT)
+    assert json.loads(out) == {"exception": [{"text": "ValueError: a"}, {"text": "KeyError: b"}]}
+
+
+def test_json_merges_sections_into_one_object() -> None:
+    out = JsonFormatter().render(
+        EventObject(title="boom"), [title_section, _fields_section], LIMITS_DEFAULT
+    )
+    parsed = json.loads(out)
+    assert list(parsed) == ["title", "http_request"]  # section order preserved
+
+
+def test_json_skips_empty_and_failing_sections() -> None:
+    out = JsonFormatter().render(
+        EventObject(title="t"), [empty_section, boom_section, title_section], LIMITS_DEFAULT
+    )
+    assert json.loads(out) == {"title": {"text": "t"}}
+
+
+def test_json_output_is_always_parseable() -> None:
+    # the text formats degrade to a truncated string; json has to stay valid or the consumer
+    # can't read any of it
+    out = JsonFormatter().render(EventObject(title="t"), [], LIMITS_DEFAULT)
+    assert json.loads(out) == {}
+
+
+def test_every_format_sees_the_same_sections() -> None:
+    # the point of the split: one section list, three renderings. If a format could change
+    # which sections run, comparing them would be measuring the wrong thing.
+    event = EventObject(title="boom")
+    sections = [title_section, _fields_section, _repeating_section]
+    rendered = {
+        "markdown": MarkdownFormatter().render(event, sections, LIMITS_DEFAULT),
+        "xml": XmlFormatter().render(event, sections, LIMITS_DEFAULT),
+        "json": JsonFormatter().render(event, sections, LIMITS_DEFAULT),
+    }
+    for out in rendered.values():
+        assert "boom" in out and "GET /x" in out and "KeyError: b" in out
+    assert set(json.loads(rendered["json"])) == {"title", "http_request", "exception"}
