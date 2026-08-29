@@ -111,7 +111,10 @@ def group_id_ranges_for_hash(
     sql = f"""
         SELECT group_id, rn, cnt FROM (
             SELECT group_id,
-                   row_number() OVER () - 1 AS rn,
+                   -- Ordered so the numbering is defined rather than dependent on the
+                   -- order the subquery happens to emit. count(*) stays unordered; an
+                   -- ORDER BY there would turn it into a running count.
+                   row_number() OVER (ORDER BY group_id) - 1 AS rn,
                    count(*) OVER () AS cnt
             FROM (
                 SELECT group_id
