@@ -1,8 +1,3 @@
-// Explicit polyfill for Array.prototype.toSorted (ES2023). Required for browsers
-// outside our browserslist target (e.g. Chrome WebView < 110) where SWC's
-// usage-based core-js injection does not cover it.
-import 'core-js/actual/array/to-sorted';
-
 async function gsAdmin() {
   const [{bootstrap}, {initializeLocale}] = await Promise.all([
     import('sentry/bootstrap'),

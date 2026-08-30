@@ -289,6 +289,7 @@
   "browserslist": {
     "production": [
       "last 10 Chrome versions",
+      "chrome >= 100",
       "last 10 Firefox versions",
       "last 4 Safari major versions",
       "last 3 iOS major versions",
@@ -296,6 +297,7 @@
     ],
     "development": [
       "last 10 Chrome versions",
+      "chrome >= 100",
       "last 10 Firefox versions",
       "last 4 Safari major versions",
       "last 3 iOS major versions",
