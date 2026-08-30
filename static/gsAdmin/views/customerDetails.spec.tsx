@@ -677,16 +677,6 @@ function setUpMocks(
   });
 }
 
-function renderCustomerDetails(organization: Organization) {
-  render(<CustomerDetails />, {
-    initialRouterConfig: {
-      location: {pathname: `/customers/${organization.slug}`},
-      route: '/customers/:orgId',
-    },
-    organization,
-  });
-}
-
 async function openCustomerActions() {
   await screen.findByRole('heading', {name: 'Customers'});
   await userEvent.click(screen.getAllByRole('button', {name: 'Customers Actions'})[0]!);
@@ -1120,7 +1110,13 @@ describe('Customer Details', () => {
 
   it('renders correct dropdown options', async () => {
     setUpMocks(organization);
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     expect(await screen.findByText('Legacy Billing')).toBeInTheDocument();
     expect(screen.queryByText('Billing Platform')).not.toBeInTheDocument();
@@ -1156,7 +1152,13 @@ describe('Customer Details', () => {
   it('shows limited events help text for free plan enterprise trial', async () => {
     setUpMocks(organization, {plan: 'am1_f', isFree: true});
 
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     await openCustomerActions();
 
@@ -1169,7 +1171,13 @@ describe('Customer Details', () => {
   it('hides Start Enterprise Trial for paid plans', async () => {
     setUpMocks(organization, {plan: 'am3_business', isFree: false});
 
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     await openCustomerActions();
 
@@ -1184,7 +1192,13 @@ describe('Customer Details', () => {
     it('renders in the dropdown when there are pending changes', async () => {
       setUpMocks(pendingChangesOrg, {pendingChanges: true});
 
-      renderCustomerDetails(pendingChangesOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingChangesOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingChangesOrg,
+      });
 
       await openCustomerActions();
 
@@ -1204,7 +1218,13 @@ describe('Customer Details', () => {
 
       setUpMocks(cannotTrialOrg, {canTrial: false, trialPlan: null});
 
-      renderCustomerDetails(cannotTrialOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${cannotTrialOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: cannotTrialOrg,
+      });
 
       await openCustomerActions();
 
@@ -1240,7 +1260,13 @@ describe('Customer Details', () => {
         isBillingAdmin: false,
       });
 
-      renderCustomerDetails(terminateOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${terminateOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: terminateOrg,
+      });
 
       await openCustomerActions();
 
@@ -1277,7 +1303,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(terminateOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${terminateOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: terminateOrg,
+      });
 
       await openCustomerActions();
 
@@ -1316,7 +1348,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(recreateOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${recreateOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: recreateOrg,
+      });
 
       await openCustomerActions();
 
@@ -1348,7 +1386,13 @@ describe('Customer Details', () => {
     });
 
     async function openMigrationAction(name: string) {
-      renderCustomerDetails(migrationOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${migrationOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: migrationOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1427,7 +1471,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -1476,7 +1526,13 @@ describe('Customer Details', () => {
       });
       setUpMocks(organization, subscription);
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -1533,7 +1589,13 @@ describe('Customer Details', () => {
       });
       setUpMocks(organization, subscription);
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -1560,7 +1622,13 @@ describe('Customer Details', () => {
       });
       setUpMocks(organization, subscription);
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -1621,7 +1689,13 @@ describe('Customer Details', () => {
         },
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -1663,7 +1737,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(cancelSubOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${cancelSubOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: cancelSubOrg,
+      });
 
       await openCustomerActions();
 
@@ -1721,7 +1801,13 @@ describe('Customer Details', () => {
         body: Subscription,
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       renderGlobalModal();
 
@@ -1763,7 +1849,13 @@ describe('Customer Details', () => {
         body: sub,
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       renderGlobalModal();
 
@@ -1795,7 +1887,13 @@ describe('Customer Details', () => {
 
       setUpMocks(organization, partnerSubscription);
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
@@ -1820,7 +1918,13 @@ describe('Customer Details', () => {
         body: trialOrg,
       });
 
-      renderCustomerDetails(trialOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${trialOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: trialOrg,
+      });
 
       await openCustomerActions();
 
@@ -1871,7 +1975,13 @@ describe('Customer Details', () => {
         },
       });
 
-      renderCustomerDetails(onDemandInvoicedOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: onDemandInvoicedOrg,
+      });
 
       await openCustomerActions();
 
@@ -1900,7 +2010,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(invoicedOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: invoicedOrg,
+      });
 
       await openCustomerActions();
 
@@ -1945,7 +2061,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(onDemandInvoicedOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: onDemandInvoicedOrg,
+      });
 
       await openCustomerActions();
 
@@ -1994,7 +2116,13 @@ describe('Customer Details', () => {
         body: OrganizationFixture(),
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -2031,7 +2159,13 @@ describe('Customer Details', () => {
       });
       setUpMocks(organization, partnerSubscription);
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -2046,7 +2180,13 @@ describe('Customer Details', () => {
     it('gifts error and transaction events', async () => {
       const subscription = SubscriptionFixture({organization});
       setUpMocks(organization, subscription);
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
       renderGlobalModal();
 
       for (const dataCategory of [DataCategory.ERRORS, DataCategory.TRANSACTIONS]) {
@@ -2087,7 +2227,13 @@ describe('Customer Details', () => {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
     setUpMocks(organization, am2Sub);
 
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2138,7 +2284,13 @@ describe('Customer Details', () => {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_f'});
     setUpMocks(organization, am3Sub);
 
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2188,7 +2340,13 @@ describe('Customer Details', () => {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_team'});
     setUpMocks(organization, am3Sub);
 
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2208,7 +2366,13 @@ describe('Customer Details', () => {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
     setUpMocks(organization, am2Sub);
 
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2269,7 +2433,13 @@ describe('Customer Details', () => {
 
       setUpMocks(invoicedOrg, {billingInterval: 'monthly', type: BillingType.INVOICED});
 
-      renderCustomerDetails(invoicedOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: invoicedOrg,
+      });
 
       await openCustomerActions();
 
@@ -2283,7 +2453,13 @@ describe('Customer Details', () => {
 
       setUpMocks(invoicedOrg, {billingInterval: 'annual', type: BillingType.INVOICED});
 
-      renderCustomerDetails(invoicedOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${invoicedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: invoicedOrg,
+      });
 
       await openCustomerActions();
 
@@ -2303,7 +2479,13 @@ describe('Customer Details', () => {
         body: suspendedOrg,
       });
 
-      renderCustomerDetails(suspendedOrg);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${suspendedOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: suspendedOrg,
+      });
 
       await openCustomerActions();
 
@@ -2337,7 +2519,13 @@ describe('Customer Details', () => {
         body: organization,
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -2382,7 +2570,13 @@ describe('Customer Details', () => {
         body: organization,
       });
 
-      renderCustomerDetails(organization);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${organization.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization,
+      });
 
       await openCustomerActions();
 
@@ -2431,7 +2625,13 @@ describe('Customer Details', () => {
       });
       setUpMocks(orgWithDeleteFeature);
 
-      renderCustomerDetails(orgWithDeleteFeature);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${orgWithDeleteFeature.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: orgWithDeleteFeature,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
       renderGlobalModal();
@@ -2452,7 +2652,13 @@ describe('Customer Details', () => {
       });
       setUpMocks(orgWithoutDeleteFeature);
 
-      renderCustomerDetails(orgWithoutDeleteFeature);
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${orgWithoutDeleteFeature.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: orgWithoutDeleteFeature,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2524,7 +2730,13 @@ describe('Gift Categories Availability', () => {
 
   it('sets availability for every gift category', async () => {
     setUpMocks(organization, customSubscription);
-    renderCustomerDetails(organization);
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: '/customers/:orgId',
+      },
+      organization,
+    });
     await openCustomerActions();
 
     expect(screen.getByTestId(`gift-${DataCategory.REPLAYS}`)).not.toHaveAttribute(
