@@ -5,12 +5,9 @@ import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -21,7 +18,7 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconAdd, IconClock} from 'sentry/icons';
+import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -85,14 +82,12 @@ export function FiltersBar({
   isEditingDashboard,
   isPreview,
   location,
-  onAddWidget,
   onCancel,
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
   storageNamespace,
-  widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
   const currentUser = useUser();
@@ -199,32 +194,15 @@ export function FiltersBar({
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
-  const addWidgetDropdownItems: MenuItemProps[] = [
-    {
-      key: 'create-custom-widget',
-      label: t('Create Custom Widget'),
-      onAction: () => onAddWidget?.(DataSet.ERRORS, false),
-    },
-    {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidget?.(DataSet.ERRORS, true),
-    },
-  ];
-  const addWidgetTooltipMessage = hasEditAccess
-    ? widgetLimitReached
-      ? t('Max widgets reached.')
-      : null
-    : t('You do not have permission to edit this dashboard');
-  const showAddWidgetButton =
-    !isPrebuiltDashboard &&
-    !isEditingDashboard &&
-    !isPreview &&
-    defined(dashboard?.id) &&
-    defined(onAddWidget);
-
   return (
-    <Wrapper>
+    <Flex
+      align={{zero: 'stretch', xl: 'start'}}
+      direction={{zero: 'column', xl: 'row'}}
+      wrap="wrap"
+      gap="lg"
+      marginBottom="0"
+      padding="lg xl xl"
+    >
       <FiltersRow>
         <PageFilterBar condensed>
           <ProjectPageFilter
@@ -363,34 +341,8 @@ export function FiltersBar({
           menuTitle={t('Interval')}
           options={intervalOptions}
         />
-        {showAddWidgetButton && (
-          <Feature features="organizations:dashboards-edit">
-            {({hasFeature}) =>
-              hasFeature ? (
-                <Tooltip
-                  title={addWidgetTooltipMessage}
-                  disabled={!widgetLimitReached && hasEditAccess}
-                >
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd size="sm" />,
-                      variant: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                </Tooltip>
-              ) : null
-            }
-          </Feature>
-        )}
       </Grid>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -404,20 +356,16 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.lg};
-  margin-bottom: ${p => p.theme.space.xl};
-  align-items: flex-start;
-`;
+// Filters row starts wrapping siblings at this width.
+const FILTERS_ROW_FLEX_BASIS_PX = 480;
 
 const FiltersRow = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${p => p.theme.space.lg};
   flex-wrap: wrap;
-  flex: 1;
+  flex: 1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px;
+  min-width: 0;
 
   & button[aria-haspopup] {
     height: 100%;

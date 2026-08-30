@@ -29,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -227,17 +226,29 @@ export interface ExplorerAutofixState {
  */
 export interface ExplorerAutofixResponse {
   autofix: ExplorerAutofixState | null;
+  formatted?: {content: string; format: string};
 }
 
-const POLL_INTERVAL = 1000;
+/**
+ * Poll interval while a run is active, so streaming blocks show up promptly in
+ * the drawer.
+ */
+const ACTIVE_POLL_INTERVAL = 1000;
 
-function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+/**
+ * Poll interval while idle and only watching an already created PR. These are
+ * slow external events (automated CI iteration pushes, review comments), so
+ * polling stays cheap rather than matching the active-run rate.
+ */
+const PR_POLL_INTERVAL = 10000;
+
+export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-      query: {mode: 'explorer'},
-      staleTime: 0,
+      query: {mode: 'explorer', llmFormat: 'markdown'},
+      staleTime: 30_000,
     }
   );
 }
@@ -287,16 +298,16 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
-  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
-
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning ||
-    hasQueuedFeedback
+    anyCodingAgentsRunning
   );
 };
+
+const hasQueuedFeedback = (autofixState: ExplorerAutofixState | null): boolean =>
+  (autofixState?.queued_feedback ?? []).length > 0;
 
 const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
   Object.values(autofixState?.repo_pr_states ?? {}).some(
@@ -316,10 +327,15 @@ export const getPollInterval = ({
   pollPR?: boolean;
 }): number | false => {
   const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
-  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+  const shouldPollProcessing =
+    isActivelyProcessing(autofixState, runStarted) || hasQueuedFeedback(autofixState);
 
-  if (shouldPollPR || shouldPollProcessing) {
-    return POLL_INTERVAL;
+  if (shouldPollProcessing) {
+    return ACTIVE_POLL_INTERVAL;
+  }
+
+  if (shouldPollPR) {
+    return PR_POLL_INTERVAL;
   }
 
   return false;
@@ -553,11 +569,20 @@ function isLastBlockOfSection(block?: Block): boolean {
 
 interface UseExplorerAutofixOptions {
   /**
-   * Whether to enable the hook and make API calls.
-   * When false, the hook returns null state and no-op functions.
-   * Defaults to true.
+   * The `source` reported on coding agent handoff analytics.
+   * Defaults to 'explorer'.
+   */
+  codingAgentAnalyticsSource?: 'explorer' | 'overview';
+  /**
+   * Whether to fetch and poll run state. Action callbacks (startStep, createPR,
+   * triggerCodingAgentHandoff) stay live even when false — used by the overview.
    */
   enabled?: boolean;
+  /**
+   * Called with coding agent launch failure messages. Defaults to
+   * accumulating them in `codingAgentErrors` for inline display.
+   */
+  onCodingAgentError?: (messages: string[]) => void;
   /**
    * Force fast polling while the drawer is mounted. Other observers can keep
    * their processing-aware intervals.
@@ -574,13 +599,18 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  group: Group,
+  group: Pick<Group, 'id' | 'shortId'>,
   options: UseExplorerAutofixOptions = {}
 ) {
   const groupId = group.id;
   const {openModal} = useModal();
 
-  const {enabled = true, pollPR = false} = options;
+  const {
+    enabled = true,
+    pollPR = false,
+    codingAgentAnalyticsSource = 'explorer',
+    onCodingAgentError,
+  } = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -605,6 +635,7 @@ export function useExplorerAutofix(
       ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
     ]);
   }, []);
+  const reportCodingAgentErrors = onCodingAgentError ?? appendCodingAgentErrors;
 
   const {
     data: apiData,
@@ -630,6 +661,10 @@ export function useExplorerAutofix(
     async (
       step: AutofixExplorerStep,
       startStepOptions?: {
+        /**
+         * Whether to enable bash mode for the autofix run. Defaults to false.
+         */
+        enableBashTools?: boolean;
         /**
          * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
          */
@@ -659,6 +694,10 @@ export function useExplorerAutofix(
 
         if (startStepOptions?.userContext) {
           data.user_context = startStepOptions.userContext;
+        }
+
+        if (defined(startStepOptions?.enableBashTools)) {
+          data.enable_bash_tools = startStepOptions.enableBashTools;
         }
 
         const response = await api.requestPromise(
@@ -814,7 +853,7 @@ export function useExplorerAutofix(
         organization,
         group_id: groupId,
         provider: integration.provider,
-        source: 'explorer',
+        source: codingAgentAnalyticsSource,
         user_id: user.id,
       });
 
@@ -838,7 +877,7 @@ export function useExplorerAutofix(
             error_message: string;
             repo_name: string;
             failure_type?: string;
-            github_installation_id?: string;
+            github_installation_url?: string;
           }>;
           successes: unknown[];
         } = await api.requestPromise(
@@ -871,10 +910,7 @@ export function useExplorerAutofix(
           );
 
           if (permissionFailures.length > 0) {
-            const installationId = permissionFailures[0]?.github_installation_id;
-            const installationUrl = installationId
-              ? getGithubPermissionsUpdateUrl(installationId)
-              : undefined;
+            const installationUrl = permissionFailures[0]?.github_installation_url;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
                 {...deps}
@@ -892,7 +928,7 @@ export function useExplorerAutofix(
           }
 
           if (otherFailures.length > 0) {
-            appendCodingAgentErrors(
+            reportCodingAgentErrors(
               otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
             );
           }
@@ -908,7 +944,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        appendCodingAgentErrors([
+        reportCodingAgentErrors([
           e?.responseJSON?.detail ?? 'Failed to launch coding agent',
         ]);
         throw e;
@@ -924,7 +960,8 @@ export function useExplorerAutofix(
       queryClient,
       organization,
       user.id,
-      appendCodingAgentErrors,
+      codingAgentAnalyticsSource,
+      reportCodingAgentErrors,
       openModal,
     ]
   );
@@ -942,15 +979,30 @@ export function useExplorerAutofix(
      */
     runState,
     /**
+     * Formatted markdown for LLM prompts
+     */
+    autofixFormatted: apiData?.formatted?.content ?? null,
+    /**
      * Whether we're fetching without an existing run to display.
      * This includes background refetches of a cached null response so callers do not
      * treat that stale response as confirmation that no run exists.
      */
     isLoading: isPending || (isFetching && !runState),
     /**
+     * Whether a step was started but the backend has not returned its first run state yet.
+     */
+    isWaitingForRun: waitingForResponse && !runState,
+    /**
      * Whether we're actively processing (used for UI indicators).
      */
     isPolling:
+      isActivelyProcessing(runState, waitingForResponse) ||
+      hasQueuedFeedback(runState) ||
+      waitingForCodingAgent,
+    /**
+     * Whether a user-initiated action is actively processing.
+     */
+    isProcessing:
       isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.

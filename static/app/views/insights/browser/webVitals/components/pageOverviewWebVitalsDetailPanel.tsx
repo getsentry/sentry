@@ -41,7 +41,10 @@ import type {
 import {WEB_VITAL_TO_FIELD} from 'sentry/views/insights/browser/webVitals/types';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
-import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {
+  SampleDrawerBody,
+  SampleDrawerContainer,
+} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -316,48 +319,50 @@ export function PageOverviewWebVitalsDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DrawerHeader />
+      <SampleDrawerContainer>
+        <DrawerHeader />
 
-      <SampleDrawerBody>
-        {webVital && (
-          <WebVitalDetailHeader
-            value={
-              webVitalValue === undefined
-                ? undefined
-                : webVital === 'cls'
-                  ? webVitalValue?.toFixed(2)
-                  : getDuration(webVitalValue / 1000, 2, true)
-            }
-            webVital={webVital}
-            score={webVitalScore}
-          />
-        )}
-        <ChartContainer>
+        <SampleDrawerBody>
           {webVital && (
-            <WebVitalStatusLineChart
+            <WebVitalDetailHeader
+              value={
+                webVitalValue === undefined
+                  ? undefined
+                  : webVital === 'cls'
+                    ? webVitalValue?.toFixed(2)
+                    : getDuration(webVitalValue / 1000, 2, true)
+              }
               webVital={webVital}
-              transaction={transaction}
-              browserTypes={browserTypes}
-              subregions={subregions}
+              score={webVitalScore}
             />
           )}
-        </ChartContainer>
-        <TableContainer>
-          <GridEditable
-            data={spansTableData}
-            isLoading={isSpansLoading}
-            columnOrder={
-              isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
-            }
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell,
-              renderBodyCell: renderSpansBodyCell,
-            }}
-          />
-        </TableContainer>
-        <PageAlert />
-      </SampleDrawerBody>
+          <ChartContainer>
+            {webVital && (
+              <WebVitalStatusLineChart
+                webVital={webVital}
+                transaction={transaction}
+                browserTypes={browserTypes}
+                subregions={subregions}
+              />
+            )}
+          </ChartContainer>
+          <TableContainer>
+            <GridEditable
+              data={spansTableData}
+              isLoading={isSpansLoading}
+              columnOrder={
+                isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
+              }
+              columnSortBy={[sort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell: renderSpansBodyCell,
+              }}
+            />
+          </TableContainer>
+          <PageAlert />
+        </SampleDrawerBody>
+      </SampleDrawerContainer>
     </PageAlertProvider>
   );
 }
@@ -386,7 +391,6 @@ const AlignCenter = styled('span')`
 
 const ChartContainer = styled('div')`
   position: relative;
-  flex: 1;
 `;
 
 const NoValue = styled('span')`

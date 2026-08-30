@@ -4,8 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -15,6 +14,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.conditional_get import ConditionalGetResponseMixin
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
@@ -39,6 +39,8 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.types import GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.issues.formatting.autofix import format_autofix
+from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
@@ -56,11 +58,13 @@ from sentry.seer.autofix.coding_agent import (
     poll_claude_code_agents,
     poll_github_copilot_agents,
 )
+from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -184,11 +188,12 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
-class GroupAutofixEndpoint(GroupAiEndpoint):
+class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
     }
+    formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -343,6 +348,11 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         resolved_run_id,
                         referrer=referrer,
                         repo_name=data.get("repo_name"),
+                        author=commit_author_for_user(
+                            request.user,
+                            group.organization.id,
+                            referrer="autofix_open_pr",
+                        ),
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -374,7 +384,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 except SeerPermissionError:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                if not run_state.repo_pr_states:
+                if not run_state.get_created_pull_request_states():
                     return Response(
                         {"detail": "Cannot iterate on a PR before one has been created"},
                         status=status.HTTP_400_BAD_REQUEST,
@@ -406,6 +416,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     kwargs={
                         "run_id": resolved_run_id,
                         "organization_id": group.organization.id,
+                        "trigger_source": ConsumeTriggerSource.FEEDBACK,
                     }
                 )
 
@@ -422,7 +433,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.repo_pr_states or run_state.coding_agents:
+                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"
@@ -430,7 +441,22 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                triggered_at = timezone.now() if is_autofix_kickoff else None
+                if is_autofix_kickoff:
+                    actor = resolve_action_actor(request)
+                    with action_context_scope(
+                        source=resolve_action_source(request),
+                        actor=actor,
+                    ):
+                        Activity.objects.create_group_activity(
+                            group,
+                            ActivityType.TRIGGER_AUTOFIX,
+                            user_id=(
+                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
+                            ),
+                            data={"referrer": referrer.value},
+                            send_notification=False,
+                        )
+
                 try:
                     run = trigger_autofix_agent(
                         group=group,
@@ -457,21 +483,6 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 run_id = run.seer_run_state_id
 
                 if is_autofix_kickoff:
-                    actor = resolve_action_actor(request)
-                    with action_context_scope(
-                        source=resolve_action_source(request),
-                        actor=actor,
-                    ):
-                        Activity.objects.create_group_activity(
-                            group,
-                            ActivityType.TRIGGER_AUTOFIX,
-                            user_id=(
-                                actor.actor_id if actor.actor_type == GroupActorType.USER else None
-                            ),
-                            data={"referrer": referrer.value},
-                            send_notification=False,
-                            datetime=triggered_at,
-                        )
                     sentry_run_id = str(run.uuid)
                 else:
                     sentry_run_id = resolved_sentry_run_id
@@ -489,6 +500,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
+            OpenApiParameter(
+                name="llmFormat",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=str,
+                enum=list(VALID_FORMATS),
+                description=(
+                    "If set, adds a `formatted` field to the response with the autofix rendered "
+                    "as the requested format for LLM consumption."
+                ),
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer("AutofixStateResponse", AutofixStateResponse),
@@ -552,6 +574,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             GithubAppPermissionsWarning(
                 repo_name=repo_name,
                 installation_id=info.installation_id,
+                installation_url=info.installation_url,
             ).dict()
             for repo_name, info in missing_perms.items()
         ]

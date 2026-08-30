@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -17,6 +18,7 @@ import {Access} from 'sentry/components/acl/access';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
+import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
@@ -56,7 +58,7 @@ import {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
+import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type FormData = {
@@ -169,11 +171,20 @@ export function CreateProject() {
     createNotificationActionParam
   );
 
-  const validateChannel = useValidateChannel({
-    channel: notificationProps.channel,
-    integrationId: notificationProps.integration?.id,
+  const validateChannel = useQuery({
+    ...validateChannelQueryOptions({
+      organizationSlug: organization.slug,
+      channel: notificationProps.channel,
+      integrationId: notificationProps.integration?.id,
+    }),
     enabled: false,
   });
+  const validateChannelError =
+    validateChannel.data?.valid === false
+      ? (validateChannel.data.detail ?? t('Channel not found or restricted'))
+      : validateChannel.error
+        ? t('Unexpected integration channel validation error')
+        : undefined;
 
   const defaultTeam = accessTeams?.[0]?.slug;
 
@@ -243,12 +254,12 @@ export function CreateProject() {
     missingValues.isMissingProjectName,
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
-    isNotifyingViaIntegration && validateChannel.error,
+    isNotifyingViaIntegration && validateChannelError,
   ].filter(Boolean).length;
 
   const submitTooltipText =
-    isNotifyingViaIntegration && validateChannel.error
-      ? validateChannel.error
+    isNotifyingViaIntegration && validateChannelError
+      ? validateChannelError
       : getSubmitTooltipText({
           ...missingValues,
           formErrorCount,
@@ -294,6 +305,13 @@ export function CreateProject() {
         platform: OnboardingSelectedSDK;
       }) => {
       const selectedPlatform = selectedFramework ?? platform;
+
+      // Not in handleProjectCreation: every path into configurePlatform goes on
+      // to POST, so an abandoned framework modal stays out of the denominator.
+      trackAnalytics('project_creation.project_details_create_clicked', {
+        organization,
+        variant: 'legacy',
+      });
 
       try {
         const {project, notificationRule, ruleIds} =
@@ -347,28 +365,20 @@ export function CreateProject() {
       } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', projectName));
 
-        if (error.status === 403) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', error);
-            scope.setContext('permission_context', {
-              org_slug: organization.slug,
-              team,
-              org_access: organization.access,
-              org_features: organization.features,
-              org_allow_member_project_creation: organization.allowMemberProjectCreation,
-              user_team_access: team
-                ? accessTeams.find(teamItem => teamItem.slug === team)?.access
-                : null,
-              available_teams_count: accessTeams.length,
-            });
-            Sentry.captureMessage('Project creation permission denied');
-          });
-        } else if (error.status !== 409) {
-          Sentry.withScope(scope => {
-            scope.setExtra('err', error);
-            Sentry.captureMessage('Project creation failed');
-          });
-        }
+        // Unfiltered, unlike captureProjectCreationFailure below: both variants
+        // count every caught failure, so filtering here would skew the rate.
+        trackAnalytics('project_creation.project_details_create_failed', {
+          organization,
+          variant: 'legacy',
+        });
+
+        captureProjectCreationFailure({
+          error,
+          organization,
+          team,
+          accessTeams,
+          variant: 'legacy',
+        });
       }
     },
     [
@@ -510,7 +520,6 @@ export function CreateProject() {
             organization={organization}
             source="project-creation"
             variant="legacy"
-            showOther
             noAutoFilter
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
@@ -553,7 +562,16 @@ export function CreateProject() {
               ? t('Name your project')
               : t('Name your project and assign it a team')}
           </StyledListItem>
-          <FormFieldGroup>
+          <Grid
+            columns={{
+              zero: 'minmax(0, 1fr)',
+              lg: 'minmax(0, 300px) minmax(250px, 1fr) max-content',
+            }}
+            gap="xl"
+            align="end"
+            padding="2xl 0"
+            background="primary"
+          >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
@@ -615,7 +633,13 @@ export function CreateProject() {
                 <Button
                   data-test-id="create-project"
                   variant="primary"
-                  disabled={!(canUserCreateProject && formErrorCount === 0)}
+                  disabled={
+                    !(
+                      canUserCreateProject &&
+                      formErrorCount === 0 &&
+                      !(isNotifyingViaIntegration && validateChannel.isFetching)
+                    )
+                  }
                   busy={
                     createProjectAndRules.isPending ||
                     (isNotifyingViaIntegration && validateChannel.isFetching)
@@ -626,7 +650,7 @@ export function CreateProject() {
                 </Button>
               </Tooltip>
             </div>
-          </FormFieldGroup>
+          </Grid>
           {!isModalVisible && (
             <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
@@ -639,15 +663,6 @@ export function CreateProject() {
 const StyledListItem = styled(ListItem)`
   margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
-`;
-
-const FormFieldGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${p => p.theme.space.xl};
-  align-items: end;
-  padding: ${p => p.theme.space['2xl']} 0;
-  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`

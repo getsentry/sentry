@@ -1,7 +1,9 @@
 import {Fragment, type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {IconCompass} from 'sentry/icons/iconCompass';
@@ -10,6 +12,7 @@ import {IconIssues} from 'sentry/icons/iconIssues';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {IconSpan} from 'sentry/icons/iconSpan';
+import {IconTerminal} from 'sentry/icons/iconTerminal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -18,8 +21,8 @@ import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
-import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 interface AutofixEvidenceProps {
   evidenceButtonProps: EvidenceButtonProps;
@@ -33,7 +36,7 @@ export function AutofixEvidence({
   toolCall,
 }: AutofixEvidenceProps) {
   const organization = useOrganization();
-  const {label, icon, tooltip, ...rest} = evidenceButtonProps;
+  const {prefix, suffix, label, icon, tooltip, ...rest} = evidenceButtonProps;
 
   const handleClick = () => {
     trackAnalytics('autofix.evidence.clicked', {
@@ -53,7 +56,10 @@ export function AutofixEvidence({
         onClick={handleClick}
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
-        {label}
+        {prefix}
+        {': '}
+        {truncateText(label)}
+        {suffix}
       </LinkButton>
     );
   }
@@ -68,31 +74,61 @@ export function AutofixEvidence({
         onClick={handleClick}
         tooltipProps={tooltip ? {title: tooltip} : undefined}
       >
-        {label}
+        {prefix}
+        {': '}
+        {truncateText(label)}
+        {suffix}
       </LinkButton>
     );
   }
 
-  return null;
+  // A tool that produced no navigable resource (e.g. a bash command) renders as a
+  // plain chip rather than a link, so the reader still sees it happened.
+  return (
+    <Button
+      disabled
+      icon={icon}
+      size="zero"
+      tooltipProps={tooltip ? {title: tooltip} : undefined}
+    >
+      {prefix}
+      {': '}
+      {truncateText(label)}
+      {suffix}
+    </Button>
+  );
 }
 
 interface EvidenceButtonInternalProps {
   icon: ReactNode;
-  label: ReactNode;
+  label: string;
+  prefix: string;
   to: LocationDescriptor;
+  suffix?: string;
   tooltip?: ReactNode;
 }
 
 interface EvidenceButtonExternalProps {
   href: string;
   icon: ReactNode;
-  label: ReactNode;
+  label: string;
+  prefix: string;
+  suffix?: string;
+  tooltip?: ReactNode;
+}
+
+interface EvidenceButtonPlainProps {
+  icon: ReactNode;
+  label: string;
+  prefix: string;
+  suffix?: string;
   tooltip?: ReactNode;
 }
 
 export type EvidenceButtonProps =
   | EvidenceButtonInternalProps
-  | EvidenceButtonExternalProps;
+  | EvidenceButtonExternalProps
+  | EvidenceButtonPlainProps;
 
 interface GetEvidencePropsPayload {
   organization: Organization;
@@ -111,7 +147,10 @@ function getTelemetryEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -125,6 +164,7 @@ function getTelemetryEvidenceProps({
   return {
     to: target,
     icon: <IconCompass />,
+    prefix: t('Query'),
     label,
     tooltip: question,
   };
@@ -133,18 +173,18 @@ function getTelemetryEvidenceProps({
 function getTelemetryEvidenceLabel(dataset?: string) {
   switch (dataset) {
     case 'issues': {
-      return t('Query: Issues');
+      return t('Issues');
     }
     case 'errors':
-      return t('Query: Errors');
+      return t('Errors');
     case 'logs':
-      return t('Query: Logs');
+      return t('Logs');
     case 'metrics':
     case 'tracemetrics':
-      return t('Query: Metrics');
+      return t('Metrics');
     case 'spans':
     default:
-      return t('Query: Spans');
+      return t('Spans');
   }
 }
 
@@ -157,7 +197,10 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -172,13 +215,14 @@ function getTraceWaterfallEvidenceProps({
     return null;
   }
 
-  const label = defined(span_id)
-    ? t('Span: %s', getShortEventId(span_id))
-    : t('Trace: %s', getShortEventId(trace_id));
+  const {prefix, label} = defined(span_id)
+    ? {prefix: t('Span'), label: getShortEventId(span_id)}
+    : {prefix: t('Trace'), label: getShortEventId(trace_id)};
 
   return {
     to: target,
     icon: <IconSpan />,
+    prefix,
     label,
   };
 }
@@ -192,7 +236,10 @@ function getIssueDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -206,7 +253,8 @@ function getIssueDetailsEvidenceProps({
   return {
     to: target,
     icon: <IconIssues />,
-    label: t('Error: %s', getShortEventId(event_id)),
+    prefix: t('Error'),
+    label: getShortEventId(event_id),
   };
 }
 
@@ -219,7 +267,10 @@ function getReplayDetailsEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -233,7 +284,8 @@ function getReplayDetailsEvidenceProps({
   return {
     to: target,
     icon: <IconPlay />,
-    label: t('Replay: %s', getShortEventId(replay_id)),
+    prefix: t('Replay'),
+    label: getShortEventId(replay_id),
   };
 }
 
@@ -246,7 +298,10 @@ function getProfileFlamegraphEvidenceProps({
     return null;
   }
 
-  const target = buildToolLinkUrl(toolLink, organization, projects);
+  const target = resolveLink(subjectFromToolLink(toolLink), {
+    organization,
+    projects,
+  })?.url;
   if (!defined(target)) {
     return null;
   }
@@ -260,7 +315,8 @@ function getProfileFlamegraphEvidenceProps({
   return {
     to: target,
     icon: <IconProfiling />,
-    label: t('Profile: %s', getShortEventId(profile_id)),
+    prefix: t('Profile'),
+    label: getShortEventId(profile_id),
   };
 }
 
@@ -274,36 +330,13 @@ function getCodeSearchEvidenceProps({
     if (typeof path !== 'string') {
       return null;
     }
-    const filename = extractFileName(path);
     const {code_url, start_line, end_line} = toolLink?.params ?? {};
-
-    if (!defined(filename) || !defined(code_url)) {
-      return null;
-    }
-
-    const lines =
-      start_line && end_line
-        ? start_line === end_line
-          ? `L${start_line}`
-          : `L${start_line}-L${end_line}`
-        : undefined;
-
-    return {
-      href: lines ? `${code_url}#${lines}` : code_url,
-      icon: <IconFile />,
-      label: t('File: %s%s', truncateText(filename), lines ? ` ${lines}` : ''),
-      tooltip: (
-        <Fragment>
-          {path}
-          {lines && (
-            <Fragment>
-              <br />
-              {lines}
-            </Fragment>
-          )}
-        </Fragment>
-      ),
-    };
+    return getFileEvidenceLink({
+      codeUrl: code_url,
+      filePath: path,
+      startLine: start_line,
+      endLine: end_line,
+    });
   }
 
   return null;
@@ -327,7 +360,8 @@ function getGitSearchEvidenceProps({
     return {
       href: commit_url,
       icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
-      label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
+      prefix: t('Commit'),
+      label: getShortCommitHash(sha),
       tooltip: sha,
     };
   }
@@ -343,7 +377,8 @@ function getGitSearchEvidenceProps({
     return {
       href: commits_url,
       icon: <RepoProviderIcon provider={provider ?? 'integrations:github'} />,
-      label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
+      prefix: t('Commits'),
+      label: fileName ? fileName : repo_name,
       tooltip: (
         <Fragment>
           {typeof file_path === 'string' ? file_path : repo_name}
@@ -359,6 +394,104 @@ function getGitSearchEvidenceProps({
   return null;
 }
 
+function getReadFileEvidenceProps({
+  toolCall,
+  toolLink,
+}: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  const {path} = parseArgs(toolCall);
+  if (typeof path !== 'string') {
+    return null;
+  }
+  const {code_url, start_line, end_line} = toolLink?.params ?? {};
+  return getFileEvidenceLink({
+    codeUrl: code_url,
+    filePath: path,
+    startLine: start_line,
+    endLine: end_line,
+  });
+}
+
+function getBashEvidenceProps({
+  toolCall,
+}: GetEvidencePropsPayload): EvidenceButtonProps | null {
+  // The bash tool emits no navigable resource — its tool link only carries a
+  // description — so evidence is the command itself, rendered as a plain chip
+  // with the full command in the tooltip.
+  const {description, command} = parseArgs(toolCall);
+  const descriptionText =
+    typeof description === 'string' && description ? description : undefined;
+  const commandText = typeof command === 'string' && command ? command : undefined;
+
+  const label = descriptionText ?? commandText;
+  if (!label) {
+    return null;
+  }
+
+  return {
+    icon: <IconTerminal />,
+    prefix: t('Command'),
+    label,
+    tooltip: (
+      <Stack>
+        <Text>{label}</Text>
+        {descriptionText && <Text>{commandText}</Text>}
+      </Stack>
+    ),
+  };
+}
+
+/**
+ * Build a "File: <name>" evidence link from a tool link's code URL.
+ *
+ * `codeUrl` is required; the displayed name is the basename of `filePath`.
+ */
+function getFileEvidenceLink({
+  codeUrl,
+  endLine,
+  filePath,
+  startLine,
+}: {
+  codeUrl: unknown;
+  endLine?: unknown;
+  filePath?: unknown;
+  startLine?: unknown;
+}): EvidenceButtonProps | null {
+  if (typeof codeUrl !== 'string' || typeof filePath !== 'string') {
+    return null;
+  }
+
+  const filename = extractFileName(filePath);
+  if (!defined(filename)) {
+    return null;
+  }
+
+  const lines =
+    typeof startLine === 'number' && typeof endLine === 'number'
+      ? startLine === endLine
+        ? `L${startLine}`
+        : `L${startLine}-L${endLine}`
+      : undefined;
+
+  return {
+    href: lines ? `${codeUrl}#${lines}` : codeUrl,
+    icon: <IconFile />,
+    prefix: t('File'),
+    label: filename,
+    suffix: lines ? ` ${lines}` : undefined,
+    tooltip: (
+      <Fragment>
+        {filePath}
+        {lines && (
+          <Fragment>
+            <br />
+            {lines}
+          </Fragment>
+        )}
+      </Fragment>
+    ),
+  };
+}
+
 export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   string,
   (payload: GetEvidencePropsPayload) => EvidenceButtonProps | null
@@ -371,6 +504,8 @@ export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   get_profile_flamegraph: getProfileFlamegraphEvidenceProps,
   code_search: getCodeSearchEvidenceProps,
   git_search: getGitSearchEvidenceProps,
+  read_file: getReadFileEvidenceProps,
+  bash: getBashEvidenceProps,
 };
 
 function parseArgs(toolCall: ToolCall): any {

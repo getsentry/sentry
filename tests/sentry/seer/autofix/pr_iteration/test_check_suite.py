@@ -6,10 +6,16 @@ from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import (
+    CheckRunsSweep,
     CheckSuiteAutofixRun,
     GithubCheckSuiteEvent,
+    InspectedCheckSuiteHead,
+    ResolvedGreenCheckSuite,
+    pr_iteration_enabled,
     resolve_check_suite_autofix_run,
+    should_defer_pr_iteration,
 )
+from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -21,13 +27,30 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
 )
+from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
+
+OWN_REPO_ID = 123
+
+
+def own_repo_pr(pr_id: int) -> dict:
+    """A ``pull_requests`` entry as GitHub sends it: based in the suite's own repo.
+
+    GitHub always carries ``base.repo``, so a fixture without it is not a payload
+    this path can receive.
+    """
+    return {"id": pr_id, "base": {"repo": {"id": OWN_REPO_ID}}}
+
+
 # Lazy-imported inside the listener (must not load at AppConfig.ready).
 TRIGGER_CONSUME_PATH = "sentry.tasks.seer.pr_iteration.trigger_consume_pr_iteration_feedback"
+DEFER_PATH = f"{CHECK_PATH}.should_defer_pr_iteration"
+INSPECT_PATH = f"{CHECK_SUITES_PATH}.inspect_check_suite_head"
 
 
 class PrIterationFromCheckSuiteListenerTest(TestCase):
@@ -67,7 +90,10 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "updated_at": "2024-01-01T00:00:00Z",
                 "pull_requests": pull_requests or [],
             },
-            "repository": {"html_url": "https://github.com/owner/repo"},
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "id": OWN_REPO_ID,
+            },
         }
 
     def _agent_state(self) -> SeerRunState:
@@ -90,6 +116,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(conclusion="cancelled"))
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -104,6 +132,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         event = self._event(self._raw(), conclusion="success")
         resolved = MagicMock()
@@ -123,6 +153,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert call_order == ["ready", "review"]
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker")
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -137,6 +169,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         from sentry.seer.autofix.pr_iteration.check_suites import (
             READY_FOR_REVIEW_EXTRA,
@@ -161,6 +195,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert mock_marker.call_args_list[1].args[1] == REVIEW_REQUESTS_EXTRA
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker", return_value={"marked": True})
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -175,6 +211,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         mock_resolve.return_value = MagicMock()
 
@@ -185,6 +223,35 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_request_review.assert_not_called()
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=False)
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_green_conclusion_skips_side_effects_when_review_request_disabled(
+        self,
+        mock_resolve: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        mock_marker: MagicMock,
+        _mock_enabled: MagicMock,
+        _mock_peek: MagicMock,
+    ) -> None:
+        """The resolve no longer implies the review-request flag; the caller checks it."""
+        mock_resolve.return_value = MagicMock()
+
+        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+
+        mock_marker.assert_not_called()
+        mock_confirm.assert_not_called()
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.green_review_side_effects_enabled", return_value=True)
     @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
     @patch(f"{CHECK_PATH}.request_review_from_context")
     @patch(f"{CHECK_PATH}.mark_ready_for_review")
@@ -199,6 +266,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready: MagicMock,
         mock_request_review: MagicMock,
         _mock_marker: MagicMock,
+        _mock_flag: MagicMock,
+        _mock_peek: MagicMock,
     ) -> None:
         mock_resolve.return_value = MagicMock()
         pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
@@ -245,7 +314,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue: MagicMock,
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -264,7 +333,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         state = self._agent_state()
         state.metadata = {}
         mock_get_state.return_value = state
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -285,7 +354,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -312,7 +381,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -350,7 +419,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         error = SeerApiError("transient", 500)
         mock_get_state.side_effect = [error, self._agent_state()]
-        raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
+        raw = self._raw(pull_requests=[own_repo_pr(111), own_repo_pr(222)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -374,7 +443,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         right_org_repo = MagicMock(organization_id=self.organization.id, id=2)
         mock_resolve.return_value = [wrong_org_repo, right_org_repo]
         mock_get_state.side_effect = [None, self._agent_state()]
-        raw = self._raw(pull_requests=[{"id": 555}])
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
@@ -386,8 +455,419 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_called_once()
 
 
+class GreenCheckSuiteDeferredIterationTest(TestCase):
+    """Green suite retriggers consume only if parked check-suite feedback matches this head."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _event(self) -> CheckSuiteEvent:
+        return CheckSuiteEvent(
+            action="completed",
+            check_suite={
+                "id": "1",
+                "status": "completed",
+                "conclusion": "success",
+                "html_url": "",
+                "pull_request_ids": [],
+            },
+            subscription_event={
+                "event": orjson.dumps(
+                    {
+                        "check_suite": {
+                            "id": 1,
+                            "head_sha": "abc",
+                            "check_runs_url": "https://github.com/owner/repo/check-runs",
+                            "app": {"name": "CI"},
+                            "updated_at": "2024-01-01T00:00:00Z",
+                            "pull_requests": [],
+                        },
+                        "repository": {"html_url": "https://github.com/owner/repo"},
+                    }
+                ).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
+        )
+
+    def _run_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=67890,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+            metadata={"group_id": self.group.id},
+        )
+
+    def _resolved(self) -> MagicMock:
+        resolved = MagicMock()
+        resolved.organization = self.organization
+        resolved.event.check_suite.head_sha = "abc"
+        resolved.autofix_run.run_state = self._run_state()
+        resolved.autofix_run.group_id = self.group.id
+        resolved.log_extra = {"run_id": 67890}
+        return resolved
+
+    def _parked_check_suite(self, *, head_sha: str = "abc") -> QueuedAutofixFeedback:
+        source = CheckSuiteFeedbackSource(
+            event={
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": head_sha,
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                },
+                "repository": {"html_url": "https://github.com/owner/repo"},
+            }
+        )
+        return QueuedAutofixFeedback(
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+            feedback=Feedback(source=source),
+            referrer=AutofixReferrer.GITHUB_CHECK_SUITE,
+        )
+
+    @patch(DEFER_PATH, return_value=False)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_parked_check_suite_on_this_head_triggers_consume(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        mock_defer: MagicMock,
+    ) -> None:
+        resolved = self._resolved()
+        parked = self._parked_check_suite()
+        mock_resolve.return_value = resolved
+        mock_peek.return_value = [parked]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_called_once_with(
+            run_id=67890,
+            organization_id=self.organization.id,
+            feedback=parked.feedback,
+            run_state=resolved.autofix_run.run_state,
+            bypass=True,
+        )
+        mock_defer.assert_called_once_with(resolved)
+        mock_confirm.assert_not_called()
+        mock_mark_ready.assert_not_called()
+        mock_request_review.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback", return_value=[])
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_empty_queue_does_not_trigger_consume(
+        self,
+        mock_resolve: MagicMock,
+        _mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_other_feedback_does_not_trigger_consume(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [MagicMock()]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_check_suite_on_other_head_does_not_trigger_consume(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite(head_sha="old")]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_not_called()
+
+    @patch(DEFER_PATH, return_value=True)
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_unready_sweep_leaves_the_existing_deferral_alone(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_defer: MagicMock,
+    ) -> None:
+        """Checks still running, or a sweep that could not run, keeps the 1h defer.
+
+        Re-scheduling here would queue one duplicate consume per CI app on the head.
+        """
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_defer.assert_called_once()
+        mock_trigger.assert_not_called()
+
+    @patch(DEFER_PATH, return_value=False)
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_rate_limit_sensitive_org_skips_the_sweep_entirely(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_defer: MagicMock,
+    ) -> None:
+        """The opt-out lands before the peek: the sweep is the only reason to look."""
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+
+        with override_options({"github-app.rate-limit-sensitive-orgs": [self.organization.slug]}):
+            pr_iteration_from_check_suite_listener(self._event())
+
+        mock_peek.assert_not_called()
+        mock_defer.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(INSPECT_PATH, return_value=None)
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_inconclusive_sweep_does_not_override_the_deferral(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_inspect: MagicMock,
+    ) -> None:
+        """End to end through the real ``should_defer_pr_iteration``.
+
+        An inspection that could not conclude says nothing about CI, so the
+        parked 1h task stays the only scheduler.
+        """
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+
+        pr_iteration_from_check_suite_listener(self._event())
+
+        mock_inspect.assert_called_once()
+        mock_trigger.assert_not_called()
+
+    @patch(DEFER_PATH, return_value=False)
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value={"marked": True})
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_triggers_consume_even_when_both_markers_set(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        mock_trigger: MagicMock,
+        mock_confirm: MagicMock,
+        _mock_marker: MagicMock,
+        _mock_defer: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            pr_iteration_from_check_suite_listener(self._event())
+
+        mock_trigger.assert_called_once()
+        mock_confirm.assert_not_called()
+
+    @patch(DEFER_PATH, return_value=False)
+    @patch(f"{CHECK_PATH}.get_run_marker", return_value=None)
+    @patch(f"{CHECK_PATH}.request_review_from_context")
+    @patch(f"{CHECK_PATH}.mark_ready_for_review")
+    @patch(f"{CHECK_PATH}.confirm_green_check_suite")
+    @patch(TRIGGER_CONSUME_PATH, side_effect=ValueError("broker down"))
+    @patch(f"{CHECK_PATH}.peek_queued_autofix_feedback")
+    @patch(f"{CHECK_PATH}.resolve_green_check_suite")
+    def test_failing_consume_schedule_still_runs_review_side_effects(
+        self,
+        mock_resolve: MagicMock,
+        mock_peek: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_confirm: MagicMock,
+        mock_mark_ready: MagicMock,
+        mock_request_review: MagicMock,
+        _mock_marker: MagicMock,
+        _mock_defer: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_peek.return_value = [self._parked_check_suite()]
+        ctx = MagicMock()
+        mock_confirm.return_value = ctx
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            pr_iteration_from_check_suite_listener(self._event())
+
+        mock_mark_ready.assert_called_once_with(ctx)
+        mock_request_review.assert_called_once_with(ctx)
+
+
+class ShouldDeferPrIterationTest(TestCase):
+    """Parked feedback keeps its deferral unless the sweep proves the head is finished."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.repo = self.create_repo(
+            project=self.project, provider="integrations:github", name="owner/repo"
+        )
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+
+    def _resolved(self, *, blocks: list | None = None) -> ResolvedGreenCheckSuite:
+        run_state = SeerRunState(
+            run_id=67890,
+            blocks=blocks or [],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+            metadata={"group_id": 1},
+        )
+        event = GithubCheckSuiteEvent.parse_obj(
+            {
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                },
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "full_name": "owner/repo",
+                },
+            }
+        )
+        return ResolvedGreenCheckSuite(
+            event=event,
+            organization=self.organization,
+            autofix_run=CheckSuiteAutofixRun(
+                repository=self.repo, run_state=run_state, pr_id=1, group_id=1
+            ),
+            seer_run=self.seer_run,
+            repo_name="owner/repo",
+            pr_number=42,
+            log_extra={"run_id": 67890},
+        )
+
+    def _inspected(self, sweep: CheckRunsSweep) -> InspectedCheckSuiteHead:
+        return InspectedCheckSuiteHead(
+            scm=MagicMock(), pull_request=MagicMock(), head_sha="abc", sweep=sweep
+        )
+
+    @patch(INSPECT_PATH)
+    def test_false_when_every_check_run_completed(self, mock_inspect: MagicMock) -> None:
+        """Failed runs are expected — the parked feedback is a failed suite."""
+        mock_inspect.return_value = self._inspected(CheckRunsSweep(total=3, incomplete=0, failed=1))
+
+        assert should_defer_pr_iteration(self._resolved()) is False
+
+    @patch(INSPECT_PATH)
+    def test_true_when_a_check_run_is_incomplete(self, mock_inspect: MagicMock) -> None:
+        mock_inspect.return_value = self._inspected(CheckRunsSweep(total=3, incomplete=1, failed=1))
+
+        assert should_defer_pr_iteration(self._resolved()) is True
+
+    @patch(INSPECT_PATH, return_value=None)
+    def test_true_when_inspection_is_inconclusive(self, _mock_inspect: MagicMock) -> None:
+        """``inspect_check_suite_head`` folds SCM init, provider, PR-fetch, stale-head
+        and listing failures into ``None``. None of them mean CI finished."""
+        assert should_defer_pr_iteration(self._resolved()) is True
+
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions.get_pull_request")
+    @patch("sentry.scm.factory.new", side_effect=Exception("boom"))
+    def test_true_when_scm_init_fails(self, _mock_new: MagicMock, mock_get_pr: MagicMock) -> None:
+        assert should_defer_pr_iteration(self._resolved()) is True
+        mock_get_pr.assert_not_called()
+
+    @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", side_effect=Exception("boom"))
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions.get_pull_request")
+    @patch("sentry.scm.factory.new")
+    def test_true_when_listing_check_runs_fails(
+        self,
+        mock_new: MagicMock,
+        mock_get_pr: MagicMock,
+        mock_pages: MagicMock,
+    ) -> None:
+        mock_new.return_value = MagicMock()
+        mock_get_pr.return_value = {"data": {"head": {"sha": "abc"}}}
+
+        assert should_defer_pr_iteration(self._resolved()) is True
+        mock_pages.assert_called_once()
+
+    @patch(INSPECT_PATH)
+    def test_true_when_hard_cap_reached(self, mock_inspect: MagicMock) -> None:
+        """A capped run must not iterate at all, so no sweep is worth paying for."""
+        cap = 3
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
+
+        with self.options({"autofix.pr-iteration.max-iterations": cap}):
+            assert should_defer_pr_iteration(self._resolved(blocks=blocks)) is True
+
+        mock_inspect.assert_not_called()
+
+
+class PrIterationEnabledTest(TestCase):
+    """The coarse gate on the green resolve: any PR-iteration behaviour admits."""
+
+    def test_disabled_without_any_flag(self) -> None:
+        assert not pr_iteration_enabled(self.organization)
+
+    def test_enabled_by_review_request_flag(self) -> None:
+        with self.feature(REVIEW_REQUEST_FLAG):
+            assert pr_iteration_enabled(self.organization)
+
+    def test_enabled_by_automated_iteration_flag(self) -> None:
+        with self.feature("organizations:autofix-pr-iteration"):
+            assert pr_iteration_enabled(self.organization)
+
+    def test_enabled_by_manual_iteration_flag(self) -> None:
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            assert pr_iteration_enabled(self.organization)
+
+
 class ResolveCheckSuiteAutofixRunTest(TestCase):
-    def _event(self, *, pull_requests: list[dict]) -> GithubCheckSuiteEvent:
+    def _event(
+        self, *, pull_requests: list[dict], repository_id: int | None = None
+    ) -> GithubCheckSuiteEvent:
         return GithubCheckSuiteEvent.parse_obj(
             {
                 "check_suite": {
@@ -398,7 +878,10 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                     "updated_at": "2024-01-01T00:00:00Z",
                     "pull_requests": pull_requests,
                 },
-                "repository": {"html_url": "https://github.com/owner/repo"},
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "id": repository_id,
+                },
             }
         )
 
@@ -428,7 +911,9 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
         mock_get_state.side_effect = [first, second]
 
         result = resolve_check_suite_autofix_run(
-            self._event(pull_requests=[{"id": 111}, {"id": 222}])
+            self._event(
+                pull_requests=[own_repo_pr(111), own_repo_pr(222)], repository_id=OWN_REPO_ID
+            )
         )
 
         assert result is not None
@@ -443,6 +928,105 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
                 "organization_ids": [self.organization.id, self.organization.id],
             },
         )
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_skips_pull_request_based_in_another_repo(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """A PR with its head here and its base elsewhere is never an Autofix PR."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[{"id": 111, "base": {"repo": {"id": 456}}}],
+            )
+        )
+
+        assert result is None
+        assert mock_get_state.call_count == 0
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_foreign_entry_does_not_shadow_own_repo_entry(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """The first match wins, so GitHub's ordering must not pick the run."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=222)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[
+                    {"id": 111, "base": {"repo": {"id": 456}}},
+                    {"id": 222, "base": {"repo": {"id": 123}}},
+                ],
+            )
+        )
+
+        assert result is not None
+        assert result.pr_id == 222
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 222)
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_skips_entry_carrying_no_base_repo(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """An entry we cannot place is skipped, on the same rule pr_metrics uses.
+        Resolving by global id could place it, but GitHub always sends base.repo, so
+        this is not a payload shape that reaches us — see the legacy test below for
+        why serialized feedback is not one either."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(repository_id=123, pull_requests=[{"id": 111}])
+        )
+
+        assert result is None
+        assert mock_get_state.call_count == 0
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_unplaceable_entry_does_not_shadow_own_repo_entry(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """Same shadowing guarantee as the foreign case, for the entry we cannot place."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=222)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=123,
+                pull_requests=[{"id": 111}, {"id": 222, "base": {"repo": {"id": 123}}}],
+            )
+        )
+
+        assert result is not None
+        assert result.pr_id == 222
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 222)
+
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_resolves_legacy_entry_round_tripped_through_the_old_model(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        """Feedback serialized before `base` was declared still carries it: the model
+        that predates the field had `extra = "allow"`, so `base` survived the round
+        trip as an extra and parses into the field now. This is why skipping the
+        unplaceable entry does not strand in-flight iterations."""
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        legacy_entry = {"id": 111, "number": 3, "base": {"repo": {"id": 123, "name": "x"}}}
+        result = resolve_check_suite_autofix_run(
+            self._event(repository_id=123, pull_requests=[legacy_entry])
+        )
+
+        assert result is not None
+        assert result.pr_id == 111
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_ai_conversations import (
+from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     _get_first_input_message,
     _get_last_output,
 )
@@ -113,6 +113,15 @@ class TestGetLastOutput:
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
+
+    def test_agents_conversations_url(self) -> None:
+        assert (
+            reverse(
+                "sentry-api-0-organization-agent-conversations",
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            )
+            == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
+        )
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
@@ -1639,7 +1648,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.data[0]["title"] == "Higher project id title"
 
     @patch(
-        "sentry.api.endpoints.organization_ai_conversations.fetch_conversation_titles",
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.fetch_conversation_titles",
         side_effect=Exception("metadata unavailable"),
     )
     def test_title_lookup_failure_does_not_break_list(

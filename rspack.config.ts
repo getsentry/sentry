@@ -1,4 +1,3 @@
-/* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
@@ -295,8 +294,10 @@ const appConfig: Configuration = {
   incremental: DEV_MODE,
   watchOptions: {
     // StoryManifestPlugin owns these watches so it can update the virtual
-    // manifest before invalidating changed and removed story dependencies.
-    ignored: ['**/*.stories.tsx', '**/*.mdx'],
+    // manifest before invalidating changed and removed story dependencies. Its
+    // virtual module must also be ignored so the filesystem watcher does not
+    // repeatedly report the intentionally nonexistent file as removed.
+    ignored: ['**/*.stories.tsx', '**/*.mdx', `**/${StoryManifestPlugin.modulePath}`],
   },
   experiments: {
     futureDefaults: true,
@@ -391,7 +392,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|mp4)$/,
         type: 'asset',
       },
     ],
@@ -552,8 +553,8 @@ const appConfig: Configuration = {
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
-    chunkIds: IS_PRODUCTION ? 'deterministic' : 'named',
-    moduleIds: IS_PRODUCTION ? 'deterministic' : 'named',
+    chunkIds: IS_PRODUCTION ? 'compat-hashed' : 'named',
+    moduleIds: IS_PRODUCTION ? 'compat-hashed' : 'named',
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our

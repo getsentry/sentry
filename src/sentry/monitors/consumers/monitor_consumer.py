@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
@@ -16,6 +17,7 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
+from django.conf import settings
 from django.db import router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
@@ -89,6 +91,8 @@ from sentry.utils.tracing import set_span_tag, start_span
 logger = logging.getLogger(__name__)
 
 MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
+
+DROP_LOG_SAMPLE_RATE = 0.01
 
 
 def _ensure_monitor_with_config(
@@ -271,10 +275,6 @@ def transform_checkin_uuid(
         pass
 
     if check_in_guid is None:
-        metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "failed_guid_validation"},
-        )
         set_span_tag(span, "result", "failed_guid_validation")
         logger.info(
             "monitors.consumer.guid_validation_failed",
@@ -352,9 +352,6 @@ def update_existing_check_in(
     )
 
     if already_user_complete and not updated_duration_only and not is_out_of_order_in_progress:
-        if updated_status == CheckInStatus.IN_PROGRESS:
-            return
-
         finished_error: CheckinFinished = {
             "type": ProcessingErrorType.CHECKIN_FINISHED,
         }
@@ -420,6 +417,10 @@ def update_existing_check_in(
     if is_out_of_order_in_progress:
         updated_checkin["date_in_progress"] = start_time
         existing_check_in.update(**updated_checkin)
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "out_of_order_in_progress"},
+        )
         return
 
     updated_checkin["status"] = updated_status
@@ -518,6 +519,16 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_environment_ratelimited"},
         )
+        if random.random() < DROP_LOG_SAMPLE_RATE:
+            logger.info(
+                "monitors.consumer.monitor_environment_ratelimited",
+                extra={
+                    "organization_id": project.organization_id,
+                    "project": project.id,
+                    "slug": monitor_slug,
+                    "environment": environment,
+                },
+            )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -542,6 +553,16 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_over_quota"},
         )
+        if random.random() < DROP_LOG_SAMPLE_RATE:
+            logger.info(
+                "monitors.consumer.monitor_over_quota",
+                extra={
+                    "organization_id": project.organization_id,
+                    "project": project.id,
+                    "slug": monitor_slug,
+                    "environment": environment,
+                },
+            )
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -1000,11 +1021,6 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             # XXX: We are ONLY recording this metric for completed check-ins.
             delay = datetime.now() - item.ts
             metrics.timing("monitors.checkin.completion_time", delay.total_seconds())
-
-            metrics.incr(
-                "monitors.checkin.result",
-                tags={**metric_kwargs, "status": "complete"},
-            )
     except Exception as e:
         if isinstance(e, ProcessingErrorsException):
             raise
@@ -1024,17 +1040,20 @@ def process_checkin(item: CheckinItem) -> None:
     """
     Process an individual check-in
     """
-    try:
-        with start_span(
-            op="_process_checkin", name="monitors.monitor_consumer", transaction=True
-        ) as txn:
+    with start_span(
+        op="_process_checkin",
+        name="monitors.monitor_consumer",
+        transaction=True,
+        custom_sampling_context={"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING},
+    ) as txn:
+        try:
             # Deepcopy the checkin here so that it's not modified. We need the original when we get a
             # `ProcessingErrorsException`
             _process_checkin(deepcopy(item), txn)
-    except ProcessingErrorsException as e:
-        handle_processing_errors(item, e)
-    except Exception:
-        logger.exception("Failed to process check-in")
+        except ProcessingErrorsException as e:
+            handle_processing_errors(item, e)
+        except Exception:
+            logger.exception("Failed to process check-in")
 
 
 def process_checkin_group(items: list[CheckinItem]) -> None:

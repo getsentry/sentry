@@ -76,7 +76,8 @@ function JsonTree({value}: {value: unknown}) {
 
 // Renders ```json code blocks as an interactive JSON tree, falling back to a
 // highlighted code block when the content isn't valid JSON. Only fenced code
-// blocks are handled; inline `code` spans are left untouched.
+// blocks are handled; inline `code` spans are left untouched. Unknown {% tag %}
+// tokens fall through to default Markdown, which echoes their original source.
 const markdownComponents: MarkdownProps['components'] = {
   CodeBlock: ({children, lang, Default}) => {
     if (lang?.toLowerCase() === 'json') {
@@ -107,6 +108,17 @@ interface AIContentRendererProps {
   collapsibleXmlTags?: boolean;
   inline?: boolean;
   maxJsonDepth?: number;
+}
+
+/**
+ * Tag names (case-insensitive, punctuation-insensitive) whose collapsible
+ * blocks start expanded — the user's own message is the most useful content in
+ * a transcript, so we don't hide it behind a caret.
+ */
+const EXPANDED_BY_DEFAULT_TAGS = new Set(['usermessage', 'usermsg', 'userinput']);
+
+function isExpandedByDefaultTag(tagName: string): boolean {
+  return EXPANDED_BY_DEFAULT_TAGS.has(tagName.toLowerCase().replace(/[-_]/g, ''));
 }
 
 function XmlTagBlock({
@@ -143,7 +155,7 @@ function XmlTagBlock({
   if (collapsible) {
     return (
       <Container margin="sm 0">
-        <CollapsibleContent title={label}>
+        <CollapsibleContent title={label} defaultOpen={isExpandedByDefaultTag(tagName)}>
           <Container paddingTop="md" paddingLeft="md">
             {body}
           </Container>

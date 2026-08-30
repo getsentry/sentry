@@ -70,6 +70,7 @@ def _last_row(mock_record: Any) -> PrCloseMetricsEvent:
 
 
 @cell_silo_test
+@with_feature("organizations:pr-metrics")
 class UpdatePrMetricsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -170,7 +171,9 @@ class UpdatePrMetricsTest(TestCase):
         assert row.conversation_sentiment is None
         assert row.conversation_comments_total is None
         assert row.conversation_metadata is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -191,7 +194,9 @@ class UpdatePrMetricsTest(TestCase):
         row = _last_row(mock_record)
         assert row.conversation_sentiment is None
         assert row.conversation_metadata is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_conversation_analysis")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -206,7 +211,9 @@ class UpdatePrMetricsTest(TestCase):
         assert result.dict() == {"success": True}
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
         assert _last_row(mock_record).diagnosis_labels is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0
+        )
 
     @patch("sentry.pr_metrics.judge.metrics")
     @patch("sentry.analytics.record")
@@ -217,7 +224,9 @@ class UpdatePrMetricsTest(TestCase):
 
         assert result.dict() == {"success": True}
         assert _last_row(mock_record).diagnosis_labels is None
-        mock_metrics.incr.assert_any_call("pr_metrics.update.invalid_diagnosis_labels")
+        mock_metrics.incr.assert_any_call(
+            "pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0
+        )
 
     @patch("sentry.analytics.record")
     def test_judge_enrichment_absent_is_back_compat(self, mock_record: Any) -> None:
@@ -445,7 +454,7 @@ class UpdatePrMetricsTest(TestCase):
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 class ReapStuckJudgeVerdictsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -512,16 +521,14 @@ class ReapStuckJudgeVerdictsTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
-    def test_releases_without_emitting_when_indeterminate(self, mock_record: Any) -> None:
-        # Activity tracking off for this org: select_verdict can't tell whether
-        # there were commits after open, so select_fallback_verdict would risk
-        # misreading "untracked" as "no commits after open". Rather than emit a
-        # null-verdict row (which would leave the door open, via verdict IS NULL,
-        # for a later genuine Seer callback to emit a second row), the sentinel
-        # is released and nothing is emitted.
+    def test_releases_without_emitting_when_pr_metrics_disabled(self, mock_record: Any) -> None:
+        # The org lost pr-metrics while the forward was in flight. Release the
+        # sentinel so the row can't sit claimed forever, but settle nothing — a
+        # null-verdict row would leave the door open, via verdict IS NULL, for a
+        # later genuine Seer callback to emit for an org the pipeline skipped.
         self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
 
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             reap_stuck_judge_verdicts()
 
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
@@ -729,7 +736,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
         assert timestamps == sorted(timestamps)
         # Hitting the cap is observable: it emits a metric and a warning so a
         # persistently high rate can argue for raising the cap.
-        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped")
+        mock_metrics.incr.assert_any_call("pr_metrics.judge.check_rows_capped", sample_rate=1.0)
         mock_logger.warning.assert_any_call(
             "pr_metrics.judge.check_rows_capped",
             extra={
@@ -765,5 +772,5 @@ class ForwardPrToSeerJudgeTest(TestCase):
         mock_request.return_value = self._response(404)
         forward_pr_to_seer_judge(self.pull_request, self.repo)
         mock_metrics.incr.assert_any_call(
-            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}
+            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}, sample_rate=1.0
         )

@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
 import {FileSize} from 'sentry/components/fileSize';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
@@ -43,45 +44,49 @@ export function GroupEventAttachmentsTableRow({
 
   return (
     <Fragment>
-      <FlexCenter className={sharedClassName}>
-        <div>
-          <AttachmentName>{attachment.name}</AttachmentName>
+      <SimpleTable.Row className={sharedClassName}>
+        <FlexCenter className={sharedClassName}>
           <div>
-            <DateTime date={attachment.dateCreated} /> &middot;{' '}
-            <Link
-              to={`/organizations/${organization.slug}/issues/${groupId}/events/${attachment.event_id}/`}
-            >
-              <Tooltip skipWrapper title={t('View Event')}>
-                {getShortEventId(attachment.event_id)}
-              </Tooltip>
-            </Link>
+            <AttachmentName>{attachment.name}</AttachmentName>
+            <div>
+              <DateTime date={attachment.dateCreated} /> &middot;{' '}
+              <Link
+                to={`/organizations/${organization.slug}/issues/${groupId}/events/${attachment.event_id}/`}
+              >
+                <Tooltip skipWrapper title={t('View Event')}>
+                  {getShortEventId(attachment.event_id)}
+                </Tooltip>
+              </Link>
+            </div>
           </div>
-        </div>
-      </FlexCenter>
-      <FlexCenter className={sharedClassName}>
-        {friendlyAttachmentType[attachment.type] ?? t('Other')}
-      </FlexCenter>
-      <FlexCenter className={sharedClassName}>
-        <FileSize bytes={attachment.size} />
-      </FlexCenter>
-      <FlexCenter className={sharedClassName}>
-        <EventAttachmentActions
-          withPreviewButton
-          attachment={attachment}
-          onDelete={() => onDelete(attachment)}
-          onPreviewClick={handlePreviewClick}
-          previewIsOpen={previewIsOpen}
-          projectSlug={projectSlug}
-        />
-      </FlexCenter>
-      {previewIsOpen && (
-        <InlineAttachment className="preview">
-          <InlineEventAttachment
+        </FlexCenter>
+        <FlexCenter className={sharedClassName}>
+          {friendlyAttachmentType[attachment.type] ?? t('Other')}
+        </FlexCenter>
+        <FlexCenter className={sharedClassName}>
+          <FileSize bytes={attachment.size} />
+        </FlexCenter>
+        <FlexCenter className={sharedClassName}>
+          <EventAttachmentActions
+            withPreviewButton
             attachment={attachment}
+            onDelete={() => onDelete(attachment)}
+            onPreviewClick={handlePreviewClick}
+            previewIsOpen={previewIsOpen}
             projectSlug={projectSlug}
-            eventId={attachment.event_id}
           />
-        </InlineAttachment>
+        </FlexCenter>
+      </SimpleTable.Row>
+      {previewIsOpen && (
+        <SimpleTable.Row>
+          <InlineAttachment className="preview">
+            <InlineEventAttachment
+              attachment={attachment}
+              projectSlug={projectSlug}
+              eventId={attachment.event_id}
+            />
+          </InlineAttachment>
+        </SimpleTable.Row>
       )}
     </Fragment>
   );
@@ -91,12 +96,12 @@ const AttachmentName = styled('div')`
   font-weight: bold;
 `;
 
-const FlexCenter = styled('div')`
+const FlexCenter = styled(SimpleTable.RowCell)`
   display: flex;
   align-items: center;
   white-space: nowrap;
 `;
 
-const InlineAttachment = styled('div')`
+const InlineAttachment = styled(SimpleTable.FullWidthCell)`
   grid-column: 1/-1;
 `;

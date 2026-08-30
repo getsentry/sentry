@@ -1,10 +1,10 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 
 import {PageHeader} from 'admin/components/pageHeader';
@@ -27,7 +27,9 @@ function ForceAutoAssignment() {
     });
 
     const response = await api.requestPromise(
-      `/organizations/${organizationSlug}/issues/force-auto-assignment/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/force-auto-assignment/', {
+        path: {organizationIdOrSlug: organizationSlug},
+      }),
       {
         method: 'PUT',
         data: {group_ids: groupIdsArray},

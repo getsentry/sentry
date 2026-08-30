@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import random
 import re
@@ -146,7 +147,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
-from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.metrics.naming_layer.public import SpanMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -178,7 +179,7 @@ from ..snuba.metrics import (
     MetricOrderByField,
     get_date_range,
 )
-from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
+from ..snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI, parse_mri
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -1152,8 +1153,7 @@ class SnubaTestCase(BaseTestCase):
             files[f"item_{i}"] = trace_item.SerializeToString()
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                files=files,
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT, files=files, timeout=30
             ).status_code
             == 200
         )
@@ -1225,8 +1225,7 @@ class SnubaTestCase(BaseTestCase):
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
         files = {f"eap_items_{i}": item.SerializeToString() for i, item in enumerate(items)}
         response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
+            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT, files=files, timeout=30
         )
         assert response.status_code == 200
         # Reverse the ids since these are stored in little endian in
@@ -1240,6 +1239,7 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
                 data=json.dumps(issues),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -1307,6 +1307,7 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/events/insert",
                 data=json.dumps(events),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -1639,6 +1640,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             msg["sampling_weight"] = sampling_weight
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
+            # Generic metrics sets/gauges/distributions are no longer registered in Snuba.
+            if metric_type in {"s", "d", "g"}:
+                return
             entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
         else:
             entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
@@ -1662,6 +1666,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + cls.snuba_endpoint.format(entity=entity),
                 data=json.dumps(buckets),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -1924,14 +1929,14 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "messaging.message.receive.latency": "metrics_gauges",
     }
     ON_DEMAND_KEY_MAP = {
-        "c": TransactionMetricKey.COUNT_ON_DEMAND.value,
-        "d": TransactionMetricKey.DIST_ON_DEMAND.value,
-        "s": TransactionMetricKey.SET_ON_DEMAND.value,
+        "c": SpanMetricKey.COUNT_ON_DEMAND.value,
+        "d": SpanMetricKey.DIST_ON_DEMAND.value,
+        "s": SpanMetricKey.SET_ON_DEMAND.value,
     }
     ON_DEMAND_MRI_MAP = {
-        "c": TransactionMRI.COUNT_ON_DEMAND.value,
-        "d": TransactionMRI.DIST_ON_DEMAND.value,
-        "s": TransactionMRI.SET_ON_DEMAND.value,
+        "c": SpanMRI.COUNT_ON_DEMAND.value,
+        "d": SpanMRI.DIST_ON_DEMAND.value,
+        "s": SpanMRI.SET_ON_DEMAND.value,
     }
     ON_DEMAND_ENTITY_MAP = {
         "c": EntityKey.MetricsCounters.value,
@@ -2084,8 +2089,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self,
         project,
         total,
-        metric="transaction.duration",
-        mri=TransactionMRI.DURATION.value,
+        metric="transaction.count_per_root_project",
+        mri=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
         attempts=2,
     ):
         attempt = 0
@@ -2147,7 +2152,10 @@ class BaseIncidentsTest(SnubaTestCase):
 class OutcomesSnubaTest(TestCase):
     def setUp(self):
         super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop", timeout=30).status_code
+            == 200
+        )
 
     def store_outcomes(self, outcome, num_times=1):
         outcomes = []
@@ -2160,6 +2168,7 @@ class OutcomesSnubaTest(TestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
                 data=json.dumps(outcomes),
+                timeout=30,
             ).status_code
             == 200
         )
@@ -2220,6 +2229,7 @@ class ProfilesSnubaTestCase(
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
             json=[functions_payload],
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -2280,6 +2290,7 @@ class ProfilesSnubaTestCase(
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/functions/insert",
             json=[functions_payload],
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -2311,8 +2322,7 @@ class ProfilesSnubaTestCase(
             files[f"item_{i}"] = trace_item.SerializeToString()
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-                files=files,
+                settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT, files=files, timeout=30
             ).status_code
             == 200
         )
@@ -2323,11 +2333,14 @@ class ProfilesSnubaTestCase(
 class ReplaysSnubaTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop", timeout=30).status_code
+            == 200
+        )
 
     def store_replays(self, replay):
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay], timeout=30
         )
         assert response.status_code == 200
 
@@ -2353,6 +2366,7 @@ class UptimeCheckSnubaTestCase(TestCase):
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/uptime_checks/insert",
             json=[uptime_check],
+            timeout=30,
         )
         assert response.status_code == 200
 
@@ -2428,14 +2442,17 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         self.addCleanup(patcher.stop)
 
     def drop_replays(self):
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop", timeout=30).status_code
+            == 200
+        )
 
     def store_replays(self, replays):
         assert len(replays) >= 2, (
             "You need to store at least 2 replay events for the replay to be considered valid"
         )
         response = requests.post(
-            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays, timeout=30
         )
         assert response.status_code == 200
 
@@ -3317,7 +3334,7 @@ class SpanTestCase(BaseTestCase):
             start_ts = datetime.now() - timedelta(minutes=1)
         if extra_data is None:
             extra_data = {}
-        span = self.base_span.copy()
+        span = copy.deepcopy(self.base_span)
         # Load some defaults
         span.update(
             {

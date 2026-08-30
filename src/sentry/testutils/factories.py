@@ -79,6 +79,17 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionProject,
+    InvestigationBlockParameter,
+    InvestigationFavoriteUser,
+    InvestigationParameter,
+    InvestigationProject,
+)
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -90,6 +101,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
@@ -158,6 +170,7 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -234,7 +247,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
+    ActionInvocation,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -410,6 +427,63 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation(organization, created_by=None, **kwargs):
+        return Investigation.objects.create(
+            organization=organization,
+            created_by_id=created_by.id if created_by else None,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_project(investigation, project):
+        return InvestigationProject.objects.create(investigation=investigation, project=project)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_favorite(investigation, user):
+        return InvestigationFavoriteUser.objects.create(
+            investigation=investigation, user_id=user.id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block(investigation, position=0, kind="text", **kwargs):
+        return InvestigationBlock.objects.create(
+            investigation=investigation, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_dependency(block, depends_on):
+        return InvestigationBlockDependency.objects.create(block=block, depends_on=depends_on)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_parameter(investigation, **kwargs):
+        return InvestigationParameter.objects.create(investigation=investigation, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_parameter(block, parameter, **kwargs):
+        return InvestigationBlockParameter.objects.create(
+            block=block, parameter=parameter, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution(block, **kwargs):
+        return InvestigationBlockExecution.objects.create(block=block, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_block_execution_project(execution, project):
+        return InvestigationBlockExecutionProject.objects.create(
+            execution=execution, project=project
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_organization(name=None, owner=None, cell: Cell | str | None = None, **kwargs):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -453,6 +527,12 @@ class Factories:
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_organization_avatar(*args, **kwargs) -> OrganizationAvatar:
+        with outbox_runner():
+            return OrganizationAvatar.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -630,6 +710,26 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_bookmark(project, user):
         return ProjectBookmark.objects.create(project_id=project.id, user_id=user.id)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_replay_deletion_job(
+        project: Project,
+        range_start: datetime,
+        range_end: datetime,
+        status: str = DeletionJobStatus.PENDING,
+        query: str = "",
+        environments: list[str] | None = None,
+    ) -> ReplayDeletionJobModel:
+        return ReplayDeletionJobModel.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            range_start=range_start,
+            range_end=range_end,
+            status=status,
+            query=query,
+            environments=environments or [],
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2566,6 +2666,17 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
+    def create_all_projects_detector(organization_id: int, **kwargs) -> Detector:
+        return Detector.objects.create(
+            name=ALL_PROJECTS_DETECTOR_NAME,
+            config={"organization_id": organization_id},
+            type=IssueStreamGroupType.slug,
+            project=None,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_detector_state(
         detector: Detector | None = None,
         **kwargs,
@@ -2916,6 +3027,7 @@ class Factories:
         response = requests.post(
             settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
             files={"item_0": trace_item.SerializeToString()},
+            timeout=30,
         )
         assert response.status_code == 200
 

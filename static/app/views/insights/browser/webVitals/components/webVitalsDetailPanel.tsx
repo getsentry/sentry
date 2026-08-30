@@ -39,7 +39,10 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {
+  SampleDrawerBody,
+  SampleDrawerContainer,
+} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
@@ -255,46 +258,48 @@ export function WebVitalsDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DrawerHeader />
+      <SampleDrawerContainer>
+        <DrawerHeader />
 
-      <SampleDrawerBody>
-        {webVital && (
-          <WebVitalDescription
-            value={
-              webVitalValue === undefined
-                ? undefined
-                : webVital === 'cls'
-                  ? webVitalValue?.toFixed(2)
-                  : getDuration(webVitalValue / 1000, 2, true)
-            }
-            webVital={webVital}
-            score={webVitalScore}
-          />
-        )}
-        <ChartContainer>
+        <SampleDrawerBody>
           {webVital && (
-            <WebVitalStatusLineChart
+            <WebVitalDescription
+              value={
+                webVitalValue === undefined
+                  ? undefined
+                  : webVital === 'cls'
+                    ? webVitalValue?.toFixed(2)
+                    : getDuration(webVitalValue / 1000, 2, true)
+              }
               webVital={webVital}
-              browserTypes={browserTypes}
-              subregions={subregions}
+              score={webVitalScore}
             />
           )}
-        </ChartContainer>
+          <ChartContainer>
+            {webVital && (
+              <WebVitalStatusLineChart
+                webVital={webVital}
+                browserTypes={browserTypes}
+                subregions={subregions}
+              />
+            )}
+          </ChartContainer>
 
-        <TableContainer>
-          <GridEditable
-            data={dataByOpportunity}
-            isLoading={isPending}
-            columnOrder={columnOrder}
-            columnSortBy={[sort]}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-          />
-        </TableContainer>
-        <PageAlert />
-      </SampleDrawerBody>
+          <TableContainer>
+            <GridEditable
+              data={dataByOpportunity}
+              isLoading={isPending}
+              columnOrder={columnOrder}
+              columnSortBy={[sort]}
+              grid={{
+                renderHeadCell,
+                renderBodyCell,
+              }}
+            />
+          </TableContainer>
+          <PageAlert />
+        </SampleDrawerBody>
+      </SampleDrawerContainer>
     </PageAlertProvider>
   );
 }
@@ -334,7 +339,6 @@ const AlignRight = styled('span')<{color?: string}>`
 
 const ChartContainer = styled('div')`
   position: relative;
-  flex: 1;
 `;
 
 const AlignCenter = styled('span')`

@@ -10,9 +10,9 @@ import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -40,6 +40,10 @@ import {
   getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
+import {
+  getConditionalFilterInvalidSeriesMessageForYAxis,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -196,11 +200,31 @@ function Chart({
       samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
     }
 
+    // Invalid `_if` filters skip the backend request; surface that as a chart error
+    // instead of an empty/no-data state.
+    const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
+    const resultForChart = (
+      hasValidConditionalFilter
+        ? timeseriesResult
+        : {
+            ...timeseriesResult,
+            error: new Error(
+              getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
+            ),
+            isError: true,
+            isPending: false,
+            isLoading: false,
+            isFetching: false,
+            isSuccess: false,
+            status: 'error' as const,
+          }
+    ) as SortedTimeSeries;
+
     return {
       chartType,
       confidence: combineConfidenceForSeries(confidenceSeries),
-      series,
-      timeseriesResult,
+      series: hasValidConditionalFilter ? series : [],
+      timeseriesResult: resultForChart,
       yAxis: visualize.yAxis,
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,

@@ -9,10 +9,11 @@ import 'zrender/lib/svg/svg';
 // another module importing the full `echarts` bundle.
 import 'zrender/lib/canvas/canvas';
 
-import {useId, useMemo} from 'react';
+import {useEffect, useId, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import type {
   AxisPointerComponentOption,
   ECharts,
@@ -32,7 +33,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -53,7 +54,7 @@ import type {
 import {defined} from 'sentry/utils/defined';
 
 import {Grid} from './components/grid';
-import {Legend} from './components/legend';
+import {legend as makeLegend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
@@ -61,7 +62,7 @@ import {
 } from './components/tooltip';
 import {XAxis} from './components/xAxis';
 import {YAxis} from './components/yAxis';
-import {LineSeries} from './series/lineSeries';
+import {lineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -115,6 +116,12 @@ export interface TooltipOption
   formatter?: TooltipComponentOption['formatter'];
   markerFormatter?: (marker: string, label?: string) => string;
   nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
+  /**
+   * Extra HTML appended to the series block, e.g. a legend for abbreviated series
+   * names. Receives the names of the series in the tooltip. Called on each tooltip
+   * render, so it can render a React tree to a string.
+   */
+  renderSeriesDetails?: (seriesNames: string[]) => string;
   /**
    * If true does not display sublabels with a value of 0.
    */
@@ -436,7 +443,7 @@ export function BaseChart({
               markLine:
                 (s?.data?.[0] as any)?.[1] === undefined
                   ? undefined
-                  : MarkLine({
+                  : markLine({
                       silent: true,
                       lineStyle: {
                         type: 'solid',
@@ -452,7 +459,7 @@ export function BaseChart({
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
-        LineSeries({
+        lineSeries({
           name: previous.seriesName,
           data: previous.data.map(({name, value}) => [name, value]),
           lineStyle: {
@@ -574,7 +581,7 @@ export function BaseChart({
       color: color as string[],
       grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
       tooltip: tooltipOrNone,
-      legend: legend ? Legend({theme, ...legend}) : undefined,
+      legend: legend ? makeLegend({theme, ...legend}) : undefined,
       yAxis: yAxisOrCustom,
       xAxis: xAxisOrCustom,
       series: resolvedSeries,
@@ -684,15 +691,83 @@ export function BaseChart({
     };
   }, [style, autoHeightResize, height, width]);
 
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const echartsInstanceRef = useRef<ReactEchartsCore | null>(null);
+  const mergedEchartsInstanceRef = useMemo(
+    () => mergeRefs(ref, echartsInstanceRef),
+    [ref]
+  );
+
+  // Adds a resize observer to handle echarts instance resizing when container size changes.
+  // We use our own resize handler because echarts native autoResize has edge cases caused
+  // by debounce where chart instances can be mis-sized too big or too small.
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container || window.ResizeObserver === undefined) {
+      return () => {};
+    }
+
+    let resizeFrame: number | null = null;
+    let lastResizedHeight = 0;
+    let lastResizedWidth = 0;
+
+    const handleResize = () => {
+      resizeFrame = null;
+
+      const instance = echartsInstanceRef.current?.getEchartsInstance();
+      if (!instance || instance.isDisposed()) {
+        return;
+      }
+
+      const dom = instance.getDom();
+      if (!dom) {
+        return;
+      }
+
+      const {clientWidth, clientHeight} = dom;
+      if (!clientWidth && !clientHeight) {
+        return;
+      }
+
+      // Only resize if the size has changed
+      if (clientWidth === lastResizedWidth && clientHeight === lastResizedHeight) {
+        return;
+      }
+
+      lastResizedHeight = clientHeight;
+      lastResizedWidth = clientWidth;
+      instance.resize({width: 'auto', height: 'auto'});
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Only schedule one resize frame at a time
+      if (resizeFrame === null) {
+        resizeFrame = window.requestAnimationFrame(handleResize);
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    // Destroy observer and cancel pending resize on unmount
+    return () => {
+      if (resizeFrame !== null) {
+        window.cancelAnimationFrame(resizeFrame);
+      }
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <ChartContainer
+      ref={chartContainerRef}
       id={isTooltipPortalled ? chartId : undefined}
       autoHeightResize={autoHeightResize}
       data-test-id={dataTestId}
     >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={ref}
+        ref={mergedEchartsInstanceRef}
+        autoResize={false}
         echarts={echarts}
         notMerge={notMerge}
         replaceMerge={replaceMerge}

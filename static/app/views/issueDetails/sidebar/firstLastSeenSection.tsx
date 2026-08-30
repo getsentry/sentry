@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
@@ -27,7 +28,7 @@ function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
       organizationSlug: organization.slug,
       groupId: group.id,
       environments: [],
-      expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+      expandDerivedData: orgHasIssueInbox(organization),
     }),
     gcTime: 30_000,
   });
@@ -35,7 +36,6 @@ function useFetchAllEnvsGroupData(organization: Organization, group: Group) {
 
 export function FirstLastSeenSection({event, group}: {group: Group; event?: Event}) {
   const organization = useOrganization();
-  const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const shouldReserveReleaseSpace = !!event?.release;
 
@@ -77,9 +77,6 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           <SeenInfo
             date={lastSeen}
             dateGlobal={lastSeenGlobal}
-            organization={organization}
-            projectId={project.id}
-            projectSlug={project.slug}
             environment={shortEnvironmentLabel}
           />
         </Flex>
@@ -97,9 +94,6 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           <SeenInfo
             date={group.firstSeen}
             dateGlobal={allEnvsGroupData?.firstSeen ?? group.firstSeen}
-            organization={organization}
-            projectId={project.id}
-            projectSlug={project.slug}
             environment={shortEnvironmentLabel}
           />
         </Flex>

@@ -1,41 +1,28 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, SelectOption, type SelectValue} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-  providerDetails,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
-
-type Channel = {
-  display: string;
-  id: string;
-  name: string;
-  type: string;
-};
-
-type ChannelListResponse = {
-  results: Channel[];
-};
+import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
 
 /**
  * Shared data + handlers for the messaging-integration alert rule. Owns the
- * channels query, channel validation, and the provider/integration/channel
- * option lists and change handlers, so the classic inline layout
- * (`MessagingIntegrationAlertRule`) and the SCM stacked layout
- * (`ScmMessagingIntegrationAlertRule`) build identical controls and feed them
- * to the same provider sentence, differing only in presentation.
+ * provider/integration option lists and change handlers; delegates channel
+ * loading, validation, and option shaping to `useMessagingChannel`.
  *
- * @public Consumed by the SCM layout in a downstream PR.
+ * The classic inline layout (`MessagingIntegrationAlertRule`) and the SCM
+ * stacked layout (`ScmMessagingIntegrationAlertRule`) both call this hook so
+ * their controls build channels through one code path and can never drift.
  */
 export function useMessagingIntegrationAlertRule(
   {
@@ -53,29 +40,16 @@ export function useMessagingIntegrationAlertRule(
 ) {
   const organization = useOrganization();
 
-  const {data: channels, isPending} = useApiQuery<ChannelListResponse>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: integration?.id!,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!provider && !!integration?.id,
-    }
-  );
-
-  const validateChannel = useValidateChannel({
-    channel,
-    integrationId: integration?.id,
-    enabled: !!integration?.id && !!channel?.new,
-  });
+  const {
+    channelOptions,
+    isChannelLoading,
+    isChannelsError,
+    channelsData,
+    channelError,
+    clearChannelValidation,
+    onChannelChange,
+    onCreateChannel,
+  } = useMessagingChannel({channel, integration, provider, setChannel, variant});
 
   const providerOptions = useMemo(
     () =>
@@ -96,30 +70,6 @@ export function useMessagingIntegrationAlertRule(
     [providersToIntegrations, provider]
   );
 
-  const channelOptions = useMemo(
-    () =>
-      channels?.results.map(ch =>
-        provider === 'slack'
-          ? {label: ch.display, value: ch.display}
-          : {label: `${ch.display} (${ch.id})`, value: ch.id}
-      ),
-    [channels, provider]
-  );
-
-  useEffect(() => {
-    // A restored channel (e.g. from persisted/default actions) only has a raw
-    // id as its label until the channel list loads. Upgrade it to the
-    // human-readable label once we can resolve it. Skips user-created
-    // channels, which intentionally keep their typed-in label.
-    if (!channel || channel.new || !channelOptions) {
-      return;
-    }
-    const match = channelOptions.find(option => option.value === channel.value);
-    if (match && match.label !== channel.label) {
-      setChannel({value: channel.value, label: match.label, new: false});
-    }
-  }, [channel, channelOptions, setChannel]);
-
   return {
     provider,
     integration,
@@ -127,15 +77,17 @@ export function useMessagingIntegrationAlertRule(
     providerOptions,
     integrationOptions,
     channelOptions,
-    isChannelLoading: isPending || validateChannel.isFetching,
-    channelError: validateChannel.error,
+    isChannelLoading,
+    isChannelsError,
+    channelsData,
+    channelError,
     providerDisabled: Object.keys(providersToIntegrations).length === 1,
     integrationDisabled: integrationOptions.length === 1,
-    onProviderChange: (option: any) => {
+    onProviderChange: (option: SelectValue<string>) => {
       setProvider(option.value);
       setIntegration(providersToIntegrations[option.value]![0]);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_provider_changed', {
           organization,
@@ -144,10 +96,10 @@ export function useMessagingIntegrationAlertRule(
         });
       }
     },
-    onIntegrationChange: (option: any) => {
+    onIntegrationChange: (option: SelectValue<OrganizationIntegration>) => {
       setIntegration(option.value);
       setChannel(undefined);
-      validateChannel.clear();
+      clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_integration_changed', {
           organization,
@@ -155,27 +107,8 @@ export function useMessagingIntegrationAlertRule(
         });
       }
     },
-    onChannelChange: (option: {label: React.ReactNode; value: string} | null) => {
-      setChannel(
-        option ? {value: option.value, label: option.label, new: false} : undefined
-      );
-      validateChannel.clear();
-      if (variant) {
-        trackAnalytics('project_creation.notify_channel_changed', {
-          organization,
-          variant,
-        });
-      }
-    },
-    onCreateChannel: (newOption: string) => {
-      setChannel({value: newOption, label: newOption, new: true});
-      if (variant) {
-        trackAnalytics('project_creation.notify_channel_changed', {
-          organization,
-          variant,
-        });
-      }
-    },
+    onChannelChange,
+    onCreateChannel,
   };
 }
 

@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Select, type GeneralSelectValue, type StylesConfig} from '@sentry/scraps/select';
@@ -15,7 +16,6 @@ import {
   memberUsersQueryOptions,
   selectUsersFromMembers,
 } from 'sentry/utils/members/shared';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
@@ -40,7 +40,6 @@ interface Props {
   organization: Organization;
   value: SelectMemberValue;
   'aria-label'?: string;
-  disabled?: boolean;
   projectIds?: readonly string[];
   styles?: StylesConfig;
 }
@@ -64,7 +63,6 @@ function filterMemberOption(option: FilterOption, filterText: string) {
  */
 function SelectMembers({
   'aria-label': ariaLabel,
-  disabled,
   onChange,
   organization,
   projectIds,
@@ -72,7 +70,7 @@ function SelectMembers({
   value,
 }: Props) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const {data: users = [], isPending: memberListLoading} = useQuery({
     ...useProjectMembersQueryOptions(projectIds),
     select: resp => selectUsersFromMembers(resp.json),
@@ -187,7 +185,6 @@ function SelectMembers({
       aria-label={ariaLabel}
       options={currentOptions}
       filterOption={filterMemberOption}
-      isDisabled={disabled}
       isLoading={searchLoading}
       onInputChange={handleInputChange}
       onChange={handleChange}

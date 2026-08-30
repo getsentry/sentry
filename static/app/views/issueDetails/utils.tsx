@@ -212,6 +212,7 @@ function getGroupEventDetailsQueryData({
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
+    llmFormat: 'markdown',
   };
 
   if (query) {

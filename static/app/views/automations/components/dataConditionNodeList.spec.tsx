@@ -199,6 +199,21 @@ describe('DataConditionNodeList', () => {
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
   });
 
+  it('hides delete button for the last remaining workflow trigger condition', () => {
+    render(
+      <AutomationBuilderTestProvider>
+        <DataConditionNodeList
+          {...defaultProps}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          conditions={[DataConditionFixture()]}
+        />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Delete row'})).not.toBeInTheDocument();
+  });
+
   it('shows conflicting condition warning for action filters', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     render(

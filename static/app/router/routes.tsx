@@ -2,7 +2,6 @@ import type {RouteObject} from 'react-router-dom';
 import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
@@ -15,11 +14,14 @@ import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
-import {AuthLayoutRoute} from 'sentry/views/auth/layout';
+import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {
+  CONVERSATIONS_DETAIL_SUB_PATH,
+  EXPLORE_AGENTS_SUB_PATH,
+} from 'sentry/views/explore/conversations/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -81,15 +83,6 @@ function buildRoutes(): RouteObject[] {
   //
   // ## The structure
   //
-  // * `experimentalSpaRoutes`
-  //
-  //   These routes are specifically for the experimental single-page-app mode,
-  //   where Sentry is run separate from Django. These are NOT part of the root
-  //   <App /> component.
-  //
-  //   Right now these are mainly used for authentication pages. In the future
-  //   they would be used for other pages like registration.
-  //
   // * `rootRoutes`
   //
   //   These routes live directly under the <App /> container, and generally
@@ -129,34 +122,61 @@ function buildRoutes(): RouteObject[] {
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
 
-  const experimentalSpaChildRoutes: SentryRouteObject[] = [
+  const publicRootChildren: SentryRouteObject[] = [
     {
-      index: true,
-      component: make(() => import('sentry/views/auth/login')),
+      path: '/accept/:orgId/:memberId/:token/',
+      component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: ':orgId/',
-      component: make(() => import('sentry/views/auth/login')),
+      path: '/share/group/:shareId/',
+      redirectTo: '/share/issue/:shareId/',
+    },
+    {
+      path: '/share/issue/:shareId/',
+      component: make(() => import('sentry/views/sharedGroupDetails')),
+    },
+    {
+      path: '/unsubscribe/project/:id/',
+      component: make(() => import('sentry/views/unsubscribe/project')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/unsubscribe/:orgId/project/:id/',
+      component: make(() => import('sentry/views/unsubscribe/project')),
+    },
+    {
+      path: '/unsubscribe/issue/:id/',
+      component: make(() => import('sentry/views/unsubscribe/issue')),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/unsubscribe/:orgId/issue/:id/',
+      component: make(() => import('sentry/views/unsubscribe/issue')),
+    },
+    {
+      path: '/join-request/',
+      component: withDomainRequired(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
+      customerDomainOnlyRoute: true,
+    },
+    {
+      path: '/join-request/:orgId/',
+      component: withDomainRedirect(
+        make(() => import('sentry/views/organizationJoinRequest'))
+      ),
     },
   ];
-  const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
-    ? {
-        path: '/auth/login/',
-        component: errorHandler(AuthLayoutRoute),
-        children: experimentalSpaChildRoutes,
-      }
-    : {};
-
+  const publicRootRoutes: SentryRouteObject = {
+    component: errorHandler(AppBodyContentRoute),
+    children: publicRootChildren,
+  };
   const rootChildren: SentryRouteObject[] = [
     {
       index: true,
       component: make(() => import('sentry/views/app/root')),
     },
     routeHook('routes:root'),
-    {
-      path: '/accept/:orgId/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
     {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
@@ -178,40 +198,14 @@ function buildRoutes(): RouteObject[] {
       path: '/account/',
       redirectTo: '/settings/account/details/',
     },
-    {
-      path: '/share/group/:shareId/',
-      redirectTo: '/share/issue/:shareId/',
-    },
     // Add redirect from old user feedback to new feedback
     {
       path: '/user-feedback/',
       redirectTo: '/feedback/',
     },
     {
-      path: '/share/issue/:shareId/',
-      component: make(() => import('sentry/views/sharedGroupDetails')),
-    },
-    {
       path: '/organizations/:orgId/share/issue/:shareId/',
       component: make(() => import('sentry/views/sharedGroupDetails')),
-    },
-    {
-      path: '/unsubscribe/project/:id/',
-      component: make(() => import('sentry/views/unsubscribe/project')),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/unsubscribe/:orgId/project/:id/',
-      component: make(() => import('sentry/views/unsubscribe/project')),
-    },
-    {
-      path: '/unsubscribe/issue/:id/',
-      component: make(() => import('sentry/views/unsubscribe/issue')),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/unsubscribe/:orgId/issue/:id/',
-      component: make(() => import('sentry/views/unsubscribe/issue')),
     },
     {
       path: '/organizations/new/',
@@ -240,19 +234,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: '/organizations/:orgId/restore/',
       component: make(() => import('sentry/views/organizationRestore')),
-    },
-    {
-      path: '/join-request/',
-      component: withDomainRequired(
-        make(() => import('sentry/views/organizationJoinRequest'))
-      ),
-      customerDomainOnlyRoute: true,
-    },
-    {
-      path: '/join-request/:orgId/',
-      component: withDomainRedirect(
-        make(() => import('sentry/views/organizationJoinRequest'))
-      ),
     },
     {
       path: '/relocation/',
@@ -299,10 +280,17 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/stories/*',
+      path: '/scraps/*',
       withOrgPath: true,
       // eslint-disable-next-line boundaries/dependencies -- storybook entrypoint
       component: make(() => import('sentry/stories/view/index')),
+    },
+    {
+      path: '/stories/*',
+      withOrgPath: true,
+      // A redirectTo cannot preserve the wildcard deep link, query, or hash.
+      // eslint-disable-next-line boundaries/dependencies -- storybook redirect
+      component: make(() => import('sentry/stories/view/legacyStoriesRedirect')),
     },
     {
       path: '/debug/notifications/:notificationSource?/',
@@ -511,7 +499,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'rules/',
-          redirectTo: '/organizations/:orgId/alerts/rules/',
+          redirectTo: '/organizations/:orgId/monitors/',
         },
         {
           path: 'rules/new/',
@@ -1329,14 +1317,19 @@ function buildRoutes(): RouteObject[] {
   const alertChildRoutes = (forCustomerDomain: boolean): SentryRouteObject[] => [
     {
       index: true,
-      component: make(() => import('sentry/views/alerts/list/incidents')),
+      redirectTo: forCustomerDomain ? '/monitors/' : '/organizations/:orgId/monitors/',
     },
     {
       path: 'rules/',
       children: [
         {
+          // Kept as a redirect: the MS Teams installation card links here, and
+          // Adaptive Card buttons cannot be rewritten once delivered.
           index: true,
-          component: make(() => import('sentry/views/alerts/list/rules/alertRulesList')),
+          component: make(
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/alertRulesListRedirect')
+          ),
         },
         {
           path: 'details/:ruleId/',
@@ -1352,14 +1345,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/alertEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/issueAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1373,7 +1366,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'uptime/',
-          component: make(() => import('sentry/views/alerts/rules/uptime')),
+          component: make(() => import('sentry/views/detectors/components/uptime')),
           children: [
             {
               path: ':projectId/:detectorId/details/',
@@ -1409,8 +1402,8 @@ function buildRoutes(): RouteObject[] {
         {
           index: true,
           redirectTo: forCustomerDomain
-            ? '/alerts/rules/'
-            : '/organizations/:orgId/alerts/rules/',
+            ? '/monitors/'
+            : '/organizations/:orgId/monitors/',
         },
         {
           path: ':projectId/',
@@ -1419,14 +1412,14 @@ function buildRoutes(): RouteObject[] {
             {
               index: true,
               redirectTo: forCustomerDomain
-                ? '/alerts/rules/'
-                : '/organizations/:orgId/alerts/rules/',
+                ? '/monitors/'
+                : '/organizations/:orgId/monitors/',
             },
             {
               path: ':ruleId/',
               component: make(
                 () =>
-                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEdit')
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/metricAlertRuleEditRedirect')
               ),
             },
           ],
@@ -1470,14 +1463,8 @@ function buildRoutes(): RouteObject[] {
       path: 'wizard/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
     },
     {
       path: 'new/',
@@ -1492,7 +1479,8 @@ function buildRoutes(): RouteObject[] {
         {
           path: ':alertType/',
           component: make(
-            () => import('sentry/views/alerts/workflowEngineRedirectWrappers/alertCreate')
+            () =>
+              import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
           ),
         },
       ],
@@ -1504,21 +1492,18 @@ function buildRoutes(): RouteObject[] {
       ),
     },
     {
-      path: ':projectId/',
+      path: ':projectId/new/',
       component: make(
         () =>
-          import('sentry/views/alerts/workflowEngineRedirectWrappers/alertBuilderProjectProvider')
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
       ),
-      children: [
-        {
-          path: 'new/',
-          component: make(() => import('sentry/views/alerts/create')),
-        },
-        {
-          path: 'wizard/',
-          component: make(() => import('sentry/views/alerts/wizard')),
-        },
-      ],
+    },
+    {
+      path: ':projectId/wizard/',
+      component: make(
+        () =>
+          import('sentry/views/alerts/workflowEngineRedirectWrappers/monitorCreateRedirect')
+      ),
     },
   ];
   const alertRoutes: SentryRouteObject = {
@@ -1663,7 +1648,7 @@ function buildRoutes(): RouteObject[] {
   const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
-      redirectTo: 'queries/',
+      component: make(() => import('sentry/views/discover/homepage')),
     },
     {
       path: 'homepage/',
@@ -1729,7 +1714,7 @@ function buildRoutes(): RouteObject[] {
             path: `${moduleBaseURL}/*`,
             redirectTo: `/${DOMAIN_VIEW_BASE_URL}/${getModuleView(
               moduleUrlToModule[moduleBaseURL]!
-            )}${moduleBaseURL}/:splat`,
+            )}/${moduleBaseURL}/`,
           }
         : null
     )
@@ -2262,7 +2247,7 @@ function buildRoutes(): RouteObject[] {
       children: metricsChildren,
     },
     {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/`,
+      path: `${EXPLORE_AGENTS_SUB_PATH}/`,
       component: make(() => import('sentry/views/explore/conversations/layout')),
       children: [
         {
@@ -2270,13 +2255,31 @@ function buildRoutes(): RouteObject[] {
           component: make(() => import('sentry/views/explore/conversations/overview')),
         },
         {
-          path: ':conversationId/',
+          path: `${CONVERSATIONS_DETAIL_SUB_PATH}/:conversationId/`,
           component: make(
             () => import('sentry/views/explore/conversations/conversationDetail')
           ),
         },
         transactionSummaryRoute,
         traceView,
+      ],
+    },
+    {
+      // Redirect the legacy `/explore/conversations/*` paths to `/explore/agents/`.
+      path: 'conversations/',
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/explore/conversations/conversationsRedirect')
+          ),
+        },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/explore/conversations/conversationsRedirect')
+          ),
+        },
       ],
     },
     {
@@ -2287,6 +2290,14 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'saved-queries/',
       component: make(() => import('sentry/views/explore/savedQueries')),
+    },
+    {
+      path: 'investigations/',
+      component: make(() => import('sentry/views/investigations')),
+    },
+    {
+      path: 'investigations/:investigationId/',
+      component: make(() => import('sentry/views/investigations/detail')),
     },
     // Unknown /explore/ subpaths redirect to the default explore view, rather
     // than falling through to the `/:orgId/:projectId/` legacy redirect and
@@ -2498,6 +2509,10 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/',
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
+    },
+    {
+      path: 'autofix/workflows/',
       component: make(() => import('sentry/views/seerWorkflows')),
     },
     {
@@ -2514,7 +2529,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'autofix/overview/',
-      component: make(() => import('sentry/views/seerWorkflows/overview')),
+      redirectTo: '../autofix/',
     },
     {
       path: 'views/:viewId/',
@@ -2932,22 +2947,27 @@ function buildRoutes(): RouteObject[] {
       );
     },
     children: [
-      experimentalSpaRoutes,
       {
         path: '/',
         component: errorHandler(App),
         children: [
-          rootRoutes,
+          publicRootRoutes,
           authV2Routes,
-          organizationRoutes,
-          legacyRedirectRoutes,
           {
-            path: '*',
-            component: errorHandler(OrganizationLayout),
+            component: AuthenticatedApiErrorHandler,
             children: [
+              rootRoutes,
+              organizationRoutes,
+              legacyRedirectRoutes,
               {
                 path: '*',
-                component: errorHandler(RouteNotFound),
+                component: errorHandler(OrganizationLayout),
+                children: [
+                  {
+                    path: '*',
+                    component: errorHandler(RouteNotFound),
+                  },
+                ],
               },
             ],
           },

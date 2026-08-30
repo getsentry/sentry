@@ -9,7 +9,6 @@ from typing import (
     Any,
     ClassVar,
     Generic,
-    Literal,
     Sequence,
     TypeAlias,
     TypedDict,
@@ -43,6 +42,7 @@ T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
+ALL_PROJECTS_DETECTOR_NAME = "Issue Stream: All Projects"
 
 ActionId: TypeAlias = int
 DataConditionGroupId: TypeAlias = int
@@ -89,8 +89,6 @@ class ConditionError:
 
 
 type DetectorResult = IssueOccurrence | StatusChangeMessage | None
-type WorkflowEvaluationDeferred = Literal["deferred"]
-type WorkflowEvaluationResult = Sequence[Action] | WorkflowEvaluationDeferred
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):

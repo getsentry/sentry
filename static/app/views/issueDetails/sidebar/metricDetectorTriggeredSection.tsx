@@ -1,12 +1,14 @@
-import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
@@ -18,6 +20,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
+import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -44,14 +47,28 @@ import {getDetectorOpenInDestination} from 'sentry/views/detectors/components/de
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {
+  useEventOpenPeriod,
+  useOpenPeriods,
+} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {
+  investigationCandidatesQueryOptions,
+  getInvestigationDetailQueryOptions,
+  useLaunchInvestigationMutation,
+} from 'sentry/views/investigations/api';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
+
+const INVESTIGATION_POLL_INTERVAL = 2000;
+const INVESTIGATION_METADATA_GRACE_PERIOD = 10_000;
 
 interface MetricDetectorEvidenceData {
   /**
@@ -71,8 +88,9 @@ interface MetricDetectorEvidenceData {
    */
   value:
     | number
+    | null
     // XXX: Anomaly detectors will store an object here with other data necessary for processing
-    | {value: number};
+    | {value: number | null};
 }
 
 interface MetricDetectorTriggeredSectionProps {
@@ -135,8 +153,12 @@ function getFormattedEvaluatedValue({
 }: {
   aggregate: string;
   detectionType: MetricDetectorConfig['detectionType'];
-  value: number;
-}): string {
+  value: number | null;
+}): string | null {
+  if (value === null) {
+    return null;
+  }
+
   const unitSuffix = getMetricDetectorSuffix(detectionType, aggregate);
   return `${value.toLocaleString()}${unitSuffix}`;
 }
@@ -313,7 +335,6 @@ function ContributingIssues({
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            withChart
             withPagination={false}
             source="metric-issue-contributing-issues"
             numPlaceholderRows={3}
@@ -425,8 +446,8 @@ function TriggeredConditionDetails({
               feedbackOptions={{
                 messagePlaceholder: t('Tell us what you think about this metric issue.'),
                 tags: {
-                  ['feedback.source']: 'metric_issue_details',
-                  ['feedback.owner']: 'aci',
+                  'feedback.source': 'metric_issue_details',
+                  'feedback.owner': 'aci',
                 },
               }}
             />
@@ -498,11 +519,15 @@ function TriggeredConditionDetails({
               ),
               subject: t('Condition'),
             },
-            {
-              key: 'value',
-              value: formattedEvaluatedValue,
-              subject: t('Evaluated Value'),
-            },
+            ...(formattedEvaluatedValue
+              ? [
+                  {
+                    key: 'value',
+                    value: formattedEvaluatedValue,
+                    subject: t('Evaluated Value'),
+                  },
+                ]
+              : []),
           ]}
         />
       </FoldSection>
@@ -540,11 +565,202 @@ const GroupListWrapper = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
 
+function SeerInvestigationSection({
+  eventId,
+  groupId,
+}: {
+  eventId: string;
+  groupId: string;
+}) {
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const metadataIdleSince = useRef<{id: string; timestamp: number} | null>(null);
+  const eventOpenPeriodQuery = useEventOpenPeriod({groupId, eventId});
+  const shouldLoadLatest =
+    eventOpenPeriodQuery.isSuccess && eventOpenPeriodQuery.data === null;
+  const groupOpenPeriodsQuery = useOpenPeriods(
+    {groupId, limit: 1},
+    {enabled: shouldLoadLatest}
+  );
+  const openPeriod = eventOpenPeriodQuery.data ?? groupOpenPeriodsQuery.data?.[0] ?? null;
+  const isOpenPeriodPending =
+    eventOpenPeriodQuery.isPending ||
+    (shouldLoadLatest && groupOpenPeriodsQuery.isPending);
+  const isOpenPeriodError =
+    eventOpenPeriodQuery.isError || (shouldLoadLatest && groupOpenPeriodsQuery.isError);
+  const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
+    () =>
+      openPeriod
+        ? {
+            type: 'metric_open_period',
+            ref: {groupId, openPeriodId: openPeriod.id},
+          }
+        : null,
+    [groupId, openPeriod]
+  );
+  const candidateOptions = investigationCandidatesQueryOptions({
+    organizationSlug: organization.slug,
+    sources: source ? [source] : [],
+  });
+  const {
+    data: candidate,
+    isPending: isCandidatePending,
+    isError: isCandidateError,
+  } = useQuery({
+    ...candidateOptions,
+    enabled: source !== null,
+    select: response => response.json.items[0],
+  });
+  const existingInvestigationId =
+    candidate?.status === 'view' ? candidate.investigationId : null;
+  const {data: existingInvestigation, isPending: isExistingInvestigationPending} =
+    useQuery({
+      ...getInvestigationDetailQueryOptions(
+        organization.slug,
+        existingInvestigationId ?? 'disabled'
+      ),
+      enabled: existingInvestigationId !== null,
+      select: response => response.json,
+      refetchInterval: query => {
+        const investigation = query.state.data?.json;
+        if (
+          !investigation ||
+          (investigation.summary && investigation.summaryDescription)
+        ) {
+          return false;
+        }
+        const blocks = investigation.blocks ?? [];
+        if (
+          shouldPollInvestigationBlocks(blocks) ||
+          isTitleGenerationActive(investigation.titleGeneration?.status)
+        ) {
+          metadataIdleSince.current = null;
+          return INVESTIGATION_POLL_INTERVAL;
+        }
+        if (
+          investigation.titleGeneration?.status === 'failed' ||
+          blocks.some(
+            block =>
+              block.config.autoRun === true &&
+              (block.currentExecution?.status === 'failed' ||
+                block.currentExecution?.status === 'cancelled')
+          )
+        ) {
+          return false;
+        }
+        const idleSince =
+          metadataIdleSince.current?.id === investigation.id
+            ? metadataIdleSince.current.timestamp
+            : Date.now();
+        metadataIdleSince.current = {id: investigation.id, timestamp: idleSince};
+        return Date.now() - idleSince < INVESTIGATION_METADATA_GRACE_PERIOD
+          ? INVESTIGATION_POLL_INTERVAL
+          : false;
+      },
+    });
+  const launchMutation = useLaunchInvestigationMutation(organization.slug, {
+    onSuccess: launchedInvestigation => {
+      queryClient.setQueryData(candidateOptions.queryKey, {
+        json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
+        headers: {},
+      });
+      queryClient.setQueryData(
+        getInvestigationDetailQueryOptions(organization.slug, launchedInvestigation.id)
+          .queryKey,
+        {json: launchedInvestigation, headers: {}}
+      );
+      navigate(
+        normalizeUrl(
+          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
+        )
+      );
+    },
+    onError: () => addErrorMessage(t('Unable to launch investigation.')),
+  });
+
+  const investigationPath =
+    candidate?.status === 'view'
+      ? normalizeUrl(
+          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
+        )
+      : null;
+
+  return (
+    <FoldSection
+      title={
+        <Flex align="center" gap="xs">
+          <IconSeer aria-hidden size="sm" />
+          <Text size="lg">{t('Seer Investigation')}</Text>
+        </Flex>
+      }
+      titleLabel={t('Seer Investigation')}
+      sectionKey="seer_investigation"
+    >
+      {isOpenPeriodPending ||
+      (source !== null && isCandidatePending) ||
+      (existingInvestigationId !== null && isExistingInvestigationPending) ? (
+        <Placeholder height="40px" width="160px" />
+      ) : isOpenPeriodError || isCandidateError ? (
+        <Alert.Container>
+          <Alert variant="danger" showIcon>
+            {t('Unable to load investigation information.')}
+          </Alert>
+        </Alert.Container>
+      ) : (
+        <Stack gap="md">
+          {existingInvestigation?.summary && existingInvestigation.summaryDescription ? (
+            <InvestigationSummaryCard
+              summary={existingInvestigation.summary}
+              summaryDescription={existingInvestigation.summaryDescription}
+            />
+          ) : investigationPath ? null : (
+            <Text size="md" variant="muted">
+              {t(
+                'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
+              )}
+            </Text>
+          )}
+          <Flex>
+            {investigationPath ? (
+              <LinkButton size="md" variant="primary" to={investigationPath}>
+                {t('View Investigation')}
+              </LinkButton>
+            ) : (
+              <Button
+                size="md"
+                variant="primary"
+                busy={launchMutation.isPending}
+                disabled={!source || candidate?.status === 'unavailable'}
+                onClick={() => source && launchMutation.mutate(source)}
+              >
+                {t('Launch Investigation')}
+              </Button>
+            )}
+          </Flex>
+        </Stack>
+      )}
+    </FoldSection>
+  );
+}
+
+function isTitleGenerationActive(status: string | null | undefined) {
+  return status === 'pending' || status === 'running';
+}
+
+export function MetricIssueSeerInvestigationSection({
+  group,
+  event,
+}: MetricDetectorTriggeredSectionProps) {
+  return <SeerInvestigationSection eventId={event.eventID} groupId={group.id} />;
+}
+
 export function MetricDetectorTriggeredSection({
   group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
   const evidenceData = event.occurrence?.evidenceData;
+
   if (!isMetricDetectorEvidenceData(evidenceData)) {
     return null;
   }

@@ -337,8 +337,8 @@ const issueViewsFeedbackOptions = {
   formTitle: t('Give Feedback'),
   messagePlaceholder: t('How can we make issue views better for you?'),
   tags: {
-    ['feedback.source']: 'custom_views',
-    ['feedback.owner']: 'issues',
+    'feedback.source': 'custom_views',
+    'feedback.owner': 'issues',
   },
 };
 

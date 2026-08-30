@@ -51,10 +51,10 @@ describe('getPollInterval', () => {
     'org/repo': {pr_creation_status: 'completed'} as any,
   };
 
-  it('polls when pollPR is set and a PR has been created, even when idle', () => {
+  it('polls slowly when pollPR is set and a PR has been created, even when idle', () => {
     const state = makeState({status: 'completed', repo_pr_states: completedPr});
     expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
-      1000
+      10000
     );
   });
 
@@ -70,12 +70,26 @@ describe('getPollInterval', () => {
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(false);
   });
 
-  it('polls while processing regardless of pollPR', () => {
+  it('polls faster while processing regardless of pollPR', () => {
     const state = makeState({status: 'processing'});
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
     expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
       1000
     );
+  });
+
+  it('polls faster while processing even when a PR has been created', () => {
+    const state = makeState({status: 'processing', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+
+  it('polls faster while feedback is queued', () => {
+    const state = makeState({
+      queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+    });
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
   });
 });
 
@@ -450,7 +464,7 @@ describe('getOrderedAutofixSections', () => {
 
   function makeBlock(
     overrides: Omit<Partial<Block>, 'message'> & {message?: Partial<Block['message']>}
-  ) {
+  ): Block {
     const {message, ...rest} = overrides;
     return {
       id: `block-${blockId++}`,
@@ -461,7 +475,7 @@ describe('getOrderedAutofixSections', () => {
         ...message,
       },
       ...rest,
-    } as Block;
+    };
   }
 
   function makePatch(repoName: string, path: string, diff = 'diff'): ExplorerFilePatch {
@@ -632,7 +646,7 @@ describe('isPrIterationBlock', () => {
       id: 'block-1',
       timestamp: '2026-01-01T00:00:00Z',
       message: {content: 'hello', role: 'assistant', metadata},
-    } as Block;
+    };
   }
 
   it('is true only for blocks whose step is pr_iteration', () => {
@@ -668,7 +682,7 @@ describe('isLastStepPrIteration', () => {
         role: 'assistant',
         metadata: step ? {step} : undefined,
       },
-    } as Block;
+    };
   }
   function state(blocks: Block[]): ExplorerAutofixState {
     return {
@@ -707,6 +721,32 @@ describe('isLastStepPrIteration', () => {
 
 const GROUP_ID = '123';
 const MOCK_GROUP = GroupFixture({id: GROUP_ID});
+
+describe('useExplorerAutofix - polling state', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+
+  it('polls for queued feedback without reporting user-initiated processing', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          run_id: 42,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    expect(result.current.isPolling).toBe(true);
+    expect(result.current.isProcessing).toBe(false);
+  });
+});
 
 describe('useExplorerAutofix - createPR', () => {
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;

@@ -79,12 +79,14 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
 
   const authors = useMemo(
     () =>
-      release?.authors.map<Actor | User>(author => // Add a unique id if missing
-      ({
-        ...author,
-        type: 'user',
-        id: 'id' in author ? author.id : uniqueId(),
-      })),
+      release?.authors.map<Actor | User>(author =>
+        // Add a unique id if missing
+        ({
+          ...author,
+          type: 'user',
+          id: 'id' in author ? author.id : uniqueId(),
+        })
+      ),
     [release?.authors]
   );
 
@@ -110,7 +112,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
           </div>
           <div>
             <h6 style={{textAlign: 'right'}}>{t('Date Created')}</h6>
-            <DateTime date={release.dateCreated} seconds={false} />
+            <DateTime date={release.dateCreated} />
           </div>
         </Flex>
         {parsedVersion?.package && (

@@ -19,7 +19,6 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
-    get_outcomes_organization_sampled_volume,
     get_outcomes_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
@@ -33,7 +32,6 @@ from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
-    SAMPLED_VOLUME,
     patch_configuration,
 )
 
@@ -99,7 +97,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         self,
         organization: Organization,
     ) -> BaseDynamicSamplingConfiguration:
-        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0, SAMPLED_VOLUME: None}):
+        with patch_configuration({BLENDED_SAMPLE_RATE: 1.0}):
             return get_configuration(organization.id)
 
     def test_get_eap_organization_volume_existing_org(self) -> None:
@@ -168,40 +166,6 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert org_volume is None
         run_table_query.assert_called_once()
         assert run_table_query.call_args.kwargs["params"].projects == []
-
-    def test_get_outcomes_organization_sampled_volume_existing_org(self) -> None:
-        organization = self.create_organization()
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.raw_snql_query",
-            return_value={"data": [{"total": 10, "indexed": 4}]},
-        ) as raw_snql_query:
-            org_volume = get_outcomes_organization_sampled_volume(
-                organization.id, time_interval=timedelta(minutes=5)
-            )
-
-        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=4)
-        raw_snql_query.assert_called_once()
-        request = raw_snql_query.call_args.args[0]
-        assert request.dataset == "outcomes_raw"
-        assert request.tenant_ids == {"organization_id": organization.id}
-        assert (
-            raw_snql_query.call_args.kwargs["referrer"]
-            == "dynamic_sampling.per_org.get_outcomes_org_volume"
-        )
-
-    def test_get_outcomes_organization_sampled_volume_without_traffic(self) -> None:
-        organization = self.create_organization()
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.raw_snql_query",
-            return_value={"data": [{"total": 0, "indexed": 0}]},
-        ):
-            org_volume = get_outcomes_organization_sampled_volume(
-                organization.id, time_interval=timedelta(minutes=5)
-            )
-
-        assert org_volume is None
 
     def test_get_eap_project_volumes_existing_org(self) -> None:
         organization = self.create_organization()
@@ -349,6 +313,21 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert run_outcomes_query_totals.call_args.kwargs["tenant_ids"] == {
             "organization_id": organization.id
         }
+
+    def test_get_outcomes_organization_volume_covers_the_requested_window(self) -> None:
+        organization = self.create_organization()
+        config = self.get_config(organization)
+        end = before_now(minutes=90).replace(minute=26, second=37, microsecond=0)
+
+        with patch(RUN_OUTCOMES_QUERY, return_value=[{"quantity": 10}]) as run_outcomes_query:
+            for time_interval in (timedelta(hours=24), timedelta(minutes=5)):
+                get_outcomes_organization_volume(config, time_interval=time_interval, end=end)
+
+                # The window is widened outwards to whole intervals, so an unaligned end would
+                # cover up to one resolution step more than was asked for: 25 hours, or a whole
+                # hour for the 5-minute window.
+                query = run_outcomes_query.call_args.args[0]
+                assert query.end - query.start == time_interval
 
     def test_get_outcomes_organization_volume_without_traffic(self) -> None:
         organization = self.create_organization()

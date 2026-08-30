@@ -8,7 +8,6 @@ from typing import Any
 from uuid import UUID
 
 import sentry_sdk
-from django.utils import timezone
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -27,6 +26,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -71,7 +71,13 @@ def deliver_night_shift_result(
     # Per-delivery error_message lives on the shard so a sibling shard's success
     # can't clear it.
     if error:
-        shard.update(extras={**(shard.extras or {}), "error_message": error})
+        shard.update(
+            extras={
+                **(shard.extras or {}),
+                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
+                "error_message": error,
+            }
+        )
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
@@ -101,10 +107,11 @@ def deliver_night_shift_result(
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
 
-    # Clear any stale error_message now that this delivery has succeeded.
+    # Clear any stale delivery error now that this delivery has succeeded.
     if (shard.extras or {}).get("error_message"):
         extras = {**shard.extras}
         del extras["error_message"]
+        extras.pop("error_type", None)
         shard.update(extras=extras)
 
     _process_verdicts(
@@ -222,7 +229,6 @@ def _process_verdicts(
                 if reason
                 else None
             )
-            triggered_at = timezone.now()
             try:
                 triggered_run = trigger_autofix_agent(
                     group=group,
@@ -230,6 +236,7 @@ def _process_verdicts(
                     referrer=referrer,
                     stopping_point=stopping_point_by_project_id[group.project_id],
                     user_context=user_context,
+                    allow_free_cohort=True,
                 )
             except Exception:
                 logger.exception(
@@ -245,7 +252,6 @@ def _process_verdicts(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
-                    datetime=triggered_at,
                 )
 
         sentry_sdk.metrics.count("night_shift.autofix_triggered", len(run_by_group))

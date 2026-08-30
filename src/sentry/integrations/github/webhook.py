@@ -52,6 +52,7 @@ from sentry.integrations.types import (
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import (
@@ -89,7 +90,10 @@ from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.autofix.webhooks import (
+    handle_github_pr_webhook_for_autofix,
+    handle_pull_requests_merged_milestone,
+)
 from sentry.seer.code_review.contributor_seats import (
     record_contributor_action,
     track_contributor_seat,
@@ -935,7 +939,12 @@ class IssuesEventWebhook(GitHubWebhook):
             IssueEvenntWebhookActionType.CLOSED.value,
             IssueEvenntWebhookActionType.REOPENED.value,
         ]:
-            self._handle_status_change(integration, external_issue_key, action)
+            self._handle_status_change(
+                integration,
+                external_issue_key,
+                action,
+                event.get("issue", {}).get("updated_at"),
+            )
 
     def _handle_assignment(
         self,
@@ -1018,7 +1027,11 @@ class IssuesEventWebhook(GitHubWebhook):
         )
 
     def _handle_status_change(
-        self, integration: RpcIntegration, external_issue_key: str, action: str
+        self,
+        integration: RpcIntegration,
+        external_issue_key: str,
+        action: str,
+        updated_at: str | None,
     ) -> None:
         """
         Handle issue status changes (closed/reopened).
@@ -1027,6 +1040,7 @@ class IssuesEventWebhook(GitHubWebhook):
             integration: The GitHub integration
             external_issue_key: The formatted issue key
             action: The action type ('closed' or 'reopened')
+            updated_at: GitHub's own timestamp, used to order deliveries
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,
@@ -1038,7 +1052,10 @@ class IssuesEventWebhook(GitHubWebhook):
             installation = integration.get_installation(oi.organization_id)
 
             if hasattr(installation, "sync_status_inbound"):
-                installation.sync_status_inbound(external_issue_key, {"action": action})
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {"action": action, PROVIDER_EVENT_TIME_KEY: updated_at},
+                )
 
                 logger.info(
                     "github.webhook.status-change.synced",
@@ -1084,6 +1101,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     EVENT_TYPE = IntegrationWebhookEventType.MERGE_REQUEST
     WEBHOOK_EVENT_PROCESSORS = (
         _handle_pr_webhook_for_autofix_processor,
+        handle_pull_requests_merged_milestone,
         _track_contributor_action_processor,
         code_review_handle_webhook_event,
         pr_metrics_handle_attribution,
@@ -1108,6 +1126,7 @@ class PullRequestEventWebhook(GitHubWebhook):
     ) -> None:
         pull_request = event["pull_request"]
         number = pull_request["number"]
+
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
@@ -1232,6 +1251,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "provider_updated_at": provider_updated_at,
                         "state": state,
                         "draft": draft,
+                        "external_id": pull_request["id"],
                     },
                     event_state=state,
                     event_updated_at=provider_updated_at,

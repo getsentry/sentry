@@ -10,7 +10,6 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Sequence
 
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -35,7 +34,7 @@ _publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
 
 # Group Action Log — tracks who did what to an issue and how.
 #
-# publish_action() writes a CellOutbox entry; the outbox receiver creates the
+# publish_action() writes an outbox entry; the outbox receiver creates the
 # GroupActionLogEntry on the (eventually separate) grouplog database and kicks
 # off derived-data processing.
 #
@@ -82,7 +81,6 @@ def publish_action(
     actor: GroupActionActor = SYSTEM_ACTOR,
     force_async_derived: bool = False,
     idempotency_key: str | None = None,
-    date_added: datetime | None = None,
 ) -> None:
     """
     Record an issue action.
@@ -97,9 +95,6 @@ def publish_action(
     If *idempotency_key* is set, the GroupActionLogEntry is created if and only if there
     does not already exist a GALE with that group id & idempotency key; else it's a no-op.
 
-    If *date_added* is set, it records when the action occurred instead of when the outbox
-    receiver processed it.
-
     Log publishing is managed by an outbox that flushes on commit by
     default. Wrap in ``outbox_context(flush=False)`` to defer the drain.
     """
@@ -110,6 +105,8 @@ def publish_action(
     from sentry import features
     from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
+    from sentry.options.rollout import in_rollout_group
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
@@ -146,6 +143,15 @@ def publish_action(
     if not write_to_db:
         return
 
+    use_dedicated_outbox = in_rollout_group(
+        "issues.action_log.dedicated_outbox_rollout_rate", group_id
+    )
+    outbox_model = GroupActionLogOutbox if use_dedicated_outbox else CellOutbox
+    metrics.incr(
+        "issues.action_log.outbox_write",
+        tags={"route": "dedicated" if use_dedicated_outbox else "shared"},
+    )
+
     payload: GroupActionLogPayload = {
         "group_id": group_id,
         "project_id": project.id,
@@ -159,18 +165,16 @@ def publish_action(
 
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
-    if date_added is not None:
-        payload["date_added"] = date_added.isoformat()
 
-    outbox = CellOutbox(
+    outbox = outbox_model(
         shard_scope=OutboxScope.GROUP_SCOPE,
         shard_identifier=group_id,
         category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-        object_identifier=CellOutbox.next_object_identifier(),
+        object_identifier=outbox_model.next_object_identifier(),
         payload=payload,
     )
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+    with outbox_context(transaction.atomic(router.db_for_write(outbox_model))):
         outbox.save()
 
 
@@ -181,7 +185,6 @@ def publish_action_from_context(
     project: Project,
     force_async_derived: bool = False,
     idempotency_key: Optional[str] = None,
-    date_added: datetime | None = None,
 ) -> None:
     """
     Record an issue action using the current ActionContext. This is the primary API
@@ -209,7 +212,6 @@ def publish_action_from_context(
         actor=actor,
         force_async_derived=force_async_derived,
         idempotency_key=idempotency_key,
-        date_added=date_added,
     )
 
 

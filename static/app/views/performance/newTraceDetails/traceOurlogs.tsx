@@ -26,18 +26,17 @@ import {
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-type ProviderProps = {
+type PageDataProviderProps = {
   children: React.ReactNode;
-};
-
-type PageDataProviderProps = ProviderProps & {
-  disabled?: boolean;
 };
 
 export function TraceViewLogsQueryParamsProvider({
   traceSlug,
   children,
-}: ProviderProps & {traceSlug: string}) {
+}: {
+  children: React.ReactNode;
+  traceSlug: string;
+}) {
   const {timestamp} = useTraceQueryParams();
 
   return (
@@ -51,11 +50,8 @@ export function TraceViewLogsQueryParamsProvider({
   );
 }
 
-export function TraceViewLogsPageDataProvider({
-  children,
-  disabled,
-}: PageDataProviderProps) {
-  return <LogsPageDataProvider disabled={disabled}>{children}</LogsPageDataProvider>;
+export function TraceViewLogsPageDataProvider({children}: PageDataProviderProps) {
+  return <LogsPageDataProvider>{children}</LogsPageDataProvider>;
 }
 
 interface TraceViewLogsSectionProps {
@@ -82,6 +78,7 @@ function LogsSectionContent({
   fallbackTimestampSeconds,
 }: Required<TraceViewLogsSectionProps>) {
   const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {selection} = usePageFilters();
   const traceIds = useLogsFrozenTraceIds();
 
@@ -96,11 +93,15 @@ function LogsSectionContent({
     useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
 
   const {tracesItemSearchQueryBuilderProps} = useLogsSearchQueryBuilderProps({
+    arrayAttributes,
     booleanAttributes,
     numberAttributes,
     stringAttributes,
+    arraySecondaryAliases,
     booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,

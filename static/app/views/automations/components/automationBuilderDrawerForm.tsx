@@ -40,6 +40,7 @@ import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAuto
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 const DEFAULT_INITIAL_DATA = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -83,9 +84,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           inline={false}
         />
         <Flex justify="end" gap="md">
-          <Button type="button" onClick={closeDrawer}>
-            {t('Cancel')}
-          </Button>
+          <Button onClick={closeDrawer}>{t('Cancel')}</Button>
           <Observer>
             {() => (
               <Button variant="primary" type="submit" busy={model.isSaving}>

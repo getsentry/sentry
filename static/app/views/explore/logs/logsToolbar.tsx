@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
@@ -7,7 +8,6 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -25,11 +25,13 @@ import {
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
 } from 'sentry/views/explore/logs/types';
+import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
@@ -44,6 +46,10 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  mergeValidatedGroupByTags,
+  shouldHideGroupByForValidation,
+} from 'sentry/views/explore/utils/groupByValidation';
 
 import {HiddenLogSearchFields} from './constants';
 
@@ -105,7 +111,7 @@ export function LogsToolbar() {
 
 function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
     {search: debouncedSearch},
@@ -281,7 +287,7 @@ function VisualizeDropdown({
 
 function ToolbarGroupBy() {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
     {search: debouncedSearch},
@@ -304,12 +310,50 @@ function ToolbarGroupBy() {
 
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
+  const {
+    data: validatedSearchQueryData,
+    isFetching: validationFetching,
+    isLoading: validationLoading,
+    isPlaceholderData: validationIsPlaceholderData,
+  } = useValidateLogsTab();
+  const validationIsPending =
+    validationFetching || validationLoading || validationIsPlaceholderData;
+
+  const cleanupInvalidGroupBys = useCallback(
+    (validatedGroupBys: string[]) => {
+      if (validatedGroupBys.some(Boolean)) {
+        setGroupBys(validatedGroupBys);
+      } else {
+        setGroupBys(validatedGroupBys, Mode.SAMPLES);
+      }
+    },
+    [setGroupBys]
+  );
+  const {visibleGroupBys} = useValidatedGroupBys({
+    groupBys,
+    validationData: validatedSearchQueryData,
+    validationIsPending,
+    onGroupBysCleanup: cleanupInvalidGroupBys,
+  });
+
+  const {validatedBooleanTags, validatedNumberTags, validatedStringTags} = useMemo(
+    () =>
+      mergeValidatedGroupByTags({
+        booleanTags: booleanTags ?? {},
+        numberTags: numberTags ?? {},
+        stringTags: stringTags ?? {},
+        validatedFields: validatedSearchQueryData?.field.filter(
+          field => field.valid && groupBys.includes(field.name)
+        ),
+      }),
+    [booleanTags, groupBys, numberTags, stringTags, validatedSearchQueryData?.field]
+  );
 
   const options = useGroupByFields({
-    numberTags: numberTags ?? {},
-    stringTags: stringTags ?? {},
-    booleanTags: booleanTags ?? {},
-    groupBys,
+    numberTags: validatedNumberTags,
+    stringTags: validatedStringTags,
+    booleanTags: validatedBooleanTags,
+    groupBys: visibleGroupBys,
     traceItemType: TraceItemDataset.LOGS,
   });
 
@@ -338,21 +382,36 @@ function ToolbarGroupBy() {
       {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
         <ToolbarSection data-test-id="section-group-by">
           <ToolbarGroupByHeader />
-          {editableColumns.map((column, i) => (
-            <ToolbarGroupByDropdown
-              key={column.id}
-              canDelete={editableColumns.length > 1}
-              column={column}
-              onColumnChange={c => updateColumnAtIndex(i, c)}
-              onColumnDelete={() => deleteColumnAtIndex(i)}
-              options={options}
-              groupBys={groupBys}
-              onSearch={onSearch}
-              onClose={onClose}
-              loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-              fieldDefinitionType="log"
-            />
-          ))}
+          {editableColumns.map((column, i) => {
+            const displayColumn = shouldHideGroupByForValidation(
+              column.column,
+              validatedSearchQueryData?.field,
+              validationIsPending
+            )
+              ? {...column, column: ''}
+              : column;
+
+            return (
+              <ToolbarGroupByDropdown
+                key={column.id}
+                canDelete={editableColumns.length > 1}
+                column={displayColumn}
+                onColumnChange={c => updateColumnAtIndex(i, c)}
+                onColumnDelete={() => deleteColumnAtIndex(i)}
+                options={options}
+                groupBys={visibleGroupBys}
+                onSearch={onSearch}
+                onClose={onClose}
+                loading={
+                  validationIsPending ||
+                  numberTagsLoading ||
+                  stringTagsLoading ||
+                  booleanTagsLoading
+                }
+                fieldDefinitionType="log"
+              />
+            );
+          })}
           <ToolbarFooter>
             <ToolbarGroupByAddGroupBy add={() => insertColumn('')} disabled={false} />
           </ToolbarFooter>

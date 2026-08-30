@@ -43,6 +43,7 @@ from sentry.issues.derived.features import (
 from sentry.issues.derived.framework import (
     Aggregator,
     AggregatorResult,
+    Scope,
     StateView,
     aggregator,
     emit,
@@ -72,6 +73,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # A merge preserves the destination group's status. Ignore actions migrated
+    # from source groups so their history cannot overwrite that status.
+    if entry.original_group_id is not None:
+        return None
+
     current = state[STATUS]
 
     match entry.action:
@@ -157,7 +163,6 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
 @aggregator(
     (HAS_OPEN_FIX_PR,),
-    deps=(STATUS,),
     scope=(
         ResolvedInPullRequestAction,
         PullRequestClosedAction,
@@ -197,9 +202,15 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     if state[STATUS] != IssueStatus.OPEN:
         new_progress = None
-    elif (
+    elif entry.type == PullRequestMergedAction.get_type() or (
         current_progress == IssueProgressState.FIX_APPLIED
-        or entry.type == PullRequestMergedAction.get_type()
+        and entry.type
+        # Usually an issue will first close before it regresses, but there are cases where a regression action
+        #  is seen without a resolution action. This handles that case and clears the FIX_APPLIED progress.
+        not in (
+            UnresolveAction.get_type(),
+            SetRegressedAction.get_type(),
+        )
     ):
         new_progress = IssueProgressState.FIX_APPLIED
     elif state[HAS_OPEN_FIX_PR]:
@@ -261,6 +272,7 @@ def track_last_completed_autofix_step(
 @aggregator(
     (BLOCKER,),
     deps=(STATUS, HAS_OPEN_FIX_PR, LAST_COMPLETED_AUTOFIX_STEP),
+    scope=Scope.DEPS,
 )
 def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track the human action blocking the issue's progress toward resolution.

@@ -79,7 +79,7 @@ export function ProfilePreview({
 
   const flamegraph = useMemo(() => {
     if (!transactionHasProfile || !profile) {
-      return FlamegraphModel.Example();
+      return FlamegraphModel.example();
     }
 
     return new FlamegraphModel(profile, {});
@@ -172,7 +172,6 @@ export function ProfilePreview({
         <FoldSection
           title={t('Profile')}
           sectionKey="no_instrumentation_profile"
-          initialCollapse={false}
           actions={
             <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
               {t('Open in Profiling')}

@@ -52,6 +52,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -182,7 +183,10 @@ function ProjectSlugForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -276,7 +280,10 @@ function AutoResolveForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -345,7 +352,7 @@ function AutoResolveForm({
 }
 
 const SECURITY_TOKEN_HELP = t(
-  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
+  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended. This does not apply to sourcemap scraping when Allowed Domains is *.'
 );
 
 function SecurityTokenForm({
@@ -372,7 +379,10 @@ function SecurityTokenForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -433,7 +443,10 @@ function SecurityTokenHeaderForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });

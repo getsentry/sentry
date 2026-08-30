@@ -57,7 +57,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ALLOWED_FUTURE_DELTA, DEFAULT_SORT_OPTION
+from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -65,8 +65,10 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
@@ -199,10 +201,6 @@ def search_issues(
             query_kwargs["sort_by"] = "recommended_v2"
         elif query_kwargs["sort_by"] == "recommended_v1":
             query_kwargs["sort_by"] = "recommended"
-        if query_kwargs["sort_by"] == "progress" and not features.has(
-            "organizations:issue-stream-progress-sort", organization, actor=request.user
-        ):
-            query_kwargs["sort_by"] = DEFAULT_SORT_OPTION
         if query_kwargs["sort_by"] == "inbox":
             query_kwargs.pop("sort_by")
             query_kwargs.pop("referrer")
@@ -274,6 +272,16 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+            }
+        }
+    )
+
     def _search(
         self,
         request: Request,
@@ -304,7 +312,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.SHORT_ID_LOOKUP,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
             IssueParams.GROUP_INDEX_EXPAND,
             IssueParams.GROUP_INDEX_COLLAPSE,
@@ -497,7 +505,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.MUTATE_ISSUE_ID_LIST,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
         ],
         request=GroupValidator,
@@ -544,7 +552,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             IssueParams.DELETE_ISSUE_ID_LIST,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
-            IssueParams.VIEW_SORT,
+            IssueParams.ORGANIZATION_VIEW_SORT,
             IssueParams.LIMIT,
         ],
         responses={

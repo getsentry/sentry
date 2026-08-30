@@ -14,7 +14,7 @@ describe('InstalledIntegration', () => {
 
   const defaultProps = {
     organization,
-    integration: OrganizationIntegrationsFixture() as any,
+    integration: OrganizationIntegrationsFixture(),
     provider: GitHubIntegrationProviderFixture(),
     onRemove: jest.fn(),
     onDisable: jest.fn(),
@@ -86,11 +86,9 @@ describe('InstalledIntegration', () => {
     render(
       <InstalledIntegration
         {...defaultProps}
-        integration={
-          OrganizationIntegrationsFixture({
-            organizationIntegrationStatus: 'disabled',
-          }) as any
-        }
+        integration={OrganizationIntegrationsFixture({
+          organizationIntegrationStatus: 'disabled',
+        })}
         requiresUpgrade
       />
     );
