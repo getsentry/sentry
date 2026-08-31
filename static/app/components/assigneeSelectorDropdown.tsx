@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   MenuComponents,
@@ -11,7 +12,7 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -552,7 +553,7 @@ export function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = (props: TriggerProps) => {
+  const makeTrigger = ({children: _, ...props}: TriggerProps) => {
     return (
       <Fragment>
         {loading && (
@@ -562,20 +563,21 @@ export function AssigneeSelectorDropdown({
           </AssigneeAvatarContent>
         )}
         {!loading && (
-          <AssigneeTrigger
-            aria-label={t('Modify issue assignee')}
-            variant="transparent"
-            data-test-id="assignee-selector"
+          <Button
             {...props}
-            showChevron={false}
-          >
-            <AssigneeAvatar
-              assignedTo={group.assignedTo}
-              assignmentDetails={assignmentDetails}
-              showLabel={showLabel}
-              suggestedActors={getSuggestedAssignees()}
-            />
-          </AssigneeTrigger>
+            aria-label={t('Modify issue assignee')}
+            data-test-id="assignee-selector"
+            icon={
+              <AssigneeAvatar
+                assignedTo={group.assignedTo}
+                assignmentDetails={assignmentDetails}
+                showLabel={showLabel}
+                suggestedActors={getSuggestedAssignees()}
+              />
+            }
+            size="zero"
+            variant="secondary"
+          />
         )}
       </Fragment>
     );
@@ -628,22 +630,6 @@ const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: left;
-`;
-
-const AssigneeTrigger = styled(OverlayTrigger.Button)`
-  align-items: center;
-  border: none;
-  box-shadow: none;
-  display: inline-flex;
-  height: 24px;
-  justify-content: center;
-  line-height: 0;
-  padding: 0;
-  z-index: 0;
-
-  &:hover {
-    background: transparent;
-  }
 `;
 
 const StyledIconUser = styled(IconUser)`
