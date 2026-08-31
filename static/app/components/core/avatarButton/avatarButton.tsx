@@ -459,6 +459,16 @@ async function fetchAvatarColor(
     const response = await fetch(toPageOriginIfSameHost(url), {
       mode: 'cors',
       credentials: 'omit',
+      // The avatar endpoint reflects whatever Origin sent the request back
+      // as Access-Control-Allow-Origin, but caches the response for a very
+      // long time (Cache-Control: max-age=315360000) without varying by
+      // Origin. A response already cached from a previous request — e.g. a
+      // different dev/CI host, or a plain <img> load that cached it with no
+      // CORS headers at all — would get reused here and fail the CORS check
+      // even though a fresh request against the same URL would succeed.
+      // Bypass the cache so we always get a response with the right header
+      // for *our* origin.
+      cache: 'no-store',
     });
     if (!response.ok) {
       return null;
