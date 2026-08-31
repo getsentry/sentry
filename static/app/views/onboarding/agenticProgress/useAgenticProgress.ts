@@ -8,12 +8,11 @@ const POLL_INTERVAL_MS = 5000;
 
 type UseAgenticProgressOptions = {
   runId: string | null;
-  enabled?: boolean;
 };
 
-export function useAgenticProgress({runId, enabled = true}: UseAgenticProgressOptions) {
+export function useAgenticProgress({runId}: UseAgenticProgressOptions) {
   const organization = useOrganization();
-  const queryEnabled = enabled && runId !== null;
+  const queryEnabled = runId !== null;
 
   return useQuery({
     ...agenticProgressRunOptions({
