@@ -615,7 +615,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 "base_artifact_id": base_artifact_id,
                 "project_id": str(artifact.project_id),
                 "comparison_type": comparison_type,
-                "state": cast(str, artifact.state),
+                "state": PreprodArtifact.ArtifactState(artifact.state).name,
                 "vcs_info": cast(VcsInfoResponseDict, vcs_info.dict()),
                 "app_id": artifact.app_id,
                 "is_selective": snapshot_metrics.is_selective,
