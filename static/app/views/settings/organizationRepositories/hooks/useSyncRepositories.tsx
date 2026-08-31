@@ -131,13 +131,6 @@ interface Options {
    * Use to trigger a repository list refresh.
    */
   onSynced?: () => void;
-  /**
-   * Polling phases to work through before giving up. Each phase defines how
-   * frequently to poll and how long to stay in that phase. Defaults to a
-   * two-phase backoff: every 5 seconds for 30 seconds, then every 30 seconds
-   * for 4.5 minutes (5 minutes total).
-   */
-  pollingConfig?: PollPhaseConfig[];
 }
 
 /**
@@ -170,7 +163,7 @@ export function useSyncRepositories(
   const integrationId = integration.id;
   const organizationIdOrSlug = organization.slug;
 
-  const pollingConfig = options?.pollingConfig ?? DEFAULT_POLLING_CONFIG;
+  const pollingConfig = DEFAULT_POLLING_CONFIG;
 
   const [lastSyncBefore, setLastSyncBefore] = useState<string | undefined>(undefined);
   const [isSyncing, setIsSyncing] = useState(false);
