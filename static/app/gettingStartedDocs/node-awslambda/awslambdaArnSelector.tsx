@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {ReactSelect as Select} from '@sentry/scraps/select';
 
-import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 
 type RegionData = {region: string; version: string};
