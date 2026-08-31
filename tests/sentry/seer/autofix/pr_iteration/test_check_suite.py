@@ -1,6 +1,8 @@
+from inspect import signature
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
+from scm.helpers import iter_all_pages
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -17,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_flag_gate,
     resolve_check_suite_repositories,
     should_defer_pr_iteration,
+    sweep_check_runs,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
     CAP_ASSIGN_FLAG,
@@ -1619,3 +1622,76 @@ class CheckSuiteFlagGateTest(TestCase):
         resolve_check_suite_repositories(event)
 
         mock_contexts.assert_called_once()
+
+
+class SweepCheckRunsCostTest(TestCase):
+    """The sweep's GitHub cost is the thing we budget for, so pin it down."""
+
+    def _page(self, runs: list[dict], *, remaining: str = "5399") -> dict:
+        return {
+            "data": runs,
+            "type": "github",
+            "raw": {
+                "data": {},
+                "headers": {"x-ratelimit-remaining": remaining, "x-ratelimit-limit": "5400"},
+            },
+            "meta": {"next_cursor": "2"},
+        }
+
+    def _run(self, *, status: str = "completed", conclusion: str | None = "success") -> dict:
+        return {"id": 1, "name": "test", "status": status, "conclusion": conclusion}
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_counts_the_trailing_empty_page_as_a_request(self, mock_actions: MagicMock) -> None:
+        """``iter_all_pages`` can only stop on an empty page, so a sweep is pages + 1."""
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page([self._run()]),
+            self._page([self._run()]),
+            self._page([]),
+        ]
+
+        sweep = sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        assert sweep == CheckRunsSweep(total=2, incomplete=0, failed=0)
+        assert mock_actions.list_check_runs_for_ref.call_count == 3
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_uses_iter_all_pages_default_page_size(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [self._page([])]
+
+        sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        pagination = mock_actions.list_check_runs_for_ref.call_args.kwargs["pagination"]
+        assert pagination["per_page"] == signature(iter_all_pages).parameters["per_page"].default
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_counts_incomplete_and_failed_runs(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = [
+            self._page(
+                [
+                    self._run(),
+                    self._run(status="in_progress", conclusion=None),
+                    self._run(conclusion="failure"),
+                    self._run(conclusion="timed_out"),
+                ]
+            ),
+            self._page([]),
+        ]
+
+        sweep = sweep_check_runs(MagicMock(), "abc", log_extra={})
+
+        assert sweep == CheckRunsSweep(total=4, incomplete=1, failed=2)
+        assert sweep.is_green is False
+
+    @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch(f"{CHECK_SUITES_PATH}.scm_actions")
+    def test_listing_failure_returns_none(self, mock_actions: MagicMock) -> None:
+        mock_actions.list_check_runs_for_ref.side_effect = ValueError("boom")
+
+        assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
+
+    def test_unsupported_provider_returns_none(self) -> None:
+        assert sweep_check_runs(MagicMock(), "abc", log_extra={}) is None
