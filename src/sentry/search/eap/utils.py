@@ -365,6 +365,9 @@ def get_deprecated_source_internal_names(
 # We want to limit the number of threads to avoid overwhelming the RPC server.
 MAX_ATTRIBUTE_VALIDATION_THREADS = 3
 ATTRIBUTE_NAME_LIMIT = 10_000
+# Past this many pages we give up and report the name as missing rather than keep
+# spending RPCs on an org whose attributes dwarf the limit.
+MAX_ATTRIBUTE_NAME_PAGES = 3
 
 
 def _attribute_names_request(
@@ -405,11 +408,14 @@ def attribute_name_exists(
     name: str,
 ) -> bool:
     """Check a single typed attribute name, matching on the name to narrow what we page through."""
-    offset = 0
-    while True:
+    for page in range(MAX_ATTRIBUTE_NAME_PAGES):
         response = snuba_rpc.attribute_names_rpc(
             _attribute_names_request(
-                meta, attr_type, [name], value_substring_match=name, offset=offset
+                meta,
+                attr_type,
+                [name],
+                value_substring_match=name,
+                offset=page * ATTRIBUTE_NAME_LIMIT,
             )
         )
         if any(attribute.name == name for attribute in response.attributes):
@@ -417,8 +423,9 @@ def attribute_name_exists(
         # The substring match still returns every name containing this one, so a
         # short enough name can page itself out
         if len(response.attributes) < ATTRIBUTE_NAME_LIMIT:
-            return False
-        offset += ATTRIBUTE_NAME_LIMIT
+            break
+
+    return False
 
 
 def _attribute_names_page(
@@ -461,13 +468,15 @@ def _check_attribute_names_by_type(
         if found == requested_names or not more:
             return found
 
-    offset = ATTRIBUTE_NAME_LIMIT
-    while True:
-        page_found, more = _attribute_names_page(meta, attr_type, filter_names, offset=offset)
+    for page in range(1, MAX_ATTRIBUTE_NAME_PAGES + 1):
+        page_found, more = _attribute_names_page(
+            meta, attr_type, filter_names, offset=page * ATTRIBUTE_NAME_LIMIT
+        )
         found |= page_found
         if found == requested_names or not more:
-            return found
-        offset += ATTRIBUTE_NAME_LIMIT
+            break
+
+    return found
 
 
 def check_attribute_names_exist(
