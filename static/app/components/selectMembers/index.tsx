@@ -3,8 +3,12 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {Select, type GeneralSelectValue, type StylesConfig} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
+import {
+  Select,
+  type GeneralSelectValue,
+  type StylesConfig,
+  type SelectValue,
+} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IdBadge} from 'sentry/components/idBadge';

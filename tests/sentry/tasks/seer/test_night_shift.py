@@ -16,6 +16,7 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -606,12 +607,13 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         assert run_id is not None
         run = SeerNightShiftRun.objects.get(id=run_id)
-        _record_run_error(run, "transient failure")
+        _record_run_error(run, SeerNightShiftRunErrorType.UNKNOWN, "transient failure")
         _complete_run(run)
         _update_run_extras(run, {"num_candidates": 1})
 
         run.refresh_from_db()
         assert run.extras.get("error_message") is None
+        assert run.extras.get("error_type") is None
         assert "num_candidates" not in run.extras
 
     def test_extras_update_refreshes_run_instance(self) -> None:
@@ -675,6 +677,7 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
 
         run = SeerNightShiftRun.objects.get(organization=org)
         assert run.extras["error_message"] == "Failed to get eligible projects"
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED.value
         assert run.date_completed is None
 
         run_night_shift_for_org(org.id, schedule_id=schedule_id)
@@ -1180,6 +1183,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert run.shards.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Organization does not have Seer access"
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_SEER_ACCESS.value
         assert not SeerRun.objects.filter(organization=org).exists()
         incomplete_log = next(
             call.kwargs["extra"]
@@ -1209,6 +1213,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert run.shards.filter(seer_run__isnull=True).count() == 1
         assert run.date_completed is None
         assert run.extras["error_message"] == "Failed to dispatch 1 of 1 triage shards"
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED.value
 
     def test_outbox_drain_mirrors_run_against_seer(self) -> None:
         org = self.create_organization()
@@ -1306,6 +1311,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
         assert run_id is not None
         run = SeerNightShiftRun.objects.get(id=run_id)
         assert run.extras["error_message"] == "No Seer quota available"
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.NO_QUOTA.value
         mock_execute.assert_not_called()
 
     def test_extras_contain_options_and_target_project_ids(self) -> None:

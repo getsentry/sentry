@@ -1,4 +1,3 @@
-import {connect} from 'echarts';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -35,6 +34,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -417,12 +417,14 @@ export function hasUnsavedFilterChanges(
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  const hasSavedDatetime = Boolean(dashboard.period || dashboard.start || dashboard.end);
+
   return {
     datetime: {
       end: dashboard.end || null,
-      period: dashboard.period || null,
+      period: dashboard.period || (hasSavedDatetime ? null : DEFAULT_STATS_PERIOD),
       start: dashboard.start || null,
-      utc: null,
+      utc: dashboard.utc ?? false,
     },
     environments: dashboard.environment || [],
     projects: dashboard.projects || [],
@@ -547,10 +549,6 @@ export function dashboardFiltersToString(
   }
 
   return dashboardFilterConditions;
-}
-
-export function connectDashboardCharts(groupName: string) {
-  connect?.(groupName);
 }
 
 export function hasDatasetSelector(_organization: Organization): boolean {

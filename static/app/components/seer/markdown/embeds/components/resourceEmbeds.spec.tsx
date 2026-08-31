@@ -105,7 +105,13 @@ describe('Seer resource embeds', () => {
     );
     const dashboardRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/123/',
-      body: DashboardFixture(widgets, {id: '123', title: 'Application health'}),
+      body: DashboardFixture(widgets, {
+        environment: ['production'],
+        id: '123',
+        projects: [1],
+        title: 'Application health',
+        utc: true,
+      }),
     });
     const widgetDataRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -135,8 +141,33 @@ describe('Seer resource embeds', () => {
       '/organizations/org-slug/dashboard/123/'
     );
     expect(dashboardRequest).toHaveBeenCalled();
-    await waitFor(() => expect(widgetDataRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(widgetDataRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['production'],
+            interval: '10m',
+            project: [1],
+            statsPeriod: '24h',
+          }),
+        })
+      )
+    );
     unmount();
+  });
+
+  it('shows an error notice when dashboard details fail to load', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/123/',
+      statusCode: 500,
+    });
+
+    renderEmbed({name: 'dashboard', data: {id: '123'}});
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load dashboard details.'
+    );
   });
 
   it('links a replay to the relevant event timestamp (inline)', async () => {

@@ -3874,6 +3874,24 @@ export function classifyTagKey(key: string): FieldKind {
   return FieldKind.TAG;
 }
 
+/**
+ * The trace item attribute type a {@link FieldKind} corresponds to. Inverse of
+ * `fieldKindFromFieldType`.
+ */
+export function attributeTypeFromKind(
+  kind: FieldKind | undefined
+): 'string' | 'number' | 'boolean' {
+  if (kind === FieldKind.MEASUREMENT) {
+    return 'number';
+  }
+
+  if (kind === FieldKind.BOOLEAN) {
+    return 'boolean';
+  }
+
+  return 'string';
+}
+
 export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);
   return result?.[1] ?? key;
