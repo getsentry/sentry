@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -164,7 +165,7 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
     ...dashboardDetailsApiOptions(organization, id),
     retry: false,
   });
-  const dashboard = data ? getDashboardPreview(data) : undefined;
+  const dashboard = useMemo(() => (data ? getDashboardPreview(data) : undefined), [data]);
 
   return (
     <Container
