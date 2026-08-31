@@ -3,12 +3,12 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -84,9 +84,10 @@ export function DataRequests() {
 
     if (results.length === 0) {
       return (
-        <EmptyMessage title="No Results">
-          There are no results within Sentry data matching this email address.
-        </EmptyMessage>
+        <EmptyState
+          title="No Results"
+          description="There are no results within Sentry data matching this email address."
+        />
       );
     }
 
