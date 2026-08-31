@@ -1284,10 +1284,12 @@ class InvestigationOrchestrationEventTest(TestCase):
         assert block.content == "Original conclusion"
         assert block.generated_content == "Original conclusion"
         assert block.content_execution_id == completed_execution_id
-        assert block.current_execution_id != completed_execution_id
-        assert list(
-            block.current_execution.data_project_links.values_list("project_id", flat=True)
-        ) == [replacement_project.id]
+        current_execution = block.current_execution
+        assert current_execution is not None
+        assert current_execution.id != completed_execution_id
+        assert list(current_execution.data_project_links.values_list("project_id", flat=True)) == [
+            replacement_project.id
+        ]
 
         self.deliver(
             self.event(
