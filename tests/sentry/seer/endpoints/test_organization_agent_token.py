@@ -895,6 +895,18 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 provider="github",
                 name="Matrix GitHub integration",
             )
+        elif name == "code_mapping":
+            _integration, organization_integration = self.create_provider_integration_for(
+                self.org,
+                self.owner,
+                provider="example",
+                external_id=f"matrix-codeowners-{uuid4()}",
+                name="Matrix CODEOWNERS integration",
+            )
+            resource = self.create_code_mapping(
+                project=self.project,
+                organization_integration=organization_integration,
+            )
         elif name == "data_forwarder":
             resource = self.create_data_forwarder(
                 organization=self.org,
@@ -1310,6 +1322,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
             "OrganizationTraceItemMetricsEndpoint": "organizations:visibility-explore-view",
             "ProjectProfilingProfileEndpoint": "organizations:profiling",
+            "ProjectCodeOwnersEndpoint": "organizations:integrations-codeowners",
         }
         if feature := endpoint_flags.get(endpoint.endpoint_name):
             flags[feature] = True
@@ -1606,6 +1619,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("ProjectReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
             ("ProjectReleaseFilesEndpoint", "POST"): {
                 "name": "https://example.com/permission-matrix.js"
+            },
+            ("ProjectCodeOwnersEndpoint", "POST"): {
+                "raw": f"src/* {self.owner.email}",
+                "codeMappingId": str(self._resource("code_mapping").id),
             },
             ("GroupIntegrationDetailsEndpoint", "POST"): {"assignee": "matrix@example.com"},
             ("GroupIntegrationDetailsEndpoint", "PUT"): {"externalIssue": "MATRIX-456"},
