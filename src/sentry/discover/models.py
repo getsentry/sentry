@@ -253,6 +253,6 @@ class DiscoverSavedQueryLastVisited(DefaultFieldsModel):
         constraints = [
             UniqueConstraint(
                 fields=["user_id", "organization_id", "discover_saved_query_id"],
-                name="sentry_discoversavedquerylastvisited_unique_last_visited_per_org_user_query",
+                name="sentry_disc_savedquery_lastvisited_uniq",
             )
         ]
