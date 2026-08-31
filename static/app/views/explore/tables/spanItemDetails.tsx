@@ -37,7 +37,10 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {sortAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  renderPreciseTimestamp,
+  sortAttributes,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -269,6 +272,9 @@ function useSpanAttributeRenderers({
       return Number.isFinite(value) ? formatDollars(+value.toFixed(10)) : basicRendered;
     };
 
+    const preciseTimestampRenderer: SpanAttributeRenderer = ({item, basicRendered}) =>
+      renderPreciseTimestamp(item.value, basicRendered);
+
     return {
       [FieldKey.PROFILE_ID]: profileRenderer,
       [SpanFields.PROFILE_ID]: profileRenderer,
@@ -293,6 +299,8 @@ function useSpanAttributeRenderers({
       [SpanFields.GEN_AI_COST_INPUT_TOKENS]: costRenderer,
       [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: costRenderer,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: costRenderer,
+      [SpanFields.PRECISE_START_TS]: preciseTimestampRenderer,
+      [SpanFields.PRECISE_FINISH_TS]: preciseTimestampRenderer,
     };
   }, [dateSelection, location, organization, projectSlug, spanId, timestamp]);
 }

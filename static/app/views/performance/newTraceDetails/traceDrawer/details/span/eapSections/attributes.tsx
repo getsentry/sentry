@@ -36,6 +36,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
+  renderPreciseTimestamp,
   sortAttributes,
   tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -60,6 +61,9 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   }
   return ellipsize(props.item.value, 100);
 };
+
+const preciseTimestampRenderer = (props: CustomRenderersProps) =>
+  renderPreciseTimestamp(props.item.value, props.basicRendered);
 
 interface AttributesProps {
   attributes: TraceItemResponseAttribute[];
@@ -196,6 +200,8 @@ export function AttributesContent({
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
+    [SpanFields.PRECISE_START_TS]: preciseTimestampRenderer,
+    [SpanFields.PRECISE_FINISH_TS]: preciseTimestampRenderer,
     assertion_failure_data: (props: CustomRenderersProps) => {
       if (props.item.value === null) {
         return <Text variant="muted">null</Text>;
