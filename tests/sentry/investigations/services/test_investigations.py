@@ -4,18 +4,27 @@ import threading
 from unittest import mock
 from uuid import UUID, uuid4
 
+import orjson
 import pytest
 from django.db import IntegrityError, close_old_connections
+from django.test import override_settings
 from django.utils import timezone
+from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockDependency,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationRun,
     InvestigationProject,
     InvestigationSourceType,
+)
+from sentry.investigations.seer_client import (
+    create_investigation_orchestration_run,
+    dispatch_investigation_orchestration_command,
+    get_investigation_orchestration_run,
 )
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
@@ -37,6 +46,12 @@ from sentry.investigations.services.orchestration import (
     create_agentic_manual_investigation,
     get_orchestration_projection,
 )
+from sentry.investigations.services.orchestration_events import (
+    MAX_ORCHESTRATION_EVENT_BYTES,
+    deliver_orchestration_event,
+)
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -464,6 +479,271 @@ class OrchestrationControlServiceTest(TestCase):
         assert result["heartbeatAt"] == heartbeat
         assert result["updatedAt"] == run.date_updated
         assert result["report"]["notebookRevision"] == 4
+
+
+class InvestigationOrchestrationSeerClientTest(TestCase):
+    @override_settings(SEER_API_SHARED_SECRET="investigation-protocol-test-secret")
+    @mock.patch("sentry.investigations.seer_client.get_monitoring_provider_connections")
+    def test_create_and_command_use_the_protocol_contract(
+        self,
+        get_connections: mock.Mock,
+    ) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[self.project.id],
+            filters={},
+        )
+        provider = mock.Mock()
+        provider.dict.return_value = {
+            "type": "header_auth",
+            "provider_key": "example",
+            "url": "https://example.invalid",
+        }
+        get_connections.return_value = [provider]
+        run.update(seer_run_id=8128)
+        run.refresh_from_db()
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            type="retry",
+            payload={"target": "run"},
+        )
+        viewer_context = SeerViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+        )
+        pool = mock.Mock()
+        pool.host = "seer"
+        pool.port = 9091
+        pool.scheme = "http"
+        pool.urlopen.side_effect = [
+            mock.Mock(
+                status=200,
+                data=b'{"runId":8128,"created":true,"projection":{}}',
+            ),
+            mock.Mock(
+                status=200,
+                data=b'{"runId":8128,"created":false,"projection":{}}',
+            ),
+            mock.Mock(
+                status=200,
+                data=orjson.dumps(
+                    {
+                        "runId": 8128,
+                        "requestId": str(command.request_id),
+                        "accepted": True,
+                        "duplicate": False,
+                        "workflowVersion": 2,
+                        "projection": {},
+                    }
+                ),
+            ),
+        ]
+
+        created = create_investigation_orchestration_run(
+            run,
+            viewer_context=viewer_context,
+            connection_pool=pool,
+        )
+        replayed = create_investigation_orchestration_run(
+            run,
+            viewer_context=viewer_context,
+            connection_pool=pool,
+        )
+        accepted = dispatch_investigation_orchestration_command(
+            command,
+            viewer_context=viewer_context,
+            connection_pool=pool,
+        )
+
+        assert created == {"runId": 8128, "created": True, "projection": {}}
+        assert replayed == {"runId": 8128, "created": False, "projection": {}}
+        create_request = pool.urlopen.call_args_list[0]
+        replay_request = pool.urlopen.call_args_list[1]
+        assert create_request.args[:2] == ("POST", "/v1/automation/investigations")
+        assert replay_request.args[:2] == ("POST", "/v1/automation/investigations")
+        create_body = orjson.loads(create_request.kwargs["body"])
+        replay_body = orjson.loads(replay_request.kwargs["body"])
+        assert create_body["requestId"] == replay_body["requestId"]
+        assert str(UUID(create_body["requestId"])) == create_body["requestId"]
+        assert create_body["investigationId"] == investigation.id
+        assert create_body["source"] == run.source
+        assert create_body["activeTimeBudgetSeconds"] == 1800
+        assert create_body["monitoringProviders"] == [provider.dict.return_value]
+        assert "Authorization" in create_request.kwargs["headers"]
+        assert "X-Viewer-Context" in create_request.kwargs["headers"]
+
+        assert accepted["runId"] == 8128
+        command_request = pool.urlopen.call_args_list[2]
+        assert command_request.args[:2] == (
+            "POST",
+            "/v1/automation/investigations/8128/commands",
+        )
+        command_body = orjson.loads(command_request.kwargs["body"])
+        assert command_body == {
+            "requestId": str(command.request_id),
+            "expectedWorkflowVersion": 1,
+            "command": {"type": "retry", "target": "run"},
+            "monitoringProviders": [provider.dict.return_value],
+        }
+        assert "Authorization" in command_request.kwargs["headers"]
+        assert "X-Viewer-Context" in command_request.kwargs["headers"]
+
+        pool.urlopen.side_effect = None
+        pool.urlopen.return_value = mock.Mock(
+            status=200,
+            data=orjson.dumps(
+                {
+                    "runId": 8128,
+                    "requestId": str(command.request_id),
+                    "duplicate": False,
+                    "workflowVersion": 2,
+                    "projection": {},
+                }
+            ),
+        )
+        with pytest.raises(SeerApiError):
+            dispatch_investigation_orchestration_command(
+                command,
+                viewer_context=viewer_context,
+                connection_pool=pool,
+            )
+
+    def test_create_rejects_a_mismatched_viewer_organization(self) -> None:
+        _, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        with pytest.raises(SeerApiError):
+            create_investigation_orchestration_run(
+                run,
+                viewer_context=SeerViewerContext(
+                    organization_id=self.create_organization().id,
+                    user_id=self.user.id,
+                ),
+            )
+
+    @mock.patch("sentry.investigations.seer_client.make_signed_seer_api_request")
+    def test_get_uses_signed_viewer_context_and_validates_the_response(
+        self,
+        make_request: mock.Mock,
+    ) -> None:
+        make_request.return_value = mock.Mock(
+            status=200,
+            data=b'{"runId":8128,"created":false,"projection":{}}',
+        )
+        viewer_context = SeerViewerContext(
+            organization_id=self.organization.id,
+            user_id=self.user.id,
+        )
+
+        result = get_investigation_orchestration_run(8128, viewer_context=viewer_context)
+
+        assert result == {"runId": 8128, "created": False, "projection": {}}
+        assert make_request.call_args.args[1] == "/v1/automation/investigations/8128"
+        assert make_request.call_args.kwargs == {
+            "body": b"",
+            "method": "GET",
+            "viewer_context": viewer_context,
+        }
+
+        make_request.return_value = mock.Mock(status=200, data=b"[]")
+        with pytest.raises(SeerApiError):
+            get_investigation_orchestration_run(8128, viewer_context=viewer_context)
+
+        make_request.return_value = mock.Mock(status=503, data=b"{}")
+        with pytest.raises(SeerApiError):
+            get_investigation_orchestration_run(8128, viewer_context=viewer_context)
+
+
+class InvestigationOrchestrationEventTransportTest(TestCase):
+    def test_replays_the_stored_application_status(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        event_id = uuid4()
+        event = {
+            "schema_version": 1,
+            "event_id": event_id,
+            "run_id": 8128,
+            "investigation_id": investigation.id,
+            "sequence": 1,
+            "generation": 1,
+            "type": "workflow_updated",
+            "payload": {"projection": {}},
+        }
+        run.update(
+            seer_run_id=8128,
+            last_event_sequence=1,
+            notebook_revision=2,
+        )
+        self.create_investigation_orchestration_event(
+            orchestration_run=run,
+            event_id=event_id,
+            sequence=1,
+            type="workflow_updated",
+            payload={
+                "schemaVersion": 1,
+                "runId": 8128,
+                "investigationId": investigation.id,
+                "generation": 1,
+                "payload": {"projection": {}},
+            },
+            application_status=InvestigationOrchestrationEventStatus.APPLIED,
+        )
+
+        receipt = deliver_orchestration_event(
+            organization_id=self.organization.id,
+            event=event,
+        )
+
+        assert receipt.duplicate is True
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        assert receipt.last_applied_sequence == 1
+        assert receipt.next_expected_sequence == 2
+        assert receipt.notebook_revision == 2
+
+    def test_rejects_an_oversized_event_before_persisting(self) -> None:
+        investigation, _ = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        with pytest.raises(serializers.ValidationError):
+            deliver_orchestration_event(
+                organization_id=self.organization.id,
+                event={
+                    "schema_version": 1,
+                    "event_id": uuid4(),
+                    "run_id": 8128,
+                    "investigation_id": investigation.id,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_updated",
+                    "payload": {"value": "x" * MAX_ORCHESTRATION_EVENT_BYTES},
+                },
+            )
+
+        assert not investigation.orchestration_run.events.exists()
 
 
 class OrchestrationCommandConcurrencyTest(TransactionTestCase):
