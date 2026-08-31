@@ -12,7 +12,7 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
@@ -26,7 +26,6 @@ import {
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
-import {eapAttributeDataType} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {
@@ -256,7 +255,7 @@ function getPrimaryFieldOptions(
           // We have numeric and string tags which have the same
           // display name, but one is used for aggregates and the other
           // is used for grouping.
-          meta: {name: tag.key, dataType: eapAttributeDataType(tag.kind)},
+          meta: {name: tag.key, dataType: attributeTypeFromKind(tag.kind)},
         },
       };
       return acc;

@@ -133,6 +133,7 @@ describe('WidgetBuilderGroupBySelector', () => {
     expect(await screen.findByText('my_number')).toBeInTheDocument();
     expect(await screen.findByText('my_boolean')).toBeInTheDocument();
     expect(await screen.findByText('my_string')).toBeInTheDocument();
+    expect(screen.queryByText('tags[my_number,number]')).not.toBeInTheDocument();
     expect(screen.queryByText('tags[my_boolean,boolean]')).not.toBeInTheDocument();
     expect(screen.queryByText('tags[my_string,string]')).not.toBeInTheDocument();
   });

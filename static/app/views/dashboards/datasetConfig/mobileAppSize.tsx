@@ -17,7 +17,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -26,7 +26,6 @@ import type {
 } from 'sentry/views/dashboards/datasetConfig/base';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
-import {eapAttributeDataType} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -154,7 +153,7 @@ function getGroupByFieldOptions(
       label: tag.name,
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: tag.name, dataType: eapAttributeDataType(tag.kind)},
+        meta: {name: tag.name, dataType: attributeTypeFromKind(tag.kind)},
       },
     };
   }
