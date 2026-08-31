@@ -1261,6 +1261,7 @@ def _run_parallel_delivery_batch(
     ]
 
     delivered = 0
+    unexpected: Exception | None = None
     if fresh_records:
         with ContextPropagatingThreadPoolExecutor(max_workers=len(fresh_records)) as threadpool:
             futures = {
@@ -1268,10 +1269,19 @@ def _run_parallel_delivery_batch(
             }
             for future in as_completed(futures):
                 payload_record, err = future.result()
-                if _handle_parallel_delivery_result(
-                    payload_record, err, deleter, delivery_tags=delivery_tags
-                ):
-                    delivered += 1
+                try:
+                    if _handle_parallel_delivery_result(
+                        payload_record, err, deleter, delivery_tags=delivery_tags
+                    ):
+                        delivered += 1
+                except Exception as handler_err:
+                    # Raising mid-wave would abandon the sibling results: rows
+                    # their threads already delivered would never be deleted,
+                    # then redelivered under a later claim.
+                    if unexpected is None:
+                        unexpected = handler_err
+    if unexpected is not None:
+        raise unexpected
     return delivered
 
 

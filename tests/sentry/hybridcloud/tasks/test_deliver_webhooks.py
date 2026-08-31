@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -1034,6 +1035,33 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 6
         remaining = set(WebhookPayload.objects.values_list("id", flat=True))
         assert remaining == {records[6].id, records[7].id}
+
+    @override_cells(cell_config)
+    def test_unexpected_wave_error_does_not_abandon_sibling_deliveries(self) -> None:
+        # An unexpected error surfaces from the wave, but only after every
+        # result is processed: a sibling delivered on another thread must still
+        # be deleted, or a later claim would redeliver it.
+        records = create_payloads(MIN_RECORDS_PER_THREAD + 1, "github:123", provider="github")
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            if payload.id == records[0].id:
+                return (payload, ValueError("boom"))
+            # Complete after the error's result is already being handled.
+            time.sleep(0.2)
+            return (payload, None)
+
+        with patch.object(deliver_webhooks, "deliver_message_parallel", side_effect=deliver):
+            with pytest.raises(ValueError):
+                drain_mailbox(
+                    records[0].id,
+                    claimed_count=MIN_RECORDS_PER_THREAD + 1,
+                    valid_until=fresh_deadline(),
+                )
+
+        remaining = set(WebhookPayload.objects.values_list("id", flat=True))
+        # The delivered sibling is gone; the errored head keeps its retry.
+        assert records[1].id not in remaining
+        assert records[0].id in remaining
 
     @responses.activate
     @override_cells(cell_config)
