@@ -19,8 +19,8 @@ import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -114,7 +114,7 @@ function DashboardTable({
 
   // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
   // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
-  // special case in `renderHeadCell`, and the `mydashboards` default/fallback.
+  // special case in `getColumnSort`, and the `mydashboards` default/fallback.
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
     ? [
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
@@ -210,37 +210,32 @@ function DashboardTable({
     );
   };
 
-  function renderHeadCell(column: GridColumnOrder<string>) {
-    if (column.key in SortKeys) {
-      const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-      const urlSort = decodeScalar(
-        location.query.sort,
-        hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
-      );
-      const currentDirection =
-        urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
-      const isCurrentSort = currentDirection !== undefined;
-      const sortDirection =
-        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection;
-
-      return (
-        <SortLink
-          align="left"
-          title={column.name}
-          direction={sortDirection}
-          canSort
-          generateSortLink={() => {
-            const newSort =
-              isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc;
-            return {
-              ...location,
-              query: {...location.query, sort: newSort},
-            };
-          }}
-        />
-      );
+  function getColumnSort(column: GridColumnOrder<string>): GridColumnSort | undefined {
+    if (!(column.key in SortKeys)) {
+      return;
     }
-    return column.name;
+
+    const sortKey = SortKeys[column.key as keyof typeof SortKeys];
+    const urlSort = decodeScalar(
+      location.query.sort,
+      hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
+    );
+    const currentDirection =
+      urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
+    const isCurrentSort = currentDirection !== undefined;
+
+    return {
+      align: 'left',
+      direction:
+        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection,
+      to: {
+        ...location,
+        query: {
+          ...location.query,
+          sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
+        },
+      },
+    };
   }
 
   const renderBodyCell = (
@@ -358,10 +353,9 @@ function DashboardTable({
     <GridEditable
       data={dashboards ?? []}
       columnOrder={columnOrder}
-      columnSortBy={[]}
       grid={{
         renderBodyCell,
-        renderHeadCell: column => renderHeadCell(column),
+        getColumnSort,
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
           const favoriteColumn = {
