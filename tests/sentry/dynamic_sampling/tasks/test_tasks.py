@@ -794,12 +794,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 assert float(val) == 0.25
 
     @with_feature("organizations:dynamic-sampling")
-    @override_options(
-        {
-            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.serving-rollout-rate": 1.0})
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_recalibrate_orgs_skips_orgs_served_the_per_org_factor(
         self, get_blended_sample_rate: MagicMock
