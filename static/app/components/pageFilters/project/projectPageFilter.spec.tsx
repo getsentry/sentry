@@ -161,8 +161,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('handles reset', async () => {
-    const onReset = jest.fn();
-    const {router} = render(<ProjectPageFilter onReset={onReset} />, {
+    const {router} = render(<ProjectPageFilter />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
@@ -178,9 +177,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'project-1'}));
     await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
-    // Trigger button was updated, onReset was called
     expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
-    expect(onReset).toHaveBeenCalled();
   });
 
   it('responds to page filter changes, async e.g. from back button nav', async () => {

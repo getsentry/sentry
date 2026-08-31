@@ -7,7 +7,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 200},
@@ -135,13 +135,12 @@ describe('Table', () => {
     await waitFor(() => expect(gridTemplate()).toBe('90px 150px minmax(90px, auto)'));
   });
 
-  it('reports the final width to onColumnResize when a drag ends', () => {
-    const onColumnResize = jest.fn();
-    render(<TestTable onColumnResize={onColumnResize} />);
+  it('keeps the resized width after a drag ends', async () => {
+    render(<TestTable />);
 
     dragHandle(resizers()[1]!, {from: 100, to: 350});
 
-    expect(onColumnResize).toHaveBeenCalledWith(1, 250);
+    await waitFor(() => expect(gridTemplate()).toBe('200px 250px minmax(90px, auto)'));
   });
 
   it('retains the resized width when no onColumnResize is provided', async () => {
@@ -162,15 +161,6 @@ describe('Table', () => {
     await waitFor(() =>
       expect(gridTemplate()).toBe('minmax(90px, auto) 150px minmax(90px, auto)')
     );
-  });
-
-  it('reports an undefined width to onColumnResize when a handle is double-clicked', async () => {
-    const onColumnResize = jest.fn();
-    render(<TestTable onColumnResize={onColumnResize} />);
-
-    await userEvent.dblClick(resizers()[0]!);
-
-    expect(onColumnResize).toHaveBeenCalledWith(0, COL_WIDTH_UNDEFINED);
   });
 
   it('places a resize handle in the tab order', async () => {
@@ -201,22 +191,20 @@ describe('Table', () => {
   });
 
   it('commits a resize when a focused handle is arrowed', async () => {
-    const onColumnResize = jest.fn();
-    render(<TestTable onColumnResize={onColumnResize} />);
+    render(<TestTable />);
 
     await userEvent.tab();
     await userEvent.keyboard('{ArrowRight}');
 
-    expect(onColumnResize).toHaveBeenCalledWith(0, 90);
+    await waitFor(() => expect(gridTemplate()).toBe('90px 150px minmax(90px, auto)'));
   });
 
   it('does not commit a resize when a handle is right-clicked', () => {
-    const onColumnResize = jest.fn();
-    render(<TestTable onColumnResize={onColumnResize} />);
+    render(<TestTable />);
 
     dragHandle(resizers()[0]!, {button: 2, from: 100, to: 400});
 
-    expect(onColumnResize).not.toHaveBeenCalled();
+    expect(gridTemplate()).toBe('200px 150px minmax(90px, auto)');
   });
 
   it('keeps the in-progress width when an unrelated re-render lands mid-drag', async () => {

@@ -35,7 +35,7 @@ export function useDrawerContentContext() {
 /**
  * Rendering props for the inner DrawerPanel component. Inherits the shared
  * panel-configuration props directly from DrawerOptions so the two interfaces
- * can't drift. GlobalDrawer-only options (onOpen, shouldClose*, onClose
+ * can't drift. GlobalDrawer-only options (shouldClose*, onClose
  * callback) are consumed before reaching this component.
  */
 interface DrawerPanelProps extends Pick<

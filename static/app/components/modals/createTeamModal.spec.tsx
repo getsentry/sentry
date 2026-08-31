@@ -11,7 +11,6 @@ import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 describe('CreateTeamModal', () => {
   const org = OrganizationFixture();
   const closeModal = jest.fn();
-  const onClose = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,7 +33,6 @@ describe('CreateTeamModal', () => {
         Header={p => <span>{p.children}</span>}
         organization={org}
         closeModal={closeModal}
-        onClose={onClose}
         CloseButton={makeCloseButton(() => {})}
       />
     );
@@ -47,7 +45,6 @@ describe('CreateTeamModal', () => {
       `/organizations/${org.slug}/teams/`,
       expect.objectContaining({data: {slug: 'new-team'}})
     );
-    expect(onClose).toHaveBeenCalledWith(team);
     expect(closeModal).toHaveBeenCalled();
   });
 });

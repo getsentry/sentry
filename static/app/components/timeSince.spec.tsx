@@ -39,19 +39,9 @@ describe('TimeSince', () => {
     expect(screen.getByText('10 minutes')).toBeInTheDocument();
   });
 
-  it('renders a relative date without prefix', () => {
-    render(<TimeSince date={futureTenMin} prefix="" />);
-    expect(screen.getByText('10 minutes')).toBeInTheDocument();
-  });
-
   it('renders a custom suffix', () => {
     render(<TimeSince date={pastTenMin} suffix="until lunch" />);
     expect(screen.getByText('10 minutes until lunch')).toBeInTheDocument();
-  });
-
-  it('renders a custom prefix', () => {
-    render(<TimeSince date={futureTenMin} prefix="lunch is in" />);
-    expect(screen.getByText('lunch is in 10 minutes')).toBeInTheDocument();
   });
 
   it('renders a custom suffix with shortened', () => {

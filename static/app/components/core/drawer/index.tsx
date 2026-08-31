@@ -52,10 +52,6 @@ export interface DrawerOptions {
    */
   onClose?: () => void;
   /**
-   * Callback for when the drawer opens
-   */
-  onOpen?: () => void;
-  /**
    * If true (default), allows the drawer to be resized - requires `drawerKey`
    * to be defined
    */
@@ -137,7 +133,6 @@ export function GlobalDrawer({children}: any) {
         scrollLock.acquire();
       }
       overwriteDrawerConfig({renderer, options, callerId});
-      options.onOpen?.();
     },
     [scrollLock]
   );
