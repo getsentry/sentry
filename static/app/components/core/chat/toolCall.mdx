@@ -110,6 +110,64 @@ value, or on failure the error itself. Like `input`, it is a slot.
 />
 ```
 
+## Overflow
+
+`input` and `output` cap at a max height once their content grows past a few
+lines — a large JSON body should not push every later message off screen. A
+short value is unaffected: the cap (and its `Show More` affordance) only
+appears once content actually exceeds it, so it never adds an empty gap under
+a one-line result.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Render chart"
+      status="success"
+      output={
+        <Text size="sm" monospace>
+          {JSON.stringify(
+            {
+              title: 'p95 Span Duration',
+              subtitle: 'Open period vs. 7-day comparison',
+              visualization: 'line',
+              x_axis: 'time',
+              y_axis_unit: 'duration',
+              series: [
+                {
+                  name: 'Open Period (Aug 28)',
+                  data: [
+                    {x: '2026-08-28T14:00:00+00:00', y: 66},
+                    {x: '2026-08-28T15:00:00+00:00', y: 67.1},
+                    {x: '2026-08-28T16:00:00+00:00', y: 65.3},
+                  ],
+                },
+                {
+                  name: 'Comparison Week (Aug 21)',
+                  data: [
+                    {x: '2026-08-28T14:00:00+00:00', y: 64.3},
+                    {x: '2026-08-28T15:00:00+00:00', y: 62.2},
+                    {x: '2026-08-28T16:00:00+00:00', y: 62.7},
+                  ],
+                },
+              ],
+            },
+            null,
+            2
+          )}
+        </Text>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Render chart"
+  status="success"
+  output={<Text monospace>{JSON.stringify(chartBody, null, 2)}</Text>}
+/>
+```
+
 ## Status
 
 The leading glyph reflects the call's lifecycle. A `failure` keeps that glyph and
