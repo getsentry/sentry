@@ -3,6 +3,7 @@ from typing import Any, Literal, Protocol, TypedDict
 
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.sentry_apps.event_types import SentryAppEventType
 
@@ -138,15 +139,15 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         cache_payload: CachePayloadT,
         summary: str | None,
         run_id: int,
+        pending_user_input: PendingUserInput | None = None,
     ) -> None:
         """
-        Called when an Agent run completes, via AgentOnCompletionHook.
+        Called when an Agent invocation yields, via AgentOnCompletionHook.
 
         Unlike on_autofix_update which receives streaming webhook events during a run,
-        this is invoked once when the Agent run reaches a terminal state. The completion
-        hook (AgentOnCompletionHook.execute) retrieves the cached payload, fetches the
-        run state from Seer, and delegates to this method so the entrypoint can notify the
-        external service (e.g., post a thread reply with the Agent summary and result link).
+        this is invoked when the Agent run reaches a terminal or awaiting-input state.
+        The completion hook retrieves the cached payload, fetches the run state from Seer,
+        and delegates to this method so the entrypoint can notify the external service.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 

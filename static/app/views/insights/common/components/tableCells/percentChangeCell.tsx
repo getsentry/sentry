@@ -8,7 +8,7 @@ type PercentChangeCellProps = {
 export function PercentChangeCell({deltaValue}: PercentChangeCellProps) {
   return (
     <NumberContainer>
-      <PercentChange value={deltaValue} colorize />
+      <PercentChange value={deltaValue} />
     </NumberContainer>
   );
 }

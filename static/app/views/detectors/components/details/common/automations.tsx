@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -107,11 +106,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
       }
     >
       {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error />}
       {isSuccess && automations?.length === 0 && (
         <SimpleTable.Empty>
           {searchQuery ? t('No matching alerts found') : emptyMessage}

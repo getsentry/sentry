@@ -1,7 +1,7 @@
 import datetime
 import enum
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
 from typing import Any
 
@@ -71,13 +71,17 @@ but not at the timeout threshold
 BATCH_SIZE = 1000
 """The number of mailboxes a scheduler cycle aims to dispatch drains for."""
 
-BATCH_SELECT_LIMIT = BATCH_SIZE * 2
+BATCH_SELECT_LIMIT = BATCH_SIZE * 10
 """
 How many due mailbox heads a scheduler cycle selects to reach BATCH_SIZE
 dispatches. Push triggers and concurrent cycles claim heads out of the selected
 list before the loop reaches them, so selecting exactly BATCH_SIZE shrinks the
-cycle below its target by whatever the contention share is. Contention beyond
-the surplus leaves the remainder to the next cycle.
+cycle below its target by whatever the contention share is. Heads the cycle
+never reaches are handed to the next one (see CARRYOVER_CACHE_KEY) rather than
+rediscovered.
+
+Set far above BATCH_SIZE because the limit only bounds what the scan
+materializes, and a surplus has to outlast contention to be worth carrying.
 """
 
 
@@ -517,8 +521,65 @@ def _due_mailbox_heads() -> list[dict[str, Any]]:
     )
     return [
         {"id": head_id, "mailbox_name": mailbox_name}
-        for _, head_id, mailbox_name in heads[:BATCH_SIZE]
+        for _, head_id, mailbox_name in heads[:BATCH_SELECT_LIMIT]
     ]
+
+
+CARRYOVER_CACHE_KEY = "wh:schedule:carryover"
+"""Where a cycle leaves the due heads it discovered but had no budget to dispatch."""
+
+CARRYOVER_TTL = 60
+"""
+Seconds a carried surplus stays dispatchable. Each cycle re-stores what it did
+not spend, so this bounds only a surplus nobody is spending — not how long a
+deep backlog defers discovery.
+"""
+
+
+def _read_carryover() -> list[dict[str, Any]]:
+    """
+    The heads a previous cycle discovered and left behind, empty when there are none.
+
+    A cache failure reads as empty so the cycle falls back to discovery, which is
+    what every cycle did before a surplus was carried at all.
+    """
+    try:
+        return cache.get(CARRYOVER_CACHE_KEY) or []
+    except Exception:
+        metrics.incr(
+            "hybridcloud.schedule_webhook_delivery.carryover.error", tags={"operation": "get"}
+        )
+        return []
+
+
+def _store_carryover(records: Sequence[Mapping[str, Any]]) -> None:
+    """
+    Hand this cycle's undispatched heads to the next one.
+
+    Stored as the head id and mailbox name a dispatch needs and nothing else: a
+    cycle's worth of heads all sit in one cache value.
+    """
+    metrics.distribution("hybridcloud.schedule_webhook_delivery.carryover", len(records))
+    try:
+        cache.set(
+            CARRYOVER_CACHE_KEY,
+            [{"id": record["id"], "mailbox_name": record["mailbox_name"]} for record in records],
+            timeout=CARRYOVER_TTL,
+        )
+    except Exception:
+        metrics.incr(
+            "hybridcloud.schedule_webhook_delivery.carryover.error", tags={"operation": "set"}
+        )
+
+
+def _clear_carryover() -> None:
+    """Drop the spent surplus so the next cycle discovers again."""
+    try:
+        cache.delete(CARRYOVER_CACHE_KEY)
+    except Exception:
+        metrics.incr(
+            "hybridcloud.schedule_webhook_delivery.carryover.error", tags={"operation": "delete"}
+        )
 
 
 @instrumented_task(
@@ -534,21 +595,44 @@ def schedule_webhook_delivery() -> None:
 
     Prioritizes webhooks based on provider importance.
 
+    Discovery aggregates the whole table, so its cost grows with the backlog while
+    it runs on a fixed short interval. A cycle that discovers more due heads than
+    it can dispatch therefore hands the surplus to the next cycle instead of
+    discarding it, and only a cycle that starts with nothing carried over pays for
+    discovery — the deeper the backlog, the more of that scan is spared.
+
+    A carried head may be stale by the time it is dispatched, which costs at most
+    one claim attempt: `_claim_and_dispatch` gates every dispatch on the head still
+    being due, so a head claimed, delivered, or backed off since discovery claims 0
+    rows and is skipped. Mailboxes that arrive while a surplus is being spent are
+    dispatched by their push trigger; the ones with none wait for it to drain.
+
     Triggered frequently by task-scheduler.
     """
-    # Discovery reads the primary rather than a replica. These reads run on a
-    # short interval and can scan the whole table; on a replica they contend with
-    # WAL replay and amplify replication lag, and lag also produces spurious
-    # DoesNotExist races in the drains they enqueue (see INC-2398).
-    if options.get("hybridcloud.webhookpayload.dispatch_from_due_head"):
-        records = _due_mailbox_heads()
+    carryover = _read_carryover()
+    if carryover:
+        records = carryover
     else:
-        records = _gated_mailbox_heads()
+        # Discovery reads the primary rather than a replica. These reads run on a
+        # short interval and can scan the whole table; on a replica they contend with
+        # WAL replay and amplify replication lag, and lag also produces spurious
+        # DoesNotExist races in the drains they enqueue (see INC-2398).
+        if options.get("hybridcloud.webhookpayload.dispatch_from_due_head"):
+            records = _due_mailbox_heads()
+        else:
+            records = _gated_mailbox_heads()
+    metrics.incr(
+        "hybridcloud.schedule_webhook_delivery.cycle",
+        tags={"source": "carryover" if carryover else "discovery"},
+    )
 
     dispatched = 0
-    for record in records:
+    surplus: list[dict[str, Any]] = []
+    for index, record in enumerate(records):
         if dispatched >= BATCH_SIZE:
-            # Dispatch target reached; surplus heads stay due for the next cycle.
+            # Dispatch target reached; the heads this cycle never reached go to the
+            # next one, which dispatches them without rediscovering them.
+            surplus = records[index:]
             break
         mailbox_name = record["mailbox_name"]
         skip_tags = {"provider": _provider_from_mailbox(mailbox_name)}
@@ -578,6 +662,17 @@ def schedule_webhook_delivery() -> None:
             )
         else:
             dispatched += 1
+
+    # A carryover displaces the next cycle's discovery, so a short surplus costs it
+    # the rest of its dispatch budget — below half a batch that outweighs the scan
+    # it saves, and discovery finds those heads again.
+    if len(surplus) >= BATCH_SIZE // 2:
+        _store_carryover(surplus)
+    else:
+        if surplus:
+            metrics.incr("hybridcloud.schedule_webhook_delivery.carryover.dropped")
+        if carryover:
+            _clear_carryover()
 
 
 @instrumented_task(

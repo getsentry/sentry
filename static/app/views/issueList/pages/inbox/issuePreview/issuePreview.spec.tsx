@@ -206,6 +206,7 @@ describe('IssuePreview', () => {
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
     expect(router.location.query).toEqual({
+      referrer: 'inbox',
       seerDrawer: 'true',
       seerDrawerAction: 'retry_code_changes',
     });

@@ -35,7 +35,7 @@ function getTimeSpentExplanation(percentage: number, op?: string) {
     'The application spent [percentage] of its total time on this [span]. Read more about Time Spent in our [documentation:documentation].',
     {
       percentage: formattedPercentage,
-      span: formatSpanOperation(op, 'short'),
+      span: formatSpanOperation(op),
       documentation: <ExternalLink href={`${MODULE_DOC_LINK}#what-is-time-spent`} />,
     }
   );
