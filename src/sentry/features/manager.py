@@ -352,13 +352,31 @@ class FeatureManager(RegisteredFeatureManager):
         try:
             if self._entity_handler:
                 with metrics.timer("features.entity_batch_has", sample_rate=0.01):
-                    return self._entity_handler.batch_has(
+                    entity_results = self._entity_handler.batch_has(
                         feature_names,
                         actor,
                         projects=projects,
                         organization=organization,
                         skip_experiment_exposure=skip_experiment_exposure,
                     )
+
+                # Check registered feature handlers and overlay their results.
+                # Handlers take priority over the entity handler, matching the
+                # priority order in has().
+                subject = organization or (projects[0] if projects else None)
+                for feature_name in feature_names:
+                    try:
+                        feature = self.get(feature_name, subject)
+                        rv = self._get_handler(feature, actor)
+                    except Exception:
+                        rv = None
+                    if rv is None or entity_results is None:
+                        continue
+                    for entity_key in entity_results:
+                        if feature_name in entity_results[entity_key]:
+                            entity_results[entity_key][feature_name] = rv
+
+                return entity_results
             else:
                 # Fall back to default handler if no entity handler available.
                 project_features = [name for name in feature_names if name.startswith("projects:")]

@@ -320,6 +320,66 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
+    def test_batch_has_respects_registered_handler_over_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        class ReturningHandler(features.BatchFeatureHandler):
+            features = {"organizations:controlled"}
+
+            def _check_for_batch(self, feature_name, organization, actor):
+                return True
+
+            def batch_has(self, *a, **k):
+                raise NotImplementedError("unreachable")
+
+        manager = features.FeatureManager()
+        manager.add(
+            "organizations:controlled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE
+        )
+        manager.add_handler(ReturningHandler())
+
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {
+            f"organization:{test_org.id}": {"organizations:controlled": False}
+        }
+        manager.add_entity_handler(entity_handler)
+
+        result = manager.batch_has(
+            ["organizations:controlled"], actor=self.user, organization=test_org
+        )
+        assert result is not None
+        assert result[f"organization:{test_org.id}"]["organizations:controlled"] is True
+
+    def test_batch_has_falls_back_to_entity_handler_when_handler_returns_none(self) -> None:
+        test_org = self.create_organization()
+
+        class NullHandler(features.BatchFeatureHandler):
+            features = {"organizations:controlled"}
+
+            def _check_for_batch(self, feature_name, organization, actor):
+                return None
+
+            def batch_has(self, *a, **k):
+                raise NotImplementedError("unreachable")
+
+        manager = features.FeatureManager()
+        manager.add(
+            "organizations:controlled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE
+        )
+        manager.add_handler(NullHandler())
+
+        entity_handler = mock.Mock(spec=features.FeatureHandler)
+        entity_handler.batch_has.return_value = {
+            f"organization:{test_org.id}": {"organizations:controlled": True}
+        }
+        manager.add_entity_handler(entity_handler)
+
+        result = manager.batch_has(
+            ["organizations:controlled"], actor=self.user, organization=test_org
+        )
+        assert result is not None
+        assert result[f"organization:{test_org.id}"]["organizations:controlled"] is True
+
     def test_batch_has_error(self) -> None:
         manager = features.FeatureManager()
         manager.add("organizations:feature", OrganizationFeature)
