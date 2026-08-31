@@ -8,6 +8,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgenticProgress} from 'sentry/views/onboarding/agenticProgress/agenticProgressList';
 import {useAgenticProgress} from 'sentry/views/onboarding/agenticProgress/useAgenticProgress';
 import {useAgenticProgressInit} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
+import {useAgenticProgressRefocusAnalytics} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressRefocusAnalytics';
 import {
   AgentSetupCard,
   type AgentSetupCopySource,
@@ -35,6 +36,8 @@ export function WelcomeAgentSetup({
   const initialization = useAgenticProgressInit({enabled: true});
   const progress = useAgenticProgress({runId: initialization.data?.runId ?? null});
   const run = progress.data ?? initialization.data;
+  useAgenticProgressRefocusAnalytics(run);
+
   const connectionStatus = run?.stages.find(
     stage => stage.stage === 'connect_mcp'
   )?.status;

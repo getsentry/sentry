@@ -1,4 +1,17 @@
+import type {
+  AgenticProgressRunStatus,
+  AgenticProgressStage,
+  AgenticProgressStageStatus,
+} from 'sentry/views/onboarding/agenticProgress/types';
+
 export type OnboardingEventParameters = {
+  'onboarding.agentic_progress_refocused': {
+    duration_seconds: number;
+    run_id: string;
+    run_status: AgenticProgressRunStatus;
+    stage: AgenticProgressStage | null;
+    stage_status: AgenticProgressStageStatus | null;
+  };
   'onboarding.ai_prompt_copied': {
     platform: string;
     product: 'logs' | 'traces' | 'conversations' | 'agents';
@@ -165,6 +178,7 @@ export type OnboardingEventParameters = {
 };
 
 export const onboardingEventMap: Record<keyof OnboardingEventParameters, string> = {
+  'onboarding.agentic_progress_refocused': 'Onboarding: Agentic Progress Refocused',
   'onboarding.ai_prompt_copied': 'Onboarding: AI Prompt Copied',
   'onboarding.js_loader_optional_configuration_shown':
     'Onboarding: JS Loader Optional Configuration Expanded',
