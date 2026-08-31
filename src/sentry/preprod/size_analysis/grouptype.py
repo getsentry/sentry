@@ -395,9 +395,6 @@ class PreprodSizeAnalysisDetectorHandler(
 
         return occurrence, event_data
 
-    def extract_dedupe_value(self, data_packet: SizeAnalysisDataPacket) -> int:
-        raise NotImplementedError
-
 
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
     data_source_required = False
