@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -32,7 +33,10 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
+// Keep the embed compact by showing at most a 2x2 widget grid.
 const MAX_PREVIEW_WIDGETS = 4;
+// Limit the rows or series fetched inside each previewed widget.
+const MAX_PREVIEW_ITEMS_PER_WIDGET = 5;
 
 function getDashboardPreview(dashboard: DashboardDetails): DashboardDetails {
   if (!dashboard.prebuiltId) {
@@ -85,7 +89,10 @@ function DashboardWidgetPreview({
             dashboardFilters={dashboard.filters}
             selection={selection}
             showContextMenu={false}
-            tableItemLimit={Math.min(widget.limit ?? 5, 5)}
+            tableItemLimit={Math.min(
+              widget.limit ?? MAX_PREVIEW_ITEMS_PER_WIDGET,
+              MAX_PREVIEW_ITEMS_PER_WIDGET
+            )}
             widget={{...widget}}
             widgetLegendState={widgetLegendState}
             widgetLimitReached={false}
@@ -191,7 +198,9 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
         {isPending ? (
           <LoadingIndicator />
         ) : isError || !dashboard ? (
-          <Text variant="muted">{t('Unable to load dashboard details.')}</Text>
+          <Alert role="alert" variant="danger">
+            {t('Unable to load dashboard details.')}
+          </Alert>
         ) : (
           <DashboardPreview dashboard={dashboard} href={href} />
         )}

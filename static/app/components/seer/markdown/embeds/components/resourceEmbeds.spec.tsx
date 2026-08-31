@@ -114,6 +114,19 @@ describe('Seer resource embeds', () => {
     unmount();
   });
 
+  it('shows an error notice when dashboard details fail to load', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/123/',
+      statusCode: 500,
+    });
+
+    renderEmbed({name: 'dashboard', data: {id: '123'}});
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load dashboard details.'
+    );
+  });
+
   it('links a replay to the relevant event timestamp (inline)', async () => {
     const {router} = renderEmbed({
       name: 'replay',
