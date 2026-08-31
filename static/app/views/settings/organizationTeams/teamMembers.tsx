@@ -1,8 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {

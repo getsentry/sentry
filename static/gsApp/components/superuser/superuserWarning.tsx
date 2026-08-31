@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-import {keyframes} from '@emotion/react';
-import {useTheme} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 

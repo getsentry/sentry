@@ -5,9 +5,11 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ScmMessagingActiveRow} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import type {
+  ScmMessagingActiveRow,
+  ScmMessagingSetup,
+} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm/scmMessagingSetup';
-import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
