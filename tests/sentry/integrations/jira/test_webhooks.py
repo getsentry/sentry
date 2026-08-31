@@ -9,12 +9,17 @@ from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.response import Response
 
 from fixtures.integrations.stub_service import StubService
+from sentry.integrations.jira.utils import handle_issue_moved
 from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBase
 from sentry.integrations.mixins.issues import IssueSyncIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.viewer_context import ActorType, get_viewer_context
@@ -219,6 +224,112 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         ):
             data = StubService.get_stub_data("jira", "changelog_missing.json")
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+    def test_issue_moved_rekeys_external_issue(self) -> None:
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group, integration=self.integration, key="APP-123"
+        )
+
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "moved_issue_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+        external_issue.refresh_from_db()
+        assert external_issue.key == "PLATFORM-45"
+        assert external_issue.metadata[PROVIDER_ISSUE_ID_KEY] == "101"
+
+    @patch.object(IssueSyncIntegration, "sync_status_inbound")
+    def test_issue_moved_rekeys_before_status_sync(
+        self, mock_sync_status_inbound: MagicMock
+    ) -> None:
+        # A move that also transitions the issue arrives as a single webhook, and the
+        # status handler looks the issue up by its new key -- so the rename has to land
+        # first or the transition is dropped.
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group, integration=self.integration, key="APP-123"
+        )
+
+        keys_when_synced = []
+        mock_sync_status_inbound.side_effect = lambda *args, **kwargs: keys_when_synced.append(
+            ExternalIssue.objects.get(id=external_issue.id).key
+        )
+
+        data = StubService.get_stub_data("jira", "moved_issue_payload.json")
+        data["changelog"]["items"].append(
+            {
+                "field": "status",
+                "fieldtype": "jira",
+                "fieldId": "status",
+                "from": "10101",
+                "fromString": "In Progress",
+                "to": "10102",
+                "toString": "Done",
+            }
+        )
+
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+        assert mock_sync_status_inbound.call_args.args[0] == "PLATFORM-45"
+        assert keys_when_synced == ["PLATFORM-45"]
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_issue_moved_opens_no_lifecycle_without_a_key_change(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        # `issue.updated` fires on every Jira edit, so the rekey lifecycle must only open
+        # for the payloads that actually carry a key change.
+        handle_issue_moved(
+            self.integration, {"changelog": {"items": [{"field": "status"}]}, "issue": {}}
+        )
+
+        assert mock_record_event.mock_calls == []
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_issue_moved_records_lifecycle_success(self, mock_record_event: MagicMock) -> None:
+        handle_issue_moved(
+            self.integration, StubService.get_stub_data("jira", "moved_issue_payload.json")
+        )
+
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 1)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_issue_moved_halts_on_unusable_key_change(self, mock_record_event: MagicMock) -> None:
+        handle_issue_moved(
+            self.integration,
+            {
+                "changelog": {"items": [{"field": "Key", "fromString": None, "toString": None}]},
+                "issue": {"key": None},
+            },
+        )
+
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+
+    def test_issue_not_moved_leaves_key_alone(self) -> None:
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group, integration=self.integration, key="APP-123"
+        )
+
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_status_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+        external_issue.refresh_from_db()
+        assert external_issue.key == "APP-123"
 
     @with_feature("organizations:jira-issue-updated-payload-logging")
     @patch("sentry.integrations.jira.webhooks.issue_updated.sentry_sdk.capture_exception")

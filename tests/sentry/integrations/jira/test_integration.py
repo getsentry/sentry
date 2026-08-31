@@ -799,6 +799,8 @@ class RegionJiraIntegrationTest(APITestCase):
                 "title": "example summary",
                 "description": "example bug report",
                 "key": "APP-123",
+                # Jira's immutable id, kept so a project move can be followed.
+                "metadata": {"provider_issue_id": "10305"},
             }
 
     @responses.activate
