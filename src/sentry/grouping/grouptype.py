@@ -36,6 +36,9 @@ class ErrorDetectorHandler(BaseDetectorHandler[object, object, DataConditionGrou
     def extract_value(self, data_packet: DataPacket[object]) -> object:
         return None
 
+    def evaluate_extracted_value(self, extracted_value: object) -> DataConditionGroupEvaluation:
+        return DataConditionGroupEvaluation(result=False, data={})
+
     def create_occurrence(
         self,
         evaluation: DataConditionGroupEvaluation,
