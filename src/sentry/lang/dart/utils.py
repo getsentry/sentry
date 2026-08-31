@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
 import sentry_sdk
 
+from sentry import options
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -20,6 +21,32 @@ from sentry.utils.tracing import set_span_tag, start_span
 # any values other than "<" and ">".
 # VIEW_HIERARCHY_TYPE_REGEX = re.compile(r"([^<>]+)(?:<([^<>]+)>)?")
 INSTANCE_OF_VALUE_RE = re.compile(r"Instance of '([^']+)'")
+
+# Dart identifiers: letters, digits, "_" and "$" (e.g. "aBc", "_aBc", "_$aBcImpl").
+# Everything else is a delimiter and is preserved byte-for-byte.
+IDENTIFIER_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
+
+
+def remap_exception_type(exception_type: str, symbol_map: Mapping[str, str]) -> str:
+    """
+    Deobfuscates an exception type, falling back to remapping the identifiers it
+    contains when the complete type has no mapping.
+
+    Compound types such as "Bloc aBc" (from 'Bloc ${bloc.runtimeType}') don't exist
+    in the symbol map, but the obfuscated identifier they contain does.
+    """
+    if not exception_type or not symbol_map:
+        return exception_type
+
+    # Whole-string lookup is authoritative and takes precedence over token remapping.
+    mapped_type = symbol_map.get(exception_type)
+    if mapped_type:
+        return mapped_type
+
+    return IDENTIFIER_RE.sub(
+        lambda match: symbol_map.get(match.group(0)) or match.group(0),
+        exception_type,
+    )
 
 
 def get_debug_meta_image_ids(event: dict[str, Any]) -> set[str]:
@@ -71,7 +98,9 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
     """
     Deobfuscates exception types and certain values in-place.
 
-    - Exception type: replaced directly via symbol map lookup
+    - Exception type: replaced via symbol map lookup of the complete type, falling
+      back to remapping the identifiers within it. The original type is kept in
+      "raw_type" whenever the type changes.
     - Exception value: deobfuscate the quoted symbol for all occurrences of the
       pattern "Instance of 'obfuscated_symbol'" in the value.
 
@@ -95,11 +124,17 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
         if symbol_map is None:
             return None
 
+        remap_compound_types = options.get("dart.compound-type-deobfuscation.enabled")
+
         for exception in exceptions:
             exception_type = exception.get("type")
             if isinstance(exception_type, str):
-                mapped_type = symbol_map.get(exception_type)
-                if mapped_type is not None:
+                if remap_compound_types:
+                    mapped_type = remap_exception_type(exception_type, symbol_map)
+                else:
+                    mapped_type = symbol_map.get(exception_type) or exception_type
+                if mapped_type != exception_type:
+                    exception["raw_type"] = exception_type
                     exception["type"] = mapped_type
 
             # Deobfuscate occurrences of "Instance of 'xYz'" in the exception value
