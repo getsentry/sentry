@@ -574,100 +574,80 @@ def test_missing_exception_not_detected(
     assert mock_sdk_crash_reporter.report.call_count == 0
 
 
-# React Native's dev server (Metro) re-runs the app's entry code — including Sentry.init — on
-# hot reload / Fast Refresh by dispatching it through the RCTDeviceEventEmitter websocket. These
-# frames reproduce that call chain (RCTDeviceEventEmitter#emit -> WebSocket listener -> init).
-_DEVICE_EVENT_EMITTER_FRAMES = [
+# React Native's dev server (Metro) re-runs the app's entry code — including Sentry.init and SDK
+# integration setup — on hot reload / Fast Refresh by pushing a message over its websocket. React
+# Native delivers that message as a device event (RCTDeviceEventEmitter#emit) to the WebSocket
+# module's listener. These frames reproduce that dev-server call chain. Like real events, they
+# carry the module path in filename/abs_path and have no `module` field.
+_DEV_SERVER_WEBSOCKET_FRAMES = [
     {
         "function": "RCTDeviceEventEmitterImpl#emit",
-        "module": "react-native/Libraries/EventEmitter/RCTDeviceEventEmitter",
-        "filename": "node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
-        "abs_path": "app:///node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+        "filename": "/Users/dev/project/node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+        "abs_path": "/Users/dev/project/node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
     },
     {
         "function": "emit",
-        "module": "react-native/Libraries/vendor/emitter/EventEmitter",
-        "filename": "node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
-        "abs_path": "app:///node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
+        "filename": "/Users/dev/project/node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
+        "abs_path": "/Users/dev/project/node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
     },
     {
         "function": "_eventEmitter.addListener$argument_1",
-        "module": "react-native/Libraries/WebSocket/WebSocket",
-        "filename": "node_modules/react-native/Libraries/WebSocket/WebSocket.js",
-        "abs_path": "app:///node_modules/react-native/Libraries/WebSocket/WebSocket.js",
+        "filename": "/Users/dev/project/node_modules/react-native/Libraries/WebSocket/WebSocket.js",
+        "abs_path": "/Users/dev/project/node_modules/react-native/Libraries/WebSocket/WebSocket.js",
     },
 ]
 
-# A normal app-startup caller of Sentry.init (crashes here are genuine SDK crashes).
+# A normal app-startup caller (crashes reached from here are genuine SDK crashes).
 _APP_STARTUP_FRAME = {
     "function": "<global>",
-    "module": "index",
     "filename": "index.js",
     "abs_path": "app:///index.js",
 }
 
-# The crash origin: a TypeError thrown while init sets up the default integrations.
-_BREADCRUMBS_CRASH_FRAME = {
-    "function": "breadcrumbsIntegration",
-    "module": "@sentry/react-native/dist/js/integrations/breadcrumbs",
-    "filename": "node_modules/@sentry/react-native/dist/js/integrations/breadcrumbs.js",
-    "abs_path": "app:///node_modules/@sentry/react-native/dist/js/integrations/breadcrumbs.js",
-}
+
+def _sdk_frame(function: str, filename: str) -> dict[str, str]:
+    # Real React Native JS frames carry the SDK module path in filename/abs_path, no `module`.
+    return {"function": function, "filename": filename, "abs_path": filename}
 
 
-def _sentry_init_frame(module: str = "@sentry/react-native/dist/js/sdk") -> dict[str, str]:
-    return {
-        "function": "init",
-        "module": module,
-        "filename": "node_modules/@sentry/react-native/dist/js/sdk.js",
-        "abs_path": "app:///node_modules/@sentry/react-native/dist/js/sdk.js",
-    }
+# The distinct SDK crash origins observed across the real dev-server hot-reload events.
+_INIT_CRASH_FRAMES = [
+    _sdk_frame("init", "@sentry/react-native/dist/js/sdk.js"),
+    _sdk_frame("ReactNativeClient#_initNativeSdk", "@sentry/react-native/dist/js/client.js"),
+]
+_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES = [
+    _sdk_frame("__awaiter$argument_3", "@sentry/react-native/dist/js/wrapper.js"),
+    _sdk_frame("getDefaultIntegrations", "@sentry/react-native/dist/js/integrations/default.js"),
+]
+_ENCODED_AUTH_CRASH_FRAMES = [
+    _sdk_frame("init", "@sentry/react-native/dist/js/sdk.js"),
+    _sdk_frame("_encodedAuth", "@sentry/core/build/esm/api.js"),
+]
 
 
 @pytest.mark.parametrize(
     ["frames", "detected"],
     [
-        # Sentry.init re-run by Metro hot reload, production module name — should be ignored.
-        (
-            [
-                *_DEVICE_EVENT_EMITTER_FRAMES,
-                _sentry_init_frame("@sentry/react-native/dist/js/sdk"),
-                _BREADCRUMBS_CRASH_FRAME,
-            ],
-            False,
-        ),
-        # Same, development module name (sentry-react-native/...) — should be ignored.
-        (
-            [
-                *_DEVICE_EVENT_EMITTER_FRAMES,
-                _sentry_init_frame("sentry-react-native/dist/js/sdk"),
-                _BREADCRUMBS_CRASH_FRAME,
-            ],
-            False,
-        ),
-        # Genuine crash inside Sentry.init called from app startup (no device event emitter)
-        # — should be detected.
-        (
-            [
-                _APP_STARTUP_FRAME,
-                _sentry_init_frame(),
-                _BREADCRUMBS_CRASH_FRAME,
-            ],
-            True,
-        ),
-        # SDK crash dispatched through the device event emitter but NOT via Sentry.init
-        # — should be detected (only the init + emit combination is ignored).
-        (
-            [
-                *_DEVICE_EVENT_EMITTER_FRAMES,
-                _BREADCRUMBS_CRASH_FRAME,
-            ],
-            True,
-        ),
+        # Crash inside init, re-run by the Metro dev-server websocket — should be ignored.
+        ([*_DEV_SERVER_WEBSOCKET_FRAMES, *_INIT_CRASH_FRAMES], False),
+        # Crash inside getDefaultIntegrations (no init frame at all) via the dev-server websocket
+        # — should be ignored. The match must not depend on which SDK frame throws.
+        ([*_DEV_SERVER_WEBSOCKET_FRAMES, *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], False),
+        # Crash inside @sentry/core _encodedAuth via the dev-server websocket — should be ignored.
+        ([*_DEV_SERVER_WEBSOCKET_FRAMES, *_ENCODED_AUTH_CRASH_FRAMES], False),
+        # Genuine crash inside Sentry.init reached from app startup (no dev-server websocket
+        # frames) — should be detected.
+        ([_APP_STARTUP_FRAME, *_INIT_CRASH_FRAMES], True),
+        # Only the device event emitter frame, without the WebSocket listener — should be
+        # detected (both dev-server frames are required to ignore).
+        ([_DEV_SERVER_WEBSOCKET_FRAMES[0], *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], True),
+        # Only the WebSocket listener frame, without the device event emitter — should be
+        # detected (both dev-server frames are required to ignore).
+        ([_DEV_SERVER_WEBSOCKET_FRAMES[2], *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], True),
     ],
 )
 @decorators
-def test_dev_server_hot_reload_init_not_detected(
+def test_dev_server_hot_reload_not_detected(
     mock_sdk_crash_reporter,
     mock_random,
     store_event,

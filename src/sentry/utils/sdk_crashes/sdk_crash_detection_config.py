@@ -12,7 +12,7 @@ from sentry.utils.sdk_crashes.path_replacer import (
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionAndPathPattern:
     """Both the function and path pattern must match for a frame to be considered a SDK frame."""
 
@@ -39,14 +39,14 @@ class FunctionAndModulePattern:
 class StacktraceIgnoreMatcher:
     """Pattern group for ignoring SDK crashes based on the full stacktrace.
 
-    Unlike FunctionAndModulePattern used in sdk_crash_ignore_matchers, which is only evaluated
-    for frames up to the first SDK frame, a StacktraceIgnoreMatcher is evaluated against the
-    entire stacktrace and only ignores the crash when *every* pattern in the group matches some
-    frame. This is useful for crashes identified by a combination of frames rather than a single
-    frame, e.g. Sentry.init being dispatched through a specific caller.
+    Unlike the matchers in sdk_crash_ignore_matchers, which are only evaluated for frames up to
+    the first SDK frame, a StacktraceIgnoreMatcher is evaluated against the entire stacktrace and
+    only ignores the crash when *every* pattern in the group matches some frame. This is useful
+    for crashes identified by a combination of frames rather than a single frame, e.g. an SDK
+    crash dispatched through a specific caller chain.
     """
 
-    patterns: tuple[FunctionAndModulePattern, ...]
+    patterns: tuple[FunctionAndPathPattern, ...]
 
 
 @dataclass
@@ -302,28 +302,33 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
             sdk_crash_ignore_stacktrace_matchers={
                 # The React Native dev server (Metro) re-runs the app's entry code — including
-                # Sentry.init — on hot reload / Fast Refresh, dispatching it through the
-                # RCTDeviceEventEmitter websocket. While the module graph is being swapped, an
-                # imported binding is transiently undefined and init throws a TypeError (e.g. in
-                # breadcrumbsIntegration, getDefaultIntegrations, _initNativeSdk, or _encodedAuth
-                # via new URLSearchParams). This is a development-only artifact, not a shippable
-                # SDK bug, so we ignore any crash where Sentry.init is dispatched through the
-                # device event emitter. Requiring both frames keeps genuine crashes inside
-                # Sentry.init (called from app startup) detectable.
+                # Sentry.init and SDK integration setup — on hot reload / Fast Refresh by pushing
+                # a message over its websocket. React Native delivers that message as a device
+                # event (RCTDeviceEventEmitter#emit) to the WebSocket module's listener. While the
+                # module graph is being swapped, an imported binding is transiently undefined and
+                # SDK setup throws a TypeError (observed in init, getDefaultIntegrations,
+                # _initNativeSdk, and _encodedAuth via new URLSearchParams). This is a
+                # development-only artifact, not a shippable SDK bug.
+                #
+                # We ignore any SDK crash whose stacktrace contains both the device event emit and
+                # the React Native WebSocket listener that drives it — a combination that never
+                # occurs on a production startup path. The crashing SDK frame is intentionally not
+                # part of the match, since it varies across reloads. Genuine SDK crashes reached
+                # from app startup (no dev-server websocket frames) remain detectable, and a
+                # production app's own websocket handler runs through app code, which the detector
+                # already treats as a non-SDK crash.
                 StacktraceIgnoreMatcher(
                     patterns=(
-                        # Sentry.init in the React Native SDK. Both the production
-                        # (@sentry/react-native/dist/js/sdk) and development
-                        # (sentry-react-native/dist/js/sdk) module names end with this suffix.
-                        FunctionAndModulePattern(
-                            module_pattern="*react-native/dist/js/sdk",
-                            function_pattern="init",
-                        ),
-                        # React Native's device event emitter dispatching the dev-server
-                        # websocket event that re-invokes init.
-                        FunctionAndModulePattern(
-                            module_pattern="*",
+                        # React Native's native device event emitter dispatching the event.
+                        FunctionAndPathPattern(
                             function_pattern="RCTDeviceEventEmitterImpl#emit",
+                            path_pattern="**/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+                        ),
+                        # The React Native WebSocket module's listener that receives the dev-server
+                        # (Metro) message and drives the re-run of the SDK setup code.
+                        FunctionAndPathPattern(
+                            function_pattern="_eventEmitter.addListener$argument_1",
+                            path_pattern="**/react-native/Libraries/WebSocket/WebSocket.js",
                         ),
                     ),
                 ),

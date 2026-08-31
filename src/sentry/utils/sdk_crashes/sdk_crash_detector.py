@@ -8,6 +8,7 @@ from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     FunctionAndModulePattern,
+    FunctionAndPathPattern,
     SDKCrashDetectionConfig,
     StacktraceIgnoreMatcher,
 )
@@ -115,9 +116,9 @@ class SDKCrashDetector:
         # sdk_crash_ignore_matchers (Loop 2), which only inspects frames up to the first SDK
         # frame, these matchers inspect the entire stacktrace and only ignore the crash when
         # *every* pattern in a group matches some frame. This lets us ignore crashes that can
-        # only be identified by a combination of frames, e.g. Sentry.init being re-run by the
-        # React Native dev server (Metro) on hot reload, where init is dispatched through the
-        # device event emitter — never a production path.
+        # only be identified by a combination of frames, e.g. SDK setup being re-run by the
+        # React Native dev server (Metro) on hot reload, where it is dispatched through the
+        # device event emitter and the WebSocket module — never a production path.
         if self._matches_sdk_crash_ignore_stacktrace(iter_frames):
             return False
 
@@ -174,9 +175,23 @@ class SDKCrashDetector:
         self, frames: Sequence[Mapping[str, Any]], matcher: StacktraceIgnoreMatcher
     ) -> bool:
         return all(
-            any(self._matches_frame_pattern(frame, {pattern}) for frame in frames)
+            any(self._matches_function_and_path(frame, pattern) for frame in frames)
             for pattern in matcher.patterns
         )
+
+    def _matches_function_and_path(
+        self, frame: Mapping[str, Any], pattern: FunctionAndPathPattern
+    ) -> bool:
+        function = frame.get("function")
+        if not function:
+            return False
+
+        if not glob_match(function, pattern.function_pattern, ignorecase=True):
+            return False
+
+        # Match the path pattern against the frame's path-bearing fields (filename, abs_path,
+        # etc.). React Native JS frames carry the module path there rather than in `module`.
+        return self._path_patters_match_frame({pattern.path_pattern}, frame)
 
     def _matches_frame_pattern(
         self, frame: Mapping[str, Any], matchers: set[FunctionAndModulePattern]
