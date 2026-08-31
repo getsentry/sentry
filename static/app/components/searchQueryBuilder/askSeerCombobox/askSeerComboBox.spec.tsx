@@ -414,7 +414,7 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByText(longValue)).not.toBeInTheDocument();
   });
 
-  it('sizes parameter chips to their content', async () => {
+  it('renders each parameter value as an inert compound chip', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -445,7 +445,61 @@ describe('AskSeerComboBox', () => {
     await userEvent.type(input, 'test{Enter}');
 
     const groupBy = await screen.findByText('span.name');
-    expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
+    const browserGroupBy = screen.getByText('browser.name');
+    const groupByChip = groupBy.parentElement?.parentElement;
+    const browserGroupByChip = browserGroupBy.parentElement?.parentElement;
+
+    expect(groupByChip).toBeInTheDocument();
+    expect(groupByChip).not.toBe(browserGroupByChip);
+    expect(getEmotionRules(groupByChip!).join(' ')).toContain('height: 24px');
+    expect(getEmotionRules(groupByChip!).join(' ')).toContain('width: fit-content');
+    expect(getEmotionRules(groupByChip!).join(' ')).toContain('box-shadow: 0 1px');
+    expect(getEmotionRules(groupByChip!)).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^\.css-[\w-]+ \{[^}]*overflow: hidden;/),
+      ])
+    );
+    expect(getEmotionRules(groupByChip!.parentElement!)).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^\.css-[\w-]+ \{[^}]*overflow: hidden;/),
+      ])
+    );
+    expect(screen.queryByRole('button', {name: 'span.name'})).not.toBeInTheDocument();
+  });
+
+  it('constrains long parameter chips to one line', async () => {
+    const longGroupBy = 'a'.repeat(400);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {
+        status: 'ok',
+        queries: [{query: 'span.duration:>30s', groupBys: [longGroupBy]}],
+      },
+    });
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    const value = await screen.findByText(longGroupBy);
+    const chip = value.parentElement?.parentElement;
+    const chipRules = getEmotionRules(chip!).join(' ');
+
+    expect(chipRules).toContain('max-width: 100%');
+    expect(chipRules).toContain('overflow: hidden');
+    expect(chipRules).toContain('text-overflow: ellipsis');
   });
 
   it('does not show the legacy feedback option', async () => {

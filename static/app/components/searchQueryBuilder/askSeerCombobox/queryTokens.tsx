@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Chip} from '@sentry/scraps/chip';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -51,12 +52,12 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="filter" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-        <Stack gap="xs" overflow="hidden">
+        <Stack gap="xs">
           {parsedQuery
             .filter(({text}) => text.trim() !== '')
             .map(({text}) => (
               <FormattedQueryWrapper key={text}>
-                <ProvidedFormattedQuery query={text} />
+                <ProvidedFormattedQuery query={text} useCompoundChips />
               </FormattedQueryWrapper>
             ))}
         </Stack>
@@ -68,12 +69,12 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs">
           {visualizations.map((visualization, vIdx) =>
             visualization.yAxes.map(yAxis => (
-              <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
+              <ResolvedValueChip key={`${vIdx}-${yAxis}`}>
                 {isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis}
-              </ExploreVisualizes>
+              </ResolvedValueChip>
             ))
           )}
         </Stack>
@@ -85,8 +86,8 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="interval">
         <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
-          <ExploreGroupBys>{interval}</ExploreGroupBys>
+        <Stack as="span" gap="xs">
+          <ResolvedValueChip>{interval}</ResolvedValueChip>
         </Stack>
       </Stack>
     );
@@ -96,9 +97,9 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs">
           {groupBys.map((groupBy, idx) => (
-            <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
+            <ResolvedValueChip key={idx}>{groupBy}</ResolvedValueChip>
           ))}
         </Stack>
       </Stack>
@@ -110,8 +111,8 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <Flex as="span" wrap="wrap" gap="xs" overflow="hidden">
-          <ExploreGroupBys>{formatDateRange(start, end, ' - ')}</ExploreGroupBys>
+        <Flex as="span" wrap="wrap" gap="xs">
+          <ResolvedValueChip>{formatDateRange(start, end, ' - ')}</ResolvedValueChip>
         </Flex>
       </Stack>
     );
@@ -119,8 +120,8 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
-          <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
+        <Stack as="span" gap="xs">
+          <ResolvedValueChip>{statsPeriod}</ResolvedValueChip>
         </Stack>
       </Stack>
     );
@@ -134,12 +135,12 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="projects">
         <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs">
           {shownSlugs.map(slug => (
-            <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
+            <ResolvedValueChip key={slug}>{slug}</ResolvedValueChip>
           ))}
           {overflowCount > 0 ? (
-            <ExploreGroupBys>{t('+%s more', overflowCount)}</ExploreGroupBys>
+            <ResolvedValueChip>{t('+%s more', overflowCount)}</ResolvedValueChip>
           ) : null}
         </Stack>
       </Stack>
@@ -153,10 +154,10 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
-        <Stack as="span" gap="xs" overflow="hidden">
-          <ExploreGroupBys>
+        <Stack as="span" gap="xs">
+          <ResolvedValueChip>
             {formattedSort + (descending ? ' Desc' : ' Asc')}
-          </ExploreGroupBys>
+          </ResolvedValueChip>
         </Stack>
       </Stack>
     );
@@ -170,13 +171,13 @@ function NewQueryTokens({
       : null;
 
     crossEventTokens.push(
-      <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
+      <Stack key={`${crossEvent.type}-${idx}`}>
         <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
         <Flex gap="md" wrap="wrap">
           <Stack gap="xs" minWidth="0" maxWidth="100%">
             <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
             <Container>
-              <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
+              <ResolvedValueChip>{crossEvent.type}</ResolvedValueChip>
             </Container>
           </Stack>
           <Stack gap="xs" minWidth="0" maxWidth="100%">
@@ -186,7 +187,7 @@ function NewQueryTokens({
                 ?.filter(({text}) => text.trim() !== '')
                 .map(({text}) => (
                   <FormattedQueryWrapper key={text}>
-                    <ProvidedFormattedQuery query={text} />
+                    <ProvidedFormattedQuery query={text} useCompoundChips />
                   </FormattedQueryWrapper>
                 ))}
             </Stack>
@@ -224,22 +225,31 @@ function ExploreParamTitle({children}: {children: React.ReactNode}) {
   );
 }
 
-const ExploreVisualizes = styled('span')`
-  font-size: ${p => p.theme.form.sm.fontSize};
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  min-height: 24px;
+function ResolvedValueChip({children}: {children: React.ReactNode}) {
+  return (
+    <ResolvedValueChipRoot size="sm">
+      <Chip.Value variant="primary">{children}</Chip.Value>
+    </ResolvedValueChipRoot>
+  );
+}
+
+const ResolvedValueChipRoot = styled(Chip.Root)`
   width: fit-content;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  display: inline-flex;
-  align-items: center;
-`;
+  min-width: 0;
 
-const ExploreGroupBys = ExploreVisualizes;
+  & > * {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  & > * > * {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
 
 const FormattedQueryWrapper = styled('span')`
   display: block;

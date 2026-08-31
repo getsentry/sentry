@@ -1,6 +1,6 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {getEmotionRules, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   FormattedQuery,
@@ -43,6 +43,31 @@ describe('FormattedQuery', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders inert compound filter chips when requested', () => {
+    render(
+      <FormattedQuery
+        {...defaultProps}
+        query="browser.name:[Firefox,Chrome]"
+        useCompoundChips
+      />
+    );
+
+    const property = screen.getByText('browser.name');
+    const chip = property.parentElement?.parentElement;
+
+    expect(chip).toBeInTheDocument();
+    expect(getEmotionRules(chip!).join(' ')).toContain('box-shadow: 0 1px');
+    expect(getEmotionRules(chip!)).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/^\.css-[\w-]+ \{[^}]*overflow: hidden;/),
+      ])
+    );
+    expect(screen.getByText('is')).toBeInTheDocument();
+    expect(screen.getByText('Firefox')).toBeInTheDocument();
+    expect(screen.getByText('Chrome')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders negated filters with multiple values using and', () => {
     render(<FormattedQuery {...defaultProps} query="!browser.name:[Firefox,Chrome]" />);
 
@@ -79,6 +104,16 @@ describe('FormattedQuery', () => {
     expect(screen.getByText('OR')).toBeInTheDocument();
     expect(screen.getByLabelText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
+  });
+
+  it('renders boolean logic as an inert compound chip when requested', () => {
+    render(<FormattedQuery {...defaultProps} query="(a OR b)" useCompoundChips />);
+
+    const booleanChip = screen.getByLabelText('OR');
+
+    expect(getEmotionRules(booleanChip).join(' ')).toContain('box-shadow: 0 1px');
+    expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('renders explicit string tag correctly', () => {
