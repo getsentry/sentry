@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -24,7 +24,7 @@ class SendAndSaveSentryAppRequestInvalidHeaderTest(TestCase):
         )
 
     @patch("sentry.sentry_apps.external_requests.utils.safe_urlopen")
-    def test_non_latin1_header_raises_integrator_error(self, mock_safe_urlopen) -> None:
+    def test_non_latin1_header_raises_integrator_error(self, mock_safe_urlopen: MagicMock) -> None:
         mock_safe_urlopen.side_effect = UnicodeEncodeError(
             "latin-1", "Bearer　token", 6, 7, "ordinal not in range(256)"
         )

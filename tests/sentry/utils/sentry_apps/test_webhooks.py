@@ -633,6 +633,7 @@ class WebhookRequestIdAndDurationTest(TestCase):
         assert row["request_id"] == event.sentry_headers["Request-ID"]
         assert row["duration_ms"] == 10
 
+
 @cell_silo_test
 class WebhookInvalidHeaderTest(TestCase):
     def setUp(self):
