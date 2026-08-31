@@ -14,6 +14,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.tasks.hybrid_cloud import (
+    ROW_WATERMARK,
+    TOMBSTONE_WATERMARK,
     WATERMARK_PREFIXES,
     WatermarkBatch,
     _get_redis_client,
@@ -91,8 +93,8 @@ def reset_watermarks() -> None:
                 if not isinstance(field, HybridCloudForeignKey):
                     continue
                 max_val = model.objects.aggregate(Max("id"))["id__max"] or 0
-                set_watermark("tombstone", field, max_val, "abc123")
-                set_watermark("row", field, max_val, "abc123")
+                set_watermark(TOMBSTONE_WATERMARK, field, max_val, "abc123")
+                set_watermark(ROW_WATERMARK, field, max_val, "abc123")
 
 
 @pytest.fixture
@@ -109,12 +111,12 @@ def test_no_work_is_no_op(
 
     # Transaction id should not change when no processing occurs.  (this would happen if setting the next cursor
     # to the same, previous value.)
-    level, tid = get_watermark("tombstone", project_bookmark_user_id_field)
+    level, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    assert get_watermark("tombstone", project_bookmark_user_id_field) == (level, tid)
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (level, tid)
 
 
 @django_db_all
@@ -200,22 +202,22 @@ def test_watermark_and_transaction_id(
     task_runner: Callable[[], ContextManager[None]],
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    _, tid1 = get_watermark("tombstone", project_bookmark_user_id_field)
+    _, tid1 = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
     # TODO: Add another test to validate the tid is unique per field
 
-    _, tid2 = get_watermark("row", project_bookmark_user_id_field)
+    _, tid2 = get_watermark(ROW_WATERMARK, project_bookmark_user_id_field)
 
     assert tid1
     assert tid2
     assert tid1 != tid2
 
-    set_watermark("tombstone", project_bookmark_user_id_field, 5, tid1)
-    wm, new_tid1 = get_watermark("tombstone", project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 5, tid1)
+    wm, new_tid1 = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     assert new_tid1 != tid1
     assert wm == 5
 
-    assert get_watermark("tombstone", project_bookmark_user_id_field) == (wm, new_tid1)
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (wm, new_tid1)
 
 
 @assume_test_silo_mode(SiloMode.MONOLITH)

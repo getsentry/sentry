@@ -37,7 +37,9 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils import json, metrics, redis
 
-WATERMARK_PREFIXES = ("tombstone", "row")
+TOMBSTONE_WATERMARK = "tombstone"
+ROW_WATERMARK = "row"
+WATERMARK_PREFIXES = (TOMBSTONE_WATERMARK, ROW_WATERMARK)
 
 
 @dataclass
@@ -56,20 +58,6 @@ def get_watermark_key(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> st
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
-def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
-    client = _get_redis_client()
-    key = get_watermark_key(prefix, field)
-    v = client.get(key)
-    if v is None:
-        result = (0, uuid4().hex)
-        client.set(key, json.dumps(result))
-        return result
-    lower, transaction_id = json.loads(v)
-    if not (isinstance(lower, int) and isinstance(transaction_id, str)):
-        raise TypeError("Expected watermarks data to be a tuple of (int, str)")
-    return lower, transaction_id
-
-
 def _write_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, transaction_id: str
 ) -> None:
@@ -77,12 +65,6 @@ def _write_watermark(
         get_watermark_key(prefix, field),
         json.dumps((value, transaction_id)),
     )
-
-
-def set_watermark(
-    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
-) -> None:
-    _write_watermark(prefix, field, value, sha1(prev_transaction_id.encode("utf8")).hexdigest())
     metrics.gauge(
         "deletion.hybrid_cloud.low_bound",
         value,
@@ -91,6 +73,26 @@ def set_watermark(
             watermark=prefix,
         ),
     )
+
+
+def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
+    client = _get_redis_client()
+    key = get_watermark_key(prefix, field)
+    v = client.get(key)
+    if v is None:
+        result = (0, uuid4().hex)
+        _write_watermark(prefix, field, *result)
+        return result
+    lower, transaction_id = json.loads(v)
+    if not (isinstance(lower, int) and isinstance(transaction_id, str)):
+        raise TypeError("Expected watermarks data to be a tuple of (int, str)")
+    return lower, transaction_id
+
+
+def set_watermark(
+    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
+) -> None:
+    _write_watermark(prefix, field, value, sha1(prev_transaction_id.encode("utf8")).hexdigest())
 
 
 def refresh_watermarks(field: HybridCloudForeignKey[Any, Any]) -> None:
@@ -291,10 +293,10 @@ def _process_tombstone_reconciliation(
 ) -> bool:
     from sentry import deletions
 
-    prefix = "tombstone"
+    prefix = TOMBSTONE_WATERMARK
     watermark_manager: Manager[Any] = tombstone_cls.objects
     if row_after_tombstone:
-        prefix = "row"
+        prefix = ROW_WATERMARK
         watermark_manager = field.model.objects
 
     watermark_batch = _chunk_watermark_batch(
