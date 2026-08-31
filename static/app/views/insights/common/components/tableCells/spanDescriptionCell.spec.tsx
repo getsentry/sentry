@@ -31,7 +31,6 @@ describe('SpanDescriptionCell', () => {
         description="https://example.com/api/resource"
         moduleName={ModuleName.RESOURCE}
         projectId={1}
-        spanOp="resource.script"
       />,
       {organization}
     );
