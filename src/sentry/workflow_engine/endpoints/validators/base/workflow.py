@@ -46,6 +46,17 @@ class ActionFilterInput(DataConditionGroupInput):
     actions: list[ActionInput]
 
 
+class ActionFilterValidator(BaseDataConditionGroupValidator):
+    actions = serializers.ListField(child=serializers.DictField())
+
+    def validate_actions(self, value: ListInputData) -> ListInputData:
+        id_field = serializers.IntegerField()
+        for action in value:
+            if "id" in action:
+                action["id"] = id_field.run_validation(action["id"])
+        return value
+
+
 class WorkflowInput(TypedDict):
     id: NotRequired[str]
     name: str
@@ -83,8 +94,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         required=False,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
-    action_filters = serializers.ListField(
-        child=serializers.DictField(),
+    action_filters = ActionFilterValidator(
+        many=True,
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
     )
@@ -119,23 +130,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             self._validate_action_filter_ownership(value)
 
         for action_filter in value:
-            actions, condition_group = self._split_action_and_condition_group(action_filter)
-            dcg_validator = BaseDataConditionGroupValidator(
-                data=condition_group, context=self.context
-            )
-            dcg_validator.is_valid(raise_exception=True)
-            action_filter.update(dcg_validator.validated_data)
-
-            validated_actions = []
-            for action in actions:
+            for action in action_filter["actions"]:
                 action_validator = BaseActionValidator(data=action, context=self.context)
                 action_validator.is_valid(raise_exception=True)
 
                 # update because the validated data does not contain "id" for updates
                 action.update(action_validator.validated_data)
-                validated_actions.append(action)
-
-            action_filter["actions"] = validated_actions
 
         return value
 

@@ -22,6 +22,7 @@ from scm import actions as scm_actions
 from scm.types import MarkPullRequestDraftStateProtocol
 
 from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.seer.autofix.pr_iteration.check_suites import (
     READY_FOR_REVIEW_EXTRA,
     GreenCheckSuiteContext,
@@ -66,6 +67,32 @@ def record_ready_for_review_marker(seer_run: SeerRun, repo_name: str, *, head_sh
         repo_name,
         {"marked_at": timezone.now().isoformat(), "head_sha": head_sha},
     )
+
+
+def _emit_ready_for_review_signal(ctx: GreenCheckSuiteContext) -> None:
+    """
+    Private because we only need run on this on the transition from Draft -> Ready.
+    When a PR is opened as Ready from the start, we emit this same signal from the completion hook.
+    """
+    from sentry.seer.autofix.pr_ready_for_review import emit_pr_ready_for_review
+
+    resolved = ctx.resolved
+    try:
+        group = Group.objects.get(
+            id=resolved.autofix_run.group_id,
+            project__organization_id=resolved.organization.id,
+        )
+        emit_pr_ready_for_review(
+            organization=resolved.organization,
+            group=group,
+            sentry_run_id=str(resolved.seer_run.uuid),
+            state=resolved.autofix_run.run_state,
+            # We only want to signal about this single repo's PR status change, not any others.
+            # As those PRs change status, they will signal themselves.
+            filtered_repos=[resolved.repo_name],
+        )
+    except Exception:
+        _failed("emit_ready_signal_failed", resolved.log_extra)
 
 
 def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
@@ -140,6 +167,7 @@ def mark_ready_for_review(ctx: GreenCheckSuiteContext) -> None:
                     "pr_number": resolved.pr_number,
                 },
             )
+            _emit_ready_for_review_signal(ctx)
     except SeerRun.DoesNotExist:
         _skip("run_deleted", resolved.log_extra)
     except UnableToAcquireLock:

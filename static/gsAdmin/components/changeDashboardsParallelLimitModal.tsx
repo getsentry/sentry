@@ -9,6 +9,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {Form, type FormProps} from 'sentry/components/forms/form';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -44,7 +45,9 @@ function ChangeDashboardsParallelLimitModal({
     mutationFn: ({limit}) =>
       fetchMutation({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {dashboardsAsyncQueueParallelLimit: limit},
       }),
     onSuccess: (response, {onSubmitSuccess}) => {

@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -91,7 +92,9 @@ export function useSaveMetricsMultiQuery() {
   const saveQuery = useCallback(
     async (newTitle: string, starred = true) => {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'POST',
           data: {
@@ -109,7 +112,9 @@ export function useSaveMetricsMultiQuery() {
 
   const updateQuery = useCallback(async () => {
     const response = await api.requestPromise(
-      `/organizations/${organization.slug}/explore/saved/${id}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+        path: {organizationIdOrSlug: organization.slug, id: String(id)},
+      }),
       {
         method: 'PUT',
         data,

@@ -118,7 +118,6 @@ export function Ai() {
             </Text>
             <Button
               variant="secondary"
-              type="button"
               size="xs"
               onClick={() => {
                 startSummaryRequest();

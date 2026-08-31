@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -24,6 +25,7 @@ class MSTeamsIssueAlertHandler(BaseIssueAlertHandler):
                 integration_id=integration_id,
                 organization_id=organization_id,
                 status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
         if not integration:
             return ""

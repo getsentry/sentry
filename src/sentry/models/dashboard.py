@@ -341,7 +341,9 @@ class Dashboard(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     title = models.CharField(max_length=255)
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="CASCADE")
+    # SET_NULL: org dashboards must survive creator deletion. CASCADE previously wiped
+    # every dashboard attributed to an internal-integration proxy user when that app was deleted.
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -468,6 +470,13 @@ class Dashboard(Model):
         return {
             **(self.filters or {}),
             "projects": projects,
+        }
+
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "prebuilt_id": self.prebuilt_id,
         }
 
 

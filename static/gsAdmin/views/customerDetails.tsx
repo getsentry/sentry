@@ -174,7 +174,10 @@ export function CustomerDetails() {
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/queue-spike-projection/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
         method: 'POST',
       }),
     onSuccess: () => {
@@ -190,6 +193,28 @@ export function CustomerDetails() {
     refetchOrganization();
     refetchBillingConfig();
   };
+
+  const onToggleBillingPlatformMigrationMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: `/_admin/customers/${orgId}/billing-platform-migration/`,
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onSuccess: (_data, variables) => {
+      addSuccessMessage(
+        variables.migrated
+          ? 'Marked this org as migrated to the billing platform.'
+          : 'Marked this org as not migrated to the billing platform.'
+      );
+      reloadData();
+    },
+    onError: (error: RequestError) => {
+      const detail = error.responseJSON?.detail;
+      addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+    },
+  });
 
   if (isPendingSubscription || isPendingOrganization || isPendingBillingConfig) {
     return <LoadingIndicator />;
@@ -460,15 +485,15 @@ export function CustomerDetails() {
           {
             key: 'toggleBillingPlatformMigration',
             name: subscription.hasMigratedToBillingPlatform
-              ? '[Do Not Use] Unmigrate to Billing Platform'
+              ? '[Do Not Use] Unmigrate from Billing Platform'
               : '[Do Not Use] Migrate to Billing Platform',
             help: subscription.hasMigratedToBillingPlatform
               ? 'Mark this org as not migrated to the billing platform.'
               : 'Mark this org as migrated to the billing platform.',
             onAction: params =>
-              onUpdateMutation.mutate({
+              onToggleBillingPlatformMigrationMutation.mutate({
                 ...params,
-                migratedToBillingPlatform: !subscription.hasMigratedToBillingPlatform,
+                migrated: !subscription.hasMigratedToBillingPlatform,
               }),
             ...actionRequiresBillingAdmin,
           },

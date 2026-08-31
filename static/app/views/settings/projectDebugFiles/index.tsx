@@ -18,6 +18,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -98,7 +99,12 @@ export default function ProjectDebugSymbols() {
   const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
     mutationFn: (id: string) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${id}`,
+        `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+          },
+        })}?id=${id}`,
         {
           method: 'DELETE',
         }

@@ -9,6 +9,7 @@ import {OverviewCardAction} from 'sentry/views/seerWorkflows/overview/overviewCa
 import type {
   OverviewRun,
   OverviewRunIssue,
+  ProjectConfig,
 } from 'sentry/views/seerWorkflows/overview/types';
 
 jest.mock('sentry/utils/analytics');
@@ -32,7 +33,10 @@ describe('OverviewCardAction', () => {
       groupId: '2',
       shortId: 'PROJ-1',
       title: 'TypeError in checkout cart',
-      rootCause: {oneLineDescription: 'The cart total is read before it is set.'},
+      rootCause: {
+        headline: null,
+        oneLineDescription: 'The cart total is read before it is set.',
+      },
       proposedFix: null,
       seerRunId: 'run-1',
       lastTriggeredAt: '2026-07-14T09:00:00Z',
@@ -291,19 +295,11 @@ describe('OverviewCardAction', () => {
     expect(agentItem).toHaveAttribute('aria-disabled', 'true');
   });
 
-  function runWithEligibility(hasReposConnected: boolean, hasNonGithubRepo: boolean) {
-    return runFixture({
-      issue: {
-        ...issueFixture(),
-        project: {
-          id: '2',
-          slug: 'project-slug',
-          platform: 'python',
-          hasReposConnected,
-          hasNonGithubRepo,
-        },
-      },
-    });
+  function projectConfigFixture(
+    hasReposConnected: boolean,
+    hasNonGithubRepo: boolean
+  ): ProjectConfig {
+    return {id: '2', slug: 'project-slug', hasReposConnected, hasNonGithubRepo};
   }
 
   it('uses precomputed repo eligibility and skips the repos fetch', async () => {
@@ -314,8 +310,9 @@ describe('OverviewCardAction', () => {
 
     render(
       <OverviewCardAction
-        run={runWithEligibility(true, false)}
+        run={runFixture()}
         sectionKey="needs_investigation"
+        projectConfig={projectConfigFixture(true, false)}
       />,
       {organization}
     );
@@ -337,8 +334,9 @@ describe('OverviewCardAction', () => {
 
     render(
       <OverviewCardAction
-        run={runWithEligibility(false, false)}
+        run={runFixture()}
         sectionKey="needs_investigation"
+        projectConfig={projectConfigFixture(false, false)}
       />,
       {organization}
     );
@@ -363,8 +361,9 @@ describe('OverviewCardAction', () => {
 
     render(
       <OverviewCardAction
-        run={runWithEligibility(true, false)}
+        run={runFixture()}
         sectionKey="needs_investigation"
+        projectConfig={projectConfigFixture(true, false)}
       />,
       {organization}
     );

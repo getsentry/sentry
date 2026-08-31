@@ -62,7 +62,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        url: `/api-tokens/${token.id}/`,
+        url: getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: token.id}}),
         method: 'PUT',
         data,
       }),

@@ -263,6 +263,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "auth.email-verification-at-signup.sso-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -298,6 +304,13 @@ register(
     "api.rate-limit.org-create",
     default=5,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "api.permission-scope-audit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
@@ -349,6 +362,13 @@ register(
 )
 
 register(
+    "deletions.nodestore.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "unmerge.killswitch-projects",
     default=[],
     type=Any,
@@ -362,7 +382,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# Idempotency guard for self-chaining tasks (e.g. merge_groups, unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
     "taskworker.selfchain_idempotency.enabled",
@@ -977,7 +997,7 @@ register(
 )
 
 
-# Refresh Bundle Indexes reported as used by symbolicator
+# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
@@ -1260,6 +1280,13 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Serves 304 responses from endpoints using ConditionalGetResponseMixin.
+register(
+    "api.conditional_get.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
 # on conversation id. Requires organizations:gen-ai-conversation-title-generation.
@@ -1341,6 +1368,12 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.action_log.dedicated_outbox_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -2386,15 +2419,36 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the recalibration step within the per-org pipeline,
-# keyed on organization id. Recalibration writes the factor that serving applies,
-# so it rolls out separately from the rest of the pipeline. An org must be in both
-# this group and dynamic-sampling.per_org.rollout-rate for its factor to be updated.
+# No longer read. Kept registered until the options automator stops setting it.
 register(
     "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
+# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
+# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
+# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
+# An org switches over as a whole:
+# until a pass has stored its project sample rates, rule generation serves all of its
+# values from the legacy caches, and from then on all of them from the per-org ones.
+register(
+    "dynamic-sampling.per_org.serving-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations rule generation serves from the per-org caches, whatever
+# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
+# before a rate group exists.
+register(
+    "dynamic-sampling.per_org.serving-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
@@ -2529,11 +2583,6 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "hybridcloud.webhookpayload.push_drain_trigger",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
 # exhausted, or stale — in batches instead of one DELETE per row. Such a drain
 # stays inside a claim reserved for its whole run, so deferring deletes cannot
@@ -2578,6 +2627,15 @@ register(
     "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
+register(
+    "hybridcloud.webhookpayload.shed-inbound",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -3323,13 +3381,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.process-segments-task-rollout-rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3360,8 +3411,8 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TTL in seconds for span deduplication tracking. When > 0, the consumer
-# will use Redis SETNX to detect duplicate spans and emit metrics.
+# TTL in seconds for span deduplication tracking. When > 0, the process_segment
+# task will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.
 register(
     "spans.process-segments.dedupe-ttl",
