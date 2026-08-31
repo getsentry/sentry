@@ -49,16 +49,9 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
 # hang off a PR and carry a date to age them by.
 _ActivityStore = TypeVar("_ActivityStore", PullRequestActivity, PullRequestActivityLog)
 
-# Per-run bounds on one store's sweep. The batch bounds cap the delete pressure a
-# run applies (250k rows); the budget caps how long it may spend applying it. Size
-# them off backlog_lag_seconds — a run pinned at the batch cap says more work
-# exists, not how much.
-#
-# The cap sits high enough that the budget is what a backlogged run hits first, so
-# a run ending early reports a slow database rather than a deep backlog. It is
-# sized for the legacy store: one row per event there against one document per PR,
-# so an identical row cap buys it a fraction of the document's reach in PRs. The
-# document drains far inside the cap either way.
+# Per-run bounds on one store's sweep: the batch bounds cap delete pressure, the
+# budget caps time. The cap sits above what the budget allows so runs end on time,
+# not on rows — the legacy store holds a row per event, the document one per PR.
 _SWEEP_BATCH_SIZE = 1000
 _SWEEP_MAX_BATCHES = 250
 SWEEP_STORE_BUDGET = timedelta(seconds=240)
