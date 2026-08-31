@@ -1148,7 +1148,7 @@ class TestSeerRpcViewerContextAuth(APITestCase):
             "args": {"org_id": organization.id, "event": event},
             "meta": {},
         }
-        headers = {
+        headers: dict[str, Any] = {
             "HTTP_AUTHORIZATION": self._hmac_header(path, data),
             "HTTP_X_VIEWER_CONTEXT": self._vc_header(
                 organization_id=organization.id,
