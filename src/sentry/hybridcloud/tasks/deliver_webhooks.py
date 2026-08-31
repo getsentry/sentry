@@ -397,23 +397,30 @@ def _begin_drain(
     """
     The claim a drain runs under, or None when it must stand down first.
 
-    Resolving the mailbox before anything else lets a drain that carries none —
-    enqueued before dispatch sent one — still name its provider, off its head row.
-    That read and the fresh-horizon fallback below both go away once no such drains
-    are left in flight.
+    A drain enqueued before dispatch sent the mailbox and deadline reads both off
+    its head row: its claim already wrote its deadline as the rows' schedule_for.
+    That one-query fallback goes away once no such drains are left in flight.
     """
-    if mailbox is None:
-        mailbox = (
+    deadline = (
+        datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC)
+        if valid_until is not None
+        else None
+    )
+    if mailbox is None or deadline is None:
+        head = (
             WebhookPayload.objects.filter(id=payload_id)
-            .values_list("mailbox_name", flat=True)
+            .values_list("mailbox_name", "schedule_for")
             .first()
         )
+        if head is not None:
+            mailbox = mailbox if mailbox is not None else head[0]
+            deadline = deadline if deadline is not None else head[1]
     _set_webhook_delivery_sentry_context(mailbox, _provider_from_mailbox(mailbox))
-    if mailbox is None:
+    if mailbox is None or deadline is None:
         _record_lost_head(
             payload_id,
             dispatcher=dispatcher,
-            provider=UNKNOWN_PROVIDER,
+            provider=_provider_from_mailbox(mailbox),
             log_key="deliver_webhook.potential_race",
         )
         return None
@@ -422,11 +429,7 @@ def _begin_drain(
         head_id=payload_id,
         mailbox_name=mailbox,
         dispatcher=dispatcher,
-        valid_until=(
-            datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC)
-            if valid_until is not None
-            else timezone.now() + BATCH_SCHEDULE_OFFSET
-        ),
+        valid_until=deadline,
     )
     if claim.lapsed(log_key="deliver_webhook.stale_claim", extra={"id": payload_id}):
         return None
