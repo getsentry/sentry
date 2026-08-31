@@ -129,10 +129,9 @@ def _provider_tag(payload: WebhookPayload) -> str:
 
 def _provider_from_mailbox(mailbox_name: str | None) -> str:
     """
-    Recover the provider where only the mailbox name is in hand.
-
-    Mailboxes are named `<provider>:<identifier>`, and it is the identifier that later
-    gains bucket and event-type suffixes, so the first segment stays the provider.
+    Mailboxes are named `<provider>:<identifier>`, and it is the identifier that
+    later gains bucket and event-type suffixes, so the first segment stays the
+    provider.
     """
     provider, separator, _ = (mailbox_name or "").partition(":")
     return provider if separator and provider else UNKNOWN_PROVIDER
@@ -153,12 +152,7 @@ def _record_lost_head(
 
 
 def _set_webhook_delivery_sentry_context(mailbox_name: str | None, provider: str) -> None:
-    """
-    Set Sentry context at the delivery entrypoint for easier debugging.
-
-    Takes what the task args carry rather than a row, so it also covers a drain
-    that finds its head already gone.
-    """
+    """Set Sentry context at the delivery entrypoint for easier debugging."""
     sentry_sdk.set_tag("mailbox_name", mailbox_name)
     sentry_sdk.set_attribute("mailbox_name", mailbox_name)
     context: dict[str, Any] = {"mailbox_name": mailbox_name, "provider": provider}
@@ -302,10 +296,10 @@ class _MailboxClaim:
         """
         Whether this claim has lapsed, recording the stand-down when it has.
 
-        The deadline bounds a drain at both ends — it must not start past its
-        claim, and must not keep delivering past it — so both checks report one
-        outcome; `log_key` is what separates them in logs. At the deadline exactly
-        the claim is already lapsed, since the due gates are `schedule_for__lte=now`.
+        The deadline bounds a drain at both ends — it must not start past its claim,
+        nor keep delivering past it — so both report one outcome and `log_key`
+        separates them. At the deadline exactly the claim is already lapsed: the due
+        gates are `schedule_for__lte=now`.
         """
         if timezone.now() < self.valid_until:
             return False
@@ -321,6 +315,25 @@ class _MailboxClaim:
             },
         )
         return True
+
+    def next_slice(self, start_id: int, size: int) -> list[WebhookPayload] | None:
+        """
+        The next `size` records this drain may deliver, or None when it must stand
+        down: its head is gone, so whoever claimed the mailbox next is delivering
+        these. An empty list is the ordinary end of a claim, not a stand-down.
+
+        Both drains read through here to keep that check ahead of delivery — a
+        parallel batch that delivers first duplicates every row it sends.
+        """
+        records = list(
+            WebhookPayload.objects.filter(
+                id__gte=start_id, mailbox_name=self.mailbox_name
+            ).order_by("id")[:size]
+        )
+        if start_id == self.head_id and (not records or records[0].id != self.head_id):
+            self.record_lost_head("deliver_webhook.potential_race")
+            return None
+        return records
 
     def record_lost_head(self, log_key: str) -> None:
         """This drain's head row is already gone — see `_record_lost_head`."""
@@ -383,17 +396,13 @@ def _claim_mailbox_batch(
 ) -> _MailboxClaim | None:
     """
     Claim up to MAX_MAILBOX_DRAIN records at the head of the mailbox by scheduling
-    them past the drain deadline, keeping other dispatchers off the mailbox while
-    the drain runs. The claim is gated on the head still being due via the
-    UPDATE's WHERE clause, so a lost race claims nothing and returns None.
+    them past the drain deadline. The UPDATE gates on the head still being due, so
+    a lost race claims nothing and returns None.
 
-    In due-head mode the claim stops at the first not-due record. That stop keeps
-    concurrent drains apart: an in-flight drain's records carry a future
+    In due-head mode the claim stops at the first not-due record, which is what
+    keeps concurrent drains apart: an in-flight drain's records carry a future
     schedule_for, so a claim starting behind it ends before its range, and a
-    backoff record keeps its backoff. As a prefix, the drain's (head, count) walk
-    covers exactly the claimed records.
-
-    `claimed` doubles as the depth signal that picks the drain mode.
+    backoff record keeps its backoff.
     """
     valid_until = timezone.now() + BATCH_SCHEDULE_OFFSET
     window = WebhookPayload.objects.filter(id__gte=head_id, mailbox_name=mailbox_name).order_by(
@@ -855,9 +864,9 @@ def _drain_sequentially(claim: _MailboxClaim) -> None:
     Deliver the claimed records in order until one fails, the claim's deadline
     passes, or all of them have been processed.
 
-    This drain holds no lock while it runs, so it must not deliver past the records
-    its dispatcher claimed — beyond them the mailbox head is due again and another
-    dispatcher may have started a drain of its own.
+    The drain holds no lock, so it must not deliver past the records its dispatcher
+    claimed: beyond them the mailbox head is due again and another dispatcher may
+    already be draining it.
     """
     dispatch_tags = claim.dispatch_tags
     mailbox = claim.mailbox_name
@@ -879,18 +888,10 @@ def _drain_sequentially(claim: _MailboxClaim) -> None:
             ):
                 break
 
-            # Fetch records from the batch in slices of 100. This avoids reading
-            # redundant data should we hit an error and should help keep query duration low.
-            query = WebhookPayload.objects.filter(
-                id__gte=current_id, mailbox_name=mailbox
-            ).order_by("id")
-
-            slice_size = min(100, remaining)
-            records = list(query[:slice_size])
-            if current_id == claim.head_id and (not records or records[0].id != claim.head_id):
-                # First slice, and the head is not at its front: it has been
-                # delivered by whoever claimed it next.
-                claim.record_lost_head("deliver_webhook.potential_race")
+            # Slices of 100 keep query duration down and avoid reading records a
+            # failure earlier in the claim means we never get to.
+            records = claim.next_slice(current_id, min(100, remaining))
+            if records is None:
                 return
             batch_count = 0
             for record in records:
@@ -1237,17 +1238,8 @@ def _drain_in_parallel(claim: _MailboxClaim) -> None:
             ):
                 break
 
-            batch_size = min(worker_threads, remaining)
-            records = list(
-                WebhookPayload.objects.filter(id__gte=current_id, mailbox_name=mailbox).order_by(
-                    "id"
-                )[:batch_size]
-            )
-            if current_id == claim.head_id and (not records or records[0].id != claim.head_id):
-                # First batch, and the head is not at its front: it has been
-                # delivered by whoever claimed it next. Checked before delivering
-                # any of them, since they are that drain's to deliver.
-                claim.record_lost_head("deliver_webhook.potential_race")
+            records = claim.next_slice(current_id, min(worker_threads, remaining))
+            if records is None:
                 return
             batch = _run_parallel_delivery_batch(records, deleter, dispatch_tags=dispatch_tags)
             attempted, delivered_batch, request_failed, next_id = (
