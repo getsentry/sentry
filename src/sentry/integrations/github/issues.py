@@ -31,7 +31,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
-PAGE_LIMIT = 1
+PAGE_LIMIT = 5
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
