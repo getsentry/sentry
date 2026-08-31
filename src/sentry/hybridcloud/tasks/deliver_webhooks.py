@@ -127,31 +127,17 @@ def _provider_tag(payload: WebhookPayload) -> str:
     return payload.provider or UNKNOWN_PROVIDER
 
 
-def _provider_from_mailbox(mailbox_name: str | None) -> str:
+def _provider_from_mailbox(mailbox_name: str) -> str:
     """
     Mailboxes are named `<provider>:<identifier>`, and it is the identifier that
     later gains bucket and event-type suffixes, so the first segment stays the
     provider.
     """
-    provider, separator, _ = (mailbox_name or "").partition(":")
+    provider, separator, _ = mailbox_name.partition(":")
     return provider if separator and provider else UNKNOWN_PROVIDER
 
 
-def _record_lost_head(
-    payload_id: int, *, dispatch_tags: Mapping[str, str], provider: str, log_key: str
-) -> None:
-    """
-    Record a drain whose head row is already gone, delivered by whoever claimed it
-    next. The drain stands down and lets that dispatcher, or a later one, continue.
-    """
-    metrics.incr(
-        "hybridcloud.deliver_webhooks.delivery",
-        tags={**dispatch_tags, "outcome": "race", "provider": provider},
-    )
-    logger.info(log_key, extra={"id": payload_id})
-
-
-def _set_webhook_delivery_sentry_context(mailbox_name: str | None, provider: str) -> None:
+def _set_webhook_delivery_sentry_context(mailbox_name: str, provider: str) -> None:
     """Set Sentry context at the delivery entrypoint for easier debugging."""
     sentry_sdk.set_tag("mailbox_name", mailbox_name)
     sentry_sdk.set_attribute("mailbox_name", mailbox_name)
@@ -343,56 +329,33 @@ class _MailboxClaim:
         return records
 
     def record_lost_head(self, log_key: str) -> None:
-        """This drain's head row is already gone — see `_record_lost_head`."""
-        _record_lost_head(
-            self.head_id,
-            dispatch_tags=self.dispatch_tags,
-            provider=self.provider,
-            log_key=log_key,
+        """
+        This drain's head row is already gone, delivered by whoever claimed it next.
+        It stands down and lets that dispatcher, or a later one, continue.
+        """
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={**self.dispatch_tags, "outcome": "race", "provider": self.provider},
         )
+        logger.info(log_key, extra={"id": self.head_id})
 
 
 def _begin_drain(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None,
-    valid_until: float | None,
-    mailbox: str | None,
+    valid_until: float,
+    mailbox: str,
 ) -> _MailboxClaim | None:
-    """
-    The claim a drain runs under, or None when it must stand down first.
-
-    Resolving the mailbox before anything else lets a drain that carries none —
-    enqueued before dispatch sent one — still name its provider, off its head row.
-    That read and the fresh-horizon fallback below both go away once no such drains
-    are left in flight.
-    """
-    if mailbox is None:
-        mailbox = (
-            WebhookPayload.objects.filter(id=payload_id)
-            .values_list("mailbox_name", flat=True)
-            .first()
-        )
-    _set_webhook_delivery_sentry_context(mailbox, _provider_from_mailbox(mailbox))
-    if mailbox is None:
-        _record_lost_head(
-            payload_id,
-            dispatch_tags=_dispatch_tags(dispatcher),
-            provider=UNKNOWN_PROVIDER,
-            log_key="deliver_webhook.potential_race",
-        )
-        return None
+    """The claim a drain runs under, or None when it has already lapsed."""
     claim = _MailboxClaim(
         claimed=claimed_count,
         head_id=payload_id,
         mailbox_name=mailbox,
         dispatcher=dispatcher,
-        valid_until=(
-            datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC)
-            if valid_until is not None
-            else timezone.now() + BATCH_SCHEDULE_OFFSET
-        ),
+        valid_until=datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC),
     )
+    _set_webhook_delivery_sentry_context(mailbox, claim.provider)
     if claim.lapsed(log_key="deliver_webhook.stale_claim", extra={"id": payload_id}):
         return None
     return claim
@@ -963,15 +926,15 @@ def schedule_webhook_delivery() -> None:
 def drain_mailbox(
     payload_id: int,
     claimed_count: int,
+    valid_until: float,
+    mailbox: str,
     dispatcher: str | None = None,
-    valid_until: float | None = None,
-    mailbox: str | None = None,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of, in order.
 
-    The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`);
-    each defaults so a rolling deploy can bind drains the previous version sent.
+    The arguments are one claim flattened for the wire — see
+    `_MailboxClaim.task_args`.
     """
     claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
     if claim is not None:
@@ -1312,9 +1275,9 @@ def _run_parallel_delivery_batch(
 def drain_mailbox_parallel(
     payload_id: int,
     claimed_count: int,
+    valid_until: float,
+    mailbox: str,
     dispatcher: str | None = None,
-    valid_until: float | None = None,
-    mailbox: str | None = None,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of, in small
