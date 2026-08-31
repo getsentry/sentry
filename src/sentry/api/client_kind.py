@@ -18,9 +18,10 @@ from rest_framework.request import Request
 from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
+from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent_token import is_agent_auth
-from sentry.utils.http import is_mcp_request
+from sentry.utils.http import get_mcp_client_family, is_mcp_request
 
 FEATURE_FLAG = "organizations:api-client-kind-check"
 
@@ -88,15 +89,20 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
         return ClientKind.MCP
 
     if auth is None:
-        # Session cookie: the web UI, or an unauthenticated request.
-        return (
-            ClientKind.FRONTEND if getattr(user, "is_authenticated", False) else ClientKind.UNKNOWN
-        )
+        # Cookies and no token is the web UI. Share `is_frontend_request` with the
+        # `ui_request` tag on `view.response` so the two reconcile; the extra
+        # authentication check keeps anonymous cookie-bearing requests out of the bucket.
+        if is_frontend_request(request) and getattr(user, "is_authenticated", False):
+            return ClientKind.FRONTEND
+        return ClientKind.UNKNOWN
 
-    # A SentryApp installation token authenticates as the app's proxy user; an
-    # OAuth token carries the third-party application that minted it.
+    # A SentryApp installation token authenticates as the app's proxy user.
     if getattr(user, "is_sentry_app", False):
         return ClientKind.INTEGRATION
+    # A bare OAuth token is *probably* a third-party integration, but a first-party
+    # OAuth client acting for a user looks identical here -- the MCP is one, and only
+    # avoids this branch because its user agent is checked above. Separating them needs
+    # the first-party client_id allowlist this POC does not have yet.
     if isinstance(auth, AuthenticatedToken) and auth.application_id is not None:
         return ClientKind.INTEGRATION
 
@@ -111,3 +117,12 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
         return ClientKind.SCRIPT
 
     return ClientKind.UNKNOWN
+
+
+def get_client_host(request: Request) -> str | None:
+    """The agent host behind an MCP call (`claude-code`, `cursor`, ...), when it declares one.
+
+    Declared rather than derived, so untrusted -- see the doc's trust column. Only the
+    first-party MCP server sends it; every other caller yields None.
+    """
+    return get_mcp_client_family(request)

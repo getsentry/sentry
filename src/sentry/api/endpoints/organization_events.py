@@ -14,7 +14,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.client_kind import get_client_kind
+from sentry.api.client_kind import get_client_host, get_client_kind
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
@@ -221,6 +221,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             # real `client_kind` attribute later.
             sentry_sdk.set_tag("client_kind_test", client_kind.value)
             sentry_sdk.set_attribute("client_kind_test", client_kind.value)
+            client_host = get_client_host(request)
+            if client_host is not None:
+                sentry_sdk.set_tag("client_host_test", client_host)
+                sentry_sdk.set_attribute("client_host_test", client_host)
 
         try:
             snuba_params = self.get_snuba_params(

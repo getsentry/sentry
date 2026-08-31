@@ -5,7 +5,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
 
-from sentry.api.client_kind import FEATURE_FLAG, ClientKind, get_client_kind
+from sentry.api.client_kind import FEATURE_FLAG, ClientKind, get_client_host, get_client_kind
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
@@ -18,10 +18,13 @@ def make_request(
     user: Any = None,
     user_agent: str | None = None,
     headers: dict[str, str] | None = None,
+    cookies: bool = True,
 ) -> Request:
     request = Request(RequestFactory().get("/", headers=headers or {}))
     if user_agent is not None:
         request.META["HTTP_USER_AGENT"] = user_agent
+    if cookies:
+        request._request.COOKIES["sentrysid"] = "x"
     # Assigning both short-circuits the lazy authentication the getters would
     # otherwise run, so the request arrives pre-authenticated.
     request.user = user if user is not None else AnonymousUser()
@@ -97,3 +100,21 @@ class GetClientKindTest(TestCase):
             with self.subTest(user_agent=user_agent):
                 request = make_request(auth=api_token(), user_agent=user_agent)
                 assert self.classify(request) == expected
+
+    def test_frontend_requires_a_session_cookie(self) -> None:
+        # Shares `is_frontend_request` with the `ui_request` tag on `view.response`.
+        request = make_request(user=session_user(), cookies=False)
+        assert self.classify(request) == ClientKind.UNKNOWN
+
+
+class GetClientHostTest(TestCase):
+    def test_mcp_client_family(self) -> None:
+        request = make_request(headers={"X-Sentry-MCP-Client-Family": "Claude-Code"})
+        assert get_client_host(request) == "claude-code"
+
+    def test_catchall_family_is_none(self) -> None:
+        request = make_request(headers={"X-Sentry-MCP-Client-Family": "unknown"})
+        assert get_client_host(request) is None
+
+    def test_absent_header_is_none(self) -> None:
+        assert get_client_host(make_request()) is None
