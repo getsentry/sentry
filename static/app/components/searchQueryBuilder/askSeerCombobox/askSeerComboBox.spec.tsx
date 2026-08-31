@@ -167,10 +167,6 @@ describe('AskSeerComboBox', () => {
   });
 
   it('shows a processing status while Seer is thinking', async () => {
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -185,7 +181,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -199,12 +195,7 @@ describe('AskSeerComboBox', () => {
     ).toBeInTheDocument();
   });
 
-  it('only shows the reworked footer after results are displayed', async () => {
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
-
+  it('only shows the footer after results are displayed', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -213,7 +204,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization, additionalWrapper: FeedbackProvider}
+      {organization, additionalWrapper: FeedbackProvider}
     );
 
     expect(
@@ -248,11 +239,6 @@ describe('AskSeerComboBox', () => {
       method: 'POST',
       body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
     });
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
-
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -261,7 +247,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -274,7 +260,7 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
     expect(trackAnalyticsSpy).toHaveBeenCalledWith('ai_query.regenerated', {
-      organization: reworkedOrganization,
+      organization,
       area: '',
       natural_language_query: 'test',
     });
@@ -335,16 +321,13 @@ describe('AskSeerComboBox', () => {
 
     const filter = await screen.findByText('Filter');
     expect(filter).toBeInTheDocument();
-    expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Do any of these look right to you?')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
   });
 
-  it('shows a success status after a reworked Seer search completes', async () => {
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
-
+  it('shows a success status after a Seer search completes', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -353,7 +336,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -368,10 +351,6 @@ describe('AskSeerComboBox', () => {
   });
 
   it('shows a warning status when Seer returns an unsupported reason', async () => {
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -390,7 +369,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -413,11 +392,6 @@ describe('AskSeerComboBox', () => {
       method: 'POST',
       body: {status: 'ok', queries: [{query: `message:${longValue}`}]},
     });
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
-
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -426,7 +400,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -454,11 +428,6 @@ describe('AskSeerComboBox', () => {
         ],
       },
     });
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
-
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -467,7 +436,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -479,14 +448,7 @@ describe('AskSeerComboBox', () => {
     expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
   });
 
-  it('hides the feedback option when the rework is enabled', async () => {
-    const {organization: reworkedOrganization} = initializeOrg({
-      organization: {
-        features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
-        hideAiFeatures: false,
-      },
-    });
-
+  it('does not show the legacy feedback option', async () => {
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -495,7 +457,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization}
+      {organization}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -590,11 +552,6 @@ describe('AskSeerComboBox', () => {
       method: 'POST',
       statusCode: 500,
     });
-    const reworkedOrganization = {
-      ...organization,
-      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
-    };
-
     render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox
@@ -603,7 +560,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization, additionalWrapper: FeedbackProvider}
+      {organization, additionalWrapper: FeedbackProvider}
     );
 
     const input = await screen.findByRole('combobox', {
@@ -624,40 +581,6 @@ describe('AskSeerComboBox', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Try again'}));
 
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
-  });
-
-  it('preserves the legacy error state when the rework is disabled', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
-      method: 'POST',
-      statusCode: 500,
-    });
-
-    render(
-      <SearchQueryBuilderProvider {...defaultProps}>
-        <AskSeerComboBox
-          initialQuery=""
-          askSeerMutationOptions={askSeerMutationOptions}
-          applySeerSearchQuery={() => {}}
-        />
-      </SearchQueryBuilderProvider>,
-      {organization, additionalWrapper: FeedbackProvider}
-    );
-
-    const input = await screen.findByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
-    await userEvent.type(input, 'test{Enter}');
-
-    expect(
-      await screen.findByText('An error occurred while fetching Seer queries')
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('img', {name: 'Error'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Try again'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('img', {name: 'Seer could not process your query'})
-    ).not.toBeInTheDocument();
   });
 
   it('does not render if the organization does not have the gen-ai-features feature', () => {

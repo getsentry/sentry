@@ -5,16 +5,15 @@ import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import {type z} from 'zod';
 
 import {AutoSaveContextProvider} from '@sentry/scraps/form/autoSaveContext';
+import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
 import {
   setFieldErrors,
   useScrapsForm,
   type BoundFieldComponents,
 } from '@sentry/scraps/form/scrapsForm';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {t} from 'sentry/locale';
-import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
@@ -170,6 +169,8 @@ export function AutoSaveForm<
   TFieldName extends Extract<keyof SchemaInput<TSchema>, string>,
 >(props: AutoSaveFormProps<TData, TContext, TSchema, TFieldName>) {
   const {name, schema, initialValue, mutationOptions, confirm, children} = props;
+  const {t} = useTranslation();
+  const mapFormError = useFormErrorMapper();
   const id = useId();
   const mutation = useMutation(mutationOptions);
   // Track pending confirmation to prevent duplicate modals
@@ -201,16 +202,26 @@ export function AutoSaveForm<
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        const isRequestError = error instanceof RequestError;
-        const hasBackendErrors = isRequestError ? setFieldErrors(formApi, error) : false;
-        if (!hasBackendErrors) {
-          const message = isRequestError
-            ? getRequestErrorUserMessage(error, t('Failed to save'))
-            : t('Failed to save');
-          setFieldErrors(formApi, {
-            [name]: {message},
-          } as never);
+
+        const fallbackMessage = t('Failed to save');
+        const mappedError = mapFormError(error, formApi.state.values, fallbackMessage);
+
+        if (
+          mappedError &&
+          'fieldErrors' in mappedError &&
+          setFieldErrors(formApi, mappedError.fieldErrors)
+        ) {
+          return;
         }
+
+        setFieldErrors(formApi, {
+          [name]: {
+            message:
+              mappedError && 'message' in mappedError
+                ? mappedError.message
+                : fallbackMessage,
+          },
+        } as never);
       };
 
       const onSuccess = () => {

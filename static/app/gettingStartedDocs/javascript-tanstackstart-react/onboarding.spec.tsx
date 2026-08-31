@@ -83,6 +83,64 @@ describe('javascript-tanstackstart-react onboarding docs', () => {
     expect(screen.getAllByText(textWithMarkupMatcher(/Break the world/))).toHaveLength(2);
   });
 
+  it('includes logging code in verify snippet when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).toBeInTheDocument();
+  });
+
+  it('excludes logging code in verify snippet when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry\.logger\.info/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
+  });
+
+  it('shows TanStack Start Features in next steps', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(screen.getByText('TanStack Start Features')).toBeInTheDocument();
+  });
+
+  it('shows Application Metrics in next steps when metrics is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.METRICS],
+    });
+
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
+  });
+
+  it('does not show Application Metrics in next steps when metrics is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
+  });
+
   it('has metrics onboarding configuration', () => {
     expect(docs.metricsOnboarding).toBeDefined();
     expect(docs.metricsOnboarding?.install).toBeDefined();

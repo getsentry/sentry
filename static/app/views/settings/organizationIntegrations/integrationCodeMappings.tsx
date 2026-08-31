@@ -23,6 +23,7 @@ import type {Integration, RepositoryProjectPathConfig} from 'sentry/types/integr
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -94,7 +95,9 @@ function useDeletePathConfig({
   >({
     mutationFn: pathConfig => {
       return api.requestPromise(
-        `/organizations/${organization.slug}/code-mappings/${pathConfig.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+          path: {organizationIdOrSlug: organization.slug, configId: pathConfig.id},
+        }),
         {
           method: 'DELETE',
         }

@@ -749,9 +749,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Onboarding
 
 ## AI Conversations (Telemetry Experience)
-# These must come after /src/sentry/api/endpoints/ catch-all above
-/src/sentry/api/endpoints/organization_ai_conversation*.py                       @getsentry/telemetry-experience
-/src/sentry/api/serializers/rest_framework/ai_conversations.py                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
 ## End of AI Conversations
 

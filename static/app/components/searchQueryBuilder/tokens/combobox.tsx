@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -8,6 +9,7 @@ import {
   type MouseEventHandler,
   type ReactNode,
 } from 'react';
+import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
@@ -30,9 +32,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
-import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
-import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -48,7 +47,6 @@ import {
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
@@ -165,6 +163,12 @@ const DESCRIPTION_POPPER_OPTIONS = {
   ],
 };
 
+const MENU_OFFSET: [number, number] = [-12, 12];
+const MENU_FLIP_OPTIONS = {
+  // We don't want the menu to ever flip to the other side of the input.
+  fallbackPlacements: [],
+};
+
 function menuIsOpen({
   state,
   hiddenOptions,
@@ -201,11 +205,9 @@ function useHiddenItems({
   filterValue,
   maxOptions,
   shouldFilterResults,
-  showAskSeerOption,
 }: {
   filterValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
-  showAskSeerOption: boolean;
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
@@ -216,21 +218,13 @@ function useHiddenItems({
       maxOptions
     );
 
-    if (showAskSeerOption) {
-      hidden.add(ASK_SEER_ITEM_KEY);
-    }
-
     return hidden;
-  }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
+  }, [filterValue, items, maxOptions, shouldFilterResults]);
 
-  const disabledKeys = useMemo(() => {
-    const baseDisabledKeys = [...getDisabledOptions(items), ...hiddenOptions];
-    return showAskSeerOption
-      ? baseDisabledKeys.filter(
-          key => key !== ASK_SEER_ITEM_KEY && key !== ASK_SEER_CONSENT_ITEM_KEY
-        )
-      : baseDisabledKeys;
-  }, [hiddenOptions, items, showAskSeerOption]);
+  const disabledKeys = useMemo(
+    () => [...getDisabledOptions(items), ...hiddenOptions],
+    [hiddenOptions, items]
+  );
 
   return {
     hiddenOptions,
@@ -251,23 +245,26 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition: (() => void) | null;
 }) {
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  // Keep a ref to the updateOverlayPosition function so that we can
-  // access the latest value in the resize observer callback.
-  const updateOverlayPositionRef = useRef(updateOverlayPosition);
-  if (updateOverlayPositionRef.current !== updateOverlayPosition) {
-    updateOverlayPositionRef.current = updateOverlayPosition;
-  }
+  const rafRef = useRef<number | null>(null);
+  const updatePosition = useEffectEvent(() => updateOverlayPosition?.());
 
   useLayoutEffect(() => {
     resizeObserverRef.current = new ResizeObserver(() => {
-      if (!updateOverlayPositionRef.current) {
-        return;
+      // Firefox can invoke ResizeObserver callbacks during rendering, when
+      // calling an Effect Event is not allowed.
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
       }
-      updateOverlayPositionRef.current?.();
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        updatePosition();
+      });
     });
 
     return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
       resizeObserverRef.current?.disconnect();
       resizeObserverRef.current = null;
     };
@@ -318,10 +315,11 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
-  const organization = useOrganization();
   const anyItemsShowing = totalOptions > hiddenOptions.size;
-  const showAskSeerFooter =
-    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
+
+  if (!isOpen) {
+    return <StyledPositionWrapper {...overlayProps} visible={false} />;
+  }
 
   if (customMenu) {
     return customMenu({
@@ -339,7 +337,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
     });
   }
 
-  return (
+  const listBox = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <ListBoxOverlay ref={popoverRef}>
         {isLoading && !anyItemsShowing ? (
@@ -364,16 +362,16 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : null}
-        {showAskSeerFooter ? (
+        {enableAISearch ? (
           <Flex padding="sm" borderTop="muted">
             <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
           </Flex>
-        ) : enableAISearch ? (
-          <AskSeer state={state} />
         ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
+
+  return portalTarget ? createPortal(listBox, portalTarget) : listBox;
 }
 
 /**
@@ -419,19 +417,18 @@ export function SearchQueryBuilderCombobox<
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
-  const {enableAISearch} = useSearchQueryBuilderAI();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
+  const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
     filterValue,
     maxOptions,
     shouldFilterResults,
-    showAskSeerOption: enableAISearch,
   });
 
   const onValueChange = useCallback(
@@ -577,20 +574,11 @@ export function SearchQueryBuilderCombobox<
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
-    offset: [-12, 12],
+    offset: MENU_OFFSET,
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (
-        popoverRef.current?.contains(el) ||
-        wrapperRef.current?.contains(el) ||
-        // We don't want to close the menu when clicking on an anchor element that is
-        // located inside of a tooltip, as the tooltip is technically outside of the
-        // combobox. This is required to enable the Ask Seer tooltip link to work.
-        //
-        // Source: static/app/components/searchQueryBuilder/askSeer/askSeerOption.tsx:71
-        el instanceof HTMLAnchorElement
-      ) {
+      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
         return false;
       }
 
@@ -605,11 +593,8 @@ export function SearchQueryBuilderCombobox<
       state.close();
     },
     shouldApplyMinWidth: false,
-    preventOverflowOptions: {boundary: document.body},
-    flipOptions: {
-      // We don't want the menu to ever flip to the other side of the input
-      fallbackPlacements: [],
-    },
+    preventOverflowOptions,
+    flipOptions: MENU_FLIP_OPTIONS,
   });
 
   const descriptionPopper = usePopper(

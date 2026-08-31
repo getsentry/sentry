@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Generator, MutableSequence
 from datetime import datetime, timedelta
 from typing import Any, cast
+from unittest import mock
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -545,7 +546,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             send_extra_data_data = send.call_args.kwargs["extra_data"][0]["data"]
             assert "contexts" in send_extra_data_data
             contexts_after_processing = send_extra_data_data["contexts"]
-            assert contexts_after_processing == {**{"geo": geo_interface}}
+            assert contexts_after_processing == {**{"geo": geo_interface, "trace": mock.ANY}}
 
     def test_event_forwarding_to_items(self) -> None:
         create_default_projects()

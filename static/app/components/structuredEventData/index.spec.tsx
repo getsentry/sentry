@@ -77,7 +77,7 @@ describe('StructuredEventData', () => {
 
   describe('null', () => {
     it('should render null values correctly', () => {
-      render(<StructuredEventData data={null} />);
+      render(<StructuredEventData />);
       expect(
         within(screen.getByTestId('value-null')).getByText('null')
       ).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe('StructuredEventData', () => {
           rem: [['project:0', 'x']],
         },
       };
-      render(<StructuredEventData data={null} meta={meta} withAnnotatedText />);
+      render(<StructuredEventData meta={meta} withAnnotatedText />);
       expect(screen.getByText(/redacted/)).toBeInTheDocument();
       expect(screen.queryByText('null')).not.toBeInTheDocument();
     });
@@ -112,7 +112,6 @@ describe('StructuredEventData', () => {
     it('preserves renderNull when meta has no annotations', () => {
       render(
         <StructuredEventData
-          data={null}
           config={{renderNull: () => 'None'}}
           meta={{}}
           withAnnotatedText
@@ -246,7 +245,7 @@ describe('StructuredEventData', () => {
     });
 
     it('auto-expands N levels when forceDefaultExpand=undefined maxDefaultDepth=N', () => {
-      render(<StructuredEventData data={data} maxDefaultDepth={2} />);
+      render(<StructuredEventData data={data} />);
 
       // String value, visible
       expect(screen.getByText('foo')).toBeInTheDocument();
