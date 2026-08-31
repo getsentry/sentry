@@ -31,11 +31,10 @@ from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodArtifactApiGetLatestBaseSnapshotEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
-    build_snapshot_image_response,
 )
 from sentry.preprod.api.models.public.snapshots import LatestBaseSnapshotResponseDict
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.manifest import SnapshotManifest
+from sentry.preprod.snapshots.comparison_categorizer import build_head_image_dict
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +203,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             if response is None:
                 raise FileNotFoundError("Manifest does not exist in objectstore")
             manifest_data = orjson.loads(response.payload.read())
-            manifest = SnapshotManifest(**manifest_data)
+            manifest_images = manifest_data.get("images", {})
+            manifest_diff_threshold = manifest_data.get("diff_threshold")
         except Exception:
             logger.exception(
                 "Failed to retrieve snapshot manifest",
@@ -218,9 +218,9 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         image_base_url = f"/api/0/projects/{organization.slug}/{artifact.project.slug}/files/images"
 
         images = []
-        for key, metadata in sorted(manifest.images.items()):
-            img = build_snapshot_image_response(key, metadata, manifest.diff_threshold).dict()
-            img["image_url"] = f"{image_base_url}/{metadata.content_hash}/"
+        for key, metadata in sorted(manifest_images.items()):
+            img = build_head_image_dict(key, metadata, manifest_diff_threshold)
+            img["image_url"] = f"{image_base_url}/{metadata['content_hash']}/"
             images.append(img)
 
         response_data: dict[str, Any] = {
@@ -230,7 +230,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             "app_id": artifact.app_id,
             "image_count": snapshot_metrics.image_count,
             "images": images,
-            "diff_threshold": manifest.diff_threshold,
+            "diff_threshold": manifest_diff_threshold,
             "date_added": artifact.date_added.isoformat(),
         }
 
