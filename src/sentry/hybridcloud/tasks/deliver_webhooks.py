@@ -1036,10 +1036,6 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
                     "deliver_webhook.claim_exhausted",
                     extra={**log_context, "delivered": delivered},
                 )
-                metrics.incr(
-                    "hybridcloud.deliver_webhooks.delivery",
-                    tags={**delivery_tags, "outcome": "claim_exhausted"},
-                )
                 return
     finally:
         deleter.flush()

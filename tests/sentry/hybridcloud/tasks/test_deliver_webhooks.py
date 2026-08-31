@@ -1745,7 +1745,7 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
         drain_mailbox(webhook.id, claimed_count=1)
 
         assert not WebhookPayload.objects.filter(id=webhook.id).exists()
-        assert self.delivery_outcomes(mock_metrics) == ["conflict", "claim_exhausted"]
+        assert self.delivery_outcomes(mock_metrics) == ["conflict"]
         assert self.distribution_calls(mock_metrics, DELIVERY_TIME_METRIC) == []
 
     @responses.activate
@@ -1763,7 +1763,7 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
         drain_mailbox(webhook.id, claimed_count=1)
 
         assert not WebhookPayload.objects.filter(id=webhook.id).exists()
-        assert self.delivery_outcomes(mock_metrics) == ["dropped_4xx", "claim_exhausted"]
+        assert self.delivery_outcomes(mock_metrics) == ["dropped_4xx"]
         assert self.distribution_calls(mock_metrics, DELIVERY_TIME_METRIC) == []
 
     @responses.activate
@@ -1879,8 +1879,7 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         drain_mailbox(webhook.id, claimed_count=1)
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "dropped_4xx", "provider": "github"},
-            {**UNATTRIBUTED, "outcome": "claim_exhausted", "provider": "github"},
+            {**UNATTRIBUTED, "outcome": "dropped_4xx", "provider": "github"}
         ]
 
     @responses.activate
@@ -2008,11 +2007,8 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
 
         drain_mailbox(webhook.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER)
 
-        # `claim_exhausted` has no provider tag, so it is the outcome most likely
-        # to be missed when attribution is added; assert it alongside the delivery.
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {"dispatcher": "scheduler", "outcome": "ok", "provider": "github"},
-            {"dispatcher": "scheduler", "outcome": "claim_exhausted", "provider": "github"},
+            {"dispatcher": "scheduler", "outcome": "ok", "provider": "github"}
         ]
 
     @responses.activate
