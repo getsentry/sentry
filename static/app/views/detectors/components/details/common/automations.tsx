@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
