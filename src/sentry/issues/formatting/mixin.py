@@ -31,9 +31,7 @@ else:
 logger = logging.getLogger(__name__)
 
 FORMATTER_FEATURE = "organizations:issue-standardized-markdown-for-llm"
-# API clients ramp separately from the UI. They share these endpoints and the same query param
-# but not the same content needs: the UI wants breadcrumbs inlined, while the MCP deliberately
-# leaves them to its own tool. The MCP is the only API consumer of ``?llmFormat`` today.
+# API clients (just the MCP today) ramp separately from the UI
 FORMATTER_FEATURE_API = "organizations:issue-standardized-markdown-for-llm-api"
 # not "format": DRF reserves that query param for renderer content-negotiation
 QUERY_PARAM = "llmFormat"
@@ -41,17 +39,9 @@ VALID_FORMATS: tuple[Format, ...] = get_args(Format)
 
 
 def formatter_feature_for(request: Request) -> str:
-    """Pick the rollout feature for this caller.
+    """Session and viewer-context callers are the UI; a token or key is an API client.
 
-    ``auth`` is unset for the Sentry UI (session cookies) and for viewer-context callers, which
-    null it on purpose to borrow session semantics; a token or key means an API client. An
-    unrecognised caller lands on the API feature deliberately -- it is the narrower rollout, so
-    a new consumer can't inherit the UI's wider one just by not being recognised.
-
-    Auth type is a proxy for the caller, not the caller itself: an agent-token request would be
-    classified as an API client even though Seer belongs with the UI. That costs nothing today
-    because Seer reads the formatter over RPC rather than through this mixin, but a Seer caller
-    arriving here would need naming explicitly rather than inferring from auth.
+    An unrecognised caller lands on the API feature deliberately: it is the narrower rollout.
     """
     return FORMATTER_FEATURE if request.auth is None else FORMATTER_FEATURE_API
 

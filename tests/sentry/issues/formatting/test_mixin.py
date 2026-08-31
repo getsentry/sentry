@@ -40,22 +40,10 @@ def test_rest_output_opts_into_user_identifiers() -> None:
 
 
 class _FakeRequest:
-    """Only ``auth`` is read, so a stub keeps these tests off the auth stack."""
-
     def __init__(self, auth: object) -> None:
         self.auth = auth
 
 
-def test_session_auth_uses_the_ui_feature() -> None:
-    # the Sentry UI hits these endpoints with a session, not a token
+def test_ui_and_api_callers_check_different_features() -> None:
     assert formatter_feature_for(cast(Request, _FakeRequest(None))) == FORMATTER_FEATURE
-
-
-def test_token_auth_uses_the_api_feature() -> None:
-    # the MCP calls through the API with a token, and ramps separately from the UI
     assert formatter_feature_for(cast(Request, _FakeRequest(object()))) == FORMATTER_FEATURE_API
-
-
-def test_the_two_rollouts_are_distinct_features() -> None:
-    # a single feature would mean widening the UI rollout also widens every API client's
-    assert FORMATTER_FEATURE != FORMATTER_FEATURE_API
