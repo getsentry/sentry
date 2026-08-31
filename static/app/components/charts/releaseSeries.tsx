@@ -36,7 +36,6 @@ type ReleaseConditions = {
   environment: readonly string[];
   project: readonly number[];
   start: DateString;
-  cursor?: string;
   query?: string;
   statsPeriod?: string | null;
 };

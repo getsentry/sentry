@@ -22,10 +22,7 @@ const SKELETON_ROW_COUNT = 8;
 interface IssueDiffProps {
   baseIssueId: string;
   targetIssueId: string;
-  baseEventId?: string;
   hasSimilarityEmbeddingsProjectFeature?: boolean;
-  shouldBeGrouped?: string;
-  targetEventId?: string;
 }
 
 function getCombinedStacktrace({
@@ -57,10 +54,7 @@ function getCombinedStacktrace({
 export function IssueDiff({
   baseIssueId,
   targetIssueId,
-  baseEventId = 'latest',
-  targetEventId = 'latest',
   hasSimilarityEmbeddingsProjectFeature,
-  shouldBeGrouped,
 }: IssueDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -77,28 +71,22 @@ export function IssueDiff({
       apiOptions.as<{eventID: string}>()(
         '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
         {
-          path:
-            baseEventId === 'latest'
-              ? {
-                  organizationIdOrSlug: organization.slug,
-                  issueId: baseIssueId,
-                  eventId: 'latest',
-                }
-              : skipToken,
+          path: {
+            organizationIdOrSlug: organization.slug,
+            issueId: baseIssueId,
+            eventId: 'latest',
+          },
           staleTime: 60_000,
         }
       ),
       apiOptions.as<{eventID: string}>()(
         '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
         {
-          path:
-            targetEventId === 'latest'
-              ? {
-                  organizationIdOrSlug: organization.slug,
-                  issueId: targetIssueId,
-                  eventId: 'latest',
-                }
-              : skipToken,
+          path: {
+            organizationIdOrSlug: organization.slug,
+            issueId: targetIssueId,
+            eventId: 'latest',
+          },
           staleTime: 60_000,
         }
       ),
@@ -106,10 +94,8 @@ export function IssueDiff({
   });
 
   // Derive resolved IDs reactively from the query results
-  const resolvedBaseEventId =
-    baseEventId === 'latest' ? baseLatestQuery.data?.eventID : baseEventId;
-  const resolvedTargetEventId =
-    targetEventId === 'latest' ? targetLatestQuery.data?.eventID : targetEventId;
+  const resolvedBaseEventId = baseLatestQuery.data?.eventID;
+  const resolvedTargetEventId = targetLatestQuery.data?.eventID;
 
   // Fetch actual event data once IDs are resolved
   const {
@@ -187,13 +173,11 @@ export function IssueDiff({
       project_id: baseEventData?.projectID,
       group_id: baseEventData?.groupID,
       parent_group_id: targetEventData?.groupID,
-      shouldBeGrouped,
     });
   }, [
     baseEventData,
     hasSimilarityEmbeddingsFeature,
     organization,
-    shouldBeGrouped,
     targetEventData,
   ]);
 
@@ -215,7 +199,6 @@ export function IssueDiff({
         LazyComponent={SplitDiffLazy}
         base={combinedBase}
         target={combinedTarget}
-        type="lines"
         loadingFallback={<IssueDiffLoadingSkeletonRows />}
       />
     </Stack>
