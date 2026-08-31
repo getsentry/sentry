@@ -138,21 +138,6 @@ def _provider_from_mailbox(mailbox_name: str | None) -> str:
     return provider if separator and provider else UNKNOWN_PROVIDER
 
 
-def _resolve_mailbox(payload_id: int, mailbox: str | None) -> str | None:
-    """
-    The mailbox a drain works, reading the head row only when its task args did
-    not carry one. None means the head is already gone.
-
-    Transitional: drains enqueued before dispatch sent `mailbox` still need it to
-    scope their queries, and this read goes away once none are left in flight.
-    """
-    if mailbox is not None:
-        return mailbox
-    return (
-        WebhookPayload.objects.filter(id=payload_id).values_list("mailbox_name", flat=True).first()
-    )
-
-
 def _record_lost_head(
     payload_id: int, *, dispatch_tags: Mapping[str, str], provider: str, log_key: str
 ) -> None:
@@ -358,12 +343,18 @@ def _begin_drain(
     The claim a drain runs under, or None when it must stand down first.
 
     Resolving the mailbox before anything else lets a drain that carries none —
-    enqueued before dispatch sent one — still name its provider. Those same drains
-    carry no deadline either, and fall back to a fresh horizon as they had before.
+    enqueued before dispatch sent one — still name its provider, off its head row.
+    That read and the fresh-horizon fallback below both go away once no such drains
+    are left in flight.
     """
-    mailbox_name = _resolve_mailbox(payload_id, mailbox)
-    _set_webhook_delivery_sentry_context(mailbox_name, _provider_from_mailbox(mailbox_name))
-    if mailbox_name is None:
+    if mailbox is None:
+        mailbox = (
+            WebhookPayload.objects.filter(id=payload_id)
+            .values_list("mailbox_name", flat=True)
+            .first()
+        )
+    _set_webhook_delivery_sentry_context(mailbox, _provider_from_mailbox(mailbox))
+    if mailbox is None:
         _record_lost_head(
             payload_id,
             dispatch_tags=_dispatch_tags(dispatcher),
@@ -374,7 +365,7 @@ def _begin_drain(
     claim = _MailboxClaim(
         claimed=claimed_count,
         head_id=payload_id,
-        mailbox_name=mailbox_name,
+        mailbox_name=mailbox,
         dispatcher=dispatcher,
         valid_until=(
             datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC)
