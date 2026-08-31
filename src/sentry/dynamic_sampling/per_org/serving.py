@@ -74,15 +74,10 @@ CARRY_OVER_SOURCE = "carry_over"
 def _recalibration_factor(org_id: int, source: ServingSource, *, read_by: str) -> float:
     """The recalibration factor in effect for an organization.
 
-    The cache of the pipeline that serves the organization is authoritative. That cache is
-    empty for the first pass after serving switches pipelines, and in that window the
-    pipeline that handed over still holds the factor the organization was last served, so
-    that factor is carried over as the base to continue from. Both caches expire after the
-    same short TTL, so outside such a switch only the serving pipeline holds a factor.
-
-    Without the carry-over the correction would restart from 1.0 on every switch. The
-    organization would then sample at its uncorrected rate and need several passes to climb
-    back to the factor it already had.
+    Since the TTL is 15 minutes, if we are switching from old to new pipeline, we can
+    assume that the old factor is still valid. So we can carry over the factor from
+    the old pipeline and the other way around. Since we stop computing whichever pipeline
+    is not active, we only ever have the factor from the active pipeline or the carry over.
     """
     if source is ServingSource.PER_ORG:
         factor = cache.read_adjusted_factor(org_id, read_by)
