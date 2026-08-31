@@ -677,11 +677,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       return null;
     }
 
-    if (this.state.probingRegions) {
-      return <RegionHintNote>Checking other regions…</RegionHintNote>;
-    }
-
-    if (this.state.regionMatches.length === 0) {
+    if (this.state.probingRegions || this.state.regionMatches.length === 0) {
       return null;
     }
 
@@ -833,25 +829,30 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
           {needsRegion && (
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+            <Flex align="center" gap="md">
+              <CompactSelect
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button {...triggerProps} prefix="Region" />
+                )}
+                value={this.state.cell ? this.state.cell.locality_url : undefined}
+                options={cells.map(c => {
+                  const hasMatch = this.state.regionMatches.some(
+                    m => m.locality_url === c.locality_url
+                  );
+                  return {
+                    label: c.name,
+                    value: c.locality_url,
+                    trailingItems: hasMatch ? (
+                      <Tag variant="success">found</Tag>
+                    ) : undefined,
+                  };
+                })}
+                onChange={opt => this.onChangeCell(opt.value)}
+              />
+              {this.state.probingRegions && (
+                <RegionHintNote>Checking other regions…</RegionHintNote>
               )}
-              value={this.state.cell ? this.state.cell.locality_url : undefined}
-              options={cells.map(c => {
-                const hasMatch = this.state.regionMatches.some(
-                  m => m.locality_url === c.locality_url
-                );
-                return {
-                  label: c.name,
-                  value: c.locality_url,
-                  trailingItems: hasMatch ? (
-                    <Tag variant="success">found</Tag>
-                  ) : undefined,
-                };
-              })}
-              onChange={opt => this.onChangeCell(opt.value)}
-            />
+            </Flex>
           )}
           {sortOptions && sortOptions.length > 0 && (
             <SortBy
@@ -969,9 +970,9 @@ const RegionHintAlert = styled(Alert)`
 `;
 
 const RegionHintNote = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
+  white-space: nowrap;
 `;
 
 type ResultGridWrapperProps = Omit<ResultGridProps, 'api' | 'location' | 'navigate'> & {
