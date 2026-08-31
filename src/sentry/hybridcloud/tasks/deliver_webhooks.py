@@ -1,3 +1,4 @@
+import dataclasses
 import datetime
 import enum
 import logging
@@ -263,42 +264,57 @@ def _dispatches_from_due_head(mailbox_name: str) -> bool:
     return provider in (options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ())
 
 
-class _MailboxClaim(NamedTuple):
+class Dispatcher(enum.StrEnum):
+    """Which dispatcher enqueued a drain; a metric tag and a drain task argument."""
+
+    PUSH = "push"
+    SCHEDULER = "scheduler"
+
+
+@dataclasses.dataclass(frozen=True)
+class _MailboxClaim:
     """
-    The records one claim reserved.
+    The records one claim reserved, and the context its drain works them under.
 
     `valid_until` is stored rather than re-derived, so it names exactly when the
     records come due for other dispatchers again.
     """
 
     claimed: int
+    head_id: int
+    mailbox_name: str
+    dispatcher: str | None
     valid_until: datetime.datetime
 
-    @classmethod
-    def from_task_args(cls, claimed_count: int, valid_until: str | None) -> "_MailboxClaim":
-        """
-        The claim a drain was dispatched for, as its task args carry it.
+    @property
+    def provider(self) -> str:
+        return _provider_from_mailbox(self.mailbox_name)
 
-        Drains enqueued before dispatch sent a deadline fall back to a fresh
-        horizon, as they had before.
-        """
-        return cls(
-            claimed=claimed_count,
-            valid_until=(
-                datetime.datetime.fromisoformat(valid_until)
-                if valid_until is not None
-                else timezone.now() + BATCH_SCHEDULE_OFFSET
-            ),
-        )
+    @property
+    def dispatch_tags(self) -> dict[str, str]:
+        return _dispatch_tags(self.dispatcher)
 
-    def lapsed(
-        self,
-        *,
-        provider: str,
-        dispatch_tags: Mapping[str, str],
-        log_key: str,
-        extra: Mapping[str, Any],
-    ) -> bool:
+    @property
+    def skip_on_failure(self) -> bool:
+        """Whether this provider may skip a failed record rather than stop."""
+        allowlist = options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
+        return self.provider in allowlist
+
+    def task_args(self) -> dict[str, Any]:
+        """
+        This claim as a drain's task arguments; `_begin_drain` rebuilds it.
+
+        Scalars only: the task codec carries no datetime, hence the epoch deadline.
+        """
+        return {
+            "payload_id": self.head_id,
+            "claimed_count": self.claimed,
+            "dispatcher": self.dispatcher,
+            "valid_until": self.valid_until.timestamp(),
+            "mailbox": self.mailbox_name,
+        }
+
+    def lapsed(self, *, log_key: str, extra: Mapping[str, Any]) -> bool:
         """
         Whether this claim has lapsed, recording the stand-down when it has.
 
@@ -311,7 +327,7 @@ class _MailboxClaim(NamedTuple):
             return False
         metrics.incr(
             "hybridcloud.deliver_webhooks.delivery",
-            tags={**dispatch_tags, "outcome": "delivery_deadline", "provider": provider},
+            tags={**self.dispatch_tags, "outcome": "delivery_deadline", "provider": self.provider},
         )
         logger.info(
             log_key,
@@ -322,13 +338,64 @@ class _MailboxClaim(NamedTuple):
         )
         return True
 
+    def record_lost_head(self, log_key: str) -> None:
+        """This drain's head row is already gone — see `_record_lost_head`."""
+        _record_lost_head(
+            self.head_id,
+            dispatch_tags=self.dispatch_tags,
+            provider=self.provider,
+            log_key=log_key,
+        )
 
-def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> _MailboxClaim:
+
+def _begin_drain(
+    payload_id: int,
+    claimed_count: int,
+    dispatcher: str | None,
+    valid_until: float | None,
+    mailbox: str | None,
+) -> _MailboxClaim | None:
+    """
+    The claim a drain runs under, or None when it must stand down first.
+
+    Resolving the mailbox before anything else lets a drain that carries none —
+    enqueued before dispatch sent one — still name its provider. Those same drains
+    carry no deadline either, and fall back to a fresh horizon as they had before.
+    """
+    mailbox_name = _resolve_mailbox(payload_id, mailbox)
+    _set_webhook_delivery_sentry_context(mailbox_name, _provider_from_mailbox(mailbox_name))
+    if mailbox_name is None:
+        _record_lost_head(
+            payload_id,
+            dispatch_tags=_dispatch_tags(dispatcher),
+            provider=UNKNOWN_PROVIDER,
+            log_key="deliver_webhook.potential_race",
+        )
+        return None
+    claim = _MailboxClaim(
+        claimed=claimed_count,
+        head_id=payload_id,
+        mailbox_name=mailbox_name,
+        dispatcher=dispatcher,
+        valid_until=(
+            datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC)
+            if valid_until is not None
+            else timezone.now() + BATCH_SCHEDULE_OFFSET
+        ),
+    )
+    if claim.lapsed(log_key="deliver_webhook.stale_claim", extra={"id": payload_id}):
+        return None
+    return claim
+
+
+def _claim_mailbox_batch(
+    head_id: int, mailbox_name: str, *, dispatcher: Dispatcher
+) -> _MailboxClaim | None:
     """
     Claim up to MAX_MAILBOX_DRAIN records at the head of the mailbox by scheduling
     them past the drain deadline, keeping other dispatchers off the mailbox while
     the drain runs. The claim is gated on the head still being due via the
-    UPDATE's WHERE clause, so a lost race claims 0 rows.
+    UPDATE's WHERE clause, so a lost race claims nothing and returns None.
 
     In due-head mode the claim stops at the first not-due record. That stop keeps
     concurrent drains apart: an in-flight drain's records carry a future
@@ -351,7 +418,7 @@ def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> _MailboxClaim:
                 break
             prefix_ids.append(record_id)
         if not prefix_ids:
-            return _MailboxClaim(claimed=0, valid_until=valid_until)
+            return None
         claimed_ids = prefix_ids
     else:
         claimed_ids = Subquery(window.values("id")[:MAX_MAILBOX_DRAIN])
@@ -361,7 +428,15 @@ def _claim_mailbox_batch(head_id: int, mailbox_name: str) -> _MailboxClaim:
         .filter(Exists(head_due))
         .update(schedule_for=valid_until)
     )
-    return _MailboxClaim(claimed=claimed, valid_until=valid_until)
+    if not claimed:
+        return None
+    return _MailboxClaim(
+        claimed=claimed,
+        head_id=head_id,
+        mailbox_name=mailbox_name,
+        dispatcher=dispatcher,
+        valid_until=valid_until,
+    )
 
 
 class DispatchOutcome(enum.StrEnum):
@@ -370,13 +445,6 @@ class DispatchOutcome(enum.StrEnum):
     NOT_DUE = "not_due"
     SEQUENTIAL = "sequential"
     PARALLEL = "parallel"
-
-
-class Dispatcher(enum.StrEnum):
-    """Which dispatcher enqueued a drain; a metric tag and a drain task argument."""
-
-    PUSH = "push"
-    SCHEDULER = "scheduler"
 
 
 def _dispatch_tags(dispatcher: str | None) -> dict[str, str]:
@@ -433,26 +501,14 @@ def _claim_and_dispatch(
     `dispatcher` tags this dispatch and is forwarded to the drain so its
     deliveries carry the same attribution; both callers claim identically.
     """
-    claim = _claim_mailbox_batch(head_id, mailbox_name)
-    if not claim.claimed:
+    claim = _claim_mailbox_batch(head_id, mailbox_name, dispatcher=dispatcher)
+    if claim is None:
         return DispatchOutcome.NOT_DUE
     if claim.claimed >= PARALLEL_DRAIN_THRESHOLD:
-        drain_mailbox_parallel.delay(
-            head_id,
-            claimed_count=claim.claimed,
-            dispatcher=dispatcher,
-            valid_until=claim.valid_until.isoformat(),
-            mailbox=mailbox_name,
-        )
+        drain_mailbox_parallel.delay(**claim.task_args())
         outcome = DispatchOutcome.PARALLEL
     else:
-        drain_mailbox.delay(
-            head_id,
-            claimed_count=claim.claimed,
-            dispatcher=dispatcher,
-            valid_until=claim.valid_until.isoformat(),
-            mailbox=mailbox_name,
-        )
+        drain_mailbox.delay(**claim.task_args())
         outcome = DispatchOutcome.SEQUENTIAL
     _record_dispatch(
         dispatcher=dispatcher,
@@ -821,71 +877,44 @@ def drain_mailbox(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    valid_until: str | None = None,
+    valid_until: float | None = None,
     mailbox: str | None = None,
 ) -> None:
     """
-    Deliver webhooks from the mailbox that `payload_id` is the head of.
+    Deliver webhooks from the mailbox that `payload_id` is the head of, in order.
 
-    Messages will be delivered in order until one fails, the claim's deadline
-    passes, or `claimed_count` records have been processed. Once messages have
-    successfully been delivered or discarded, they are deleted.
-
-    This drain holds no lock while it runs, so it must not deliver past the
-    `claimed_count` records its dispatcher claimed — beyond them the mailbox head
-    is due again and another dispatcher may have started a drain of its own.
-
-    `dispatcher` carries the enqueueing dispatcher's attribution onto every
-    delivery outcome this drain records (see `_dispatch_tags`).
-
-    `valid_until` is the claim's deadline, bounding this drain at both ends: it
-    stands down if it starts past it, and stops delivering when it reaches it.
-    Beyond it the records are due for whoever claims them next. Drains enqueued
-    before dispatch sent one fall back to a fresh horizon, as they had before.
-
-    `mailbox` names the provider without reading a row, which is what the deadline
-    check needs before it has one. Absent on those same older drains, whose
-    stand-down reports an unknown provider rather than pay for a lookup.
+    The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`);
+    each defaults so a rolling deploy can bind drains the previous version sent.
     """
-    dispatch_tags = _dispatch_tags(dispatcher)
-    claim = _MailboxClaim.from_task_args(claimed_count, valid_until)
-    provider = _provider_from_mailbox(mailbox)
-    _set_webhook_delivery_sentry_context(mailbox, provider)
-    if claim.lapsed(
-        provider=provider,
-        dispatch_tags=dispatch_tags,
-        log_key="deliver_webhook.stale_claim",
-        extra={"id": payload_id},
-    ):
-        return
-    mailbox = _resolve_mailbox(payload_id, mailbox)
-    if mailbox is None:
-        _record_lost_head(
-            payload_id,
-            dispatch_tags=dispatch_tags,
-            provider=provider,
-            log_key="deliver_webhook.potential_race",
-        )
-        return
-    provider = _provider_from_mailbox(mailbox)
+    claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
+    if claim is not None:
+        _drain_sequentially(claim)
 
-    skip_on_failure_providers = frozenset(
-        options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
-    )
-    skip_on_failure = provider in skip_on_failure_providers
+
+def _drain_sequentially(claim: _MailboxClaim) -> None:
+    """
+    Deliver the claimed records in order until one fails, the claim's deadline
+    passes, or all of them have been processed.
+
+    This drain holds no lock while it runs, so it must not deliver past the records
+    its dispatcher claimed — beyond them the mailbox head is due again and another
+    dispatcher may have started a drain of its own.
+    """
+    dispatch_tags = claim.dispatch_tags
+    mailbox = claim.mailbox_name
+    provider = claim.provider
+    skip_on_failure = claim.skip_on_failure
 
     deleter = _deleter_for()
 
     delivered = 0
     failed = 0
     remaining = claim.claimed
-    current_id = payload_id
-    log_context = {"id": payload_id, "mailbox_name": mailbox, "provider": provider}
+    current_id = claim.head_id
+    log_context = {"id": claim.head_id, "mailbox_name": mailbox, "provider": provider}
     try:
         while True:
             if claim.lapsed(
-                provider=provider,
-                dispatch_tags=dispatch_tags,
                 log_key="deliver_webhook.delivery_deadline",
                 extra={**log_context, "delivered": delivered},
             ):
@@ -899,15 +928,10 @@ def drain_mailbox(
 
             slice_size = min(100, remaining)
             records = list(query[:slice_size])
-            if current_id == payload_id and (not records or records[0].id != payload_id):
+            if current_id == claim.head_id and (not records or records[0].id != claim.head_id):
                 # First slice, and the head is not at its front: it has been
                 # delivered by whoever claimed it next.
-                _record_lost_head(
-                    payload_id,
-                    dispatch_tags=dispatch_tags,
-                    provider=provider,
-                    log_key="deliver_webhook.potential_race",
-                )
+                claim.record_lost_head("deliver_webhook.potential_race")
                 return
             batch_count = 0
             for record in records:
@@ -1108,7 +1132,7 @@ def _handle_parallel_delivery_result(
                 sample_rate=1.0,
             )
             logger.warning(
-                "deliver_webhook_parallel.discard",
+                "deliver_webhook.discard",
                 extra={**payload_data},
             )
             request_failed = False
@@ -1216,66 +1240,46 @@ def drain_mailbox_parallel(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    valid_until: str | None = None,
+    valid_until: float | None = None,
     mailbox: str | None = None,
 ) -> None:
     """
-    Deliver messages from a mailbox in small parallel batches.
-
-    Parallel delivery sacrifices strict ordering for increased throughput.
-    Because of the sequential delivery in a mailbox we can't get higher throughput
-    by scheduling batches in parallel.
-
-    Messages will be delivered in small batches until a non-skippable failure
-    occurs, the batch delay timeout is reached, or `claimed_count` records have
-    been processed. Providers in
-    `hybridcloud.webhookpayload.skip_on_failure_providers` (e.g. github) continue
-    past retryable failures in the same way as sequential `drain_mailbox`.
-
-    This drain holds no lock while it runs, so it must not deliver past the
-    `claimed_count` records its dispatcher claimed — see `drain_mailbox`.
-
-    `dispatcher`, `valid_until` and `mailbox` behave as they do on `drain_mailbox`.
+    Deliver webhooks from the mailbox that `payload_id` is the head of, in small
+    parallel batches. Takes the same flattened claim as `drain_mailbox`.
     """
-    dispatch_tags = _dispatch_tags(dispatcher)
-    claim = _MailboxClaim.from_task_args(claimed_count, valid_until)
-    provider = _provider_from_mailbox(mailbox)
-    _set_webhook_delivery_sentry_context(mailbox, provider)
-    if claim.lapsed(
-        provider=provider,
-        dispatch_tags=dispatch_tags,
-        log_key="deliver_webhook_parallel.stale_claim",
-        extra={"id": payload_id},
-    ):
-        return
-    mailbox = _resolve_mailbox(payload_id, mailbox)
-    if mailbox is None:
-        _record_lost_head(
-            payload_id,
-            dispatch_tags=dispatch_tags,
-            provider=provider,
-            log_key="deliver_webhook_parallel.potential_race",
-        )
-        return
-    provider = _provider_from_mailbox(mailbox)
+    claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
+    if claim is not None:
+        _drain_in_parallel(claim)
 
-    skip_on_failure_providers = frozenset(
-        options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
-    )
-    skip_on_failure = provider in skip_on_failure_providers
+
+def _drain_in_parallel(claim: _MailboxClaim) -> None:
+    """
+    Deliver the claimed records in small parallel batches, trading strict ordering
+    for throughput; delivery within a mailbox is otherwise sequential.
+
+    Batches run until a non-skippable failure, the claim's deadline, or the end of
+    the claim — bounded exactly as `_drain_sequentially`, and skipping past
+    retryable failures for the same allowlisted providers.
+    """
+    dispatch_tags = claim.dispatch_tags
+    mailbox = claim.mailbox_name
+    skip_on_failure = claim.skip_on_failure
 
     worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
     deleter = _deleter_for()
     delivered = 0
     remaining = claim.claimed
-    current_id = payload_id
-    extra = {"id": payload_id, "mailbox_name": mailbox, "provider": provider, "delivered": 0}
+    current_id = claim.head_id
+    extra = {
+        "id": claim.head_id,
+        "mailbox_name": mailbox,
+        "provider": claim.provider,
+        "delivered": 0,
+    }
     try:
         while True:
             if claim.lapsed(
-                provider=provider,
-                dispatch_tags=dispatch_tags,
-                log_key="deliver_webhook_parallel.delivery_deadline",
+                log_key="deliver_webhook.delivery_deadline",
                 extra={**extra, "delivered": delivered},
             ):
                 break
@@ -1288,15 +1292,10 @@ def drain_mailbox_parallel(
                 deleter,
                 dispatch_tags=dispatch_tags,
             )
-            if current_id == payload_id and batch.head_id != payload_id:
+            if current_id == claim.head_id and batch.head_id != claim.head_id:
                 # First batch, and the head is not at its front: it has been
                 # delivered by whoever claimed it next.
-                _record_lost_head(
-                    payload_id,
-                    dispatch_tags=dispatch_tags,
-                    provider=provider,
-                    log_key="deliver_webhook_parallel.potential_race",
-                )
+                claim.record_lost_head("deliver_webhook.potential_race")
                 return
             attempted, delivered_batch, request_failed, next_id = (
                 batch.attempted,
@@ -1308,7 +1307,7 @@ def drain_mailbox_parallel(
             extra["delivered"] = delivered
 
             if next_id is None:
-                logger.info("deliver_webhook_parallel.task_complete", extra=extra)
+                logger.info("deliver_webhook.task_complete", extra=extra)
                 break
 
             # Advance past this batch so failed rows (left with a future
@@ -1320,7 +1319,7 @@ def drain_mailbox_parallel(
                 # Claim exhausted. Rows past this point belong to whichever
                 # dispatcher claims them next; delivering them here would race
                 # a drain that dispatcher may have started.
-                logger.debug("deliver_webhook_parallel.claim_exhausted", extra=extra)
+                logger.debug("deliver_webhook.claim_exhausted", extra=extra)
                 metrics.incr(
                     "hybridcloud.deliver_webhooks.delivery",
                     tags={**dispatch_tags, "outcome": "claim_exhausted"},
@@ -1330,7 +1329,7 @@ def drain_mailbox_parallel(
             if request_failed and not skip_on_failure:
                 # For providers that require stricter mailbox behavior, stop on
                 # the first batch that had a retryable failure.
-                logger.info("deliver_webhook_parallel.delivery_request_failed", extra=extra)
+                logger.info("deliver_webhook.delivery_request_failed", extra=extra)
                 return
     finally:
         deleter.flush()
