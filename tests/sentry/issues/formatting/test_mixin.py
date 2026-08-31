@@ -1,6 +1,13 @@
-from typing import Any
+from typing import Any, cast
 
-from sentry.issues.formatting.mixin import format_event_response
+from rest_framework.request import Request
+
+from sentry.issues.formatting.mixin import (
+    FORMATTER_FEATURE,
+    FORMATTER_FEATURE_API,
+    format_event_response,
+    formatter_feature_for,
+)
 
 
 def _event_with_request_body(body_chars: int) -> dict[str, Any]:
@@ -30,3 +37,13 @@ def test_rest_output_opts_into_user_identifiers() -> None:
     out = format_event_response(data, "markdown")
     assert "someone@example.com" in out
     assert "203.0.113.7" in out
+
+
+class _FakeRequest:
+    def __init__(self, auth: object) -> None:
+        self.auth = auth
+
+
+def test_ui_and_api_callers_check_different_features() -> None:
+    assert formatter_feature_for(cast(Request, _FakeRequest(None))) == FORMATTER_FEATURE
+    assert formatter_feature_for(cast(Request, _FakeRequest(object()))) == FORMATTER_FEATURE_API

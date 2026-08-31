@@ -481,107 +481,81 @@ def test_parameterizes_url(url: str, parameterized_url: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "span",
+    ["key", "good_value"],
     [
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "hash": "b",
-            "description": "GET http://service.io/resource",
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET http://service.io/resource",
-            "hash": "a",
-            "data": {
-                "url": "/resource",
-            },
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET http://service.io/resource",
-            "hash": "a",
-            "data": {
-                "url": {
-                    "pathname": "/resource",
-                }
-            },
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET http://service.io/resource.json?param=something",
-            "hash": "a",
-        },
+        ("description", "GET http://dogs.are.great/"),
+        ("description", "GET http://dogs.are.great/best_dog.json"),
+        ("data", {"url": "http://dogs.are.great/adopt/dont/shop"}),
+        ("data", {"url": {"pathname": "/adopt/dont/shop"}}),
     ],
 )
 @pytest.mark.django_db
-def test_allows_eligible_spans(span: Span) -> None:
+def test_allows_eligible_spans(key: str, good_value: Any) -> None:
     settings = get_detection_settings()[NPlusOneAPICallsDetector.settings_key]
     detector = NPlusOneAPICallsDetector(settings, {})
+
+    span: Any = {
+        "span_id": "11212012",
+        "parent_span_id": "12312012",
+        "op": "http.client",
+        "hash": "41520139082013",
+        "description": "GET http://dogs.are.great/",
+        "data": {},
+    }
+    span[key] = good_value
+
     assert detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
-    "span",
+    ["key", "bad_value"],
     [
-        {"span_id": "a", "op": None},
-        {"op": "http.client"},
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "hash": "a",
-            "description": "POST http://service.io/resource",
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET http://service.io/resource.js",
-            "hash": "a",
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET /resource.js",
-            "hash": "a",
-            "data": {"url": "/resource.js"},
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET http://service.io/resource?graphql=somequery",
-            "hash": "a",
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "description": "GET http://service.io/resource",  # New JS SDK removes query string from description
-            "hash": "a",
-            "data": {
-                "http.query": "graphql=somequery",
-                "url": "http://service.io/resource",
-            },
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "hash": "b",
-            "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
-        },
-        {
-            "span_id": "a",
-            "op": "http.client",
-            "hash": "b",
-            "description": "GET /__nextjs_original-stack-frame?isServerSide=false&file=webpack-internal%3A%2F%2F%2F.%2Fnode_modules%2Freact-dom%2Fcjs%2Freact-dom.development.js&methodName=Object.invokeGuardedCallbackDev&arguments=&lineNumber=73&column=3`",
-        },
+        ("span_id", None),
+        ("parent_span_id", None),
+        ("op", None),
+        ("hash", None),
+        ("description", None),
+        ("description", "POST http://dogs.are.great/"),
+        ("description", "GET http://dogs.are.great/best_dog.js"),
+        ("description", "GET http://dogs.are.great/best_dog.css"),
+        ("description", "GET http://dogs.are.great/best_dog.svg"),
+        ("description", "GET http://dogs.are.great/best_dog.png"),
+        ("description", "GET http://dogs.are.great/best_dog.mp3"),
+        ("description", "GET http://dogs.are.great/best_dog.jpg"),
+        ("description", "GET http://dogs.are.great/best_dog.jpeg"),
+        ("description", "GET http://dogs.are.great/best_dog?graphql=somequery"),
+        ("description", "GET /_next/data/dogs/are/great"),
+        ("description", "GET /__nextjs_original-stack-frame?dogs_are_great"),
+        ("description", "GET https://app.launchdarkly.com/sdk/dogs/are/great"),
+        ("data", {"url": "http://dogs.are.great/best_dog.js"}),
+        ("data", {"url": "http://dogs.are.great/best_dog.css"}),
+        ("data", {"url": "http://dogs.are.great/best_dog.svg"}),
+        ("data", {"url": "http://dogs.are.great/best_dog.png"}),
+        ("data", {"url": "http://dogs.are.great/best_dog.mp3"}),
+        ("data", {"url": "http://dogs.are.great/best_dog.jpg"}),
+        ("data", {"url": "http://dogs.are.great/best_dog.jpeg"}),
+        ("data", {"url": "http://dogs.are.great/best_dog", "http.query": "graphql=somequery"}),
+        ("data", {"url": "/_next/data/dogs/are/great"}),
+        ("data", {"url": "/__nextjs_original-stack-frame?dogs_are_great"}),
+        ("data", {"url": "https://app.launchdarkly.com/sdk/dogs/are/great"}),
+        ("data", {"http.request.prefetch": True}),
     ],
 )
 @pytest.mark.django_db
-def test_rejects_ineligible_spans(span: Span) -> None:
+def test_rejects_ineligible_spans(key: str, bad_value: Any) -> None:
     settings = get_detection_settings()[NPlusOneAPICallsDetector.settings_key]
     detector = NPlusOneAPICallsDetector(settings, {})
+
+    span: Any = {
+        "span_id": "11212012",
+        "parent_span_id": "12312012",
+        "op": "http.client",
+        "hash": "41520139082013",
+        "description": "GET http://dogs.are.great/",
+        "data": {},
+    }
+    span[key] = bad_value
+
     assert not detector._is_span_eligible(span)
 
 
