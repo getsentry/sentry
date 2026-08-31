@@ -495,13 +495,17 @@ describe('AskSeerComboBox', () => {
 
     const value = await screen.findByText('/api/0…{organization_id_or_slug}/events/');
     const chip = value.parentElement?.parentElement?.parentElement;
+    const parameterGroup = chip?.parentElement?.parentElement;
     const chipRules = getEmotionRules(chip!).join(' ');
+    const parameterGroupRules = getEmotionRules(parameterGroup!).join(' ');
 
     expect(value).toHaveAttribute('data-overflowing', 'true');
     expect(screen.queryByText(longGroupBy)).not.toBeInTheDocument();
     expect(chipRules).toContain('max-width: 100%');
     expect(chipRules).toContain('overflow: hidden');
     expect(chipRules).toMatch(/>\*>\* \{[^}]*width: 100%/);
+    expect(parameterGroupRules).toContain('min-width: 0');
+    expect(parameterGroupRules).toContain('max-width: 100%');
   });
 
   it('does not show the legacy feedback option', async () => {

@@ -68,7 +68,7 @@ function NewQueryTokens({
 
   if (visualizations && visualizations.length > 0) {
     tokens.push(
-      <Stack key="visualization">
+      <Stack key="visualization" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
         <Stack as="span" gap="xs">
           {visualizations.map((visualization, vIdx) =>
@@ -85,7 +85,7 @@ function NewQueryTokens({
 
   if (interval) {
     tokens.push(
-      <Stack key="interval">
+      <Stack key="interval" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
         <Stack as="span" gap="xs">
           <ResolvedValueChip>{interval}</ResolvedValueChip>
@@ -96,7 +96,7 @@ function NewQueryTokens({
 
   if (groupBys && groupBys.length > 0) {
     tokens.push(
-      <Stack key="groupBy">
+      <Stack key="groupBy" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
         <Stack as="span" gap="xs">
           {groupBys.map((groupBy, idx) => (
@@ -110,7 +110,7 @@ function NewQueryTokens({
   // Display absolute date range if start and end are provided
   if (start && end) {
     tokens.push(
-      <Stack key="timeRange">
+      <Stack key="timeRange" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <Flex as="span" wrap="wrap" gap="xs">
           <ResolvedValueChip>{formatDateRange(start, end, ' - ')}</ResolvedValueChip>
@@ -119,7 +119,7 @@ function NewQueryTokens({
     );
   } else if (statsPeriod && statsPeriod.length > 0) {
     tokens.push(
-      <Stack key="timeRange">
+      <Stack key="timeRange" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
         <Stack as="span" gap="xs">
           <ResolvedValueChip>{statsPeriod}</ResolvedValueChip>
@@ -134,7 +134,7 @@ function NewQueryTokens({
       .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
     const overflowCount = selectedProjectIds.length - shownSlugs.length;
     tokens.push(
-      <Stack key="projects">
+      <Stack key="projects" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
         <Stack as="span" gap="xs">
           {shownSlugs.map(slug => (
@@ -153,7 +153,7 @@ function NewQueryTokens({
     const rawSort = descending ? sort.slice(1) : sort;
     const formattedSort = isEquation(rawSort) ? stripEquationPrefix(rawSort) : rawSort;
     tokens.push(
-      <Stack key="sort">
+      <Stack key="sort" minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
         <Stack as="span" gap="xs">
           <ResolvedValueChip>
@@ -172,7 +172,7 @@ function NewQueryTokens({
       : null;
 
     crossEventTokens.push(
-      <Stack key={`${crossEvent.type}-${idx}`}>
+      <Stack key={`${crossEvent.type}-${idx}`} minWidth="0" maxWidth="100%">
         <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
         <Flex gap="md" wrap="wrap">
           <Stack gap="xs" minWidth="0" maxWidth="100%">
