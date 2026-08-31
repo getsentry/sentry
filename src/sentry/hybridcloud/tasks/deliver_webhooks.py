@@ -2,10 +2,11 @@ import dataclasses
 import datetime
 import enum
 import logging
+import math
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
-from typing import Any, NamedTuple
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -21,6 +22,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.models.webhookpayload import (
     BACKOFF_INTERVAL,
     MAX_ATTEMPTS,
+    THE_PAST,
     DestinationType,
     WebhookPayload,
 )
@@ -56,10 +58,20 @@ slow forwarding yields to other tasks
 """
 
 
-PARALLEL_DRAIN_THRESHOLD = MAX_MAILBOX_DRAIN // 5
+MIN_RECORDS_PER_THREAD = 5
 """
-Mailbox depth at which delivery switches from sequential to parallel: past it the
-mailbox is behind, and parallel throughput is worth the loss of strict ordering.
+Records a claim must hold per delivery thread before another thread is added.
+
+Bounds each drain's thread and connection burst for small claims; full
+concurrency is reached by ~worker_threads times this many records, where the
+worker-slot time a lone thread would spend dominates the burst cost.
+"""
+
+RELEASE_MARGIN = datetime.timedelta(seconds=30)
+"""
+How long before its claim's deadline a drain stops delivering and releases the
+unworked tail back to the mailbox. Sized to cover a worst-case delivery wave
+plus the final delete flush, so the release lands while the claim still holds.
 """
 
 
@@ -274,6 +286,16 @@ class _MailboxClaim:
         allowlist = options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
         return self.provider in allowlist
 
+    @property
+    def threaded(self) -> bool:
+        """
+        Whether this claim's drain delivers in concurrent waves. Only providers
+        that may skip failed records qualify: concurrent requests complete in
+        arbitrary order, so threading a strict-ordering provider would deliver
+        out of order exactly when its mailbox is deep.
+        """
+        return self.skip_on_failure and self.claimed > MIN_RECORDS_PER_THREAD
+
     def task_args(self) -> dict[str, Any]:
         """
         This claim as a drain's task arguments; `_begin_drain` rebuilds it.
@@ -312,14 +334,41 @@ class _MailboxClaim:
         )
         return True
 
+    def nearing_deadline(self) -> bool:
+        """Whether to stop delivering and release, rather than run into the deadline mid-wave."""
+        return timezone.now() >= self.valid_until - RELEASE_MARGIN
+
+    def release_remainder(self, next_id: int, *, extra: Mapping[str, Any]) -> None:
+        """
+        Return the claim's unworked tail to the mailbox so the next dispatcher can
+        claim it now instead of at the deadline.
+
+        Matching the exact `schedule_for` this claim wrote is what makes the
+        release safe: a record another claim took carries that claim's timestamp,
+        and a record this drain failed and rescheduled carries its backoff — both
+        pass untouched.
+        """
+        released = WebhookPayload.objects.filter(
+            mailbox_name=self.mailbox_name,
+            id__gte=next_id,
+            schedule_for=self.valid_until,
+        ).update(schedule_for=THE_PAST)
+        if released:
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery",
+                amount=released,
+                tags={**self.delivery_tags, "outcome": "released"},
+            )
+        logger.info("deliver_webhook.deadline_release", extra={**extra, "released": released})
+
     def next_slice(self, start_id: int, size: int) -> list[WebhookPayload] | None:
         """
         The next `size` records this drain may deliver, or None when it must stand
         down: its head is gone, so whoever claimed the mailbox next is delivering
         these. An empty list is the ordinary end of a claim, not a stand-down.
 
-        Both drains read through here to keep that check ahead of delivery — a
-        parallel batch that delivers first duplicates every row it sends.
+        The drain reads through here to keep that check ahead of delivery — a
+        wave that delivers first duplicates every row it sends.
         """
         records = list(
             WebhookPayload.objects.filter(
@@ -435,7 +484,12 @@ def _claim_mailbox_batch(
 
 
 class DispatchOutcome(enum.StrEnum):
-    """What `_claim_and_dispatch` did for a mailbox; doubles as a metric tag."""
+    """
+    What `_claim_and_dispatch` did for a mailbox; doubles as a metric tag.
+
+    SEQUENTIAL and PARALLEL name the delivery mode the claim's drain will use
+    (`_MailboxClaim.threaded`) — one task runs both.
+    """
 
     NOT_DUE = "not_due"
     SEQUENTIAL = "sequential"
@@ -480,7 +534,7 @@ def _claim_and_dispatch(
     head_id: int, mailbox_name: str, *, dispatcher: Dispatcher
 ) -> DispatchOutcome:
     """
-    Claim a batch for the mailbox and dispatch the drain matching its depth.
+    Claim a batch for the mailbox and dispatch its drain.
     Callers must hold the mailbox's drain lock so concurrent dispatchers cannot
     interleave around the claim.
 
@@ -500,12 +554,8 @@ def _claim_and_dispatch(
     claim = _claim_mailbox_batch(head_id, mailbox_name, dispatcher=dispatcher)
     if claim is None:
         return DispatchOutcome.NOT_DUE
-    if claim.claimed >= PARALLEL_DRAIN_THRESHOLD:
-        drain_mailbox_parallel.delay(**claim.task_args())
-        outcome = DispatchOutcome.PARALLEL
-    else:
-        drain_mailbox.delay(**claim.task_args())
-        outcome = DispatchOutcome.SEQUENTIAL
+    drain_mailbox.delay(**claim.task_args())
+    outcome = DispatchOutcome.PARALLEL if claim.threaded else DispatchOutcome.SEQUENTIAL
     _record_dispatch(
         dispatcher=dispatcher,
         drain=outcome,
@@ -877,29 +927,32 @@ def drain_mailbox(
     mailbox: str | None = None,
 ) -> None:
     """
-    Deliver webhooks from the mailbox that `payload_id` is the head of, in order.
+    Deliver webhooks from the mailbox that `payload_id` is the head of — in order,
+    or in concurrent waves when the claim qualifies (`_MailboxClaim.threaded`).
 
     The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`);
     each defaults so a rolling deploy can bind drains the previous version sent.
     """
     claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
     if claim is not None:
-        _drain_sequentially(claim)
+        _drain_mailbox(claim)
 
 
-def _drain_sequentially(claim: _MailboxClaim) -> None:
+def _drain_mailbox(claim: _MailboxClaim) -> None:
     """
-    Deliver the claimed records in order until one fails, the claim's deadline
-    passes, or all of them have been processed.
+    Deliver the claimed records until a strict provider's record fails, the claim
+    nears its deadline, or all of them have been processed. Threaded claims
+    (`_MailboxClaim.threaded`) deliver in concurrent waves sized to the work left;
+    every other claim delivers one record at a time, in order.
 
     The drain holds no lock, so it must not deliver past the records its dispatcher
     claimed: beyond them the mailbox head is due again and another dispatcher may
     already be draining it.
     """
     delivery_tags = claim.delivery_tags
-    mailbox = claim.mailbox_name
-    provider = claim.provider
     skip_on_failure = claim.skip_on_failure
+    threaded = claim.threaded
+    worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
 
     deleter = _deleter_for()
 
@@ -907,13 +960,18 @@ def _drain_sequentially(claim: _MailboxClaim) -> None:
     failed = 0
     remaining = claim.claimed
     current_id = claim.head_id
-    log_context = {"id": claim.head_id, "mailbox_name": mailbox, "provider": provider}
+    log_context = {
+        "id": claim.head_id,
+        "mailbox_name": claim.mailbox_name,
+        "provider": claim.provider,
+    }
     try:
         while True:
-            if claim.lapsed(
-                log_key="deliver_webhook.delivery_deadline",
-                extra={**log_context, "delivered": delivered},
-            ):
+            extra = {**log_context, "delivered": delivered}
+            if claim.lapsed(log_key="deliver_webhook.delivery_deadline", extra=extra):
+                break
+            if claim.nearing_deadline():
+                claim.release_remainder(current_id, extra=extra)
                 break
 
             # Slices of 100 keep query duration down and avoid reading records a
@@ -921,61 +979,70 @@ def _drain_sequentially(claim: _MailboxClaim) -> None:
             records = claim.next_slice(current_id, min(100, remaining))
             if records is None:
                 return
-            batch_count = 0
-            for record in records:
-                batch_count += 1
-                # Advance past this record regardless of outcome so that failed
-                # messages are not re-attempted in subsequent batches of this drain.
-                current_id = record.id + 1
-                try:
-                    if deliver_message(record, deleter, delivery_tags=delivery_tags):
-                        delivered += 1
-                except DeliveryFailed:
-                    failed += 1
-                    metrics.incr(
-                        "hybridcloud.deliver_webhooks.delivery",
-                        tags={
-                            **delivery_tags,
-                            "outcome": "retry",
-                        },
-                    )
-                    if not skip_on_failure:
-                        # For providers that require strict ordering, stop on the
-                        # first failure so subsequent messages are not delivered
-                        # out of order.
-                        return
-                    # For allowlisted providers: skip the failed message and
-                    # continue. It has already been rescheduled by deliver_message.
-                    continue
-
-            # No more messages to deliver
-            if batch_count < 1:
+            if not records:
                 if failed > 0:
                     logger.info(
                         "deliver_webhook.delivery_complete_with_failures",
-                        extra={**log_context, "delivered": delivered, "failed": failed},
+                        extra={**extra, "failed": failed},
                     )
                 else:
-                    logger.debug(
-                        "deliver_webhook.delivery_complete",
-                        extra={**log_context, "delivered": delivered},
-                    )
+                    logger.debug("deliver_webhook.delivery_complete", extra=extra)
                 return
 
-            remaining -= batch_count
-            if remaining <= 0:
-                # Claim exhausted. Rows past this point belong to whichever
-                # dispatcher claims them next; delivering them here would race
-                # a drain that dispatcher may have started.
-                logger.debug(
-                    "deliver_webhook.claim_exhausted",
-                    extra={**log_context, "delivered": delivered},
-                )
-                metrics.incr(
-                    "hybridcloud.deliver_webhooks.delivery",
-                    tags={**delivery_tags, "outcome": "claim_exhausted"},
-                )
-                return
+            index = 0
+            while index < len(records) and not claim.nearing_deadline():
+                if threaded:
+                    concurrency = min(worker_threads, math.ceil(remaining / MIN_RECORDS_PER_THREAD))
+                    wave = records[index : index + concurrency]
+                    # Read before delivery: an immediate delete clears pk on the
+                    # in-memory instance. Advancing past the whole wave is also what
+                    # keeps failed rows, left with a future schedule_for, from being
+                    # re-attempted here. Threading requires skip_on_failure, so a
+                    # failed request never stops the drain.
+                    next_id = wave[-1].id + 1
+                    delivered += _run_parallel_delivery_batch(
+                        wave, deleter, delivery_tags=delivery_tags
+                    )
+                    current_id = next_id
+                    index += len(wave)
+                    remaining -= len(wave)
+                else:
+                    record = records[index]
+                    # Advance past this record regardless of outcome so that failed
+                    # messages are not re-attempted later in this drain.
+                    current_id = record.id + 1
+                    index += 1
+                    remaining -= 1
+                    try:
+                        if deliver_message(record, deleter, delivery_tags=delivery_tags):
+                            delivered += 1
+                    except DeliveryFailed:
+                        failed += 1
+                        metrics.incr(
+                            "hybridcloud.deliver_webhooks.delivery",
+                            tags={**delivery_tags, "outcome": "retry"},
+                        )
+                        if not skip_on_failure:
+                            # For providers that require strict ordering, stop on the
+                            # first failure so subsequent messages are not delivered
+                            # out of order.
+                            return
+                        # For allowlisted providers: skip the failed message and
+                        # continue. It has already been rescheduled by deliver_message.
+
+                if remaining <= 0:
+                    # Claim exhausted. Rows past this point belong to whichever
+                    # dispatcher claims them next; delivering them here would race
+                    # a drain that dispatcher may have started.
+                    logger.debug(
+                        "deliver_webhook.claim_exhausted",
+                        extra={**log_context, "delivered": delivered},
+                    )
+                    metrics.incr(
+                        "hybridcloud.deliver_webhooks.delivery",
+                        tags={**delivery_tags, "outcome": "claim_exhausted"},
+                    )
+                    return
     finally:
         deleter.flush()
 
@@ -1051,6 +1118,28 @@ def _discard_if_stale(
     return True
 
 
+def _discard_if_exhausted(
+    payload: WebhookPayload, deleter: _PayloadDeleter, *, delivery_tags: Mapping[str, str]
+) -> bool:
+    """
+    Discard the payload when its delivery attempts are spent; returns whether it
+    was discarded. Checked before the request so an exhausted record never gets
+    an extra attempt.
+    """
+    if payload.attempts < MAX_ATTEMPTS:
+        return False
+    deleter.delete(payload)
+    # Unsampled: this is the count of webhooks we permanently dropped, so it
+    # wants an exact total rather than an estimated rate.
+    metrics.incr(
+        "hybridcloud.deliver_webhooks.delivery",
+        tags={**delivery_tags, "outcome": "attempts_exceed"},
+        sample_rate=1.0,
+    )
+    logger.warning("deliver_webhook.discard", extra={**payload.as_dict()})
+    return True
+
+
 def _record_delivery_time_metrics(
     payload: WebhookPayload, *, delivery_tags: Mapping[str, str]
 ) -> None:
@@ -1084,10 +1173,10 @@ def _handle_parallel_delivery_result(
     deleter: _PayloadDeleter,
     *,
     delivery_tags: Mapping[str, str],
-) -> tuple[bool, bool]:
+) -> bool:
     """
     Process one result from the parallel delivery threadpool.
-    Returns (request_failed, should_reraise).
+    Returns whether `err` is unexpected and must be re-raised.
     """
     payload_data = payload_record.as_dict()
     if isinstance(err, DeliveryDropped):
@@ -1101,36 +1190,19 @@ def _handle_parallel_delivery_result(
                 "outcome": err.outcome,
             },
         )
-        return (False, False)
+        return False
     if err:
-        if payload_record.attempts >= MAX_ATTEMPTS:
-            deleter.delete(payload_record)
-            # Unsampled: this is the count of webhooks we permanently dropped, so it
-            # wants an exact total rather than an estimated rate.
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery",
-                tags={
-                    **delivery_tags,
-                    "outcome": "attempts_exceed",
-                },
-                sample_rate=1.0,
-            )
-            logger.warning(
-                "deliver_webhook.discard",
-                extra={**payload_data},
-            )
-            request_failed = False
-        else:
-            metrics.incr(
-                "hybridcloud.deliver_webhooks.delivery",
-                tags={
-                    **delivery_tags,
-                    "outcome": "retry",
-                },
-            )
-            payload_record.schedule_next_attempt()
-            request_failed = True
-        return (request_failed, not isinstance(err, DeliveryFailed))
+        # Attempts-exhausted rows are discarded before delivery, so a failure here
+        # always has a retry left; the reschedule spends it.
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.delivery",
+            tags={
+                **delivery_tags,
+                "outcome": "retry",
+            },
+        )
+        payload_record.schedule_next_attempt()
+        return not isinstance(err, DeliveryFailed)
     date_added = payload_record.date_added
     deleter.delete(payload_record)
     _record_delivery_time_metrics(payload_record, delivery_tags=delivery_tags)
@@ -1140,14 +1212,7 @@ def _handle_parallel_delivery_result(
     )
     if timezone.now() - date_added >= SLOW_DELIVERY_THRESHOLD:
         logger.warning("deliver_webhook.slow_delivery", extra=payload_data)
-    return (False, False)
-
-
-class _ParallelBatch(NamedTuple):
-    """What one parallel batch delivered, and whether any request needs a retry."""
-
-    delivered: int
-    request_failed: bool
+    return False
 
 
 def _run_parallel_delivery_batch(
@@ -1155,23 +1220,26 @@ def _run_parallel_delivery_batch(
     deleter: _PayloadDeleter,
     *,
     delivery_tags: Mapping[str, str],
-) -> "_ParallelBatch":
+) -> int:
     """
-    Deliver one batch of already-fetched records in parallel.
+    Deliver one batch of already-fetched records in parallel; returns how many
+    were delivered. Failed records are rescheduled with a backoff and skipped —
+    only skip-on-failure claims deliver in waves (`_MailboxClaim.threaded`).
 
     The caller fetches so that it can inspect the batch before any of it is
-    delivered — see the head check in `_drain_in_parallel`.
+    delivered — see the head check in `_MailboxClaim.next_slice`.
     """
-    # Stale rows are discarded in place of delivery, consuming claim budget
-    # like any delivered row rather than being swept out from under the claim.
+    # Stale and attempts-exhausted rows are discarded in place of delivery,
+    # consuming claim budget like any delivered row rather than being swept out
+    # from under the claim.
     fresh_records = [
         record
         for record in records
-        if not _discard_if_stale(record, deleter, delivery_tags=delivery_tags)
+        if not _discard_if_exhausted(record, deleter, delivery_tags=delivery_tags)
+        and not _discard_if_stale(record, deleter, delivery_tags=delivery_tags)
     ]
 
     delivered = 0
-    request_failed = False
     if fresh_records:
         with ContextPropagatingThreadPoolExecutor(max_workers=len(fresh_records)) as threadpool:
             futures = {
@@ -1179,15 +1247,14 @@ def _run_parallel_delivery_batch(
             }
             for future in as_completed(futures):
                 payload_record, err = future.result()
-                batch_request_failed, should_reraise = _handle_parallel_delivery_result(
+                should_reraise = _handle_parallel_delivery_result(
                     payload_record, err, deleter, delivery_tags=delivery_tags
                 )
-                request_failed = request_failed or batch_request_failed
                 if should_reraise and err is not None:
                     raise err
                 if err is None:
                     delivered += 1
-    return _ParallelBatch(delivered, request_failed)
+    return delivered
 
 
 @instrumented_task(
@@ -1205,76 +1272,13 @@ def drain_mailbox_parallel(
     mailbox: str | None = None,
 ) -> None:
     """
-    Deliver webhooks from the mailbox that `payload_id` is the head of, in small
-    parallel batches. Takes the same flattened claim as `drain_mailbox`.
+    Transitional alias from when sequential and parallel delivery were separate
+    tasks; `drain_mailbox` now runs both modes. Dispatch no longer enqueues this,
+    so it is deletable once no drains from the previous deploy are left in flight.
     """
     claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
     if claim is not None:
-        _drain_in_parallel(claim)
-
-
-def _drain_in_parallel(claim: _MailboxClaim) -> None:
-    """
-    Deliver the claimed records in small parallel batches, trading strict ordering
-    for throughput; delivery within a mailbox is otherwise sequential.
-
-    Batches run until a non-skippable failure, the claim's deadline, or the end of
-    the claim — bounded exactly as `_drain_sequentially`, and skipping past
-    retryable failures for the same allowlisted providers.
-    """
-    delivery_tags = claim.delivery_tags
-    mailbox = claim.mailbox_name
-    skip_on_failure = claim.skip_on_failure
-
-    worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
-    deleter = _deleter_for()
-    delivered = 0
-    remaining = claim.claimed
-    current_id = claim.head_id
-    log_context = {"id": claim.head_id, "mailbox_name": mailbox, "provider": claim.provider}
-    try:
-        while True:
-            extra = {**log_context, "delivered": delivered}
-            if claim.lapsed(log_key="deliver_webhook.delivery_deadline", extra=extra):
-                break
-
-            records = claim.next_slice(current_id, min(worker_threads, remaining))
-            if records is None:
-                return
-            if not records:
-                logger.info("deliver_webhook.task_complete", extra=extra)
-                break
-
-            # Read before delivery: an immediate delete clears pk on the in-memory
-            # instance. Advancing past the whole batch is also what keeps failed
-            # rows, left with a future schedule_for, from being re-attempted here.
-            next_id = records[-1].id + 1
-            attempted = len(records)
-
-            batch = _run_parallel_delivery_batch(records, deleter, delivery_tags=delivery_tags)
-            delivered += batch.delivered
-            extra = {**log_context, "delivered": delivered}
-            current_id = next_id
-
-            remaining -= attempted
-            if remaining <= 0:
-                # Claim exhausted. Rows past this point belong to whichever
-                # dispatcher claims them next; delivering them here would race
-                # a drain that dispatcher may have started.
-                logger.debug("deliver_webhook.claim_exhausted", extra=extra)
-                metrics.incr(
-                    "hybridcloud.deliver_webhooks.delivery",
-                    tags={**delivery_tags, "outcome": "claim_exhausted"},
-                )
-                return
-
-            if batch.request_failed and not skip_on_failure:
-                # For providers that require stricter mailbox behavior, stop on
-                # the first batch that had a retryable failure.
-                logger.info("deliver_webhook.delivery_request_failed", extra=extra)
-                return
-    finally:
-        deleter.flush()
+        _drain_mailbox(claim)
 
 
 def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
@@ -1296,19 +1300,7 @@ def deliver_message(
     False even though it was removed from the mailbox.
     """
     payload_data = payload.as_dict()
-    if payload.attempts >= MAX_ATTEMPTS:
-        deleter.delete(payload)
-
-        # Unsampled: see the parallel discard path above.
-        metrics.incr(
-            "hybridcloud.deliver_webhooks.delivery",
-            tags={
-                **delivery_tags,
-                "outcome": "attempts_exceed",
-            },
-            sample_rate=1.0,
-        )
-        logger.warning("deliver_webhook.discard", extra={**payload_data})
+    if _discard_if_exhausted(payload, deleter, delivery_tags=delivery_tags):
         return False
 
     if _discard_if_stale(payload, deleter, delivery_tags=delivery_tags):
