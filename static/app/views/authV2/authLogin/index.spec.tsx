@@ -291,9 +291,10 @@ describe('AuthLogin', () => {
         screen.getByRole('button', {name: 'Return to the old login experience'})
       );
 
-      expect(Cookies.get('sentry_react_auth')).toBeUndefined();
+      expect(Cookies.get('sentry_react_auth')).toBe('0');
       expect(testableWindowLocation.reload).toHaveBeenCalled();
     } finally {
+      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/'});
       Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/auth/'});
       setWindowLocation(originalLocation);
     }
