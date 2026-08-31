@@ -13,7 +13,11 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import (
+    CustomDetectorEvaluation,
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -24,6 +28,9 @@ logger = logging.getLogger(__name__)
 
 DataPacketType = TypeVar("DataPacketType")
 DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
+DataPacketEvaluationResultType = TypeVar(
+    "DataPacketEvaluationResultType", bound=DataConditionGroupEvaluation | CustomDetectorEvaluation
+)
 
 EventData = dict[str, Any]
 
@@ -86,13 +93,20 @@ class GroupedDetectorEvaluationResult:
     tainted: bool
 
 
-class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
+class BaseDetectorHandler(
+    abc.ABC,
+    Generic[DataPacketType, DataPacketEvaluationType, DataPacketEvaluationResultType],
+):
     """
     Abstract base class defining the public interface for detector handlers.
 
     DataPacketType is what we've embedded within the data packet.
+
     DataPacketEvaluationType is the type of the value to be extracted from the data packet and
     used to evaluate the conditions on the detector.
+
+    DataPacketEvaluationResultType is the type of the evaluation that explains why the detector
+    triggered.
     """
 
     def __init__(self, detector: Detector):
@@ -125,7 +139,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     @abc.abstractmethod
     def create_occurrence(
         self,
-        evaluation: DataConditionGroupEvaluation,
+        evaluation: DataPacketEvaluationResultType,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
@@ -140,7 +154,9 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         pass
 
 
-class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationType]):
+class ConditionDetectorHandler(
+    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType, DataConditionGroupEvaluation]
+):
     """
     Base implementation class providing shared infrastructure for detector handlers.
     Includes metrics tracking and condition group loading around the `evaluate` template method.

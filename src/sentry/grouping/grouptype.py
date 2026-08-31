@@ -22,7 +22,7 @@ from sentry.workflow_engine.types import (
 )
 
 
-class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
+class ErrorDetectorHandler(BaseDetectorHandler[object, object, DataConditionGroupEvaluation]):
     """Placeholder handler for error group types."""
 
     def _evaluate(
