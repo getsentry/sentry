@@ -181,6 +181,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_tools=False,
             enable_coding=False,
             enable_code_mode_tools="off",
+            enable_embed_references=True,
             reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
@@ -272,6 +273,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 enable_bash_tools=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
+                enable_embed_references=True,
                 reasoning_effort="medium",
             )
 
@@ -299,6 +301,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_tools=False,
             enable_coding=False,
             enable_code_mode_tools="off",
+            enable_embed_references=True,
             reasoning_effort="medium",
         )
         mock_client.continue_run.assert_called_once_with(
@@ -498,6 +501,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 enable_bash_tools=False,
                 enable_coding=feature_enabled and option_enabled,
                 enable_code_mode_tools="off",
+                enable_embed_references=True,
                 reasoning_effort="medium",
             )
 
