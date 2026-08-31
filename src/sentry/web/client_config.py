@@ -44,6 +44,7 @@ from sentry.types.cell import (
     get_locality_name_for_cell,
 )
 from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 from sentry.users.services.user import UserSerializeType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -503,24 +504,22 @@ class _ClientConfig:
         }
 
 
+THEME_VALUES = frozenset({"light", "dark", "system"})
+
+
 def get_user_theme_class(request: HttpRequest | None = None) -> str:
-    """
-    Body class for UI theme, matching the React shell (`theme-light|dark|system`).
+    """Body class for UI theme (theme-light|dark|system), matching the React shell.
 
-    Used by Django HTML layouts (including auth templates) so first paint and
-    non-SPA pages follow the same preference React uses: authenticated users'
-    `theme` option, otherwise `system` (OS prefers-color-scheme).
+    Called on every page render; never raises, falls back to "system".
     """
-    theme = "system"
-    if request is not None and getattr(request, "user", None) is not None:
-        user = request.user
-        if getattr(user, "is_authenticated", False):
-            from sentry.users.models.user_option import UserOption
-
-            value = UserOption.objects.get_value(user=user, key="theme", default="system")
-            if value in ("light", "dark", "system"):
-                theme = value
-    return f"theme-{theme}"
+    try:
+        if request is not None and request.user.is_authenticated:
+            value = UserOption.objects.get_value(user=request.user, key="theme", default="system")
+            if value in THEME_VALUES:
+                return f"theme-{value}"
+    except Exception:
+        sentry_sdk.capture_exception()
+    return "theme-system"
 
 
 def get_client_config(

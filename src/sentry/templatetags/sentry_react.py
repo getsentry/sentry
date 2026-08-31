@@ -1,7 +1,7 @@
 from django import template
 
 from sentry.utils import json
-from sentry.web.client_config import get_client_config, get_user_theme_class
+from sentry.web.client_config import THEME_VALUES, get_client_config, get_user_theme_class
 
 register = template.Library()
 
@@ -15,5 +15,13 @@ def get_react_config(context):
 
 @register.simple_tag(takes_context=True)
 def user_theme_class(context):
-    """Body theme class shared with the React shell (theme-light|dark|system)."""
+    """Body theme class shared with the React shell (theme-light|dark|system).
+
+    react_config already carries this for React-embedded pages; reuse it
+    instead of re-querying UserOption.
+    """
+    react_config = context.get("react_config") or {}
+    theme = ((react_config.get("user") or {}).get("options") or {}).get("theme")
+    if theme in THEME_VALUES:
+        return f"theme-{theme}"
     return get_user_theme_class(context.get("request"))

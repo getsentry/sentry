@@ -19,7 +19,7 @@ from sentry.types.cell import (
     subdomain_is_locality,
 )
 from sentry.utils.http import is_using_customer_domain, query_string
-from sentry.web.client_config import get_client_config, get_user_theme_class
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -84,9 +84,6 @@ class ReactMixin:
     ) -> HttpResponse:
         org_context = getattr(self, "active_organization", None)
         react_config = get_client_config(request, org_context)
-        # Theme is applied on layout body via {% user_theme_class %}; keep user_theme
-        # for any templates still reading the context var.
-        user_theme = get_user_theme_class(request)
 
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
@@ -101,7 +98,6 @@ class ReactMixin:
             # save some work and render it faster.
             "org_context": org_context,
             "react_config": react_config,
-            "user_theme": user_theme,
         }
 
         # Force a new CSRF token to be generated and set in user's
