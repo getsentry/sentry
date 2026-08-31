@@ -1156,40 +1156,34 @@ class _ParallelBatch(NamedTuple):
     What one parallel batch did.
 
     `next_start_id` is one past the highest id attempted so callers can advance
-    past failed rows (e.g. skip-on-failure providers), and `head_id` is the first
-    id the batch saw — None on both when the mailbox held nothing at `start_id`.
+    past failed rows (e.g. skip-on-failure providers), None when the batch was
+    empty.
     """
 
     attempted: int
     delivered: int
     request_failed: bool
     next_start_id: int | None
-    head_id: int | None
 
 
 def _run_parallel_delivery_batch(
-    mailbox_name: str,
-    start_id: int,
-    batch_size: int,
+    records: Sequence[WebhookPayload],
     deleter: _PayloadDeleter,
     *,
     dispatch_tags: Mapping[str, str],
 ) -> "_ParallelBatch":
     """
-    Run one batch of up to `batch_size` parallel deliveries for the mailbox.
+    Deliver one batch of already-fetched records in parallel.
+
+    The caller fetches so that it can inspect the batch before any of it is
+    delivered — see the head check in `_drain_in_parallel`.
     """
-    records = list(
-        WebhookPayload.objects.filter(id__gte=start_id, mailbox_name=mailbox_name).order_by("id")[
-            :batch_size
-        ]
-    )
     if not records:
-        return _ParallelBatch(0, 0, False, None, None)
+        return _ParallelBatch(0, 0, False, None)
 
     # Capture before delivery/discard — an immediate delete clears pk on the
     # in-memory instance.
     next_start_id = records[-1].id + 1
-    head_id = records[0].id
     attempted = len(records)
 
     # Stale rows are discarded in place of delivery, consuming claim budget
@@ -1203,7 +1197,7 @@ def _run_parallel_delivery_batch(
     delivered = 0
     request_failed = False
     if fresh_records:
-        with ContextPropagatingThreadPoolExecutor(max_workers=batch_size) as threadpool:
+        with ContextPropagatingThreadPoolExecutor(max_workers=attempted) as threadpool:
             futures = {
                 threadpool.submit(deliver_message_parallel, record) for record in fresh_records
             }
@@ -1217,7 +1211,7 @@ def _run_parallel_delivery_batch(
                     raise err
                 if err is None:
                     delivered += 1
-    return _ParallelBatch(attempted, delivered, request_failed, next_start_id, head_id)
+    return _ParallelBatch(attempted, delivered, request_failed, next_start_id)
 
 
 @instrumented_task(
@@ -1276,18 +1270,18 @@ def _drain_in_parallel(claim: _MailboxClaim) -> None:
                 break
 
             batch_size = min(worker_threads, remaining)
-            batch = _run_parallel_delivery_batch(
-                mailbox,
-                current_id,
-                batch_size,
-                deleter,
-                dispatch_tags=dispatch_tags,
+            records = list(
+                WebhookPayload.objects.filter(id__gte=current_id, mailbox_name=mailbox).order_by(
+                    "id"
+                )[:batch_size]
             )
-            if current_id == claim.head_id and batch.head_id != claim.head_id:
+            if current_id == claim.head_id and (not records or records[0].id != claim.head_id):
                 # First batch, and the head is not at its front: it has been
-                # delivered by whoever claimed it next.
+                # delivered by whoever claimed it next. Checked before delivering
+                # any of them, since they are that drain's to deliver.
                 claim.record_lost_head("deliver_webhook.potential_race")
                 return
+            batch = _run_parallel_delivery_batch(records, deleter, dispatch_tags=dispatch_tags)
             attempted, delivered_batch, request_failed, next_id = (
                 batch.attempted,
                 batch.delivered,
