@@ -261,7 +261,6 @@ class SentryAppWebhookRequestsGetTest(APITestCase):
         assert len(response.data) == 2
 
     def test_request_id_subject_and_duration_on_success_and_error_rows(self) -> None:
-        """request_id, subject, and duration are surfaced on both success and error rows."""
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
         now = datetime.now() - timedelta(hours=1)
