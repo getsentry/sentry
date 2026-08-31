@@ -14,7 +14,11 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import (
+    CustomDetectorEvaluation,
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
@@ -89,13 +93,11 @@ class GroupedDetectorEvaluationResult:
     tainted: bool
 
 
-class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
+class BaseDetectorHandler(abc.ABC, Generic[DataPacketType]):
     """
     Abstract base class defining the public interface for detector handlers.
 
     DataPacketType is what we've embedded within the data packet.
-    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
-    used to evaluate the conditions on the detector.
     """
 
     def __init__(self, detector: Detector):
@@ -105,14 +107,31 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
+        """
+        Evaluates a data packet, and returns the evaluation for each group in it.
+
+        This is what the detector processor calls; `DetectorHandler` provides an
+        implementation that most handlers can rely on.
+        """
         pass
 
-    @abc.abstractmethod
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
-        """
-        This method is used to evaluate the data packet's value against the conditions on the detector.
-        """
-        pass
+
+class DetectorHandler(
+    BaseDetectorHandler[DataPacketType], Generic[DataPacketType, DataPacketEvaluationType]
+):
+    """
+    Base implementation class for detectors that make their decision without data condition groups
+
+    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
+    used to make the detector's trigger decision.
+
+    Nothing is loaded from the database. The subclass implements `evaluate` however it likes and
+    returns the evaluation that explains the decision; `CustomDetectorEvaluation` covers the
+    common case.
+
+    This class also provides the default `evaluate_data_packet` flow, so a subclass only has to
+    supply `extract_value`, `evaluate`, and `create_occurrence`.
+    """
 
     @abc.abstractmethod
     def extract_value(
@@ -121,59 +140,40 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         """
         Extracts the evaluation value from the data packet to be processed.
 
-        This value is used to determine if the data condition group is in a triggered state.
+        This value is what `evaluate` decides on.
+        """
+        pass
+
+    @abc.abstractmethod
+    def evaluate(
+        self, value: DataPacketEvaluationType
+    ) -> tuple[
+        DataConditionGroupEvaluation | CustomDetectorEvaluation | None, DetectorPriorityLevel
+    ]:
+        """
+        Decides whether the extracted value should trigger the detector, and at what priority.
+
+        Return `None` for the evaluation when no decision could be made, and
+        `DetectorPriorityLevel.OK` for the priority when the decision was "do not trigger".
         """
         pass
 
     @abc.abstractmethod
     def create_occurrence(
         self,
-        evaluation: DataConditionGroupEvaluation,
+        evaluation: DataConditionGroupEvaluation | CustomDetectorEvaluation,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         """
-        This method provides the value that was evaluated against, the data packet that was
-        used to get the data, and the condition(s) that are failing.
+        This method provides the evaluation that triggered the detector, the data packet that
+        was used to get the data, and the priority that was decided on.
 
         To implement this, you will need to create a new `DetectorOccurrence` object,
         to represent the issue that was detected. Additionally, you can return any
         event_data to associate with the occurrence.
         """
         pass
-
-
-class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationType]):
-    """
-    Base implementation class for detectors that rely on data condition groups to make decisions
-
-    Includes metrics tracking and condition group loading around the `_evaluate` template method
-
-    Also includes a default `evaluate` implementation that subclasses can rely on or override.
-    """
-
-    def __init__(self, detector: Detector):
-        super().__init__(detector)
-        if detector.workflow_condition_group_id is not None:
-            try:
-                # Check if workflow_condition_group is already prefetched
-                if Detector.workflow_condition_group.is_cached(detector):
-                    group = detector.workflow_condition_group
-                else:
-                    group = DataConditionGroup.objects.get_from_cache(
-                        id=detector.workflow_condition_group_id
-                    )
-
-                self.condition_group: DataConditionGroup | None = group
-            except DataConditionGroup.DoesNotExist:
-                logger.exception(
-                    "Failed to find the data condition group for detector",
-                    extra={"detector_id": detector.id},
-                )
-
-                self.condition_group = None
-        else:
-            self.condition_group = None
 
     def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -184,7 +184,7 @@ class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEva
         }
 
         try:
-            value = self.evaluate(data_packet)
+            value = self.evaluate_data_packet(data_packet)
 
             tags["result"] = "tainted" if value.tainted else "success"
 
@@ -198,29 +198,31 @@ class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEva
 
             raise
 
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
+    def evaluate_data_packet(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> GroupedDetectorEvaluationResult:
         """
-        A default, stateless evaluation using data condition groups
+        A default, stateless evaluation
 
-        Extracts the value from the packet, evaluates the condition group, and creates an occurrence when
-        the conditions trigger
+        Extracts the value from the packet, decides whether it triggers the detector, and
+        creates an occurrence when it does
 
-        Override "evaluate_conditions" and "get_issue_fingerprint", and "get_occurrence_id" to modify default this evaluation
+        Override "evaluate", "get_issue_fingerprint", and "get_occurrence_id" to modify this default evaluation
 
-        Override "evaluate" itself to have a custom evaluation flow
+        Override "evaluate_data_packet" itself to have a custom evaluation flow
         """
         extracted_value = self.extract_value(data_packet)
 
         if self._is_detector_group_value(extracted_value):
             logger.warning(
-                "The default implementation of evaluate expects a single value, but a dictionary of values was returned. To support grouping, please override the evaluate method"
+                "The default implementation of evaluate_data_packet expects a single value, but a dictionary of values was returned. To support grouping, please override the evaluate_data_packet method"
             )
 
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
         value = cast(DataPacketEvaluationType, extracted_value)
 
-        trigger_evaluation, priority = self.evaluate_conditions(value)
+        trigger_evaluation, priority = self.evaluate(value)
 
         if trigger_evaluation is None:
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
@@ -262,47 +264,6 @@ class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEva
         return GroupedDetectorEvaluationResult(
             result={None: detector_evaluation}, tainted=trigger_evaluation.is_tainted()
         )
-
-    def evaluate_conditions(
-        self, value: DataPacketEvaluationType
-    ) -> tuple[DataConditionGroupEvaluation | None, DetectorPriorityLevel]:
-        """
-        Evaluate the detector's trigger condition group against the extracted value.
-
-        Returns the group evaluation and the highest `DetectorPriorityLevel` among the
-        conditions that triggered, or `DetectorPriorityLevel.OK` when nothing triggered.
-        """
-        if self.condition_group is None:
-            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
-            return None, DetectorPriorityLevel.OK
-
-        group_evaluation, remaining_slow_conditions = process_data_condition_group(
-            self.condition_group, value
-        )
-
-        if remaining_slow_conditions:
-            logger.warning(
-                "Slow conditions present for detector",
-                extra={
-                    "detector_id": self.detector.id,
-                    "condition_group_id": self.condition_group.id,
-                },
-            )
-
-        if not group_evaluation.triggered:
-            return group_evaluation, DetectorPriorityLevel.OK
-
-        triggered_priorities: list[DetectorPriorityLevel] = [
-            condition_evaluation.result
-            for condition_evaluation in group_evaluation.data["condition_evaluations"]
-            if condition_evaluation.triggered
-            and isinstance(condition_evaluation.result, DetectorPriorityLevel)
-        ]
-
-        if not triggered_priorities:
-            return group_evaluation, DetectorPriorityLevel.OK
-
-        return group_evaluation, max(triggered_priorities)
 
     def get_occurrence_id(self, event_data: EventData) -> str:
         id_in_event_data = event_data.get("event_id")
@@ -346,3 +307,77 @@ class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEva
 
         # Check if all keys are DetectorGroupKey instances
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
+
+
+class ConditionDetectorHandler(DetectorHandler[DataPacketType, DataPacketEvaluationType]):
+    """
+    Base implementation class for detectors that rely on data condition groups to make decisions
+
+    Loads the detector's condition group and implements `evaluate` by evaluating it, so
+    subclasses only need to supply `extract_value` and `create_occurrence` to get the default
+    `evaluate_data_packet` flow.
+    """
+
+    def __init__(self, detector: Detector):
+        super().__init__(detector)
+        if detector.workflow_condition_group_id is not None:
+            try:
+                # Check if workflow_condition_group is already prefetched
+                if Detector.workflow_condition_group.is_cached(detector):
+                    group = detector.workflow_condition_group
+                else:
+                    group = DataConditionGroup.objects.get_from_cache(
+                        id=detector.workflow_condition_group_id
+                    )
+
+                self.condition_group: DataConditionGroup | None = group
+            except DataConditionGroup.DoesNotExist:
+                logger.exception(
+                    "Failed to find the data condition group for detector",
+                    extra={"detector_id": detector.id},
+                )
+
+                self.condition_group = None
+        else:
+            self.condition_group = None
+
+    def evaluate(
+        self, value: DataPacketEvaluationType
+    ) -> tuple[DataConditionGroupEvaluation | None, DetectorPriorityLevel]:
+        """
+        Evaluate the detector's trigger condition group against the extracted value.
+
+        Returns the group evaluation and the highest `DetectorPriorityLevel` among the
+        conditions that triggered, or `DetectorPriorityLevel.OK` when nothing triggered.
+        """
+        if self.condition_group is None:
+            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
+            return None, DetectorPriorityLevel.OK
+
+        group_evaluation, remaining_slow_conditions = process_data_condition_group(
+            self.condition_group, value
+        )
+
+        if remaining_slow_conditions:
+            logger.warning(
+                "Slow conditions present for detector",
+                extra={
+                    "detector_id": self.detector.id,
+                    "condition_group_id": self.condition_group.id,
+                },
+            )
+
+        if not group_evaluation.triggered:
+            return group_evaluation, DetectorPriorityLevel.OK
+
+        triggered_priorities: list[DetectorPriorityLevel] = [
+            condition_evaluation.result
+            for condition_evaluation in group_evaluation.data["condition_evaluations"]
+            if condition_evaluation.triggered
+            and isinstance(condition_evaluation.result, DetectorPriorityLevel)
+        ]
+
+        if not triggered_priorities:
+            return group_evaluation, DetectorPriorityLevel.OK
+
+        return group_evaluation, max(triggered_priorities)

@@ -1,4 +1,6 @@
 __all__ = [
+    "BaseWorkflowEngineEvaluation",
+    "CustomDetectorEvaluation",
     "DataConditionEvaluation",
     "DataConditionEvaluationException",
     "DataConditionGroupEvaluation",
@@ -15,10 +17,11 @@ __all__ = [
     "WorkflowEvaluationOutcome",
 ]
 
-from .base import EvaluationPhase, EvaluationType
+from .base import BaseWorkflowEngineEvaluation, EvaluationPhase, EvaluationType
 from .condition import DataConditionEvaluation, DataConditionEvaluationException
 from .condition_group import DataConditionGroupEvaluation
 from .detector import (
+    CustomDetectorEvaluation,
     DetectorEvaluation,
     DetectorEvaluationData,
     DetectorEvaluationOutcome,

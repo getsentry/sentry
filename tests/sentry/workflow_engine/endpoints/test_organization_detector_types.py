@@ -20,7 +20,11 @@ from sentry.workflow_engine.handlers.detector import (
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import (
+    CustomDetectorEvaluation,
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
@@ -43,7 +47,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         self.registry_patcher.start()
 
         class MockDetectorHandler(ConditionDetectorHandler[dict[Never, Never], bool]):
-            def evaluate(
+            def evaluate_data_packet(
                 self, data_packet: DataPacket[dict[Never, Never]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
@@ -71,7 +75,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def create_occurrence(
                 self,
-                evaluation_result: DataConditionGroupEvaluation,
+                evaluation_result: DataConditionGroupEvaluation | CustomDetectorEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:

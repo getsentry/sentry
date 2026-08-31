@@ -3,6 +3,7 @@ __all__ = [
     "ConditionDetectorHandler",
     "DataPacketEvaluationType",
     "DataPacketType",
+    "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
     "GroupedDetectorEvaluationResult",
@@ -14,6 +15,7 @@ from .base import (
     ConditionDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )

@@ -27,11 +27,11 @@ Before coding, identify:
 flowchart TD
     Start[New detector] --> State{Needs persisted priority, dedupe, thresholds, or resolution?}
     State -->|Yes| Stateful[Inherit StatefulDetectorHandler]
-    State -->|No| Shared{Can use shared condition loading and metrics?}
-    Shared -->|Yes| Base[Inherit BaseDetectorHandler]
-    Shared -->|No| Interface[Implement DetectorHandler]
-    Base --> Own[Implement full evaluate orchestration]
-    Interface --> OwnAll[Implement complete evaluate contract]
+    State -->|No| Shared{Decides with a data condition group?}
+    Shared -->|Yes| Condition[Inherit ConditionDetectorHandler]
+    Shared -->|No| Handler[Inherit DetectorHandler]
+    Condition --> Hooks[Implement extract_value and create_occurrence]
+    Handler --> Own[Implement extract_value, evaluate, and create_occurrence]
 ```
 
 ### `StatefulDetectorHandler`
@@ -52,22 +52,28 @@ It provides:
 
 Uptime and metric issues are canonical examples.
 
-### `BaseDetectorHandler`
+### `ConditionDetectorHandler`
 
-[`BaseDetectorHandler`](../handlers/detector/base.py) provides condition-group loading
-and common evaluation metrics, but it does not provide a general stateless evaluation
-algorithm. A concrete subclass must implement `evaluate`, `create_occurrence`,
-`extract_value`, and `extract_dedupe_value`; custom orchestration can provide trivial
-implementations for hooks it does not use. The subclass owns its state and output
-semantics.
+[`ConditionDetectorHandler`](../handlers/detector/base.py) loads the detector's data
+condition group and implements `evaluate` by processing it, so a subclass only supplies
+`extract_value` and `create_occurrence` to get the default stateless flow. Override
+`evaluate_data_packet` when that flow does not fit.
 
-Preprod size analysis is a canonical direct `BaseDetectorHandler` implementation.
+Preprod size analysis is a canonical `ConditionDetectorHandler` implementation with its
+own `evaluate_data_packet` orchestration.
 
 ### `DetectorHandler`
 
-[`DetectorHandler`](../handlers/detector/base.py) is the minimal interface. A direct
+[`DetectorHandler`](../handlers/detector/base.py) is for detectors that decide without a
+data condition group. Nothing is loaded from the database; the subclass implements
+`extract_value`, `evaluate`, and `create_occurrence`, and returns a
+`CustomDetectorEvaluation` to explain its decision.
+
+### `BaseDetectorHandler`
+
+[`BaseDetectorHandler`](../handlers/detector/base.py) is the minimal interface. A direct
 implementation receives a detector and must return the complete grouped evaluation map
-from `evaluate`. Use it only when the shared base behavior is inappropriate.
+from `_evaluate`. Use it only when the shared base behavior is inappropriate.
 
 ## Design the Packet and Evaluation Value
 
@@ -135,12 +141,12 @@ A `DetectorGroupKey` is `str | None`:
 
 ## Implement Occurrence Creation
 
-`BaseDetectorHandler.create_occurrence` has this contract:
+`DetectorHandler.create_occurrence` has this contract:
 
 ```python
 def create_occurrence(
     self,
-    evaluation: DataConditionGroupEvaluation,
+    evaluation: DataConditionGroupEvaluation | CustomDetectorEvaluation,
     data_packet: DataPacket[ExamplePacket],
     priority: DetectorPriorityLevel,
 ) -> tuple[DetectorOccurrence, EventData]:
@@ -564,7 +570,7 @@ shared references are:
 | [`UptimeDetectorHandler`](../../uptime/grouptype.py)                                                  | Stateful trigger/recovery thresholds, source data, evidence, and API config |
 | [`MetricIssueDetectorHandler`](../../incidents/grouptype.py)                                          | Stateful metric thresholds, anomaly payloads, and metric evidence           |
 | Processing error handlers in [`processing_errors/grouptype.py`](../../processing_errors/grouptype.py) | Customized state transitions and asymmetric resolution                      |
-| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Custom direct `BaseDetectorHandler` orchestration                           |
+| [`PreprodSizeAnalysisDetectorHandler`](../../preprod/size_analysis/grouptype.py)                      | Custom `ConditionDetectorHandler` orchestration                             |
 
 Copy architecture, not product assumptions. Each example has specialized producer,
 state, and lifecycle behavior.

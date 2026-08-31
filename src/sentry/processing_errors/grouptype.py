@@ -27,7 +27,11 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import (
+    CustomDetectorEvaluation,
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -126,7 +130,7 @@ class ProcessingErrorDetectorHandler(
     @override
     def create_occurrence(
         self,
-        evaluation_result: DataConditionGroupEvaluation,
+        evaluation_result: DataConditionGroupEvaluation | CustomDetectorEvaluation,
         data_packet: DataPacket[ProcessingErrorPacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
@@ -167,7 +171,7 @@ class ProcessingErrorDetectorHandler(
         return (occurrence, event_data)
 
     @override
-    def evaluate(
+    def evaluate_data_packet(
         self, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> GroupedDetectorEvaluationResult:
         """

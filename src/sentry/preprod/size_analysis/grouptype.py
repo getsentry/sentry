@@ -20,7 +20,11 @@ from sentry.workflow_engine.handlers.detector.base import (
     GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import (
+    CustomDetectorEvaluation,
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
@@ -217,7 +221,9 @@ class PreprodSizeAnalysisDetectorHandler(
             return False
 
     @override
-    def evaluate(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
+    def evaluate_data_packet(
+        self, data_packet: SizeAnalysisDataPacket
+    ) -> GroupedDetectorEvaluationResult:
         if not self._matches_query(data_packet):
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
 
@@ -305,10 +311,12 @@ class PreprodSizeAnalysisDetectorHandler(
 
     def create_occurrence(
         self,
-        evaluation: DataConditionGroupEvaluation,
+        evaluation: DataConditionGroupEvaluation | CustomDetectorEvaluation,
         data_packet: SizeAnalysisDataPacket,
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+        assert isinstance(evaluation, DataConditionGroupEvaluation)
+
         current_timestamp = datetime.now(dt_timezone.utc)
         metadata = data_packet.packet.get("metadata")
 

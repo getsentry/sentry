@@ -15,9 +15,28 @@ from .base import BaseWorkflowEngineEvaluation, EvaluationType
 from .condition_group import DataConditionGroupEvaluation
 
 
+@dataclass(frozen=True, kw_only=True)
+class CustomDetectorEvaluation(BaseWorkflowEngineEvaluation[DetectorPriorityLevel, dict[str, Any]]):
+    """
+    The trigger decision of a detector that does not use a DataConditionGroup.
+
+    Inherited properties
+    - result: DetectorPriorityLevel - The priority the detector decided on.
+    - data: dict - Whatever the handler wants to record about how it decided.
+    - error: ConditionError - Set when something went wrong while deciding.
+    - triggered: bool - Whether the decision should move the detector off `OK`.
+    """
+
+    @property
+    def artifact_fields(self) -> dict[str, Any]:
+        return {"result": self.result.value, "data": self.data}
+
+
 class DetectorEvaluationData(TypedDict):
     group_key: DetectorGroupKey
-    trigger_group_evaluation: DataConditionGroupEvaluation
+    # A DataConditionGroupEvaluation for condition based detectors, and a
+    # CustomDetectorEvaluation for the ones that decide another way.
+    trigger_group_evaluation: DataConditionGroupEvaluation | CustomDetectorEvaluation
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
 
 
