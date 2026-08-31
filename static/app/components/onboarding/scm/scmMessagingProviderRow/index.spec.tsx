@@ -204,7 +204,7 @@ describe('ScmMessagingProviderRow', () => {
       );
     });
 
-    it('opens the marketplace modal for MS Teams and does not call openPipelineModal', async () => {
+    it('opens the marketplace modal for MS Teams', async () => {
       mockPipeline();
       const installableMsteams: ScmMessagingResolvedProvider = {
         providerKey: 'msteams',

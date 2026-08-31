@@ -17,6 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 function MsTeamsConnection({
   Header,
   Body,
+  closeModal,
   provider,
 }: ModalRenderProps & {provider: IntegrationProvider}) {
   const organization = useOrganization();
@@ -51,6 +52,7 @@ function MsTeamsConnection({
                   already_installed: false,
                   organization,
                 });
+                closeModal();
               }}
             >
               {externalInstall.buttonText}
