@@ -5,15 +5,12 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelFooter} from 'sentry/components/panels/panelFooter';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -165,8 +162,18 @@ export function DataRequests() {
 
       <form.AppForm form={form}>
         <Panel>
-          <PanelHeader>Data lookup</PanelHeader>
-          <PanelBody withPadding>
+          <Flex
+            align="center"
+            padding="xl"
+            borderBottom="primary"
+            background="secondary"
+            radius="md md 0 0"
+          >
+            <Text size="sm" bold uppercase density="compressed">
+              Data lookup
+            </Text>
+          </Flex>
+          <Container padding="xl">
             <Stack gap="xl">
               <form.AppField name="orgSlug">
                 {field => (
@@ -199,12 +206,10 @@ export function DataRequests() {
                 )}
               </form.AppField>
             </Stack>
-          </PanelBody>
-          <PanelFooter>
-            <Flex justify="end" padding="xl">
-              <form.SubmitButton>Search</form.SubmitButton>
-            </Flex>
-          </PanelFooter>
+          </Container>
+          <Flex justify="end" padding="xl" borderTop="primary">
+            <form.SubmitButton>Search</form.SubmitButton>
+          </Flex>
         </Panel>
       </form.AppForm>
 
