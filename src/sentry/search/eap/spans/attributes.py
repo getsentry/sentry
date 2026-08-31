@@ -742,8 +742,9 @@ def device_class_context_constructor(params: SnubaParams, _resolver: Any) -> Vir
     #
     # Span-streaming / conventions store the class as `device.class` ("1"/"2"/"3").
     # Older V1 paths wrote `sentry.device.class`. Filters dual-read both keys in the
-    # resolver. VirtualColumnContext is single-source, so SELECT/group-by maps the
-    # convention name (historical streaming + new dual-written V1 data).
+    # resolver (OR for positive matches, AND for != / NOT IN; Unknown inverted).
+    # VirtualColumnContext is single-source, so SELECT/group-by maps the convention
+    # name (historical streaming + new dual-written V1 data).
     value_map = {"": "Unknown"}
     for device_class, values in DEVICE_CLASS.items():
         for value in values:

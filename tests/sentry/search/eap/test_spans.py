@@ -181,6 +181,104 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_device_class_filter_dual_reads_negation_ands_storage_keys(self) -> None:
+        """!device.class:high requires neither storage key to equal code \"3\"."""
+        where, having, contexts = self.resolver.resolve_query("!device.class:high")
+        assert having is None
+        assert all(context is None for context in contexts)
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="device.class", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_NOT_EQUALS,
+                            value=AttributeValue(val_str="3"),
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.device.class", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_NOT_EQUALS,
+                            value=AttributeValue(val_str="3"),
+                        )
+                    ),
+                ]
+            )
+        )
+
+    def test_device_class_filter_dual_reads_unknown_ands_storage_keys(self) -> None:
+        """device.class:Unknown only when both storage keys are missing or empty."""
+        where, having, contexts = self.resolver.resolve_query("device.class:Unknown")
+        assert having is None
+        assert all(context is None for context in contexts)
+
+        def unknown_side(name: str) -> TraceItemFilter:
+            key = AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING)
+            return TraceItemFilter(
+                or_filter=OrFilter(
+                    filters=[
+                        TraceItemFilter(
+                            not_filter=NotFilter(
+                                filters=[TraceItemFilter(exists_filter=ExistsFilter(key=key))]
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=key,
+                                op=ComparisonFilter.OP_EQUALS,
+                                value=AttributeValue(val_str=""),
+                            )
+                        ),
+                    ]
+                )
+            )
+
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    unknown_side("device.class"),
+                    unknown_side("sentry.device.class"),
+                ]
+            )
+        )
+
+    def test_device_class_filter_dual_reads_not_unknown_ors_storage_keys(self) -> None:
+        """!device.class:Unknown matches if either storage key is present and non-empty."""
+        where, having, contexts = self.resolver.resolve_query("!device.class:Unknown")
+        assert having is None
+        assert all(context is None for context in contexts)
+
+        def not_unknown_side(name: str) -> TraceItemFilter:
+            key = AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING)
+            return TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(exists_filter=ExistsFilter(key=key)),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=key,
+                                op=ComparisonFilter.OP_NOT_EQUALS,
+                                value=AttributeValue(val_str=""),
+                            )
+                        ),
+                    ]
+                )
+            )
+
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    not_unknown_side("device.class"),
+                    not_unknown_side("sentry.device.class"),
+                ]
+            )
+        )
+
     def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!span.description:foo")
         assert where == TraceItemFilter(

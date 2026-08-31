@@ -597,7 +597,17 @@ class SearchResolver:
         if legacy_filter is None:
             return convention_filter
 
-        combined = or_trace_item_filters(convention_filter, legacy_filter)
+        # Dual-read must follow De Morgan relative to the positive match:
+        # - concrete value: match if either key equals → OR; negate with AND
+        # - Unknown (""): unknown only if both keys missing/empty → AND; negate with OR
+        is_unknown = raw_values == "" or raw_values == [] or raw_values == [""]
+        is_negated = term.operator in ("!=", "NOT IN")
+        combine_with_and = (not is_unknown and is_negated) or (is_unknown and not is_negated)
+        combined = (
+            and_trace_item_filters(convention_filter, legacy_filter)
+            if combine_with_and
+            else or_trace_item_filters(convention_filter, legacy_filter)
+        )
         return combined if combined is not None else convention_filter
 
     def _device_class_raw_key_filter(
