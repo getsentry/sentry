@@ -144,77 +144,7 @@ describe('TestUptimeMonitorButton', () => {
     });
   });
 
-  it('calls onValidationError with response JSON on validation failure', async () => {
-    const responseBody = {
-      assertion: {error: 'compilation_error', details: 'Invalid expression'},
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/uptime-preview-check/`,
-      method: 'POST',
-      statusCode: 400,
-      body: responseBody,
-    });
-
-    const onValidationError = jest.fn();
-
-    render(
-      <TestUptimeMonitorButton
-        getFormData={() => ({
-          url: 'https://example.com',
-          method: 'GET',
-          headers: [],
-          body: null,
-          timeoutMs: 5000,
-          assertion: null,
-        })}
-        onValidationError={onValidationError}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
-
-    await waitFor(() => {
-      expect(onValidationError).toHaveBeenCalledWith(responseBody);
-    });
-    expect(indicators.addErrorMessage).not.toHaveBeenCalled();
-  });
-
-  it('shows error toast for server errors even when onValidationError is provided', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/uptime-preview-check/`,
-      method: 'POST',
-      statusCode: 500,
-      body: {detail: 'Internal server error'},
-    });
-
-    const onValidationError = jest.fn();
-
-    render(
-      <TestUptimeMonitorButton
-        getFormData={() => ({
-          url: 'https://example.com',
-          method: 'GET',
-          headers: [],
-          body: null,
-          timeoutMs: 5000,
-          assertion: null,
-        })}
-        onValidationError={onValidationError}
-      />,
-      {organization}
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Test Monitor'}));
-
-    await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Uptime check failed');
-    });
-    expect(onValidationError).not.toHaveBeenCalled();
-  });
-
-  it('falls back to error toast when onValidationError is not provided', async () => {
+  it('shows error toast on validation failure', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/uptime-preview-check/`,
       method: 'POST',
