@@ -21,7 +21,7 @@ from sentry.utils.flag import record_feature_flag
 from sentry.utils.tracing import set_span_data, start_span
 from sentry.utils.types import Dict
 
-from .base import Feature, FeatureHandlerStrategy
+from .base import Feature, FeatureHandlerStrategy, ProjectFeature
 from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
@@ -57,6 +57,7 @@ class RegisteredFeatureManager:
 
     def __init__(self) -> None:
         self._handler_registry: dict[str, list[FeatureHandler]] = defaultdict(list)
+        self._entity_handler: FeatureHandler | None = None
 
     def add_handler(self, handler: FeatureHandler) -> None:
         """
@@ -98,6 +99,9 @@ class RegisteredFeatureManager:
         """
         Determine if a feature is enabled for a batch of objects.
 
+        Features use the same precedence as ``has``: feature-specific handlers,
+        the entity handler, then the configured default.
+
         This method enables checking a feature for an organization and a collection
         of objects (e.g. projects). Feature handlers for batch checks are expected to
         subclass `features.BatchFeatureHandler` and implement `has_for_batch` or
@@ -111,8 +115,6 @@ class RegisteredFeatureManager:
         The return value is a dictionary with the objects as keys, and each
         value is the result of the feature check on the organization.
 
-        This method *does not* work with the `entity_handler`.
-
         >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
 
@@ -122,14 +124,42 @@ class RegisteredFeatureManager:
             result.update(evaluation.decisions)
 
             if evaluation.failed:
+                for project in evaluation.unresolved_projects:
+                    result[project] = False
                 return result
 
+            unresolved_projects = evaluation.unresolved_projects
+            if self._entity_handler and unresolved_projects:
+                is_project_feature = issubclass(self._get_feature_class(name), ProjectFeature)
+                projects = [project for project in objects if project in unresolved_projects]
+                with metrics.timer("features.entity_batch_has", sample_rate=0.01):
+                    entity_results = self._entity_handler.batch_has(
+                        [name],
+                        actor,
+                        projects=projects if is_project_feature else None,
+                        organization=organization,
+                    )
+
+                if entity_results:
+                    for project in projects:
+                        entity_key = (
+                            f"project:{project.id}"
+                            if is_project_feature
+                            else f"organization:{organization.id}"
+                        )
+                        value = entity_results.get(entity_key, {}).get(name)
+                        if value is not None:
+                            result[project] = value
+                            unresolved_projects.remove(project)
+
             default_flag = settings.SENTRY_FEATURES.get(name, False)
-            for project in evaluation.unresolved_projects:
-                result[project] = default_flag
+            for project in unresolved_projects:
+                result[project] = default_flag if default_flag is not None else False
         except Exception as e:
             if in_random_rollout("features.error.capture_rate"):
                 sentry_sdk.capture_exception(e)
+            for project in objects:
+                result.setdefault(project, False)
 
         return result
 
@@ -185,7 +215,6 @@ class FeatureManager(RegisteredFeatureManager):
         self.entity_features: set[str] = set()
         self.exposed_features: set[str] = set()
         self.flagpole_features: set[str] = set()
-        self._entity_handler: FeatureHandler | None = None
 
     def all(
         self, feature_type: type[Feature] = Feature, api_expose_only: bool = False
