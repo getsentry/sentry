@@ -69,7 +69,7 @@ class WorkflowEvaluationData(TypedDict):
 
 
 @dataclass(frozen=True)
-class DeferredWorkflowEvaluationArtifact:
+class DeferredWorkflowData:
     trigger_group_id: DataConditionGroupId | None
     filter_group_ids: Sequence[DataConditionGroupId]
     passing_filter_group_ids: Sequence[DataConditionGroupId]
@@ -87,7 +87,7 @@ class WorkflowEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     trigger_evaluation: DataConditionGroupEvaluationArtifact
     triggered_action_ids: Sequence[ActionId]
     workflow_id: WorkflowId
-    deferred: DeferredWorkflowEvaluationArtifact | None = None
+    deferred: DeferredWorkflowData | None = None
     detector_id: DetectorId | None = None
     event_id: str | None = None
 
@@ -131,12 +131,10 @@ class WorkflowEvaluation(
     def _build_artifact(self, *, triggered: bool, error: str | None) -> WorkflowEvaluationArtifact:
         if isinstance(self.result, DeferredWorkflowEvaluationResult):
             triggered_action_ids: list[int] = []
-            deferred: DeferredWorkflowEvaluationArtifact | None = (
-                DeferredWorkflowEvaluationArtifact(
-                    trigger_group_id=self.result.delayed_when_group_id,
-                    filter_group_ids=sorted(self.result.delayed_if_group_ids),
-                    passing_filter_group_ids=sorted(self.result.passing_if_group_ids),
-                )
+            deferred: DeferredWorkflowData | None = DeferredWorkflowData(
+                trigger_group_id=self.result.delayed_when_group_id,
+                filter_group_ids=sorted(self.result.delayed_if_group_ids),
+                passing_filter_group_ids=sorted(self.result.passing_if_group_ids),
             )
         else:
             triggered_action_ids = [action.id for action in self.result]
