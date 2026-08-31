@@ -1,4 +1,5 @@
 import contextlib
+import time
 import uuid
 from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
@@ -1340,6 +1341,29 @@ class MonitorConsumerTest(TestCase):
 
         checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
         assert len(checkins) == 0
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_timeout_accepts(
+        self, check_accept_monitor_checkin: mock.MagicMock
+    ) -> None:
+        """
+        A hung quotas seat check must fail open so the consumer does not stall.
+        """
+
+        def hang(*args, **kwargs):
+            time.sleep(1.0)
+            return PermitCheckInStatus.DROP
+
+        check_accept_monitor_checkin.side_effect = hang
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options({"crons.check_accept_monitor_checkin.timeout_sec": 0.05}):
+            self.send_checkin(monitor.slug)
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

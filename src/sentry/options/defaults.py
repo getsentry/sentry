@@ -2784,6 +2784,16 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Bound how long the crons ingest consumer waits on seat/quota acceptance.
+# On timeout the check-in is accepted (fail-open) so a slow quotas backend
+# cannot stall the consumer. Set to 0 to disable the timeout wrapper.
+register(
+    "crons.check_accept_monitor_checkin.timeout_sec",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(

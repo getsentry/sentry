@@ -5,6 +5,7 @@ import random
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from concurrent.futures import wait
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -93,6 +94,59 @@ logger = logging.getLogger(__name__)
 MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
 
 DROP_LOG_SAMPLE_RATE = 0.01
+
+# Shared pool for timing out quotas seat checks without creating an executor
+# per check-in. The check itself is expected to be cheap (Redis/local cache);
+# this only exists so a hung backend cannot block the consumer indefinitely.
+_CHECK_ACCEPT_EXECUTOR = ContextPropagatingThreadPoolExecutor(
+    max_workers=8,
+    thread_name_prefix="monitors.check_accept",
+)
+
+
+def _check_accept_monitor_checkin_with_timeout(
+    project_id: int,
+    monitor_slug: str,
+    metric_kwargs: dict[str, str],
+) -> PermitCheckInStatus:
+    """
+    Call quotas seat acceptance with a wall-clock timeout.
+
+    If the backend does not respond in time, fail open and ACCEPT the check-in
+    so a slow or hung quotas path cannot stall crons ingest.
+
+    Note: a timed-out worker keeps running until the underlying call returns;
+    this only bounds how long ingest waits before failing open.
+    """
+    timeout_sec = options.get("crons.check_accept_monitor_checkin.timeout_sec")
+    if not timeout_sec or timeout_sec <= 0:
+        return quotas.backend.check_accept_monitor_checkin(project_id, monitor_slug)
+
+    future = _CHECK_ACCEPT_EXECUTOR.submit(
+        quotas.backend.check_accept_monitor_checkin,
+        project_id,
+        monitor_slug,
+    )
+    # Drain late results/errors after we stop waiting so timed-out futures do
+    # not log "exception was never retrieved".
+    future.add_done_callback(lambda f: f.exception())
+    try:
+        return future.result(timeout=timeout_sec)
+    except FuturesTimeoutError:
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "check_accept_timeout"},
+        )
+        logger.warning(
+            "monitors.consumer.check_accept_timeout",
+            extra={
+                "project_id": project_id,
+                "slug": monitor_slug,
+                "timeout_sec": timeout_sec,
+            },
+        )
+        # Fail open: prefer accepting a check-in over blocking ingest.
+        return PermitCheckInStatus.ACCEPT
 
 
 def _ensure_monitor_with_config(
@@ -544,8 +598,9 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
         raise ProcessingErrorsException([ratelimit_error])
 
     # Does quotas allow for this check-in to be accepted?
-    quotas_outcome: PermitCheckInStatus = quotas.backend.check_accept_monitor_checkin(
-        project.id, monitor_slug
+    # Bound the wait so a hung quotas backend cannot stall the consumer poll.
+    quotas_outcome: PermitCheckInStatus = _check_accept_monitor_checkin_with_timeout(
+        project.id, monitor_slug, metric_kwargs
     )
 
     if quotas_outcome == PermitCheckInStatus.DROP:
