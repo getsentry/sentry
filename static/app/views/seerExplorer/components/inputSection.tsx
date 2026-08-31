@@ -3,12 +3,14 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useOrgMentionSources} from 'sentry/utils/mentions/useOrgMentionSources';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -32,20 +34,21 @@ interface QuestionActions {
 interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
-  inputValue: string;
+  inputValue: ComposerValue;
   onCreatePR: (repoName?: string) => void;
-  onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onInputChange: (value: ComposerValue) => void;
   onInputClick: () => void;
   onInterrupt: () => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onPRWidgetClick: () => void;
   onSend: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
-  textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
+  textAreaRef: React.RefObject<HTMLDivElement | null>;
   canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
+  onSuggestionsOpenChange?: (isOpen: boolean) => void;
   questionActions?: QuestionActions;
 }
 
@@ -66,8 +69,11 @@ export function InputSection({
   repoPRStates,
   textAreaRef,
   fileApprovalActions,
+  onSuggestionsOpenChange,
   questionActions,
 }: InputSectionProps) {
+  const mentionSources = useOrgMentionSources();
+
   // Check if there are any file patches for showing the PR widget
   const hasCodeChanges = useMemo(() => {
     return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
@@ -255,25 +261,29 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup isWarningPlaceholder={interruptState === 'completed'}>
-          <InputGroup.TextArea
-            ref={textAreaRef}
-            value={inputValue}
-            onChange={onInputChange}
-            onKeyDown={onKeyDown}
-            onClick={onInputClick}
-            placeholder={
-              interruptState === 'completed'
-                ? t('Interrupted. What should Seer do instead?')
-                : t('Ask Seer a question, or press / for commands.')
-            }
-            rows={1}
-            maxRows={5}
-            autosize
-            size="md"
-            data-test-id="seer-explorer-input"
-          />
-        </StyledInputGroup>
+        <Composer
+          ref={textAreaRef}
+          aria-label={t('Ask Seer a question')}
+          sources={mentionSources}
+          value={inputValue}
+          onChange={onInputChange}
+          onOpenChange={onSuggestionsOpenChange}
+          onKeyDown={onKeyDown}
+          onClick={onInputClick}
+          placeholder={
+            interruptState === 'completed'
+              ? t('Interrupted. What should Seer do instead?')
+              : t('Ask Seer a question, or press / for commands.')
+          }
+          // TODO(mention-input): match the warning color used for the
+          // disabled/interrupted textarea placeholder above (needs a way to
+          // style :empty::before on a generic Composer without fighting
+          // emotion's `styled()` over its generic type parameter).
+          minHeight={20}
+          style={{flex: 1, maxHeight: 120}}
+          size="md"
+          data-test-id="seer-explorer-input"
+        />
         {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
           <Button
             icon={<IconPause />}

@@ -45,6 +45,12 @@ export interface ComposerProps<TSuggestion> extends Omit<
   /** Controlled editor text and structured mention ranges. */
   value: ComposerValue;
   minHeight?: number;
+  /**
+   * Called when the suggestion list opens or closes. Useful for consumers
+   * that bind Enter to something else (e.g. submitting a form) and need to
+   * defer to suggestion selection while the list is open.
+   */
+  onOpenChange?: (isOpen: boolean) => void;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
   size?: FormSize;

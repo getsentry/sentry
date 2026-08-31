@@ -142,6 +142,7 @@ export function Composer<TSuggestion>({
   sources,
   onChange,
   minHeight,
+  onOpenChange,
   placeholder,
   style,
   ...editorProps
@@ -158,6 +159,10 @@ export function Composer<TSuggestion>({
     ? sources.find(source => source.id === activeTrigger.sourceId)
     : undefined;
   const isOpen = activeSource !== undefined;
+
+  useLayoutEffect(() => {
+    onOpenChange?.(isOpen);
+  }, [isOpen, onOpenChange]);
 
   const {
     activeDescendant,
