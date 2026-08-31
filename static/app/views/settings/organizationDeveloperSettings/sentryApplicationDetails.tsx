@@ -524,7 +524,6 @@ function ClaudeRoutineTemplateForm() {
       </form.FieldGroup>
 
       <PermissionsObserver
-        appPublished={false}
         scopes={CLAUDE_ROUTINE_SCOPES}
         events={CLAUDE_ROUTINE_EVENTS}
         newApp
@@ -701,7 +700,6 @@ function InternalSentryAppCreationForm() {
       </form.FieldGroup>
 
       <PermissionsObserver
-        appPublished={false}
         scopes={[]}
         events={[]}
         newApp
@@ -762,7 +760,6 @@ function PublicSentryAppCreationForm() {
       </form.FieldGroup>
 
       <PermissionsObserver
-        appPublished={false}
         scopes={[]}
         events={[]}
         newApp

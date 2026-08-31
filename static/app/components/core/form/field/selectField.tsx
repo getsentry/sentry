@@ -5,9 +5,8 @@ import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers'
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
-
-import type {Props as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
+import type {Props as ReactSelectProps} from '@sentry/scraps/select/reactSelectWrapper';
+import {components} from '@sentry/scraps/select/reactSelectWrapper';
 
 import {BaseFieldImpl, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 

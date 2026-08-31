@@ -1,4 +1,5 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
+import {TSESLint} from '@typescript-eslint/utils';
 
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument';
 
@@ -260,6 +261,106 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       name: 'TypeScript const assertion',
       code: 'const foo = (value = 5 as const) => {}; foo(5 as const);',
       output: 'const foo = (value = 5 as const) => {}; foo();',
+      errors: [{messageId: 'redundantDefaultValue'}],
+    },
+  ],
+});
+
+const crossFileRuleTester = new RuleTester({
+  languageOptions: {
+    parserOptions: {
+      project: './tsconfig.json',
+      tsconfigRootDir: `${__dirname}/fixtures`,
+    },
+  },
+});
+
+crossFileRuleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
+  valid: [
+    {
+      name: 'imported function argument differs from default',
+      code: `
+import {a} from './importedDefault';
+a(1);
+`,
+      filename: 'consumer.ts',
+    },
+    {
+      name: 'imported component prop differs from default',
+      code: `
+import {Component} from './importedDefault';
+<Component value={6} />;
+`,
+      filename: 'componentConsumer.tsx',
+    },
+  ],
+  invalid: [
+    {
+      name: 'imported function with numeric default',
+      code: `
+import {a} from './importedDefault';
+a(0);
+`,
+      filename: 'consumer.ts',
+      output: `
+import {a} from './importedDefault';
+a();
+`,
+      errors: [
+        {
+          messageId: 'redundantDefaultValue',
+          data: {kind: 'argument', name: 'value', value: '0'},
+        },
+      ],
+    },
+    {
+      name: 'imported function with destructured default',
+      code: `
+import {withOptions} from './importedDefault';
+withOptions({value: 5});
+`,
+      filename: 'consumer.ts',
+      output: `
+import {withOptions} from './importedDefault';
+withOptions({});
+`,
+      errors: [
+        {
+          messageId: 'redundantDefaultValue',
+          data: {kind: 'property', name: 'value', value: '5'},
+        },
+      ],
+    },
+    {
+      name: 'imported component with destructured default',
+      code: `
+import {Component} from './importedDefault';
+<Component value={5} />;
+`,
+      filename: 'componentConsumer.tsx',
+      output: `
+import {Component} from './importedDefault';
+<Component />;
+`,
+      errors: [
+        {
+          messageId: 'redundantDefaultValue',
+          data: {kind: 'prop', name: 'value', value: '5'},
+        },
+      ],
+    },
+  ],
+});
+
+const nonTypeScriptRuleTester = new TSESLint.RuleTester();
+
+nonTypeScriptRuleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
+  valid: [],
+  invalid: [
+    {
+      name: 'parser without TypeScript parser services',
+      code: 'function foo(value = 5) {} foo(5);',
+      output: 'function foo(value = 5) {} foo();',
       errors: [{messageId: 'redundantDefaultValue'}],
     },
   ],

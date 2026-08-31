@@ -256,7 +256,6 @@ function Dashboard() {
             />
             <Container flexGrow={1}>
               <SearchBar
-                defaultQuery=""
                 placeholder={t('Search for projects by name')}
                 onChange={setProjectQuery}
                 query={projectQuery}

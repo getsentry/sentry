@@ -13,7 +13,7 @@ const SEER_ACTIVITY_STAGE_CHOICES: Array<{label: string; value: string}> = [
   {value: 'rca_completed', label: t('Root cause analysis completed')},
   {value: 'solution_completed', label: t('Planning completed')},
   {value: 'coding_completed', label: t('Coding completed')},
-  {value: 'pr_created', label: t('Pull request created')},
+  {value: 'pr_ready_for_review', label: t('Pull request ready for review')},
 ];
 const SEER_ACTIVITY_STAGES = new Set(SEER_ACTIVITY_STAGE_CHOICES.map(c => c.value));
 

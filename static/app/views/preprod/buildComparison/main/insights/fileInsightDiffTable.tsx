@@ -23,18 +23,9 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
-  {
-    key: 'type',
-    label: t('Status'),
-  },
-  {
-    key: 'path',
-    label: t('Affected Files'),
-  },
-  {
-    key: 'size_diff',
-    label: t('Potential Savings'),
-  },
+  {key: 'type', label: t('Status'), width: '150px'},
+  {key: 'path', label: t('Affected Files'), width: 'minmax(200px, 3fr)'},
+  {key: 'size_diff', label: t('Potential Savings'), width: '180px'},
 ];
 
 interface FileInsightItemDiffTableProps {
@@ -116,7 +107,7 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
   return (
     <Stack gap="md">
       <DiffTableWithColumns
-        gridTemplateColumns="150px minmax(200px, 3fr) 180px"
+        columns={tableHeaders}
         header={
           <DiffTableHeaderRow>
             {tableHeaders.map(header => (

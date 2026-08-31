@@ -684,7 +684,6 @@ export function CommandPalette({
             overlayIsOpen
             virtualized
             virtualizedListPadding={0}
-            size="md"
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus

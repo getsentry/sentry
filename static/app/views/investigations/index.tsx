@@ -270,7 +270,6 @@ function InvestigationsPage() {
                   marginBottom="xl"
                 >
                   <SearchBar
-                    defaultQuery=""
                     query={query ?? ''}
                     placeholder={t('Search Investigations')}
                     onSearch={handleSearch}

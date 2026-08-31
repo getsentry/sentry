@@ -139,7 +139,7 @@ const restrictedImportPaths = [
   },
   {
     name: 'react-select',
-    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+    message: "Use '@sentry/scraps/select' instead.",
   },
   {
     name: 'qs',

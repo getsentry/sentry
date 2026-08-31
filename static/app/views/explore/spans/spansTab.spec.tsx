@@ -209,6 +209,11 @@ describe('SpansTabContent', () => {
       const data = node?.data as Record<string, unknown>;
       expect(data.activeTab).toBe('aggregate');
       expect(data.sortBys).toEqual(['-count(span.duration)']);
+      expect(data.projectIds).toEqual(expect.any(Array));
+      expect(data.projectSlugs).toEqual(expect.any(Array));
+      expect(data.isAllProjects).toEqual(expect.any(Boolean));
+      expect(data.projectSelectionMode).toEqual(expect.any(String));
+      expect(data.projectSelectionInstruction).toEqual(expect.any(String));
     });
   });
 

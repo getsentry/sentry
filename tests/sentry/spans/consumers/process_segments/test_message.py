@@ -19,6 +19,7 @@ from sentry.issue_detection.performance_detection import (
 )
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
@@ -31,11 +32,75 @@ from sentry.spans.consumers.process_segments.message import (
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
+PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG = "organizations:performance-issues-spans"
+DISCARD_TRANSACTIONS_PROJECT_FEATURE_FLAG = "projects:discard-transaction"
+
+
+def generate_n_plus_one_spans(
+    project: Project,
+    *,
+    has_performance_issues_spans_relay_flag: bool = False,
+    event_id: str | None = None,
+):
+    """
+    Build a set of spans containing an N+1 problem.
+
+    `has_performance_issues_spans_relay_flag` controls Relay's `_performance_issues_spans` marker.
+    Relay omits the marker entirely rather than serializing it as `False`, so it's only set here
+    if the parameter is True.
+    """
+    segment_span_kwargs: dict[str, Any] = {}
+    if has_performance_issues_spans_relay_flag:
+        segment_span_kwargs["_performance_issues_spans"] = True
+    if event_id is not None:
+        segment_span_kwargs["event_id"] = event_id
+
+    segment_span = build_mock_span(
+        project_id=project.id,
+        is_segment=True,
+        **segment_span_kwargs,
+    )
+    child_span = build_mock_span(
+        project_id=project.id,
+        description="OrganizationNPlusOne.get",
+        parent_span_id=segment_span["span_id"],
+        span_id="940ce942561548b5",
+        start_timestamp_ms=1707953018867,
+        start_timestamp=1707953018.867,
+    )
+    cause_span = build_mock_span(
+        project_id=project.id,
+        span_op="db",
+        description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
+        parent_span_id="940ce942561548b5",
+        span_id="a974da4671bc3857",
+        start_timestamp_ms=1707953018867,
+        start_timestamp=1707953018.867,
+    )
+    repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
+
+    def repeating_span():
+        return build_mock_span(
+            project_id=project.id,
+            span_op="db",
+            description=repeating_span_description,
+            parent_span_id="940ce942561548b5",
+            span_id=uuid.uuid4().hex[:16],
+            start_timestamp_ms=1707953018869,
+            start_timestamp=1707953018.869,
+        )
+
+    repeating_spans = [repeating_span() for _ in range(7)]
+    spans = [segment_span, child_span, cause_span] + repeating_spans
+
+    return spans
 
 
 @exclude_experimental_detectors
@@ -71,47 +136,6 @@ class TestSpansTask(TestCase):
         )
 
         return [child_span, segment_span]
-
-    def generate_n_plus_one_spans(self):
-        segment_span = build_mock_span(
-            project_id=self.project.id,
-            is_segment=True,
-            _performance_issues_spans=True,
-        )
-        child_span = build_mock_span(
-            project_id=self.project.id,
-            description="OrganizationNPlusOne.get",
-            parent_span_id=segment_span["span_id"],
-            span_id="940ce942561548b5",
-            start_timestamp_ms=1707953018867,
-            start_timestamp=1707953018.867,
-        )
-        cause_span = build_mock_span(
-            project_id=self.project.id,
-            span_op="db",
-            description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
-            parent_span_id="940ce942561548b5",
-            span_id="a974da4671bc3857",
-            start_timestamp_ms=1707953018867,
-            start_timestamp=1707953018.867,
-        )
-        repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
-
-        def repeating_span():
-            return build_mock_span(
-                project_id=self.project.id,
-                span_op="db",
-                description=repeating_span_description,
-                parent_span_id="940ce942561548b5",
-                span_id=uuid.uuid4().hex[:16],
-                start_timestamp_ms=1707953018869,
-                start_timestamp=1707953018.869,
-            )
-
-        repeating_spans = [repeating_span() for _ in range(7)]
-        spans = [segment_span, child_span, cause_span] + repeating_spans
-
-        return spans
 
     def test_enrich_spans(self) -> None:
         spans = self.generate_basic_spans()
@@ -221,9 +245,15 @@ class TestSpansTask(TestCase):
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
     @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
+    @with_feature(PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG)
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(
+            self.project,
+            # Force segment to create an occurrence so we can examine it
+            has_performance_issues_spans_relay_flag=True,
+        )
+
         with mock.patch("sentry.issues.ingest.should_create_group", return_value=True):
             process_segment(spans)
 
@@ -331,7 +361,7 @@ class TestSpansTask(TestCase):
         An empty option value is the killswitch for all segment-based issue detection, so nothing
         downstream of it should run -- not even the settings fetch.
         """
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: []}),
@@ -348,7 +378,7 @@ class TestSpansTask(TestCase):
             legacy_detectors_mock.assert_not_called()
 
     def test_blanket_detector_enablement(self) -> None:
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
@@ -362,7 +392,7 @@ class TestSpansTask(TestCase):
             assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == DETECTOR_CLASSES
 
     def test_selective_detector_enablement(self) -> None:
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db"]}),
@@ -383,7 +413,7 @@ class TestSpansTask(TestCase):
         it lets the valid entries keep working, but it needs to be noisy about it, because
         otherwise a typo is indistinguishable from having deliberately switched that detector off.
         """
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db", "dogs_are_great"]}),
@@ -814,3 +844,69 @@ class TestProcessSegmentCaching(TestCase):
 
         mock_create.assert_not_called()
         mock_bump.assert_not_called()
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    [
+        "incoming_data_is_transaction",
+        "discard_transactions_feature_flag",
+        "performance_issues_spans_relay_flag",
+        "performance_issues_spans_feature_flag",
+        "create_occurrence_calls_expected",
+    ],
+    [
+        # Data received as standalone spans, feature flag on -> segment creates occurrence
+        (False, True, True, True, 1),
+        (False, True, False, True, 1),
+        (False, False, True, True, 1),
+        (False, False, False, True, 1),
+        # Transaction discarded, feature flag on -> segment creates occurrence
+        (True, True, True, True, 1),
+        (True, True, False, True, 1),
+        # Transaction kept, relay flag set, feature flag on -> segment creates occurrence
+        (True, False, True, True, 1),
+        # Transaction kept, relay flag not set -> no segment-based occurrence
+        (True, False, False, True, 0),
+        # Feature flag off -> no segment-based occurrence regardless of other values
+        (True, True, True, False, 0),
+        (True, True, False, False, 0),
+        (True, False, True, False, 0),
+        (True, False, False, False, 0),
+        (False, True, True, False, 0),
+        (False, True, False, False, 0),
+        (False, False, True, False, 0),
+        (False, False, False, False, 0),
+    ],
+)
+def test_issue_detector_occurrence_creation(
+    incoming_data_is_transaction: bool,
+    discard_transactions_feature_flag: bool,
+    performance_issues_spans_relay_flag: bool,
+    performance_issues_spans_feature_flag: bool,
+    create_occurrence_calls_expected: int,
+    default_project: Project,
+) -> None:
+    # Segments only have an event id if it's copied over from a transaction
+    event_id = uuid.uuid4().hex if incoming_data_is_transaction else None
+
+    spans = generate_n_plus_one_spans(
+        default_project,
+        has_performance_issues_spans_relay_flag=performance_issues_spans_relay_flag,
+        event_id=event_id,
+    )
+
+    with (
+        with_feature(
+            {
+                PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG: performance_issues_spans_feature_flag,
+                DISCARD_TRANSACTIONS_PROJECT_FEATURE_FLAG: discard_transactions_feature_flag,
+            }
+        ),
+        override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
+        mock.patch(
+            "sentry.spans.consumers.process_segments.message.produce_occurrence_to_kafka"
+        ) as mock_produce_occurrence,
+    ):
+        process_segment(spans)
+        assert mock_produce_occurrence.call_count == create_occurrence_calls_expected
