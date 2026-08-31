@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.apps import apps
-from django.db import connections, router, transaction
+from django.db import ProgrammingError, connections, router, transaction
 from django.db.models import BooleanField, Max, Min, QuerySet
 
 from sentry.backup.scopes import RelocationScope
@@ -15,6 +15,7 @@ from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.deletions.models.watermark import CellDeletionWatermark, ControlDeletionWatermark
 from sentry.deletions.tasks.hybrid_cloud import (
     ROW_WATERMARK,
     TOMBSTONE_WATERMARK,
@@ -22,6 +23,7 @@ from sentry.deletions.tasks.hybrid_cloud import (
     WatermarkBatch,
     _get_redis_client,
     _process_hybrid_cloud_foreign_key_cascade,
+    _watermark_model,
     get_ids_cross_db_for_row_watermark,
     get_ids_cross_db_for_tombstone_watermark,
     get_watermark,
@@ -35,6 +37,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxScope
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.models.authprovider import AuthProvider
 from sentry.models.dashboard import Dashboard
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -45,6 +48,7 @@ from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -242,6 +246,140 @@ def test_watermark_and_transaction_id(
     assert wm == 5
 
     assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (wm, new_tid1)
+
+
+DUAL_WRITE_OPTION = "hybrid_cloud.write_deletion_watermark_to_postgres"
+
+
+def _cell_watermark_rows(
+    field: HybridCloudForeignKey[int, int],
+) -> QuerySet[CellDeletionWatermark]:
+    return CellDeletionWatermark.objects.filter(
+        table_name=field.model._meta.db_table, field_name=field.name
+    )
+
+
+@django_db_all
+def test_dual_write_off_leaves_postgres_empty(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
+
+    # Redis still holds the watermark, and nothing was written to Postgres.
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 7
+    assert not _cell_watermark_rows(project_bookmark_user_id_field).exists()
+
+
+@django_db_all
+def test_dual_write_puts_the_same_value_in_both_stores(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    with override_options({DUAL_WRITE_OPTION: True}):
+        _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
+
+    low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+    assert low_bound == 7
+
+    row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
+    assert row.low_bound == low_bound
+    assert row.transaction_id == transaction_id
+
+
+@django_db_all
+def test_dual_write_updates_the_row_in_place(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    with override_options({DUAL_WRITE_OPTION: True}):
+        _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 7, tid)
+        _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+        set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 9, tid)
+
+    rows = _cell_watermark_rows(project_bookmark_user_id_field).filter(prefix=TOMBSTONE_WATERMARK)
+    assert rows.count() == 1
+    assert rows.get().low_bound == 9
+
+
+@django_db_all
+def test_dual_write_failure_does_not_stop_the_cascade(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    broken = Mock(side_effect=ProgrammingError("relation does not exist"))
+    with override_options({DUAL_WRITE_OPTION: True}):
+        with patch.object(CellDeletionWatermark.objects, "update_or_create", broken):
+            _, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
+            set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 13, tid)
+
+    # Redis advanced and no exception escaped, so the batch task keeps working.
+    assert broken.called
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 13
+    assert not _cell_watermark_rows(project_bookmark_user_id_field).exists()
+
+
+@django_db_all
+def test_one_cycle_fills_both_watermark_rows(
+    task_runner: Callable[[], ContextManager[None]],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    reset_watermarks()
+    _cell_watermark_rows(project_bookmark_user_id_field).delete()
+
+    with override_options({DUAL_WRITE_OPTION: True}):
+        with task_runner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+    rows = {row.prefix: row for row in _cell_watermark_rows(project_bookmark_user_id_field)}
+    assert set(rows) == set(WATERMARK_PREFIXES)
+    for prefix, row in rows.items():
+        assert (row.low_bound, row.transaction_id) == get_watermark(
+            prefix, project_bookmark_user_id_field
+        )
+
+
+@django_db_all
+def test_watermark_model_in_monolith_follows_the_field_model_silo(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    auth_provider_field = cast(
+        HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id")
+    )
+    with assume_test_silo_mode(SiloMode.MONOLITH):
+        assert _watermark_model(project_bookmark_user_id_field) is CellDeletionWatermark
+        assert _watermark_model(auth_provider_field) is ControlDeletionWatermark
+
+
+@django_db_all
+@control_silo_test
+def test_dual_write_uses_the_control_table_in_control_silo() -> None:
+    field = cast(HybridCloudForeignKey[int, int], AuthProvider._meta.get_field("organization_id"))
+    ControlDeletionWatermark.objects.filter(
+        table_name=AuthProvider._meta.db_table, field_name=field.name
+    ).delete()
+
+    with override_options({DUAL_WRITE_OPTION: True}):
+        _, tid = get_watermark(TOMBSTONE_WATERMARK, field)
+        set_watermark(TOMBSTONE_WATERMARK, field, 11, tid)
+
+    low_bound, transaction_id = get_watermark(TOMBSTONE_WATERMARK, field)
+    assert low_bound == 11
+
+    row = ControlDeletionWatermark.objects.get(
+        prefix=TOMBSTONE_WATERMARK,
+        table_name=AuthProvider._meta.db_table,
+        field_name=field.name,
+    )
+    assert row.low_bound == low_bound
+    assert row.transaction_id == transaction_id
 
 
 @django_db_all
