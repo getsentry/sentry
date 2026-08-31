@@ -27,6 +27,8 @@ type EventResult = {
   title: string;
 };
 
+type Result = {data: EventResult; type: 'event'} | {data: User; type: 'user'};
+
 const schema = z.object({
   orgSlug: z.string().trim(),
   email: z.email('Enter a valid email address'),
@@ -59,10 +61,10 @@ export function DataRequests() {
 
   const isLoading = isLoadingEvents || isLoadingUsers;
 
-  const results = hasQuery
+  const results: Result[] | null = hasQuery
     ? isEventSearch
-      ? eventsData.map(data => ({type: 'event' as const, data}))
-      : usersData.map(data => ({type: 'user' as const, data}))
+      ? eventsData.map(data => ({type: 'event', data}))
+      : usersData.map(data => ({type: 'user', data}))
     : null;
 
   const form = useScrapsForm({
