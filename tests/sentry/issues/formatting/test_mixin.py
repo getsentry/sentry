@@ -1,6 +1,13 @@
-from typing import Any
+from typing import Any, cast
 
-from sentry.issues.formatting.mixin import format_event_response
+from rest_framework.request import Request
+
+from sentry.issues.formatting.mixin import (
+    FORMATTER_FEATURE,
+    FORMATTER_FEATURE_API,
+    format_event_response,
+    formatter_feature_for,
+)
 
 
 def _event_with_request_body(body_chars: int) -> dict[str, Any]:
@@ -30,3 +37,25 @@ def test_rest_output_opts_into_user_identifiers() -> None:
     out = format_event_response(data, "markdown")
     assert "someone@example.com" in out
     assert "203.0.113.7" in out
+
+
+class _FakeRequest:
+    """Only ``auth`` is read, so a stub keeps these tests off the auth stack."""
+
+    def __init__(self, auth: object) -> None:
+        self.auth = auth
+
+
+def test_session_auth_uses_the_ui_feature() -> None:
+    # the Sentry UI hits these endpoints with a session, not a token
+    assert formatter_feature_for(cast(Request, _FakeRequest(None))) == FORMATTER_FEATURE
+
+
+def test_token_auth_uses_the_api_feature() -> None:
+    # the MCP calls through the API with a token, and ramps separately from the UI
+    assert formatter_feature_for(cast(Request, _FakeRequest(object()))) == FORMATTER_FEATURE_API
+
+
+def test_the_two_rollouts_are_distinct_features() -> None:
+    # a single feature would mean widening the UI rollout also widens every API client's
+    assert FORMATTER_FEATURE != FORMATTER_FEATURE_API
