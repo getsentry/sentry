@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import {useQuery} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
 
@@ -85,7 +84,10 @@ export function IntegrationExternalUserMappings(props: Props) {
   const deleteMutation = useMutation({
     mutationFn: (mapping: ExternalActorMapping) =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/external-users/${mapping.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/external-users/$externalUserId/',
+          {path: {organizationIdOrSlug: organization.slug, externalUserId: mapping.id}}
+        ),
         method: 'DELETE',
       }),
     onSuccess: () => {

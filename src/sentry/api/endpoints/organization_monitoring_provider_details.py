@@ -49,7 +49,11 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
         """Connect a monitoring provider."""
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         if provider_key not in MONITORING_PROVIDERS:
@@ -67,7 +71,11 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         self, request: Request, organization: RpcOrganization, provider_key: str, **kwargs: object
     ) -> Response:
         """Reauthenticate an existing monitoring provider connection."""
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         if provider_key not in MONITORING_PROVIDERS:

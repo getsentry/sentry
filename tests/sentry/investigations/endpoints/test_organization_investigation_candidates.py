@@ -13,12 +13,18 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import Investigation, InvestigationSourceType
 from sentry.investigations.services import investigation_legacy_source_key
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 FEATURE = "organizations:investigations"
 
@@ -37,7 +43,14 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def create_metric_open_period(self) -> tuple[Any, GroupOpenPeriod]:
+    def create_metric_open_period(
+        self,
+        *,
+        detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
+        condition_type: str = Condition.GREATER,
+        condition_comparison: Any = 100,
+        comparison_delta: int | None = None,
+    ) -> tuple[Any, GroupOpenPeriod]:
         group = self.create_group(
             project=self.project,
             type=MetricIssue.type_id,
@@ -64,14 +77,29 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         condition_group = self.create_data_condition_group(organization=self.organization)
         self.create_data_condition(
             condition_group=condition_group,
-            type=Condition.GREATER,
-            comparison=100,
-            condition_result=2,
+            type=condition_type,
+            comparison=condition_comparison,
+            condition_result=DetectorPriorityLevel.HIGH,
         )
+        if condition_type != Condition.ANOMALY_DETECTION:
+            resolve_condition_type = (
+                Condition.LESS_OR_EQUAL
+                if condition_type in {Condition.GREATER, Condition.GREATER_OR_EQUAL}
+                else Condition.GREATER_OR_EQUAL
+            )
+            self.create_data_condition(
+                condition_group=condition_group,
+                type=resolve_condition_type,
+                comparison=condition_comparison,
+                condition_result=DetectorPriorityLevel.OK,
+            )
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            config={
+                "detection_type": detection_type.value,
+                "comparison_delta": comparison_delta,
+            },
             workflow_condition_group=condition_group,
             name="Checkout errors",
         )
@@ -112,6 +140,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.status_code == 201, launched.data
         assert launched.data["source"]["ref"] == source["ref"]
         assert launched.data["source"]["snapshot"]["analysisWindow"]["end"] == ended_at.isoformat()
+        assert launched.data["source"]["snapshot"]["monitor"]["detectionType"] == "static"
         assert launched.data["filters"] == {}
         investigation = Investigation.objects.get(id=launched.data["id"])
         assert investigation.source_type == InvestigationSourceType.BREACHED_METRIC
@@ -129,6 +158,178 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert response.data == {
             "items": [{"status": "view", "investigationId": launched.data["id"]}]
         }
+
+    @mock.patch(
+        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
+    )
+    def test_percent_detector_is_available(self, schedule_auto_run: mock.Mock) -> None:
+        group, open_period = self.create_metric_open_period(
+            detection_type=AlertRuleDetectionType.PERCENT,
+            condition_comparison=150,
+            comparison_delta=86_400,
+        )
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "sources": [source],
+            },
+            format="json",
+        )
+        assert candidate.status_code == 200
+        assert candidate.data == {"items": [{"status": "investigate"}]}
+
+        launched = self.client.post(
+            self.collection_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            format="json",
+        )
+        assert launched.status_code == 201
+        monitor = launched.data["source"]["snapshot"]["monitor"]
+        assert monitor["detectionType"] == "percent"
+        assert monitor["comparisonDeltaSeconds"] == 86_400
+        assert monitor["direction"] == "above"
+        assert monitor["conditions"] == [
+            {
+                "type": Condition.GREATER,
+                "comparison": 150,
+                "result": DetectorPriorityLevel.HIGH,
+                "thresholdChangePercent": 50.0,
+            },
+            {
+                "type": Condition.LESS_OR_EQUAL,
+                "comparison": 150,
+                "result": DetectorPriorityLevel.OK,
+                "thresholdChangePercent": 50.0,
+            },
+        ]
+        schedule_auto_run.assert_called_once()
+
+    @mock.patch(
+        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
+    )
+    def test_below_percent_detector_snapshot(self, schedule_auto_run: mock.Mock) -> None:
+        group, open_period = self.create_metric_open_period(
+            detection_type=AlertRuleDetectionType.PERCENT,
+            condition_type=Condition.LESS,
+            condition_comparison=60,
+            comparison_delta=86_400,
+        )
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+
+        launched = self.client.post(
+            self.collection_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            format="json",
+        )
+
+        assert launched.status_code == 201
+        monitor = launched.data["source"]["snapshot"]["monitor"]
+        assert monitor["detectionType"] == "percent"
+        assert monitor["direction"] == "below"
+        assert monitor["conditions"] == [
+            {
+                "type": Condition.LESS,
+                "comparison": 60,
+                "result": DetectorPriorityLevel.HIGH,
+                "thresholdChangePercent": 40.0,
+            },
+            {
+                "type": Condition.GREATER_OR_EQUAL,
+                "comparison": 60,
+                "result": DetectorPriorityLevel.OK,
+                "thresholdChangePercent": 40.0,
+            },
+        ]
+        schedule_auto_run.assert_called_once()
+
+    @mock.patch(
+        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
+    )
+    def test_migrated_percent_detector_snapshot(self, schedule_auto_run: mock.Mock) -> None:
+        group, open_period = self.create_metric_open_period(
+            detection_type=AlertRuleDetectionType.STATIC,
+            condition_comparison=150,
+            comparison_delta=86_400,
+        )
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+
+        launched = self.client.post(
+            self.collection_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            format="json",
+        )
+
+        assert launched.status_code == 201
+        monitor = launched.data["source"]["snapshot"]["monitor"]
+        assert monitor["detectionType"] == "percent"
+        assert monitor["comparisonDeltaSeconds"] == 86_400
+        assert all(
+            condition["thresholdChangePercent"] == 50.0 for condition in monitor["conditions"]
+        )
+        schedule_auto_run.assert_called_once()
+
+    @mock.patch(
+        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
+    )
+    def test_dynamic_detector_is_available(self, schedule_auto_run: mock.Mock) -> None:
+        comparison = {
+            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+            "seasonality": AnomalyDetectionSeasonality.AUTO,
+            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+        }
+        group, open_period = self.create_metric_open_period(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            condition_type=Condition.ANOMALY_DETECTION,
+            condition_comparison=comparison,
+        )
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "sources": [source],
+            },
+            format="json",
+        )
+        assert candidate.status_code == 200
+        assert candidate.data == {"items": [{"status": "investigate"}]}
+
+        launched = self.client.post(
+            self.collection_url,
+            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            format="json",
+        )
+        assert launched.status_code == 201
+        monitor = launched.data["source"]["snapshot"]["monitor"]
+        assert monitor["detectionType"] == "dynamic"
+        assert monitor["comparisonDeltaSeconds"] is None
+        assert monitor["direction"] == "both"
+        assert monitor["conditions"] == [
+            {
+                "type": Condition.ANOMALY_DETECTION,
+                "comparison": comparison,
+                "result": DetectorPriorityLevel.HIGH,
+            }
+        ]
+        schedule_auto_run.assert_called_once()
 
     def test_inaccessible_source_is_unavailable(self) -> None:
         other_organization = self.create_organization()

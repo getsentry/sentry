@@ -2,6 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Grid} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -58,7 +59,16 @@ function RadioControlGroup<C extends string>({
   ...props
 }: RadioGroupProps<C>) {
   return (
-    <Container {...props} role="radiogroup" aria-label={label}>
+    <Grid
+      {...props}
+      flow={{zero: 'row', xl: 'column'}}
+      autoColumns="minmax(0, 1fr)"
+      autoRows="minmax(0, 1fr)"
+      overflow="hidden"
+      radius="md"
+      role="radiogroup"
+      aria-label={label}
+    >
       {choices.map(([id, name, description], index) => {
         const disabledChoice = disabledChoices.find(([choiceId]) => choiceId === id);
         const disabledChoiceReason = disabledChoice?.[1];
@@ -88,21 +98,9 @@ function RadioControlGroup<C extends string>({
           </Tooltip>
         );
       })}
-    </Container>
+    </Grid>
   );
 }
-
-const Container = styled('div')`
-  display: grid;
-  grid-auto-flow: row;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-rows: minmax(0, 1fr);
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-auto-flow: column;
-  }
-  overflow: hidden;
-  border-radius: ${p => p.theme.radius.md};
-`;
 
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
@@ -141,7 +139,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
     border-top-color: transparent;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     &:nth-child(n + 2) {
       border-top-color: ${p => p.theme.colors.gray200};
       border-left-color: transparent;

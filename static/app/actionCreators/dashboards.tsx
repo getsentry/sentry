@@ -264,7 +264,9 @@ export function updateDashboard(
   }
 
   const promise = fetchMutation<DashboardDetails>({
-    url: `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     method: 'PUT',
     data,
     options: {

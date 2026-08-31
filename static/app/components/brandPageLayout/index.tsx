@@ -1,21 +1,38 @@
-import artworkImage from 'sentry-images/brandPageLayout/artwork.avif';
+import artworkBackground from 'sentry-images/brandPageLayout/background.avif';
+import artworkImage from 'sentry-images/brandPageLayout/full-art.avif';
+import artworkOutline from 'sentry-images/brandPageLayout/outline.svg';
 
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {slot} from '@sentry/scraps/slot';
 
 import {BrandLayoutArt} from './art';
 import {BrandPageBackground} from './background';
+import {InteractiveIllustration} from './interactiveIllustration';
 
 const BrandPageLayoutSlot = slot(['headerStart', 'headerEnd', 'content'] as const);
 
 interface BrandPageLayoutProps {
   children: React.ReactNode;
+  artwork?: React.ReactNode;
+  background?: React.ReactNode;
 }
 
 /**
  * Full-page layout for focused workflows paired with prominent brand artwork.
  */
-function BrandPageLayoutRoot({children}: BrandPageLayoutProps) {
+function BrandPageLayoutRoot({
+  artwork = (
+    <BrandLayoutArt intrinsicHeight={1117} intrinsicWidth={1567} rightBleed={132}>
+      <InteractiveIllustration
+        backgroundSrc={artworkBackground}
+        outlineSrc={artworkOutline}
+        src={artworkImage}
+      />
+    </BrandLayoutArt>
+  ),
+  background = <BrandPageBackground />,
+  children,
+}: BrandPageLayoutProps) {
   return (
     <BrandPageLayoutSlot.Provider>
       {children}
@@ -37,7 +54,7 @@ function BrandPageLayoutRoot({children}: BrandPageLayoutProps) {
           position="relative"
         >
           <Container position="absolute" inset="0" overflow="hidden">
-            <BrandPageBackground />
+            {background}
           </Container>
           <Container
             position="absolute"
@@ -45,7 +62,7 @@ function BrandPageLayoutRoot({children}: BrandPageLayoutProps) {
             overflow="visible"
             pointerEvents="none"
           >
-            <BrandLayoutArt src={artworkImage} rightBleed={132} />
+            {artwork}
           </Container>
         </Container>
 
@@ -108,4 +125,4 @@ export const BrandPageLayout = Object.assign(BrandPageLayoutRoot, {
   HeaderStart,
 });
 
-export {BrandLayoutArt, BrandPageBackground};
+export {BrandLayoutArt, BrandPageBackground, InteractiveIllustration};

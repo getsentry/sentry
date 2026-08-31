@@ -7,6 +7,7 @@ import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {
   collectPatches,
   getAutofixArtifactFromSection,
@@ -106,13 +107,17 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 
   const hasPRs = Object.keys(autofix.runState?.repo_pr_states ?? {}).length > 0;
+  const hasFailedOnlyPRs =
+    hasPRs && !hasCreatedPullRequests(autofix.runState?.repo_pr_states);
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
   // Reset-after-PR is only reachable where reset opens the manual form.
-  const isResetEligible = hasManualPrIterationFeature
-    ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
-    : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing';
+  const isResetEligible =
+    !hasFailedOnlyPRs &&
+    (hasManualPrIterationFeature
+      ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
+      : noCodingAgents && !hasPRs && autofix.runState?.status !== 'processing');
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
