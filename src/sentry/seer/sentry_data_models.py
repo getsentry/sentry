@@ -958,14 +958,3 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
-
-
-class ReportMonitoringProviderConnectionHealthResponse(BaseModel):
-    """`report_monitoring_provider_connection_health` result: whether the org integration's
-    stored connection health was updated. ``updated`` is False when no active
-    org integration was found for the (organization, provider) pair."""
-
-    updated: bool
-
-    def __getitem__(self, key: str) -> Any:
-        return self.dict()[key]

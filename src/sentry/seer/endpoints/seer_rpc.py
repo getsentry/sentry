@@ -9,7 +9,6 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils import timezone
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
@@ -74,7 +73,6 @@ from sentry.seer.agent.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
-from sentry.seer.agent.monitoring_providers import ConnectionHealth
 from sentry.seer.agent.monitoring_providers import (
     get_monitoring_provider_connections as fetch_monitoring_provider_connections,
 )
@@ -146,7 +144,6 @@ from sentry.seer.sentry_data_models import (
     OrganizationSlugResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
-    ReportMonitoringProviderConnectionHealthResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
     SpanAttribute,
@@ -964,55 +961,6 @@ def refresh_monitoring_provider_token(
     )
 
 
-def report_monitoring_provider_connection_health(
-    *,
-    organization_id: int,
-    provider: str,
-    status: str,
-    details: list[dict[str, Any]] | None = None,
-) -> ReportMonitoringProviderConnectionHealthResponse:
-    """Record connection health for an org-level monitoring integration."""
-    if not status:
-        logger.error(
-            "monitoring_provider.health.empty_status",
-            extra={"organization_id": organization_id, "provider": provider},
-        )
-        return ReportMonitoringProviderConnectionHealthResponse(updated=False)
-
-    ctx = integration_service.organization_context(
-        organization_id=organization_id, provider=provider
-    )
-    integration = ctx.integration
-    org_integration = ctx.organization_integration
-    if (
-        integration is None
-        or org_integration is None
-        or integration.status != ObjectStatus.ACTIVE
-        or org_integration.status != ObjectStatus.ACTIVE
-    ):
-        return ReportMonitoringProviderConnectionHealthResponse(updated=False)
-
-    health: ConnectionHealth = {
-        "status": status,
-        "last_checked_at": timezone.now().isoformat(),
-        "details": [
-            {
-                "resource_id": str(detail.get("resource_id", "")),
-                "status": str(detail.get("status", "")),
-                "error_detail": str(detail["error_detail"]) if detail.get("error_detail") else None,
-            }
-            for detail in (details or [])
-        ],
-    }
-
-    config = dict(org_integration.config)
-    config["connection_health"] = health
-    integration_service.update_organization_integration(
-        org_integration_id=org_integration.id, config=config
-    )
-    return ReportMonitoringProviderConnectionHealthResponse(updated=True)
-
-
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
 # a union of `BaseModel` subclasses, optionally with `None`). Two complementary
 # guards enforce this:
@@ -1103,9 +1051,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
-    "report_monitoring_provider_connection_health": seer_rpc(
-        report_monitoring_provider_connection_health
-    ),
 }
 
 

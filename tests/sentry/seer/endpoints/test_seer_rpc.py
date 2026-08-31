@@ -15,7 +15,6 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDeta
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.activity import Activity
 from sentry.models.project import Project
@@ -31,7 +30,6 @@ from sentry.seer.endpoints.seer_rpc import (
     get_repo_installation_id,
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
-    report_monitoring_provider_connection_health,
 )
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
@@ -935,142 +933,6 @@ class TestGetMonitoringProviderConnections(APITestCase):
         )
 
         assert result.connections == []
-
-
-@cell_silo_test
-class TestReportMonitoringProviderConnectionHealth(APITestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.integration = self.create_integration(
-            organization=self.organization,
-            provider="datadog",
-            external_id="dd-ext",
-            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
-        )
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            self.org_integration = OrganizationIntegration.objects.get(
-                organization_id=self.organization.id,
-                integration_id=self.integration.id,
-            )
-
-    def _config(self) -> dict[str, Any]:
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            self.org_integration.refresh_from_db()
-            return self.org_integration.config
-
-    def test_records_connection_health(self) -> None:
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="connected",
-        )
-
-        assert result.updated is True
-        health = self._config()["connection_health"]
-        assert health["status"] == "connected"
-        assert health["details"] == []
-        assert health["last_checked_at"]
-
-    def test_records_resource_details(self) -> None:
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="permission_denied",
-            details=[
-                {
-                    "resource_id": "proj-1",
-                    "status": "permission_denied",
-                    "error_detail": "no access",
-                },
-                {"resource_id": "proj-2", "status": "connected", "error_detail": None},
-            ],
-        )
-
-        assert result.updated is True
-        health = self._config()["connection_health"]
-        assert health["status"] == "permission_denied"
-        assert health["details"] == [
-            {"resource_id": "proj-1", "status": "permission_denied", "error_detail": "no access"},
-            {"resource_id": "proj-2", "status": "connected", "error_detail": None},
-        ]
-
-    def test_coerces_detail_fields(self) -> None:
-        # Non-string values are stringified; falsy error_detail collapses to None.
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="error",
-            details=[
-                {"resource_id": 123, "status": 500, "error_detail": ""},
-                {"resource_id": "proj", "status": "connected", "error_detail": 42},
-            ],
-        )
-
-        assert result.updated is True
-        assert self._config()["connection_health"]["details"] == [
-            {"resource_id": "123", "status": "500", "error_detail": None},
-            {"resource_id": "proj", "status": "connected", "error_detail": "42"},
-        ]
-
-    def test_preserves_existing_config(self) -> None:
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            self.org_integration.update(config={"site": "datadoghq.com", "keep_me": "value"})
-
-        report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="connected",
-        )
-
-        config = self._config()
-        assert config["keep_me"] == "value"
-        assert config["site"] == "datadoghq.com"
-        assert config["connection_health"]["status"] == "connected"
-
-    def test_empty_status_is_noop(self) -> None:
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="",
-        )
-
-        assert result.updated is False
-        assert "connection_health" not in self._config()
-
-    def test_missing_integration_is_noop(self) -> None:
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="gcp",
-            status="connected",
-        )
-
-        assert result.updated is False
-
-    def test_inactive_integration_is_noop(self) -> None:
-        with assume_test_silo_mode_of(Integration):
-            self.integration.update(status=ObjectStatus.DISABLED)
-
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="connected",
-        )
-
-        assert result.updated is False
-        assert "connection_health" not in self._config()
-
-    def test_inactive_org_integration_is_noop(self) -> None:
-        with assume_test_silo_mode_of(OrganizationIntegration):
-            self.org_integration.update(status=ObjectStatus.DISABLED)
-
-        result = report_monitoring_provider_connection_health(
-            organization_id=self.organization.id,
-            provider="datadog",
-            status="connected",
-        )
-
-        assert result.updated is False
-        assert "connection_health" not in self._config()
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
