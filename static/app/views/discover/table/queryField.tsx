@@ -9,10 +9,10 @@ import {Input} from '@sentry/scraps/input';
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import type {SingleValueProps} from '@sentry/scraps/select';
+import {components} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';

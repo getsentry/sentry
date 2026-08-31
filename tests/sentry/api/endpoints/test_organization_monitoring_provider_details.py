@@ -6,10 +6,12 @@ from django.http import HttpResponseRedirect
 from requests.exceptions import HTTPError
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, OrganizationIdentity
 
 
+@with_feature("organizations:seer-infra-telemetry-user-level-auth")
 @control_silo_test
 class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitoring-provider-details"
@@ -21,6 +23,16 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
 
     def test_connect_requires_feature_flag(self) -> None:
         response = self.get_response(self.organization.slug, "datadog")
+        assert response.status_code == 404
+
+    def test_connect_requires_user_level_flag(self) -> None:
+        with self.feature(
+            {
+                "organizations:seer-infra-telemetry": True,
+                "organizations:seer-infra-telemetry-user-level-auth": False,
+            }
+        ):
+            response = self.get_response(self.organization.slug, "datadog", site="datadoghq.com")
         assert response.status_code == 404
 
     @patch(
@@ -281,6 +293,7 @@ class OrganizationMonitoringProviderDetailsConnectTest(APITestCase):
         assert not Identity.objects.filter(idp=idp, user=self.user).exists()
 
 
+@with_feature("organizations:seer-infra-telemetry-user-level-auth")
 @control_silo_test
 class OrganizationMonitoringProviderDetailsReauthenticateTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitoring-provider-details"
@@ -303,6 +316,19 @@ class OrganizationMonitoringProviderDetailsReauthenticateTest(APITestCase):
 
     def test_reauthenticate_requires_feature_flag(self) -> None:
         response = self.get_response(self.organization.slug, "datadog_pat")
+        assert response.status_code == 404
+
+    def test_reauthenticate_requires_user_level_flag(self) -> None:
+        self._connect_datadog_pat(site="datadoghq.com")
+        with self.feature(
+            {
+                "organizations:seer-infra-telemetry": True,
+                "organizations:seer-infra-telemetry-user-level-auth": False,
+            }
+        ):
+            response = self.get_response(
+                self.organization.slug, "datadog_pat", access_token="pat-new"
+            )
         assert response.status_code == 404
 
     def test_reauthenticate_not_connected(self) -> None:
@@ -435,6 +461,27 @@ class OrganizationMonitoringProviderDetailsDisconnectTest(APITestCase):
     def test_disconnect_requires_feature_flag(self) -> None:
         response = self.get_response(self.organization.slug, "datadog")
         assert response.status_code == 404
+
+    def test_disconnect_does_not_require_user_level_flag(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-123",
+            data={"access_token": "token"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+
+        with self.feature(
+            {
+                "organizations:seer-infra-telemetry": True,
+                "organizations:seer-infra-telemetry-user-level-auth": False,
+            }
+        ):
+            response = self.get_response(self.organization.slug, "datadog")
+
+        assert response.status_code == 204
+        assert not Identity.objects.filter(id=identity.id).exists()
 
     def test_disconnect_deletes_identity_datadog(self) -> None:
         idp = self.create_identity_provider(type="datadog", external_id="dd-org-456")

@@ -33,6 +33,7 @@ from sentry.seer.entrypoints.types import (
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
@@ -853,7 +854,7 @@ def get_autofix_explorer_status(
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
-    """Completion hook that notifies all entrypoints when a Seer Agent run finishes.
+    """Completion hook that notifies all entrypoints when a Seer Agent invocation yields.
 
     Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
     registry and calls on_agent_update for each entrypoint that has access and
@@ -919,6 +920,10 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
                             cache_payload=cache_payload,
                             summary=summary,
                             run_id=run_id,
+                            pending_user_input=state.pending_user_input,
                         )
+                    except IntegrationError:
+                        # Seer's completion-hook delivery task retries failed RPC calls.
+                        raise
                     except Exception as e:
                         ept_lifecycle.record_failure(failure_reason=e)

@@ -29,9 +29,7 @@ export type TrackingProps = AnalyticsProps &
     clickType: ClickTrackingType;
   };
 
-const TrackingContext = createContext<() => (props: TrackingProps) => void>(
-  () => () => {}
-);
+const TrackingContext = createContext<(props: TrackingProps) => void>(() => {});
 
 export const TrackingContextProvider = TrackingContext.Provider;
 
@@ -39,7 +37,7 @@ export const useClickTracking = (
   props: ButtonProps | LinkButtonProps | LinkProps,
   clickType: ClickTrackingType
 ) => {
-  const clickTracking = useContext(TrackingContext)();
+  const clickTracking = useContext(TrackingContext);
   const accessibleLabel =
     props['aria-label'] ??
     (typeof props.children === 'string' ? props.children : undefined);

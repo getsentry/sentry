@@ -222,7 +222,8 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&
-            organization.features.includes('seer-infra-telemetry'),
+            organization.features.includes('seer-infra-telemetry') &&
+            organization.features.includes('seer-infra-telemetry-user-level-auth'),
         },
         {
           path: `${organizationSettingsPathPrefix}/seer/advanced/`,

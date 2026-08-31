@@ -54,6 +54,7 @@ import {
 import type {
   RunStatus,
   SeerNightShiftRun,
+  SeerNightShiftRunErrorType,
   SeerNightShiftRunIssue,
   SeerNightShiftRunPullRequest,
   WorkflowKind,
@@ -483,11 +484,10 @@ function SourceIcon({source}: {source: string | undefined}) {
   );
 }
 
-// toWorkflowRow only ever derives 'succeeded' or 'failed' from a run, so only
-// offer those as filter choices — 'skipped'/'running' would never match.
 const STATUS_FILTER_OPTIONS: Array<{label: string; value: RunStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
   {value: 'failed', label: 'Failed'},
+  {value: 'skipped', label: 'Skipped'},
 ];
 
 const PERIOD_FILTER_OPTIONS: Array<{label: string; value: string}> = [
@@ -532,7 +532,7 @@ function getResultContent(row: WorkflowRow) {
   if (row.status === 'failed') {
     return (
       <Text variant="danger" size="sm">
-        {t('Run failed')}
+        {row.resultText ?? t('Run failed')}
       </Text>
     );
   }
@@ -918,17 +918,18 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
 }
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
-  const status: RunStatus = run.errorMessage ? 'failed' : 'succeeded';
+  const errorPresentation = getErrorPresentation(run.errorType ?? null);
   const agentRunId = run.extras.agent_run_id;
   return {
     id: `${run.id}:agentic_triage`,
     runId: run.id,
     dateAdded: run.dateAdded,
     kind: 'agentic_triage',
-    status,
+    status: errorPresentation?.status ?? 'succeeded',
     source: run.extras.options?.source,
     errorMessage: run.errorMessage,
     options: run.extras.options,
+    resultText: errorPresentation?.resultText,
     triage: {
       maxCandidates: run.extras.options?.max_candidates,
       dryRun: run.extras.options?.dry_run,
@@ -940,6 +941,27 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
           : undefined,
     },
   };
+}
+
+function getErrorPresentation(
+  errorType: SeerNightShiftRunErrorType | null
+): {resultText: string; status: RunStatus} | null {
+  switch (errorType) {
+    case null:
+      return null;
+    case 'no_quota':
+      return {status: 'skipped', resultText: t('No Seer quota available')};
+    case 'no_seer_access':
+      return {status: 'skipped', resultText: t('Seer is not enabled')};
+    case 'eligible_projects_failed':
+      return {status: 'failed', resultText: t('Could not check eligible projects')};
+    case 'invalid_shard_plan':
+      return {status: 'failed', resultText: t('Could not prepare triage')};
+    case 'shard_dispatch_failed':
+      return {status: 'failed', resultText: t('Could not start all triage batches')};
+    default:
+      return {status: 'failed', resultText: t('Run failed')};
+  }
 }
 
 function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
