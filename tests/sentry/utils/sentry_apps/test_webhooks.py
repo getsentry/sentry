@@ -632,3 +632,44 @@ class WebhookRequestIdAndDurationTest(TestCase):
         assert row.get("subject_type") is None
         assert row["request_id"] == event.sentry_headers["Request-ID"]
         assert row["duration_ms"] == 10
+
+@cell_silo_test
+class WebhookInvalidHeaderTest(TestCase):
+    def setUp(self):
+        self.organization = self.create_organization()
+        # Ideographic space U+3000 is not latin-1 encodable (SENTRY-5TWJ).
+        bad_header = "Authorization: Bearer　token"
+        self.sentry_app = self.create_sentry_app(
+            name="HeaderApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+            webhook_headers=[bad_header],
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+    def _make_event(self):
+        return AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
+        )
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_non_latin1_header_halts_without_failure_metric(self, mock_safe_urlopen):
+        mock_safe_urlopen.side_effect = UnicodeEncodeError(
+            "latin-1", "Bearer　token", 6, 7, "ordinal not in range(256)"
+        )
+
+        with pytest.raises(UnicodeEncodeError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+        assert len(requests) == 1
+        assert requests[0]["response_code"] == 0
+

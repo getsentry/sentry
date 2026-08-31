@@ -17,6 +17,7 @@ from sentry.sentry_apps.models.sentry_app import (
     VALID_EVENTS,
     required_scope_for_subscription,
 )
+from sentry.sentry_apps.utils.headers import assert_http_header_value
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
@@ -246,12 +247,18 @@ class SentryAppParser(Serializer):
             # Reject CR/LF to prevent header injection / request splitting.
             if "\n" in header or "\r" in header:
                 raise ValidationError("Webhook headers cannot contain newlines.")
-            name, separator, _header_value = header.partition(":")
+            name, separator, header_value = header.partition(":")
             name = name.strip()
+            header_value = header_value.strip()
             if not separator or not name:
                 raise ValidationError(
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
                 )
+            try:
+                assert_http_header_value(name, field_name="header name")
+                assert_http_header_value(header_value, field_name="header value")
+            except ValueError as e:
+                raise ValidationError(str(e)) from e
             if not _HTTP_TOKEN_RE.match(name):
                 raise ValidationError(
                     f"'{name}' contains invalid characters. Header names must only use "

@@ -403,6 +403,24 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
             )
             raise
+        except UnicodeEncodeError:
+            # Custom webhook headers must be latin-1. Invalid customer config —
+            # halt without creating a Sentry failure issue.
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INVALID_HEADER}",
+            )
+            buffer.add_request(
+                response_code=TIMEOUT_STATUS_CODE,
+                org_id=org_id,
+                event=event,
+                url=url,
+                headers=app_platform_event.loggable_headers,
+                request_id=request_id,
+                subject_id=subject_id,
+                subject_type=subject_type,
+                duration_ms=None,
+            )
+            raise
         except InnerTimeoutError:
             # This means we didn't even start the request since the prev. steps took too long
             lifecycle.record_halt(

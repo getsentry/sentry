@@ -128,6 +128,17 @@ def send_and_save_sentry_app_request(
 
         try:
             resp = safe_urlopen(url=url, headers=send_headers, **kwargs)
+        except UnicodeEncodeError as e:
+            # Non-latin-1 custom headers are customer misconfiguration.
+            lifecycle.record_halt(e)
+            buffer.add_request(
+                response_code=TIMEOUT_STATUS_CODE,
+                org_id=org_id,
+                event=event,
+                url=url,
+                headers=loggable_headers,
+            )
+            raise
         except (Timeout, ConnectionError) as e:
             error_type = e.__class__.__name__.lower()
             lifecycle.add_extras(
