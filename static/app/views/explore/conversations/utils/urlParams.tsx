@@ -21,8 +21,7 @@ interface ConversationsUrlOptions {
 export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
-  projects: number[],
-  referrer = 'conversations-table'
+  projects: number[]
 ): string {
   const basePath = `/organizations/${orgSlug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
@@ -38,7 +37,7 @@ export function getConversationDetailUrl(
   for (const project of projects) {
     params.append('project', String(project));
   }
-  params.set('referrer', referrer);
+  params.set('referrer', 'conversations-table');
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
