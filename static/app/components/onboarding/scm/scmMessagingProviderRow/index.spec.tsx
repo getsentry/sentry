@@ -23,7 +23,12 @@ import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
+import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import {ScmMessagingProviderRow} from '.';
+
+jest.mock('./scmMessagingChannelPicker', () => ({
+  ScmMessagingChannelPicker: jest.fn(() => <div>channel-picker</div>),
+}));
 
 const organization = OrganizationFixture();
 
@@ -141,7 +146,6 @@ function ControlledRow({
   onContinue = jest.fn(),
   onInstallComplete = jest.fn(),
   onMessagingSetupChange = jest.fn(),
-  renderChannelPicker,
 }: {
   messagingSetup: ScmMessagingSetup;
   resolvedProvider: ScmMessagingResolvedProvider;
@@ -150,7 +154,6 @@ function ControlledRow({
   onContinue?: jest.Mock;
   onInstallComplete?: jest.Mock;
   onMessagingSetupChange?: jest.Mock;
-  renderChannelPicker?: jest.Mock;
 }) {
   const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(initialActiveRow);
   return (
@@ -162,7 +165,6 @@ function ControlledRow({
       onContinue={onContinue}
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
-      renderChannelPicker={renderChannelPicker}
       isRefetchingIntegrations={isRefetchingIntegrations}
       isContinuing={false}
     />
@@ -179,13 +181,11 @@ function renderRow(
     onInstallComplete?: jest.Mock;
     onMessagingSetupChange?: jest.Mock;
     organization?: Partial<Organization>;
-    renderChannelPicker?: jest.Mock;
   } = {}
 ) {
   const onContinue = overrides.onContinue ?? jest.fn();
   const onInstallComplete = overrides.onInstallComplete ?? jest.fn();
   const onMessagingSetupChange = overrides.onMessagingSetupChange ?? jest.fn();
-  const renderChannelPicker = overrides.renderChannelPicker;
   const org = overrides.organization ?? organization;
 
   return render(
@@ -196,7 +196,6 @@ function renderRow(
       onContinue={onContinue}
       onInstallComplete={onInstallComplete}
       onMessagingSetupChange={onMessagingSetupChange}
-      renderChannelPicker={renderChannelPicker}
       isRefetchingIntegrations={overrides.isRefetchingIntegrations ?? false}
     />,
     {organization: org}
@@ -557,11 +556,9 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('shows the picker when the parent sets activeRow to configuring', () => {
-      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
 
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        initialActiveRow: {providerKey: 'slack', mode: 'configuring'},
-        renderChannelPicker,
+        initialActiveRow: {providerKey: 'slack', mode: 'configuring'}
       });
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
@@ -570,8 +567,7 @@ describe('ScmMessagingProviderRow', () => {
 
   describe('choose-destination state (connected, not yet configured)', () => {
     it('shows the Authorized tag without opening the picker', () => {
-      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP);
 
       expect(screen.getByText('Authorized')).toBeInTheDocument();
       expect(screen.queryByText('Connected')).not.toBeInTheDocument();
@@ -579,36 +575,31 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('opens the channel picker with onCancel when Choose destination is clicked', async () => {
-      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP);
 
       expect(screen.queryByText('channel-picker')).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
-      expect(renderChannelPicker).toHaveBeenCalledWith(
+      expect(ScmMessagingChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
-          integrations: [slackIntegration],
+          eligibleIntegrations: [slackIntegration],
           onCancel: expect.any(Function),
           onConfigured: expect.any(Function),
-        })
+        }),
+        expect.anything()
       );
     });
 
     it('returns to choose-destination when Cancel is clicked on first-time configure', async () => {
-      let capturedOnCancel: (() => void) | undefined;
-      const renderChannelPicker = jest.fn(({onCancel}: {onCancel: () => void}) => {
-        capturedOnCancel = onCancel;
-        return <div>channel-picker</div>;
-      });
-
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
+      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP);
 
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
 
-      act(() => capturedOnCancel?.());
+      const pickerProps = jest.mocked(ScmMessagingChannelPicker).mock.calls.at(-1)![0];
+      act(() => pickerProps.onCancel());
 
       await waitFor(() =>
         expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
@@ -641,16 +632,15 @@ describe('ScmMessagingProviderRow', () => {
         eligibleIntegrations: [msteamsTeamIntegration],
         permissionLimitedIntegration: undefined,
       };
-
-      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
-      renderRow(mixedMsteams, UNCONFIGURED_SCM_MESSAGING_SETUP, {renderChannelPicker});
+      renderRow(mixedMsteams, UNCONFIGURED_SCM_MESSAGING_SETUP);
 
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
 
-      expect(renderChannelPicker).toHaveBeenCalledWith(
+      expect(ScmMessagingChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
-          integrations: [msteamsTeamIntegration],
-        })
+          eligibleIntegrations: [msteamsTeamIntegration],
+        }),
+        expect.anything()
       );
     });
 
@@ -701,26 +691,16 @@ describe('ScmMessagingProviderRow', () => {
     it('saves the setup and calls onContinue without closing the picker', async () => {
       const onMessagingSetupChange = jest.fn();
       const onContinue = jest.fn();
-      let capturedOnConfigured:
-        | ((setup: ScmMessagingSetup & {mode: 'selected'}) => void)
-        | undefined;
-
-      const renderChannelPicker = jest.fn(
-        ({onConfigured}: {onConfigured: (s: any) => void}) => {
-          capturedOnConfigured = onConfigured;
-          return <div>channel-picker</div>;
-        }
-      );
 
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
         onMessagingSetupChange,
         onContinue,
-        renderChannelPicker,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
 
-      act(() => capturedOnConfigured?.(selectedSlackSetup));
+      const pickerProps = jest.mocked(ScmMessagingChannelPicker).mock.calls.at(-1)![0];
+      act(() => pickerProps.onConfigured(selectedSlackSetup));
       expect(onMessagingSetupChange).toHaveBeenCalledWith(selectedSlackSetup);
       expect(onContinue).toHaveBeenCalledTimes(1);
       // Picker stays open — activeRow is not cleared so the step can unmount cleanly.
@@ -737,16 +717,16 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('enters configuring state when Edit is clicked and passes onCancel to the picker', async () => {
-      const renderChannelPicker = jest.fn(() => <div>channel-picker</div>);
-      renderRow(connectedSlack, selectedSlackSetup, {renderChannelPicker});
+      renderRow(connectedSlack, selectedSlackSetup);
 
       await userEvent.click(screen.getByRole('button', {name: /Edit/}));
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
-      expect(renderChannelPicker).toHaveBeenCalledWith(
+      expect(ScmMessagingChannelPicker).toHaveBeenCalledWith(
         expect.objectContaining({
           onCancel: expect.any(Function),
-        })
+        }),
+        expect.anything()
       );
     });
   });
