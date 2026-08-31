@@ -259,6 +259,11 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_device_class_filter_rejects_wildcards(self) -> None:
+        """device.class dual-read must reject wildcards like other virtual contexts."""
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with device.class"):
+            self.resolver.resolve_query("device.class:*")
+
     def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!span.description:foo")
         assert where == TraceItemFilter(

@@ -577,6 +577,12 @@ class SearchResolver:
             resolved_term, _ = self._resolve_term(term)
             return resolved_term
 
+        # Match _resolve_term's VCC guard: wildcards are unsupported on virtual contexts.
+        # Without this, map_search_term_context_to_original_column falls through to
+        # default_value ("Unknown") for translated wildcards like "*".
+        if term.value.is_wildcard():
+            raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
+
         # high/medium/low → "1"/"2"/"3"; Unknown → ""
         _, raw_values = self.map_search_term_context_to_original_column(term, context_definition)
 
