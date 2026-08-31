@@ -134,10 +134,19 @@ class AuthSAML2Test(AuthProviderTestCase):
         resp = self.accept_auth(follow=True)
 
         assert resp.status_code == 200
-        assert resp.redirect_chain == [
-            ("/auth/login/", 302),
-            ("/organizations/saml2-org/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/saml2-org/issues/", 302)]
+
+    def test_auth_sp_initiated_login_with_react_auth_skips_login_page(self) -> None:
+        AuthIdentity.objects.create(
+            user_id=self.user.id, auth_provider=self.auth_provider_inst, ident="1234"
+        )
+        self.client.cookies["sentry_react_auth"] = "1"
+        self.client.post(self.login_path, {"init": True})
+
+        response = self.accept_auth(follow=True)
+
+        assert response.status_code == 200
+        assert response.redirect_chain == [("/organizations/saml2-org/issues/", 302)]
 
     def test_auth_sp_initiated_customer_domain(self) -> None:
         # setup an existing identity so we can complete login
@@ -149,10 +158,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         resp = self.accept_auth(follow=True)
 
         assert resp.status_code == 200
-        assert resp.redirect_chain == [
-            ("http://saml2-org.testserver/auth/login/", 302),
-            ("http://saml2-org.testserver/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("http://saml2-org.testserver/issues/", 302)]
 
     @with_feature("system:multi-region")
     def test_auth_sp_initiated_login_customer_domain_feature(self) -> None:
@@ -165,10 +171,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         resp = self.accept_auth(follow=True)
 
         assert resp.status_code == 200
-        assert resp.redirect_chain == [
-            ("http://saml2-org.testserver/auth/login/", 302),
-            ("http://saml2-org.testserver/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("http://saml2-org.testserver/issues/", 302)]
 
     def test_auth_idp_initiated(self) -> None:
         auth = self.accept_auth()
