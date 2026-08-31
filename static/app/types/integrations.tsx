@@ -196,6 +196,7 @@ export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
 
 export interface LinkedPullRequestsResponse {
   pullRequests: LinkedPullRequest[];
+  latestRegressionAt?: string | null;
 }
 
 /**
