@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -61,7 +62,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 project_list.extend(Project.objects.filter(teams__in=team_list, id__in=project_ids))
             keys = list({p.id for p in project_list})
         else:
-            raise ValueError("Invalid group: %s" % group)
+            raise ParseError(detail=f"Invalid group: {group}")
 
         if "id" in request.GET:
             id_filter_set = frozenset(map(int, request.GET.getlist("id")))
@@ -97,7 +98,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
                     raise ResourceDoesNotExist
 
         if stat_model is None:
-            raise ValueError(f"Invalid group: {group}, stat: {stat}")
+            raise ParseError(detail=f"Invalid group: {group}, stat: {stat}")
         data: dict[int, list[tuple[int, int]]] | list[tuple[int, int]]
         data = tsdb.backend.get_range(
             model=stat_model,

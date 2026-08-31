@@ -73,6 +73,23 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 400, response.content
 
+
+    def test_invalid_group(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
+        response = self.client.get(f"{url}?group=category")
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "Invalid group: category"
+
+    def test_invalid_stat(self) -> None:
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
+        response = self.client.get(f"{url}?stat=not-a-stat")
+
+        assert response.status_code == 400, response.content
+        assert "Invalid group" in response.data["detail"]
+
     def test_id_filtering(self) -> None:
         self.login_as(user=self.user)
 
