@@ -164,9 +164,7 @@ class SDKCrashDetector:
     def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
         return self._matches_frame_pattern(frame, self.config.sdk_crash_ignore_matchers)
 
-    def _matches_sdk_crash_ignore_stacktrace(
-        self, frames: Sequence[Mapping[str, Any]]
-    ) -> bool:
+    def _matches_sdk_crash_ignore_stacktrace(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         for matcher in self.config.sdk_crash_ignore_stacktrace_matchers:
             if self._matches_stacktrace_ignore(frames, matcher):
                 return True

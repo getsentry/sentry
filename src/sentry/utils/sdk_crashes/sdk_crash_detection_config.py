@@ -110,9 +110,7 @@ class SDKCrashDetectionConfig:
     only be identified by a combination of frames, e.g. Sentry.init being re-run by the React
     Native dev server (Metro) on hot reload, where init is dispatched through the device event
     emitter — a path that never happens in production."""
-    sdk_crash_ignore_stacktrace_matchers: set[StacktraceIgnoreMatcher] = field(
-        default_factory=set
-    )
+    sdk_crash_ignore_stacktrace_matchers: set[StacktraceIgnoreMatcher] = field(default_factory=set)
     """The package names that identify the customer-facing hybrid SDK for an SDK event.
     Maps the event SDK name to the hybrid SDK name and package name."""
     hybrid_sdk_packages: dict[str, tuple[str, str]] = field(default_factory=dict)
