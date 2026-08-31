@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -107,7 +108,8 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     def validate_default_branch(self, default_branch):
         # Get the integration to check if it's Perforce
         integration = integration_service.get_integration(
-            integration_id=self.org_integration.integration_id
+            integration_id=self.org_integration.integration_id,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
 
         # For Perforce, allow empty branch (streams are part of depot path)

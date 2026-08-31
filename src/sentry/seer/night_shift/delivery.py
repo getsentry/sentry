@@ -26,6 +26,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -70,7 +71,13 @@ def deliver_night_shift_result(
     # Per-delivery error_message lives on the shard so a sibling shard's success
     # can't clear it.
     if error:
-        shard.update(extras={**(shard.extras or {}), "error_message": error})
+        shard.update(
+            extras={
+                **(shard.extras or {}),
+                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
+                "error_message": error,
+            }
+        )
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
@@ -100,10 +107,11 @@ def deliver_night_shift_result(
     options = (run.extras or {}).get("options") or {}
     dry_run = bool(options.get("dry_run", False))
 
-    # Clear any stale error_message now that this delivery has succeeded.
+    # Clear any stale delivery error now that this delivery has succeeded.
     if (shard.extras or {}).get("error_message"):
         extras = {**shard.extras}
         del extras["error_message"]
+        extras.pop("error_type", None)
         shard.update(extras=extras)
 
     _process_verdicts(

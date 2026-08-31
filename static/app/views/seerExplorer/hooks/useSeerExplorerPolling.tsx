@@ -59,6 +59,9 @@ const getPollingState = (
     }
     return 'not-polling';
   }
+  if (sessionData?.failure_reason === 'timeout') {
+    return 'timed-out';
+  }
   if (isResponseComplete(sessionData)) {
     return 'not-polling';
   }

@@ -372,7 +372,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           let currentSeriesNames = [field];
           let includePreviousParam = true;
           let yAxis = provided.yAxis;
-          let interval = getInterval(pageFilterDatetime, 'medium');
+          let interval = getInterval(pageFilterDatetime);
           let partialDataParam = true;
 
           if (

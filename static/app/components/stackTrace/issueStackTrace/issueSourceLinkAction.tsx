@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -53,12 +52,32 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
   const hasContent = wouldShowCodeMappingLink || wouldShowSentryAppStacktraceLink;
 
   return (
-    <FrameActionsSlot
-      reserveSpace={hasContent}
+    <Flex
+      align="center"
+      gap="xs"
+      justify="end"
+      width={{zero: 'auto', xl: hasContent ? 'max-content' : '0'}}
+      flex={{zero: '0 1 auto', xl: hasContent ? '0 0 max-content' : '0 0 0'}}
+      height={{
+        zero: 'auto',
+        xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
+      }}
+      minHeight={{
+        zero: '0',
+        xl: hasContent ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0',
+      }}
+      overflow={{zero: 'visible', xl: 'hidden'}}
+      whiteSpace="nowrap"
+      pointerEvents="none"
       data-test-id="core-stacktrace-frame-actions-slot"
     >
       {showCodeMappingLink ? (
-        <Flex as="span" align="center" onClick={e => e.stopPropagation()}>
+        <Flex
+          as="span"
+          align="center"
+          pointerEvents="auto"
+          onClick={e => e.stopPropagation()}
+        >
           <StacktraceLink
             frame={frame}
             line={contextLine?.[1] ?? ''}
@@ -69,7 +88,12 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
       ) : null}
 
       {showSentryAppStacktraceLink ? (
-        <Flex as="span" align="center" onClick={e => e.stopPropagation()}>
+        <Flex
+          as="span"
+          align="center"
+          pointerEvents="auto"
+          onClick={e => e.stopPropagation()}
+        >
           <OpenInContextLine
             lineNo={frame.lineNo ?? null}
             filename={frame.filename!}
@@ -77,31 +101,6 @@ export function IssueSourceLinkAction({isHovering = false}: IssueSourceLinkActio
           />
         </Flex>
       ) : null}
-    </FrameActionsSlot>
+    </Flex>
   );
 }
-
-const FrameActionsSlot = styled(Flex)<{reserveSpace: boolean}>`
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  justify-content: flex-end;
-  width: ${p => (p.reserveSpace ? 'max-content' : '0')};
-  flex: ${p => (p.reserveSpace ? '0 0 max-content' : '0 0 0')};
-  height: ${p => (p.reserveSpace ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0')};
-  min-height: ${p => (p.reserveSpace ? `${HOVER_ACTIONS_SLOT_HEIGHT}px` : '0')};
-  overflow: hidden;
-  white-space: nowrap;
-  pointer-events: none;
-
-  > * {
-    pointer-events: auto;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    width: auto;
-    flex: 0 1 auto;
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
-`;

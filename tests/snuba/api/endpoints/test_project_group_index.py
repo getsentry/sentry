@@ -81,6 +81,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
+        response = self.client.get(f"{self.path}?sort=inbox", format="json")
+        assert response.status_code == 400
+        assert "Sort key 'inbox' not supported" in response.data["detail"]
+
         response = self.client.get(f"{self.path}?sort=-lastSeen", format="json")
         assert response.status_code == 400
         assert "Sort key '-lastSeen' not supported" in response.data["detail"]

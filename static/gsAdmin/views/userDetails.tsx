@@ -124,7 +124,7 @@ export function UserDetails() {
   const suspendMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
-        url: `/_admin/users/${userId}/suspend/`,
+        url: getApiUrl('/_admin/users/$userId/suspend/', {path: {userId}}),
         method: 'POST',
         data: params,
       }),

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
@@ -8,11 +7,12 @@ import uniqBy from 'lodash/uniqBy';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -24,6 +24,12 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
+
+const OWNERSHIP_COLUMNS: TableColumnConfig[] = [
+  {key: 'type', width: 'min-content'},
+  {key: 'rule', width: '1fr'},
+  {key: 'owner', width: 'auto'},
+];
 
 interface OwnershipRulesTableProps {
   codeowners: CodeOwner[];
@@ -182,11 +188,19 @@ export function OwnershipRulesTable({
         {actions}
       </Flex>
 
-      <StyledPanelTable
-        headers={[t('Type'), t('Rule'), t('Owner')]}
-        isEmpty={chunkedRules.length === 0}
-        emptyMessage={t('No ownership rules found')}
+      <StyledSimpleTable
+        columns={OWNERSHIP_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Rule')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Owner')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
+        {chunkedRules.length === 0 && (
+          <SimpleTable.Empty>{t('No ownership rules found')}</SimpleTable.Empty>
+        )}
         {chunkedRules[page]?.map((rule, index) => {
           const isExclusionRule = rule.owners.length === 0;
           const hasUnknownOwners = rule.owners.some(owner => !defined(owner.id));
@@ -205,12 +219,14 @@ export function OwnershipRulesTable({
           const name = ownerNames[0] ?? 'unknown';
 
           return (
-            <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
-              <Flex align="center" gap="md">
+            <SimpleTable.Row
+              key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}
+            >
+              <SimpleTable.RowCell gap="md">
                 <Tag variant="info">{rule.matcher.type}</Tag>
-              </Flex>
+              </SimpleTable.RowCell>
               <RowRule>{rule.matcher.pattern}</RowRule>
-              <Flex align="center" gap="md">
+              <SimpleTable.RowCell gap="md">
                 {isExclusionRule ? (
                   <Text variant="muted">{t('No Owner')}</Text>
                 ) : (
@@ -231,11 +247,11 @@ export function OwnershipRulesTable({
                       tn(' and %s other', ' and %s others', rule.owners.length - 1)}
                   </Fragment>
                 )}
-              </Flex>
-            </Fragment>
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
           );
         })}
-      </StyledPanelTable>
+      </StyledSimpleTable>
       <Flex justify="end">
         <ButtonBar>
           <Button
@@ -273,21 +289,16 @@ const RulesTableWrapper = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: min-content minmax(1fr, max-content) auto;
+const StyledSimpleTable = styled(SimpleTable)`
   font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 
-  ${p =>
-    !p.isEmpty &&
-    css`
-      & > div {
-        padding: ${p.theme.space.lg} ${p.theme.space.xl};
-      }
-    `}
+  [role='cell'] {
+    padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
+  }
 `;
 
-const RowRule = styled('div')`
+const RowRule = styled(SimpleTable.RowCell)`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.md};

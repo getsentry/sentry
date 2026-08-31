@@ -259,6 +259,31 @@ class JiraIntegration(IssueSyncIntegration):
                     JiraProjectMapping(value=p["id"], label=p["name"])
                     for p in projects_response.get("values", [])
                 ]
+                fetched_ids = {project["value"] for project in projects}
+
+                # For saved config mappings we need to fetch the project name if it's not already in the list
+                saved_ids_to_fetch = [
+                    external_id
+                    for external_id in self._get_configured_external_ids()
+                    if external_id not in fetched_ids
+                ]
+                if saved_ids_to_fetch:
+                    try:
+                        supplemental = client.get_projects_paginated(
+                            params={"id": saved_ids_to_fetch, "maxResults": len(saved_ids_to_fetch)}
+                        )
+                        projects.extend(
+                            JiraProjectMapping(value=p["id"], label=p["name"])
+                            for p in supplemental.get("values", [])
+                        )
+                    except ApiError:
+                        logger.info(
+                            "jira.get-organization-config.supplemental-fetch-failed",
+                            extra={
+                                "org_id": self.organization_id,
+                                "integration_id": self.model.id,
+                            },
+                        )
             else:
                 projects = [
                     JiraProjectMapping(value=p["id"], label=p["name"])
@@ -284,6 +309,13 @@ class JiraIntegration(IssueSyncIntegration):
                 )
 
         return configuration
+
+    def _get_configured_external_ids(self) -> list[str]:
+        return list(
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=self.org_integration.id
+            ).values_list("external_id", flat=True)
+        )
 
     def _set_status_choices_in_organization_config(
         self, configuration: list[dict[str, Any]], jira_projects: list[JiraProjectMapping]
@@ -351,18 +383,15 @@ class JiraIntegration(IssueSyncIntegration):
         client = self.get_client()
 
         mapped_selectors: dict[str, Any] = {}
-        configured_projects = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
-        )
-        for project in configured_projects:
+        for external_id in self._get_configured_external_ids():
             try:
-                project_statuses = client.get_project_statuses(
-                    project.external_id, paginate=True
-                ).get("values", [])
+                project_statuses = client.get_project_statuses(external_id, paginate=True).get(
+                    "values", []
+                )
             except ApiError:
                 continue
             statuses = [(c["id"], c["name"]) for c in project_statuses]
-            mapped_selectors[project.external_id] = {
+            mapped_selectors[external_id] = {
                 "on_resolve": {"choices": statuses},
                 "on_unresolve": {"choices": statuses},
             }

@@ -1,3 +1,4 @@
+import fetchMock from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
@@ -36,6 +37,7 @@ describe('EventAttachments', () => {
   beforeEach(() => {
     ConfigStore.loadInitialData(ConfigFixture());
     MockApiClient.clearMockResponses();
+    fetchMock.resetMocks();
   });
 
   it('shows attachments limit reached notice with stripped_crash: true', async () => {
@@ -110,11 +112,6 @@ describe('EventAttachments', () => {
       body: [attachment],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/projects/org-slug/events/${event.id}/attachments/?download`,
-      body: 'file contents',
-    });
-
     render(<EventAttachments {...props} />, {
       organization: orgWithWrongAttachmentRole,
     });
@@ -141,11 +138,8 @@ describe('EventAttachments', () => {
       body: [attachment],
     });
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/`,
-      body: 'file contents',
-      match: [MockApiClient.matchQuery({download: true})],
-    });
+    const previewUrl = `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`;
+    fetchMock.route(previewUrl, 'file contents');
 
     render(<EventAttachments {...props} />, {
       organization,

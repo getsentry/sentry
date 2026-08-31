@@ -21,6 +21,24 @@ interface AutofixResultLink {
   url: string;
 }
 
+/**
+ * Whether this repo actually got a pull request onto GitHub.
+ *
+ * `repo_pr_states` also holds failed creates (error, no `pr_number`). Those
+ * are not PRs — treating them as such swaps "retry code changes" for the
+ * iteration form and 400s the submit. Matches
+ * `SeerRunState.get_created_pull_request_states`.
+ */
+export function isCreatedPullRequestState(state: RepoPRState): boolean {
+  return state.pr_creation_status !== 'error' || state.pr_number !== null;
+}
+
+export function hasCreatedPullRequests(
+  repoPrStates: Record<string, RepoPRState> | null | undefined
+): boolean {
+  return Object.values(repoPrStates ?? {}).some(isCreatedPullRequestState);
+}
+
 /** The PR Seer opened for this repo, or null if there isn't a finished one. */
 export function getRepoPullRequestLink(state: RepoPRState): AutofixResultLink | null {
   if (

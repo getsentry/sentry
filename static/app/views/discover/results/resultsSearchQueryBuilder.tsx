@@ -186,7 +186,6 @@ export function ResultsSearchQueryBuilder(props: Props) {
       <SearchQueryBuilderProvider
         initialQuery={props.query ?? ''}
         enableAISearch={enableAISearch}
-        aiSearchBadgeType="beta"
         disabled={disabled}
         fieldDefinitionGetter={undefined}
         filterKeys={getFilterKeys()}

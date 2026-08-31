@@ -4,12 +4,42 @@ from datetime import datetime, timedelta
 from typing import Any, NamedTuple, TypedDict
 from uuid import uuid4
 
+from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.derived.framework import Feature, Pipeline
 from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.models.group import Group, GroupStatus
 from sentry.workflow_engine.caches.mapping import CacheMapping
+
+_GROUP_STATUS_TO_DERIVED_STATUS = {
+    GroupStatus.UNRESOLVED: IssueStatus.OPEN,
+    GroupStatus.RESOLVED: IssueStatus.CLOSED,
+    GroupStatus.IGNORED: IssueStatus.CLOSED,
+}
+# Lifecycle-only statuses such as pending deletion and reprocessing have no
+# equivalent in the derived OPEN/CLOSED model and are intentionally omitted.
+
+
+@dataclass(frozen=True)
+class StatusInconsistency:
+    derived: IssueStatus
+    actual: IssueStatus
+
+
+def check_status_consistency(group: Group, derived: GroupDerivedData) -> StatusInconsistency | None:
+    """Compare a group's source-of-truth status with its derived status."""
+    actual_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)
+    if actual_status is None:
+        return None
+
+    raw = derived.data.get(STATUS.name)
+    derived_status = STATUS.from_json(raw) if raw is not None else STATUS.initial_value()
+    if derived_status == actual_status:
+        return None
+
+    return StatusInconsistency(derived=derived_status, actual=actual_status)
 
 
 @dataclass(frozen=True)

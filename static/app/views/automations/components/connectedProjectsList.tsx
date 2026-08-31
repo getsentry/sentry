@@ -2,11 +2,10 @@ import {Fragment, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -51,6 +50,7 @@ function ConnectedProjectRow({projectId}: {projectId: string | null}) {
 }
 
 export function ConnectedProjectsList({automationId}: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
@@ -80,10 +80,13 @@ export function ConnectedProjectsList({automationId}: Props) {
 
   return (
     <Container>
-      <SimpleTable>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isPending && (
           <Fragment>
             {Array.from({length: LIMIT}).map((_, i) => (
@@ -95,11 +98,7 @@ export function ConnectedProjectsList({automationId}: Props) {
             ))}
           </Fragment>
         )}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {isSuccess && detectors.length === 0 && (
           <SimpleTable.Empty>{t('No projects connected')}</SimpleTable.Empty>
         )}
