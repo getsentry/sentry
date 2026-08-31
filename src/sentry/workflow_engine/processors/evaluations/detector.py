@@ -15,8 +15,20 @@ from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArti
 from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEvaluationArtifact
 
 
+@dataclass(frozen=True)
+class CustomDetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    result: int
+    data: dict[str, Any]
+
+
 @dataclass(frozen=True, kw_only=True)
-class CustomDetectorEvaluation(BaseWorkflowEngineEvaluation[DetectorPriorityLevel, dict[str, Any]]):
+class CustomDetectorEvaluation(
+    BaseWorkflowEngineEvaluation[
+        DetectorPriorityLevel,
+        dict[str, Any],
+        CustomDetectorEvaluationArtifact,
+    ]
+):
     """
     The trigger decision of a detector that does not use a DataConditionGroup.
 
@@ -27,9 +39,15 @@ class CustomDetectorEvaluation(BaseWorkflowEngineEvaluation[DetectorPriorityLeve
     - triggered: bool - Whether the decision should move the detector off `OK`.
     """
 
-    @property
-    def artifact_fields(self) -> dict[str, Any]:
-        return {"result": self.result.value, "data": self.data}
+    def _build_artifact(
+        self, *, triggered: bool, error: str | None
+    ) -> CustomDetectorEvaluationArtifact:
+        return CustomDetectorEvaluationArtifact(
+            triggered=triggered,
+            error=error,
+            result=self.result.value,
+            data=self.data,
+        )
 
 
 class DetectorEvaluationData(TypedDict):
@@ -52,7 +70,7 @@ class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     event_id: str | None
     group_key: DetectorGroupKey
     priority: int
-    trigger_evaluation: DataConditionGroupEvaluationArtifact
+    trigger_evaluation: DataConditionGroupEvaluationArtifact | CustomDetectorEvaluationArtifact
 
 
 @dataclass(frozen=True, kw_only=True)
