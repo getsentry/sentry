@@ -1575,6 +1575,44 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             "autofix.pr_iteration.paused.blocked", tags={"gate": "trigger_consume"}
         )
 
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_missing_permissions_skips_scheduling(
+        self, mock_apply: MagicMock, mock_block: MagicMock
+    ) -> None:
+        self._trigger()
+
+        mock_block.assert_called_once()
+        mock_apply.assert_not_called()
+
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_permission_gate_runs_before_should_trigger(
+        self, mock_apply: MagicMock, _mock_block: MagicMock
+    ) -> None:
+        """The comment must not wait on a sweep that would defer consume an hour."""
+        feedback = self._feedback()
+        with patch.object(type(feedback.source), "should_trigger") as mock_should_trigger:
+            trigger_consume_pr_iteration_feedback(
+                log_ctx=self._log_ctx(),
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        mock_should_trigger.assert_not_called()
+        mock_apply.assert_not_called()
+
+    @patch(f"{TASK_PATH}.block_iteration_for_missing_permissions", return_value=True)
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_missing_permissions_skips_scheduling_even_with_bypass(
+        self, mock_apply: MagicMock, _mock_block: MagicMock
+    ) -> None:
+        self._trigger(bypass=True)
+
+        mock_apply.assert_not_called()
+
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         self._trigger(

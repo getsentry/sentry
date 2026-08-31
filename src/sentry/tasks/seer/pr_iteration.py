@@ -77,6 +77,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.missing_permissions import (
+    block_iteration_for_missing_permissions,
+    post_missing_permissions_comment,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     is_pr_iteration_paused,
     pause_pr_iteration,
@@ -145,6 +149,17 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
     return None
 
 
+def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
+    try:
+        return Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "autofix.pr_iteration.trigger_consume.organization_not_found",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return None
+
+
 def trigger_consume_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -163,6 +178,30 @@ def trigger_consume_pr_iteration_feedback(
             triggered_by=triggered_by,
             outcome="not_triggered",
             reason="paused",
+            countdown=None,
+            trigger_id=None,
+            bypass=bypass,
+            delay=delay,
+            feedback_source=feedback.source.type,
+            feedback_id=feedback.feedback_id,
+            **feedback.source.log_fields(run_state),
+        )
+        return
+
+    # Gate ahead of should_trigger: that can defer an hour behind an incomplete
+    # check-run sweep, and the "accept these permissions" comment has to reach
+    # the user while they are still looking at the failing PR. Blocking here
+    # also leaves the feedback in the queue, so the API can see there is CI we
+    # would have acted on and the work resumes once the permissions land.
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is not None and block_iteration_for_missing_permissions(
+        organization=organization, run_id=run_id, state=run_state, log_ctx=log_ctx
+    ):
+        log_ctx.info(
+            "autofix.pr_iteration.feedback.trigger",
+            triggered_by=triggered_by,
+            outcome="not_triggered",
+            reason="missing_github_permissions",
             countdown=None,
             trigger_id=None,
             bypass=bypass,
@@ -229,6 +268,57 @@ def _dropped_feedback(feedback: Feedback, reason: str) -> dict[str, Any]:
 
 
 @instrumented_task(
+    name="sentry.tasks.autofix.comment_on_missing_permissions",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+)
+def comment_on_missing_permissions(
+    run_id: int,
+    organization_id: int,
+    repo_name: str,
+    pr_number: int,
+    pr_id: int | None,
+    integration_id: int,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Tell the user which GitHub permissions Seer needs on one blocked PR.
+
+    Split out of the gate in ``trigger_consume_pr_iteration_feedback`` so the
+    GitHub call never runs inside a webhook task's deadline or the synchronous
+    autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
+    the lock, so a losing activation requeues rather than parking a worker.
+    """
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is None:
+        return
+
+    # TODO: avoid this round trip. The state is fetched only so the comment logs
+    # carry the same run identity as the rest of the flow; the gate already has
+    # it and could hand the identity over in the task args instead.
+    try:
+        state = fetch_run_status(run_id, organization)
+    except (SeerApiError, ValueError):
+        logger.warning(
+            "autofix.pr_iteration.missing_permissions.run_state_not_found",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return
+
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    post_missing_permissions_comment(
+        organization=organization,
+        run_id=run_id,
+        repo_name=repo_name,
+        pr_number=pr_number,
+        pr_id=pr_id,
+        integration_id=integration_id,
+        log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.autofix.consume_queued_feedback",
     namespace=seer_tasks,
     processing_deadline_duration=60,
@@ -242,6 +332,21 @@ def consume_queued_autofix_feedback(
     *args: Any,
     **kwargs: Any,
 ) -> None:
+    """Drain the run's feedback queue into an iteration.
+
+    Deliberately does **not** re-check the org's GitHub App permissions. That
+    gate lives at queue time in ``trigger_consume_pr_iteration_feedback``, which
+    refuses to schedule this task at all when a permission is missing — and it
+    has to live there, so the "accept these permissions" comment reaches the
+    user immediately rather than an hour later behind a deferred consume.
+
+    So there is **no defence in depth here**: an activation scheduled before the
+    permissions lapsed will run a doomed iteration, whose tool calls fail
+    against GitHub. Re-checking would mean a ``peek`` plus a ``should_consume``
+    per queued item just to decide whether to check, and ``should_consume``
+    walks every iteration's blocks — too expensive to pay on every consume for
+    a narrow race.
+    """
     # Accept unused *args/**kwargs so in-flight activations queued with retired
     # kwargs (e.g. group_id) still deserialize after the signature change.
     # ``trigger_id`` / ``trigger_source`` are optional: activations queued
