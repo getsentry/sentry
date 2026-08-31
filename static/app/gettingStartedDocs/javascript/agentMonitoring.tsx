@@ -366,10 +366,8 @@ export function agentMonitoring({
   packageName = '@sentry/browser',
   clientConfigFileName,
   serverConfigFileName,
-  minVersion = MIN_REQUIRED_VERSION,
 }: {
   clientConfigFileName?: string;
-  minVersion?: string;
   packageName?: `@sentry/${string}`;
   serverConfigFileName?: string;
 } = {}): OnboardingConfig {
@@ -377,14 +375,14 @@ export function agentMonitoring({
     introduction: params => (
       <SdkUpdateAlert
         projectId={params.project.id}
-        minVersion={getMinRequiredVersion(params, minVersion)}
+        minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
         packageName={packageName}
       />
     ),
     install: params =>
       getInstallStep(params, {
         packageName,
-        minVersion,
+        minVersion: MIN_REQUIRED_VERSION,
       }),
     configure: params => {
       const selected = getAgentIntegration(params);

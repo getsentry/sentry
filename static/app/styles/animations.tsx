@@ -41,13 +41,13 @@ export const pulse = (size: number) => keyframes`
   }
 `;
 
-export const makeShake = (distance = 3) => keyframes`
+export const makeShake = () => keyframes`
 ${Array.from({length: 50})
   .fill(0)
   .map(
     (_, i) => `${i * 2}% {
-  transform: translate(${Math.round(Math.random() * distance)}px, ${Math.round(
-    Math.random() * distance
+  transform: translate(${Math.round(Math.random() * 3)}px, ${Math.round(
+    Math.random() * 3
   )}px);
 }`
   )
