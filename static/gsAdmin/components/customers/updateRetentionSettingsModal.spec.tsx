@@ -81,12 +81,12 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    expectSelectValue('Spans Standard', '90 days');
-    expectSelectValue('Spans Downsampled', '30 days');
+    expectSelectValue('Spans Standard', '90 days (current)');
+    expectSelectValue('Spans Downsampled', '30 days (current)');
     // values that are not multiples of 30 are preserved as-is
-    expectSelectValue('Logs Standard', '45 (current)');
-    expectSelectValue('Logs Downsampled', '15 (current)');
-    expectSelectValue('Org Retention', '1234567 (current)');
+    expectSelectValue('Logs Standard', '45 days (current)');
+    expectSelectValue('Logs Downsampled', '15 days (current)');
+    expectSelectValue('Org Retention', '1234567 days (current)');
 
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Update Settings'})).toBeInTheDocument();
@@ -124,7 +124,7 @@ describe('UpdateRetentionSettingsModal', () => {
     expect(options).toEqual([
       '30 days',
       '60 days',
-      '90 days',
+      '90 days (current)',
       '120 days',
       '150 days',
       '180 days',
@@ -167,8 +167,23 @@ describe('UpdateRetentionSettingsModal', () => {
       .getAllByRole('menuitemradio')
       .map(option => option.textContent);
 
-    expect(options[0]).toBe('30 days');
-    expect(options).not.toContain('0 (same as standard)');
+    // Downsampled fields get exactly the same choices as standard ones; there
+    // is no longer a zero option, and 30 is the smallest selectable retention.
+    expect(options).toEqual([
+      '30 days (current)',
+      '60 days',
+      '90 days',
+      '120 days',
+      '150 days',
+      '180 days',
+      '210 days',
+      '240 days',
+      '270 days',
+      '300 days',
+      '330 days',
+      '360 days',
+      '390 days',
+    ]);
   });
 
   it('keeps an existing zero downsampled value as an option', async () => {
@@ -194,7 +209,76 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    expectSelectValue('Spans Downsampled', '0 (current)');
+    expectSelectValue('Spans Downsampled', '0 days (current)');
+  });
+
+  it('keeps a legacy value selectable after selecting away from it', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        logBytes: MetricHistoryFixture({
+          retention: {
+            standard: 45,
+            downsampled: null,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: null, downsampled: null},
+    });
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    expectSelectValue('Logs Standard', '45 days (current)');
+
+    // Move off the legacy value.
+    await selectRetention('Logs Standard', '90 days');
+    expectSelectValue('Logs Standard', '90 days');
+
+    // The legacy value must still be offered, otherwise an admin who changes
+    // their mind can no longer restore what the subscription started with.
+    await selectEvent.openMenu(getSelect('Logs Standard'));
+
+    const options = screen
+      .getAllByRole('menuitemradio')
+      .map(option => option.textContent);
+
+    expect(options[0]).toBe('45 days (current)');
+
+    // Selecting it back round-trips the original value to the API.
+    await selectRetention('Logs Standard', '45 days (current)');
+    expectSelectValue('Logs Standard', '45 days (current)');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/retention-settings/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            retentions: expect.objectContaining({
+              logBytes: {
+                standard: 45,
+                downsampled: null,
+              },
+            }),
+          }),
+        })
+      );
+    });
   });
 
   it('prefills the form with existing AM2 retention values', async () => {
@@ -225,10 +309,10 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await loadModal();
 
-    expectSelectValue('Transactions Standard', '90 days');
-    expectSelectValue('Transactions Downsampled', '30 days');
-    expectSelectValue('Logs Standard', '60 days');
-    expectSelectValue('Logs Downsampled', '30 days');
+    expectSelectValue('Transactions Standard', '90 days (current)');
+    expectSelectValue('Transactions Downsampled', '30 days (current)');
+    expectSelectValue('Logs Standard', '60 days (current)');
+    expectSelectValue('Logs Downsampled', '30 days (current)');
 
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Update Settings'})).toBeInTheDocument();
@@ -264,9 +348,9 @@ describe('UpdateRetentionSettingsModal', () => {
     await loadModal();
 
     expectSelectValue('Org Retention', null);
-    expectSelectValue('Spans Standard', '90 days');
+    expectSelectValue('Spans Standard', '90 days (current)');
     expectSelectValue('Spans Downsampled', null);
-    expectSelectValue('Logs Standard', '30 days');
+    expectSelectValue('Logs Standard', '30 days (current)');
     expectSelectValue('Logs Downsampled', null);
   });
 
@@ -309,7 +393,7 @@ describe('UpdateRetentionSettingsModal', () => {
     await selectRetention('Spans Standard', '120 days');
     await selectRetention('Spans Downsampled', '60 days');
     await selectRetention('Logs Standard', '60 days');
-    await selectRetention('Logs Downsampled', '30 days');
+    await selectRetention('Logs Downsampled', '30 days (current)');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -379,7 +463,7 @@ describe('UpdateRetentionSettingsModal', () => {
     await selectRetention('Transactions Standard', '120 days');
     await selectRetention('Transactions Downsampled', '60 days');
     await selectRetention('Logs Standard', '60 days');
-    await selectRetention('Logs Downsampled', '30 days');
+    await selectRetention('Logs Downsampled', '30 days (current)');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
@@ -725,7 +809,7 @@ describe('UpdateRetentionSettingsModal', () => {
     await loadModal();
 
     await selectRetention('Logs Standard', '60 days');
-    await selectRetention('Logs Downsampled', '30 days');
+    await selectRetention('Logs Downsampled', '30 days (current)');
 
     await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
 
