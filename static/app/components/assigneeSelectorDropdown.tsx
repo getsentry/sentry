@@ -242,7 +242,6 @@ function AssigneeAvatar({
 const AssigneeAvatarContent = styled(Flex)`
   height: 24px;
   min-width: 0;
-  transform: translateY(2px);
 `;
 
 const AssigneeLabel = styled(Text)`
