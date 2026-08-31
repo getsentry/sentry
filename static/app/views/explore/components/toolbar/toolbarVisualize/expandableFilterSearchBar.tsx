@@ -11,6 +11,10 @@ const PAGE_EDGE_PADDING_PX = 16;
  */
 const MENU_TARGETS = '[data-overlay], [role="listbox"], [role="option"]';
 const CONTROL_TARGETS = 'input, textarea, button, a, [role="button"]';
+const TRAILING_INPUT_SELECTOR =
+  '[data-test-id="query-builder-input"], [data-test-id="arithmetic-builder-input"]';
+const FIELD_SELECTOR =
+  '[data-test-id="search-query-builder"], [data-test-id="arithmetic-builder"]';
 
 function closestMatch(target: EventTarget | null, selector: string) {
   return target instanceof Element ? target.closest(selector) : null;
@@ -23,8 +27,9 @@ function focusInputAtEnd(input: HTMLInputElement) {
 }
 
 /**
- * Grows a series filter bar to the remaining window width while focused so a long query
- * has room to be read and edited, then collapses it back into the toolbar column.
+ * Grows a series filter bar or equation builder to the remaining window width while
+ * focused so a long query has room to be read and edited, then collapses it back into
+ * the toolbar column.
  */
 export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   const ref = useRef<HTMLDivElement>(null);
@@ -74,9 +79,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   }, [collapseToDefaultWidth, isSuggestionMenuOpen]);
 
   const focusTrailingInput = useCallback(() => {
-    const input = ref.current?.querySelector<HTMLInputElement>(
-      '[data-test-id="query-builder-input"]'
-    );
+    const input = ref.current?.querySelector<HTMLInputElement>(TRAILING_INPUT_SELECTOR);
     if (!input) {
       return;
     }
@@ -160,7 +163,7 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   overflow: hidden;
   transition: width ${p => p.theme.motion.smooth.moderate};
 
-  [data-test-id='search-query-builder'] {
+  ${FIELD_SELECTOR} {
     max-width: 100%;
     resize: none;
   }
@@ -173,11 +176,12 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   &[data-expanded='true'],
   &:focus-within {
     overflow: visible;
+    flex-shrink: 0;
     /* Above Explore chart content, below CompactSelect overlays (dropdown) and
      * AttributeDetails (tooltip) so argument menus/tooltips stay usable. */
     z-index: ${p => p.theme.zIndex.header};
 
-    [data-test-id='search-query-builder'] {
+    ${FIELD_SELECTOR} {
       background-color: ${p => p.theme.tokens.background.primary};
     }
   }

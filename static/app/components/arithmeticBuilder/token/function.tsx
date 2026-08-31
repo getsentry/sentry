@@ -1,37 +1,37 @@
-import type {ChangeEvent, FocusEvent, MouseEvent, RefObject} from 'react';
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import type {ChangeEvent, FocusEvent, RefObject} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
 import {Item, Section} from '@react-stately/collections';
 import {useListState, type ListState} from '@react-stately/list';
-import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
+import type {CollectionChildren, Node} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
-  ensureSearchFilterArgument,
-  isFilterKeySuggestion,
   isSearchFilterParameter,
-  replaceConditionalFilterClause,
   unwrapSearchFilterArgument,
 } from 'sentry/components/arithmeticBuilder/conditionalFilter';
-import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilterAutocomplete';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {
   Token,
   TokenAttribute,
   TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
-import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
+import {ConditionalFilterArgumentInput} from 'sentry/components/arithmeticBuilder/token/conditionalFilterInput';
 import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
-import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {
+  ArgumentGridCell,
+  ArgumentGridRow,
+  useFunctionArgumentInput,
+  type FunctionArgumentInputProps,
+} from 'sentry/components/arithmeticBuilder/token/useFunctionArgumentInput';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
-import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
@@ -108,7 +108,17 @@ export function ArithmeticTokenFunction({
       <FunctionGridCell {...gridCellProps} onMouseDown={onFunctionNameMouseDown}>
         {token.function}
       </FunctionGridCell>
-      <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
+      {/* Function tokens are keyed by position (`func:0`), so deleting an earlier
+          function reuses this component for the next one. Remount the arguments
+          grid when the token identity changes so we don't keep the previous
+          function's draft argument state. */}
+      <ArgumentsGrid
+        key={`${token.location.start.offset}:${token.function}`}
+        rowRef={ref}
+        item={item}
+        state={state}
+        token={token}
+      />
       <BaseGridCell {...gridCellProps}>
         <DeleteButton token={token} label={t('Remove function %s', token.text)} />
       </BaseGridCell>
@@ -116,7 +126,7 @@ export function ArithmeticTokenFunction({
   );
 }
 
-type Argument = {label: string; value: string};
+type Argument = FunctionArgumentInputProps['argument'];
 
 interface ArgumentsGridProps extends ArithmeticTokenFunctionProps {
   rowRef: RefObject<HTMLDivElement | null>;
@@ -296,52 +306,46 @@ function ArgumentsGridList({
   );
 }
 
-interface InternalInputProps {
-  argument: Argument;
-  argumentIndex: number;
-  argumentItem: Node<TokenAttribute>;
-  argumentRef: RefObject<HTMLDivElement | null>;
-  arguments: Argument[];
-  argumentsListState: ListState<TokenAttribute>;
-  functionItem: Node<Token>;
-  functionListState: ListState<Token>;
-  functionToken: TokenFunction;
-  onArgumentsBlur: () => void;
-  onArgumentsChange: (index: number, argument: string) => void;
-  rowRef: RefObject<HTMLDivElement | null>;
+function InternalInput(props: FunctionArgumentInputProps) {
+  const {getFieldDefinition} = useArithmeticBuilder();
+  const parameterDefinition = useMemo(
+    () =>
+      getFieldDefinition(
+        props.functionToken.function,
+        props.functionToken.attributes.map(attr => attr.text)
+      )?.parameters?.[props.argumentIndex],
+    [getFieldDefinition, props.argumentIndex, props.functionToken]
+  );
+
+  if (isSearchFilterParameter(parameterDefinition)) {
+    return <ConditionalFilterArgumentInput {...props} />;
+  }
+
+  return <FunctionArgumentInput {...props} />;
 }
 
-function InternalInput({
-  argumentIndex,
-  functionToken,
-  functionItem,
-  functionListState,
-  argumentsListState,
-  argumentItem,
-  argument,
-  argumentRef,
-  arguments: functionArguments,
-  onArgumentsBlur,
-  onArgumentsChange,
-}: InternalInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const gridCellRef = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item: argumentItem,
-    ref: gridCellRef,
-    state: argumentsListState,
-    focusable: true,
-  });
-
-  const isFocused = argumentItem.key === argumentsListState.selectionManager.focusedKey;
-  const hasNextArgument = argumentIndex < functionToken.attributes.length - 1;
-  const hasPrevArgument = argumentIndex > 0;
+function FunctionArgumentInput(props: FunctionArgumentInputProps) {
+  const {argument, argumentIndex, functionToken, onArgumentsChange} = props;
+  const {
+    commitFunctionToken,
+    dataTestId,
+    flushArgumentsIfLeavingGrid,
+    focusArgument,
+    focusNextArgument,
+    gridCellProps,
+    gridCellRef,
+    hasNextArgument,
+    inputRef,
+    isFocused,
+    onKeyDown,
+    onKeyDownCapture,
+    rowProps,
+    shouldCloseOnInteractOutside,
+  } = useFunctionArgumentInput(props);
 
   const {
-    dispatch,
     functionArguments: builderFunctionArguments,
     getFieldDefinition,
-    getFilterTagValues,
     getSuggestedKey,
   } = useArithmeticBuilder();
 
@@ -361,74 +365,14 @@ function InternalInput({
   );
 
   const initialLabel = resolveDisplayLabel(argument.label);
-
   const [inputValue, setInputValue] = useState('');
   const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
-  const [selectionIndex, setSelectionIndex] = useState(0);
-  const skipBlurFlushRef = useRef(false);
-  // Apply after React commits the controlled value. A lone rAF + focus() races in
-  // Chrome and resets the caret before (or when) focus returns from the listbox.
-  const pendingCaretRef = useRef<{pos: number; value: string} | null>(null);
-
-  const isFilterParameter = isSearchFilterParameter(parameterDefinition);
-
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
-
-  useLayoutEffect(() => {
-    const pendingCaret = pendingCaretRef.current;
-    if (pendingCaret === null) {
-      return;
-    }
-    const input = inputRef.current;
-    if (input?.value !== pendingCaret.value) {
-      return;
-    }
-    pendingCaretRef.current = null;
-    if (document.activeElement !== input) {
-      input.focus();
-    }
-    input.setSelectionRange(pendingCaret.pos, pendingCaret.pos);
-    setSelectionIndex(pendingCaret.pos);
-  }, [inputValue]);
-
-  const {
-    comboBoxFilterValue,
-    editPhase,
-    items: filterItems,
-  } = useConditionalFilterAutocomplete({
-    enabled: isFilterParameter && isCurrentlyEditing,
-    filterValue: inputValue,
-    functionArguments: builderFunctionArguments,
-    getFilterTagValues,
-    selectionIndex,
-  });
-
-  const shouldFilterComboBoxResults = !(
-    isFilterParameter &&
-    editPhase === 'value' &&
-    getFilterTagValues
-  );
-
-  const updateSelectionIndex = useCallback((input?: HTMLInputElement | null) => {
-    const target = input ?? inputRef.current;
-    setSelectionIndex(target?.selectionStart ?? 0);
-  }, []);
 
   const resetInputValue = useCallback(() => {
     setInputValue('');
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
-  const updateAttrsWith = useCallback(
-    (value: string) => {
-      const tokenArguments = functionArguments.map(arg => arg.value);
-      tokenArguments[argumentIndex] = value;
-      const argsStr = tokenArguments.join(',');
-      return argsStr;
-    },
-    [argumentIndex, functionArguments]
-  );
+  }, []);
 
   const attributesFilter = useMemo(() => {
     if (parameterDefinition?.kind === 'column') {
@@ -461,10 +405,6 @@ function InternalInput({
   const attributeItems = useAttributeItems(allowedAttributes);
 
   const items = useMemo(() => {
-    if (isFilterParameter) {
-      return filterItems;
-    }
-
     const filterValue = inputValue.trim();
 
     if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
@@ -512,61 +452,7 @@ function InternalInput({
     }
 
     return result;
-  }, [attributeItems, filterItems, inputValue, isFilterParameter, parameterDefinition]);
-
-  const shouldCloseOnInteractOutside = useCallback((el: Element) => {
-    return !gridCellRef.current?.contains(el);
-  }, []);
-
-  const onClick = useCallback(
-    (evt: MouseEvent<HTMLInputElement>) => {
-      const input = evt.currentTarget;
-      requestAnimationFrame(() => {
-        updateSelectionIndex(input);
-      });
-    },
-    [updateSelectionIndex]
-  );
-
-  const onKeyUp = useCallback(() => {
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
-  const flushArgumentsIfLeavingGrid = useCallback(
-    (evt?: FocusEvent<HTMLInputElement>) => {
-      if (skipBlurFlushRef.current) {
-        skipBlurFlushRef.current = false;
-        return;
-      }
-
-      if (!evt) {
-        window.setTimeout(() => {
-          if (skipBlurFlushRef.current) {
-            skipBlurFlushRef.current = false;
-            return;
-          }
-          const stayingInArgs = Boolean(
-            document.activeElement &&
-            argumentRef.current?.contains(document.activeElement)
-          );
-          if (!stayingInArgs) {
-            onArgumentsBlur();
-          }
-        }, 0);
-        return;
-      }
-
-      const argsGrid = evt.currentTarget.closest('[role="grid"]');
-      const related = evt.relatedTarget;
-      const stayingInArgs = Boolean(
-        argsGrid && related instanceof Node && argsGrid.contains(related)
-      );
-      if (!stayingInArgs) {
-        onArgumentsBlur();
-      }
-    },
-    [argumentRef, onArgumentsBlur]
-  );
+  }, [attributeItems, inputValue, parameterDefinition]);
 
   const onInputBlur = useCallback(
     (evt?: FocusEvent<HTMLInputElement>) => {
@@ -579,9 +465,6 @@ function InternalInput({
 
   const resolveValue = useCallback(
     (raw: string): string => {
-      if (isSearchFilterParameter(parameterDefinition)) {
-        return ensureSearchFilterArgument(raw);
-      }
       if (
         parameterDefinition?.kind === 'column' &&
         parameterDefinition.defaultLabel &&
@@ -593,28 +476,6 @@ function InternalInput({
       return raw;
     },
     [parameterDefinition]
-  );
-
-  // Persist free-text filter edits on blur. Empty input becomes `` so clearing the filter
-  // updates argsRef (otherwise the prior value is kept and commitArgumentsIfChanged no-ops).
-  // Skip REPLACE_TOKEN while focus stays inside the arguments grid — that remounts the
-  // function and steals focus from the next arg. Pending edits flush via onArgumentsBlur.
-  const onFilterInputBlur = useCallback(
-    (evt?: FocusEvent<HTMLInputElement>) => {
-      const value = ensureSearchFilterArgument(inputValue);
-      setCurrentValue(unwrapSearchFilterArgument(value));
-      onArgumentsChange(argumentIndex, value);
-      resetInputValue();
-      setIsCurrentlyEditing(false);
-      flushArgumentsIfLeavingGrid(evt);
-    },
-    [
-      argumentIndex,
-      flushArgumentsIfLeavingGrid,
-      inputValue,
-      onArgumentsChange,
-      resetInputValue,
-    ]
   );
 
   // Non-filter free-text values (e.g. apdex threshold) flush pending edits when leaving.
@@ -636,20 +497,13 @@ function InternalInput({
     ]
   );
 
-  const onInputChange = useCallback(
-    (evt: ChangeEvent<HTMLInputElement>) => {
-      setInputValue(evt.target.value);
-      setCurrentValue(evt.target.value);
-      setSelectionIndex(evt.target.selectionStart ?? 0);
-    },
-    [setInputValue]
-  );
+  const onInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
+    setInputValue(evt.target.value);
+    setCurrentValue(evt.target.value);
+  }, []);
 
   const onInputCommit = useCallback(() => {
-    // Filter args may intentionally be cleared; don't fall back to the prior label.
-    let value = isFilterParameter
-      ? inputValue.trim()
-      : inputValue.trim() || argument.label;
+    let value = inputValue.trim() || argument.label;
 
     if (defined(getSuggestedKey) && parameterDefinition?.kind === 'column') {
       value = getSuggestedKey(value) ?? value;
@@ -659,36 +513,19 @@ function InternalInput({
 
     setCurrentValue(resolveDisplayLabel(value));
     onArgumentsChange(argumentIndex, value);
-    skipBlurFlushRef.current = true;
-
-    dispatch({
-      text: `${functionToken.function}(${updateAttrsWith(value)})`,
-      type: 'REPLACE_TOKEN',
-      token: functionToken,
-      focusOverride: {
-        itemKey: nextTokenKeyOfKind(
-          functionListState,
-          functionToken,
-          TokenKind.FREE_TEXT
-        ),
-      },
-    });
+    commitFunctionToken(value);
     resetInputValue();
   }, [
-    isFilterParameter,
-    inputValue,
     argument.label,
+    argumentIndex,
+    commitFunctionToken,
     getSuggestedKey,
+    inputValue,
+    onArgumentsChange,
     parameterDefinition,
+    resetInputValue,
     resolveDisplayLabel,
     resolveValue,
-    onArgumentsChange,
-    argumentIndex,
-    dispatch,
-    functionToken,
-    updateAttrsWith,
-    functionListState,
-    resetInputValue,
   ]);
 
   const onInputEscape = useCallback(() => {
@@ -705,182 +542,50 @@ function InternalInput({
       // If this isn't called, the argument collection doesn't shift focus to current arg
       // causing bugs. Test for this behaviour can be found in
       // static/app/components/arithmeticBuilder/token/index.spec.tsx -t 'shifts focus between args correctly'
-      focusTarget(argumentsListState, argumentItem.key);
+      focusArgument();
       setIsCurrentlyEditing(true);
       resetInputValue();
     },
-    [argumentItem.key, argumentsListState, resetInputValue]
+    [focusArgument, resetInputValue]
   );
 
-  // Free-text value args (e.g. `_if` filters) should keep their current text on focus so
-  // the user can edit it. ComboBox clears on focus to type a new filter query.
+  // Free-text value args should keep their current text on focus so the user can edit it.
+  // ComboBox clears on focus to type a new query.
   const onTextInputFocus = useCallback(
     (evt: FocusEvent<HTMLInputElement>) => {
       evt.stopPropagation();
-      focusTarget(argumentsListState, argumentItem.key);
+      focusArgument();
       setIsCurrentlyEditing(true);
       setInputValue(currentValue);
-      updateSelectionIndex(evt.currentTarget);
     },
-    [argumentItem.key, argumentsListState, currentValue, updateSelectionIndex]
-  );
-
-  const onKeyDownCapture = useCallback(
-    (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      // At start and pressing left arrow, focus the previous full token
-      if (
-        evt.currentTarget.selectionStart === 0 &&
-        evt.currentTarget.selectionEnd === 0 &&
-        evt.key === 'ArrowLeft'
-      ) {
-        if (hasPrevArgument) {
-          focusTarget(
-            argumentsListState,
-            argumentsListState.collection.getKeyBefore(argumentItem.key)
-          );
-        } else {
-          focusTarget(
-            functionListState,
-            functionListState.collection.getKeyBefore(functionItem.key)
-          );
-        }
-        return;
-      }
-
-      // At end and pressing right arrow, focus the next full token
-      if (
-        evt.currentTarget.selectionStart === evt.currentTarget.value.length &&
-        evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
-        evt.key === 'ArrowRight'
-      ) {
-        if (hasNextArgument) {
-          focusTarget(
-            argumentsListState,
-            argumentsListState.collection.getKeyAfter(argumentItem.key)
-          );
-        } else {
-          focusTarget(
-            functionListState,
-            functionListState.collection.getKeyAfter(functionItem.key)
-          );
-        }
-        return;
-      }
-    },
-    [
-      hasPrevArgument,
-      argumentsListState,
-      argumentItem.key,
-      functionListState,
-      functionItem.key,
-      hasNextArgument,
-    ]
-  );
-
-  const onKeyDown = useCallback(
-    (evt: KeyboardEvent) => {
-      // TODO: handle meta keys
-
-      // At start and pressing backspace, delete this token
-      if (
-        evt.currentTarget.selectionStart === 0 &&
-        evt.currentTarget.selectionEnd === 0 &&
-        evt.key === 'Backspace'
-      ) {
-        const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
-        dispatch({
-          type: 'DELETE_TOKEN',
-          token: functionToken,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
-        });
-      }
-
-      // At end and pressing delete, focus the next full token
-      if (
-        evt.currentTarget.selectionStart === evt.currentTarget.value.length &&
-        evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
-        evt.key === 'Delete'
-      ) {
-        const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
-        dispatch({
-          type: 'DELETE_TOKEN',
-          token: functionToken,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
-        });
-      }
-    },
-    [dispatch, functionToken, functionListState, functionItem]
+    [currentValue, focusArgument]
   );
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
-      if (isFilterParameter) {
-        const {newValue, newCursorIndex} = replaceConditionalFilterClause(
-          inputValue,
-          selectionIndex,
-          option.value
-        );
-        if (isFilterKeySuggestion(option.value)) {
-          pendingCaretRef.current = {pos: newCursorIndex, value: newValue};
-        }
-        setCurrentValue(newValue);
-        setInputValue(newValue);
-        setIsCurrentlyEditing(true);
-        setSelectionIndex(newCursorIndex);
-        return;
-      }
-
       setCurrentValue(resolveDisplayLabel(prettifyTagKey(option.value)));
       onArgumentsChange(argumentIndex, option.value);
       if (hasNextArgument) {
-        focusTarget(
-          argumentsListState,
-          argumentsListState.collection.getKeyAfter(argumentItem.key)
-        );
+        focusNextArgument();
       } else {
-        skipBlurFlushRef.current = true;
-        dispatch({
-          text: `${functionToken.function}(${updateAttrsWith(option.value)})`,
-          type: 'REPLACE_TOKEN',
-          token: functionToken,
-          focusOverride: {
-            itemKey: nextTokenKeyOfKind(
-              functionListState,
-              functionToken,
-              TokenKind.FREE_TEXT
-            ),
-          },
-        });
+        commitFunctionToken(option.value);
       }
       resetInputValue();
     },
     [
-      isFilterParameter,
-      hasNextArgument,
-      resolveDisplayLabel,
-      resetInputValue,
-      argumentsListState,
-      argumentItem.key,
-      onArgumentsChange,
       argumentIndex,
-      dispatch,
-      functionToken,
-      updateAttrsWith,
-      functionListState,
-      inputValue,
-      selectionIndex,
+      commitFunctionToken,
+      focusNextArgument,
+      hasNextArgument,
+      onArgumentsChange,
+      resetInputValue,
+      resolveDisplayLabel,
     ]
   );
 
-  const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
-    // TODO
-  }, []);
-
   // Free-text value args with no options (e.g. apdex threshold) use a plain input.
-  // `_if` filter args use ComboBox below for attribute-key autocomplete.
   if (
     parameterDefinition?.kind === 'value' &&
-    !isFilterParameter &&
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
   ) {
     return (
@@ -891,7 +596,6 @@ function InternalInput({
             ref={inputRef}
             inputLabel={t('Add a value')}
             inputValue={displayValue}
-            onClick={onClick}
             onInputBlur={onTextInputBlur}
             onInputChange={onInputChange}
             onInputCommit={onInputCommit}
@@ -912,44 +616,28 @@ function InternalInput({
           items={items}
           ref={inputRef}
           placeholder={
-            isFilterParameter
-              ? resolveDisplayLabel(argument.label)
-              : parameterDefinition?.kind === 'value' &&
-                  'placeholder' in parameterDefinition
-                ? (argument.label ?? parameterDefinition.placeholder)
-                : resolveDisplayLabel(argument.label)
+            parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
+              ? (argument.label ?? parameterDefinition.placeholder)
+              : resolveDisplayLabel(argument.label)
           }
           inputLabel={
-            isFilterParameter
-              ? t('Add a filter')
-              : parameterDefinition?.kind === 'column'
-                ? t('Select an attribute')
-                : t('Select an option')
+            parameterDefinition?.kind === 'column'
+              ? t('Select an attribute')
+              : t('Select an option')
           }
           inputValue={displayValue}
-          filterValue={comboBoxFilterValue}
-          keepMenuOpenOnSelect={option => isFilterKeySuggestion(option.value)}
-          shouldFilterResults={shouldFilterComboBoxResults}
-          tabIndex={
-            argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
-          }
+          filterValue={inputValue}
+          tabIndex={isFocused ? 0 : -1}
           shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-          onClick={onClick}
-          onInputBlur={isFilterParameter ? onFilterInputBlur : onInputBlur}
+          onInputBlur={onInputBlur}
           onInputChange={onInputChange}
           onInputCommit={onInputCommit}
           onInputEscape={onInputEscape}
-          onInputFocus={isFilterParameter ? onTextInputFocus : onInputFocus}
+          onInputFocus={onInputFocus}
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
-          onKeyUp={isFilterParameter ? onKeyUp : undefined}
           onOptionSelected={onOptionSelected}
-          onPaste={onPaste}
-          data-test-id={
-            functionListState.collection.getLastKey() === functionItem.key
-              ? 'arithmetic-builder-argument-input'
-              : undefined
-          }
+          data-test-id={dataTestId}
         >
           {keyItem =>
             itemIsSection(keyItem) ? (
@@ -1018,27 +706,6 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.colors.gray100};
-  }
-`;
-
-const ArgumentGridRow = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: 100%;
-  flex: 0 1 auto;
-  max-width: fit-content;
-`;
-
-const ArgumentGridCell = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-
-  > div input {
-    max-width: 130px !important;
-    min-width: 0 !important;
-    white-space: nowrap !important;
   }
 `;
 

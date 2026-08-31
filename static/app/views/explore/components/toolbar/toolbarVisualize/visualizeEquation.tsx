@@ -3,15 +3,17 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
+import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -52,6 +54,22 @@ export function VisualizeEquation({
     transition: null,
   });
 
+  const organization = useOrganization();
+  const hasConditionalAggregates = organization.features.includes(
+    'explore-conditional-aggregates'
+  );
+
+  const equationBuilder = (
+    <ExploreEquationArithmeticBuilder
+      expression={expression}
+      setExpression={handleExpressionChange}
+      traceItemType={TraceItemDataset.SPANS}
+      numberTags={numberTags}
+      stringTags={stringTags}
+      booleanTags={booleanTags}
+    />
+  );
+
   return (
     <ToolbarRow
       ref={setNodeRef}
@@ -62,16 +80,13 @@ export function VisualizeEquation({
         <DragReorderButton iconSize="sm" {...listeners} />
       )}
       {label}
-      <Flex flex={1}>
-        <ExploreEquationArithmeticBuilder
-          expression={expression}
-          setExpression={handleExpressionChange}
-          traceItemType={TraceItemDataset.SPANS}
-          numberTags={numberTags}
-          stringTags={stringTags}
-          booleanTags={booleanTags}
-        />
-      </Flex>
+      <Stack flex="1" minWidth="0" overflow="visible">
+        {hasConditionalAggregates ? (
+          <ExpandableFilterSearchBar>{equationBuilder}</ExpandableFilterSearchBar>
+        ) : (
+          equationBuilder
+        )}
+      </Stack>
       {onDelete && (
         <Button
           variant="transparent"

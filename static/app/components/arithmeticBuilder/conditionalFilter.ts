@@ -38,6 +38,8 @@ export function unwrapSearchFilterArgument(value: string): string {
 }
 
 const NEEDS_QUOTING_RE = /[\s(),\\"]/;
+/** Search syntax for multi-value filters, e.g. `key:[value1, value2]`. */
+const BRACKETED_LIST_VALUE_RE = /^\[[^\]]*\]$/;
 
 /**
  * Quote a tag value when it contains spaces or other special search characters.
@@ -48,7 +50,7 @@ export function formatConditionalFilterTagValue(value: string): string {
   }
   if (
     (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
-    /^\[[^\]]*\]$/.test(value)
+    BRACKETED_LIST_VALUE_RE.test(value)
   ) {
     return value;
   }
@@ -174,7 +176,7 @@ function getConditionalFilterClauseBounds(
   return {clauseStart, clauseEnd};
 }
 
-export function getConditionalFilterClauseAtCursor(
+function getConditionalFilterClauseAtCursor(
   value: string,
   cursorIndex: number
 ): {
@@ -291,38 +293,6 @@ export function getConditionalFilterEditContext(
     replaceStart: clauseStart,
     replaceEnd: clauseEnd,
   };
-}
-
-export function getConditionalFilterEditPhase(
-  value: string,
-  cursorIndex: number
-): 'key' | 'value' {
-  return getConditionalFilterEditContext(value, cursorIndex).phase;
-}
-
-export function parseConditionalFilterInput(
-  value: string,
-  cursorIndex: number
-): {
-  filterKey: string;
-  valueQuery: string;
-} | null {
-  const context = getConditionalFilterEditContext(value, cursorIndex);
-  if (context.phase !== 'value' || !context.filterKey) {
-    return null;
-  }
-  return {
-    filterKey: context.filterKey,
-    valueQuery: context.valueQuery ?? '',
-  };
-}
-
-export function getConditionalFilterKeyQuery(value: string, cursorIndex: number): string {
-  const context = getConditionalFilterEditContext(value, cursorIndex);
-  if (context.phase !== 'key') {
-    return '';
-  }
-  return context.editText.trim();
 }
 
 export function replaceConditionalFilterClause(

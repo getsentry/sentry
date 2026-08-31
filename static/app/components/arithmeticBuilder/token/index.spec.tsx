@@ -31,14 +31,6 @@ const functionArguments = [
   {name: 'span.description', kind: FieldKind.TAG},
 ];
 
-const getSpanFieldDefinition = (key: string, attributeTexts?: readonly string[]) => {
-  const argument = functionArguments.find(
-    functionArgument => functionArgument.name === key
-  );
-
-  return getExploreEquationFieldDefinition(key, argument?.kind, true, attributeTexts);
-};
-
 const getSuggestedKey = (key: string) => {
   switch (key) {
     case 'duration':
@@ -55,10 +47,16 @@ interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
   getFilterTagValues?: GetTagValues;
+  /**
+   * Mirrors `explore-conditional-aggregates`. Defaults to on so EAP filter-first
+   * coverage stays the default; Discover 3/4-arg `_if` tests pass `false`.
+   */
+  hasConditionalAggregates?: boolean;
   references?: Set<string>;
 }
 
 function Tokens(props: TokensProp) {
+  const hasConditionalAggregates = props.hasConditionalAggregates ?? true;
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: props.expression,
     references: props.references,
@@ -70,6 +68,22 @@ function Tokens(props: TokensProp) {
       props.dispatch?.(action);
     },
     [dispatch, props]
+  );
+
+  const getSpanFieldDefinition = useCallback(
+    (key: string, attributeTexts?: readonly string[]) => {
+      const argument = functionArguments.find(
+        functionArgument => functionArgument.name === key
+      );
+
+      return getExploreEquationFieldDefinition(
+        key,
+        argument?.kind,
+        hasConditionalAggregates,
+        attributeTexts
+      );
+    },
+    [hasConditionalAggregates]
   );
 
   return (
@@ -172,6 +186,22 @@ describe('token', () => {
     });
 
     it('fills in every argument when selecting avg_if', async () => {
+      render(<Tokens expression="" hasConditionalAggregates={false} />);
+
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg_if');
+      await userEvent.click(screen.getByRole('option', {name: 'avg_if'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(span.duration,span.op,equals,db)',
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('fills in filter-first arguments when selecting avg_if with the feature', async () => {
       render(<Tokens expression="" />);
 
       const input = screen.getByRole('combobox', {name: 'Add a term'});
@@ -815,6 +845,61 @@ describe('token', () => {
       });
     });
 
+    it('renders multi-argument function and allows navigating between arguments', async () => {
+      render(<Tokens expression="count_if(span.op,equals,browser)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'count_if(span.op,equals,browser)',
+        })
+      ).toBeInTheDocument();
+
+      const args = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).queryAllByRole('gridcell');
+
+      expect(args).toHaveLength(3);
+
+      const firstArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an attribute'});
+
+      expect(firstArg).toHaveAttribute('placeholder', 'span.op');
+
+      const secondArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an option'});
+      expect(secondArg).toHaveAttribute('placeholder', 'equals');
+
+      const thirdArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('textbox', {name: 'Add a value'});
+      expect(thirdArg).toHaveValue('browser');
+
+      await userEvent.click(firstArg);
+      await userEvent.type(firstArg, 'span.description');
+      expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
+
+      await waitFor(() => {
+        expect(secondArg).toHaveFocus();
+      });
+
+      expect(
+        screen.queryByRole('option', {name: 'span.description'})
+      ).not.toBeInTheDocument();
+
+      await userEvent.keyboard('not');
+      await userEvent.click(screen.getByRole('option', {name: 'is not equal to'}));
+
+      await waitFor(() => {
+        expect(thirdArg).toHaveFocus();
+      });
+      await userEvent.clear(thirdArg);
+      await userEvent.type(thirdArg, 'db');
+      expect(thirdArg).toHaveValue('db');
+    });
+
     it('keeps filter text when focusing an _if filter argument', async () => {
       render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
@@ -1145,7 +1230,7 @@ describe('token', () => {
       expect(screen.queryByRole('option', {name: 'span.op:'})).not.toBeInTheDocument();
     });
 
-    it('renders multi-argument function and allows navigating between arguments', async () => {
+    it('renders filter-first avg_if arguments and allows navigating between them', async () => {
       render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
       expect(
@@ -1345,6 +1430,42 @@ describe('token', () => {
     });
 
     it('suggests attributes for each argument of avg_if', async () => {
+      render(<Tokens expression="avg_if(span.duration,span.op,equals,queue.process)" />);
+
+      const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+
+      const [numberArg, stringArg] = within(argumentsGrid).getAllByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      const conditionArg = within(argumentsGrid).getByRole('combobox', {
+        name: 'Select an option',
+      });
+      const valueArg = within(argumentsGrid).getByRole('textbox', {
+        name: 'Add a value',
+      });
+
+      await userEvent.click(numberArg!);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'span.duration',
+        'span.self_time',
+      ]);
+
+      await userEvent.click(stringArg!);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'span.op',
+        'span.description',
+      ]);
+
+      await userEvent.click(conditionArg);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'is equal to',
+        'is not equal to',
+      ]);
+
+      expect(valueArg).toHaveValue('queue.process');
+    });
+
+    it('suggests column attributes for filter-first avg_if', async () => {
       render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
       const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
@@ -1367,6 +1488,58 @@ describe('token', () => {
   });
 
   it('shifts focus between args correctly', async () => {
+    render(<Tokens expression="count_if(span.op,equals,browser)" />);
+
+    expect(
+      await screen.findByRole('row', {
+        name: 'count_if(span.op,equals,browser)',
+      })
+    ).toBeInTheDocument();
+
+    const args = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).queryAllByRole('gridcell');
+
+    expect(args).toHaveLength(3);
+
+    const firstArg = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).getByRole('combobox', {name: 'Select an attribute'});
+
+    const secondArg = within(
+      screen.getByRole('grid', {name: 'Enter arguments'})
+    ).getByRole('combobox', {name: 'Select an option'});
+
+    await userEvent.click(firstArg);
+    await userEvent.type(firstArg, 'span.description');
+    expect(screen.getByRole('option', {name: 'span.description'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'span.description'}));
+
+    await waitFor(() => {
+      expect(secondArg).toHaveFocus();
+    });
+
+    expect(
+      screen.queryByRole('option', {name: 'span.description'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(firstArg);
+
+    await waitFor(() => {
+      expect(firstArg).toHaveFocus();
+    });
+    await userEvent.type(firstArg, 'span.op');
+    expect(screen.getByRole('option', {name: 'span.op'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'span.op'}));
+
+    await waitFor(() => {
+      expect(secondArg).toHaveFocus();
+    });
+
+    expect(screen.queryByRole('option', {name: 'span.op'})).not.toBeInTheDocument();
+  });
+
+  it('shifts focus between filter-first avg_if args correctly', async () => {
     render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
     expect(
