@@ -99,7 +99,9 @@ function translateAction(action: IssueAlertRuleAction): NewAutomationAction {
 export function useCreateProjectRules() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const {mutateAsync: createAutomation} = useCreateAutomation();
+  const {mutateAsync: createAutomation} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
 
   return useMutation({
     mutationFn: async ({

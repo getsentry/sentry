@@ -397,7 +397,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform.key,
           issue_alert: issueAlert,
           notification_rule_created: false,
-          rule_ids: [],
+          workflow_ids: [],
           variant: 'scm',
         });
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
@@ -430,7 +430,7 @@ export function useScmProjectDetails({
       if (!creation) {
         return;
       }
-      const {project, ruleIds, notificationRule} = creation;
+      const {project, workflowIds, notificationRule} = creation;
 
       if (selectedRepository?.id) {
         await linkProjectToRepository({
@@ -446,7 +446,7 @@ export function useScmProjectDetails({
         platform: selectedPlatform.key,
         issue_alert: issueAlert,
         notification_rule_created: !!notificationRule,
-        rule_ids: ruleIds,
+        workflow_ids: workflowIds,
         variant: 'scm',
       });
 

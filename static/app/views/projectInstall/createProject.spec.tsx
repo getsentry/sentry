@@ -808,6 +808,7 @@ describe('CreateProject', () => {
       await screen.findByText('Integration ID is required for action type discord')
     ).toBeInTheDocument();
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
+    expect(addErrorMessage).toHaveBeenCalledTimes(1);
   });
 
   describe('Issue Alerts Options', () => {

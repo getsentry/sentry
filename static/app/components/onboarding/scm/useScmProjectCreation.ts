@@ -27,7 +27,7 @@ export interface ScmProjectCreationResult {
    * unchanged platform) instead of creating a new one.
    */
   reused: boolean;
-  ruleIds: string[];
+  workflowIds: string[];
   notificationRule?: CreatedProjectRule;
 }
 
@@ -123,7 +123,7 @@ export function useScmProjectCreation({
         const result: ScmProjectCreationResult = {
           project: existingProject,
           reused: true,
-          ruleIds: [],
+          workflowIds: [],
         };
         onSuccess(result);
         return result;
@@ -166,7 +166,7 @@ export function useScmProjectCreation({
         const result: ScmProjectCreationResult = {
           project: creation.project,
           reused: false,
-          ruleIds: creation.ruleIds,
+          workflowIds: creation.workflowIds,
           notificationRule: creation.notificationRule,
         };
         onSuccess(result);

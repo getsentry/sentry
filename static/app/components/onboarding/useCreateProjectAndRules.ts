@@ -29,7 +29,7 @@ type Variables = {
 
 type Response = {
   project: Project;
-  ruleIds: string[];
+  workflowIds: string[];
   notificationRule?: CreatedProjectRule;
 };
 
@@ -109,9 +109,9 @@ export function useCreateProjectAndRules() {
             })
           : undefined;
         const notificationRule = integrationAction ? workflow : undefined;
-        const ruleIds = workflow ? [workflow.id] : [];
+        const workflowIds = workflow ? [workflow.id] : [];
 
-        return {project, notificationRule, ruleIds};
+        return {project, notificationRule, workflowIds};
       } catch (error) {
         await rollbackProject(project);
         throw error;

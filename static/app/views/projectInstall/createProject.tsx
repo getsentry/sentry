@@ -314,7 +314,7 @@ export function CreateProject() {
       });
 
       try {
-        const {project, notificationRule, ruleIds} =
+        const {project, notificationRule, workflowIds} =
           await createProjectAndRules.mutateAsync({
             projectName,
             platform: selectedPlatform,
@@ -332,7 +332,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
+          workflow_ids: workflowIds,
           notification_rule_created: !!notificationRule,
           variant: 'legacy',
         });

@@ -141,7 +141,9 @@ export function useAvailableActionsQuery() {
   );
 }
 
-export function useCreateAutomation() {
+export function useCreateAutomation({
+  suppressErrorMessage = false,
+}: {suppressErrorMessage?: boolean} = {}) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -163,6 +165,9 @@ export function useCreateAutomation() {
       });
     },
     onError: error => {
+      if (suppressErrorMessage) {
+        return;
+      }
       addErrorMessage(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to create alert')
