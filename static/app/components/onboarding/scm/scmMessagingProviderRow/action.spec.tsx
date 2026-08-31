@@ -2,10 +2,10 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {RowVisualState} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 
 import {RowActions} from './action';
+import type {RowVisualState} from './types';
 
 const slackProvider = GitHubIntegrationProviderFixture({key: 'slack', name: 'Slack'});
 
