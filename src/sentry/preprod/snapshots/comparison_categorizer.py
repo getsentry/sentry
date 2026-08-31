@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -7,7 +8,9 @@ from sentry.preprod.api.models.public.snapshots import (
     SnapshotDiffPairResponseDict,
     SnapshotImageResponseDict,
 )
-from sentry.preprod.snapshots.image_serialization import bare_image_dict, build_base_image_dict
+from sentry.preprod.snapshots.image_serialization import build_base_image_dict, minimal_image_dict
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,7 +25,7 @@ class CategorizedComparison:
 
 
 def _base_image_from_comparison(name: str, img: dict[str, Any]) -> SnapshotImageResponseDict:
-    return bare_image_dict(
+    return minimal_image_dict(
         key=img.get("base_hash") or "",
         display_name=name,
         image_file_name=name,
@@ -99,7 +102,7 @@ def categorize_comparison_images(
             if head_img:
                 result.unchanged.append(head_img)
         elif status == "errored":
-            head = head_img or bare_image_dict(
+            head = head_img or minimal_image_dict(
                 key=img.get("head_hash") or img.get("base_hash") or "",
                 display_name=name,
                 image_file_name=name,
@@ -114,6 +117,11 @@ def categorize_comparison_images(
             )
         elif status == "skipped":
             result.skipped.append(get_base_image(name) or _base_image_from_comparison(name, img))
+        else:
+            logger.warning(
+                "preprod.snapshot.unexpected_comparison_status",
+                extra={"status": status, "image_file_name": name},
+            )
 
     result.changed.sort(key=lambda p: p["diff"] or 0, reverse=True)
     return result

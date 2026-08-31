@@ -1,7 +1,13 @@
+import logging
 from typing import Any, cast
 
+import pytest
+
 from sentry.preprod.api.models.public.snapshots import SnapshotImageResponseDict
-from sentry.preprod.snapshots.comparison_categorizer import categorize_comparison_images
+from sentry.preprod.snapshots.comparison_categorizer import (
+    CategorizedComparison,
+    categorize_comparison_images,
+)
 
 _SKIPPED = {
     "status": "skipped",
@@ -18,6 +24,25 @@ class TestCategorizeComparisonImagesSkipped:
         assert len(result.skipped) == 1
         assert result.skipped[0]["key"] == "base_hash"
         assert result.skipped[0]["width"] == 300
+
+
+class TestCategorizeComparisonImagesUnexpectedStatus:
+    def test_unexpected_status_is_dropped_and_logged(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with caplog.at_level(
+            logging.WARNING, logger="sentry.preprod.snapshots.comparison_categorizer"
+        ):
+            result = categorize_comparison_images(
+                {"weird.png": {"status": "bogus", "base_hash": "b"}}, {}, {}
+            )
+
+        assert result == CategorizedComparison()
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.getMessage() == "preprod.snapshot.unexpected_comparison_status"
+        assert record.status == "bogus"
+        assert record.image_file_name == "weird.png"
 
 
 class TestCategorizeComparisonImagesAllStatuses:

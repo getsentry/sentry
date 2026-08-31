@@ -39,7 +39,7 @@ def build_head_image_dict(
     )
 
 
-def bare_image_dict(
+def minimal_image_dict(
     key: str, display_name: str, image_file_name: str, width: int, height: int
 ) -> SnapshotImageResponseDict:
     return {
