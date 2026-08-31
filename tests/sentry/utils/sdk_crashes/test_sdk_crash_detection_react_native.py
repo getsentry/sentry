@@ -348,6 +348,22 @@ def test_sentry_wrapped_not_detected(
             "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
             False,
         ),
+        # fetch instrumentation promise rejection handler (ESM build) — should be ignored.
+        # A user's failed fetch rejects, the SDK's anonymous rejection handler rethrows, and
+        # the error surfaces via onunhandledrejection with this frame on top. See SDK-CRASHES-REACT-NATIVE-F7.
+        (
+            "<anonymous>",
+            "@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # fetch instrumentation promise rejection handler (CJS build) — should be ignored
+        (
+            "<anonymous>",
+            "@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
         # Different function in the same module — should be detected
         (
             "instrumentFetch",
