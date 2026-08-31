@@ -357,10 +357,16 @@ function ConfigureIntegration() {
       {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
     );
 
-    const verifyGcpConnection = async (saved: Record<string, unknown>) => {
-      const savedConfig = {...integration.configData, ...saved};
-      const customerSaEmail = savedConfig.customer_sa_email;
-      const projectIds = savedConfig.projects;
+    const integrationQueryOptions = organizationIntegrationApiOptions({
+      organizationSlug: organization.slug,
+      integrationId,
+    });
+
+    const verifyGcpConnection = async () => {
+      const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
+        .configData;
+      const customerSaEmail = savedConfig?.customer_sa_email;
+      const projectIds = savedConfig?.projects;
       if (typeof customerSaEmail !== 'string' || typeof projectIds !== 'string') {
         return;
       }
@@ -396,26 +402,21 @@ function ConfigureIntegration() {
           data: requestData,
         });
       },
-      onSuccess: async (_data, variables) => {
+      onSuccess: async () => {
+        // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
+        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
+        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
+        await queryClient.invalidateQueries(integrationQueryOptions);
+
         if (provider.key === 'gcp') {
           try {
-            await verifyGcpConnection(variables);
+            await verifyGcpConnection();
           } catch (error) {
             // The save itself succeeded; the connection stays recorded as unverified
             // and the customer can re-test, so don't report this as a failed save.
             Sentry.captureException(error);
           }
         }
-
-        // it's important that we keep the mutation pending while the refetch is happening by returning it.
-        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
-        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-        return queryClient.invalidateQueries(
-          organizationIntegrationApiOptions({
-            organizationSlug: organization.slug,
-            integrationId,
-          })
-        );
       },
     });
 

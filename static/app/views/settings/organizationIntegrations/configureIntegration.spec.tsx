@@ -418,18 +418,25 @@ describe('ConfigureIntegration GCP re-verification', () => {
       },
     });
 
+    // Stand in for the stored config, so a save is visible to the refetch that
+    // follows it — which is what the verification payload is built from.
+    let storedConfig: Record<string, unknown> = {...integration.configData};
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/config/integrations/`,
       body: {providers: [provider]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
-      body: integration,
+      body: () => ({...integration, configData: storedConfig}),
     });
     const saveRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
       method: 'POST',
-      body: {},
+      body: (_url: string, options: {data?: Record<string, unknown>}) => {
+        storedConfig = {...storedConfig, ...options.data};
+        return {};
+      },
     });
     const verifyRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/gcp/verify-connection/`,
@@ -448,7 +455,13 @@ describe('ConfigureIntegration GCP re-verification', () => {
       },
     });
 
-    return {saveRequest, verifyRequest};
+    return {
+      saveRequest,
+      verifyRequest,
+      setStoredConfig: (next: Record<string, unknown>) => {
+        storedConfig = {...storedConfig, ...next};
+      },
+    };
   }
 
   async function saveNewSaEmail(value: string) {
@@ -470,6 +483,27 @@ describe('ConfigureIntegration GCP re-verification', () => {
           data: {
             customerSaEmail: 'new-sa@my-project.iam.gserviceaccount.com',
             gcpProjectIds: ['project-prod', 'project-staging'],
+          },
+        })
+      )
+    );
+  });
+
+  it('builds the payload from the refetched config, not the local one', async () => {
+    const {verifyRequest, setStoredConfig} = setup();
+
+    // A sibling field was saved elsewhere, so what this render closed over is stale.
+    setStoredConfig({projects: 'project-prod, project-staging, project-new'});
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    await waitFor(() =>
+      expect(verifyRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            customerSaEmail: 'new-sa@my-project.iam.gserviceaccount.com',
+            gcpProjectIds: ['project-prod', 'project-staging', 'project-new'],
           },
         })
       )
