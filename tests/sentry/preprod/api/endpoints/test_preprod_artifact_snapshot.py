@@ -1316,16 +1316,17 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         return f"{self.org.id}/{self.project.id}/{artifact.id}/manifest.json"
 
     def _create_artifact(self, image_count):
-        artifact = PreprodArtifact.objects.create(
+        artifact = self.create_preprod_artifact(
             project=self.project,
             state=PreprodArtifact.ArtifactState.UPLOADED,
             app_id="com.example.app",
         )
-        metrics = PreprodSnapshotMetrics.objects.create(
+        metrics = self.create_preprod_snapshot_metrics(
             preprod_artifact=artifact,
             image_count=image_count,
-            extras={"manifest_key": self._manifest_key(artifact)},
         )
+        metrics.extras = {"manifest_key": self._manifest_key(artifact)}
+        metrics.save(update_fields=["extras"])
         return artifact, metrics
 
     def _snapshot_manifest_bytes(self, images, diff_threshold=None):
@@ -1584,3 +1585,34 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
                 "project_id": "<PROJECT_ID>",
             },
         )
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    def test_comparison_manifest_missing_base_artifact_id_degrades(
+        self, mock_get_session, mock_record
+    ):
+        head_images = self._head_images()
+        head_artifact, head_metrics = self._create_artifact(image_count=len(head_images))
+        _, base_metrics = self._create_artifact(image_count=1)
+        comparison = self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.SUCCESS,
+        )
+        comparison_key = f"{self.org.id}/{self.project.id}/{head_artifact.id}/comparison.json"
+        comparison.extras = {"comparison_key": comparison_key}
+        comparison.save(update_fields=["extras"])
+        # Comparison manifest is parseable JSON but missing the required base_artifact_id.
+        self._mock_multi_session(
+            mock_get_session,
+            {
+                self._manifest_key(head_artifact): self._snapshot_manifest_bytes(head_images),
+                comparison_key: orjson.dumps({"images": {}}),
+            },
+        )
+
+        response = self.client.get(self._get_detail_url(head_artifact.id))
+
+        # Degrades gracefully to a non-diff response instead of raising a 500.
+        assert response.status_code == 200
+        assert response.data["comparison_type"] == "solo"

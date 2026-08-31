@@ -58,14 +58,13 @@ from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
-    ImageDict,
-    build_head_image_dict,
     categorize_comparison_images,
 )
 from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
 )
+from sentry.preprod.snapshots.image_serialization import ImageDict, build_head_image_dict
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -417,6 +416,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
                         comparison_manifest = orjson.loads(raw_comparison_manifest)
+                        # Guard the required key here so a malformed comparison manifest
+                        # degrades to solo (as the old pydantic parse did) rather than
+                        # raising later outside this handler.
+                        if "base_artifact_id" not in comparison_manifest:
+                            raise ValueError("comparison manifest missing base_artifact_id")
                         set_span_data(
                             span, "image_count", len(comparison_manifest.get("images", {}))
                         )

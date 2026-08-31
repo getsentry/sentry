@@ -34,7 +34,7 @@ from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
 )
 from sentry.preprod.api.models.public.snapshots import LatestBaseSnapshotResponseDict
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.comparison_categorizer import build_head_image_dict
+from sentry.preprod.snapshots.image_serialization import build_head_image_dict
 
 logger = logging.getLogger(__name__)
 

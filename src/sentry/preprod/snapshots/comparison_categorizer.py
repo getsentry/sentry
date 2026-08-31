@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
 
-from sentry.preprod.snapshots.manifest import image_dict_extras
-
-# Image and diff-pair payloads are plain dicts matching the shape the response
-# previously produced via pydantic .dict(); see image builders below.
-ImageDict = dict[str, Any]
+from sentry.preprod.snapshots.image_serialization import (
+    ImageDict,
+    bare_image_dict,
+    build_base_image_dict,
+)
 
 
 @dataclass
@@ -21,56 +20,8 @@ class CategorizedComparison:
     skipped: list[ImageDict] = field(default_factory=list)
 
 
-def build_head_image_dict(
-    image_file_name: str, image: ImageDict, global_diff_threshold: float | None
-) -> ImageDict:
-    dt = image.get("diff_threshold")
-    return {
-        **image_dict_extras(image),
-        "key": image["content_hash"],
-        "display_name": image.get("display_name"),
-        "group": image.get("group"),
-        "image_file_name": image_file_name,
-        "width": image["width"],
-        "height": image["height"],
-        "canvas_theme": image.get("canvas_theme"),
-        "tags": image.get("tags"),
-        "description": image.get("description"),
-        "diff_threshold": dt if dt is not None else global_diff_threshold,
-    }
-
-
-def _build_base_image(image_file_name: str, meta: ImageDict) -> ImageDict:
-    return {
-        **image_dict_extras(meta),
-        "key": meta["content_hash"],
-        "display_name": meta.get("display_name"),
-        "group": meta.get("group"),
-        "image_file_name": image_file_name,
-        "width": meta["width"],
-        "height": meta["height"],
-        "canvas_theme": meta.get("canvas_theme"),
-        "tags": meta.get("tags"),
-        "description": meta.get("description"),
-    }
-
-
-def _bare_image(
-    key: str, display_name: str, image_file_name: str, width: int, height: int
-) -> ImageDict:
-    return {
-        "key": key,
-        "display_name": display_name,
-        "group": None,
-        "image_file_name": image_file_name,
-        "width": width,
-        "height": height,
-        "canvas_theme": None,
-    }
-
-
 def _base_image_from_comparison(name: str, img: ImageDict) -> ImageDict:
-    return _bare_image(
+    return bare_image_dict(
         key=img.get("base_hash") or "",
         display_name=name,
         image_file_name=name,
@@ -108,7 +59,7 @@ def categorize_comparison_images(
         meta = base_images.get(key)
         if meta is None:
             return None
-        return _build_base_image(key, meta)
+        return build_base_image_dict(key, meta)
 
     for name, img in sorted(comparison_images.items()):
         head_img = head_images_by_file_name.get(name)
@@ -147,7 +98,7 @@ def categorize_comparison_images(
             if head_img:
                 result.unchanged.append(head_img)
         elif status == "errored":
-            head = head_img or _bare_image(
+            head = head_img or bare_image_dict(
                 key=img.get("head_hash") or img.get("base_hash") or "",
                 display_name=name,
                 image_file_name=name,
