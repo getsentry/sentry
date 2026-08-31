@@ -257,8 +257,12 @@ class SentryAppParser(Serializer):
             try:
                 assert_http_header_value(name, field_name="header name")
                 assert_http_header_value(header_value, field_name="header value")
-            except ValueError as e:
-                raise ValidationError(str(e)) from e
+            except ValueError:
+                # Fixed message only — do not surface exception text to API clients.
+                raise ValidationError(
+                    "Webhook header contains non-latin-1 characters and cannot be "
+                    "sent as an HTTP header."
+                )
             if not _HTTP_TOKEN_RE.match(name):
                 raise ValidationError(
                     f"'{name}' contains invalid characters. Header names must only use "
