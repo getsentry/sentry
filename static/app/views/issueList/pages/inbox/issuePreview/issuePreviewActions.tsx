@@ -48,6 +48,7 @@ import {
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -161,16 +162,40 @@ function FixAppliedActions({
               : t('Issue resolved')
           );
           IssueListCacheStore.reset();
+          const issueListUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+            path: {organizationIdOrSlug: organization.slug},
+          });
+          const issueCountUrl = getApiUrl(
+            '/organizations/$organizationIdOrSlug/issues-count/',
+            {path: {organizationIdOrSlug: organization.slug}}
+          );
+          const issueUrl = getApiUrl(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                issueId: group.id,
+              },
+            }
+          );
+          const issueActivitiesUrl = getApiUrl(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                issueId: group.id,
+              },
+            }
+          );
           void queryClient.invalidateQueries({
             predicate: query => {
               const url = safeParseQueryKey(query.queryKey)?.url;
-              const issueListUrl = `/organizations/${organization.slug}/issues/`;
 
               return (
                 url === issueListUrl ||
-                url === `/organizations/${organization.slug}/issues-count/` ||
-                url === `${issueListUrl}${group.id}/` ||
-                url === `${issueListUrl}${group.id}/activities/`
+                url === issueCountUrl ||
+                url === issueUrl ||
+                url === issueActivitiesUrl
               );
             },
           });
