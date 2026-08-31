@@ -182,31 +182,40 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_device_class_filter_dual_reads_negation_ands_storage_keys(self) -> None:
-        """!device.class:high requires neither storage key to equal code \"3\"."""
+        """!device.class:high requires neither storage key to equal code \"3\".
+
+        Each side is (NOT exists OR != value) so missing keys still match negation.
+        """
         where, having, contexts = self.resolver.resolve_query("!device.class:high")
         assert having is None
         assert all(context is None for context in contexts)
+
+        def not_equals_or_missing(name: str) -> TraceItemFilter:
+            key = AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING)
+            return TraceItemFilter(
+                or_filter=OrFilter(
+                    filters=[
+                        TraceItemFilter(
+                            not_filter=NotFilter(
+                                filters=[TraceItemFilter(exists_filter=ExistsFilter(key=key))]
+                            )
+                        ),
+                        TraceItemFilter(
+                            comparison_filter=ComparisonFilter(
+                                key=key,
+                                op=ComparisonFilter.OP_NOT_EQUALS,
+                                value=AttributeValue(val_str="3"),
+                            )
+                        ),
+                    ]
+                )
+            )
+
         assert where == TraceItemFilter(
             and_filter=AndFilter(
                 filters=[
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=AttributeKey(
-                                name="device.class", type=AttributeKey.Type.TYPE_STRING
-                            ),
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str="3"),
-                        )
-                    ),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=AttributeKey(
-                                name="sentry.device.class", type=AttributeKey.Type.TYPE_STRING
-                            ),
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str="3"),
-                        )
-                    ),
+                    not_equals_or_missing("device.class"),
+                    not_equals_or_missing("sentry.device.class"),
                 ]
             )
         )

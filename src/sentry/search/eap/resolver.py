@@ -657,7 +657,7 @@ class SearchResolver:
             return None
         operator = constants.OPERATOR_MAP[term.operator]
 
-        return TraceItemFilter(
+        comparison = TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=column.proto_definition,
                 op=operator,
@@ -665,6 +665,22 @@ class SearchResolver:
                 ignore_case=self.params.case_insensitive and column.search_type == "string",
             )
         )
+
+        # Bare != / NOT IN do not match missing attributes in EAP. For dual-read
+        # negation we AND both keys, so a missing key must still satisfy its side:
+        # (NOT exists(key)) OR (key != / NOT IN value).
+        if term.operator in ("!=", "NOT IN"):
+            not_exists = TraceItemFilter(
+                not_filter=NotFilter(
+                    filters=[
+                        TraceItemFilter(exists_filter=ExistsFilter(key=column.proto_definition))
+                    ]
+                )
+            )
+            combined = or_trace_item_filters(not_exists, comparison)
+            return combined if combined is not None else comparison
+
+        return comparison
 
     def _resolve_term(
         self, term: event_search.SearchFilter
