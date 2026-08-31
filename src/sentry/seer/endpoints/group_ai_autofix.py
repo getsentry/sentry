@@ -579,7 +579,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             group.organization,
             state,
             has_actionable_feedback=any(
-                item.feedback.source.should_consume(state) for item in queued_items
+                item.feedback.source.should_consume(state).ok for item in queued_items
             ),
         )
 

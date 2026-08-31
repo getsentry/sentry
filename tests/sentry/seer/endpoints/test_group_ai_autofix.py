@@ -19,6 +19,7 @@ from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -243,6 +244,44 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                 "installation_url": "https://github.com/settings/installations/9999/permissions/update",
             }
         ]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_blocked_pr_iteration_permissions")
+    @patch("sentry.seer.endpoints.group_ai_autofix.peek_queued_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_actionable_feedback_reads_the_consume_decision(
+        self, mock_get_explorer_state, mock_peek, mock_get_perms
+    ):
+        """``should_consume`` returns a Decision, which is always truthy; only
+        ``.ok`` says whether the feedback would actually have been used."""
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        mock_get_perms.return_value = {}
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=self.user.id, user_feedback="go"))
+        mock_peek.return_value = [
+            QueuedAutofixFeedback(
+                organization_id=self.organization.id,
+                group_id=group.id,
+                feedback=feedback,
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            )
+        ]
+        self.login_as(user=self.user)
+
+        for ok in (False, True):
+            with patch.object(
+                type(feedback.source),
+                "should_consume",
+                return_value=Decision(ok=ok, reason="test"),
+            ):
+                response = self.client.get(self._get_url(group.id), format="json")
+
+            assert response.status_code == 200, response.data
+            assert mock_get_perms.call_args.kwargs["has_actionable_feedback"] is ok
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_triggers_autofix_agent(self, mock_trigger_explorer):
