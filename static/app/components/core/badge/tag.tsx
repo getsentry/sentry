@@ -60,9 +60,10 @@ const TagPill = styled('div')<{
   height: 20px;
   font-size: ${p => p.theme.font.size.sm};
   display: inline-flex;
-  /* Flex and grid items default to min-width: auto, which pins the pill to its
-     content width. Zero lets it shrink so the label ellipsizes instead. */
-  min-width: 0;
+  /* Caps the pill at its container so the label ellipsizes rather than spilling
+     out. Unlike min-width: 0, this leaves the pill's content-based minimum
+     intact, so a shrinking sibling cannot squeeze it. */
+  max-width: 100%;
   gap: ${p => p.theme.space.xs};
   align-items: center;
   border-radius: ${p => p.theme.radius.xs};
