@@ -6,7 +6,6 @@ interface TriggerFormTypingAnimationParams {
    */
   setValue: (value: string) => void;
   text: string;
-  speed?: number;
 }
 
 /**
@@ -30,7 +29,7 @@ export function useFormTypingAnimation() {
   useEffect(() => cancelFormTypingAnimation, [cancelFormTypingAnimation]);
 
   const triggerFormTypingAnimation = useCallback(
-    ({setValue, text, speed = 70}: TriggerFormTypingAnimationParams) => {
+    ({setValue, text}: TriggerFormTypingAnimationParams) => {
       cancelFormTypingAnimation();
 
       const runId = runIdRef.current;
@@ -44,7 +43,7 @@ export function useFormTypingAnimation() {
       lastUpdateTimeRef.current = performance.now();
       setValue('');
 
-      const interval = 1000 / Math.max(1, speed);
+      const interval = 1000 / 70;
 
       const animate = (timestamp: number) => {
         if (runIdRef.current !== runId) {
