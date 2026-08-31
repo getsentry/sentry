@@ -208,6 +208,8 @@ function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
 }
 
 type FixtureState = {
+  allocatedBlockIds: Set<string>;
+  allocatedInvestigationIds: Set<string>;
   details: Map<string, InvestigationDetail>;
   executions: Map<string, InvestigationExecutionDetail>;
   list: InvestigationListItem[];
@@ -224,6 +226,15 @@ function createFixtureState(config: FixtureApiConfig): FixtureState {
   );
 
   return {
+    allocatedBlockIds: new Set(
+      Array.from(details.values()).flatMap(detail =>
+        (detail.blocks ?? []).map(block => block.id)
+      )
+    ),
+    allocatedInvestigationIds: new Set([
+      ...details.keys(),
+      ...list.map(investigation => investigation.id),
+    ]),
     details,
     list,
     pageLinks: config.pageLinks,
@@ -268,7 +279,10 @@ function handleFixtureRequest(
       };
     }
     if (method === 'POST') {
-      const id = `investigation-story-${state.list.length + 1}`;
+      const id = reserveFixtureId(
+        `investigation-story-${state.list.length + 1}`,
+        state.allocatedInvestigationIds
+      );
       const templateKey = getDataString(data, 'templateKey');
       const detail = InvestigationDetailFixture({
         id,
@@ -325,7 +339,7 @@ function handleFixtureRequest(
     const detail = getFixtureDetail(state, investigationId);
     const duplicate = {
       ...cloneFixture(detail),
-      id: `${detail.id}-copy`,
+      id: reserveFixtureId(`${detail.id}-copy`, state.allocatedInvestigationIds),
       title: `${detail.title} copy`,
       dateCreated: '2026-08-27T15:45:00Z',
       dateUpdated: '2026-08-27T15:45:00Z',
@@ -353,8 +367,11 @@ function handleFixtureRequest(
     const kind = data.kind === 'query' ? 'query' : 'text';
     const blocks = detail.blocks ?? [];
     const block = InvestigationBlockFixture({
-      id: `storybook-${kind}-${blocks.length + 1}`,
-      position: blocks.length,
+      id: reserveFixtureId(
+        `storybook-${kind}-${blocks.length + 1}`,
+        state.allocatedBlockIds
+      ),
+      position: Math.max(-1, ...blocks.map(existingBlock => existingBlock.position)) + 1,
       kind,
       title: getDataString(data, 'title') ?? '',
       content: '',
@@ -557,6 +574,17 @@ function getDataString(data: Record<string, unknown>, key: string) {
 function getDataNumber(data: Record<string, unknown>, key: string) {
   const value = data[key];
   return typeof value === 'number' ? value : undefined;
+}
+
+function reserveFixtureId(preferredId: string, allocatedIds: Set<string>) {
+  let id = preferredId;
+  let suffix = 2;
+  while (allocatedIds.has(id)) {
+    id = `${preferredId}-${suffix}`;
+    suffix += 1;
+  }
+  allocatedIds.add(id);
+  return id;
 }
 
 function cloneFixture<T>(fixture: T): T {
