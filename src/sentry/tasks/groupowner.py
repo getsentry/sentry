@@ -92,7 +92,7 @@ def _process_suspect_commits(
 
             if owner_scores:
                 for owner_id, _ in sorted(
-                    sorted(owner_scores.items(), reverse=True, key=lambda item: item[1])
+                    owner_scores.items(), reverse=True, key=lambda item: item[1]
                 )[:PREFERRED_GROUP_OWNERS]:
                     try:
                         group_owner, created = (

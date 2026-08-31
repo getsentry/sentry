@@ -90,7 +90,6 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
         {key: 'regionName', width: COL_WIDTH_UNDEFINED, name: t('Region')},
         {key: 'traceId', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
       ]}
-      columnSortBy={[]}
       grid={{
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell

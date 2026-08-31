@@ -10,9 +10,11 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {SearchBar} from 'sentry/components/searchBar';
-import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import type {SortDirection} from 'sentry/components/tables/sortableHeaderCell';
+import {
+  type ColumnAlign,
+  SortableHeaderCell,
+  type SortDirection,
+} from 'sentry/components/tables/sortableHeaderCell';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
@@ -189,9 +191,8 @@ export function UsageStatsProjects({
         nextDirection = -1; // Default PROJECT to ascending
       }
 
-      // The header uses SortLink, which takes a LocationDescriptor and pushes
-      // that to the router. As such, we do not need to update the router in
-      // handleChangeState
+      // The header cell takes a LocationDescriptor and pushes that to the
+      // router, so handleChangeState does not need to update it
       return handleChangeState(
         {sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`},
         {willUpdateRouter: false}
@@ -428,13 +429,13 @@ export function UsageStatsProjects({
 
           return (
             <Cell key={h.key}>
-              <SortLink
-                canSort
-                title={h.title}
+              <SortableHeaderCell
                 align={h.align as ColumnAlign}
                 direction={h.direction}
-                generateSortLink={h.onClick}
-              />
+                to={h.onClick()}
+              >
+                {h.title}
+              </SortableHeaderCell>
             </Cell>
           );
         })

@@ -8,8 +8,8 @@ import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatState
 import type {
   SeerExplorerResponse,
   SeerExplorerRunId,
+  Block,
 } from 'sentry/views/seerExplorer/types';
-import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
   makeSeerExplorerQueryKey,
@@ -58,6 +58,9 @@ const getPollingState = (
       return 'polling-with-backoff';
     }
     return 'not-polling';
+  }
+  if (sessionData?.failure_reason === 'timeout') {
+    return 'timed-out';
   }
   if (isResponseComplete(sessionData)) {
     return 'not-polling';

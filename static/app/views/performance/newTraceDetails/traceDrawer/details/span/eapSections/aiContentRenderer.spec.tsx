@@ -148,4 +148,12 @@ describe('AIContentRenderer', () => {
       expect(screen.getByText(`<${tagName}>`).closest('details')).toHaveAttribute('open');
     }
   );
+
+  it('renders Seer-style embed tags as plaintext via default Markdown', () => {
+    const embed = '{% issue %}{"id":"PROJ-1"}{% /issue %}';
+    const text = `Before ${embed} after`;
+    const {container} = render(<AIContentRenderer text={text} inline />);
+
+    expect(container).toHaveTextContent(text);
+  });
 });
