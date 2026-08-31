@@ -160,13 +160,7 @@ function useAssigneeSelectorState({
 }
 
 function AvatarAssigneeSelector(props: AssigneeSelectorProps) {
-  const {
-    additionalMenuFooterItems,
-    group,
-    handleAssigneeChange,
-    owners,
-    showLabel = false,
-  } = props;
+  const {additionalMenuFooterItems, group, handleAssigneeChange, owners} = props;
   const {currentAssignmentDetails, currentMemberList, loading} =
     useAssigneeSelectorState(props);
 
@@ -177,7 +171,6 @@ function AvatarAssigneeSelector(props: AssigneeSelectorProps) {
       memberList={currentMemberList}
       owners={owners}
       assignmentDetails={currentAssignmentDetails}
-      showLabel={showLabel}
       onAssign={(assignedActor: AssignableEntity | null) =>
         handleAssigneeChange(assignedActor)
       }

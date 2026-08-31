@@ -568,6 +568,7 @@ export function AssigneeSelectorDropdown({
             variant="transparent"
             data-test-id="assignee-selector"
             {...props}
+            showChevron={false}
           >
             <AssigneeAvatar
               assignedTo={group.assignedTo}
