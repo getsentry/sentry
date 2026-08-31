@@ -6,8 +6,8 @@ import threading
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
+from concurrent.futures import Future, wait
 from concurrent.futures import TimeoutError as FuturesTimeoutError
-from concurrent.futures import wait
 from copy import deepcopy
 from datetime import UTC, datetime
 from functools import partial
@@ -146,7 +146,7 @@ def _check_accept_monitor_checkin_with_timeout(
         )
         return PermitCheckInStatus.ACCEPT
 
-    def _done(f):
+    def _done(f: Future[PermitCheckInStatus]) -> None:
         _CHECK_ACCEPT_SLOTS.release()
         # Drain late results/errors after we stop waiting so timed-out futures
         # do not log "exception was never retrieved".
