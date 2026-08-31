@@ -17,9 +17,12 @@ class EvaluationPhase(StrEnum):
     DELAYED = "delayed"
 
 
+type AnyWorkflowEngineEvaluation = BaseWorkflowEngineEvaluation[Any, Any, Any]
+
+
 def _find_error(
-    items: list["BaseWorkflowEngineEvaluation[Any, Any, Any]"],
-    predicate: Callable[["BaseWorkflowEngineEvaluation[Any, Any, Any]"], bool],
+    items: list[AnyWorkflowEngineEvaluation],
+    predicate: Callable[[AnyWorkflowEngineEvaluation], bool],
 ) -> ConditionError | None:
     """Helper to find an error from items matching the predicate."""
     return next((item.error for item in items if predicate(item)), None)
@@ -88,7 +91,7 @@ class BaseWorkflowEngineEvaluation[R, D, A: BaseWorkflowEngineEvaluationArtifact
         return replace(self, error=error)
 
     @staticmethod
-    def choose_tainted[E: "BaseWorkflowEngineEvaluation[Any, Any, Any]"](a: E, b: E) -> E:
+    def choose_tainted[E: AnyWorkflowEngineEvaluation](a: E, b: E) -> E:
         """
         Returns the first tainted evaluation, or `a` if neither is tainted.
         Useful for tracking whether any evaluation in a series was tainted.
@@ -101,7 +104,7 @@ class BaseWorkflowEngineEvaluation[R, D, A: BaseWorkflowEngineEvaluationArtifact
 
     @staticmethod
     def any(
-        items: Iterable["BaseWorkflowEngineEvaluation[Any, Any, Any]"],
+        items: Iterable[AnyWorkflowEngineEvaluation],
     ) -> tuple[bool, ConditionError | None]:
         """
         Like `any()`, but taint-aware. Returns the combined `(triggered, error)`; if any inputs
@@ -123,7 +126,7 @@ class BaseWorkflowEngineEvaluation[R, D, A: BaseWorkflowEngineEvaluationArtifact
 
     @staticmethod
     def all(
-        items: Iterable["BaseWorkflowEngineEvaluation[Any, Any, Any]"],
+        items: Iterable[AnyWorkflowEngineEvaluation],
     ) -> tuple[bool, ConditionError | None]:
         """
         Like `all()`, but taint-aware. Returns the combined `(triggered, error)`; if any inputs
@@ -145,7 +148,7 @@ class BaseWorkflowEngineEvaluation[R, D, A: BaseWorkflowEngineEvaluationArtifact
 
     @staticmethod
     def none(
-        items: Iterable["BaseWorkflowEngineEvaluation[Any, Any, Any]"],
+        items: Iterable[AnyWorkflowEngineEvaluation],
     ) -> tuple[bool, ConditionError | None]:
         """
         Like `not any()`, but taint-aware. Returns the combined `(triggered, error)`; if any inputs
