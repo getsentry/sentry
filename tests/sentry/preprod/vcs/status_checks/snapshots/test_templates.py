@@ -953,9 +953,14 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         )
         snapshot_metrics_map = {artifact.id: metrics}
         base_sha = "abc123" + "0" * 34
+        base_repo_url = "https://github.com/getsentry/sentry"
 
         title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
-            [artifact], snapshot_metrics_map, project=self.project, base_sha=base_sha
+            [artifact],
+            snapshot_metrics_map,
+            project=self.project,
+            base_sha=base_sha,
+            base_repo_url=base_repo_url,
         )
 
         assert title == "Snapshot Testing"
@@ -963,7 +968,10 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert "My App" in summary
         assert "24" in summary
         assert "✅ Uploaded" in summary
-        assert f"No base snapshot found for `{base_sha}`" in summary
+        assert (
+            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            in summary
+        )
 
     def test_missing_base_multiple_artifacts(self) -> None:
         artifacts = []
@@ -1001,9 +1009,14 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         )
         snapshot_metrics_map = {artifact.id: metrics}
         base_sha = "abc123" + "0" * 34
+        base_repo_url = "https://github.com/getsentry/sentry"
 
         _, _, summary = format_missing_base_snapshot_status_check_messages(
-            [artifact], snapshot_metrics_map, project=self.project, base_sha=base_sha
+            [artifact],
+            snapshot_metrics_map,
+            project=self.project,
+            base_sha=base_sha,
+            base_repo_url=base_repo_url,
         )
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{artifact.id}"
@@ -1014,7 +1027,8 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            f"\n\nNo base snapshot found for `{base_sha}`. Make sure snapshots are uploaded from your main branch."
+            f"\n\nNo base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha}). "
+            "Make sure snapshots are uploaded from your main branch."
             f"\n\n{configure_link}"
         )
         assert summary == expected

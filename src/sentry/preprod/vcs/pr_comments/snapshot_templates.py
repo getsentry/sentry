@@ -7,7 +7,11 @@ from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
-from sentry.preprod.vcs.markdown_utils import escape_markdown, escape_markdown_code
+from sentry.preprod.vcs.markdown_utils import (
+    escape_markdown,
+    escape_markdown_code,
+    format_commit_sha_markdown,
+)
 
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
@@ -240,9 +244,11 @@ def format_missing_base_snapshot_pr_comment(
     *,
     project: Project,
     base_sha: str,
+    base_repo_url: str | None = None,
 ) -> str:
+    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     message = (
-        f"No base snapshot found for `{base_sha}`. "
+        f"No base snapshot found for {base_sha_markdown}. "
         "Make sure snapshots are uploaded from your main branch."
     )
     return _format_solo_comment(artifacts, snapshot_metrics_map, message, project=project)
