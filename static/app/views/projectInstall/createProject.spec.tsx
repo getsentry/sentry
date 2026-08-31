@@ -755,7 +755,9 @@ describe('CreateProject', () => {
       method: 'POST',
       statusCode: 400,
       body: {
-        actions: ['Discord: Discord channel URL is missing or formatted incorrectly'],
+        actionFilters: {
+          nonFieldErrors: ['Integration ID is required for action type discord'],
+        },
       },
       match: [
         (_url, options) =>
@@ -802,6 +804,9 @@ describe('CreateProject', () => {
       expect(projectDeletionMockRequest).toHaveBeenCalledTimes(1);
     });
 
+    expect(
+      await screen.findByText('Integration ID is required for action type discord')
+    ).toBeInTheDocument();
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
   });
 
