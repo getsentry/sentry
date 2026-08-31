@@ -374,6 +374,8 @@ def _attribute_names_request(
     value_substring_match: str = "",
     offset: int = 0,
 ) -> TraceItemAttributeNamesRequest:
+    # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
+    # pass names in a OrFilter which means only rows with _all_ attributes will return
     return TraceItemAttributeNamesRequest(
         meta=meta,
         limit=ATTRIBUTE_NAME_LIMIT,
