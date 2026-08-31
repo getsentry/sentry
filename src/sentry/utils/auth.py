@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os.path
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
@@ -236,7 +235,8 @@ def _path_is_static_asset_redirect(path: str) -> bool:
         if normalized == prefix_root or normalized.startswith(prefix_norm):
             return True
 
-    extension = os.path.splitext(basename)[1]
+    last_dot = basename.rfind(".")
+    extension = basename[last_dot:] if last_dot != -1 else ""
     return extension in _STATIC_LOGIN_REDIRECT_SUFFIXES
 
 
