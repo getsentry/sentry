@@ -133,8 +133,8 @@ def _check_accept_monitor_checkin_with_timeout(
 
     if not _CHECK_ACCEPT_SLOTS.acquire(blocking=False):
         metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "check_accept_shed"},
+            "monitors.checkin.check_accept_shed",
+            tags=metric_kwargs,
         )
         logger.warning(
             "monitors.consumer.check_accept_shed",
@@ -170,8 +170,8 @@ def _check_accept_monitor_checkin_with_timeout(
         return future.result(timeout=timeout_sec)
     except FuturesTimeoutError:
         metrics.incr(
-            "monitors.checkin.result",
-            tags={**metric_kwargs, "status": "check_accept_timeout"},
+            "monitors.checkin.check_accept_timeout",
+            tags=metric_kwargs,
         )
         logger.warning(
             "monitors.consumer.check_accept_timeout",
