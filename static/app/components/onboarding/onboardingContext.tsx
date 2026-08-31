@@ -81,18 +81,12 @@ const OnboardingContext = createContext<OnboardingContextProps>({
 
 type ProviderProps = {
   children: React.ReactNode;
-  /**
-   * Optional initial session state. Primarily used in tests to seed the context
-   * without touching session storage directly.
-   */
-  initialValue?: OnboardingSessionState;
 };
 
-export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
-  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
-    ONBOARDING_SESSION_KEY,
-    initialValue
-  );
+export function OnboardingContextProvider({children}: ProviderProps) {
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
+    OnboardingSessionState | undefined
+  >(ONBOARDING_SESSION_KEY, undefined);
 
   // An optimistic repo (empty id, see useScmRepoSelection) persisted by a
   // refresh mid-resolution can never fetch detection and would hold the

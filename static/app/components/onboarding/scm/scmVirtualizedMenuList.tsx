@@ -101,14 +101,12 @@ interface ScmVirtualizedMenuListProps {
   innerProps?: React.HTMLAttributes<HTMLDivElement>;
   innerRef?: Ref<HTMLDivElement>;
   maxHeight?: number;
-  optionHeight?: number;
 }
 
 export function ScmVirtualizedMenuList({
   children,
   focusedOption,
   maxHeight = MAX_MENU_HEIGHT,
-  optionHeight = OPTION_HEIGHT,
   innerRef,
   innerProps,
 }: ScmVirtualizedMenuListProps) {
@@ -118,16 +116,17 @@ export function ScmVirtualizedMenuList({
   const combinedRef = mergeRefs(scrollRef, innerRef ?? null);
   const visibleOptionCount = Math.max(
     1,
-    Math.floor((maxHeight - MENU_PADDING * 2) / optionHeight)
+    Math.floor((maxHeight - MENU_PADDING * 2) / OPTION_HEIGHT)
   );
-  const alignedMaxHeight = visibleOptionCount * optionHeight + MENU_PADDING * 2;
+  const alignedMaxHeight = visibleOptionCount * OPTION_HEIGHT + MENU_PADDING * 2;
 
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     // Estimates only; rows are measured on mount below. Headings differ in
     // height from options, and an empty-label heading collapses to zero.
-    estimateSize: index => (rows[index]?.isHeading ? GROUP_HEADING_HEIGHT : optionHeight),
+    estimateSize: index =>
+      rows[index]?.isHeading ? GROUP_HEADING_HEIGHT : OPTION_HEIGHT,
     // Keep measurements attached to rows (not indices) when filtering shifts
     // the list.
     getItemKey: index => rows[index]?.key ?? index,
