@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -34,10 +33,10 @@ const removeFromOrgSchema = z.object({
   organizationSlug: z.string().min(1, 'Organization slug is required'),
 });
 
-const organizationRoleOptions = ORG_ROLES.map(role => ({
-  value: role.id,
-  label: role.name,
-}));
+function getMutationErrorMessage(error: Error | null, fallback: string) {
+  const detail = error instanceof RequestError ? error.responseJSON?.detail : undefined;
+  return error ? (typeof detail === 'string' ? detail : fallback) : null;
+}
 
 function AddToOrgModal({
   Header,
@@ -46,8 +45,6 @@ function AddToOrgModal({
   userId,
   closeModal,
 }: AddOrRemoveOrgModalProps) {
-  const [error, setError] = useState<string | null>(null);
-
   const mutation = useMutation({
     mutationFn: (data: AddToOrgFormValues) =>
       fetchMutation({
@@ -59,14 +56,9 @@ function AddToOrgModal({
       closeModal();
       window.location.reload();
     },
-    onError: mutationError => {
-      const detail =
-        mutationError instanceof RequestError
-          ? mutationError.responseJSON?.detail
-          : undefined;
-      setError(typeof detail === 'string' ? detail : 'Unable to add member');
-    },
   });
+
+  const errorMessage = getMutationErrorMessage(mutation.error, 'Unable to add member');
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -89,10 +81,7 @@ function AddToOrgModal({
                 hintText="A unique ID used to identify this organization"
                 required
               >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
+                <field.Input value={field.state.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
           </form.AppField>
@@ -102,17 +91,20 @@ function AddToOrgModal({
                 <field.Select
                   value={field.state.value}
                   onChange={field.handleChange}
-                  options={organizationRoleOptions}
+                  options={ORG_ROLES.map(role => ({
+                    value: role.id,
+                    label: role.name,
+                  }))}
                   placeholder="Choose a role"
                 />
               </field.Layout.Stack>
             )}
           </form.AppField>
           <Text>Note: This action will be recorded in the audit log.</Text>
-          {error && (
+          {errorMessage && (
             <Alert.Container>
               <Alert variant="danger" showIcon={false}>
-                {error}
+                {errorMessage}
               </Alert>
             </Alert.Container>
           )}
@@ -132,8 +124,6 @@ function RemoveFromOrgModal({
   userId,
   closeModal,
 }: AddOrRemoveOrgModalProps) {
-  const [error, setError] = useState<string | null>(null);
-
   const mutation = useMutation({
     mutationFn: (data: RemoveFromOrgFormValues) =>
       fetchMutation({
@@ -144,14 +134,9 @@ function RemoveFromOrgModal({
       closeModal();
       window.location.reload();
     },
-    onError: mutationError => {
-      const detail =
-        mutationError instanceof RequestError
-          ? mutationError.responseJSON?.detail
-          : undefined;
-      setError(typeof detail === 'string' ? detail : 'Unable to remove member');
-    },
   });
+
+  const errorMessage = getMutationErrorMessage(mutation.error, 'Unable to remove member');
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -174,17 +159,14 @@ function RemoveFromOrgModal({
                 hintText="A unique ID used to identify this organization"
                 required
               >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                />
+                <field.Input value={field.state.value} onChange={field.handleChange} />
               </field.Layout.Stack>
             )}
           </form.AppField>
           <Text>Note: This action will be recorded in the audit log.</Text>
-          {error && (
+          {errorMessage && (
             <Alert.Container>
-              <Alert variant="danger">{error}</Alert>
+              <Alert variant="danger">{errorMessage}</Alert>
             </Alert.Container>
           )}
         </Stack>
