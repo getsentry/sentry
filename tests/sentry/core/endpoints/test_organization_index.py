@@ -346,6 +346,7 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
                 category=RegionCategory.SINGLE_TENANT,
                 new_org_cell="acme",
                 visible=True,
+                signup_visible=False,
             ),
         ]
         with get_test_env_directory().swap_state(cells, localities):

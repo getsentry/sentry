@@ -105,7 +105,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         if "request" in self.context and is_active_staff(self.context["request"]):
             # Staff users are allowed to create orgs in hidden cells/localities.
             return value
-        if not locality.visible:
+        if not locality.visible or not locality.signup_visible:
             raise serializers.ValidationError(f"Unknown data storage location {value!r}.")
         return value
 
