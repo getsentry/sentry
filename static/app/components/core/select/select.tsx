@@ -585,9 +585,9 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       return a === b;
     };
 
-    if (props.multiple) {
+    if (props.multiple && Array.isArray(props.value)) {
       mappedValue = props.value
-        ?.map(val =>
+        .map(val =>
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           flatOptions.find(option => compare(option.value, val))
         )
