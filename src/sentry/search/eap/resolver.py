@@ -589,9 +589,7 @@ class SearchResolver:
             return resolved_term
 
         # Build raw-key filters (no VCC): values are already remapped storage codes.
-        convention_filter = self._device_class_raw_key_filter(
-            term, convention_column, raw_values
-        )
+        convention_filter = self._device_class_raw_key_filter(term, convention_column, raw_values)
         legacy_filter = self._device_class_raw_key_filter(term, legacy_column, raw_values)
         if convention_filter is None:
             resolved_term, _ = self._resolve_term(term)
@@ -618,9 +616,7 @@ class SearchResolver:
 
         # Unknown / empty maps to "". Match missing attribute OR empty string.
         if raw_values == "" or raw_values == [] or raw_values == [""]:
-            exists_filter = TraceItemFilter(
-                exists_filter=ExistsFilter(key=column.proto_definition)
-            )
+            exists_filter = TraceItemFilter(exists_filter=ExistsFilter(key=column.proto_definition))
             empty_filter = TraceItemFilter(
                 comparison_filter=ComparisonFilter(
                     key=column.proto_definition,
