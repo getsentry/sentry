@@ -8,6 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -61,6 +62,11 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
   );
 }
 
+const AUTOMATIONS_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: '1fr'},
+  {key: 'action-filters', width: {zero: '120px', sm: '180px'}},
+];
+
 function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   const getPaginationCaption = useGetPaginationCaption();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -96,7 +102,8 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns
+    <SimpleTable
+      columns={AUTOMATIONS_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -127,7 +134,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
-    </SimpleTableWithColumns>
+    </SimpleTable>
   );
 
   return (
@@ -319,14 +326,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
     </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 180px;
-
-  @container (max-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 1fr 120px;
-  }
-`;
 
 const InlineProjectName = styled(Flex)`
   vertical-align: bottom;

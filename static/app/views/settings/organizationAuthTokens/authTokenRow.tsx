@@ -96,7 +96,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell gap="xs">
+      <SimpleTable.RowCell data-column-name="created" gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -106,7 +106,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell gap="xs">
+      <SimpleTable.RowCell data-column-name="lastAccess" gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (

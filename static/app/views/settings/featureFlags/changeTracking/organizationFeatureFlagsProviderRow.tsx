@@ -31,11 +31,11 @@ export function OrganizationFeatureFlagsProviderRow({
         </Text>
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell gap="xs">
+      <SimpleTable.RowCell data-column-name="created" gap="xs">
         <TimeSince date={secret.createdAt} />
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell>
+      <SimpleTable.RowCell data-column-name="createdBy">
         {isUserPending ? (
           <LoadingIndicator mini />
         ) : (

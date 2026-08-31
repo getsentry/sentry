@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -105,9 +106,25 @@ export function ConnectedAutomationsList({
           total: totalCountInt,
         });
 
+  const columns: TableColumnConfig[] = [
+    {key: 'name', width: '1fr'},
+    {
+      key: 'last-triggered',
+      visible: {zero: false, xl: true},
+      width: '200px',
+    },
+    {
+      key: 'action-filters',
+      visible: {zero: false, sm: true},
+      width: '180px',
+    },
+    {key: 'connected', visible: canEdit, width: '140px'},
+  ];
+
   return (
     <Container containerType="inline-size" {...props}>
-      <SimpleTableWithColumns
+      <StyledSimpleTable
+        columns={columns}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -165,7 +182,7 @@ export function ConnectedAutomationsList({
               )}
             </SimpleTable.Row>
           ))}
-      </SimpleTableWithColumns>
+      </StyledSimpleTable>
       {limit && (
         <Pagination
           onCursor={onCursor}
@@ -177,32 +194,6 @@ export function ConnectedAutomationsList({
   );
 }
 
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 200px 180px auto;
-
+const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: ${p => p.theme.space.xl};
-
-  /*
-    The connected column can be added/removed depending on props, so in order to
-    have a constant width we have an auto grid column and set the width here.
-    */
-  [data-column-name='connected'] {
-    width: 140px;
-  }
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr 180px auto;
-
-    [data-column-name='last-triggered'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 1fr auto;
-
-    [data-column-name='action-filters'] {
-      display: none;
-    }
-  }
 `;

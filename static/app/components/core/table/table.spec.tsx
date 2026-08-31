@@ -1,3 +1,6 @@
+import type {ReactNode} from 'react';
+import {useRef} from 'react';
+
 import {dragHandle} from 'sentry-test/dragMove';
 import {
   render,
@@ -6,7 +9,9 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
+import {ContainerQueryProvider} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -24,7 +29,11 @@ function TestTable({
       <Table.Head>
         <Table.Row>
           {columns.map(column => (
-            <Table.HeadCell column={column.key} key={column.key}>
+            <Table.HeadCell
+              column={column.key}
+              data-column-name={column.key}
+              key={column.key}
+            >
               {column.key}
             </Table.HeadCell>
           ))}
@@ -33,11 +42,30 @@ function TestTable({
       <Table.Body>
         <Table.Row>
           {columns.map(column => (
-            <Table.Cell key={column.key}>{`${column.key}-value`}</Table.Cell>
+            <Table.Cell
+              data-column-name={column.key}
+              key={column.key}
+            >{`${column.key}-value`}</Table.Cell>
           ))}
         </Table.Row>
       </Table.Body>
     </Table>
+  );
+}
+
+/**
+ * Responsive column values resolve against the nearest query container, so the
+ * table has to sit inside one whose measured element reports a faked width —
+ * jsdom reports every element as zero-sized.
+ */
+function ContainerOfWidth({children, width}: {children: ReactNode; width: number}) {
+  jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
+
+  const ref = useRef<HTMLDivElement>(null);
+  return (
+    <ContainerQueryProvider elementRef={ref}>
+      <div ref={ref}>{children}</div>
+    </ContainerQueryProvider>
   );
 }
 
@@ -229,6 +257,99 @@ describe('Table', () => {
 
     expect(screen.getByRole('table')).toHaveAttribute('aria-label', 'after');
     expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)');
+  });
+
+  describe('responsive columns', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const RESPONSIVE_COLUMNS: TableColumnConfig[] = [
+      {key: 'name', width: {zero: 120, xl: 200}},
+      {key: 'age', visible: {zero: false, xl: true}, width: 150},
+      {key: 'count'},
+    ];
+
+    it('sizes a column by the width its container width resolves to', () => {
+      // Container scale: xl = 768px, 2xl = 896px -> 800px resolves to xl.
+      render(
+        <ContainerOfWidth width={800}>
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </ContainerOfWidth>
+      );
+
+      expect(gridTemplate()).toBe('200px 150px minmax(90px, auto)');
+    });
+
+    it('drops the track of a column hidden at the container width', () => {
+      render(
+        <ContainerOfWidth width={400}>
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </ContainerOfWidth>
+      );
+
+      expect(gridTemplate()).toBe('120px minmax(90px, auto)');
+    });
+
+    it('hides the cells of a column hidden at the container width', () => {
+      render(
+        <ContainerOfWidth width={400}>
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </ContainerOfWidth>
+      );
+
+      // jsdom's getComputedStyle does not resolve descendant rules, so the
+      // hiding rule is read off the emitted stylesheet rather than the cell.
+      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
+        "[data-column-name='age'] {display: none;}"
+      );
+    });
+
+    it('leaves the last visible column flexible when a later column is hidden', () => {
+      render(
+        <ContainerOfWidth width={400}>
+          <TestTable
+            columns={[
+              {key: 'name', width: 120},
+              {key: 'age', visible: {zero: false, xl: true}, width: 150},
+            ]}
+          />
+        </ContainerOfWidth>
+      );
+
+      expect(gridTemplate()).toBe('minmax(120px, auto)');
+    });
+
+    it('omits the resize handle of a column hidden at the container width', () => {
+      render(
+        <ContainerOfWidth width={400}>
+          <TestTable columns={RESPONSIVE_COLUMNS} />
+        </ContainerOfWidth>
+      );
+
+      expect(resizers()).toHaveLength(1);
+      expect(resizers()[0]).toHaveAccessibleName('name');
+    });
+
+    it('reports the visible index of a resized column to onColumnResize', () => {
+      const onColumnResize = jest.fn();
+      render(
+        <ContainerOfWidth width={400}>
+          <TestTable
+            columns={[
+              {key: 'name', visible: {zero: false, xl: true}, width: 200},
+              {key: 'age', width: 150},
+              {key: 'count'},
+            ]}
+            onColumnResize={onColumnResize}
+          />
+        </ContainerOfWidth>
+      );
+
+      dragHandle(resizers()[0]!, {from: 100, to: 350});
+
+      expect(onColumnResize).toHaveBeenCalledWith(0, 250);
+    });
   });
 
   it('leaves consumer-provided tracks alone when no columns are described', () => {

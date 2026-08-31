@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -23,6 +24,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 type SavedEntityTableProps = {
   children: ReactNode;
+  columns: TableColumnConfig[];
   emptyMessage: ReactNode;
   header: ReactNode;
   isEmpty: boolean;
@@ -52,6 +54,7 @@ function LoadingSkeleton({pageSize}: {pageSize: number}) {
 export function SavedEntityTable({
   children,
   className,
+  columns,
   header,
   isEmpty,
   isError,
@@ -61,7 +64,7 @@ export function SavedEntityTable({
   'data-test-id': dataTestId,
 }: SavedEntityTableProps) {
   return (
-    <SimpleTable className={className} data-test-id={dataTestId}>
+    <SimpleTable className={className} columns={columns} data-test-id={dataTestId}>
       {header}
       {isError && <SimpleTable.Error />}
       {isLoading && <LoadingSkeleton pageSize={pageSize} />}

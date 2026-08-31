@@ -5,6 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   addErrorMessage,
@@ -113,6 +114,7 @@ export default function ApiApplications() {
       <SettingsPageHeader title="API Applications" action={action} />
 
       <ApplicationsTable
+        columns={APPLICATION_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Application Name')}</SimpleTable.HeaderCell>
@@ -137,19 +139,19 @@ export default function ApiApplications() {
   );
 }
 
-const ApplicationsTable = styled(SimpleTable)`
-  grid-template-columns: minmax(220px, 1fr) minmax(100px, 160px) max-content;
+const APPLICATION_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: {zero: 'minmax(0, 1fr)', xl: 'minmax(220px, 1fr)'}},
+  {
+    key: 'age',
+    visible: {zero: false, xl: true},
+    width: 'minmax(100px, 160px)',
+  },
+  {key: 'actions', width: 'max-content'},
+];
 
+const ApplicationsTable = styled(SimpleTable)`
   [data-column-name='actions'] {
     padding-left: 0;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: minmax(0, 1fr) max-content;
-
-    [data-column-name='age'] {
-      display: none;
-    }
   }
 `;
 

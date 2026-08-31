@@ -12,6 +12,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -904,6 +905,7 @@ export function CustomFilters({project}: {project: Project}) {
       ) : (
         <Container containerType="inline-size">
           <CustomFiltersTable
+            columns={CUSTOM_FILTER_COLUMNS}
             header={
               <SimpleTable.HeaderRow>
                 <SimpleTable.HeaderCell divider={false}>
@@ -1032,43 +1034,17 @@ export function CustomFilters({project}: {project: Project}) {
 // A column joins the table only once the conditions still have room to read at that
 // width. The dates need the most room, so they go first as the table narrows, then
 // the trend, then the total.
+const CUSTOM_FILTER_COLUMNS: TableColumnConfig[] = [
+  {key: 'active', width: '90px'},
+  {key: 'name', width: 'minmax(160px, 1fr)'},
+  {key: 'conditions', width: 'minmax(240px, 2fr)'},
+  {key: 'trend', visible: {zero: false, '3xl': true}, width: '190px'},
+  {key: 'filtered', visible: {zero: false, '2xl': true}, width: '90px'},
+  {key: 'created', visible: {zero: false, '4xl': true}, width: '90px'},
+  {key: 'edited', visible: {zero: false, '4xl': true}, width: '90px'},
+  {key: 'action', width: '110px'},
+];
+
 const CustomFiltersTable = styled(SimpleTable)`
-  grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 110px;
   overflow-x: auto;
-
-  [data-column-name='trend'],
-  [data-column-name='filtered'],
-  [data-column-name='created'],
-  [data-column-name='edited'] {
-    display: none;
-  }
-
-  @container (min-width: ${p => p.theme.container['2xl']}) {
-    grid-template-columns: 90px minmax(160px, 1fr) minmax(240px, 2fr) 90px 110px;
-
-    [data-column-name='filtered'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns:
-      90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
-      110px;
-
-    [data-column-name='trend'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns:
-      90px minmax(160px, 1fr) minmax(240px, 2fr) 190px 90px
-      90px 90px 110px;
-
-    [data-column-name='created'],
-    [data-column-name='edited'] {
-      display: flex;
-    }
-  }
 `;

@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -123,9 +123,22 @@ export function ConnectedMonitorsList({
           total: totalCountInt,
         });
 
+  const columns: TableColumnConfig[] = [
+    {key: 'name', width: '1fr'},
+    {key: 'type', visible: {zero: false, sm: true}, width: '100px'},
+    {
+      key: 'last-issue',
+      visible: {zero: false, '3xl': true},
+      width: 'minmax(0, 0.8fr)',
+    },
+    {key: 'owner', visible: {zero: false, xl: true}, width: 'auto'},
+    {key: 'connected', visible: canEdit, width: '140px'},
+  ];
+
   return (
     <Container containerType="inline-size" {...props}>
-      <SimpleTableWithColumns
+      <SimpleTable
+        columns={columns}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
@@ -183,7 +196,7 @@ export function ConnectedMonitorsList({
               )}
             </SimpleTable.Row>
           ))}
-      </SimpleTableWithColumns>
+      </SimpleTable>
       {limit && (
         <Pagination
           onCursor={onCursor}
@@ -194,39 +207,3 @@ export function ConnectedMonitorsList({
     </Container>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 100px minmax(0, 0.8fr) auto auto;
-
-  /*
-    The connected column can be added/removed depending on props, so in order to
-    have a constant width we have an auto grid column and set the width here.
-  */
-  [data-column-name='connected'] {
-    width: 140px;
-  }
-
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: 1fr 100px auto auto;
-
-    [data-column-name='last-issue'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr 100px auto;
-
-    [data-column-name='owner'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 1fr 100px;
-
-    [data-column-name='type'] {
-      display: none;
-    }
-  }
-`;

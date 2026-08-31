@@ -19,6 +19,7 @@ export {
   /** @public */
   useContainerBreakpoint,
   useHasContainerQuery,
+  useResponsivePropResolver,
   useResponsivePropValue,
 } from './styles';
 export {getBorder, getMargin, getRadius, getSpacing} from './styles';

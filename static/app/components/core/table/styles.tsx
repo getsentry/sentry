@@ -8,13 +8,28 @@ const Z_INDEX_RESIZER = 1;
 
 const Z_INDEX_STICKY_HEAD = 2;
 
-export const TableGrid = styled('table')`
+export const TableGrid = styled('table', {
+  shouldForwardProp: prop => prop !== 'hiddenColumnKeys' && isPropValid(prop),
+})<{hiddenColumnKeys?: string[]}>`
   position: inherit;
   display: grid;
 
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
+
+  /* Doubled up to outrank the display value cell primitives set on themselves
+     with a single class. */
+  ${p =>
+    p.hiddenColumnKeys?.length
+      ? css`
+          && {
+            ${p.hiddenColumnKeys.map(key => `[data-column-name='${key}']`).join(',\n')} {
+              display: none;
+            }
+          }
+        `
+      : undefined}
 `;
 
 const subgrid = css`

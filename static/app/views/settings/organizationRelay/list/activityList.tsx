@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {TableColumnConfig} from '@sentry/scraps/table';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -11,7 +13,8 @@ type Props = {
 
 export function ActivityList({activities}: Props) {
   return (
-    <StyledSimpleTable
+    <SimpleTable
+      columns={ACTIVITY_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Version')}</SimpleTable.HeaderCell>
@@ -35,17 +38,18 @@ export function ActivityList({activities}: Props) {
           </SimpleTable.Row>
         );
       })}
-    </StyledSimpleTable>
+    </SimpleTable>
   );
 }
 
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: repeat(3, 2fr);
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 2fr repeat(2, 1fr);
-  }
-`;
+// 2xl rather than the token nearest the old `lg` viewport breakpoint: these
+// cards render inside a settings column that never gets wider than ~1025px, so a
+// larger token would leave the wide layout unreachable.
+const ACTIVITY_COLUMNS: TableColumnConfig[] = [
+  {key: 'version', width: '2fr'},
+  {key: 'firstSeen', width: {zero: '2fr', '2xl': '1fr'}},
+  {key: 'lastSeen', width: {zero: '2fr', '2xl': '1fr'}},
+];
 
 const Version = styled('div')`
   font-variant-numeric: tabular-nums;

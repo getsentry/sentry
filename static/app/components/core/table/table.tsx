@@ -21,6 +21,7 @@ import {
 import type {LocationDescriptor} from 'history';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
+import {type Responsive, useResponsivePropResolver} from '@sentry/scraps/layout';
 
 import {
   getAriaSort,
@@ -47,6 +48,21 @@ export const COL_WIDTH_UNDEFINED = -1;
 export const COL_WIDTH_MINIMUM = 90;
 
 export interface TableColumnConfig {
+  key: string;
+  resizable?: boolean;
+  /**
+   * Whether the column takes part in the layout, defaulting to `true`. A
+   * responsive value drops the column's track from the grid template and hides
+   * its cells as the container crosses a breakpoint.
+   *
+   * Cells of a hidden column are matched by `data-column-name={key}`, so they
+   * must carry that attribute to be hidden along with their track.
+   */
+  visible?: Responsive<boolean>;
+  width?: Responsive<number | string>;
+}
+
+interface ResolvedColumn {
   key: string;
   resizable?: boolean;
   width?: number | string;
@@ -128,19 +144,47 @@ export function Table({
   const [internalWidths, setInternalWidths] = useState<Record<string, number>>({});
   const isControlled = !!onColumnResize;
 
+  const resolveResponsiveProp = useResponsivePropResolver();
+
+  // Responsive `width` and `visible` are resolved here rather than emitted as
+  // `@container` rules because the grid template is an inline style, which any
+  // stylesheet rule would lose to. Hidden columns are dropped entirely so that
+  // every index downstream — resize handles, the template, the context — counts
+  // only the columns currently on screen.
+  const {hiddenColumnKeys, visibleColumns} = useMemo(() => {
+    const visible: ResolvedColumn[] = [];
+    const hidden: string[] = [];
+
+    for (const column of columns) {
+      if (column.visible !== undefined && !resolveResponsiveProp(column.visible)) {
+        hidden.push(column.key);
+        continue;
+      }
+
+      visible.push({
+        key: column.key,
+        resizable: column.resizable,
+        width:
+          column.width === undefined ? undefined : resolveResponsiveProp(column.width),
+      });
+    }
+
+    return {hiddenColumnKeys: hidden, visibleColumns: visible};
+  }, [columns, resolveResponsiveProp]);
+
   const resolveWidth = useCallback(
-    (column: TableColumnConfig): ResolvedWidth =>
+    (column: ResolvedColumn): ResolvedWidth =>
       isControlled ? column.width : (internalWidths[column.key] ?? column.width),
     [internalWidths, isControlled]
   );
 
   const buildTemplate = useCallback(
     (overrideIndex?: number, overrideWidth?: number) => {
-      const tracks = columns.map((column, index) =>
+      const tracks = visibleColumns.map((column, index) =>
         getDefaultColumnTrack(
           index === overrideIndex ? overrideWidth : resolveWidth(column),
           {
-            flexible: flexibleLastColumn && index === columns.length - 1,
+            flexible: flexibleLastColumn && index === visibleColumns.length - 1,
             minimumColumnWidth,
           }
         )
@@ -152,12 +196,18 @@ export function Table({
 
       return [...(prependColumnWidths ?? []), ...tracks].join(' ');
     },
-    [columns, flexibleLastColumn, minimumColumnWidth, prependColumnWidths, resolveWidth]
+    [
+      flexibleLastColumn,
+      minimumColumnWidth,
+      prependColumnWidths,
+      resolveWidth,
+      visibleColumns,
+    ]
   );
 
   const commitWidth = useCallback(
     (index: number, width: number) => {
-      const key = columns[index]?.key;
+      const key = visibleColumns[index]?.key;
 
       if (onColumnResize) {
         onColumnResize(index, width);
@@ -165,7 +215,7 @@ export function Table({
         setInternalWidths(current => ({...current, [key]: width}));
       }
     },
-    [columns, onColumnResize]
+    [onColumnResize, visibleColumns]
   );
 
   const getResizeTemplate = useCallback(
@@ -215,24 +265,26 @@ export function Table({
 
   const contextValue = useMemo<TableContextValue>(
     () => ({
-      columnIndexByKey: new Map(columns.map((column, index) => [column.key, index])),
-      lastColumnIndex: columns.length - 1,
+      columnIndexByKey: new Map(
+        visibleColumns.map((column, index) => [column.key, index])
+      ),
+      lastColumnIndex: visibleColumns.length - 1,
       minimumColumnWidth,
       onResetColumnSize,
       onResizeEnd,
       onResizeMove,
       onResizeStart,
-      resizableByIndex: columns.map(column => column.resizable !== false),
+      resizableByIndex: visibleColumns.map(column => column.resizable !== false),
       tableRef: gridRef,
     }),
     [
-      columns,
       gridRef,
       minimumColumnWidth,
       onResetColumnSize,
       onResizeEnd,
       onResizeMove,
       onResizeStart,
+      visibleColumns,
     ]
   );
 
@@ -240,6 +292,7 @@ export function Table({
     <TableContext value={contextValue}>
       <TableGrid
         {...props}
+        hiddenColumnKeys={hiddenColumnKeys}
         ref={gridRef}
         role="table"
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
