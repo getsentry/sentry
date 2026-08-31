@@ -217,8 +217,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         client_kind = get_client_kind(request, organization)
         if client_kind is not None:
-            sentry_sdk.set_tag("client_kind", client_kind.value)
-            sentry_sdk.set_attribute("client_kind", client_kind.value)
+            # `_test` suffix while this is a POC, to keep it out of the way of a
+            # real `client_kind` attribute later.
+            sentry_sdk.set_tag("client_kind_test", client_kind.value)
+            sentry_sdk.set_attribute("client_kind_test", client_kind.value)
 
         try:
             snuba_params = self.get_snuba_params(
