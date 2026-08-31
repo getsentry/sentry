@@ -419,9 +419,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
                     ) as span:
                         comparison_manifest = orjson.loads(raw_comparison_manifest)
-                        # Guard the required key here so a malformed comparison manifest
-                        # degrades to solo (as the old pydantic parse did) rather than
-                        # raising later outside this handler.
                         if "base_artifact_id" not in comparison_manifest:
                             raise ValueError("comparison manifest missing base_artifact_id")
                         set_span_data(
@@ -618,7 +615,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 "base_artifact_id": base_artifact_id,
                 "project_id": str(artifact.project_id),
                 "comparison_type": comparison_type,
-                "state": artifact.state,
+                "state": cast(str, artifact.state),
                 "vcs_info": cast(VcsInfoResponseDict, vcs_info.dict()),
                 "app_id": artifact.app_id,
                 "is_selective": snapshot_metrics.is_selective,

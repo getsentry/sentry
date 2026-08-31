@@ -46,7 +46,7 @@ class SnapshotDetailsResponseDict(TypedDict, total=False):
     base_artifact_id: str | None
     project_id: str
     comparison_type: str
-    state: int
+    state: str
     vcs_info: VcsInfoResponseDict
     app_id: str | None
     is_selective: bool

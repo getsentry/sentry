@@ -1,3 +1,6 @@
+from typing import Any, cast
+
+from sentry.preprod.api.models.public.snapshots import SnapshotImageResponseDict
 from sentry.preprod.snapshots.comparison_categorizer import categorize_comparison_images
 
 _SKIPPED = {
@@ -75,7 +78,7 @@ class TestCategorizeComparisonImagesAllStatuses:
             },
         }
 
-    def _head_images(self) -> dict[str, dict]:
+    def _head_images(self) -> dict[str, SnapshotImageResponseDict]:
         names = [
             "changed_a.png",
             "changed_b.png",
@@ -85,13 +88,13 @@ class TestCategorizeComparisonImagesAllStatuses:
             "errored.png",
         ]
         return {
-            n: {
-                "key": f"head_{n}",
-                "display_name": n,
-                "image_file_name": n,
-                "width": 1,
-                "height": 2,
-            }
+            n: SnapshotImageResponseDict(
+                key=f"head_{n}",
+                display_name=n,
+                image_file_name=n,
+                width=1,
+                height=2,
+            )
             for n in names
         }
 
@@ -109,7 +112,8 @@ class TestCategorizeComparisonImagesAllStatuses:
         assert result.changed[1]["diff"] == 0.25
         assert result.changed[1]["base_image"]["key"] == "base_ca"
         assert result.changed[1]["base_image"]["group"] == "g1"
-        changed_base = result.changed[1]["base_image"]
+        # description/tags/platform are passthrough extras not declared on the TypedDict.
+        changed_base = cast(dict[str, Any], result.changed[1]["base_image"])
         assert changed_base["description"] == "desc-ca"
         assert changed_base["tags"] == {"t": "v"}
         assert changed_base["platform"] == "ios"
@@ -140,7 +144,8 @@ class TestCategorizeComparisonImagesAllStatuses:
         assert result.removed[0]["key"] == "base_rm"
         assert result.removed[0]["width"] == 12
         assert result.removed[0]["canvas_theme"] == "dark"
-        assert result.removed[0]["region"] == "eu"
+        # region is a passthrough extra not declared on the TypedDict.
+        assert cast(dict[str, Any], result.removed[0])["region"] == "eu"
 
     def test_renamed_resolves_base_via_previous_name(self) -> None:
         heads = self._head_images()
@@ -182,13 +187,13 @@ class TestCategorizeComparisonImagesAllStatuses:
             }
         }
         heads = {
-            "only_head.png": {
-                "key": "h",
-                "display_name": "only_head.png",
-                "image_file_name": "only_head.png",
-                "width": 1,
-                "height": 2,
-            }
+            "only_head.png": SnapshotImageResponseDict(
+                key="h",
+                display_name="only_head.png",
+                image_file_name="only_head.png",
+                width=1,
+                height=2,
+            )
         }
         # base manifest does NOT contain only_head.png
         result = categorize_comparison_images(comparison_images, heads, {})
