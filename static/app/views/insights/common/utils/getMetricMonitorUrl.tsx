@@ -12,7 +12,6 @@ type Params = {
   project: Project | undefined;
   environment?: string | string[] | null;
   eventTypes?: EventTypes[];
-  name?: string;
   query?: string;
   referrer?: string;
 };
@@ -29,7 +28,6 @@ export function getMetricMonitorUrl({
   dataset,
   organization,
   project,
-  name,
   environment,
   query,
   referrer,
@@ -47,7 +45,6 @@ export function getMetricMonitorUrl({
     aggregate,
     environment: Array.isArray(environment) ? environment[0] : environment,
     query,
-    name,
     referrer,
   } as const;
 
