@@ -24,6 +24,7 @@ from sentry.identity.oauth2 import (
     record_event,
 )
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.datadog.client import DATADOG_VALID_SITES
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationPipelineViewType
 from sentry.pipeline.views.base import PipelineView
@@ -32,17 +33,6 @@ from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.identity.pipeline import IdentityPipeline
-
-DATADOG_VALID_SITES: dict[str, str] = {
-    "datadoghq.com": "US1",
-    "us3.datadoghq.com": "US3",
-    "us5.datadoghq.com": "US5",
-    "datadoghq.eu": "EU",
-    "ap1.datadoghq.com": "AP1",
-    "ap2.datadoghq.com": "AP2",
-    "ddog-gov.com": "US1-FED",
-    "us2.ddog-gov.com": "US2-FED",
-}
 
 MCP_REGISTER_PATH = "/api/unstable/mcp-server/register"
 MCP_AUTHORIZE_PATH = "/api/unstable/mcp-server/authorize"
