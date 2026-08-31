@@ -10,6 +10,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {LocalWidgetLegendSelectionState} from 'sentry/components/seer/markdown/embeds/localWidgetLegendSelectionState';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconDashboard} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -18,8 +19,6 @@ import {dashboardDetailsApiOptions} from 'sentry/utils/dashboards/dashboardsApiO
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
@@ -31,7 +30,6 @@ import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 // Keep the embed compact by showing at most a 2x2 widget grid.
 const MAX_PREVIEW_WIDGETS = 4;
@@ -76,7 +74,7 @@ function DashboardWidgetPreview({
   dashboard: DashboardDetails;
   selection: PageFilters;
   widget: Widget;
-  widgetLegendState: WidgetLegendSelectionState;
+  widgetLegendState: LocalWidgetLegendSelectionState;
 }) {
   return (
     <Container minHeight="240px">
@@ -110,8 +108,6 @@ function DashboardPreview({
   dashboard: DashboardDetails;
   href: string;
 }) {
-  const location = useLocation();
-  const navigate = useNavigate();
   const organization = useOrganization();
   const {selection: currentSelection} = usePageFilters();
   const previewWidgets = dashboard.widgets.slice(0, MAX_PREVIEW_WIDGETS);
@@ -121,13 +117,11 @@ function DashboardPreview({
     : currentSelection;
   const widgetLegendState = useMemo(
     () =>
-      new WidgetLegendSelectionState({
+      new LocalWidgetLegendSelectionState({
         dashboard,
-        location,
-        navigate,
         organization,
       }),
-    [dashboard, location, navigate, organization]
+    [dashboard, organization]
   );
 
   if (dashboard.widgets.length === 0) {
