@@ -250,7 +250,8 @@ def create_preprod_snapshot_status_check_task(
                         name=base_repo_name,
                         provider=f"integrations:{commit_comparison.provider}",
                     ).first()
-                    base_repo_url = base_repository.url if base_repository else repository.url
+                    # Prefer no link over a fork URL that would 404 for the base SHA.
+                    base_repo_url = base_repository.url if base_repository else None
                 status = StatusCheckStatus.FAILURE
                 title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                     all_artifacts,
