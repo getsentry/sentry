@@ -699,6 +699,39 @@ class GcpIntegrationTest(TestCase):
         assert data["customer_sa_email"] == _CUSTOMER_SA
         assert data["projects"] == "project-a, project-b, project-c"
 
+    def test_get_config_data_exposes_the_connection_status(self) -> None:
+        installation = self._create_installed_integration()
+        data = installation.get_config_data()
+
+        assert data["connection_status"] == "connected"
+        assert data["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+        assert data["project_statuses"] == [
+            {
+                "gcp_project_id": "my-gcp-project",
+                "connection_status": "connected",
+                "error_detail": None,
+            }
+        ]
+
+    def test_get_config_data_defaults_to_unverified(self) -> None:
+        self._create_installed_integration()
+        oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)
+        oi.update(
+            config={
+                "sentry_sa_email": _SA_EMAIL,
+                "customer_sa_email": _CUSTOMER_SA,
+                "projects": ["my-gcp-project"],
+            }
+        )
+
+        installation = oi.integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, GcpIntegration)
+        data = installation.get_config_data()
+
+        assert data["connection_status"] == GCP_STATUS_UNVERIFIED
+        assert data["project_statuses"] == []
+        assert data["last_verified_at"] is None
+
     def test_get_config_data_empty_without_config(self) -> None:
         self._create_installed_integration()
         oi = OrganizationIntegration.objects.get(organization_id=self.organization.id)

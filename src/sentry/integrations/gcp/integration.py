@@ -262,6 +262,9 @@ class GcpIntegration(IntegrationInstallation):
             "sentry_sa_email": config.get("sentry_sa_email", ""),
             "customer_sa_email": config.get("customer_sa_email", ""),
             "projects": ", ".join(config.get("projects", [])),
+            "connection_status": config.get("connection_status", GCP_STATUS_UNVERIFIED),
+            "project_statuses": config.get("project_statuses", []),
+            "last_verified_at": config.get("last_verified_at"),
         }
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
