@@ -905,6 +905,10 @@ function Transcript({
       data-test-id="investigation-transcript"
     >
       {explorerBlocks.map((block, index) => {
+        const currentVisibleBlock = visibleBlocks[index];
+        if (!currentVisibleBlock) {
+          return null;
+        }
         const end =
           visibleBlocks[index + 1]?.timestamp ?? completedAt ?? (active ? now : null);
         const duration = getElapsedMilliseconds(block.timestamp, end);
@@ -913,8 +917,8 @@ function Transcript({
         // otherwise show it as assistant markdown. `isRenderableTranscriptBlock` drops the row
         // outright once the object is complete, since `QueryResult` above already renders it.
         const isBuildingChart =
-          visibleBlocks[index]!.loading &&
-          isStructuredQueryResultBlock(visibleBlocks[index]!, blockKind);
+          currentVisibleBlock.loading &&
+          isStructuredQueryResultBlock(currentVisibleBlock, blockKind);
         return (
           <Grid key={block.id} columns="minmax(0, 1fr) auto" align="start" gap="md">
             {isBuildingChart ? (
