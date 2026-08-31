@@ -254,6 +254,26 @@ export function Composer<TSuggestion>({
       return;
     }
 
+    if ('onSelect' in activeSource) {
+      const {start, end} = activeTrigger;
+      dismissedRequestKeyRef.current = null;
+      setActiveTrigger(null);
+      activeSource.onSelect(suggestion, {
+        clear: () => {
+          selectionToRestoreRef.current = {start: 0, end: 0};
+          onChange({text: '', mentions: []});
+        },
+        insertText: text => {
+          const nextValue = value.slice(0, start) + text + value.slice(end);
+          const retainedMentions = reconcileMentions(value, nextValue, mentions);
+          const nextCaret = start + text.length;
+          selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
+          onChange({text: nextValue, mentions: retainedMentions});
+        },
+      });
+      return;
+    }
+
     const replacement = activeSource.getText(suggestion);
     const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
     const insertedText = replacement + trailingText;
