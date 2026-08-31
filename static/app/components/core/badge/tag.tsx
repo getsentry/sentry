@@ -117,7 +117,6 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
 }
 
 const Text = styled('div')`
-  /* Block, not flex: text-overflow has no effect on a flex container. */
   display: block;
   overflow: hidden;
   white-space: nowrap;
