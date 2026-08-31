@@ -56,7 +56,6 @@ function HeaderCell({
   children: React.ReactNode;
   sort: Sort | undefined;
   className?: string;
-  divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();

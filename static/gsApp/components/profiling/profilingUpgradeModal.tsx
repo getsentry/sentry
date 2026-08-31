@@ -181,13 +181,11 @@ type ActionButtonsProps = {
   hasPriceChange: boolean;
   organization: Organization;
   subscription: Subscription;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
 function ActionButtons({
   hasPriceChange,
-  isActionDisabled,
   onComplete,
   organization,
   subscription,
@@ -254,7 +252,6 @@ function ActionButtons({
       <Button
         variant="primary"
         onClick={onUpdatePlan}
-        disabled={isActionDisabled === true}
       >
         {t('Update Now')}
       </Button>

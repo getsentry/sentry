@@ -44,7 +44,6 @@ export interface AddIntegrationParams {
    * Use when the surrounding UI already communicates the connected state.
    */
   suppressSuccessMessage?: boolean;
-  urlParams?: Record<string, string>;
 }
 
 export type AddIntegrationState =
@@ -75,7 +74,6 @@ export function useAddIntegration() {
       onError,
       analyticsParams,
       suppressSuccessMessage,
-      urlParams,
       modalParams,
     } = params;
 
@@ -102,7 +100,6 @@ export function useAddIntegration() {
     openPipelineModal({
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
-      initialData: urlParams,
       ...modalParams,
       onComplete: data => {
         completed = true;

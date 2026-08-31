@@ -1,9 +1,7 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
-import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
@@ -38,15 +36,9 @@ const DEFAULT_EVENT_TYPES = [EventTypes.TRANSACTION];
 // so we need to remove that from the config.
 // As the transaction dataset is deprecated, this entire config will be removed in the future.
 function getAggregateOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
+  organization: Organization
 ): Record<string, SelectValue<FieldValue>> {
-  const base = TransactionsConfig.getTableFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+  const base = TransactionsConfig.getTableFieldOptions(organization);
 
   const apdex = base['function:apdex'];
 
