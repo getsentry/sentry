@@ -3,7 +3,12 @@ from typing import TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryTypes,
+)
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
@@ -42,6 +47,7 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     dateCreated: str
     dateUpdated: str
     createdBy: UserSerializerResponse
+    lastVisited: str
 
 
 @register(DiscoverSavedQuery)
@@ -89,6 +95,14 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             lambda: {"created_by": {}, "explore_query": None}
         )
 
+        user_last_visited = dict(
+            DiscoverSavedQueryLastVisited.objects.filter(
+                discover_saved_query__in=item_list,
+                user_id=user.id,
+                organization=item_list[0].organization if item_list else None,
+            ).values_list("discover_saved_query_id", "last_visited")
+        )
+
         service_serialized = user_service.serialize_many(
             filter={
                 "user_ids": [
@@ -126,6 +140,10 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                 result[discover_saved_query]["explore_query"] = serialized_explore_queries.get(
                     discover_saved_query.explore_query_id
                 )
+            if discover_saved_query.id in user_last_visited:
+                result[discover_saved_query]["user_last_visited"] = user_last_visited[
+                    discover_saved_query.id
+                ]
 
         return result
 
@@ -158,6 +176,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,
             "createdBy": attrs.get("created_by"),
+            "lastVisited": attrs.get("user_last_visited"),
         }
 
         for key in query_keys:

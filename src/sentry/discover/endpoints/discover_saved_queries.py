@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from django.db.models import Case, IntegerField, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    F,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
+from django.db.models.expressions import OrderBy
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -32,7 +42,12 @@ from sentry.discover.endpoints.bases import (
     filter_to_accessible_discover_queries,
 )
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryTypes,
+)
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 
@@ -106,6 +121,17 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
+        last_visited_query: Subquery | Value = Value(None, output_field=DateTimeField(null=True))
+        if request.user.is_authenticated:
+            last_visited_query = Subquery(
+                DiscoverSavedQueryLastVisited.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    discover_saved_query_id=OuterRef("id"),
+                ).values("last_visited")[:1]
+            )
+        queryset = queryset.annotate(user_last_visited=last_visited_query)
+
         sort_by = request.query_params.get("sortBy")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -113,7 +139,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             desc = False
 
         if sort_by == "name":
-            order_by: list[Case | str] = [
+            order_by: list[Case | OrderBy | str] = [
                 "-lower_name" if desc else "lower_name",
                 "-date_created",
             ]
@@ -131,7 +157,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = [
+                (
+                    F("user_last_visited").asc(nulls_last=True)
+                    if desc
+                    else F("user_last_visited").desc(nulls_last=True)
+                ),
+                "-date_updated",
+            ]
 
         elif sort_by == "myqueries":
             order_by = [
