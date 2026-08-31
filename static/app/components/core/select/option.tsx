@@ -5,9 +5,10 @@ import styled from '@emotion/styled';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {CheckWrap} from '@sentry/scraps/select';
 
-import type {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconAdd, IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';
+
+import type {components as selectComponents} from './reactSelectWrapper';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 

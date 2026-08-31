@@ -13,6 +13,7 @@ import {IconStar} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
@@ -45,7 +46,7 @@ function usePreloadGroupOnHover({
           groupId,
           organizationSlug: organization.slug,
           environments: selection.environments,
-          expandDerivedData: organization.features.includes('issue-inbox'),
+          expandDerivedData: orgHasIssueInbox(organization),
         })
       );
     },

@@ -3,10 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from sentry.dynamic_sampling.per_org import cache
-from sentry.dynamic_sampling.per_org.gate import (
-    is_org_in_recalibration_rollout,
-    is_org_in_serving_rollout,
-)
+from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
 from sentry.dynamic_sampling.per_org.telemetry import (
     ServedValue,
     ServingSource,
@@ -66,11 +63,12 @@ def get_transaction_sample_rates(
     return named_rates, implicit_rate
 
 
+def is_recalibration_factor_served_per_org(org_id: int) -> bool:
+    return _serving_source(org_id) is ServingSource.PER_ORG
+
+
 def get_recalibration_factor(org_id: int) -> float:
     source = _serving_source(org_id)
-    if source is ServingSource.PER_ORG and not is_org_in_recalibration_rollout(org_id):
-        source = ServingSource.LEGACY
-
     emit_serving_source(ServedValue.RECALIBRATION_FACTOR, source)
     if source is ServingSource.PER_ORG:
         return cache.get_adjusted_factor(org_id, source="serving")

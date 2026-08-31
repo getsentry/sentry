@@ -1463,6 +1463,40 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert len(result["user_activity"]) == 1
         assert result["user_activity"][0]["type"] == "note"
 
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_user_attributed_seer_actions_are_included(self, mock_tags, mock_ts):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        for activity_type, user_id in (
+            (ActivityType.TRIGGER_AUTOFIX, self.user.id),
+            (ActivityType.SEER_ITERATION_STARTED, self.user.id),
+            (ActivityType.TRIGGER_AUTOFIX, None),
+        ):
+            Activity.objects.create(
+                group=group,
+                project=self.project,
+                type=activity_type.value,
+                user_id=user_id,
+            )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert {activity["type"] for activity in result["user_activity"]} == {
+            "trigger_autofix",
+            "seer_iteration_started",
+        }
+        assert all(activity["user"] is not None for activity in result["user_activity"])
+
     # --- assignee ---
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")

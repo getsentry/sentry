@@ -8,6 +8,7 @@ from urllib.parse import quote
 from requests import PreparedRequest
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.client import ApiClient
@@ -198,7 +199,9 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
             from sentry.integrations.vsts.integration import VstsIntegrationProvider
 
             integration = integration_service.get_integration(
-                organization_integration_id=self.org_integration_id, status=ObjectStatus.ACTIVE
+                organization_integration_id=self.org_integration_id,
+                status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
             if integration is None:
                 return

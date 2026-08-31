@@ -223,6 +223,19 @@ class DashboardCreateWidgetLayoutSerializer(BaseWidgetLayoutSerializer):
     """
 
 
+def get_widget_layout_height_error(display_type: int, layout: dict[str, Any] | None) -> str | None:
+    if layout is None:
+        return None
+
+    min_height = get_min_widget_height(display_type)
+    height = layout.get("h")
+    if isinstance(height, int) and height >= min_height:
+        return None
+
+    display_type_name = DashboardWidgetDisplayTypes.get_type_name(display_type)
+    return f"Height must be at least {min_height} for {display_type_name} widgets."
+
+
 class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
     extraction_state = serializers.CharField(required=False)
     enabled = serializers.BooleanField(required=False)
@@ -446,11 +459,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 config is not None
                 and display_type_id not in config["supported_display_types"]
                 # Existing tracemetrics table widgets (those sent with an ``id``)
-                # are allowed to save. The Widget Builder doesn't offer table for
-                # tracemetrics, but some widgets were created with this combo
-                # before display-type validation existed, and those dashboards
-                # must still be saveable. New widgets are still rejected.
-                and not self._is_existing_tracemetrics_table(widget_type_id, display_type_id)
+                # are allowed to save. New tracemetrics table widgets are enabled
+                # by the feature flag.
+                and not self._allows_tracemetrics_table(widget_type_id, display_type_id)
             ):
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
@@ -464,11 +475,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
-    def _is_existing_tracemetrics_table(self, widget_type_id, display_type_id):
-        return (
-            self.context.get("widget_id") is not None
-            and widget_type_id == DashboardWidgetTypes.TRACEMETRICS
-            and display_type_id == DashboardWidgetDisplayTypes.TABLE
+    def _allows_tracemetrics_table(self, widget_type_id, display_type_id):
+        if (
+            widget_type_id != DashboardWidgetTypes.TRACEMETRICS
+            or display_type_id != DashboardWidgetDisplayTypes.TABLE
+        ):
+            return False
+
+        return self.context.get("widget_id") is not None or features.has(
+            "organizations:tracemetrics-dashboard-table",
+            self.context["organization"],
+            actor=self.context["request"].user,
         )
 
     def _validate_widget_type(self, data):
@@ -950,6 +967,47 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         return validate_project_ids(projects, {project.id for project in self.context["projects"]})
 
+    def validate_widget_layout_updates(self, widgets: list[dict[str, Any]]) -> None:
+        if not isinstance(self.instance, Dashboard) or self.context.get(
+            "allow_legacy_widget_heights", False
+        ):
+            return
+
+        widget_ids = [widget["id"] for widget in widgets if "id" in widget]
+        existing_widgets = DashboardWidget.objects.filter(
+            dashboard=self.instance, id__in=widget_ids
+        ).in_bulk()
+        widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
+
+        for index, widget_data in enumerate(widgets):
+            widget_id = widget_data.get("id")
+            existing_widget = existing_widgets.get(widget_id) if widget_id is not None else None
+            if widget_id is not None and existing_widget is None:
+                continue
+
+            old_display_type = existing_widget.display_type if existing_widget else None
+            old_layout = (
+                existing_widget.detail.get("layout")
+                if existing_widget is not None and existing_widget.detail
+                else None
+            )
+            new_display_type = widget_data.get("display_type", old_display_type)
+            new_layout = widget_data.get("layout", old_layout)
+            if new_display_type is None:
+                continue
+
+            old_error = (
+                get_widget_layout_height_error(old_display_type, old_layout)
+                if old_display_type is not None
+                else None
+            )
+            new_error = get_widget_layout_height_error(new_display_type, new_layout)
+            if new_error is not None and (existing_widget is None or old_error is None):
+                widget_errors[index] = {"layout": {"h": new_error}}
+
+        if any(widget_errors):
+            raise serializers.ValidationError({"widgets": widget_errors})
+
     def validate(self, data):
         start = data.get("start")
         end = data.get("end")
@@ -961,6 +1019,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
             )
+
+        self.validate_widget_layout_updates(data.get("widgets", []))
 
         permissions = data.get("permissions")
         if permissions and self.instance:
@@ -1481,18 +1541,11 @@ class DashboardCreateWidgetSerializer(DashboardWidgetSerializer):
         if layout is None or display_type is None:
             return data
 
-        min_height = get_min_widget_height(display_type)
-        if layout["h"] < min_height:
-            display_type_name = DashboardWidgetDisplayTypes.get_type_name(display_type)
-            raise serializers.ValidationError(
-                {
-                    "layout": {
-                        "h": f"Height must be at least {min_height} for {display_type_name} widgets."
-                    }
-                }
-            )
+        height_error = get_widget_layout_height_error(display_type, layout)
+        if height_error is not None:
+            raise serializers.ValidationError({"layout": {"h": height_error}})
 
-        layout["minH"] = min_height
+        layout["minH"] = get_min_widget_height(display_type)
         return data
 
 

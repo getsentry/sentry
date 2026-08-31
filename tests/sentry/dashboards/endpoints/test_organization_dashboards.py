@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
@@ -21,9 +22,11 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQuery,
     DashboardWidgetTypes,
 )
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -1000,12 +1003,19 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert ids == [str(third.id), str(second.id), str(first.id)]
 
     def test_post(self) -> None:
-        response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
+        with outbox_runner():
+            response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
         assert dashboard.created_by_id == self.user.id
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DASHBOARD_ADD"),
+            target_object=dashboard.id,
+            data=dashboard.get_audit_log_data(),
+        )
 
     def test_post_with_integer_title(self) -> None:
         response = self.do_request("post", self.url, data={"title": 12345})

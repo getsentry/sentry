@@ -248,7 +248,6 @@ export function ConversationsTable() {
           error={error}
           data={data}
           columnOrder={displayedColumns}
-          columnSortBy={[]}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
