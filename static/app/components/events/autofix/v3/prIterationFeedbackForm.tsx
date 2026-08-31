@@ -2,12 +2,16 @@ import {useRef, useState} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DisabledTip} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {type useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {
+  isPrIterationPaused,
+  type useExplorerAutofix,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconReturn} from 'sentry/icons/iconReturn';
@@ -33,6 +37,7 @@ export function PrIterationFeedbackForm({
 }: PrIterationFeedbackFormProps) {
   const organization = useOrganization();
   const {startStep} = autofix;
+  const isPaused = isPrIterationPaused(autofix.runState);
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
@@ -40,7 +45,8 @@ export function PrIterationFeedbackForm({
   const prompt = t('Anything else you want to see on your PR?');
 
   const handleSubmit = async () => {
-    if (!feedback.trim()) {
+    // Also guards the Enter hotkey, which clicks the button directly.
+    if (isPaused || !feedback.trim()) {
       return;
     }
     // Briefly show the loader while the request is in flight to guard against a
@@ -82,7 +88,7 @@ export function PrIterationFeedbackForm({
             'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
           )}
           value={feedback}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isPaused}
           onChange={event => setFeedback(event.target.value)}
           onKeyDown={event => {
             if (event.nativeEvent.isComposing) {
@@ -100,18 +106,25 @@ export function PrIterationFeedbackForm({
           <IconReturn variant="muted" />
         </InputGroup.TrailingItems>
       </InputGroup>
-      <Flex gap="md">
+      <Flex gap="md" align="center">
         {onClose && (
           <Button aria-label={t('Close')} icon={<IconClose />} onClick={onClose} />
         )}
         <Button
           ref={submitButtonRef}
           icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
-          disabled={isSubmitting || !feedback.trim()}
+          disabled={isSubmitting || isPaused || !feedback.trim()}
           onClick={handleSubmit}
         >
           {isSubmitting ? t('Submitting feedback') : t('Submit')}
         </Button>
+        {/* The disabled controls fire no pointer events of their own, so the
+            explanation hangs off a glyph that stays interactive. */}
+        {isPaused && (
+          <DisabledTip
+            title={t("PR iteration is paused for this run and can't be resumed.")}
+          />
+        )}
       </Flex>
     </Stack>
   );

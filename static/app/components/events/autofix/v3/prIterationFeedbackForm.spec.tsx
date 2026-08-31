@@ -67,6 +67,34 @@ describe('PrIterationFeedbackForm', () => {
     expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
   });
 
+  it('keeps the form rendered but inert when PR iteration is paused', async () => {
+    const autofix = makeAutofix({
+      runState: {run_id: 1, blocks: [], pr_iteration_paused: true} as any,
+    });
+    render(<PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} />);
+
+    // The ticket asks for the form to stay visible, just greyed out.
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Disabled'}));
+    expect(await screen.findByText(/paused for this run/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    expect(autofix.startStep).not.toHaveBeenCalled();
+  });
+
+  it('leaves the form usable when PR iteration is not paused', async () => {
+    const autofix = makeAutofix();
+    render(<PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} />);
+
+    expect(screen.getByRole('textbox')).toBeEnabled();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox'), 'make it blue');
+    expect(screen.getByRole('button', {name: 'Submit'})).toBeEnabled();
+  });
+
   it('keeps the feedback and surfaces an error when submit fails', async () => {
     const autofix = makeAutofix({
       startStep: jest.fn().mockRejectedValue(new Error('boom')),
