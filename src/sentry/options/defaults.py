@@ -2635,6 +2635,15 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
+register(
+    "hybridcloud.webhookpayload.shed-inbound",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
