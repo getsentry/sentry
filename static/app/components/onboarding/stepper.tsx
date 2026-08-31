@@ -26,15 +26,15 @@ const StepperTransitionIndicator = styled(motion.span)`
   border-radius: ${p => p.theme.radius.full};
 `;
 
-type Props = Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick'> & {
+type Props = {
   currentStepIndex: number;
   numSteps: number;
   onClick: (stepIndex: number) => void;
 };
 
-export function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
+export function Stepper({currentStepIndex, numSteps, onClick}: Props) {
   return (
-    <StepperContainer {...props}>
+    <StepperContainer>
       {Array.from<number>({length: numSteps})
         .fill(0)
         .map((_, i) => (
