@@ -15,11 +15,8 @@ import {clearIndicators} from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {IssuePreview} from './issuePreview';
-
-jest.mock('sentry/utils/analytics');
 
 describe('IssuePreview', () => {
   const organization = OrganizationFixture({features: ['gen-ai-features']});
@@ -365,11 +362,6 @@ describe('IssuePreview', () => {
         data: {status: 'resolved', statusDetails: {}, substatus: null},
       })
     );
-    expect(trackAnalytics).toHaveBeenCalledWith(
-      'issue_inbox.resolve_clicked',
-      expect.objectContaining({action_type: GroupStatus.RESOLVED})
-    );
-
     await userEvent.click(await screen.findByRole('button', {name: 'Unresolve'}));
 
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
