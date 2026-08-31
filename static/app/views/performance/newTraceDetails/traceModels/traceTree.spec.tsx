@@ -1052,7 +1052,7 @@ describe('TraceTree', () => {
             end_timestamp: start + 2,
             is_transaction: true,
             additional_attributes: {
-              'tags[performance.timeOrigin,number]': start,
+              'tags[browser.performance.time_origin,number]': start,
             },
             measurements: {
               'measurements.lcp': 500,

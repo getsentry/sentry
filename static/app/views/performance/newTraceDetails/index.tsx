@@ -121,7 +121,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     timestamp: queryParams.timestamp,
     additionalAttributes: [
       'thread.id',
-      'tags[performance.timeOrigin,number]',
+      'tags[browser.performance.time_origin,number]',
       'gen_ai.operation.type',
       'http.response.status_code',
       'span.status',
