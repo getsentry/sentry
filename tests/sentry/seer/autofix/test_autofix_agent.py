@@ -642,29 +642,24 @@ class TestTriggerAutofixAgent(TestCase):
                 referrer=AutofixReferrer.UNKNOWN,
                 run_id=None,
                 user=user,
+                enable_bash_tools=True,
             )
 
         assert mock_feature.call_args.kwargs["user"] == user
-        # Bash tools aren't yet supported under the RCA feature, so they stay off.
-        assert mock_feature.call_args.kwargs["enable_bash_tools"] is False
+        assert mock_feature.call_args.kwargs["enable_bash_tools"] is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix_rca.dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_night_shift_repo_checks_force_bash_tools_on_the_legacy_run(
+    def test_night_shift_repo_checks_force_bash_tools_on_the_feature(
         self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        """Night shift repo checks force bash tools on, which keeps the run on the
-        legacy flow: bash tools aren't yet supported under the RCA feature."""
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.start_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=777
-        )
-
-        with self.feature("organizations:autofix-should-run-repo-checks"):
+        with (
+            self.feature("organizations:autofix-rca-in-seer"),
+            self.feature("organizations:autofix-should-run-repo-checks"),
+        ):
             trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.ROOT_CAUSE,
@@ -672,8 +667,7 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=None,
             )
 
-        mock_feature.assert_not_called()
-        assert mock_client_class.call_args.kwargs["enable_bash_tools"] is True
+        assert mock_feature.call_args.kwargs["enable_bash_tools"] is True
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
