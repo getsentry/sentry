@@ -22,6 +22,7 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconChevron} from 'sentry/icons';
@@ -73,13 +74,11 @@ export function HeaderCell({
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const [sort, setSort] = useDetectorListSort();
   const [, setCursor] = useQueryState('cursor');
-  const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const sortDirection = sort && isSortedByField && sort.kind === 'asc' ? 'desc' : 'asc';
-    setSort({field: sortKey, kind: sortDirection});
+    setSort(getNextSort(sortKey, sort ?? undefined, 'asc'));
     setCursor(null);
   };
 

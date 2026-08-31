@@ -1,5 +1,4 @@
-import React, {useMemo} from 'react';
-import {useRef} from 'react';
+import React, {useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';

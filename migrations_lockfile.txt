@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 ai_monitoring: 0002_add_date_updated_index
 
-discover: 0001_squashed_0003_discover_json_field
+discover: 0004_discover_starred_and_last_visited
 
 explore: 0013_delete_project_column_from_metric_context
 
