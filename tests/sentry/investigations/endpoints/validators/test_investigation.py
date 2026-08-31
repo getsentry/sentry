@@ -6,9 +6,11 @@ from uuid import uuid4
 import pytest
 from rest_framework import serializers
 
+from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.endpoints.validators import (
     InvestigationCreateValidator,
     InvestigationOrchestrationCommandValidator,
+    InvestigationOrchestrationEventValidator,
     InvestigationUpdateValidator,
 )
 
@@ -375,3 +377,84 @@ class TestInvestigationOrchestrationCommandValidator:
 
         assert not validator.is_valid()
         assert "command" in validator.errors
+
+
+class TestInvestigationOrchestrationEventValidator:
+    def test_normalizes_the_event_envelope(self) -> None:
+        event_id = uuid4()
+        data = assert_valid(
+            InvestigationOrchestrationEventValidator(
+                data={
+                    "schemaVersion": 1,
+                    "eventId": str(event_id),
+                    "runId": 42,
+                    "investigationId": 7,
+                    "sequence": 3,
+                    "generation": 2,
+                    "type": "workflow_updated",
+                    "payload": {"projection": {}},
+                }
+            )
+        )
+
+        assert data == {
+            "schema_version": 1,
+            "event_id": event_id,
+            "run_id": 42,
+            "investigation_id": 7,
+            "sequence": 3,
+            "generation": 2,
+            "type": "workflow_updated",
+            "payload": {"projection": {}},
+        }
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("schemaVersion", 2),
+            ("runId", 0),
+            ("runId", I64_MAX + 1),
+            ("investigationId", False),
+            ("investigationId", I64_MAX + 1),
+            ("sequence", 0),
+            ("sequence", I32_MAX + 1),
+            ("generation", 0),
+            ("generation", I32_MAX + 1),
+            ("type", "unknown"),
+            ("payload", []),
+        ],
+    )
+    def test_rejects_invalid_contract_fields(self, field: str, value: Any) -> None:
+        event = {
+            "schemaVersion": 1,
+            "eventId": str(uuid4()),
+            "runId": 42,
+            "investigationId": 7,
+            "sequence": 1,
+            "generation": 1,
+            "type": "workflow_updated",
+            "payload": {},
+        }
+        event[field] = value
+        validator = InvestigationOrchestrationEventValidator(data=event)
+
+        assert not validator.is_valid()
+        assert field in validator.errors
+
+    def test_rejects_unknown_envelope_fields(self) -> None:
+        validator = InvestigationOrchestrationEventValidator(
+            data={
+                "schemaVersion": 1,
+                "eventId": str(uuid4()),
+                "runId": 42,
+                "investigationId": 7,
+                "sequence": 1,
+                "generation": 1,
+                "type": "workflow_updated",
+                "payload": {},
+                "unexpected": True,
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "unexpected" in validator.errors
