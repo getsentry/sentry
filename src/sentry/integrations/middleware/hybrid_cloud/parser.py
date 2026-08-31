@@ -83,6 +83,7 @@ class BaseRequestParser(ABC):
         if hasattr(self.match.func, "view_class"):
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
+        self._shed_decisions: dict[int | None, bool] = {}
 
     # Common Helpers
 
@@ -212,6 +213,24 @@ class BaseRequestParser(ABC):
         `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
         and integrations are dropped. Returns None to handle the request normally.
         """
+        if not self._should_shed(integration_id):
+            return None
+
+        response = HttpResponse(status=status.HTTP_429_TOO_MANY_REQUESTS)
+        response["Retry-After"] = str(SHED_RETRY_AFTER_SECONDS)
+        return response
+
+    def _should_shed(self, integration_id: int | None) -> bool:
+        """
+        Decide once per parser, which is once per request. A parser that checks the shed
+        early still reaches the base class check in get_response_from_webhookpayload, and
+        the config read and the counters below are not free to repeat.
+        """
+        if integration_id not in self._shed_decisions:
+            self._shed_decisions[integration_id] = self._evaluate_shed(integration_id)
+        return self._shed_decisions[integration_id]
+
+    def _evaluate_shed(self, integration_id: int | None) -> bool:
         conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
         # A condition with no provider matches every provider. There are few enough
         # providers to name them, so drop those rather than let one option typo shed
@@ -226,7 +245,7 @@ class BaseRequestParser(ABC):
             {"provider": self.provider, "integration_id": integration_id},
             emit_metrics=False,
         ):
-            return None
+            return False
 
         metrics.incr(
             "hybridcloud.webhookpayload.shed",
@@ -237,10 +256,7 @@ class BaseRequestParser(ABC):
             "hybridcloud.webhookpayload.shed",
             extra={"provider": self.provider, "integration_id": integration_id},
         )
-
-        response = HttpResponse(status=status.HTTP_429_TOO_MANY_REQUESTS)
-        response["Retry-After"] = str(SHED_RETRY_AFTER_SECONDS)
-        return response
+        return True
 
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]

@@ -784,6 +784,35 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics")
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"integration_id": "12345"}]})
+    def test_shed_condition_ignored_counted_once_per_webhook(self, mock_metrics: Mock) -> None:
+        """GitHub checks the shed twice per request: once ahead of its own counters and
+        again inside get_response_from_webhookpayload. An ignored condition is a property
+        of the config, so it must be counted per webhook, not per check."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        ignored_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "hybridcloud.webhookpayload.shed_condition_ignored"
+        ]
+        assert len(ignored_calls) == 1
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
     def test_forwarded_event_metric_omits_action_when_unfiltered(self, mock_metrics: Mock) -> None:
         """Event types with no action allowlist are not tagged by action, which would
