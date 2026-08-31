@@ -79,7 +79,7 @@ describe('PrIterationFeedbackForm', () => {
 
     await userEvent.hover(screen.getByRole('button', {name: 'Submit'}));
     expect(
-      await screen.findByText('PR iteration has been stopped for this Autofix Run')
+      await screen.findByText('PR iteration has been stopped for this Autofix run')
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
@@ -94,7 +94,7 @@ describe('PrIterationFeedbackForm', () => {
 
     await userEvent.hover(screen.getByRole('button', {name: 'Submit'}));
     expect(
-      screen.queryByText('PR iteration has been stopped for this Autofix Run')
+      screen.queryByText('PR iteration has been stopped for this Autofix run')
     ).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByRole('textbox'), 'make it blue');
