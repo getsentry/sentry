@@ -77,8 +77,10 @@ describe('PrIterationFeedbackForm', () => {
     expect(screen.getByRole('textbox')).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
 
-    await userEvent.hover(screen.getByRole('img', {name: 'Disabled'}));
-    expect(await screen.findByText(/paused for this run/)).toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('button', {name: 'Submit'}));
+    expect(
+      await screen.findByText('PR iteration has been stopped for this Autofix Run')
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
     expect(autofix.startStep).not.toHaveBeenCalled();
@@ -89,7 +91,11 @@ describe('PrIterationFeedbackForm', () => {
     render(<PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} />);
 
     expect(screen.getByRole('textbox')).toBeEnabled();
-    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Submit'}));
+    expect(
+      screen.queryByText('PR iteration has been stopped for this Autofix Run')
+    ).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByRole('textbox'), 'make it blue');
     expect(screen.getByRole('button', {name: 'Submit'})).toBeEnabled();

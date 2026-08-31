@@ -2,10 +2,10 @@ import {useRef, useState} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {DisabledTip} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -43,6 +43,9 @@ export function PrIterationFeedbackForm({
   const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   const prompt = t('Anything else you want to see on your PR?');
+  // A disabled control fires no pointer events, so the tooltip hangs off the
+  // wrapper element rather than the control itself.
+  const pausedTooltip = t('PR iteration has been stopped for this Autofix Run');
 
   const handleSubmit = async () => {
     // Also guards the Enter hotkey, which clicks the button directly.
@@ -80,51 +83,48 @@ export function PrIterationFeedbackForm({
         <Text>{prompt}</Text>
         <FeatureBadge type="alpha" />
       </Flex>
-      <InputGroup>
-        <InputGroup.TextArea
-          autosize
-          rows={2}
-          placeholder={t(
-            'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
-          )}
-          value={feedback}
-          disabled={isSubmitting || isPaused}
-          onChange={event => setFeedback(event.target.value)}
-          onKeyDown={event => {
-            if (event.nativeEvent.isComposing) {
-              return;
-            }
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault();
-              // Simulate a real click on the submit button (matching the Ask Seer
-              // hotkey behavior) so the press goes through the button itself.
-              submitButtonRef.current?.click();
-            }
-          }}
-        />
-        <InputGroup.TrailingItems style={{alignItems: 'flex-start', top: 12}}>
-          <IconReturn variant="muted" />
-        </InputGroup.TrailingItems>
-      </InputGroup>
-      <Flex gap="md" align="center">
+      <Tooltip title={pausedTooltip} disabled={!isPaused} containerDisplayMode="block">
+        <InputGroup>
+          <InputGroup.TextArea
+            autosize
+            rows={2}
+            placeholder={t(
+              'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
+            )}
+            value={feedback}
+            disabled={isSubmitting || isPaused}
+            onChange={event => setFeedback(event.target.value)}
+            onKeyDown={event => {
+              if (event.nativeEvent.isComposing) {
+                return;
+              }
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                // Simulate a real click on the submit button (matching the Ask Seer
+                // hotkey behavior) so the press goes through the button itself.
+                submitButtonRef.current?.click();
+              }
+            }}
+          />
+          <InputGroup.TrailingItems style={{alignItems: 'flex-start', top: 12}}>
+            <IconReturn variant="muted" />
+          </InputGroup.TrailingItems>
+        </InputGroup>
+      </Tooltip>
+      <Flex gap="md">
         {onClose && (
           <Button aria-label={t('Close')} icon={<IconClose />} onClick={onClose} />
         )}
-        <Button
-          ref={submitButtonRef}
-          icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
-          disabled={isSubmitting || isPaused || !feedback.trim()}
-          onClick={handleSubmit}
-        >
-          {isSubmitting ? t('Submitting feedback') : t('Submit')}
-        </Button>
-        {/* The disabled controls fire no pointer events of their own, so the
-            explanation hangs off a glyph that stays interactive. */}
-        {isPaused && (
-          <DisabledTip
-            title={t("PR iteration is paused for this run and can't be resumed.")}
-          />
-        )}
+        <Tooltip title={pausedTooltip} disabled={!isPaused}>
+          <Button
+            ref={submitButtonRef}
+            icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
+            disabled={isSubmitting || isPaused || !feedback.trim()}
+            onClick={handleSubmit}
+          >
+            {isSubmitting ? t('Submitting feedback') : t('Submit')}
+          </Button>
+        </Tooltip>
       </Flex>
     </Stack>
   );
