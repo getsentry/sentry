@@ -14,6 +14,7 @@ from sentry.http import safe_urlopen
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
     SentryAppExternalRequestFailureReason,
+    SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
@@ -128,9 +129,14 @@ def send_and_save_sentry_app_request(
 
         try:
             resp = safe_urlopen(url=url, headers=send_headers, **kwargs)
-        except UnicodeEncodeError as e:
+        except UnicodeEncodeError:
             # Non-latin-1 custom headers are customer misconfiguration.
-            lifecycle.record_halt(e)
+            # Use a fixed halt reason (never the exception) so header secrets in
+            # UnicodeEncodeError.object are not logged via repr(e). Raise
+            # SentryAppIntegratorError so nested caller lifecycles also halt as
+            # integrator/config errors instead of product failures.
+            halt_reason = f"send_and_save_sentry_app_request.{SentryAppExternalRequestHaltReason.INVALID_HEADER}"
+            lifecycle.record_halt(halt_reason=halt_reason)
             buffer.add_request(
                 response_code=TIMEOUT_STATUS_CODE,
                 org_id=org_id,
@@ -138,7 +144,14 @@ def send_and_save_sentry_app_request(
                 url=url,
                 headers=loggable_headers,
             )
-            raise
+            raise SentryAppIntegratorError(
+                message=(
+                    "Webhook header contains non-latin-1 characters and cannot be "
+                    "sent as an HTTP header."
+                ),
+                webhook_context={"error_type": halt_reason},
+                status_code=400,
+            )
         except (Timeout, ConnectionError) as e:
             error_type = e.__class__.__name__.lower()
             lifecycle.add_extras(

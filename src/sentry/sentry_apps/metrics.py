@@ -93,3 +93,4 @@ class SentryAppExternalRequestHaltReason(StrEnum):
 
     MISSING_FIELDS = "missing_fields"
     BAD_RESPONSE = "bad_response"
+    INVALID_HEADER = "invalid_header"
