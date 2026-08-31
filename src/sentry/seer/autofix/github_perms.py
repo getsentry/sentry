@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Iterable, Iterator
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
+from sentry.integrations.utils.github_permissions import (
+    get_github_permissions_update_url,
+    get_missing_github_app_permissions,
+)
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import SEER_GITHUB_PROVIDERS
 
 if TYPE_CHECKING:
-    from sentry.seer.agent.client_models import SeerRunState
+    from sentry.seer.agent.client_models import MemoryBlock, SeerRunState, ToolCall
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +35,18 @@ class MissingGithubPermissions:
         """GitHub App installation id (Integration.external_id)."""
         return str(self.integration.external_id)
 
+    @property
+    def installation_url(self) -> str | None:
+        """Page where the user reviews and accepts the installation's updated
+        permissions. Org-owned installs live under a different namespace than
+        user-owned ones, so this branches on the account type. None when the
+        install's account is unknown and the path can't be built."""
+        return get_github_permissions_update_url(
+            str(self.integration.external_id),
+            self.integration.metadata.get("account_type"),
+            self.integration.name,
+        )
+
 
 def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissions | None:
     """Required GitHub App permissions the installation for `integration_id` is
@@ -45,6 +60,40 @@ def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissi
         integration=integration,
         missing_scopes=[permission["expected"]["scope"] for permission in (missing or [])],
     )
+
+
+# Key set in a tool result's ToolLink.params when the tool call errored (mirrors
+# seer's ERROR_KEY in seer.automation.explorer.models).
+_TOOL_ERROR_KEY = "is_error"
+
+
+def _failed_tool_calls(block: MemoryBlock) -> Iterator[ToolCall]:
+    """The ToolCalls in `block` whose execution errored.
+
+    tool_links is index-aligned with tool_results (see seer's explorer_agent),
+    and each tool_result carries the id of the tool_call it answered, so a failed
+    link at index j maps back to its originating tool_call.
+    """
+    links = block.tool_links or []
+    results = block.tool_results or []
+    calls_by_id = {call.id: call for call in (block.message.tool_calls or []) if call.id}
+    for i, link in enumerate(links):
+        if link is None or link.params.get(_TOOL_ERROR_KEY) is not True:
+            continue
+        result = results[i] if i < len(results) else None
+        if result is None:
+            continue
+        call = calls_by_id.get(result.tool_call_id)
+        if call is not None:
+            yield call
+
+
+def failed_tool_calls(blocks: Iterable[MemoryBlock]) -> list[ToolCall]:
+    """Tool calls in ``blocks`` whose matching tool link is marked ``is_error``."""
+    calls: list[ToolCall] = []
+    for block in blocks:
+        calls.extend(_failed_tool_calls(block))
+    return calls
 
 
 def get_blocked_pr_iteration_permissions(
@@ -89,12 +138,16 @@ def get_missing_permissions_by_repo(
         return {}
 
     # Org-scoped so a run can only surface permissions for repos in its own org.
-    repos = Repository.objects.filter(
-        organization_id=organization.id,
-        provider__in=SEER_GITHUB_PROVIDERS,
-        name__in=list(repo_names),
-        status=ObjectStatus.ACTIVE,
-    ).values_list("name", "id", "integration_id")
+    repos = (
+        Repository.objects.filter(
+            organization_id=organization.id,
+            provider__in=SEER_GITHUB_PROVIDERS,
+            name__in=list(repo_names),
+            status=ObjectStatus.ACTIVE,
+        )
+        .order_by("name", "integration_id")
+        .values_list("name", "id", "integration_id")
+    )
 
     missing_by_repo: dict[str, MissingGithubPermissions] = {}
     for repo_name, repository_id, integration_id in repos:

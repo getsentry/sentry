@@ -101,13 +101,18 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
   const chevron = <IconChevron direction={state.isExpanded ? 'down' : 'right'} />;
 
   // With a leading slot the chevron trails the title, so the leading content is
-  // the visual anchor and the toggle still reads label-then-affordance.
+  // the visual anchor and the toggle still reads label-then-affordance. Without
+  // leadingItems, the toggle button itself supplies left padding (see
+  // StretchedButton); with leadingItems, that content sits outside the button
+  // and needs its own matching left padding so the row isn't flush left while
+  // trailingItems get `paddingRight`.
   return (
     <TitleRow
       justify="start"
       gap={context.size}
       align="center"
       width="100%"
+      paddingLeft={leadingItems ? 'xs' : undefined}
       paddingRight="xs"
       radius="md"
     >
@@ -134,14 +139,16 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
   );
 }
 
-// The row owns the hover background so it spans the full title — behind the
-// leading and trailing items — rather than only the toggle button between them.
-// The press (:active) state deliberately stays on the button (below), so that
-// pressing a leading or trailing item does not bubble an active background onto
-// the whole row.
+// The row — not the button — owns the hover/active background so a single
+// background spans the full title (behind the leading and trailing items) for
+// both states, rather than the button rendering its own nested patch on top.
 const TitleRow = styled(Flex)`
   &:hover {
     background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &:active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
   }
 `;
 
@@ -150,16 +157,11 @@ const StretchedButton = styled(Button)`
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
 
-  /* The TitleRow provides the full-width hover background; suppress the button's
-   * own hover so the two don't stack into a darker patch behind the label. Keep
-   * the press state on the button so it reflects the toggle specifically. */
-  &&:hover {
-    background-color: transparent;
-  }
-
+  /* TitleRow owns the row's hover/active background; suppress the button's own
+   * states entirely so it never renders a second, nested background on top. */
+  &&:hover,
   &&:active {
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.active};
+    background-color: transparent;
   }
 `;
 

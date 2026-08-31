@@ -1,5 +1,6 @@
 import unittest
 import uuid
+from dataclasses import replace
 from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
@@ -28,6 +29,7 @@ from sentry.workflow_engine.handlers.detector import DetectorStateData
 from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.processors import ProcessDetectorsResult
 from sentry.workflow_engine.processors.detector import (
     EventDetectors,
     associate_new_group_with_detector,
@@ -37,7 +39,13 @@ from sentry.workflow_engine.processors.detector import (
     get_preferred_detector,
     process_detectors,
 )
+from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations import (
+    DetectorEvaluationOutcome,
+    EvaluationType,
+)
 from sentry.workflow_engine.types import (
+    ConditionError,
     DetectorPriorityLevel,
     WorkflowEventData,
 )
@@ -97,6 +105,250 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             group_key=None,
             triggered=True,
             priority=DetectorPriorityLevel.HIGH,
+        )
+
+    def test_logs_canonical_evaluation_artifact(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        data_packet = self.build_data_packet(secret="do-not-log")
+
+        with (
+            override_options(
+                {
+                    "workflow_engine.evaluation_log_sample_rate": 1.0,
+                    "workflow_engine.evaluation_logs_direct_to_sentry": False,
+                }
+            ),
+            mock.patch("sentry.workflow_engine.processors.detector.logger") as mock_logger,
+        ):
+            process_detectors(data_packet, [detector])
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_detectors.evaluation",
+            extra={
+                "evaluation_type": EvaluationType.DETECTOR,
+                "detector_id": detector.id,
+                "detector_type": detector.type,
+                "project_id": detector.linked_project.id,
+                "outcome": DetectorEvaluationOutcome.TRIGGERED,
+                "event_id": None,
+                "group_key": None,
+                "priority": DetectorPriorityLevel.HIGH.value,
+                "trigger_group_evaluation": {
+                    "logic_type": "any",
+                    "result": True,
+                    "condition_evaluations": [],
+                    "triggered": True,
+                    "error": None,
+                },
+                "triggered": True,
+                "error": None,
+                "organization_id": self.organization.id,
+            },
+        )
+        assert "do-not-log" not in str(mock_logger.info.call_args)
+
+    def test_logs_detector_with_no_evaluation_results(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        handler = detector.detector_handler
+        assert handler is not None
+
+        with (
+            override_options(
+                {
+                    "workflow_engine.evaluation_log_sample_rate": 1.0,
+                    "workflow_engine.evaluation_logs_direct_to_sentry": False,
+                }
+            ),
+            mock.patch.object(type(handler), "evaluate", return_value={}),
+            mock.patch("sentry.workflow_engine.processors.detector.logger") as mock_logger,
+        ):
+            assert process_detectors(self.build_data_packet(), [detector]) == []
+
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_detectors.evaluation",
+            extra={
+                "evaluation_type": EvaluationType.DETECTOR,
+                "detector_id": detector.id,
+                "detector_type": detector.type,
+                "project_id": detector.linked_project.id,
+                "outcome": DetectorEvaluationOutcome.NO_RESULTS,
+                "error": None,
+                "organization_id": self.organization.id,
+            },
+        )
+
+    def test_detector_emitter_samples_once_for_grouped_results(self) -> None:
+        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        handler = detector.detector_handler
+        assert handler is not None
+        evaluations = handler.evaluate(
+            DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
+        )
+        mock_logger = mock.MagicMock()
+
+        with (
+            override_options(
+                {
+                    "workflow_engine.evaluation_log_sample_rate": 0.5,
+                    "workflow_engine.evaluation_logs_direct_to_sentry": False,
+                }
+            ),
+            mock.patch(
+                "sentry.workflow_engine.processors.evaluation_logging.random.random",
+                return_value=0.1,
+            ) as mock_random,
+        ):
+            assert emit_detector_evaluation_logs(
+                mock_logger,
+                organization_id=None,
+                result=ProcessDetectorsResult(
+                    detector_id=detector.id,
+                    detector_type=detector.type,
+                    project_id=detector.linked_project.id,
+                    evaluations=evaluations,
+                ),
+            )
+
+        mock_random.assert_called_once_with()
+        assert mock_logger.info.call_count == 2
+        assert {item.kwargs["extra"]["group_key"] for item in mock_logger.info.call_args_list} == {
+            "group_1",
+            "group_2",
+        }
+
+    def test_detector_emitter_can_log_directly_to_sentry(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        handler = detector.detector_handler
+        assert handler is not None
+        evaluations = handler.evaluate(self.build_data_packet())
+        mock_logger = mock.MagicMock()
+
+        with (
+            override_options(
+                {
+                    "workflow_engine.evaluation_log_sample_rate": 1.0,
+                    "workflow_engine.evaluation_logs_direct_to_sentry": True,
+                }
+            ),
+            mock.patch(
+                "sentry.workflow_engine.processors.evaluation_logging.sdk_logger"
+            ) as mock_sentry_logger,
+        ):
+            assert emit_detector_evaluation_logs(
+                mock_logger,
+                organization_id=self.organization.id,
+                result=ProcessDetectorsResult(
+                    detector_id=detector.id,
+                    detector_type=detector.type,
+                    project_id=detector.linked_project.id,
+                    evaluations=evaluations,
+                ),
+            )
+
+        mock_sentry_logger.info.assert_called_once_with(
+            "workflow_engine.process_detectors.evaluation",
+            attributes={
+                **ProcessDetectorsResult(
+                    detector_id=detector.id,
+                    detector_type=detector.type,
+                    project_id=detector.linked_project.id,
+                    evaluations=evaluations,
+                ).evaluation_artifacts()[0],
+                "organization_id": self.organization.id,
+            },
+        )
+        mock_logger.info.assert_not_called()
+
+    def test_project_detector_uses_cached_project_organization_id(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+        ) as mock_emit:
+            process_detectors(self.build_data_packet(), [detector])
+
+        assert mock_emit.call_args.kwargs["organization_id"] == self.organization.id
+
+    def test_project_detector_without_cached_project_uses_none(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        detector = Detector.objects.get(id=detector.id)
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+        ) as mock_emit:
+            process_detectors(self.build_data_packet(), [detector])
+
+        assert mock_emit.call_args.kwargs["organization_id"] is None
+
+    def test_all_projects_detector_uses_configured_organization_id(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        detector.update(project=None, config={"organization_id": self.organization.id})
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+        ) as mock_emit:
+            process_detectors(self.build_data_packet(), [detector])
+
+        assert mock_emit.call_args.kwargs["organization_id"] == self.organization.id
+
+    def test_all_projects_detector_without_organization_id_uses_none(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        detector.update(project=None, config={})
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+        ) as mock_emit:
+            results = process_detectors(self.build_data_packet(), [detector])
+
+        assert [result_detector for result_detector, _ in results] == [detector]
+        assert mock_emit.call_args.kwargs["organization_id"] is None
+
+    def test_evaluation_error_sets_process_result_outcome(self) -> None:
+        detector = self.create_detector(type=self.handler_type.slug)
+        handler = detector.detector_handler
+        assert handler is not None
+        evaluation = handler.evaluate(self.build_data_packet())[None]
+        result = ProcessDetectorsResult(
+            detector_id=detector.id,
+            detector_type=detector.type,
+            project_id=detector.linked_project.id,
+            evaluations={None: replace(evaluation, error=ConditionError(msg="evaluation failed"))},
+        )
+
+        assert result.outcome == DetectorEvaluationOutcome.ERROR
+        assert result.evaluation_artifacts()[0]["error"] == "evaluation failed"
+
+    def test_detector_emitter_logs_error_without_organization_id(self) -> None:
+        mock_logger = mock.MagicMock()
+        result = ProcessDetectorsResult(
+            detector_id=1,
+            detector_type=self.handler_type.slug,
+            project_id=None,
+            evaluations={},
+            error=ConditionError(msg="evaluation failed"),
+        )
+
+        with override_options(
+            {
+                "workflow_engine.evaluation_log_sample_rate": 1.0,
+                "workflow_engine.evaluation_logs_direct_to_sentry": False,
+            }
+        ):
+            assert emit_detector_evaluation_logs(
+                mock_logger,
+                organization_id=None,
+                result=result,
+            )
+        mock_logger.info.assert_called_once_with(
+            "workflow_engine.process_detectors.evaluation",
+            extra={
+                "evaluation_type": EvaluationType.DETECTOR,
+                "detector_id": 1,
+                "detector_type": self.handler_type.slug,
+                "project_id": None,
+                "outcome": DetectorEvaluationOutcome.ERROR,
+                "error": "evaluation failed",
+            },
         )
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
@@ -242,10 +494,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
-    @mock.patch("sentry.workflow_engine.processors.detector.logger")
-    def test_metrics_and_logs_fire(
+    def test_metrics_triggered(
         self,
-        mock_logger: mock.MagicMock,
         mock_metrics: mock.MagicMock,
         mock_produce_occurrence_to_kafka: mock.MagicMock,
     ) -> None:
@@ -293,15 +543,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 ),
             ],
         )
-        assert mock_logger.info.call_count == 1
-        assert mock_logger.info.call_args[0][0] == "detector_triggered"
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
-    @mock.patch("sentry.workflow_engine.processors.detector.logger")
-    def test_metrics_and_logs_resolve(
+    def test_metrics_resolved(
         self,
-        mock_logger: mock.MagicMock,
         mock_metrics: mock.MagicMock,
         mock_produce_occurrence_to_kafka: mock.MagicMock,
     ) -> None:
@@ -341,8 +587,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 ),
             ],
         )
-        assert mock_logger.info.call_count == 2
-        assert mock_logger.info.call_args[0][0] == "detector_resolved"
 
     def test_doesnt_send_metric(self) -> None:
         detector = self.create_detector(type=self.no_handler_type.slug)
@@ -1093,7 +1337,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 
         self.all_projects_detector = ensure_default_all_projects_detector(
-            self.project.organization_id
+            self.project.organization.id
         )
         self.event = self.store_event(project_id=self.project.id, data={})
         self.group_event = GroupEvent.from_event(self.event, self.group)

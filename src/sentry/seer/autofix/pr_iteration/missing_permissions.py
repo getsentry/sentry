@@ -82,8 +82,7 @@ def _scopes_tag(missing_scopes: Iterable[str]) -> str:
     return "-".join(sorted(set(missing_scopes))) or "none"
 
 
-def _comment_body(installation_id: str) -> str:
-    url = f"https://github.com/settings/installations/{installation_id}/permissions/update"
+def _comment_body(url: str) -> str:
     return (
         "⚠️ **Seer needs additional GitHub permissions**\n\n"
         "Seer wants to keep iterating on this pull request to get CI passing, but the "
@@ -113,11 +112,19 @@ def _post_comment(
     log_extra: dict[str, Any],
 ) -> bool:
     scopes_tag = _scopes_tag(info.missing_scopes)
+    url = info.installation_url
+    if url is None:
+        # Org-owned installs need the account login to build the path; without
+        # it the link would 404, and a comment with a dead link is worse than
+        # none. The blocked-iteration log still records that we stopped.
+        logger.error(
+            "autofix.pr_iteration.missing_permissions.no_installation_url",
+            extra={**log_extra, "account_type": info.integration.metadata.get("account_type")},
+        )
+        return False
     try:
         client = info.integration.get_installation(organization_id=organization.id).get_client()
-        client.create_comment(
-            repo_name, str(pr_number), {"body": _comment_body(info.installation_id)}
-        )
+        client.create_comment(repo_name, str(pr_number), {"body": _comment_body(url)})
     except Exception:
         metrics.incr(
             "autofix.pr_iteration.missing_permissions.comment_failed",

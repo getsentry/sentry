@@ -20,13 +20,9 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_project_volumes,
     get_eap_transaction_volumes,
     get_outcomes_organization_volume,
-    get_recalibration_organization_volume,
     run_eap_spans_table_query_in_chunks,
 )
-from sentry.dynamic_sampling.tasks.common import (
-    ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
-    OrganizationDataVolume,
-)
+from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.models.organization import Organization
 from sentry.search.eap.constants import SAMPLING_MODE_HIGHEST_ACCURACY
 from sentry.search.eap.types import SearchResolverConfig
@@ -170,49 +166,6 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert org_volume is None
         run_table_query.assert_called_once()
         assert run_table_query.call_args.kwargs["params"].projects == []
-
-    def test_get_recalibration_organization_volume_combines_both_sources(self) -> None:
-        organization = self.create_organization()
-        self.create_project(organization=organization)
-        config = self.get_config(organization)
-        eap_volume = OrganizationDataVolume(org_id=organization.id, total=400, indexed=25)
-        window_end = before_now(minutes=5).replace(second=0, microsecond=0)
-
-        with patch(RUN_OUTCOMES_QUERY, return_value=[{"quantity": 100}]) as run_outcomes_query:
-            org_volume = get_recalibration_organization_volume(config, eap_volume, end=window_end)
-
-        # The total comes from the transaction outcomes and the stored count from EAP. The
-        # extrapolated EAP total is unused, so 75 segments were dropped, not 375.
-        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=100, indexed=25)
-        # Both sides must cover the same window, or their ratio is not a sample rate. The
-        # outcomes query widens its window to whole intervals, so a 5-minute one asks for
-        # minute resolution rather than the hour it would otherwise cover.
-        query = run_outcomes_query.call_args.args[0]
-        assert query.end == window_end
-        assert query.start == window_end - ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL
-
-    def test_get_recalibration_organization_volume_without_stored_segments(self) -> None:
-        organization = self.create_organization()
-        self.create_project(organization=organization)
-        config = self.get_config(organization)
-        eap_volume = OrganizationDataVolume(org_id=organization.id, total=400, indexed=None)
-
-        with patch(RUN_OUTCOMES_QUERY, return_value=[{"quantity": 100}]) as run_outcomes_query:
-            assert get_recalibration_organization_volume(config, None) is None
-            assert get_recalibration_organization_volume(config, eap_volume) is None
-
-        run_outcomes_query.assert_not_called()
-
-    def test_get_recalibration_organization_volume_without_transaction_outcomes(self) -> None:
-        organization = self.create_organization()
-        self.create_project(organization=organization)
-        config = self.get_config(organization)
-        eap_volume = OrganizationDataVolume(org_id=organization.id, total=400, indexed=25)
-
-        with patch(RUN_OUTCOMES_QUERY, return_value=[]):
-            org_volume = get_recalibration_organization_volume(config, eap_volume)
-
-        assert org_volume is None
 
     def test_get_eap_project_volumes_existing_org(self) -> None:
         organization = self.create_organization()

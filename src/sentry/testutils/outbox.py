@@ -6,13 +6,15 @@ from typing import Any
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
+from django.utils import timezone
 
 from sentry.hybridcloud.models.outbox import OutboxBase
-from sentry.hybridcloud.models.webhookpayload import THE_PAST, DestinationType, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.tasks.deliver_from_outbox import (
     enqueue_outbox_jobs,
     enqueue_outbox_jobs_control,
 )
+from sentry.hybridcloud.tasks.deliver_webhooks import BATCH_SCHEDULE_OFFSET
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.silo.base import SiloMode
@@ -45,7 +47,7 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
 
     outbox_models = [
         OutboxBase.from_outbox_name(outbox_name)
-        for outbox_names in settings.SENTRY_OUTBOX_MODELS.values()
+        for outbox_names in settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS.values()
         for outbox_name in outbox_names
     ]
     outbox_models.append(GroupActionLogOutbox)
@@ -78,13 +80,16 @@ def assert_webhook_payloads_for_mailbox(
      the given request
 
     :param request:
-    :param mailbox_name: The mailbox name that messages should be found in.
+    :param mailbox_name: The cell-less `<provider>:<identifier>` name; the
+        cell-scoped variant is derived per cell.
     :param cell_names: List of cells each messages should be queued for
     :param destination_types: Optional Mapping of destination types to the number of messages that should be found for that destination type
     """
     expected_payload = WebhookPayload.get_attributes_from_request(request=request)
     cell_names_set = set(cell_names)
-    messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
+    provider, _, identifier = mailbox_name.partition(":")
+    expected_mailboxes = {f"{provider}:{cell}:{identifier}" for cell in cell_names_set}
+    messages = WebhookPayload.objects.filter(mailbox_name__in=expected_mailboxes)
     messages_with_cell_count = messages.filter(cell_name__isnull=False).count()
     if messages_with_cell_count != len(cell_names_set):
         raise Exception(
@@ -95,7 +100,10 @@ def assert_webhook_payloads_for_mailbox(
         assert message.request_path == expected_payload["request_path"]
         assert message.request_headers == expected_payload["request_headers"]
         assert message.request_body == expected_payload["request_body"]
-        assert message.schedule_for == THE_PAST
+        # A cell-routed parser fires a push drain, which claims the head before
+        # the request returns. So: due (THE_PAST) or claimed — anything further
+        # out was queued deferred, which is what this catches.
+        assert message.schedule_for <= timezone.now() + BATCH_SCHEDULE_OFFSET
         assert message.attempts == 0
 
         if destination_types:

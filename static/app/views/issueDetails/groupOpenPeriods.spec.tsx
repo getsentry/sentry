@@ -134,7 +134,7 @@ describe('GroupOpenPeriods', () => {
     expect(await screen.findByText('Investigation')).toBeInTheDocument();
     expect(await screen.findByRole('link', {name: '4567'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/seer/investigation/4567/`
+      `/organizations/${organization.slug}/explore/investigations/4567/`
     );
     expect(candidatesMock).toHaveBeenCalledWith(
       expect.anything(),
