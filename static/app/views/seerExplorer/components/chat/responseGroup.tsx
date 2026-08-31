@@ -18,7 +18,7 @@ import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
 import {MessagePlaceholder, hasValidContent} from './shared';
-import {CODE_MODE_TOOLS, ToolCallList} from './toolUse';
+import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
 
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
@@ -171,7 +171,9 @@ export function ResponseGroup({
     return (
       (showThinking && hasValidContent(block.message.thinking_content)) ||
       (!isAnswer && hasValidContent(block.message.content)) ||
-      Boolean(block.message.tool_calls?.length)
+      // Not `tool_calls.length`: a call that reported nothing renders no row, and counting it
+      // opens a reasoning box with an empty body.
+      blockRendersToolContent(block, blocks)
     );
   });
 

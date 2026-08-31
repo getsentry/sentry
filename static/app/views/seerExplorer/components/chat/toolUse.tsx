@@ -95,6 +95,51 @@ function linkKey(link: ToolLink) {
   return `${link.kind}:${sorted}`;
 }
 
+/**
+ * Whether `ToolCallList` will render anything for this block.
+ *
+ * `ToolCallList` suppresses a tool call that reported nothing, so a caller deciding whether to open
+ * a container around it cannot go by `tool_calls.length` — that opens an empty box.
+ *
+ * Deliberately the same terms as the per-call `hasContent` guard below, minus the residual-link
+ * filtering: residual links are only consumed by rows, and rows already make this true.
+ */
+export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
+  const toolCalls = block.message.tool_calls ?? [];
+  if (!toolCalls.length) {
+    return false;
+  }
+  const toolsUsed = getToolsStringFromBlock(block);
+  const results = block.tool_results ?? [];
+  const latestTodos = findLatestTodos(blocks);
+
+  if (latestTodos?.block === block) {
+    return true;
+  }
+  if (block.live_calls?.length) {
+    return true;
+  }
+  if ((block.tool_links ?? []).some(link => link && !link.params?.is_error)) {
+    return true;
+  }
+  if (
+    results.some(result => {
+      const structured = result?.structuredContent;
+      return Boolean(
+        structured?.calls?.length ||
+        structured?.links?.length ||
+        structured?.todos?.length ||
+        (structured && result.content.trimStart().startsWith('{%'))
+      );
+    })
+  ) {
+    return true;
+  }
+  return toolCalls.some(
+    (toolCall, idx) => !CODE_MODE_TOOLS.has(toolCall.function) && Boolean(toolsUsed[idx])
+  );
+}
+
 export function ToolUseBlock({
   block,
   showThinking,

@@ -122,6 +122,79 @@ describe('ResponseGroup', () => {
     expect(screen.getByText('The final answer')).toBeInTheDocument();
   });
 
+  it('does not open a reasoning box for a call that renders nothing', () => {
+    // `ToolCallList` suppresses a settled call that reported no rows, links, todos or markdown.
+    // Counting it as a trace anyway left an empty box between the previous answer and the next
+    // spinner.
+    const group: Block[] = [
+      {
+        id: 't1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 't1-call', function: 'sentry_api_execute', args: '{}'}],
+        },
+        timestamp: '2024-01-01T00:01:00Z',
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 't1-call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: null,
+          },
+        ],
+      },
+    ];
+
+    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
+      organization,
+    });
+
+    expect(screen.queryByRole('button', {name: /Thinking/})).not.toBeInTheDocument();
+  });
+
+  it('still opens the box when the call reported call records', () => {
+    const group: Block[] = [
+      {
+        id: 't1',
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 't1-call', function: 'sentry_api_execute', args: '{}'}],
+        },
+        timestamp: '2024-01-01T00:01:00Z',
+        loading: false,
+        tool_results: [
+          {
+            tool_call_id: 't1-call',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ok',
+            structuredContent: {
+              calls: [{id: 1, kind: 'api', title: 'Retrieving issue 4521'}],
+            },
+          },
+        ],
+      },
+    ];
+
+    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
+      organization,
+    });
+
+    expect(screen.getByRole('button', {name: /Thinking|Retrieving/})).toBeInTheDocument();
+  });
+
+  it('still opens the box for a classic tool call', () => {
+    const group = [toolUseBlock('t1')];
+
+    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
+      organization,
+    });
+
+    expect(screen.getByRole('button', {name: /Queried/})).toBeInTheDocument();
+  });
+
   it('collapses the reasoning until it is expanded', async () => {
     const group = [
       toolUseBlock('t1', {thinking_content: 'my private reasoning'}),
