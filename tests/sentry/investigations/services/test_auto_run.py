@@ -166,3 +166,73 @@ class InvestigationAutoRunTest(TestCase):
             )
 
         dispatch.delay.assert_called_once_with(execution.id)
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
+    def test_does_not_start_more_cells_after_a_current_execution_fails(
+        self, dispatch: mock.Mock
+    ) -> None:
+        failed_execution = self.create_investigation_block_execution(
+            block=self.root,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.FAILED,
+            block_version=self.root.version,
+        )
+        self.root.current_execution = failed_execution
+        self.root.save(update_fields=["current_execution"])
+        independent = self.create_investigation_block(
+            investigation=self.investigation,
+            position=2,
+            kind=InvestigationBlockKind.QUERY,
+            prompt="Compare releases",
+            config={"autoRun": True},
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            schedule_eligible_auto_run_blocks(
+                investigation_id=self.investigation.id,
+                user_id=self.user.id,
+            )
+
+        independent.refresh_from_db()
+        assert independent.current_execution is None
+        dispatch.delay.assert_not_called()
+
+    @mock.patch(
+        "sentry.tasks.seer.investigation.start_execution_run",
+        side_effect=RuntimeError("Seer unavailable"),
+    )
+    @mock.patch("sentry.tasks.seer.investigation.record_execution_failed")
+    def test_dispatch_failure_cancels_other_active_cells(
+        self, record_failed: mock.Mock, start_run: mock.Mock
+    ) -> None:
+        failed_execution = self.create_investigation_block_execution(
+            block=self.root,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.PENDING,
+            block_version=self.root.version,
+        )
+        self.root.current_execution = failed_execution
+        self.root.save(update_fields=["current_execution"])
+        sibling_execution = self.create_investigation_block_execution(
+            block=self.dependent,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=self.dependent.version,
+        )
+        self.dependent.current_execution = sibling_execution
+        self.dependent.save(update_fields=["current_execution"])
+
+        dispatch_investigation_execution(failed_execution.id)
+
+        failed_execution.refresh_from_db()
+        sibling_execution.refresh_from_db()
+        assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert sibling_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert sibling_execution.error == {
+            "code": "investigation_execution_failed",
+            "message": "Cancelled because another cell in this investigation failed.",
+        }
+        record_failed.assert_called_once_with(
+            failed_execution, reason="dispatch_failed", seer_run_id=None
+        )
+        start_run.assert_called_once()

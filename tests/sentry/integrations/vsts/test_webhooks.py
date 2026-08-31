@@ -270,6 +270,42 @@ class VstsWebhookWorkItemTest(APITestCase):
         assert len(Activity.objects.filter(group_id__in=group_ids)) == num_groups
 
     @responses.activate
+    def test_stale_workitem_replay_does_not_unresolve(self) -> None:
+        # VSTS unresolves on almost any `workitem.updated`, so a replay would reopen an
+        # issue resolved since the event was generated.
+        responses.add(
+            responses.GET,
+            "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
+            json=WORK_ITEM_STATES,
+        )
+        group = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
+        self.create_integration_external_issue(group=group, integration=self.model, key=33)
+
+        work_item = self.set_workitem_state("New", "Active")
+
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            resp = self.client.post(
+                absolute_uri("/extensions/vsts/issue-updated/"),
+                data=work_item,
+                HTTP_SHARED_SECRET=self.shared_secret,
+            )
+        assert resp.status_code == 200
+
+        # A human resolves the Sentry issue after that event was processed.
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        # The same delivery is replayed off the webhook backlog.
+        with self.feature("organizations:integrations-issue-sync"), self.tasks():
+            resp = self.client.post(
+                absolute_uri("/extensions/vsts/issue-updated/"),
+                data=work_item,
+                HTTP_SHARED_SECRET=self.shared_secret,
+            )
+        assert resp.status_code == 200
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+    @responses.activate
     def test_inbound_status_sync_new_workitem(self) -> None:
         responses.add(
             responses.GET,

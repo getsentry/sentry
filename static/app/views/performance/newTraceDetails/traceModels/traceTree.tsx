@@ -313,13 +313,20 @@ export declare namespace TraceTree {
     duration: number;
     label: string;
     measurement: Measurement;
+    node: BaseNode;
     poor: boolean;
     start: number;
     type: keyof typeof RENDERABLE_MEASUREMENTS;
     score?: number;
   };
 
-  type CollectedVital = {key: string; measurement: Measurement; score?: number};
+  type CollectedVital = {
+    key: string;
+    measurement: Measurement;
+    node: BaseNode;
+    score?: number;
+    timestamp?: number;
+  };
 }
 
 export enum TraceShape {

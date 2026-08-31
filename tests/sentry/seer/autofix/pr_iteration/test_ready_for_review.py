@@ -15,10 +15,16 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_review
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
+from sentry.seer.autofix.pr_ready_for_review import (
+    emit_pr_ready_for_review,
+    format_pull_requests_payload,
+)
 from sentry.testutils.cases import TestCase
 
 READY_FOR_REVIEW_PATH = "sentry.seer.autofix.pr_iteration.ready_for_review"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
+# Imported lazily inside ``ready_for_review``, so patch it at the source.
+EMIT_PATH = "sentry.seer.autofix.pr_ready_for_review"
 
 RUN_ID = 67890
 REPO_NAME = "owner/repo"
@@ -89,6 +95,55 @@ def _mark_ready(event: CheckSuiteEvent | None = None) -> None:
     mark_ready_for_review(ctx)
 
 
+class EmitPrReadyForReviewTest(TestCase):
+    """The ``emit_pr_ready_for_review`` webhook payload must be repo-scoped on
+    the green-CI undraft path: each repo undrafts independently, so a
+    single-repo undraft cannot claim every repo's PR is ready."""
+
+    def _run_state(self, repo_names: list[str] | None = None) -> SeerRunState:
+        if repo_names is None:
+            repo_names = [REPO_NAME]
+        return SeerRunState(
+            run_id=RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={
+                name: RepoPRState(
+                    repo_name=name,
+                    provider="github",
+                    pr_id=555,
+                    pr_number=PR_NUMBER,
+                    pr_url=f"https://github.com/{name}/pull/{PR_NUMBER}",
+                    pr_creation_status="completed",
+                )
+                for name in repo_names
+            },
+        )
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_emit_scopes_payload_to_filtered_repos(self, mock_broadcast: MagicMock) -> None:
+        # ``has_access`` is False in tests (flag off), so only the webhook fires.
+        state = self._run_state(["owner/repo", "owner/other-repo"])
+        emit_pr_ready_for_review(
+            organization=self.organization,
+            group=self.group,
+            sentry_run_id=None,
+            state=state,
+            filtered_repos=["owner/repo"],
+        )
+
+        payload = mock_broadcast.call_args.kwargs["payload"]
+        assert [pr["repo_name"] for pr in payload["pull_requests"]] == ["owner/repo"]
+
+    def test_format_pull_requests_payload_includes_all_repos(self) -> None:
+        state = self._run_state(["owner/repo", "owner/other-repo"])
+
+        payload = format_pull_requests_payload(state)
+
+        assert {pr["repo_name"] for pr in payload} == {"owner/repo", "owner/other-repo"}
+
+
 class MarkReadyForReviewTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -115,7 +170,7 @@ class MarkReadyForReviewTest(TestCase):
         sweep_patcher.start()
         self.addCleanup(sweep_patcher.stop)
 
-    def _resolved(self, *, commit_sha: str = HEAD_SHA) -> CheckSuiteAutofixRun:
+    def _resolved(self, *, commit_sha: str = HEAD_SHA, group_id: int = 1) -> CheckSuiteAutofixRun:
         run_state = SeerRunState(
             run_id=RUN_ID,
             blocks=[],
@@ -128,7 +183,7 @@ class MarkReadyForReviewTest(TestCase):
             },
         )
         return CheckSuiteAutofixRun(
-            repository=self.repo, run_state=run_state, pr_id=555, group_id=1
+            repository=self.repo, run_state=run_state, pr_id=555, group_id=group_id
         )
 
     def _marker(self) -> dict | None:
@@ -292,6 +347,79 @@ class MarkReadyForReviewTest(TestCase):
 
         mock_actions.mark_pull_request_ready_for_review.assert_not_called()
         # Sticky marker so later green suites don't keep confirming + undrafting.
+        marker = self._marker()
+        assert marker is not None
+        assert marker["head_sha"] == HEAD_SHA
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_undraft_emits_ready_for_review(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        _mock_mark: MagicMock,
+        mock_emit: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved(group_id=self.group.id)
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_emit.assert_called_once()
+        kwargs = mock_emit.call_args.kwargs
+        assert kwargs["group"].id == self.group.id
+        assert kwargs["organization"].id == self.organization.id
+        assert kwargs["state"].run_id == RUN_ID
+        assert kwargs["sentry_run_id"] == str(self.seer_run.uuid)
+        # Undraft emits with the repo scoped so only the PR just undrafted is
+        # signalled as ready — other repos may still be draft.
+        assert kwargs["filtered_repos"] == [REPO_NAME]
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_no_emit_when_pr_was_never_drafted(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        _mock_mark: MagicMock,
+        mock_emit: MagicMock,
+    ) -> None:
+        # An undrafted PR already emitted when it was opened; emitting on the
+        # first green suite would notify the same PR twice.
+        mock_resolve.return_value = self._resolved(group_id=self.group.id)
+        self.get_pr.return_value = _pull_request_result(draft=False)
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
+        mock_emit.assert_not_called()
+
+    @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
+    @patch(f"{EMIT_PATH}.emit_pr_ready_for_review")
+    @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions.mark_pull_request_ready_for_review")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_autofix_run")
+    def test_emit_failure_leaves_undraft_marked(
+        self,
+        mock_resolve: MagicMock,
+        _mock_scm: MagicMock,
+        _mock_mark: MagicMock,
+        mock_emit: MagicMock,
+    ) -> None:
+        # The PR is already undrafted on GitHub by this point, so a broken
+        # notification must not roll the marker back and re-undraft forever.
+        mock_resolve.return_value = self._resolved(group_id=self.group.id)
+        mock_emit.side_effect = RuntimeError("boom")
+
+        with self.feature(REVIEW_REQUEST_FLAG):
+            _mark_ready(_green_event())
+
         marker = self._marker()
         assert marker is not None
         assert marker["head_sha"] == HEAD_SHA

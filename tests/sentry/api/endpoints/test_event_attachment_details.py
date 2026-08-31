@@ -153,7 +153,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.data["id"] == str(self.attachment.id)
         assert response.data["event_id"] == self.event.event_id
         assert response.data["size"] == 0
-        assert response.data["sha1"] == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        assert response.data["sha1"] is None
 
         path = f"{path}?download"
 

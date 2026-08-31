@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.db import connection, router, transaction
@@ -55,7 +55,9 @@ from sentry.issues.derived.framework import (
 )
 from sentry.issues.derived.processing import (
     PIPELINE,
+    DerivedMetrics,
     GroupLogTimeout,
+    ProcessingStrategy,
     _entries_after_cursor,
     invalidate_group_derived_data,
     process_group_log,
@@ -97,6 +99,14 @@ class ProcessGroupLogTest(TestCase):
     def tearDown(self) -> None:
         processing.PIPELINE = self._original_pipeline
         super().tearDown()
+
+    def _publish_view_without_processing(self, group: Group) -> None:
+        with patch("sentry.receivers.outbox.cell.trigger_group_log_processing"):
+            _publish(
+                group=group,
+                action=ViewAction(),
+                actor=GroupActionActor.user(self.user.id),
+            )
 
     def test_missing_group_raises_does_not_exist(self) -> None:
         group = self.create_group()
@@ -317,6 +327,85 @@ class ProcessGroupLogTest(TestCase):
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert derived.cursor_id == entries[-1].id
         assert len(entries) == 5
+
+    def test_current_row_keeps_incremental_metrics(self) -> None:
+        group = self.create_group()
+        process_group_log(group.id)
+        self._publish_view_without_processing(group)
+        derived_metrics = Mock(spec=DerivedMetrics)
+
+        process_group_log(group.id, derived_metrics=derived_metrics)
+
+        derived_metrics.as_not_incremental.assert_not_called()
+        derived_metrics.report_batch_processed.assert_called_once()
+
+    def test_new_row_downgrades_incremental_metrics(self) -> None:
+        group = self.create_group()
+        self._publish_view_without_processing(group)
+        derived_metrics = Mock(spec=DerivedMetrics)
+        nonincremental_metrics = Mock(spec=DerivedMetrics)
+        derived_metrics.as_not_incremental.return_value = nonincremental_metrics
+
+        process_group_log(group.id, derived_metrics=derived_metrics)
+
+        derived_metrics.as_not_incremental.assert_called_once_with()
+        derived_metrics.report_batch_processed.assert_not_called()
+        nonincremental_metrics.report_batch_processed.assert_called_once()
+
+    def test_concurrent_creation_is_not_expected_incremental(self) -> None:
+        group = self.create_group()
+        derived = GroupDerivedData(
+            group_id=group.id,
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+
+        with (
+            patch.object(
+                GroupDerivedData.objects,
+                "get",
+                side_effect=GroupDerivedData.DoesNotExist,
+            ),
+            patch.object(
+                GroupDerivedData.objects,
+                "get_or_create",
+                return_value=(derived, False),
+            ),
+        ):
+            ensured, expected_incremental = processing._ensure_derived(
+                group.id, PIPELINE.pipeline_hash
+            )
+
+        assert ensured is derived
+        assert not expected_incremental
+
+    def test_invalidated_row_downgrades_incremental_metrics(self) -> None:
+        group = self.create_group()
+        process_group_log(group.id)
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash=None)
+        self._publish_view_without_processing(group)
+        derived_metrics = Mock(spec=DerivedMetrics)
+        nonincremental_metrics = Mock(spec=DerivedMetrics)
+        derived_metrics.as_not_incremental.return_value = nonincremental_metrics
+
+        process_group_log(group.id, derived_metrics=derived_metrics)
+
+        derived_metrics.as_not_incremental.assert_called_once_with()
+        derived_metrics.report_batch_processed.assert_not_called()
+        nonincremental_metrics.report_batch_processed.assert_called_once()
+
+    def test_new_inline_row_preserves_latency_suppression_on_async_fallback(self) -> None:
+        group = self.create_group()
+
+        with (
+            patch("sentry.issues.derived.processing._process_batch", return_value=True),
+            patch("sentry.issues.derived.processing.process_group_log_task.delay") as mock_delay,
+        ):
+            processing.trigger_group_log_processing(
+                group.id,
+                strategy=ProcessingStrategy.INLINE,
+            )
+
+        mock_delay.assert_called_once_with(group.id, incremental=False)
 
     def test_cursor_same_timestamp_different_ids(self) -> None:
         group = self.create_group()

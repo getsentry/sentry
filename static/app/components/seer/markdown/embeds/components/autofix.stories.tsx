@@ -1,19 +1,49 @@
-import type {ReactNode} from 'react';
+import {useMemo, useState, type ReactNode} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {AssistantMessage, MessageRow, UserMessage} from '@sentry/scraps/chat';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {
+  getOrderedAutofixSections,
+  isPullRequestsSection,
+  useExplorerAutofix,
+  type AutofixExplorerStep,
+} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {
+  NEXT_STEP,
+  STEP_LABELS,
+} from 'sentry/components/seer/markdown/embeds/components/autofix';
 import {IconArrow} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+import type {Group} from 'sentry/types/group';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  AutofixOverviewResponse,
+  MilestoneKey,
+  OverviewRun,
+} from 'sentry/views/seerWorkflows/overview/types';
 
 const ISSUE = {id: '6789012345', shortId: 'CHECKOUT-42'};
 
 function autofix(step: AutofixExplorerStep, result: string): string {
   return `{% autofix %}${JSON.stringify({...ISSUE, step, result})}{% /autofix %}`;
+}
+
+function autofixRefTag(
+  group: Pick<Group, 'id' | 'shortId'>,
+  step: AutofixExplorerStep,
+  runId: SeerExplorerRunId
+): string {
+  return `{% autofixRef %}${JSON.stringify({id: group.id, shortId: group.shortId, runId, step})}{% /autofixRef %}`;
 }
 
 const ROOT_CAUSE = autofix(
@@ -100,6 +130,214 @@ function ChatShell({children}: {children: ReactNode}) {
   );
 }
 
+interface AutofixOverviewIssue extends Pick<Group, 'id' | 'shortId'> {
+  milestone: MilestoneKey;
+  title: string;
+}
+
+const MILESTONE_LABELS: Record<MilestoneKey, string> = {
+  autofix_root_cause: 'Root cause',
+  autofix_solution: 'Plan',
+  autofix_code_changes: 'Code changes',
+  has_pull_request: 'Pull request',
+  pull_requests_merged: 'Merged',
+};
+
+function flattenOverviewIssues(data: AutofixOverviewResponse): AutofixOverviewIssue[] {
+  const seen = new Set<string>();
+  const issues: AutofixOverviewIssue[] = [];
+  for (const [milestone, runs] of Object.entries(data.runsByMilestone) as Array<
+    [MilestoneKey, OverviewRun[]]
+  >) {
+    for (const run of runs) {
+      if (seen.has(run.groupId)) {
+        continue;
+      }
+      seen.add(run.groupId);
+      issues.push({id: run.groupId, shortId: run.shortId, title: run.title, milestone});
+    }
+  }
+  return issues;
+}
+
+/**
+ * A stable pool of issues to pick from: ones Seer has already run Autofix on,
+ * rather than a live `is:unresolved` search that churns as issues resolve.
+ */
+function useAutofixOverviewIssues() {
+  const organization = useOrganization();
+  return useQuery({
+    ...apiOptions.as<AutofixOverviewResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {project: [-1], statsPeriod: '90d', expand: ['status']},
+        staleTime: 30_000,
+      }
+    ),
+    select: data => flattenOverviewIssues(data.json),
+  });
+}
+
+function IssuePicker({
+  onChange,
+  value,
+}: {
+  onChange: (issue: AutofixOverviewIssue) => void;
+  value: AutofixOverviewIssue | null;
+}) {
+  const {data: issues, isPending} = useAutofixOverviewIssues();
+
+  return (
+    <CompactSelect
+      search
+      disabled={isPending}
+      options={(issues ?? []).map(issue => ({
+        value: issue.id,
+        label: `${issue.shortId} — ${issue.title} (${MILESTONE_LABELS[issue.milestone]})`,
+      }))}
+      value={value?.id}
+      onChange={opt => {
+        const issue = issues?.find(candidate => candidate.id === opt.value);
+        if (issue) {
+          onChange(issue);
+        }
+      }}
+    />
+  );
+}
+
+const AUTOFIX_STEP_ORDER: AutofixExplorerStep[] = [
+  'root_cause',
+  'solution',
+  'code_changes',
+];
+
+function isAutofixStep(step: string): step is AutofixExplorerStep {
+  return step === 'pr_iteration' || (AUTOFIX_STEP_ORDER as string[]).includes(step);
+}
+
+/**
+ * Renders every step already on the issue's real Autofix run state — reusing
+ * `NEXT_STEP`/`STEP_LABELS` from the embed itself rather than tracking a
+ * locally clicked-steps list, so what's shown always matches the backend.
+ */
+function AutofixIssueDemo({group}: {group: Pick<Group, 'id' | 'shortId'>}) {
+  const explorerAutofix = useExplorerAutofix(group, {pollPR: true});
+  const {runState, isLoading, isPolling, startStep, createPR} = explorerAutofix;
+  const runId = getAutofixRunId(runState);
+
+  const steps = useMemo(() => {
+    const sections = getOrderedAutofixSections(runState);
+    const explorerSteps = sections.map(section => section.step).filter(isAutofixStep);
+    if (sections.some(isPullRequestsSection) && !explorerSteps.includes('pr_iteration')) {
+      return [...explorerSteps, 'pr_iteration' as const];
+    }
+    return explorerSteps;
+  }, [runState]);
+
+  const lastStep = steps.at(-1);
+  const nextStep = lastStep ? NEXT_STEP[lastStep] : AUTOFIX_STEP_ORDER[0];
+
+  function handleTriggerNext() {
+    if (nextStep) {
+      startStep(nextStep, runId ? {runId} : undefined);
+    }
+  }
+
+  function handleCreatePR() {
+    if (runId) {
+      createPR(runId);
+    }
+  }
+
+  // Exactly one of these renders at a time, so a state we did not anticipate
+  // (e.g. sections exist but no run id came back) is still visible instead of
+  // silently rendering nothing.
+  let body: ReactNode;
+  if (isLoading) {
+    body = <Text variant="muted">Loading Autofix state…</Text>;
+  } else if (runId && steps.length > 0) {
+    body = (
+      <Storybook.SizingWindow display="block">
+        {steps.map(step => (
+          <MessageRow key={step} from="assistant">
+            <AssistantMessage>
+              <SeerMarkdown raw={autofixRefTag(group, step, runId)} />
+            </AssistantMessage>
+          </MessageRow>
+        ))}
+      </Storybook.SizingWindow>
+    );
+  } else if (isPolling) {
+    body = <Text variant="muted">Starting the run…</Text>;
+  } else if (steps.length > 0) {
+    body = (
+      <Text variant="danger">
+        Autofix has {steps.length} step(s) recorded, but no run id came back — can't
+        render step cards.
+      </Text>
+    );
+  } else {
+    body = <Text variant="muted">No Autofix run yet for this issue.</Text>;
+  }
+
+  return (
+    <Stack gap="xl">
+      <Flex gap="md" align="center" justify="between" wrap="wrap">
+        <Text bold>{group.shortId}</Text>
+        <Flex gap="sm">
+          {lastStep === 'code_changes' && (
+            <Button size="sm" disabled={isPolling} onClick={handleCreatePR}>
+              Draft a pull request
+            </Button>
+          )}
+          {nextStep && (
+            <Button size="sm" disabled={isPolling} onClick={handleTriggerNext}>
+              {steps.length
+                ? `Continue: ${STEP_LABELS[nextStep]}`
+                : `Run: ${STEP_LABELS[nextStep]}`}
+            </Button>
+          )}
+        </Flex>
+      </Flex>
+
+      {body}
+    </Stack>
+  );
+}
+
+function AutofixRefStory() {
+  const [issue, setIssue] = useState<AutofixOverviewIssue | null>(null);
+
+  return (
+    <Stack
+      width="100%"
+      minWidth="640px"
+      background="primary"
+      border="primary"
+      radius="md"
+      padding="xl"
+      gap="xl"
+    >
+      <Stack gap="md">
+        <Text bold>Pick an issue with existing Autofix activity</Text>
+        <IssuePicker value={issue} onChange={setIssue} />
+      </Stack>
+
+      {issue && <Text>{issue.title}</Text>}
+
+      <Container borderTop="primary" paddingTop="xl">
+        {issue ? (
+          <AutofixIssueDemo key={issue.id} group={issue} />
+        ) : (
+          <Text variant="muted">No issue selected yet.</Text>
+        )}
+      </Container>
+    </Stack>
+  );
+}
+
 export default Storybook.story('Autofix', story => {
   story('Fix it end to end', () => (
     <ChatShell>
@@ -148,4 +386,6 @@ export default Storybook.story('Autofix', story => {
       <Seer raw={`Here's the plan:\n\n${PLANNED_SOLUTION}`} />
     </ChatShell>
   ));
+
+  story('Live Autofix run (autofixRef)', () => <AutofixRefStory />);
 });

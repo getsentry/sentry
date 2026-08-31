@@ -533,10 +533,14 @@ def trigger_autofix_agent(
             if not has_budget:
                 raise NoSeerQuotaException()
 
-    use_seer_rca_feature = features.has(
-        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    # If autofix-should-run-repo-checks is enabled,
+    # we should force bash tools on as it is dependent on bash tools
+    enable_bash_tools = enable_bash_tools or (
+        referrer == AutofixReferrer.NIGHT_SHIFT
+        and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
-    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
+
+    if step == AutofixStep.ROOT_CAUSE and run_id is None:
         # Local import avoids a circular import (dispatch imports this module).
         from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 
@@ -546,6 +550,8 @@ def trigger_autofix_agent(
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
+            user=user,
+            enable_bash_tools=enable_bash_tools,
         )
         feature_run_id = feature_run.seer_run_state_id
         if feature_run_id is None:
@@ -611,9 +617,7 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        should_run_repo_checks=features.has(
-            "organizations:autofix-should-run-repo-checks", group.organization
-        ),
+        should_run_repo_checks=enable_bash_tools,
     )
     prompt_metadata = {
         "step": step.value,
@@ -689,10 +693,6 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     """
     Get the current state of an agent-based autofix run for a group.
 
-    Args:
-        organization: The organization
-        group_id: The group ID to get state for
-
     Returns:
         SeerRunState if a run exists, None otherwise
     """
@@ -702,13 +702,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-
-    runs = client.get_runs(category_key="autofix", category_value=str(group_id))
-    if not runs:
-        return None
-
-    # Return the most recent run's state
-    return client.get_run(runs[0].run_id)
+    return client.fetch_latest_run_state(group_id=group_id)
 
 
 def generate_autofix_handoff_prompt(
@@ -932,7 +926,7 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
-def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+def should_open_autofix_pr_as_draft(organization: Organization) -> bool:
     """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
     return features.has(REVIEW_REQUEST_FLAG, organization)
 
@@ -973,7 +967,7 @@ def trigger_push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group, run_id),
-        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
         author=author,
@@ -1016,7 +1010,10 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
 
     if features.has("organizations:autofix-pr-iteration-manual", group.organization):
         lines.append(
-            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+            # One command per line, and one `<sub>` tag per line: a blank line
+            # would close the tag and leave the next line full size.
+            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
         )
 
     seer_run = SeerRun.objects.filter(

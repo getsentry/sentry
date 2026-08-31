@@ -2,16 +2,25 @@ from __future__ import annotations
 
 import logging
 import secrets
+from typing import Any, TypedDict
 
 import google.auth
+import orjson
 from google.auth.exceptions import DefaultCredentialsError
 from google.auth.transport.requests import AuthorizedSession
 from requests.exceptions import RequestException
+from urllib3.exceptions import HTTPError
 
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
+
+_VERIFY_CONNECTION_TIMEOUT = 60
 
 _GCP_IAM_BASE = "https://iam.googleapis.com/v1"
 _IAM_SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
@@ -116,3 +125,47 @@ def _create_service_account(
 
     sa_email: str = response.json()["email"]
     return sa_email
+
+
+class GcpVerifyConnectionResult(TypedDict):
+    connection_status: str
+    projects: list[dict[str, Any]]
+    error_detail: str | None
+
+
+def verify_gcp_connection(
+    sentry_sa_email: str,
+    customer_sa_email: str,
+    gcp_project_ids: list[str],
+) -> GcpVerifyConnectionResult:
+    body = orjson.dumps(
+        {
+            "sentry_sa_email": sentry_sa_email,
+            "customer_sa_email": customer_sa_email,
+            "gcp_project_ids": gcp_project_ids,
+        }
+    )
+
+    try:
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            "/v1/monitoring-providers/gcp/verify-connection",
+            body=body,
+            timeout=_VERIFY_CONNECTION_TIMEOUT,
+        )
+    except HTTPError:
+        logger.exception("gcp.verify_connection_request_error")
+        raise IntegrationError("Failed to verify GCP connection. Please try again.")
+
+    if response.status != 200:
+        logger.error(
+            "gcp.verify_connection_failed",
+            extra={"status_code": response.status},
+        )
+        raise IntegrationError("Failed to verify GCP connection. Please try again.")
+
+    try:
+        return orjson.loads(response.data)
+    except orjson.JSONDecodeError:
+        logger.error("gcp.verify_connection_invalid_response")
+        raise IntegrationError("Failed to verify GCP connection. Please try again.")

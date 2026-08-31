@@ -301,7 +301,7 @@ class Chart extends Component<ChartProps, ChartState> {
           }
 
           if (this.isCrashFree) {
-            return displayCrashFreePercent(value, 0, 3);
+            return displayCrashFreePercent(value, 0);
           }
 
           if (this.isAnr) {

@@ -19,16 +19,12 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
 )
-from sentry.dynamic_sampling.per_org.gate import (
-    is_org_in_recalibration_rollout,
-    is_org_in_rollout,
-)
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout, is_org_in_serving_rollout
 from sentry.dynamic_sampling.per_org.queries import (
     RECALIBRATION_TIME_INTERVAL,
     get_eap_organization_volume,
     get_eap_project_volumes,
     get_eap_transaction_volumes,
-    get_recalibration_organization_volume,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
@@ -75,7 +71,9 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     try:
         results = config.results
         org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
-        results.organization_volume = get_eap_organization_volume(config, end=org_volume_end)
+        results.organization_volume = get_eap_organization_volume(
+            config, time_interval=RECALIBRATION_TIME_INTERVAL, end=org_volume_end
+        )
         if results.organization_volume is None:
             return DynamicSamplingStatus.NO_ORG_VOLUME
         results.project_volumes = get_eap_project_volumes(config)
@@ -102,14 +100,8 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             config, results.project_volumes, results.transaction_volumes
         )
 
-        if is_org_in_recalibration_rollout(config.organization.id):
-            results.recalibration_volume = get_recalibration_organization_volume(
-                config,
-                results.organization_volume,
-                time_interval=RECALIBRATION_TIME_INTERVAL,
-                end=org_volume_end,
-            )
-            config.recalibrate(results.recalibration_volume)
+        if is_org_in_serving_rollout(org_id):
+            config.recalibrate(results.organization_volume)
 
         return None
     finally:

@@ -91,7 +91,6 @@ function SoftCapTypeDetail({
               {`${getPlanCategoryName({
                 plan,
                 category: categoryHistory.category,
-                capitalize: true,
                 hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
               {softCapName}
@@ -833,6 +832,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           </DetailLabel>
           <DetailLabel title="Type">{customer.type || 'n/a'}</DetailLabel>
           <DetailLabel title="Managed" yesNo={customer.isManaged} />
+          <DetailLabel
+            title="Billing Platform"
+            yesNo={customer.hasMigratedToBillingPlatform}
+          />
           <DetailLabel title="Channel">{customer.channel || 'n/a'}</DetailLabel>
           <DetailLabel title="Sponsored Type">
             {customer.sponsoredType || 'n/a'}

@@ -9,7 +9,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons';
@@ -128,7 +127,9 @@ function OrganizationAuthTokensIndex() {
   >({
     mutationFn: ({token}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+          path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
+        }),
         {
           method: 'DELETE',
         }
@@ -210,12 +211,10 @@ function OrganizationAuthTokensIndex() {
             }
           >
             {isError && (
-              <SimpleTable.Empty>
-                <LoadingError
-                  message={t('Failed to load organization tokens.')}
-                  onRetry={refetchTokenList}
-                />
-              </SimpleTable.Empty>
+              <SimpleTable.Error
+                message={t('Failed to load organization tokens.')}
+                onRetry={refetchTokenList}
+              />
             )}
             {!isError && isPending && <SimpleTable.Loading />}
             {!isError && !isPending && !tokenList?.length && (

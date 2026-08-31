@@ -27,7 +27,7 @@ export function NoIntegrationsEmptyState({providers, onAddIntegration}: Props) {
       {providers.map(provider => (
         <PanelItem key={provider.key} center>
           <Flex align="center" gap="md" flex="1">
-            {getIntegrationIcon(provider.key, 'md')}
+            {getIntegrationIcon(provider.key)}
             <Heading as="h4">{provider.name}</Heading>
             {isSeerSupported({id: provider.key, name: provider.name}) && (
               <Tooltip title={t('Compatible with Seer.')}>

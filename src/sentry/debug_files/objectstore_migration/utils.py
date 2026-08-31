@@ -13,7 +13,6 @@ from django.db import router, transaction
 from django.db.models import ProtectedError
 from objectstore_client import GetResponse, Session
 
-from sentry import features
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     ProjectDebugFile,
@@ -21,7 +20,7 @@ from sentry.models.debugfile import (
 )
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.utils.db import atomic_transaction
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
@@ -194,7 +193,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
     except Project.DoesNotExist:
         return None
 
-    session = get_debug_files_session(project.organization_id, project.id)
+    session = get_session(UsecaseId.DEBUG_FILES, project)
 
     content_type = file.headers.get("Content-Type", "application/octet-stream")
     date_created = file.timestamp
@@ -244,13 +243,6 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
         storage_path = session.put(
             tmp,
             key=f"legacy.{debug_file.id}",
-            compression=(
-                "zstd"
-                if features.has(
-                    "organizations:objectstore-debugfiles-compression", project.organization
-                )
-                else "none"
-            ),
             content_type=content_type,
             filename=filename,
         )

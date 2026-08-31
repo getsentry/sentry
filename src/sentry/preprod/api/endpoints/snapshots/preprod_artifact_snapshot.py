@@ -34,7 +34,7 @@ from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import (
     PreprodArtifactApiDeleteEvent,
     PreprodArtifactApiGetSnapshotDetailsEvent,
@@ -378,7 +378,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(organization.id, artifact.project_id)
+            session = get_session(UsecaseId.PREPROD, artifact.project)
             get_response = session.get(manifest_key)
             if get_response is None:
                 raise FileNotFoundError("Manifest does not exist in objectstore")
@@ -841,7 +841,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
-            session = get_preprod_session(project.organization_id, project.id)
+            session = get_session(UsecaseId.PREPROD, project)
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
