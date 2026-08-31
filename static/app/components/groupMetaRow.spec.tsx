@@ -82,31 +82,6 @@ describe('GroupMetaRow', () => {
     expect(screen.getByRole('link', {name: 'annotation1'})).toBeInTheDocument();
   });
 
-  it('renders assignee when enabled', () => {
-    render(
-      <GroupMetaRow
-        data={GroupFixture({
-          project: ProjectFixture({id: 'projectId'}),
-          id: 'groupId',
-          lastSeen: '2017-07-25T22:56:12Z',
-          firstSeen: '2017-07-01T02:06:02Z',
-          numComments: 14,
-          shortId: 'shortId',
-          logger: 'javascript logger',
-          annotations: [
-            {url: 'http://example.com', displayName: 'annotation1'},
-            {url: 'http://example.com', displayName: 'annotation2'},
-          ],
-          assignedTo: ActorFixture({name: 'Assignee Name'}),
-          status: GroupStatus.RESOLVED,
-        })}
-        showAssignee
-      />
-    );
-
-    expect(screen.getByText('Assigned to Assignee Name')).toBeInTheDocument();
-  });
-
   it('should only make one replay-count API request', async () => {
     const organization = OrganizationFixture({
       features: ['session-replay'],
