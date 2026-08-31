@@ -60,9 +60,8 @@ const TagPill = styled('div')<{
   height: 20px;
   font-size: ${p => p.theme.font.size.sm};
   display: inline-flex;
-  /* Caps the pill at its container so the label ellipsizes rather than spilling
-     out. Unlike min-width: 0, this leaves the pill's content-based minimum
-     intact, so a shrinking sibling cannot squeeze it. */
+  /* Caps the pill at its container. min-width: 0 would do this too, but would
+     also let a shrinking sibling squeeze it. */
   max-width: 100%;
   gap: ${p => p.theme.space.xs};
   align-items: center;
@@ -118,11 +117,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
 }
 
 const Text = styled('div')`
-  /* text-overflow only takes effect on a block container, so the label cannot be
-     a flex box. Dropping the flex layout is safe: TagPill already centers this
-     box, and no call site passes sibling elements that needed it. It also drops
-     a gap that was splitting concatenated labels: preprodBuildsTableCommon
-     rendered "+ 3" where it meant "+3". */
+  /* Block, not flex: text-overflow has no effect on a flex container. */
   display: block;
   overflow: hidden;
   white-space: nowrap;
