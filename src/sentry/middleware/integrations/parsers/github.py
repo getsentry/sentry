@@ -214,6 +214,12 @@ class GithubRequestParser(BaseRequestParser):
             )
             return HttpResponse(status=202)
 
+        # Ahead of the forwarded_event counter and the mailbox lookup, so a shed webhook
+        # is neither counted as forwarded nor charged for routing it will not use.
+        shed_response = self.get_shed_response(integration_id=integration.id)
+        if shed_response is not None:
+            return shed_response
+
         metrics.incr(
             "github.webhook.forwarded_event",
             tags=_forwarded_event_tags(github_event, event, action, action_filter),

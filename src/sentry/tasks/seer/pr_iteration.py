@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 from typing import Any, NamedTuple
+from uuid import uuid4
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -38,6 +39,7 @@ from scm.types import (
     ReviewThread,
 )
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import options
 from sentry.cache import default_cache
@@ -63,6 +65,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iterat
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
+    TriggerDecision,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -73,6 +76,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.missing_permissions import (
+    block_iteration_for_missing_permissions,
+    post_missing_permissions_comment,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     is_pr_iteration_paused,
     pause_pr_iteration,
@@ -81,6 +89,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     clear_queued_autofix_feedback,
+    count_queued_autofix_feedback,
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
@@ -140,41 +149,172 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
     return None
 
 
+def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
+    try:
+        return Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning(
+            "autofix.pr_iteration.trigger_consume.organization_not_found",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return None
+
+
 def trigger_consume_pr_iteration_feedback(
     *,
+    log_ctx: PrIterationLogContext,
     run_id: int,
     organization_id: int,
     feedback: Feedback,
     run_state: SeerRunState,
     bypass: bool = False,
     delay: int | None = None,
+    triggered_by: str = "feedback",
 ) -> None:
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
+        log_ctx.info(
+            "autofix.pr_iteration.feedback.trigger",
+            triggered_by=triggered_by,
+            outcome="not_triggered",
+            reason="paused",
+            countdown=None,
+            trigger_id=None,
+            bypass=bypass,
+            delay=delay,
+            feedback_source=feedback.source.type,
+            feedback_id=feedback.feedback_id,
+            **feedback.source.log_fields(run_state),
+        )
+        return
+
+    # Gate ahead of should_trigger: that can defer an hour behind an incomplete
+    # check-run sweep, and the "accept these permissions" comment has to reach
+    # the user while they are still looking at the failing PR. Blocking here
+    # also leaves the feedback in the queue, so the API can see there is CI we
+    # would have acted on and the work resumes once the permissions land.
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is not None and block_iteration_for_missing_permissions(
+        organization=organization, run_id=run_id, state=run_state, log_ctx=log_ctx
+    ):
+        log_ctx.info(
+            "autofix.pr_iteration.feedback.trigger",
+            triggered_by=triggered_by,
+            outcome="not_triggered",
+            reason="missing_github_permissions",
+            countdown=None,
+            trigger_id=None,
+            bypass=bypass,
+            delay=delay,
+            feedback_source=feedback.source.type,
+            feedback_id=feedback.feedback_id,
+            **feedback.source.log_fields(run_state),
+        )
         return
 
     if bypass:
-        task: ConsumeTask | None = ConsumeTask.Now
+        decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
         trigger_source = ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
     else:
-        task = feedback.source.should_trigger(run_state)
+        decision = feedback.source.should_trigger(run_state)
         trigger_source = (
             ConsumeTriggerSource.TIME_LIMIT_DEFER
-            if isinstance(task, ConsumeTask.Later)
+            if isinstance(decision.task, ConsumeTask.Later)
             else ConsumeTriggerSource.FEEDBACK
         )
 
-    if task is None:
+    countdown = None
+    trigger_id = None
+
+    if decision.task is not None:
+        countdown = delay if delay is not None else decision.task.countdown()
+        trigger_id = uuid4().hex
+        consume_queued_autofix_feedback.apply_async(
+            kwargs={
+                "run_id": run_id,
+                "organization_id": organization_id,
+                "trigger_id": trigger_id,
+                "trigger_source": trigger_source,
+            },
+            countdown=countdown,
+        )
+
+    if decision.task is None:
+        outcome = "not_triggered"
+    elif countdown:
+        outcome = "delayed"
+    else:
+        outcome = "triggered"
+
+    log_ctx.info(
+        "autofix.pr_iteration.feedback.trigger",
+        triggered_by=triggered_by,
+        outcome=outcome,
+        reason=decision.reason,
+        countdown=countdown,
+        trigger_id=trigger_id,
+        trigger_source=trigger_source,
+        bypass=bypass,
+        delay=delay,
+        feedback_source=feedback.source.type,
+        feedback_id=feedback.feedback_id,
+        **feedback.source.log_fields(run_state),
+    )
+
+
+def _dropped_feedback(feedback: Feedback, reason: str) -> dict[str, Any]:
+    """Name one dropped item, and why. ``feedback_id`` already carries its type."""
+    return {"id": feedback.feedback_id, "reason": reason}
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.comment_on_missing_permissions",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+    retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
+)
+def comment_on_missing_permissions(
+    run_id: int,
+    organization_id: int,
+    repo_name: str,
+    pr_number: int,
+    pr_id: int | None,
+    integration_id: int,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Tell the user which GitHub permissions Seer needs on one blocked PR.
+
+    Split out of the gate in ``trigger_consume_pr_iteration_feedback`` so the
+    GitHub call never runs inside a webhook task's deadline or the synchronous
+    autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
+    the lock, so a losing activation requeues rather than parking a worker.
+    """
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is None:
         return
 
-    countdown = delay if delay is not None else task.countdown()
-    consume_queued_autofix_feedback.apply_async(
-        kwargs={
-            "run_id": run_id,
-            "organization_id": organization_id,
-            "trigger_source": trigger_source,
-        },
-        countdown=countdown,
+    # TODO: avoid this round trip. The state is fetched only so the comment logs
+    # carry the same run identity as the rest of the flow; the gate already has
+    # it and could hand the identity over in the task args instead.
+    try:
+        state = fetch_run_status(run_id, organization)
+    except (SeerApiError, ValueError):
+        logger.warning(
+            "autofix.pr_iteration.missing_permissions.run_state_not_found",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return
+
+    group_id = state.metadata.get("group_id") if state.metadata else None
+    post_missing_permissions_comment(
+        organization=organization,
+        run_id=run_id,
+        repo_name=repo_name,
+        pr_number=pr_number,
+        pr_id=pr_id,
+        integration_id=integration_id,
+        log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
     )
 
 
@@ -187,13 +327,30 @@ def trigger_consume_pr_iteration_feedback(
 def consume_queued_autofix_feedback(
     run_id: int,
     organization_id: int,
+    trigger_id: str | None = None,
     trigger_source: str | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
+    """Drain the run's feedback queue into an iteration.
+
+    Deliberately does **not** re-check the org's GitHub App permissions. That
+    gate lives at queue time in ``trigger_consume_pr_iteration_feedback``, which
+    refuses to schedule this task at all when a permission is missing — and it
+    has to live there, so the "accept these permissions" comment reaches the
+    user immediately rather than an hour later behind a deferred consume.
+
+    So there is **no defence in depth here**: an activation scheduled before the
+    permissions lapsed will run a doomed iteration, whose tool calls fail
+    against GitHub. Re-checking would mean a ``peek`` plus a ``should_consume``
+    per queued item just to decide whether to check, and ``should_consume``
+    walks every iteration's blocks — too expensive to pay on every consume for
+    a narrow race.
+    """
     # Accept unused *args/**kwargs so in-flight activations queued with retired
     # kwargs (e.g. group_id) still deserialize after the signature change.
-    # ``trigger_source`` is None for tasks queued before the kwarg existed.
+    # ``trigger_id`` / ``trigger_source`` are optional: activations queued
+    # before they existed arrive without them.
     lock = locks.get(
         f"autofix:feedback:lock:{run_id}",
         duration=60,
@@ -205,6 +362,15 @@ def consume_queued_autofix_feedback(
         if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
             record_pause_blocked("consume")
             clear_queued_autofix_feedback(run_id)
+            logger.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization_id,
+                    "trigger_id": trigger_id,
+                    "reason": "paused",
+                },
+            )
             return
 
         try:
@@ -226,112 +392,184 @@ def consume_queued_autofix_feedback(
             return
 
         group_id = state.metadata.get("group_id") if state.metadata else None
-        group = (
-            Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
-            if group_id
-            else None
+        log_ctx = PrIterationLogContext.for_run(logger, state, organization_id, group_id)
+        task_state = current_task()
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.started",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            activation_id=task_state.id if task_state else None,
         )
-        if group is None:
-            logger.warning(
-                "autofix.pr_iteration.consume_feedback.group_not_found",
-                extra={"run_id": run_id, "group_id": group_id},
-            )
-            return
-
-        if state.status == "processing":
-            return
-
-        queued_items = pop_queued_autofix_feedback(run_id)
-        if not queued_items:
-            return
-
-        consumable_items: list[QueuedAutofixFeedback] = []
-        feedback_items = []
-        # Keyed by (source class, id): issue-comment, review-comment, and review
-        # (body) ids come from separate GitHub namespaces, so dedupe within each
-        # concrete source type.
-        seen_comment_keys: set[tuple[type, int]] = set()
-        # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
-        # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
-        seen_check_suite_keys: set[tuple[int, str] | int] = set()
-        for item in queued_items:
-            if not item.feedback.source.should_consume(state):
-                logger.info(
-                    "autofix.pr_iteration.consume_feedback.stale_feedback",
-                    extra={
-                        "organization_id": organization_id,
-                        "group_id": group_id,
-                        "run_id": run_id,
-                    },
-                )
-
-                continue
-
-            source = item.feedback.source
-            comment_dedupe_id: int | None = None
-            if isinstance(
-                source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
-            ):
-                comment_dedupe_id = source.comment.id
-            elif isinstance(source, GithubPrReviewBodyFeedbackSource):
-                comment_dedupe_id = source.review_id
-
-            if comment_dedupe_id is not None:
-                key = (type(source), comment_dedupe_id)
-                if key in seen_comment_keys:
-                    continue
-                seen_comment_keys.add(key)
-            elif isinstance(source, CheckSuiteFeedbackSource):
-                suite_key = source.check_suite_attempt_key()
-                if suite_key in seen_check_suite_keys:
-                    continue
-                seen_check_suite_keys.add(suite_key)
-
-            consumable_items.append(item)
-            feedback_items.append(item.feedback)
-
-        if not feedback_items:
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.no_consumable_feedback",
-                extra={"run_id": run_id, "group_id": group_id},
-            )
-            return
 
         try:
-            trigger_autofix_agent(
-                group=group,
-                step=AutofixStep.PR_ITERATION,
-                referrer=_get_feedback_referrer(consumable_items),
+            _drain_queued_autofix_feedback(
+                log_ctx=log_ctx,
                 run_id=run_id,
-                user_context="\n\n".join(item.text for item in feedback_items),
-                feedback=feedback_items,
-                actor_user_id=_get_feedback_actor_user_id(consumable_items),
-                commit_author=commit_author_for_feedback(feedback_items, organization_id),
+                organization_id=organization_id,
+                group_id=group_id,
+                state=state,
+                trigger_id=trigger_id,
+                trigger_source=trigger_source,
             )
-        except (
-            PrIterationNoPullRequestException,
-            PrIterationNotEnabledException,
-            SeerPermissionError,
-        ) as error:
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.skipped",
-                extra={"run_id": run_id, "group_id": group.id, "error": str(error)},
+        except Exception as e:
+            log_ctx.error(
+                "autofix.pr_iteration.consume_feedback.failed",
+                error_type=type(e).__name__,
             )
-            return
+            raise
 
-        logger.info(
-            "autofix.pr_iteration.consume_feedback.triggered",
-            extra={
-                "run_id": run_id,
-                "organization_id": organization_id,
-                "group_id": group_id,
-                "trigger_source": trigger_source or "unknown",
-            },
+
+def _drain_queued_autofix_feedback(
+    *,
+    log_ctx: PrIterationLogContext,
+    run_id: int,
+    organization_id: int,
+    group_id: int | None,
+    state: SeerRunState,
+    trigger_id: str | None,
+    trigger_source: str | None,
+) -> None:
+    """Pop this run's queued feedback and hand whatever survives to the agent."""
+    group = (
+        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+        if group_id
+        else None
+    )
+    if group is None:
+        log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
+        return
+
+    if state.status == "processing":
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="run_processing",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
         )
-        metrics.incr(
-            "autofix.pr_iteration.consume_feedback.triggered",
-            tags={"trigger_source": trigger_source or "unknown"},
+        return
+
+    queued_items = pop_queued_autofix_feedback(run_id)
+    if not queued_items:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="empty_queue",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
         )
+        return
+
+    consumable_items: list[QueuedAutofixFeedback] = []
+    feedback_items = []
+    dropped: list[dict[str, Any]] = []
+    # Keyed by (source class, id): issue-comment, review-comment, and review
+    # (body) ids come from separate GitHub namespaces, so dedupe within each
+    # concrete source type.
+    seen_comment_keys: set[tuple[type, int]] = set()
+    # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
+    # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
+    seen_check_suite_keys: set[tuple[int, str] | int] = set()
+    for item in queued_items:
+        source = item.feedback.source
+        consume = source.should_consume(state)
+        if not consume.ok:
+            dropped.append(_dropped_feedback(item.feedback, consume.reason))
+            continue
+
+        comment_dedupe_id: int | None = None
+        if isinstance(source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)):
+            comment_dedupe_id = source.comment.id
+        elif isinstance(source, GithubPrReviewBodyFeedbackSource):
+            comment_dedupe_id = source.review_id
+
+        if comment_dedupe_id is not None:
+            key = (type(source), comment_dedupe_id)
+            if key in seen_comment_keys:
+                dropped.append(_dropped_feedback(item.feedback, "duplicate_comment"))
+                continue
+            seen_comment_keys.add(key)
+        elif isinstance(source, CheckSuiteFeedbackSource):
+            suite_key = source.check_suite_attempt_key()
+            if suite_key in seen_check_suite_keys:
+                dropped.append(_dropped_feedback(item.feedback, "duplicate_check_suite"))
+                continue
+            seen_check_suite_keys.add(suite_key)
+
+        consumable_items.append(item)
+        feedback_items.append(item.feedback)
+
+    if not feedback_items:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="no_consumable_feedback",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            queued_count=len(queued_items),
+            dropped=dropped,
+        )
+        return
+
+    referrer = _get_feedback_referrer(consumable_items)
+    actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    log_ctx.info(
+        "autofix.pr_iteration.consume_feedback.drain",
+        outcome="drained",
+        reason="ok",
+        run_status=state.status,
+        trigger_id=trigger_id,
+        trigger_source=trigger_source,
+        queued_count=len(queued_items),
+        consumable_count=len(feedback_items),
+        dropped=dropped,
+        feedback_ids=[item.feedback.feedback_id for item in consumable_items],
+        referrer=referrer.value,
+        actor_user_id=actor_user_id,
+    )
+
+    # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
+    try:
+        trigger_autofix_agent(
+            group=group,
+            step=AutofixStep.PR_ITERATION,
+            referrer=referrer,
+            run_id=run_id,
+            user_context="\n\n".join(item.text for item in feedback_items),
+            feedback=feedback_items,
+            actor_user_id=actor_user_id,
+            commit_author=commit_author_for_feedback(feedback_items, organization_id),
+        )
+    except (
+        PrIterationNoPullRequestException,
+        PrIterationNotEnabledException,
+        SeerPermissionError,
+    ) as error:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.trigger_agent",
+            outcome="skipped",
+            reason=type(error).__name__,
+            error=str(error),
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+        )
+        return
+
+    log_ctx.info(
+        "autofix.pr_iteration.consume_feedback.trigger_agent",
+        outcome="started",
+        trigger_id=trigger_id,
+        trigger_source=trigger_source,
+    )
+    metrics.incr(
+        "autofix.pr_iteration.consume_feedback.triggered",
+        tags={"trigger_source": trigger_source or "unknown"},
+    )
 
 
 def _github_commenter_has_repo_write_access(
@@ -893,7 +1131,9 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
     try_enqueue_autofix_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         group_id=group_id,
@@ -903,6 +1143,7 @@ def trigger_pr_iteration_from_comment(
         actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
     )
     trigger_consume_pr_iteration_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         feedback=feedback_obj,
@@ -1315,8 +1556,10 @@ def trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
     for feedback_obj in feedback_items:
         try_enqueue_autofix_feedback(
+            log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,
             group_id=group_id,
@@ -1329,6 +1572,7 @@ def trigger_pr_iteration_from_review(
     # A single consume pass drains everything queued above; trigger once using
     # the first item to decide the countdown (all share the same run).
     trigger_consume_pr_iteration_feedback(
+        log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
         feedback=feedback_items[0],
@@ -1344,7 +1588,7 @@ def trigger_pr_iteration_from_review(
         source = feedback_obj.source
         if not isinstance(source, GithubPrReviewCommentFeedbackSource):
             continue
-        if source.comment.id is None or not source.should_consume(agent_state):
+        if source.comment.id is None or not source.should_consume(agent_state).ok:
             continue
         _add_comment_reaction(
             scm,

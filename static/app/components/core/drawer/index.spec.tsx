@@ -10,8 +10,7 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import type {DrawerConfig} from '@sentry/scraps/drawer';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();

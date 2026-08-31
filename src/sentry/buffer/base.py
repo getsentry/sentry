@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 
 import psycopg2.errors
-from django.db import DataError
+from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry.db import models
@@ -187,7 +187,20 @@ class Buffer(Service):
                                 raise
                 created = False
             elif model:
-                _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+                # update_or_create cannot insert F() expressions. Create with raw increments,
+                # then retry the update if a concurrent insert wins.
+                using = router.db_for_write(model)
+                objects = model.objects.using(using)
+                affected = objects.filter(**filters).update(**update_kwargs)
+                if not affected:
+                    create_kwargs = {**filters, **columns, **(extra or {})}
+                    try:
+                        with transaction.atomic(using=using):
+                            objects.create(**create_kwargs)
+                    except IntegrityError:
+                        objects.filter(**filters).update(**update_kwargs)
+                    else:
+                        created = True
 
         buffer_incr_complete.send_robust(
             model=model,
