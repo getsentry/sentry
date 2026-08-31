@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
+import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -41,10 +41,10 @@ const AUTH_PROVIDER_CONFIG = {
 export default function AuthLogin() {
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
-  const {setAuthV2Enabled} = useEnableAuthV2();
+  const {setAuthV2CookieState} = useEnableAuthV2();
 
   const returnToLegacyLogin = () => {
-    setAuthV2Enabled(false);
+    setAuthV2CookieState(AuthV2CookieState.DISABLED);
     testableWindowLocation.reload();
   };
 

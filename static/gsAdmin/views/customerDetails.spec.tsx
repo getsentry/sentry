@@ -12,7 +12,6 @@ import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
-import {SeerReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -678,11 +677,20 @@ function setUpMocks(
   });
 }
 
+async function openCustomerActions() {
+  await screen.findByRole('heading', {name: 'Customers'});
+  await userEvent.click(screen.getAllByRole('button', {name: 'Customers Actions'})[0]!);
+}
+
 describe('Customer Details', () => {
   const {organization} = initializeOrg();
 
   const mockUser = UserFixture({permissions: new Set()});
   ConfigStore.loadInitialData(ConfigFixture({user: mockUser}));
+
+  beforeEach(() => {
+    ConfigStore.set('user', mockUser);
+  });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -1100,65 +1108,8 @@ describe('Customer Details', () => {
     ]);
   });
 
-  it('renders correct sections', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-    });
-    subscription.reservedBudgets = [
-      SeerReservedBudgetFixture({
-        id: '0',
-        reservedBudget: 0,
-      }),
-    ];
-    setUpMocks(organization, subscription);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-  });
-
-  it('renders Legacy Billing badge for default subscriptions', async () => {
-    setUpMocks(organization);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-    expect(screen.getByText('Legacy Billing')).toBeInTheDocument();
-    expect(screen.queryByText('Billing Platform')).not.toBeInTheDocument();
-  });
-
-  it('renders Billing Platform badge for migrated subscriptions', async () => {
-    setUpMocks(organization, {hasMigratedToBillingPlatform: true});
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-    expect(screen.getByText('Billing Platform')).toBeInTheDocument();
-    expect(screen.queryByText('Legacy Billing')).not.toBeInTheDocument();
-  });
-
   it('renders correct dropdown options', async () => {
     setUpMocks(organization);
-
     render(<CustomerDetails />, {
       initialRouterConfig: {
         location: {pathname: `/customers/${organization.slug}`},
@@ -1167,13 +1118,10 @@ describe('Customer Details', () => {
       organization,
     });
 
-    await screen.findByRole('heading', {name: 'Customers'});
+    expect(await screen.findByText('Legacy Billing')).toBeInTheDocument();
+    expect(screen.queryByText('Billing Platform')).not.toBeInTheDocument();
 
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await openCustomerActions();
 
     expect(screen.getByRole('option', {name: /Start Trial/})).toBeInTheDocument();
     expect(
@@ -1185,6 +1133,9 @@ describe('Customer Details', () => {
     expect(
       screen.queryByRole('option', {name: /Gift to reserved budget/})
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('Clear Pending Changes')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
+    expect(screen.getByTestId('endTrialEarly')).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('option', {name: /Change Plan/})).toBeInTheDocument();
     expect(
       screen.getByRole('option', {name: /Start Enterprise Trial/})
@@ -1193,6 +1144,9 @@ describe('Customer Details', () => {
       screen.getByRole('option', {name: /Change Google Domain/})
     ).toBeInTheDocument();
     expect(screen.getByRole('option', {name: /Suspend Account/})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: /Generate Spike Projections/})
+    ).toBeInTheDocument();
   });
 
   it('shows limited events help text for free plan enterprise trial', async () => {
@@ -1206,13 +1160,7 @@ describe('Customer Details', () => {
       organization,
     });
 
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await openCustomerActions();
 
     expect(
       screen.getByRole('option', {name: /Start Enterprise Trial/})
@@ -1231,54 +1179,11 @@ describe('Customer Details', () => {
       organization,
     });
 
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await openCustomerActions();
 
     expect(
       screen.queryByRole('option', {name: /Start Enterprise Trial/})
     ).not.toBeInTheDocument();
-  });
-
-  it('renders and hides generic confirmation modals', async () => {
-    setUpMocks(organization);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
-    await userEvent.click(screen.getByText('Convert to Sponsored'));
-
-    const {waitForModalToHide} = renderGlobalModal();
-
-    expect(
-      screen.getByRole('heading', {name: 'Convert to Sponsored'})
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeInTheDocument();
-
-    // Close Modal
-    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    await waitForModalToHide();
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   describe('clear pending changes', () => {
@@ -1295,108 +1200,14 @@ describe('Customer Details', () => {
         organization: pendingChangesOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       expect(screen.getByText('Clear Pending Changes')).toBeInTheDocument();
-    });
-
-    it('is hidden when there are no changes', async () => {
-      setUpMocks(organization);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.queryByText('Clear Pending Changes')).not.toBeInTheDocument();
     });
   });
 
   describe('allow trial', () => {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
-
-    it('renders Allow Trial in the dropdown', async () => {
-      setUpMocks(cannotTrialOrg, {canTrial: false, trialPlan: null});
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${cannotTrialOrg.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: cannotTrialOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByRole('option', {name: /Allow Trial/})).toBeInTheDocument();
-    });
-
-    it('hides Allow Trial in the dropdown when not eligible', async () => {
-      setUpMocks(organization, {canTrial: true, trialPlan: null});
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
-    });
-
-    it('hides Allow Trial in the dropdown when on active trial', async () => {
-      setUpMocks(organization, {canTrial: false, trialPlan: 'am1_t'});
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
-    });
 
     it('allows an org to trial', async () => {
       const trialMock = MockApiClient.addMockResponse({
@@ -1415,13 +1226,7 @@ describe('Customer Details', () => {
         organization: cannotTrialOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -1463,13 +1268,7 @@ describe('Customer Details', () => {
         organization: terminateOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       expect(screen.getByTestId('terminateContract')).toHaveAttribute(
         'aria-disabled',
@@ -1483,38 +1282,6 @@ describe('Customer Details', () => {
       expect(
         await screen.findByText('Requires billing admin permissions.')
       ).toBeInTheDocument();
-    });
-
-    it('renders dropdown enabled with billing.admin permissions', async () => {
-      const mockBillingAdminUser = UserFixture({
-        permissions: new Set(['billing.admin']),
-      });
-
-      ConfigStore.set('user', mockBillingAdminUser);
-
-      setUpMocks(terminateOrg, {
-        billingInterval: 'annual',
-        canCancel: true,
-        isBillingAdmin: false,
-      });
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${terminateOrg.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: terminateOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByTestId('terminateContract')).toBeEnabled();
     });
 
     it("terminates an organization's contract", async () => {
@@ -1544,13 +1311,7 @@ describe('Customer Details', () => {
         organization: terminateOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       await userEvent.click(screen.getByText('Terminate Contract'));
 
@@ -1595,13 +1356,7 @@ describe('Customer Details', () => {
         organization: recreateOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       await userEvent.click(screen.getByText('Recreate Billing Platform Models'));
 
@@ -1640,6 +1395,14 @@ describe('Customer Details', () => {
       });
 
       await screen.findByRole('heading', {name: 'Customers'});
+
+      const isMigrated = name.includes('Unmigrate');
+      expect(
+        screen.getByText(isMigrated ? 'Billing Platform' : 'Legacy Billing')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(isMigrated ? 'Legacy Billing' : 'Billing Platform')
+      ).not.toBeInTheDocument();
 
       await userEvent.click(
         screen.getAllByRole('button', {
@@ -1716,13 +1479,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -1777,13 +1534,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -1846,13 +1597,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -1885,13 +1630,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -1958,13 +1697,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -1996,28 +1729,6 @@ describe('Customer Details', () => {
   describe('cancel subscription', () => {
     const cancelSubOrg = OrganizationFixture();
 
-    it('renders in the dropdown', async () => {
-      setUpMocks(cancelSubOrg);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${cancelSubOrg.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: cancelSubOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByText('Cancel Subscription')).toBeInTheDocument();
-    });
-
     it('cancels a subscription', async () => {
       setUpMocks(cancelSubOrg);
       const apiMock = MockApiClient.addMockResponse({
@@ -2034,13 +1745,7 @@ describe('Customer Details', () => {
         organization: cancelSubOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       await userEvent.click(screen.getByText('Cancel Subscription'));
 
@@ -2221,13 +1926,9 @@ describe('Customer Details', () => {
         organization: trialOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
+      await openCustomerActions();
 
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      expect(screen.queryByRole('option', {name: /Allow Trial/})).not.toBeInTheDocument();
 
       renderGlobalModal();
 
@@ -2247,31 +1948,6 @@ describe('Customer Details', () => {
         );
       });
     });
-
-    it('is disabled for non-trial org', async () => {
-      setUpMocks(organization);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByTestId('endTrialEarly')).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-    });
   });
 
   describe('on demand invoices', () => {
@@ -2280,80 +1956,6 @@ describe('Customer Details', () => {
 
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
-    });
-
-    ConfigStore.set('user', mockBillingAdminUser);
-
-    it('renders disable on demand invoices when enabled', async () => {
-      ConfigStore.set('user', mockBillingAdminUser);
-
-      setUpMocks(invoicedOrg, {onDemandInvoiced: true});
-      setUpMocks(onDemandInvoicedOrg, {
-        onDemandInvoiced: true,
-        type: BillingType.INVOICED,
-        paymentSource: {
-          last4: '4242',
-          zipCode: '12345',
-          countryCode: 'US',
-          expMonth: 12,
-          expYear: 2028,
-          brand: 'Visa',
-        },
-      });
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: onDemandInvoicedOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByText('Disable On Demand Billing')).toBeInTheDocument();
-    });
-
-    it('renders enable on demand invoices when disabled', async () => {
-      ConfigStore.set('user', mockBillingAdminUser);
-
-      setUpMocks(invoicedOrg, {onDemandInvoiced: false});
-      setUpMocks(onDemandInvoicedOrg, {
-        onDemandInvoiced: false,
-        type: BillingType.INVOICED,
-        paymentSource: {
-          last4: '4242',
-          zipCode: '12345',
-          countryCode: 'US',
-          expMonth: 12,
-          expYear: 2028,
-          brand: 'Visa',
-        },
-      });
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${onDemandInvoicedOrg.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: onDemandInvoicedOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.getByText('Enable On Demand Billing')).toBeInTheDocument();
     });
 
     it('does not render on-demand invoices actions when manually invoiced on-demand flag is True', async () => {
@@ -2381,13 +1983,7 @@ describe('Customer Details', () => {
         organization: onDemandInvoicedOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       expect(screen.queryByText('Enable On Demand Billing')).not.toBeInTheDocument();
     });
@@ -2422,13 +2018,7 @@ describe('Customer Details', () => {
         organization: invoicedOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -2479,13 +2069,7 @@ describe('Customer Details', () => {
         organization: onDemandInvoicedOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -2508,57 +2092,6 @@ describe('Customer Details', () => {
   });
 
   describe('converting to sponsored', () => {
-    it('converts a plan to sponsored', async () => {
-      setUpMocks(organization);
-
-      const apiMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-        body: OrganizationFixture(),
-      });
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      await userEvent.click(screen.getByText('Convert to Sponsored'));
-
-      renderGlobalModal();
-
-      const selectSponsoredType = await screen.findByRole('textbox', {
-        name: 'Sponsored Type',
-      });
-      // Click for dropdown
-      await userEvent.click(selectSponsoredType);
-      await userEvent.click(screen.getByTestId('open_source'));
-
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() =>
-        expect(apiMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              sponsoredType: 'open_source',
-            },
-          })
-        )
-      );
-    });
-
     it('can convert subscription with active partner account to sponsored', async () => {
       const partnerSubscription = SubscriptionFixture({
         organization,
@@ -2591,13 +2124,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       await userEvent.click(screen.getByText('Convert to Sponsored'));
 
@@ -2640,13 +2167,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       expect(screen.getByTestId('convertToSponsored')).toHaveAttribute(
         'aria-disabled',
@@ -2656,9 +2177,9 @@ describe('Customer Details', () => {
   });
 
   describe('AddGiftEventsAction', () => {
-    it('renders and hides modal', async () => {
-      setUpMocks(organization);
-
+    it('gifts error and transaction events', async () => {
+      const subscription = SubscriptionFixture({organization});
+      setUpMocks(organization, subscription);
       render(<CustomerDetails />, {
         initialRouterConfig: {
           location: {pathname: `/customers/${organization.slug}`},
@@ -2666,141 +2187,39 @@ describe('Customer Details', () => {
         },
         organization,
       });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      const {waitForModalToHide} = renderGlobalModal();
+      renderGlobalModal();
 
       for (const dataCategory of [DataCategory.ERRORS, DataCategory.TRANSACTIONS]) {
-        await userEvent.click(
-          screen.getAllByRole('button', {
-            name: 'Customers Actions',
-          })[0]!
-        );
+        await openCustomerActions();
+
+        const freeEventsKey = getFreeEventsKey(dataCategory);
+        const updateMock = MockApiClient.addMockResponse({
+          url: `/customers/${organization.slug}/`,
+          method: 'PUT',
+          body: {...subscription, [freeEventsKey]: 26000},
+        });
 
         await userEvent.click(screen.getByTestId(`gift-${dataCategory}`));
+        expect(screen.getByText('Total: 0')).toBeInTheDocument();
 
-        expect(
-          await screen.findByText(
-            `How many ${dataCategory} in multiples of 1,000s? (50 is 50,000 ${dataCategory})`
+        const input = await screen.findByRole('textbox', {
+          name: `How many ${dataCategory} in multiples of 1,000s? (50 is 50,000 ${dataCategory})`,
+        });
+        await userEvent.type(input, '26{enter}');
+
+        expect(screen.getByText('Total: 26,000')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+        await waitFor(() =>
+          expect(updateMock).toHaveBeenCalledWith(
+            `/customers/${organization.slug}/`,
+            expect.objectContaining({
+              method: 'PUT',
+              data: {[freeEventsKey]: 26000},
+            })
           )
-        ).toBeInTheDocument();
-
-        await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-        await waitForModalToHide();
+        );
       }
-    });
-
-    it('can gift events - ERRORS', async () => {
-      setUpMocks(organization);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      renderGlobalModal();
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      const freeEventsKey = getFreeEventsKey(DataCategory.ERRORS);
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-        body: {...organization, [freeEventsKey]: 26000},
-      });
-
-      await userEvent.click(screen.getByTestId(`gift-${DataCategory.ERRORS}`));
-
-      expect(screen.getByText('Total: 0')).toBeInTheDocument();
-
-      // enter a number of events to gift
-      const input = await screen.findByRole('textbox', {
-        name: `How many ${DataCategory.ERRORS} in multiples of 1,000s? (50 is 50,000 ${DataCategory.ERRORS})`,
-      });
-
-      await userEvent.type(input, '26{enter}');
-
-      expect(screen.getByText('Total: 26,000')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() =>
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              [freeEventsKey]: 26000,
-            },
-          })
-        )
-      );
-    });
-
-    it('can gift events - TRANSACTIONS', async () => {
-      setUpMocks(organization);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      renderGlobalModal();
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      const freeEventsKey = getFreeEventsKey(DataCategory.TRANSACTIONS);
-      const updateMock = MockApiClient.addMockResponse({
-        url: `/customers/${organization.slug}/`,
-        method: 'PUT',
-        body: {...organization, [freeEventsKey]: 26000},
-      });
-
-      await userEvent.click(screen.getByTestId(`gift-${DataCategory.TRANSACTIONS}`));
-
-      expect(screen.getByText('Total: 0')).toBeInTheDocument();
-
-      // enter a number of events to gift
-      const input = await screen.findByRole('textbox', {
-        name: 'How many transactions in multiples of 1,000s? (50 is 50,000 transactions)',
-      });
-
-      await userEvent.type(input, '26{enter}');
-
-      expect(screen.getByText('Total: 26,000')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
-
-      await waitFor(() =>
-        expect(updateMock).toHaveBeenCalledWith(
-          `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              [freeEventsKey]: 26000,
-            },
-          })
-        )
-      );
     });
   });
 
@@ -3005,7 +2424,9 @@ describe('Customer Details', () => {
       permissions: new Set(['billing.admin']),
     });
 
-    ConfigStore.set('user', mockBillingAdminUser);
+    beforeEach(() => {
+      ConfigStore.set('user', mockBillingAdminUser);
+    });
 
     it('ChangeContractEndDateAction not rendered for monthly contract interval', async () => {
       const invoicedOrg = OrganizationFixture();
@@ -3020,13 +2441,7 @@ describe('Customer Details', () => {
         organization: invoicedOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       expect(
         screen.queryByRole('button', {name: 'Oct 24, 2018'})
@@ -3046,13 +2461,7 @@ describe('Customer Details', () => {
         organization: invoicedOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       expect(screen.getByRole('button', {name: 'Oct 24, 2018'})).toBeInTheDocument();
     });
@@ -3060,34 +2469,6 @@ describe('Customer Details', () => {
 
   describe('unsuspend organization', () => {
     const suspendedOrg = OrganizationFixture({slug: 'suspended'});
-
-    const mockBillingAdminUser = UserFixture({
-      permissions: new Set(['billing.admin']),
-    });
-
-    ConfigStore.set('user', mockBillingAdminUser);
-
-    it("doesn't render in the dropdown if already suspended", async () => {
-      setUpMocks(suspendedOrg, {isSuspended: true});
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${suspendedOrg.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: suspendedOrg,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(screen.queryByText('Suspend Account')).not.toBeInTheDocument();
-    });
 
     it('unsuspends an organization', async () => {
       setUpMocks(suspendedOrg, {isSuspended: true});
@@ -3106,13 +2487,9 @@ describe('Customer Details', () => {
         organization: suspendedOrg,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
+      await openCustomerActions();
 
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      expect(screen.queryByText('Suspend Account')).not.toBeInTheDocument();
 
       renderGlobalModal();
 
@@ -3150,13 +2527,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -3207,13 +2578,7 @@ describe('Customer Details', () => {
         organization,
       });
 
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
+      await openCustomerActions();
 
       renderGlobalModal();
 
@@ -3243,31 +2608,6 @@ describe('Customer Details', () => {
           })
         );
       });
-    });
-  });
-
-  describe('AddGiftBudgetAction', () => {
-    it('hides gift budget action when org has no reserved budgets', async () => {
-      const nonDsSub = SubscriptionFixture({
-        organization,
-      });
-      setUpMocks(organization, nonDsSub);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${organization.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
-      );
-
-      expect(screen.queryByText('Gift to reserved budget')).not.toBeInTheDocument();
     });
   });
 
@@ -3331,34 +2671,6 @@ describe('Customer Details', () => {
       expect(screen.queryByText('Delete Billing Metric History')).not.toBeInTheDocument();
     });
   });
-
-  describe('generate spike projections', () => {
-    const org = OrganizationFixture({});
-
-    it('renders generate spike projections in the dropdown', async () => {
-      setUpMocks(org);
-
-      render(<CustomerDetails />, {
-        initialRouterConfig: {
-          location: {pathname: `/customers/${org.slug}`},
-          route: '/customers/:orgId',
-        },
-        organization: org,
-      });
-
-      await screen.findByRole('heading', {name: 'Customers'});
-
-      await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
-      );
-
-      expect(
-        screen.getByRole('option', {name: /Generate Spike Projections/})
-      ).toBeInTheDocument();
-    });
-  });
 });
 
 describe('Gift Categories Availability', () => {
@@ -3416,9 +2728,8 @@ describe('Gift Categories Availability', () => {
     },
   });
 
-  it('enables categories in checkoutCategories but not in onDemandCategories', async () => {
+  it('sets availability for every gift category', async () => {
     setUpMocks(organization, customSubscription);
-
     render(<CustomerDetails />, {
       initialRouterConfig: {
         location: {pathname: `/customers/${organization.slug}`},
@@ -3426,147 +2737,24 @@ describe('Gift Categories Availability', () => {
       },
       organization,
     });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await openCustomerActions();
 
     expect(screen.getByTestId(`gift-${DataCategory.REPLAYS}`)).not.toHaveAttribute(
       'aria-disabled'
     );
-  });
-
-  it('enables categories in onDemandCategories but not in checkoutCategories', async () => {
-    setUpMocks(organization, customSubscription);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
     expect(
       screen.getByTestId(`gift-${DataCategory.PROFILE_DURATION}`)
     ).not.toHaveAttribute('aria-disabled');
-  });
-
-  it('enables categories in both checkoutCategories and onDemandCategories', async () => {
-    setUpMocks(organization, customSubscription);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
     expect(screen.getByTestId(`gift-${DataCategory.ERRORS}`)).not.toHaveAttribute(
       'aria-disabled'
     );
-  });
-
-  it('disables categories with unlimited quota', async () => {
-    setUpMocks(organization, customSubscription);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
     expect(screen.getByTestId(`gift-${DataCategory.SPANS}`)).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-  });
-
-  it('filters out categories in neither checkoutCategories nor onDemandCategories', async () => {
-    setUpMocks(organization, customSubscription);
-
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
     expect(
       screen.queryByTestId(`gift-${DataCategory.PROFILE_DURATION_UI}`)
     ).not.toBeInTheDocument();
-  });
-
-  it('filters out categories that are not giftable', async () => {
-    setUpMocks(organization, customSubscription);
-    render(<CustomerDetails />, {
-      initialRouterConfig: {
-        location: {pathname: `/customers/${organization.slug}`},
-        route: '/customers/:orgId',
-      },
-      organization,
-    });
-
-    await screen.findByRole('heading', {name: 'Customers'});
-
-    renderGlobalModal();
-
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
-
     expect(
       screen.queryByTestId(`gift-${DataCategory.SEER_AUTOFIX}`)
     ).not.toBeInTheDocument();

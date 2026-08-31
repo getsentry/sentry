@@ -1,46 +1,47 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Redirect} from 'sentry/components/redirect';
-import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
-import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {getProviderIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 
-import {ConnectorRow} from 'getsentry/views/seerAutomation/components/connectorRow';
+// The IntegrationFeatures.SEER_CONTEXT marker. Providers carrying it expose
+// telemetry Seer can read; the connectors page lists exactly those.
+const SEER_CONTEXT_FEATURE = 'seer-context';
 
-export type MonitoringProvider = {
-  connected: boolean;
-  name: string;
-  provider: string;
-};
-
-type MonitoringProvidersResponse = {
-  providers: MonitoringProvider[];
-};
-
-const PAT_PROVIDERS = new Set(['datadog_pat']);
-
-function monitoringProvidersQueryOptions(orgSlug: string) {
-  return apiOptions.as<MonitoringProvidersResponse>()(
-    '/organizations/$organizationIdOrSlug/monitoring-providers/',
+// Cheap query to get all providers available to the org, plus their integration features.
+function configIntegrationsQueryOptions(orgSlug: string) {
+  return apiOptions.as<{providers: IntegrationProvider[]}>()(
+    '/organizations/$organizationIdOrSlug/config/integrations/',
     {
       path: {organizationIdOrSlug: orgSlug},
-      staleTime: 30_000,
+      staleTime: 0,
+    }
+  );
+}
+
+// Get the installation status for all IntegrationFeatures.SEER_CONTEXT providers.
+function integrationsQueryOptions(orgSlug: string) {
+  return apiOptions.as<Integration[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      // Config serialization is O(n) per integration, so if we want to includeConfig,
+      // filtering by seer_context becomes important.
+      query: {features: 'seer_context', includeConfig: 0},
+      staleTime: 0,
     }
   );
 }
@@ -48,10 +49,7 @@ function monitoringProvidersQueryOptions(orgSlug: string) {
 export default function SeerConnectors() {
   const organization = useOrganization();
 
-  if (
-    !organization.features.includes('seer-infra-telemetry') ||
-    !organization.features.includes('seer-infra-telemetry-user-level-auth')
-  ) {
+  if (!organization.features.includes('seer-infra-telemetry')) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;
   }
 
@@ -60,140 +58,21 @@ export default function SeerConnectors() {
 
 function SeerConnectorsContent() {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
 
-  const {data, isPending, isError, refetch} = useQuery(
-    monitoringProvidersQueryOptions(organization.slug)
+  const configQuery = useQuery(configIntegrationsQueryOptions(organization.slug));
+  const integrationsQuery = useQuery(integrationsQueryOptions(organization.slug));
+
+  const isPending = configQuery.isPending || integrationsQuery.isPending;
+  const isError = configQuery.isError || integrationsQuery.isError;
+  const refetch = () => {
+    configQuery.refetch();
+    integrationsQuery.refetch();
+  };
+
+  const providers = (configQuery.data?.providers ?? []).filter(provider =>
+    provider.features.includes(SEER_CONTEXT_FEATURE)
   );
-
-  const connectMutation = useMutation({
-    mutationFn: (params: {provider: string; site?: string}) =>
-      fetchMutation<{redirectUrl: string}>({
-        method: 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              providerKey: params.provider,
-            },
-          }
-        ),
-        data: {
-          return_url: monitoringProvidersSettingsPath(organization),
-          ...(params.site ? {site: params.site} : {}),
-        },
-      }),
-    onSuccess: responseData => {
-      testableWindowLocation.assign(responseData.redirectUrl);
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to start connection.'));
-    },
-  });
-
-  const disconnectMutation = useMutation({
-    mutationFn: (provider: string) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              providerKey: provider,
-            },
-          }
-        ),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: monitoringProvidersQueryOptions(organization.slug).queryKey,
-      });
-      addSuccessMessage(t('Provider disconnected.'));
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to disconnect provider.'));
-    },
-  });
-
-  const reconnectMutation = useMutation({
-    mutationFn: (provider: string) =>
-      fetchMutation<{redirectUrl: string}>({
-        method: 'PUT',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              providerKey: provider,
-            },
-          }
-        ),
-        data: {return_url: monitoringProvidersSettingsPath(organization)},
-      }),
-    onSuccess: responseData => {
-      testableWindowLocation.assign(responseData.redirectUrl);
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to start reconnection.'));
-    },
-  });
-
-  function handleConnect(provider: MonitoringProvider) {
-    if (PAT_PROVIDERS.has(provider.provider)) {
-      openModal(modalProps => (
-        <DatadogPatConnectModal
-          {...modalProps}
-          orgSlug={organization.slug}
-          onSuccess={() => {
-            queryClient.invalidateQueries({
-              queryKey: monitoringProvidersQueryOptions(organization.slug).queryKey,
-            });
-            addSuccessMessage(t('Provider connected.'));
-          }}
-        />
-      ));
-      return;
-    }
-
-    const params: {provider: string; site?: string} = {provider: provider.provider};
-    if (provider.provider === 'datadog') {
-      // TODO(CW-1501): v0 only supports datadoghq.com; add site selection when per-site connections are supported
-      params.site = 'datadoghq.com';
-    }
-    connectMutation.mutate(params);
-  }
-
-  function handleReconnect(provider: MonitoringProvider) {
-    if (PAT_PROVIDERS.has(provider.provider)) {
-      openModal(modalProps => (
-        <DatadogPatConnectModal
-          {...modalProps}
-          orgSlug={organization.slug}
-          isReauth
-          onSuccess={() => {
-            queryClient.invalidateQueries({
-              queryKey: monitoringProvidersQueryOptions(organization.slug).queryKey,
-            });
-            addSuccessMessage(t('Provider reconnected.'));
-          }}
-        />
-      ));
-      return;
-    }
-
-    reconnectMutation.mutate(provider.provider);
-  }
-
-  function handleDisconnect(provider: MonitoringProvider) {
-    openConfirmModal({
-      message: t('Are you sure you want to disconnect %s?', provider.name),
-      onConfirm: () => disconnectMutation.mutate(provider.provider),
-    });
-  }
-
-  const providers = data?.providers ?? [];
+  const integrations = integrationsQuery.data ?? [];
 
   return (
     <SentryDocumentTitle title={t('Connectors')}>
@@ -210,27 +89,30 @@ function SeerConnectorsContent() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Panel>
-            {providers.map(provider => (
-              <ConnectorRow
-                key={provider.provider}
-                provider={provider}
-                onConnect={handleConnect}
-                onReconnect={handleReconnect}
-                onDisconnect={handleDisconnect}
-                isConnecting={
-                  connectMutation.isPending &&
-                  connectMutation.variables.provider === provider.provider
-                }
-                isReconnecting={
-                  reconnectMutation.isPending &&
-                  reconnectMutation.variables === provider.provider
-                }
-                isDisconnecting={
-                  disconnectMutation.isPending &&
-                  disconnectMutation.variables === provider.provider
-                }
-              />
-            ))}
+            {providers.length === 0 ? (
+              <PanelItem>
+                {t('No monitoring connectors are available for this organization.')}
+              </PanelItem>
+            ) : (
+              providers.map(provider => {
+                const providerIntegrations = integrations.filter(
+                  integration => integration.provider.key === provider.key
+                );
+                return (
+                  <IntegrationRow
+                    key={provider.slug}
+                    organization={organization}
+                    type="firstParty"
+                    slug={provider.slug}
+                    displayName={provider.name}
+                    status={getProviderIntegrationStatus(providerIntegrations)}
+                    publishStatus="published"
+                    configurations={providerIntegrations.length}
+                    categories={[]}
+                  />
+                );
+              })
+            )}
           </Panel>
         )}
       </Stack>
