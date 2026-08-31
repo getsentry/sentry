@@ -1357,7 +1357,12 @@ class MonitorConsumerTest(TestCase):
         check_accept_monitor_checkin.side_effect = hang
 
         monitor = self._create_monitor(slug="my-monitor")
-        with override_options({"crons.check_accept_monitor_checkin.timeout_sec": 0.05}):
+        with override_options(
+            {
+                "crons.check_accept_monitor_checkin.timeout_rollout_rate": 1.0,
+                "crons.check_accept_monitor_checkin.timeout_sec": 0.05,
+            }
+        ):
             self.send_checkin(monitor.slug)
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
@@ -1382,13 +1387,42 @@ class MonitorConsumerTest(TestCase):
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
 
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_checkin(monitor.slug)
+        with override_options({"crons.check_accept_monitor_checkin.timeout_rollout_rate": 1.0}):
+            self.send_checkin(monitor.slug)
 
         acquire.assert_called_once_with(blocking=False)
         check_accept_monitor_checkin.assert_not_called()
 
         checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
         assert checkin.status == CheckInStatus.OK
+
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_timeout_rollout_disabled(
+        self, check_accept_monitor_checkin: mock.MagicMock
+    ) -> None:
+        """
+        With rollout rate 0, seat acceptance is called directly (no timeout
+        wrapper), so a DROP result still drops the check-in.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_options(
+            {
+                "crons.check_accept_monitor_checkin.timeout_rollout_rate": 0.0,
+                # Would fail-open if the wrapper ran; prove it does not.
+                "crons.check_accept_monitor_checkin.timeout_sec": 0.05,
+            }
+        ):
+            self.send_checkin(
+                monitor.slug,
+                expected_error=ProcessingErrorsException(
+                    [{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}],
+                ),
+            )
+
+        check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
+        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

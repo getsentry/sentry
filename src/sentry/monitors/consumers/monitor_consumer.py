@@ -83,6 +83,7 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
+from sentry.options.rollout import in_rollout_group
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -117,7 +118,11 @@ def _check_accept_monitor_checkin_with_timeout(
     metric_kwargs: dict[str, str],
 ) -> PermitCheckInStatus:
     """
-    Call quotas seat acceptance with a wall-clock timeout.
+    Call quotas seat acceptance, optionally with a wall-clock timeout.
+
+    The timeout path is gated by
+    ``crons.check_accept_monitor_checkin.timeout_rollout_rate`` (deterministic
+    per project). Outside the rollout group the backend is called directly.
 
     If the backend does not respond in time, or too many seat checks are already
     in flight, fail open and ACCEPT the check-in so a slow or hung quotas path
@@ -127,6 +132,9 @@ def _check_accept_monitor_checkin_with_timeout(
     the wait bound only limits how long ingest blocks before failing open. The
     in-flight slot bound limits how many of those late calls can pile up.
     """
+    if not in_rollout_group("crons.check_accept_monitor_checkin.timeout_rollout_rate", project_id):
+        return quotas.backend.check_accept_monitor_checkin(project_id, monitor_slug)
+
     timeout_sec = options.get("crons.check_accept_monitor_checkin.timeout_sec")
     if not timeout_sec or timeout_sec <= 0:
         return quotas.backend.check_accept_monitor_checkin(project_id, monitor_slug)
