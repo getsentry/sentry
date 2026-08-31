@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
 
-from sentry.ai_monitoring.utils import fetch_conversation_title, fetch_conversation_titles
+from sentry.ai_monitoring.conversation_titles import (
+    fetch_conversation_title,
+    fetch_conversation_titles,
+)
 from sentry.testutils.cases import TestCase
 
 

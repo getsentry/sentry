@@ -1,7 +1,7 @@
 import json  # noqa: S003
 from typing import Any
 
-from sentry.utils.ai_message_normalizer import (
+from sentry.ai_monitoring.message_normalizer import (
     EMPTY_TEXT_CONTENT,
     extract_assistant_output,
     normalize_to_messages,

@@ -9,6 +9,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -20,6 +21,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
+QUEUE_PATH = "sentry.seer.autofix.pr_iteration.queue"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 STOP_RUN_ID = 4646
@@ -84,16 +86,27 @@ def _resolved_check_suite_source(
 
 
 class TryEnqueueAutofixFeedbackTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.log = MagicMock()
+
     def _enqueue(
         self, run_id: int, feedback: Feedback, *, run_state: SeerRunState | None = None
     ) -> bool:
+        state = run_state or _run_state()
         return try_enqueue_autofix_feedback(
+            log_ctx=PrIterationLogContext(
+                self.log,
+                run_state=state,
+                organization_id=self.organization.id,
+                group_id=1,
+            ),
             run_id=run_id,
             organization_id=self.organization.id,
             group_id=1,
             feedback=feedback,
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
-            run_state=run_state or _run_state(),
+            run_state=state,
         )
 
     def test_enqueues_when_should_queue(self) -> None:
@@ -110,6 +123,52 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
 
         assert self._enqueue(run_id=4343, feedback=feedback) is False
         assert peek_queued_autofix_feedback(4343) == []
+
+    def test_logs_the_decision_with_the_run_identity(self) -> None:
+        run_state = _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
+        )
+        feedback = Feedback(source=_resolved_check_suite_source(run_state=run_state))
+
+        assert self._enqueue(run_id=4545, feedback=feedback, run_state=run_state) is True
+
+        assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.queue"
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "queued"
+        assert extra["reason"] == "head_matches"
+        # Identity: what ties this line to the rest of the iteration.
+        assert extra["run_id"] == 1
+        assert extra["sentry_organization_id"] == self.organization.id
+        assert extra["sentry_group_id"] == 1
+        assert extra["scm_infos"] == [{"scm_repo_full_name": "owner/repo"}]
+        # Which feedback item, and both sides of the head comparison.
+        assert extra["feedback_source"] == "check-suite"
+        assert extra["referrer"] == AutofixReferrer.GITHUB_PR_COMMENT.value
+        assert extra["check_suite_id"] == 1
+        assert extra["check_suite_head_sha"] == "abc"
+        assert extra["run_pr_commit_sha"] == "abc"
+
+    def test_a_rejection_shares_the_log_name_with_the_allow_path(self) -> None:
+        # One name for both branches, so a search for the decision finds every
+        # occurrence of it and ``outcome`` says which way each one went.
+        feedback = Feedback(source=_resolved_check_suite_source())
+
+        assert self._enqueue(run_id=4646, feedback=feedback) is False
+
+        assert self.log.info.call_args.args[0] == "autofix.pr_iteration.feedback.queue"
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "not_queued"
+        assert extra["reason"] == "stale_head"
+
+    def test_a_source_with_no_gate_says_so_rather_than_going_quiet(self) -> None:
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
+
+        assert self._enqueue(run_id=4747, feedback=feedback) is True
+
+        extra = self.log.info.call_args.kwargs["extra"]
+        assert extra["outcome"] == "queued"
+        assert extra["reason"] == "no_gate"
+        assert extra["feedback_source"] == "user-ui"
 
     def test_enqueues_check_suite_without_serializing_autofix_run(self) -> None:
         """Django/Seer objects on autofix_run must not appear in the Redis JSON."""

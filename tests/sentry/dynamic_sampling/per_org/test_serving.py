@@ -11,6 +11,7 @@ from sentry.dynamic_sampling.per_org.serving import (
     get_project_sample_rate,
     get_recalibration_factor,
     get_transaction_sample_rates,
+    is_recalibration_factor_served_per_org,
 )
 from sentry.dynamic_sampling.per_org.telemetry import SERVING_SOURCE_METRIC
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
@@ -271,3 +272,42 @@ class TestGetRecalibrationFactor:
 
         assert get_recalibration_factor(ORG_ID) == 1.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
+
+
+@pytest.mark.django_db
+class TestIsRecalibrationFactorServedPerOrg:
+    """The legacy recalibration task reads this to decide whether to write its factor."""
+
+    @override_options(SERVING_ON)
+    def test_true_inside_the_serving_rollout(self) -> None:
+        switch_org_to_per_org()
+
+        assert is_recalibration_factor_served_per_org(ORG_ID) is True
+
+    @override_options(SERVING_OFF)
+    def test_false_outside_the_serving_rollout(self) -> None:
+        switch_org_to_per_org()
+
+        assert is_recalibration_factor_served_per_org(ORG_ID) is False
+
+    @override_options(SERVING_ON)
+    def test_false_while_the_per_org_project_rates_are_cold(self) -> None:
+        assert is_recalibration_factor_served_per_org(ORG_ID) is False
+
+    @override_options({**SERVING_ON, "dynamic-sampling.per_org.killswitch": True})
+    def test_false_under_the_killswitch(self) -> None:
+        switch_org_to_per_org()
+
+        assert is_recalibration_factor_served_per_org(ORG_ID) is False
+
+    @override_options(SERVING_BY_ORG_ID)
+    def test_true_for_a_listed_org_at_a_rate_of_zero(self) -> None:
+        switch_org_to_per_org()
+
+        assert is_recalibration_factor_served_per_org(ORG_ID) is True
+
+    @override_options(SERVING_BY_ORG_ID)
+    def test_false_for_an_unlisted_org(self) -> None:
+        switch_org_to_per_org()
+
+        assert is_recalibration_factor_served_per_org(ORG_ID + 1) is False

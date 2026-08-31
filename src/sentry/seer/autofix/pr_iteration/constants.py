@@ -2,10 +2,38 @@
 
 from sentry.integrations.types import IntegrationProviderSlug
 
+# Automated CI iteration: a check suite fails, Seer is asked to fix it.
+ITERATION_FLAG = "organizations:autofix-pr-iteration"
+
+# Human-triggered iteration: the drawer feedback form, ``@sentry`` PR comments,
+# and PR reviews.
+MANUAL_FLAG = "organizations:autofix-pr-iteration-manual"
+
 # Draft-on-create, CI-green undraft, and review-request. Undraft requires
 # ``MarkPullRequestDraftStateProtocol`` which is GitHub-only today; other SCM
 # providers skip as unsupported until they grow that capability.
 REVIEW_REQUEST_FLAG = "organizations:autofix-pr-iteration-review-request"
+
+# Hand the PR to a human once automated iteration has spent its hard cap. Only
+# reachable after iteration has already run, so it never starts iteration.
+CAP_ASSIGN_FLAG = "organizations:autofix-pr-iteration-cap-assign"
+
+# We should only resolve check suites when certain features are enabled depending on the
+# status of the check suite
+#
+# Failing: automated iteration, the cap assign flag isn't included:
+# it modifies the hard cap behaviour which only applies after we know the org
+# has iteration enabled
+FAILING_CHECK_SUITE_FLAGS = (ITERATION_FLAG, MANUAL_FLAG)
+
+# Green: undraft + review-request, both under one flag -- plus the iteration
+# flags, because a green suite also releases feedback parked by an earlier
+# failing suite on the same head. That parking happens behind
+# ``FAILING_CHECK_SUITE_FLAGS``, so the same orgs must survive the green gate or
+# their parked feedback sits out the full deferral instead of starting on green.
+# ``green_review_side_effects_enabled`` still holds undraft / review-request to
+# ``REVIEW_REQUEST_FLAG`` alone.
+GREEN_CHECK_SUITE_FLAGS = (REVIEW_REQUEST_FLAG, *FAILING_CHECK_SUITE_FLAGS)
 
 # The only SCM provider PR iteration supports.
 #
