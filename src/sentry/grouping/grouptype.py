@@ -37,7 +37,9 @@ class ErrorDetectorHandler(BaseDetectorHandler[object, object, DataConditionGrou
         return None
 
     def evaluate_extracted_value(self, extracted_value: object) -> DataConditionGroupEvaluation:
-        return DataConditionGroupEvaluation(result=False, data={})
+        return DataConditionGroupEvaluation(
+            result=False, data={"condition_evaluations": [], "logic_type": "and"}, triggered=False
+        )
 
     def create_occurrence(
         self,
