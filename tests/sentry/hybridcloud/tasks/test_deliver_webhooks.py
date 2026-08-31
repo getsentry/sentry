@@ -50,6 +50,7 @@ CYCLE_METRIC = "hybridcloud.schedule_webhook_delivery.cycle"
 CARRYOVER_METRIC = "hybridcloud.schedule_webhook_delivery.carryover"
 CARRYOVER_ERROR_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.error"
 CARRYOVER_DROPPED_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.dropped"
+EXTRA_LANES_METRIC = "hybridcloud.schedule_webhook_delivery.extra_lanes"
 
 
 class MetricCallsMixin:
@@ -388,11 +389,13 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             schedule_for=claimed_for,
         )
 
-        outcome = _claim_and_dispatch(
+        result = _claim_and_dispatch(
             webhook.id, webhook.mailbox_name, dispatcher=Dispatcher.SCHEDULER
         )
 
-        assert outcome == "not_due"
+        assert result.outcome == "not_due"
+        assert result.next_start_id is None
+        assert result.claimed == 0
         mock_drain.delay.assert_not_called()
         mock_drain_parallel.delay.assert_not_called()
         webhook.refresh_from_db()
@@ -413,11 +416,13 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         )
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            outcome = _claim_and_dispatch(
+            result = _claim_and_dispatch(
                 webhook.id, webhook.mailbox_name, dispatcher=Dispatcher.SCHEDULER
             )
 
-        assert outcome == "sequential"
+        assert result.outcome == "sequential"
+        # Strict ordering: the mailbox admits no second lane behind this claim.
+        assert result.next_start_id is None
         mock_drain.delay.assert_called_once_with(
             payload_id=webhook.id,
             claimed_count=1,
@@ -846,6 +851,185 @@ class ScheduleCarryoverFloorTest(CarryoverTestBase):
 
         assert self.carryover() is None
         assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == [{}]
+
+
+def lane_options(max_lanes: int) -> dict[str, Any]:
+    """Due-head mode with a lane ceiling; lanes are only taken in that mode."""
+    return {**DUE_HEAD_OPTIONS, "hybridcloud.webhookpayload.max_drain_lanes": max_lanes}
+
+
+@control_silo_test
+class DrainLaneTest(MetricCallsMixin, TestCase):
+    """
+    A cycle claims in proportion to a mailbox's depth, so a mailbox holding a burst
+    is not capped at one claim while the fleet has capacity. `MAX_MAILBOX_DRAIN` is
+    patched small: what matters is depth in claims, not the production size.
+    """
+
+    def dispatched_claims(self, mock_drain: MagicMock) -> list[tuple[int, int]]:
+        """`(head id, claimed count)` of each drain dispatched, in dispatch order."""
+        return [
+            (call.kwargs["payload_id"], call.kwargs["claimed_count"])
+            for call in mock_drain.delay.call_args_list
+        ]
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @override_options(lane_options(4))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_deep_mailbox_dispatches_disjoint_lanes(self, mock_drain: MagicMock) -> None:
+        records = create_payloads(5, "github:123", provider="github")
+
+        schedule_webhook_delivery()
+
+        # ceil(5 / 2) lanes, each claiming where the one before it stopped.
+        assert self.dispatched_claims(mock_drain) == [
+            (records[0].id, 2),
+            (records[2].id, 2),
+            (records[4].id, 1),
+        ]
+        # Every record is claimed exactly once: the claims tile the mailbox.
+        for record in records:
+            record.refresh_from_db()
+            assert record.schedule_for > timezone.now()
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @override_options(lane_options(4))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_strict_provider_stays_single_lane(self, mock_drain: MagicMock) -> None:
+        # Jira is not skip-on-failure, so depth buys it nothing.
+        records = create_payloads(5, "jira:123", provider="jira")
+
+        schedule_webhook_delivery()
+
+        assert self.dispatched_claims(mock_drain) == [(records[0].id, 2)]
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_option_default_dispatches_one_lane(self, mock_drain: MagicMock) -> None:
+        assert options.get("hybridcloud.webhookpayload.max_drain_lanes") == 1
+        records = create_payloads(5, "github:123", provider="github")
+
+        schedule_webhook_delivery()
+
+        assert self.dispatched_claims(mock_drain) == [(records[0].id, 2)]
+        # The depth past the single claim waits for the next cycle, as it does today.
+        for record in records[2:]:
+            record.refresh_from_db()
+            assert record.schedule_for <= timezone.now()
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @override_options(lane_options(4))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_lanes_tile_only_the_due_records(self, mock_drain: MagicMock) -> None:
+        due = create_payloads(5, "github:123", provider="github")
+        in_flight = create_payloads(4, "github:123", provider="github")
+        held_until = timezone.now() + BATCH_SCHEDULE_OFFSET
+        WebhookPayload.objects.filter(id__in=[record.id for record in in_flight]).update(
+            schedule_for=held_until
+        )
+
+        schedule_webhook_delivery()
+
+        # Lanes tile the five due records: the claim reaching the in-flight range
+        # comes back short, which ends the chain.
+        assert self.dispatched_claims(mock_drain) == [
+            (due[0].id, 2),
+            (due[2].id, 2),
+            (due[4].id, 1),
+        ]
+        for record in in_flight:
+            record.refresh_from_db()
+            assert record.schedule_for == held_until
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @override_options(lane_options(4))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_carried_head_earns_the_same_lanes(self, mock_drain: MagicMock) -> None:
+        records = create_payloads(5, "github:123", provider="github")
+        # A carried head arrives without anything discovery measured.
+        cache.set(
+            deliver_webhooks.CARRYOVER_CACHE_KEY,
+            [{"id": records[0].id, "mailbox_name": "github:123"}],
+            timeout=deliver_webhooks.CARRYOVER_TTL,
+        )
+
+        schedule_webhook_delivery()
+
+        # Depth comes off the claims, so it earns what a fresh head would.
+        assert self.dispatched_claims(mock_drain) == [
+            (records[0].id, 2),
+            (records[2].id, 2),
+            (records[4].id, 1),
+        ]
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @override_options(lane_options(2))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_lane_one_reaches_every_mailbox_first(self, mock_drain: MagicMock) -> None:
+        first = create_payloads(4, "github:123", provider="github")
+        second = create_payloads(4, "github:456", provider="github")
+
+        schedule_webhook_delivery()
+
+        # Breadth-first: no second lane until both have had a first, so one deep
+        # mailbox cannot spend the cycle ahead of the others.
+        assert self.dispatched_claims(mock_drain) == [
+            (first[0].id, 2),
+            (second[0].id, 2),
+            (first[2].id, 2),
+            (second[2].id, 2),
+        ]
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 2)
+    @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+    @override_options(lane_options(4))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_dispatch_budget_stops_extra_lanes(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        first = create_payloads(4, "github:123", provider="github")
+        second = create_payloads(4, "github:456", provider="github")
+
+        schedule_webhook_delivery()
+
+        # Both earn a second lane; the budget is spent on their firsts.
+        assert self.dispatched_claims(mock_drain) == [(first[0].id, 2), (second[0].id, 2)]
+        assert self.distribution_calls(mock_metrics, EXTRA_LANES_METRIC) == [
+            (0, {"provider": "github"})
+        ]
+
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 1)
+    @override_options(lane_options(8))
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_lane_chain_stops_at_a_claim_that_reserves_nothing(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        records = create_payloads(6, "github:123", provider="github")
+        backoff = records[3]
+        backoff_schedule = timezone.now() + timedelta(minutes=1)
+        WebhookPayload.objects.filter(id=backoff.id).update(schedule_for=backoff_schedule)
+
+        schedule_webhook_delivery()
+
+        # The backing-off record bounds the chain: the lane reaching it claims
+        # nothing and the mailbox stops there.
+        assert self.dispatched_claims(mock_drain) == [
+            (records[0].id, 1),
+            (records[1].id, 1),
+            (records[2].id, 1),
+        ]
+        assert self.distribution_calls(mock_metrics, EXTRA_LANES_METRIC) == [
+            (2, {"provider": "github"})
+        ]
+        backoff.refresh_from_db()
+        assert backoff.schedule_for == backoff_schedule
+        # Records behind the backoff wait rather than be claimed out of order.
+        for record in records[4:]:
+            record.refresh_from_db()
+            assert record.schedule_for <= timezone.now()
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:

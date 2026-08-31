@@ -2626,6 +2626,15 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# How many concurrent claims — lanes — a scheduler cycle may dispatch for one
+# mailbox, letting a deep mailbox burn down proportionally instead of one claim's
+# worth per cycle. Only skip-on-failure providers in due-head mode take more than
+# one. 1 is the pre-existing behavior: one dispatch per due mailbox per cycle.
+register(
+    "hybridcloud.webhookpayload.max_drain_lanes",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Drops GitHub check webhooks that reference no pull request based in their own
 # repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
 # rather than a header, so it keeps a switch: setting this false stops the drop

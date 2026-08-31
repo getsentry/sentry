@@ -254,6 +254,12 @@ class _MailboxClaim:
     """
     The records one claim reserved, and the context its drain works them under.
 
+    `head_id` is the first record claimed, not where the scan started: a lane scans
+    from the previous lane's boundary, which is rarely a record's own id.
+
+    `next_start_id` is one past the last record claimed, or None when no lane may
+    follow — as on every strict-ordering claim.
+
     `valid_until` is stored rather than re-derived, so it names exactly when the
     records come due for other dispatchers again.
     """
@@ -263,6 +269,7 @@ class _MailboxClaim:
     mailbox_name: str
     dispatcher: str | None
     valid_until: datetime.datetime
+    next_start_id: int | None = None
 
     @property
     def provider(self) -> str:
@@ -395,20 +402,26 @@ def _claim_mailbox_batch(
     head_id: int, mailbox_name: str, *, dispatcher: Dispatcher
 ) -> _MailboxClaim | None:
     """
-    Claim up to MAX_MAILBOX_DRAIN records at the head of the mailbox by scheduling
-    them past the drain deadline. The UPDATE gates on the head still being due, so
-    a lost race claims nothing and returns None.
+    Claim up to MAX_MAILBOX_DRAIN records from `head_id` forward by scheduling them
+    past the drain deadline. The UPDATE gates on the claim's own head still being
+    due, so a lost race claims nothing and returns None.
 
     In due-head mode the claim stops at the first not-due record, which is what
     keeps concurrent drains apart: an in-flight drain's records carry a future
     schedule_for, so a claim starting behind it ends before its range, and a
     backoff record keeps its backoff.
+
+    `head_id` is the mailbox's due head for a cycle's first claim on it, and the
+    previous lane's boundary after that (see `_dispatch_extra_lanes`). Because that
+    boundary need not be a record, the due gate re-checks the first record the
+    claim actually covers rather than `head_id` itself.
     """
     valid_until = timezone.now() + BATCH_SCHEDULE_OFFSET
     window = WebhookPayload.objects.filter(id__gte=head_id, mailbox_name=mailbox_name).order_by(
         "id"
     )
     claimed_ids: list[int] | Subquery
+    next_start_id: int | None
     if _dispatches_from_due_head(mailbox_name):
         now = timezone.now()
         prefix_ids: list[int] = []
@@ -419,9 +432,15 @@ def _claim_mailbox_batch(
         if not prefix_ids:
             return None
         claimed_ids = prefix_ids
+        claim_head_id = prefix_ids[0]
+        next_start_id = prefix_ids[-1] + 1
     else:
         claimed_ids = Subquery(window.values("id")[:MAX_MAILBOX_DRAIN])
-    head_due = WebhookPayload.objects.filter(id=head_id, schedule_for__lte=timezone.now())
+        claim_head_id = head_id
+        # A strict-ordering mailbox runs one drain at a time by design: the records
+        # behind this claim must not move until it has been delivered in order.
+        next_start_id = None
+    head_due = WebhookPayload.objects.filter(id=claim_head_id, schedule_for__lte=timezone.now())
     claimed = (
         WebhookPayload.objects.filter(id__in=claimed_ids)
         .filter(Exists(head_due))
@@ -431,7 +450,8 @@ def _claim_mailbox_batch(
         return None
     return _MailboxClaim(
         claimed=claimed,
-        head_id=head_id,
+        head_id=claim_head_id,
+        next_start_id=next_start_id,
         mailbox_name=mailbox_name,
         dispatcher=dispatcher,
         valid_until=valid_until,
@@ -479,18 +499,31 @@ def _record_dispatch(
     metrics.distribution("hybridcloud.deliver_webhooks.dispatch.claimed", claimed, tags=tags)
 
 
+class _DispatchResult(NamedTuple):
+    """
+    What `_claim_and_dispatch` did: the drain's mode, where a following lane may
+    claim from (None when none may), and how many records it claimed.
+
+    `claimed` is the mailbox's depth signal — see `_has_more_to_claim`.
+    """
+
+    outcome: DispatchOutcome
+    next_start_id: int | None
+    claimed: int
+
+
 def _claim_and_dispatch(
     head_id: int, mailbox_name: str, *, dispatcher: Dispatcher
-) -> DispatchOutcome:
+) -> _DispatchResult:
     """
     Claim a batch for the mailbox and dispatch the drain matching its depth.
     Callers must hold the mailbox's drain lock so concurrent dispatchers cannot
     interleave around the claim.
 
-    Returns the dispatched drain's mode, or NOT_DUE when the head has already
-    been claimed, delivered, or moved into a retry backoff. Dispatchers discover
-    mailbox heads outside the drain lock, so the due-gate inside the claim is
-    what stops two of them from double-dispatching the same head.
+    The outcome is NOT_DUE when the head has already been claimed, delivered, or
+    moved into a retry backoff. Dispatchers discover mailbox heads outside the
+    drain lock, so the due-gate inside the claim is what stops two of them from
+    double-dispatching the same head.
 
     The drain is bounded to the claimed records (`claimed_count`). Without the
     bound a fast drain walks past its claim into unclaimed rows, at which point
@@ -502,7 +535,7 @@ def _claim_and_dispatch(
     """
     claim = _claim_mailbox_batch(head_id, mailbox_name, dispatcher=dispatcher)
     if claim is None:
-        return DispatchOutcome.NOT_DUE
+        return _DispatchResult(outcome=DispatchOutcome.NOT_DUE, next_start_id=None, claimed=0)
     if claim.claimed >= PARALLEL_DRAIN_THRESHOLD:
         drain_mailbox_parallel.delay(**claim.task_args())
         outcome = DispatchOutcome.PARALLEL
@@ -515,7 +548,9 @@ def _claim_and_dispatch(
         mailbox_name=mailbox_name,
         claimed=claim.claimed,
     )
-    return outcome
+    return _DispatchResult(
+        outcome=outcome, next_start_id=claim.next_start_id, claimed=claim.claimed
+    )
 
 
 def maybe_trigger_drain(mailbox_name: str) -> None:
@@ -558,7 +593,8 @@ def maybe_trigger_drain(mailbox_name: str) -> None:
             # backoff — the scheduler covers it when schedule_for comes due.
             metrics.incr("hybridcloud.deliver_webhooks.push_trigger.backoff", tags=trigger_tags)
             return
-        outcome = _claim_and_dispatch(head[0], mailbox_name, dispatcher=Dispatcher.PUSH)
+        # A push trigger claims for one drain; depth behind it is the scheduler's.
+        outcome = _claim_and_dispatch(head[0], mailbox_name, dispatcher=Dispatcher.PUSH).outcome
         if outcome is DispatchOutcome.NOT_DUE:
             # The head moved between our read and the claim; whoever moved it has
             # the mailbox covered.
@@ -742,6 +778,79 @@ def _clear_carryover() -> None:
         )
 
 
+def _has_more_to_claim(result: _DispatchResult, mailbox_name: str) -> bool:
+    """
+    Whether this mailbox has more due work to hand another lane.
+
+    A claim stops at MAX_MAILBOX_DRAIN or at the first not-due record, so one that
+    filled its cap left more behind and a short one drained what was due. That also
+    self-throttles: an in-flight lane's records are not due, so the claim behind
+    them comes back short.
+
+    Lanes past the first are due-head mode only — strict providers tolerate neither
+    the reordering nor the concurrent claims.
+    """
+    return result.claimed >= MAX_MAILBOX_DRAIN and _dispatches_from_due_head(mailbox_name)
+
+
+@dataclasses.dataclass
+class _LaneChain:
+    """
+    A mailbox still handing out lanes: where the next claims from, and how many the
+    cycle's cap leaves it. `remaining` is only that cap — a short claim is what
+    actually ends a chain.
+    """
+
+    mailbox_name: str
+    start_id: int
+    remaining: int
+
+
+def _dispatch_extra_lanes(chains: Sequence[_LaneChain], *, budget: int) -> None:
+    """
+    Dispatch the lanes past each mailbox's first, breadth-first.
+
+    Every mailbox gets a first lane from `schedule_webhook_delivery` before any
+    gets a second; each round here hands out one more per mailbox in priority
+    order, out of whatever `budget` that pass left. A short claim ends that
+    mailbox's chain, showing up as extra_lanes under the cap rather than a skip.
+    """
+    extra_lanes = {_provider_from_mailbox(chain.mailbox_name): 0 for chain in chains}
+    dispatched = 0
+    active = list(chains)
+    while active and dispatched < budget:
+        next_round: list[_LaneChain] = []
+        for chain in active:
+            if dispatched >= budget:
+                break
+            guard = _acquire_drain_guard(chain.mailbox_name)
+            if guard is False:
+                # Another dispatcher is mid-claim here; leave the depth to it.
+                continue
+            try:
+                result = _claim_and_dispatch(
+                    chain.start_id, chain.mailbox_name, dispatcher=Dispatcher.SCHEDULER
+                )
+            finally:
+                if guard:
+                    _release_drain_lock(chain.mailbox_name)
+            if result.outcome is DispatchOutcome.NOT_DUE or result.next_start_id is None:
+                continue
+            dispatched += 1
+            extra_lanes[_provider_from_mailbox(chain.mailbox_name)] += 1
+            chain.start_id = result.next_start_id
+            chain.remaining -= 1
+            if chain.remaining and _has_more_to_claim(result, chain.mailbox_name):
+                next_round.append(chain)
+        active = next_round
+    for provider, lanes in extra_lanes.items():
+        metrics.distribution(
+            "hybridcloud.schedule_webhook_delivery.extra_lanes",
+            lanes,
+            tags={"provider": provider},
+        )
+
+
 @instrumented_task(
     name="sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
     namespace=hybridcloud_control_tasks,
@@ -750,22 +859,18 @@ def _clear_carryover() -> None:
 )
 def schedule_webhook_delivery() -> None:
     """
-    Find mailboxes that contain undelivered webhooks that were scheduled
-    to be delivered now or in the past.
+    Find mailboxes holding undelivered webhooks due now or earlier, and dispatch a
+    drain for each in provider-priority order.
 
-    Prioritizes webhooks based on provider importance.
+    Discovery aggregates the whole table on a fixed short interval, so a cycle that
+    finds more due heads than it can dispatch hands the surplus to the next one
+    rather than rediscovering it. A carried head costs at most one wasted claim —
+    `_claim_and_dispatch` gates on it still being due — and mailboxes arriving
+    meanwhile are covered by their push trigger.
 
-    Discovery aggregates the whole table, so its cost grows with the backlog while
-    it runs on a fixed short interval. A cycle that discovers more due heads than
-    it can dispatch therefore hands the surplus to the next cycle instead of
-    discarding it, and only a cycle that starts with nothing carried over pays for
-    discovery — the deeper the backlog, the more of that scan is spared.
-
-    A carried head may be stale by the time it is dispatched, which costs at most
-    one claim attempt: `_claim_and_dispatch` gates every dispatch on the head still
-    being due, so a head claimed, delivered, or backed off since discovery claims 0
-    rows and is skipped. Mailboxes that arrive while a surplus is being spent are
-    dispatched by their push trigger; the ones with none wait for it to drain.
+    Dispatches in two passes: one claim per due mailbox, then the extra lanes deep
+    mailboxes earned (see `_has_more_to_claim`). Every mailbox is served before any
+    is served twice.
 
     Triggered frequently by task-scheduler.
     """
@@ -788,6 +893,9 @@ def schedule_webhook_delivery() -> None:
 
     dispatched = 0
     surplus: list[dict[str, Any]] = []
+    lane_chains: list[_LaneChain] = []
+    # Read once so every mailbox in the cycle is sized against the same cap.
+    max_lanes = options.get("hybridcloud.webhookpayload.max_drain_lanes")
     for index, record in enumerate(records):
         if dispatched >= BATCH_SIZE:
             # Dispatch target reached; the heads this cycle never reached go to the
@@ -807,21 +915,32 @@ def schedule_webhook_delivery() -> None:
         # A None guard is a cache outage. Claims still keep dispatchers apart across
         # cycles, so proceed — just unserialized against push triggers.
         try:
-            outcome = _claim_and_dispatch(
+            result = _claim_and_dispatch(
                 record["id"], mailbox_name, dispatcher=Dispatcher.SCHEDULER
             )
         finally:
             if guard:
                 _release_drain_lock(mailbox_name)
-        if outcome is DispatchOutcome.NOT_DUE:
+        if result.outcome is DispatchOutcome.NOT_DUE:
             # Claimed out of the list between discovery and here, usually by a
             # push trigger.
             metrics.incr(
                 "hybridcloud.deliver_webhooks.scheduler.skipped",
                 tags={**skip_tags, "reason": "claim_lost"},
             )
-        else:
-            dispatched += 1
+            continue
+        dispatched += 1
+        next_start_id = result.next_start_id
+        if max_lanes > 1 and next_start_id is not None and _has_more_to_claim(result, mailbox_name):
+            lane_chains.append(
+                _LaneChain(
+                    mailbox_name=mailbox_name,
+                    start_id=next_start_id,
+                    remaining=max_lanes - 1,
+                )
+            )
+
+    _dispatch_extra_lanes(lane_chains, budget=BATCH_SIZE - dispatched)
 
     # A carryover displaces the next cycle's discovery, so a short surplus costs it
     # the rest of its dispatch budget — below half a batch that outweighs the scan
