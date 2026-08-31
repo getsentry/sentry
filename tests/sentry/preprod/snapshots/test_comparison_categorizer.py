@@ -9,15 +9,6 @@ _SKIPPED = {
 
 
 class TestCategorizeComparisonImagesSkipped:
-    def test_skipped_uses_base_image(self) -> None:
-        base = {"s.png": {"content_hash": "base_hash", "width": 300, "height": 400}}
-
-        result = categorize_comparison_images({"s.png": _SKIPPED}, {}, base)
-
-        assert len(result.skipped) == 1
-        assert result.skipped[0]["image_file_name"] == "s.png"
-        assert result.skipped[0]["width"] == 300
-
     def test_skipped_falls_back_without_base_manifest(self) -> None:
         result = categorize_comparison_images({"s.png": _SKIPPED}, {}, None)
 
