@@ -66,6 +66,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.tracing import get_current_span, set_span_tag, trace
 
 
@@ -588,27 +589,59 @@ class SearchResolver:
             resolved_term, _ = self._resolve_term(term)
             return resolved_term
 
-        # Build raw-key filters (no VCC): values are already remapped storage codes.
-        convention_filter = self._device_class_raw_key_filter(term, convention_column, raw_values)
-        legacy_filter = self._device_class_raw_key_filter(term, legacy_column, raw_values)
+        is_unknown = raw_values == "" or raw_values == [] or raw_values == [""]
+        is_negated = term.operator in ("!=", "NOT IN")
+
+        # Unknown means neither storage key holds a known class code (matches VCC
+        # coalesce: missing/empty/other → Unknown). Concrete values dual-read with
+        # OR, and De Morgan AND on negation.
+        if is_unknown:
+            convention_filter = self._device_class_unknown_key_filter(convention_column, is_negated)
+            legacy_filter = self._device_class_unknown_key_filter(legacy_column, is_negated)
+            combine_with_and = not is_negated
+        else:
+            convention_filter = self._device_class_raw_key_filter(
+                term, convention_column, raw_values
+            )
+            legacy_filter = self._device_class_raw_key_filter(term, legacy_column, raw_values)
+            combine_with_and = is_negated
+
         if convention_filter is None:
             resolved_term, _ = self._resolve_term(term)
             return resolved_term
         if legacy_filter is None:
             return convention_filter
 
-        # Dual-read must follow De Morgan relative to the positive match:
-        # - concrete value: match if either key equals → OR; negate with AND
-        # - Unknown (""): unknown only if both keys missing/empty → AND; negate with OR
-        is_unknown = raw_values == "" or raw_values == [] or raw_values == [""]
-        is_negated = term.operator in ("!=", "NOT IN")
-        combine_with_and = (not is_unknown and is_negated) or (is_unknown and not is_negated)
         combined = (
             and_trace_item_filters(convention_filter, legacy_filter)
             if combine_with_and
             else or_trace_item_filters(convention_filter, legacy_filter)
         )
         return combined if combined is not None else convention_filter
+
+    def _device_class_known_codes(self) -> list[str]:
+        return sorted({code for values in DEVICE_CLASS.values() for code in values})
+
+    def _device_class_unknown_key_filter(
+        self,
+        column: ResolvedAttribute,
+        is_negated: bool,
+    ) -> TraceItemFilter | None:
+        """Unknown on one storage key: not a known class code (or the inverse)."""
+        if not isinstance(column.proto_definition, AttributeKey):
+            return None
+
+        known_codes = self._device_class_known_codes()
+        # !Unknown → key IN known codes; Unknown → key NOT IN known codes.
+        # Missing attributes satisfy NOT IN, so empty/missing count as Unknown.
+        operator = "IN" if is_negated else "NOT IN"
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=column.proto_definition,
+                op=constants.OPERATOR_MAP[operator],
+                value=self._resolve_search_value(column, operator, known_codes),
+            )
+        )
 
     def _device_class_raw_key_filter(
         self,
@@ -623,34 +656,6 @@ class SearchResolver:
         if term.operator not in constants.OPERATOR_MAP:
             return None
         operator = constants.OPERATOR_MAP[term.operator]
-
-        # Unknown / empty maps to "". Match missing attribute OR empty string.
-        if raw_values == "" or raw_values == [] or raw_values == [""]:
-            exists_filter = TraceItemFilter(exists_filter=ExistsFilter(key=column.proto_definition))
-            empty_filter = TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=column.proto_definition,
-                    op=ComparisonFilter.OP_EQUALS,
-                    value=self._resolve_search_value(column, "=", ""),
-                )
-            )
-            if term.operator == "=":
-                # Unknown: attribute missing OR explicitly empty.
-                not_exists = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
-                combined = or_trace_item_filters(not_exists, empty_filter)
-                return combined if combined is not None else not_exists
-            if term.operator == "!=":
-                # Not unknown: attribute present AND not empty.
-                not_empty = TraceItemFilter(
-                    comparison_filter=ComparisonFilter(
-                        key=column.proto_definition,
-                        op=ComparisonFilter.OP_NOT_EQUALS,
-                        value=self._resolve_search_value(column, "!=", ""),
-                    )
-                )
-                combined = and_trace_item_filters(exists_filter, not_empty)
-                return combined if combined is not None else exists_filter
-            return None
 
         return TraceItemFilter(
             comparison_filter=ComparisonFilter(

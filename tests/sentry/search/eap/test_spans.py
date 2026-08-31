@@ -212,29 +212,17 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_device_class_filter_dual_reads_unknown_ands_storage_keys(self) -> None:
-        """device.class:Unknown only when both storage keys are missing or empty."""
+        """device.class:Unknown when neither storage key holds a known class code."""
         where, having, contexts = self.resolver.resolve_query("device.class:Unknown")
         assert having is None
         assert all(context is None for context in contexts)
 
         def unknown_side(name: str) -> TraceItemFilter:
-            key = AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING)
             return TraceItemFilter(
-                or_filter=OrFilter(
-                    filters=[
-                        TraceItemFilter(
-                            not_filter=NotFilter(
-                                filters=[TraceItemFilter(exists_filter=ExistsFilter(key=key))]
-                            )
-                        ),
-                        TraceItemFilter(
-                            comparison_filter=ComparisonFilter(
-                                key=key,
-                                op=ComparisonFilter.OP_EQUALS,
-                                value=AttributeValue(val_str=""),
-                            )
-                        ),
-                    ]
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING),
+                    op=ComparisonFilter.OP_NOT_IN,
+                    value=AttributeValue(val_str_array=StrArray(values=["1", "2", "3"])),
                 )
             )
 
@@ -248,25 +236,17 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_device_class_filter_dual_reads_not_unknown_ors_storage_keys(self) -> None:
-        """!device.class:Unknown matches if either storage key is present and non-empty."""
+        """!device.class:Unknown matches if either storage key holds a known class code."""
         where, having, contexts = self.resolver.resolve_query("!device.class:Unknown")
         assert having is None
         assert all(context is None for context in contexts)
 
         def not_unknown_side(name: str) -> TraceItemFilter:
-            key = AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING)
             return TraceItemFilter(
-                and_filter=AndFilter(
-                    filters=[
-                        TraceItemFilter(exists_filter=ExistsFilter(key=key)),
-                        TraceItemFilter(
-                            comparison_filter=ComparisonFilter(
-                                key=key,
-                                op=ComparisonFilter.OP_NOT_EQUALS,
-                                value=AttributeValue(val_str=""),
-                            )
-                        ),
-                    ]
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name=name, type=AttributeKey.Type.TYPE_STRING),
+                    op=ComparisonFilter.OP_IN,
+                    value=AttributeValue(val_str_array=StrArray(values=["1", "2", "3"])),
                 )
             )
 
