@@ -49,6 +49,20 @@ describe('withGlobalFilterFallback', () => {
     expect(expand('os.name:[Android]', 'os.name')).toBe('os.name:[Android]');
   });
 
+  // The clause is rebuilt by slicing off `filterToken.key.text`, which includes any
+  // bracket or type syntax, so explicit tag keys survive the swap.
+  it('handles explicit tag keys', () => {
+    expect(
+      withGlobalFilterFallback(
+        filtersFor('tags[custom_tag]:[foo,bar]', 'tags[custom_tag]'),
+        {
+          attribute: 'tags[custom_tag]',
+          fallbackAttribute: 'transaction',
+        }
+      )?.globalFilter?.[0]?.value
+    ).toBe('(tags[custom_tag]:[foo,bar] OR transaction:[foo,bar])');
+  });
+
   it('does not widen negated or has: filters', () => {
     expect(expand('!app.vitals.start.screen:[MainActivity]')).toBe(
       '!app.vitals.start.screen:[MainActivity]'
