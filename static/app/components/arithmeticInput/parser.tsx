@@ -11,7 +11,6 @@ const MAX_OPERATOR_MESSAGE = t('Maximum operators exceeded');
 type OperationOpts = {
   operator: Operator;
   rhs: Expression;
-  lhs?: Expression;
 };
 
 type Operator = 'plus' | 'minus' | 'multiply' | 'divide';
@@ -22,9 +21,9 @@ export class Operation {
   lhs?: Expression;
   rhs: Expression;
 
-  constructor({operator, lhs = null, rhs}: OperationOpts) {
+  constructor({operator, rhs}: OperationOpts) {
     this.operator = operator;
-    this.lhs = lhs;
+    this.lhs = null;
     this.rhs = rhs;
   }
 }
