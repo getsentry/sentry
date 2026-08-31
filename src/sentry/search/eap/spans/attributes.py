@@ -873,7 +873,10 @@ SPAN_VIRTUAL_CONTEXTS = {
         filter_column="device.class",
         # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
         default_value="Unknown",
-        sort_column="device.class",
+        # Sort on the dual-written raw codes, not the VCC target. When from==to
+        # (device.class), ordering by device.class sorts mapped labels alphabetically
+        # (medium > low > high). sentry.device.class stays unmapped numeric codes.
+        sort_column="sentry.device.class",
         search_type="string",
     ),
     "span.module": VirtualColumnDefinition(
