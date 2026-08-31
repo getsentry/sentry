@@ -133,11 +133,10 @@ def repos_with_failed_tool_calls(blocks: Iterable[MemoryBlock]) -> set[str]:
     `repo_name` as a required arg. A failed non-repo tool yields no repo.
     """
     repos: set[str] = set()
-    for block in blocks:
-        for call in _failed_tool_calls(block):
-            repo_name = _repo_name_from_tool_call(call)
-            if repo_name:
-                repos.add(repo_name)
+    for call in failed_tool_calls(blocks):
+        repo_name = _repo_name_from_tool_call(call)
+        if repo_name:
+            repos.add(repo_name)
     return repos
 
 
