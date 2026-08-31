@@ -732,7 +732,7 @@ export function IssuePreviewActions({
   onRetryCodeChanges,
   project,
 }: IssuePreviewActionsProps) {
-  const {autofix, isLoading, shouldShowSeerActions} = useIssuePreviewSeer(group, project);
+  const {autofix, isLoading, shouldShowSeerActions} = useIssuePreviewSeer();
 
   if (shouldShowFixAppliedActions(group, project)) {
     return <FixAppliedActions disabled={disabled} group={group} project={project} />;

@@ -50,6 +50,7 @@ import {
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
+  IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
@@ -134,7 +135,9 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
         {group && project && (
           <GroupDataContextProvider group={group} project={project}>
             <ErrorBoundary mini>
-              <IssuePreviewContent />
+              <IssuePreviewSeerProvider group={group} project={project}>
+                <IssuePreviewContent />
+              </IssuePreviewSeerProvider>
             </ErrorBoundary>
           </GroupDataContextProvider>
         )}
@@ -147,7 +150,7 @@ function IssuePreviewContent() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {group, project} = useGroupData();
-  const previewSeer = useIssuePreviewSeer(group, project);
+  const previewSeer = useIssuePreviewSeer();
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
