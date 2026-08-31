@@ -1,4 +1,4 @@
-import {Fragment, type Ref} from 'react';
+import type {Ref} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -555,34 +555,31 @@ export function AssigneeSelectorDropdown({
 
   const makeTrigger = ({children: _, ref, ...props}: TriggerProps) => {
     return (
-      <Fragment>
-        {loading && (
-          <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
-            <LoadingIndicator mini relative size={24} style={{height: 24, margin: 0}} />
-            {showLabel && <Text ellipsis>{t('Loading…')}</Text>}
-          </AssigneeAvatarContent>
-        )}
-        {!loading && (
-          <Button
-            {...props}
-            aria-label={t('Modify issue assignee')}
-            data-test-id="assignee-selector"
-            icon={
-              <AssigneeAvatar
-                assignedTo={group.assignedTo}
-                assignmentDetails={assignmentDetails}
-                showLabel={showLabel}
-                suggestedActors={getSuggestedAssignees()}
-              />
-            }
-            ref={ref as Ref<HTMLButtonElement>}
-            size="zero"
-            variant="secondary"
-          >
-            {null}
-          </Button>
-        )}
-      </Fragment>
+      <Button
+        {...props}
+        aria-label={t('Modify issue assignee')}
+        data-test-id="assignee-selector"
+        icon={
+          loading ? (
+            <AssigneeAvatarContent align="center" gap="sm" wrap="nowrap">
+              <LoadingIndicator mini relative size={24} style={{height: 24, margin: 0}} />
+              {showLabel && <Text ellipsis>{t('Loading…')}</Text>}
+            </AssigneeAvatarContent>
+          ) : (
+            <AssigneeAvatar
+              assignedTo={group.assignedTo}
+              assignmentDetails={assignmentDetails}
+              showLabel={showLabel}
+              suggestedActors={getSuggestedAssignees()}
+            />
+          )
+        }
+        ref={ref as Ref<HTMLButtonElement>}
+        size="zero"
+        variant="secondary"
+      >
+        {null}
+      </Button>
     );
   };
 
