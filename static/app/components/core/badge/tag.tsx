@@ -118,15 +118,14 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
 }
 
 const Text = styled('div')`
+  /* text-overflow only takes effect on a block container, so the label cannot be
+     a flex box. TagPill already centers it, and the occurrences that pass
+     elements rather than a string bring their own layout. */
+  display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
-
-  /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
 `;
 
 const IconWrapper = styled('span')`
