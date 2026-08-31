@@ -29,11 +29,7 @@ function NoFeedback() {
       align="center"
       justify="center"
       illustration={
-        <Image
-          width="auto"
-          src={waitingForEventImg}
-          alt={t('A person waiting for a phone to ring')}
-        />
+        <Image src={waitingForEventImg} alt={t('A person waiting for a phone to ring')} />
       }
       title={t('Inbox Zero')}
       description={t('You have two options: take a nap or be productive.')}
