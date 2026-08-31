@@ -164,30 +164,9 @@ function readLocation(route: RouteIdentity | null): LLMContextLocation | undefin
 function serializeState(
   state: LLMContextState,
   nodeData: Map<string, unknown>,
-  route: RouteIdentity | null,
-  fromNodeId?: string
+  route: RouteIdentity | null
 ): LLMContextSnapshot {
   const location = readLocation(route);
-  if (fromNodeId) {
-    const node = state.nodes.get(fromNodeId);
-    if (!node) {
-      return {version: state.version, nodes: [], location};
-    }
-    const raw = nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {};
-    const {priority, data} = extractPriorityAndData(raw);
-    return {
-      version: state.version,
-      nodes: [
-        {
-          nodeType: node.nodeType,
-          priority,
-          data,
-          children: buildTree(state.nodes, nodeData, fromNodeId),
-        },
-      ],
-      location,
-    };
-  }
   return {
     version: state.version,
     nodes: buildTree(state.nodes, nodeData, undefined),
@@ -218,12 +197,11 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     routeRef.current = route;
   }, []);
 
-  const getSnapshot = useCallback((fromNodeId?: string): LLMContextSnapshot => {
+  const getSnapshot = useCallback((): LLMContextSnapshot => {
     return serializeState(
       stateRef.current,
       nodeDataRef.current,
-      routeRef.current,
-      fromNodeId
+      routeRef.current
     );
   }, []);
 
@@ -310,15 +288,14 @@ export function useLLMContext(data: {} | null): void;
  *
  *   const { getLLMContext } = useLLMContext();
  *   getLLMContext()      // full tree from root
- *   getLLMContext(true)  // current component's subtree only
  */
 export function useLLMContext(): {
-  getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
+  getLLMContext: () => LLMContextSnapshot;
 };
 
 export function useLLMContext(
   data?: unknown
-): void | {getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot} {
+): void | {getLLMContext: () => LLMContextSnapshot} {
   const ctx = useLLMContextRegistry();
   const nodeId = useContext(LLMNodeContext);
   const prevDataRef = useRef('');
@@ -350,15 +327,9 @@ export function useLLMContext(
 
   // Read path: always created so hooks run unconditionally.
   // Only returned when called without data.
-  const getLLMContext = useCallback(
-    (componentOnly?: boolean): LLMContextSnapshot => {
-      if (componentOnly && nodeId) {
-        return ctx.getSnapshot(nodeId);
-      }
-      return ctx.getSnapshot();
-    },
-    [ctx, nodeId]
-  );
+  const getLLMContext = useCallback((): LLMContextSnapshot => {
+    return ctx.getSnapshot();
+  }, [ctx]);
 
   if (data === undefined) {
     return {getLLMContext};
