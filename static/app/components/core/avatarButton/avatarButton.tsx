@@ -423,18 +423,43 @@ function loadImageElement(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
+// Avatar URLs are absolute, built from the `system.url-prefix` option on the
+// backend — in local dev that's plain http, but self-uploaded avatars can
+// still come back as https (e.g. when url-prefix is configured/cached as
+// https, or the option drifts from the page's own scheme). When that happens
+// for what is otherwise our own host, the request becomes cross-origin for
+// no reason other than a scheme mismatch, and depends on CORS negotiation
+// that plain same-origin requests never need. Coerce it back to the page's
+// real origin (scheme + host + port) so it's a genuine same-origin request.
+// Truly cross-origin URLs (e.g. gravatar.com) are left untouched.
+function toPageOriginIfSameHost(url: string): string {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (
+      parsed.hostname === window.location.hostname &&
+      parsed.protocol !== window.location.protocol
+    ) {
+      return `${window.location.origin}${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 async function fetchAvatarColor(
   url: string
 ): Promise<ReturnType<typeof sampleAvatarColor> | null> {
   // Fetch the image bytes ourselves and draw from an object URL rather than
   // pointing an <img crossorigin="anonymous"> tag directly at `url`. Object
-  // URLs are always same-origin for canvas tainting purposes, so this reads
-  // pixel data reliably regardless of how the avatar endpoint's CORS headers
-  // behave for the current origin/protocol (e.g. plain http in local dev vs
-  // https in production).
+  // URLs are always same-origin for canvas tainting purposes, so once we
+  // have the bytes, reading pixel data can never taint the canvas.
   let objectUrl: string | undefined;
   try {
-    const response = await fetch(url, {mode: 'cors', credentials: 'omit'});
+    const response = await fetch(toPageOriginIfSameHost(url), {
+      mode: 'cors',
+      credentials: 'omit',
+    });
     if (!response.ok) {
       return null;
     }
