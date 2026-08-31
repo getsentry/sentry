@@ -17,7 +17,7 @@ const allVariants: Array<ButtonProps['variant']> = [
   'transparent',
 ];
 
-const allSizes: Array<ButtonProps['size']> = ['zero', 'xs', 'sm', 'md'];
+const allSizes = ['zero', 'xs', 'sm', 'md'] as const;
 
 describe('Button', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
