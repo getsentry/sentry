@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
@@ -11,13 +12,20 @@ from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 
 
-def make_request(*, auth=None, user=None, user_agent=None, headers=None) -> Request:
+def make_request(
+    *,
+    auth: Any = None,
+    user: Any = None,
+    user_agent: str | None = None,
+    headers: dict[str, str] | None = None,
+) -> Request:
     request = Request(RequestFactory().get("/", headers=headers or {}))
     if user_agent is not None:
         request.META["HTTP_USER_AGENT"] = user_agent
-    request._authenticator = None
-    request._auth = auth
-    request._user = user if user is not None else AnonymousUser()
+    # Assigning both short-circuits the lazy authentication the getters would
+    # otherwise run, so the request arrives pre-authenticated.
+    request.user = user if user is not None else AnonymousUser()
+    request.auth = auth
     return request
 
 
@@ -25,8 +33,8 @@ def session_user(*, is_sentry_app: bool = False) -> SimpleNamespace:
     return SimpleNamespace(is_authenticated=True, is_sentry_app=is_sentry_app)
 
 
-def api_token(**kwargs) -> AuthenticatedToken:
-    return AuthenticatedToken(kind="api_token", user_id=1, **kwargs)
+def api_token(*, application_id: int | None = None) -> AuthenticatedToken:
+    return AuthenticatedToken(kind="api_token", user_id=1, application_id=application_id)
 
 
 def test_session_auth_is_frontend() -> None:
@@ -64,9 +72,8 @@ def test_sentry_app_token_is_integration() -> None:
 
 
 def test_oauth_token_is_integration() -> None:
-    assert (
-        get_client_kind(make_request(auth=api_token(application_id=42))) == ClientKind.INTEGRATION
-    )
+    request = make_request(auth=api_token(application_id=42))
+    assert get_client_kind(request) == ClientKind.INTEGRATION
 
 
 @pytest.mark.parametrize(
