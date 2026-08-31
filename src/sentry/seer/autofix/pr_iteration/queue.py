@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.utils.redis import redis_clusters
@@ -44,7 +45,7 @@ def try_enqueue_autofix_feedback(
     if decision.ok:
         redis = redis_clusters.get(_REDIS_CLUSTER)
         key = _feedback_queue_key(run_id)
-        redis.rpush(
+        queue_length = redis.rpush(
             key,
             QueuedAutofixFeedback(
                 organization_id=organization_id,
@@ -55,6 +56,16 @@ def try_enqueue_autofix_feedback(
             ).json(),
         )
         redis.expire(key, _QUEUE_TTL_SECONDS)
+
+        # Landing on an empty queue starts an iteration; later feedback joins the
+        # one already open, which is why the buffer is opened only here.
+        if queue_length == 1:
+            open_pr_iteration_details(
+                log_ctx=log_ctx,
+                run_state=run_state,
+                organization_id=organization_id,
+                group_id=group_id,
+            )
 
     # One log name for both branches, emitted after the push so ``queued`` means
     # the feedback is actually in Redis: ``outcome`` says which way it went and

@@ -9,6 +9,7 @@ from typing import Any, NamedTuple
 from uuid import uuid4
 
 import sentry_sdk
+from django.utils import timezone
 from scm import actions as scm_actions
 from scm.errors import ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
@@ -61,6 +62,8 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
+from sentry.seer.autofix.pr_iteration.details_store import remove_iterations_before
+from sentry.seer.autofix.pr_iteration.emit import trigger_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -94,6 +97,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerRun
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
@@ -133,6 +137,33 @@ def _ineligible_comment_cache_key(*, organization_id: int, repo_id: int, pr_numb
 
 def _ineligible_pr_iteration_comment_body(github_username: str) -> str:
     return f"@{github_username}\n\n{INELIGIBLE_PR_ITERATION_COMMENT}"
+
+
+def trigger_pr_iteration_agent(
+    *,
+    group: Group,
+    referrer: AutofixReferrer,
+    run_id: int,
+    feedback_items: list[Feedback],
+    actor_user_id: int | None,
+    organization_id: int,
+    iteration_id: int | None,
+) -> SeerRun:
+    return trigger_autofix_agent(
+        group=group,
+        step=AutofixStep.PR_ITERATION,
+        referrer=referrer,
+        run_id=run_id,
+        user_context="\n\n".join(item.text for item in feedback_items),
+        feedback=feedback_items,
+        actor_user_id=actor_user_id,
+        commit_author=commit_author_for_feedback(feedback_items, organization_id),
+        extra_prompt_metadata=(
+            # Names the analytics buffer this iteration's work belongs to; the
+            # completion hook reads it back off the iteration's first block.
+            {"iteration_id": str(iteration_id)} if iteration_id is not None else None
+        ),
+    )
 
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
@@ -533,17 +564,20 @@ def _drain_queued_autofix_feedback(
         actor_user_id=actor_user_id,
     )
 
+    # Claim the buffer these items accumulated into, so the id it is keyed by
+    # travels with the agent run that acts on them.
+    iteration_id = trigger_pr_iteration_details(run_id=run_id, organization_id=organization_id)
+
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
-        trigger_autofix_agent(
+        trigger_pr_iteration_agent(
             group=group,
-            step=AutofixStep.PR_ITERATION,
             referrer=referrer,
             run_id=run_id,
-            user_context="\n\n".join(item.text for item in feedback_items),
-            feedback=feedback_items,
+            feedback_items=feedback_items,
             actor_user_id=actor_user_id,
-            commit_author=commit_author_for_feedback(feedback_items, organization_id),
+            organization_id=organization_id,
+            iteration_id=iteration_id,
         )
     except (
         PrIterationNoPullRequestException,
@@ -1602,3 +1636,27 @@ def trigger_pr_iteration_from_review(
     logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)
 
     return None
+
+
+# How long an iteration row may sit untouched before it is discarded. A row
+# survives this long only when the iteration never reached a completion hook, so
+# nothing is emitted for it; this just keeps the table to iterations in flight.
+STALE_DETAILS_AGE = timedelta(hours=24)
+
+# Rows deleted per pass, oldest first. The sweep is a backstop, not the main
+# path, so it stays small and runs often.
+STALE_DETAILS_BATCH_SIZE = 100
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.sweep_pr_iteration_details",
+    namespace=seer_tasks,
+    processing_deadline_duration=120,
+)
+def sweep_pr_iteration_details() -> None:
+    """Discard iteration rows left behind by iterations that never completed."""
+    discarded = remove_iterations_before(
+        timezone.now() - STALE_DETAILS_AGE, STALE_DETAILS_BATCH_SIZE
+    )
+    metrics.incr("autofix.pr_iteration.details.discarded", amount=discarded)
+    logger.info("autofix.pr_iteration.details.sweep", extra={"discarded": discarded})

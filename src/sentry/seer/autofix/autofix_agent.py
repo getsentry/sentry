@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -510,6 +510,7 @@ def trigger_autofix_agent(
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
+    extra_prompt_metadata: Mapping[str, str] | None = None,
     allow_free_cohort: bool = False,
 ) -> SeerRun:
     """
@@ -636,6 +637,9 @@ def trigger_autofix_agent(
     # Read back in the completion hook, which pushes long after this request.
     if is_iteration_step and commit_author is not None:
         prompt_metadata["commit_author"] = json.dumps(commit_author)
+
+    if extra_prompt_metadata:
+        prompt_metadata.update(extra_prompt_metadata)
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
