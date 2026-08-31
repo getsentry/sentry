@@ -137,6 +137,16 @@ class BaseDetectorHandler(
         pass
 
     @abc.abstractmethod
+    def evaluate_extracted_value(
+        self,
+        extracted_value: DataPacketEvaluationType,
+    ) -> DataPacketEvaluationResultType:
+        """
+        Once the value has been extracted from the data packet, evaluate data condition groups (if present) or your own custom check
+        """
+        pass
+
+    @abc.abstractmethod
     def create_occurrence(
         self,
         evaluation: DataPacketEvaluationResultType,
@@ -154,8 +164,44 @@ class BaseDetectorHandler(
         pass
 
 
+class DetectorHandler(
+    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType, DataPacketEvaluationResultType]
+):
+    """
+    Base implementation class for detectors that make decisions without data condition groups
+
+    The class provides a default "evaluate" flow, so a subclass only has to provide the "extract_value", "evaluate_extracted_value", and "create_occurrence" methods.
+    """
+
+    def __init__(self, detector: Detector):
+        super().__init__(detector)
+
+    def _evaluate(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
+        tags = {
+            "detector_type": self.detector.type,
+            "result": "unknown",
+        }
+
+        try:
+            value = self.evaluate(data_packet)
+
+            tags["result"] = "tainted" if value.tainted else "success"
+
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
+            return value.result
+        except Exception:
+            tags["result"] = "failure"
+
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
+            raise
+
+
 class ConditionDetectorHandler(
-    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType, DataConditionGroupEvaluation]
+    DetectorHandler[DataPacketType, DataPacketEvaluationType, DataConditionGroupEvaluation]
 ):
     """
     Base implementation class providing shared infrastructure for detector handlers.
@@ -187,25 +233,10 @@ class ConditionDetectorHandler(
         else:
             self.condition_group = None
 
-    def _evaluate(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        tags = {
-            "detector_type": self.detector.type,
-            "result": "unknown",
-        }
-
-        try:
-            value = self.evaluate(data_packet)
-
-            tags["result"] = "tainted" if value.tainted else "success"
-
-            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
-
-            return value.result
-        except Exception:
-            tags["result"] = "failure"
-
-            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
-
-            raise
+    def evaluate_extracted_value(
+        self,
+        extracted_value: DataPacketEvaluationType,
+    ) -> DataConditionGroupEvaluation:
+        return DataConditionGroupEvaluation(
+            result=False, data={"condition_evaluations": [], "logic_type": "and"}, triggered=False
+        )
