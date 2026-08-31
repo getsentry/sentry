@@ -23,6 +23,7 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
+import {useAuthV2Rollout} from 'sentry/utils/useAuthV2Rollout';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -95,6 +96,7 @@ export function App() {
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
   const preloadData = shouldPreloadData(config);
+  useAuthV2Rollout();
 
   /**
    * Loads the users organization list into the OrganizationsStore

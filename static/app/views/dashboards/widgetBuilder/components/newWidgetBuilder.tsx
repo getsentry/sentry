@@ -170,6 +170,7 @@ export function WidgetBuilderV2({
           <Backdrop zIndex="widgetBuilderDrawer" />
           <WidgetBuilderProvider>
             <ContainerWithoutSidebar
+              data-test-id="widget-builder-container"
               style={
                 navigationElementRef.current
                   ? isMediumScreen
