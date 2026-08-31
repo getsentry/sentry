@@ -94,37 +94,59 @@ export function DataRequests() {
     return (
       <Stack gap="md">
         <Heading as="h2">Results</Heading>
-        <Text as="p">{results.length} match found</Text>
-        <ul>
+        <Text as="p">
+          {results.length} {results.length === 1 ? 'match' : 'matches'} found
+        </Text>
+        <Stack as="ul" gap="sm" padding="0" style={{listStyle: 'none'}}>
           {results.map(result => {
             switch (result.type) {
               case 'user':
                 // eslint-disable-next-line no-case-declarations
                 const user = result.data;
                 return (
-                  <li key={`user-${user.id}`}>
-                    <Link to={`/_admin/users/${user.id}/`}>
-                      {user.name} &lt;{user.email}&gt;
-                    </Link>
-                  </li>
+                  <Stack
+                    as="li"
+                    key={`user-${user.id}`}
+                    gap="2xs"
+                    padding="md"
+                    border="primary"
+                    radius="md"
+                    background="primary"
+                  >
+                    <Link to={`/_admin/users/${user.id}/`}>{user.name}</Link>
+                    <Text size="sm" variant="muted">
+                      {user.email}
+                    </Text>
+                  </Stack>
                 );
               case 'event':
                 // eslint-disable-next-line no-case-declarations
                 const event = result.data;
                 return (
-                  <li key={`event-${event.id}`}>
+                  <Stack
+                    as="li"
+                    key={`event-${event.id}`}
+                    gap="2xs"
+                    padding="md"
+                    border="primary"
+                    radius="md"
+                    background="primary"
+                  >
                     <ExternalLink
                       href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
                     >
                       {event.id} - {event.title.substring(0, 128)}
                     </ExternalLink>
-                  </li>
+                    <Text size="sm" variant="muted">
+                      Event
+                    </Text>
+                  </Stack>
                 );
               default:
                 throw new Error('Unknown result type');
             }
           })}
-        </ul>
+        </Stack>
       </Stack>
     );
   };
@@ -178,7 +200,7 @@ export function DataRequests() {
           </PanelBody>
           <PanelFooter>
             <Flex justify="end" padding="xl">
-              <form.SubmitButton>Continue</form.SubmitButton>
+              <form.SubmitButton>Search</form.SubmitButton>
             </Flex>
           </PanelFooter>
         </Panel>
