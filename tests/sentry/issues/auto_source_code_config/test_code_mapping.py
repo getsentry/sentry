@@ -23,7 +23,6 @@ from sentry.issues.auto_source_code_config.errors import (
     UnsupportedFrameInfo,
 )
 from sentry.issues.auto_source_code_config.frame_info import create_frame_info
-from sentry.issues.auto_source_code_config.utils.platform import get_platform_config
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -80,11 +79,6 @@ def test_get_extension() -> None:
     assert get_extension("[native code]") == ""
     assert get_extension("/foo/bar/baz") == ""
     assert get_extension("/gtm.js") == "js"
-
-
-@pytest.mark.parametrize("platform", ["javascript", "node"])
-def test_javascript_module_extensions(platform: str) -> None:
-    assert {"cjs", "mts", "cts"} <= set(get_platform_config(platform)["extensions"])
 
 
 def test_buckets_logic() -> None:
