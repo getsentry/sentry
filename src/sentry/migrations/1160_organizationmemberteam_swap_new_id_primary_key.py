@@ -12,6 +12,8 @@ DECLARE
     next_id bigint;
     pk_name text;
 BEGIN
+    LOCK TABLE "sentry_organizationmember_teams" IN ACCESS EXCLUSIVE MODE;
+
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = current_schema()
