@@ -7,7 +7,7 @@ import {
   Select,
   type GeneralSelectValue,
   type StylesConfig,
-  SelectValue,
+  type SelectValue,
 } from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 

@@ -7,8 +7,8 @@ import {
   Container,
   Flex,
   type FlexProps,
-  ContainerProps,
-  ContainerPropsWithRenderFunction,
+  type ContainerProps,
+  type ContainerPropsWithRenderFunction,
 } from '@sentry/scraps/layout';
 
 type BaseGridCellProps = FlexProps & DOMAttributes<FocusableElement>;
