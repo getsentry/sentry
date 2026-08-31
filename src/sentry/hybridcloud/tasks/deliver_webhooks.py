@@ -1153,18 +1153,10 @@ def _handle_parallel_delivery_result(
 
 
 class _ParallelBatch(NamedTuple):
-    """
-    What one parallel batch did.
+    """What one parallel batch delivered, and whether any request needs a retry."""
 
-    `next_start_id` is one past the highest id attempted so callers can advance
-    past failed rows (e.g. skip-on-failure providers), None when the batch was
-    empty.
-    """
-
-    attempted: int
     delivered: int
     request_failed: bool
-    next_start_id: int | None
 
 
 def _run_parallel_delivery_batch(
@@ -1179,14 +1171,6 @@ def _run_parallel_delivery_batch(
     The caller fetches so that it can inspect the batch before any of it is
     delivered — see the head check in `_drain_in_parallel`.
     """
-    if not records:
-        return _ParallelBatch(0, 0, False, None)
-
-    # Capture before delivery/discard — an immediate delete clears pk on the
-    # in-memory instance.
-    next_start_id = records[-1].id + 1
-    attempted = len(records)
-
     # Stale rows are discarded in place of delivery, consuming claim budget
     # like any delivered row rather than being swept out from under the claim.
     fresh_records = [
@@ -1198,7 +1182,7 @@ def _run_parallel_delivery_batch(
     delivered = 0
     request_failed = False
     if fresh_records:
-        with ContextPropagatingThreadPoolExecutor(max_workers=attempted) as threadpool:
+        with ContextPropagatingThreadPoolExecutor(max_workers=len(fresh_records)) as threadpool:
             futures = {
                 threadpool.submit(deliver_message_parallel, record) for record in fresh_records
             }
@@ -1212,7 +1196,7 @@ def _run_parallel_delivery_batch(
                     raise err
                 if err is None:
                     delivered += 1
-    return _ParallelBatch(attempted, delivered, request_failed, next_start_id)
+    return _ParallelBatch(delivered, request_failed)
 
 
 @instrumented_task(
@@ -1273,22 +1257,19 @@ def _drain_in_parallel(claim: _MailboxClaim) -> None:
             records = claim.next_slice(current_id, min(worker_threads, remaining))
             if records is None:
                 return
-            batch = _run_parallel_delivery_batch(records, deleter, dispatch_tags=dispatch_tags)
-            attempted, delivered_batch, request_failed, next_id = (
-                batch.attempted,
-                batch.delivered,
-                batch.request_failed,
-                batch.next_start_id,
-            )
-            delivered += delivered_batch
-            extra["delivered"] = delivered
-
-            if next_id is None:
+            if not records:
                 logger.info("deliver_webhook.task_complete", extra=extra)
                 break
 
-            # Advance past this batch so failed rows (left with a future
-            # schedule_for) are not immediately re-attempted when we continue.
+            # Read before delivery: an immediate delete clears pk on the in-memory
+            # instance. Advancing past the whole batch is also what keeps failed
+            # rows, left with a future schedule_for, from being re-attempted here.
+            next_id = records[-1].id + 1
+            attempted = len(records)
+
+            batch = _run_parallel_delivery_batch(records, deleter, dispatch_tags=dispatch_tags)
+            delivered += batch.delivered
+            extra["delivered"] = delivered
             current_id = next_id
 
             remaining -= attempted
@@ -1303,7 +1284,7 @@ def _drain_in_parallel(claim: _MailboxClaim) -> None:
                 )
                 return
 
-            if request_failed and not skip_on_failure:
+            if batch.request_failed and not skip_on_failure:
                 # For providers that require stricter mailbox behavior, stop on
                 # the first batch that had a retryable failure.
                 logger.info("deliver_webhook.delivery_request_failed", extra=extra)
