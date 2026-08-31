@@ -379,19 +379,35 @@ export function BackendJsonSubmitForm({
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
                         const staticOptions = transformChoices(field.choices);
+                        const dynamicQueryValues = {...dynamicFieldValues};
+                        delete dynamicQueryValues[field.name];
+                        const prefetchReady = fields
+                          .filter(
+                            candidate =>
+                              candidate.updatesForm && candidate.name !== field.name
+                          )
+                          .every(candidate =>
+                            Boolean(dynamicFieldValues?.[candidate.name])
+                          );
                         const customQueryOptions = customAsyncQueryOptions?.[field.name];
-                        const defaultAsyncQueryOptions = ((debouncedInput: string) =>
-                          queryOptions({
+                        const defaultAsyncQueryOptions = ((debouncedInput: string) => {
+                          const requestQuery =
+                            field.prefetch && !field.updatesForm ? '' : debouncedInput;
+                          return queryOptions({
                             queryKey: [
                               'backend-json-async-select',
                               field.name,
                               field.url,
-                              debouncedInput,
-                              dynamicFieldValues,
+                              requestQuery,
+                              dynamicQueryValues,
+                              prefetchReady,
                               JSON.stringify(onAsyncOptionsFetchedRef),
                             ],
                             queryFn: async (): Promise<Array<SelectValue<string>>> => {
-                              if (!debouncedInput) {
+                              if (field.prefetch && !prefetchReady) {
+                                return staticOptions;
+                              }
+                              if (!requestQuery && !field.prefetch) {
                                 return staticOptions;
                               }
                               const response = await API_CLIENT.requestPromise(
@@ -399,8 +415,8 @@ export function BackendJsonSubmitForm({
                                 {
                                   query: buildAsyncSelectQuery(
                                     field.name,
-                                    debouncedInput,
-                                    dynamicFieldValues
+                                    requestQuery,
+                                    dynamicQueryValues
                                   ),
                                 }
                               );
@@ -411,7 +427,9 @@ export function BackendJsonSubmitForm({
                               }
                               return results;
                             },
-                          })) satisfies AsyncSelectQueryOptionsFactory;
+                            staleTime: 30_000,
+                          });
+                        }) satisfies AsyncSelectQueryOptionsFactory;
                         const asyncQueryOptions =
                           customQueryOptions ?? defaultAsyncQueryOptions;
                         if (field.multiple) {

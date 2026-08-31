@@ -11,9 +11,9 @@ import {
 } from '@sentry/scraps/modal';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
-import type {IssueConfigField} from 'sentry/types/integrations';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/indicator');
@@ -78,7 +78,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
 
   const renderTicketRuleModal = async (
     props: Partial<IssueAlertRuleAction> = {},
-    otherField: IssueConfigField = {
+    otherField: JsonFormAdapterFieldConfig = {
       label: 'Reporter',
       required: true,
       choices: [['a', 'a']],
@@ -291,7 +291,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
     });
 
     it('should persist non-choice value when the modal is reopened', async () => {
-      const textField: IssueConfigField = {
+      const textField: JsonFormAdapterFieldConfig = {
         label: 'Text Field',
         required: true,
         type: 'string',
@@ -308,7 +308,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       // instance.dynamic_form_fields contains the saved field config with
       // choices from the previous search. The backend returns empty choices
       // for async fields, but the saved choices should be restored.
-      const reporterField: IssueConfigField = {
+      const reporterField: JsonFormAdapterFieldConfig = {
         label: 'Reporter',
         required: false,
         url: 'http://example.com',

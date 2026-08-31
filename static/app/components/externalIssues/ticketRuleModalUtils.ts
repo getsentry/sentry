@@ -1,7 +1,8 @@
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import type {
+  JsonFormAdapterChoice,
+  JsonFormAdapterFieldConfig,
+} from 'sentry/components/backendJsonFormAdapter/types';
 import type {TicketActionData} from 'sentry/types/alerts';
-import type {Choices} from 'sentry/types/core';
-import type {IssueConfigField} from 'sentry/types/integrations';
 
 export const STATIC_TICKET_FIELDS: JsonFormAdapterFieldConfig[] = [
   {
@@ -41,15 +42,17 @@ export function getSavedChoicesMap(instance: TicketActionData) {
   return new Map(
     savedFields
       .filter(
-        (field): field is IssueConfigField =>
-          typeof field === 'object' &&
-          field !== null &&
-          'url' in field &&
-          'choices' in field &&
-          Array.isArray(field.choices) &&
-          field.choices.length > 0
+        (
+          field
+        ): field is Extract<JsonFormAdapterFieldConfig, {type: 'select' | 'choice'}> & {
+          choices: readonly JsonFormAdapterChoice[];
+          url: string;
+        } =>
+          (field.type === 'select' || field.type === 'choice') &&
+          Boolean(field.url) &&
+          Boolean(field.choices?.length)
       )
-      .map(field => [field.name, field.choices as Choices])
+      .map(field => [field.name, field.choices] as const)
   );
 }
 
@@ -87,7 +90,7 @@ export function applySavedDefaultToField({
   savedChoicesMap,
 }: {
   field: JsonFormAdapterFieldConfig;
-  savedChoicesMap: Map<string, Choices>;
+  savedChoicesMap: Map<string, readonly JsonFormAdapterChoice[]>;
   savedValue: unknown;
 }): JsonFormAdapterFieldConfig {
   const defaultValue = getSavedDefaultValue(field, savedValue);
@@ -98,10 +101,7 @@ export function applySavedDefaultToField({
 
   const savedChoices = savedChoicesMap.get(field.name);
   if (savedChoices && isAsyncSelectField(field)) {
-    return withFieldDefault(
-      {...field, choices: savedChoices as Array<[string, string]>},
-      defaultValue
-    );
+    return withFieldDefault({...field, choices: savedChoices}, defaultValue);
   }
 
   return withFieldDefault(field, defaultValue);

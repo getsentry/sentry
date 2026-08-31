@@ -541,6 +541,37 @@ describe('BackendJsonSubmitForm', () => {
       expect(screen.getByText('Other Repo')).toBeInTheDocument();
     });
 
+    it('prefetches async select options before the field is opened', async () => {
+      const prefetchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
+        body: [{value: 'my-org/prefetched-repo', label: 'prefetched-repo'}],
+      });
+
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'repo',
+              type: 'select',
+              label: 'Repository',
+              url: '/search',
+              choices: [],
+              prefetch: true,
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await waitFor(() => expect(prefetchResponse).toHaveBeenCalled());
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Repository'}));
+      expect(await screen.findByText('prefetched-repo')).toBeInTheDocument();
+    });
+
     it('async select fetches from URL on search', async () => {
       // Catch-all for unmatched queries
       MockApiClient.addMockResponse({

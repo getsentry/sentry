@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-import type {JsonFormAdapterFieldConfig} from './types';
+import type {JsonFormAdapterChoice, JsonFormAdapterFieldConfig} from './types';
 
 export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
   switch (fieldType) {
@@ -36,7 +36,7 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
 }
 
 export function transformChoices(
-  choices?: Array<[value: string, label: string]>
+  choices?: readonly JsonFormAdapterChoice[]
 ): Array<{label: string; value: string}> {
   if (!choices) {
     return [];
