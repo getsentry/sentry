@@ -15,7 +15,7 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -159,7 +159,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: RpcUser | User, **kwargs: Any
-    ) -> list[dict[str, Any]]:
+    ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
         if group:

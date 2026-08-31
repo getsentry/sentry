@@ -26,7 +26,7 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 class SourceCodeSearchSerializer(serializers.Serializer[dict[str, str]]):
     field = serializers.CharField(required=True)
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(required=True, allow_blank=True)
 
 
 @control_silo_endpoint
@@ -87,6 +87,9 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     ) -> Response:
         raise NotImplementedError
 
+    def handle_search_field(self, installation: T, field: str, repo: str | None) -> Response | None:
+        return None
+
     def get(
         self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
     ) -> Response:
@@ -139,5 +142,10 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
 
             if self.repository_field and field == self.repository_field:
                 return self.handle_search_repositories(integration, installation, query)
+
+            repo = request.GET.get(self.repository_field) if self.repository_field else None
+            response = self.handle_search_field(installation, field, repo)
+            if response is not None:
+                return response
 
             return Response({"detail": "Invalid field"}, status=400)

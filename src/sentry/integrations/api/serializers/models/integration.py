@@ -17,6 +17,7 @@ from sentry.integrations.services.integration import (
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models.user import User
@@ -112,7 +113,7 @@ class IntegrationSerializer(Serializer):
 
 class IntegrationConfigSerializerResponse(IntegrationSerializerResponse, total=False):
     configOrganization: Sequence[Any]
-    createIssueConfig: list[dict[str, Any]]
+    createIssueConfig: list[IntegrationIssueConfigField]
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):

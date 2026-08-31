@@ -100,6 +100,25 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert label_field["type"] == "select"
         assert label_field["label"] == "Labels"
 
+    @responses.activate
+    def test_get_create_issue_config_prefetches_options_without_group(self) -> None:
+        with self.feature("organizations:github-issue-form-prefetch"):
+            config = self.install.get_create_issue_config(
+                None, self.user, params={"repo": "getsentry/sentry"}
+            )
+
+        [repo_field, assignee_field, label_field] = config
+        assert len(responses.calls) == 0
+        assert repo_field["default"] == "getsentry/sentry"
+        assert repo_field["choices"] == [("getsentry/sentry", "sentry")]
+        assert repo_field["prefetch"] is True
+        assert assignee_field["choices"] == []
+        assert assignee_field["prefetch"] is True
+        assert assignee_field["url"] == repo_field["url"]
+        assert label_field["choices"] == []
+        assert label_field["prefetch"] is True
+        assert label_field["url"] == repo_field["url"]
+
 
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property

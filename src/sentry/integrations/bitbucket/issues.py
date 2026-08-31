@@ -6,6 +6,7 @@ from typing import Any, NoReturn
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
@@ -52,7 +53,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User | RpcUser, **kwargs
-    ) -> list[dict[str, Any]]:
+    ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
         if group:

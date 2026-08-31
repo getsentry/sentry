@@ -18,6 +18,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.external_issues import maybe_generate_external_issue_details
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -150,7 +151,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User | RpcUser, **kwargs
-    ) -> list[dict[str, Any]]:
+    ) -> list[IntegrationIssueConfigField]:
         """
         These fields are used to render a form for the user,
         and are then passed in the format of:
