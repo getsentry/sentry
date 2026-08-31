@@ -45,7 +45,8 @@ export function useEnableAuthV2() {
     const domain = getCookieDomain();
     const options = {
       path: '/',
-      sameSite: 'lax' as const,
+      sameSite: 'none' as const,
+      secure: true,
       ...(domain ? {domain} : {}),
     };
 
