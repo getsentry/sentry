@@ -22,6 +22,7 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
     DataConditionGroupInput,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    ORGANIZATION_WORKFLOW_WRITE_SCOPES,
     connect_workflows_to_detectors,
     log_alerting_quota_hit,
     remove_items_by_api_input,

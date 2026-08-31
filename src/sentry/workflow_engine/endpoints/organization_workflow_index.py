@@ -74,6 +74,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
     DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
+    can_delete_workflows,
     is_workflow_connected_to_all_projects_detector,
     should_include_all_projects_detector_workflows,
 )
@@ -109,7 +110,7 @@ class OrganizationWorkflowPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
         "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
         "PUT": ["org:write", "org:admin", "alerts:write"],
-        "DELETE": ["org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
     }
 
 
@@ -230,9 +231,18 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
         # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
-            detectorworkflow__isnull=True
+        accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
+        # Detached workflows are organization-level and do not match a specific
+        # project filter. ID filters take precedence over project filters, and the
+        # all-project sentinels are equivalent to no project filter.
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        has_specific_project_filter = (
+            not request.GET.getlist("id")
+            and requested_projects.has_values
+            and not requested_projects.has_all_projects_sentinel
         )
+        if not has_specific_project_filter:
+            accessible_workflows |= Q(detectorworkflow__isnull=True)
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
             all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
@@ -470,8 +480,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk delete alerts for a given organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -484,14 +495,23 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             )
 
         queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
 
-        for workflow in queryset:
+        if raw_idlist:
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            if requested_ids != {workflow.id for workflow in workflows}:
+                raise PermissionDenied
+
+        if not can_delete_workflows(workflows, request):
+            raise PermissionDenied
+
+        for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):
                 CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(

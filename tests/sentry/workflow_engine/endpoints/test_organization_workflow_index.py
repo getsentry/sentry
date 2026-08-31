@@ -389,6 +389,19 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params=[("project", empty_project.id)]
         ).data
 
+    def test_all_projects_id_sentinel_includes_detached_workflows(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+
+        assert {workflow["id"] for workflow in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
+
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_filter_by_project_includes_workflow_attached_to_all_projects_detector(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
@@ -1546,6 +1559,29 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is False
 
+    def test_bulk_enable_all_projects_slug_sentinel_includes_detached_workflows(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"projectSlug": "$all"},
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert self.workflow_two.enabled is True
+        assert self.workflow_three.enabled is True
+        assert {workflow["id"] for workflow in response.data} == {
+            str(self.workflow.id),
+            str(self.workflow_two.id),
+            str(self.workflow_three.id),
+        }
+
     def test_bulk_disable_workflows_by_ids_success(self) -> None:
         self.workflow.update(enabled=True)
         self.workflow_two.update(enabled=True)
@@ -1675,6 +1711,77 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_three = self.create_workflow(
             organization_id=self.organization.id, name="Third Workflow"
         )
+
+    def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"id": str(self.workflow.id)},
+                status_code=204,
+            )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+
+    def test_team_admin_project_filter_excludes_detached_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": str(self.project.id)},
+                status_code=204,
+            )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+        self.assert_unaffected_workflows([self.workflow_two, self.workflow_three])
+
+    def test_team_admin_cannot_partially_delete_mixed_scope_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.workflow.id)),
+                ("id", str(self.workflow_two.id)),
+            ],
+            status_code=403,
+        )
+
+        self.assert_unaffected_workflows([self.workflow, self.workflow_two])
 
     def test_delete_workflows_by_ids_success(self) -> None:
         """Test successful deletion of workflows by specific IDs"""
@@ -2113,6 +2220,27 @@ class OrganizationWorkflowDeleteProjectAccessTest(
         assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.user_workflow.id,
+        ).exists()
+
+    def test_delete_cannot_partially_delete_accessible_and_inaccessible_workflows(self) -> None:
+        self.login_as(self.limited_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.user_workflow.id)),
+                ("id", str(self.other_workflow.id)),
+            ],
+            status_code=403,
+        )
+
+        self.user_workflow.refresh_from_db()
+        self.other_workflow.refresh_from_db()
+        assert self.user_workflow.status != ObjectStatus.PENDING_DELETION
+        assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Workflow",
+            object_id__in=[self.user_workflow.id, self.other_workflow.id],
         ).exists()
 
     def test_delete_cannot_delete_mixed_all_projects_workflow_without_org_write(self) -> None:

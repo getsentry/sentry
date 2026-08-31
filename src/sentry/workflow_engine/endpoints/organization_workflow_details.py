@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -28,6 +29,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.workflow_engine.endpoints.validators.utils import can_delete_workflows
 from sentry.workflow_engine.models import Workflow
 
 
@@ -141,6 +143,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         """
         Deletes an alert.
         """
+        if not can_delete_workflows([workflow], request):
+            raise PermissionDenied
+
         CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
         workflow.update(status=ObjectStatus.PENDING_DELETION)
         create_audit_entry(
