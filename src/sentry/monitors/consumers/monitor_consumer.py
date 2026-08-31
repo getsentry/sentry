@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+import threading
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
@@ -98,10 +99,16 @@ DROP_LOG_SAMPLE_RATE = 0.01
 # Shared pool for timing out quotas seat checks without creating an executor
 # per check-in. The check itself is expected to be cheap (Redis/local cache);
 # this only exists so a hung backend cannot block the consumer indefinitely.
+#
+# `future.result(timeout=...)` only stops waiting; timed-out work keeps running
+# until the backend returns. Bound outstanding hand-offs so a prolonged hang
+# cannot grow an unbounded queue of stale seat checks (and eventually OOM).
+_CHECK_ACCEPT_MAX_IN_FLIGHT = 1000
 _CHECK_ACCEPT_EXECUTOR = ContextPropagatingThreadPoolExecutor(
     max_workers=8,
     thread_name_prefix="monitors.check_accept",
 )
+_CHECK_ACCEPT_SLOTS = threading.BoundedSemaphore(_CHECK_ACCEPT_MAX_IN_FLIGHT)
 
 
 def _check_accept_monitor_checkin_with_timeout(
@@ -112,24 +119,53 @@ def _check_accept_monitor_checkin_with_timeout(
     """
     Call quotas seat acceptance with a wall-clock timeout.
 
-    If the backend does not respond in time, fail open and ACCEPT the check-in
-    so a slow or hung quotas path cannot stall crons ingest.
+    If the backend does not respond in time, or too many seat checks are already
+    in flight, fail open and ACCEPT the check-in so a slow or hung quotas path
+    cannot stall crons ingest or accumulate unbounded pending work.
 
     Note: a timed-out worker keeps running until the underlying call returns;
-    this only bounds how long ingest waits before failing open.
+    the wait bound only limits how long ingest blocks before failing open. The
+    in-flight slot bound limits how many of those late calls can pile up.
     """
     timeout_sec = options.get("crons.check_accept_monitor_checkin.timeout_sec")
     if not timeout_sec or timeout_sec <= 0:
         return quotas.backend.check_accept_monitor_checkin(project_id, monitor_slug)
 
-    future = _CHECK_ACCEPT_EXECUTOR.submit(
-        quotas.backend.check_accept_monitor_checkin,
-        project_id,
-        monitor_slug,
-    )
-    # Drain late results/errors after we stop waiting so timed-out futures do
-    # not log "exception was never retrieved".
-    future.add_done_callback(lambda f: f.exception())
+    if not _CHECK_ACCEPT_SLOTS.acquire(blocking=False):
+        metrics.incr(
+            "monitors.checkin.result",
+            tags={**metric_kwargs, "status": "check_accept_shed"},
+        )
+        logger.warning(
+            "monitors.consumer.check_accept_shed",
+            extra={
+                "project_id": project_id,
+                "slug": monitor_slug,
+                "max_in_flight": _CHECK_ACCEPT_MAX_IN_FLIGHT,
+            },
+        )
+        return PermitCheckInStatus.ACCEPT
+
+    def _done(f):
+        _CHECK_ACCEPT_SLOTS.release()
+        # Drain late results/errors after we stop waiting so timed-out futures
+        # do not log "exception was never retrieved".
+        f.exception()
+
+    handed_off = False
+    try:
+        future = _CHECK_ACCEPT_EXECUTOR.submit(
+            quotas.backend.check_accept_monitor_checkin,
+            project_id,
+            monitor_slug,
+        )
+        # From here the future owns the permit and _done will release it.
+        future.add_done_callback(_done)
+        handed_off = True
+    finally:
+        if not handed_off:
+            _CHECK_ACCEPT_SLOTS.release()
+
     try:
         return future.result(timeout=timeout_sec)
     except FuturesTimeoutError:

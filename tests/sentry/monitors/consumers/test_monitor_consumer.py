@@ -1365,6 +1365,31 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
         assert checkin.status == CheckInStatus.OK
 
+    @mock.patch(
+        "sentry.monitors.consumers.monitor_consumer._CHECK_ACCEPT_SLOTS.acquire",
+        return_value=False,
+    )
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_quotas_shed_accepts(
+        self,
+        check_accept_monitor_checkin: mock.MagicMock,
+        acquire: mock.MagicMock,
+    ) -> None:
+        """
+        When too many seat checks are already in flight, fail open without
+        queuing another stale call.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.DROP
+
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        acquire.assert_called_once_with(blocking=False)
+        check_accept_monitor_checkin.assert_not_called()
+
+        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        assert checkin.status == CheckInStatus.OK
+
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
     def test_monitor_accept_upsert_with_seat(
