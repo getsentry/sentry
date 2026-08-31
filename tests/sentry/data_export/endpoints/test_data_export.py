@@ -184,6 +184,21 @@ class DataExportTest(APITestCase):
         # rather than a list of strings
         assert data_export.query_info["field"] == ["id"]
 
+    def test_export_strips_truncation_limits(self) -> None:
+        """
+        Ensures UI table preview limits like `truncate` and `max_string_length` are stripped
+        from data export query_info so exported rows contain full field values (#122767).
+        """
+        payload = self.make_payload(
+            "discover",
+            {"field": ["id"], "truncate": "256", "max_string_length": 256},
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        assert "truncate" not in data_export.query_info
+        assert "max_string_length" not in data_export.query_info
+
     def test_export_too_many_fields(self) -> None:
         """
         Ensures that if too many fields are requested, returns a 400 status code with the

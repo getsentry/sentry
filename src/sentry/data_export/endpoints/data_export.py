@@ -143,6 +143,10 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             del query_info["statsPeriodStart"]
         if "statsPeriodEnd" in query_info:
             del query_info["statsPeriodEnd"]
+        if "truncate" in query_info:
+            del query_info["truncate"]
+        if "max_string_length" in query_info:
+            del query_info["max_string_length"]
         query_info["start"] = start.isoformat()
         query_info["end"] = end.isoformat()
 
