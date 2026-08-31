@@ -14,6 +14,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.client_kind import get_client_kind
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
@@ -213,6 +214,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
+
+        client_kind = get_client_kind(request)
+        sentry_sdk.set_tag("client_kind", client_kind.value)
+        sentry_sdk.set_attribute("client_kind", client_kind.value)
 
         try:
             snuba_params = self.get_snuba_params(

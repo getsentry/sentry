@@ -1,0 +1,87 @@
+from types import SimpleNamespace
+
+import pytest
+from django.contrib.auth.models import AnonymousUser
+from django.test import RequestFactory
+from rest_framework.request import Request
+
+from sentry.api.client_kind import ClientKind, get_client_kind
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.system import SystemToken
+from sentry.seer.agent_token import AGENT_TOKEN_KIND
+
+
+def make_request(*, auth=None, user=None, user_agent=None, headers=None) -> Request:
+    request = Request(RequestFactory().get("/", headers=headers or {}))
+    if user_agent is not None:
+        request.META["HTTP_USER_AGENT"] = user_agent
+    request._authenticator = None
+    request._auth = auth
+    request._user = user if user is not None else AnonymousUser()
+    return request
+
+
+def session_user(*, is_sentry_app: bool = False) -> SimpleNamespace:
+    return SimpleNamespace(is_authenticated=True, is_sentry_app=is_sentry_app)
+
+
+def api_token(**kwargs) -> AuthenticatedToken:
+    return AuthenticatedToken(kind="api_token", user_id=1, **kwargs)
+
+
+def test_session_auth_is_frontend() -> None:
+    assert get_client_kind(make_request(user=session_user())) == ClientKind.FRONTEND
+
+
+def test_anonymous_is_unknown() -> None:
+    assert get_client_kind(make_request()) == ClientKind.UNKNOWN
+
+
+def test_system_auth_is_internal_service() -> None:
+    auth = AuthenticatedToken.from_token(SystemToken())
+    assert get_client_kind(make_request(auth=auth)) == ClientKind.INTERNAL_SERVICE
+
+
+def test_agent_token_is_seer() -> None:
+    auth = AuthenticatedToken(kind=AGENT_TOKEN_KIND, user_id=1, organization_id=1)
+    assert get_client_kind(make_request(auth=auth)) == ClientKind.SEER
+
+
+def test_viewer_context_header_is_seer() -> None:
+    # Seer echoes back the viewer context Sentry signed, which leaves auth unset.
+    request = make_request(user=session_user(), headers={"X-Viewer-Context": "a.b.c"})
+    assert get_client_kind(request) == ClientKind.SEER
+
+
+def test_mcp_user_agent_wins_over_the_token_it_carries() -> None:
+    request = make_request(auth=api_token(), user_agent="sentry-mcp/0.19.0")
+    assert get_client_kind(request) == ClientKind.MCP
+
+
+def test_sentry_app_token_is_integration() -> None:
+    user = session_user(is_sentry_app=True)
+    assert get_client_kind(make_request(auth=api_token(), user=user)) == ClientKind.INTEGRATION
+
+
+def test_oauth_token_is_integration() -> None:
+    assert (
+        get_client_kind(make_request(auth=api_token(application_id=42))) == ClientKind.INTEGRATION
+    )
+
+
+@pytest.mark.parametrize(
+    ("user_agent", "expected"),
+    [
+        ("sentry-cli/2.42.1", ClientKind.CLI),
+        ("sentry.python/2.19.0", ClientKind.SDK),
+        ("sentry-ruby/5.22.1", ClientKind.SDK),
+        ("python-requests/2.31.0", ClientKind.SCRIPT),
+        ("curl/8.7.1", ClientKind.SCRIPT),
+        ("node-fetch/1.0", ClientKind.SCRIPT),
+        ("", ClientKind.UNKNOWN),
+        ("something-bespoke/1.0", ClientKind.UNKNOWN),
+    ],
+)
+def test_token_auth_falls_back_to_user_agent(user_agent: str, expected: ClientKind) -> None:
+    request = make_request(auth=api_token(), user_agent=user_agent)
+    assert get_client_kind(request) == expected
