@@ -68,7 +68,6 @@ export function FeatureFlagsLogTable({
         data={flags ?? []}
         columnOrder={columns}
         columnSortBy={[]}
-        fit="max-content"
         grid={{
           renderBodyCell,
           onResizeColumn,

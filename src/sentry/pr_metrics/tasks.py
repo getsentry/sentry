@@ -109,14 +109,18 @@ def forward_pr_to_seer_task(
         )
     except PullRequest.DoesNotExist:
         logger.warning("pr_metrics.judge.pull_request_not_found", extra=log_extra)
-        metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "pr_not_found"})
+        metrics.incr(
+            "pr_metrics.judge.forward_failed", tags={"reason": "pr_not_found"}, sample_rate=1.0
+        )
         return
 
     try:
         repository = Repository.objects.get(id=repository_id, organization_id=organization_id)
     except Repository.DoesNotExist:
         logger.warning("pr_metrics.judge.repository_not_found", extra=log_extra)
-        metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "repo_not_found"})
+        metrics.incr(
+            "pr_metrics.judge.forward_failed", tags={"reason": "repo_not_found"}, sample_rate=1.0
+        )
         return
 
     forward_pr_to_seer_judge(pull_request, repository)
@@ -156,7 +160,7 @@ def emit_pr_metrics_cooldown_task(
         )
     except PullRequest.DoesNotExist:
         logger.warning("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
-        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "pr_gone"})
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "pr_gone"}, sample_rate=1.0)
         return
 
     PullRequestMetrics.objects.filter(
@@ -167,7 +171,7 @@ def emit_pr_metrics_cooldown_task(
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         logger.warning("pr_metrics.cooldown.organization_not_found", extra=log_extra)
-        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "org_gone"})
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "org_gone"}, sample_rate=1.0)
         return
 
     # Imported here to avoid a circular import: webhooks imports this module.
@@ -194,9 +198,9 @@ def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
     """
     logger.info("pr_metrics.cleanup_activity", extra={"pull_request_id": pull_request_id})
     deleted, _ = PullRequestActivity.objects.filter(pull_request_id=pull_request_id).delete()
-    metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)
+    metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted, sample_rate=1.0)
     doc_deleted, _ = PullRequestActivityLog.objects.filter(pull_request_id=pull_request_id).delete()
-    metrics.incr("pr_metrics.cleanup_activity.doc_deleted", amount=doc_deleted)
+    metrics.incr("pr_metrics.cleanup_activity.doc_deleted", amount=doc_deleted, sample_rate=1.0)
 
 
 def _unswept(
@@ -533,7 +537,7 @@ def detect_stale_pull_requests_task() -> None:
 
     cutoff = dj_timezone.now() - STALENESS_WINDOW
     pr_ids = find_stale_pull_requests(cutoff=cutoff)
-    metrics.incr("pr_metrics.stale.candidates", amount=len(pr_ids))
+    metrics.incr("pr_metrics.stale.candidates", amount=len(pr_ids), sample_rate=1.0)
     logger.info("pr_metrics.stale.candidates", extra={"count": len(pr_ids)})
 
     emitted = 0
@@ -582,7 +586,9 @@ def detect_stale_pull_requests_task() -> None:
             PullRequestMetrics.objects.get_or_create(pull_request=pr)
 
             if not _claim_terminal_event(pr, PullRequestVerdict.ABANDONED):
-                metrics.incr("pr_metrics.stale.skipped", tags={"reason": "already_claimed"})
+                metrics.incr(
+                    "pr_metrics.stale.skipped", tags={"reason": "already_claimed"}, sample_rate=1.0
+                )
                 continue
 
             diagnosis_labels = []
@@ -602,7 +608,6 @@ def detect_stale_pull_requests_task() -> None:
                     emitted += 1
             except Exception:
                 logger.exception("pr_metrics.stale.emit_failed", extra={"pull_request_id": pr.id})
-                metrics.incr("pr_metrics.stale.emit_failed")
 
-    metrics.incr("pr_metrics.stale.emitted", amount=emitted)
+    metrics.incr("pr_metrics.stale.emitted", amount=emitted, sample_rate=1.0)
     logger.info("pr_metrics.stale.emitted", extra={"count": emitted})

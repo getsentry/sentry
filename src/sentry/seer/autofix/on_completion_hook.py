@@ -44,6 +44,7 @@ from sentry.seer.autofix.github_perms import (
     repos_with_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -872,6 +873,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             kwargs={
                 "run_id": run_id,
                 "organization_id": organization.id,
+                "trigger_source": ConsumeTriggerSource.FEEDBACK,
             }
         )
 

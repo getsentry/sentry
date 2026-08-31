@@ -107,11 +107,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
       }
     >
       {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error />}
       {isSuccess && automations?.length === 0 && (
         <SimpleTable.Empty>
           {searchQuery ? t('No matching alerts found') : emptyMessage}

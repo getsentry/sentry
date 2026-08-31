@@ -1,5 +1,6 @@
+from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
 from django.utils import timezone
@@ -83,6 +84,41 @@ class DeliverSmartAssignmentResultTest(TestCase):
         # full verdict itself lives on the Seer run, not here.
         assert self._extras()["predicted_assignee_user_ids"] == [alice.id, None]
         self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
+    def test_records_run_duration_and_candidate_counts(self, mock_metrics: MagicMock) -> None:
+        self.seer_run.update(last_triggered_at=timezone.now() - timedelta(seconds=30))
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+
+        self._deliver(
+            {
+                "candidates": [
+                    {"identifier": "alice", "identifier_kind": "username"},
+                    {"identifier": "missing", "identifier_kind": "username"},
+                ]
+            }
+        )
+
+        mock_metrics.distribution.assert_any_call(
+            "smart_assignment.run.duration",
+            ANY,
+            tags={"status": "completed"},
+            unit="second",
+            sample_rate=1.0,
+        )
+        mock_metrics.distribution.assert_any_call(
+            "smart_assignment.prediction.candidates",
+            2,
+            tags={"outcome": "resolved"},
+            sample_rate=1.0,
+        )
+        mock_metrics.distribution.assert_any_call(
+            "smart_assignment.prediction.resolved_candidates",
+            1,
+            tags={"outcome": "resolved"},
+            sample_rate=1.0,
+        )
 
     @patch(METRICS_PATH)
     def test_creates_completion_activity_referencing_run(self, mock_metrics: MagicMock) -> None:

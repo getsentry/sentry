@@ -1,6 +1,5 @@
 import type {LocationDescriptor} from 'history';
 
-import type {Responsive} from '@sentry/scraps/layout';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import type {AnalyticsProps} from '@sentry/scraps/trackingContext';
 
@@ -11,8 +10,6 @@ export type ButtonVariant =
   | 'warning'
   | 'link'
   | 'transparent';
-
-export type ButtonSize = 'zero' | 'xs' | 'sm' | 'md';
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
@@ -28,7 +25,7 @@ export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
   /**
    * The size of the button
    */
-  size?: Responsive<ButtonSize>;
+  size?: 'zero' | 'xs' | 'sm' | 'md';
   /**
    * Button Tooltip Props
    */

@@ -1624,6 +1624,80 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('billing platform migration', () => {
+    const migrationOrg = OrganizationFixture();
+    const mockBillingAdminUser = UserFixture({
+      permissions: new Set(['billing.admin']),
+    });
+
+    async function openMigrationAction(name: string) {
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${migrationOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: migrationOrg,
+      });
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[0]!
+      );
+
+      await userEvent.click(screen.getByText(name));
+
+      renderGlobalModal();
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    }
+
+    it('migrates an org to the billing platform', async () => {
+      ConfigStore.set('user', mockBillingAdminUser);
+      setUpMocks(migrationOrg, {hasMigratedToBillingPlatform: false});
+
+      const migrateMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${migrationOrg.slug}/billing-platform-migration/`,
+        method: 'POST',
+      });
+
+      await openMigrationAction('[Do Not Use] Migrate to Billing Platform');
+
+      await waitFor(() => {
+        expect(migrateMock).toHaveBeenCalledWith(
+          `/_admin/customers/${migrationOrg.slug}/billing-platform-migration/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {migrated: true},
+          })
+        );
+      });
+    });
+
+    it('unmigrates an org from the billing platform', async () => {
+      ConfigStore.set('user', mockBillingAdminUser);
+      setUpMocks(migrationOrg, {hasMigratedToBillingPlatform: true});
+
+      const unmigrateMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${migrationOrg.slug}/billing-platform-migration/`,
+        method: 'POST',
+      });
+
+      await openMigrationAction('[Do Not Use] Unmigrate from Billing Platform');
+
+      await waitFor(() => {
+        expect(unmigrateMock).toHaveBeenCalledWith(
+          `/_admin/customers/${migrationOrg.slug}/billing-platform-migration/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {migrated: false},
+          })
+        );
+      });
+    });
+  });
+
   describe('close account', () => {
     it('closes an account', async () => {
       setUpMocks(organization);

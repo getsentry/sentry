@@ -745,13 +745,15 @@ describe('projectPerformance', () => {
       expect(performanceIssuesGetMock).toHaveBeenCalled();
       expect(slider).toHaveValue(indexOfValue.toString());
 
-      // Slide value on range slider.
-      await userEvent.click(slider);
+      // Per-key presses: hold syntax (`{ArrowRight>N}`) under-steps the scraps
+      // slider. delay:null keeps large deltas under the default 5s timeout.
+      const ue = userEvent.setup({delay: null});
+      await ue.click(slider);
       const indexDelta = newValueIndex - indexOfValue;
       for (let index = 0; index < Math.abs(indexDelta); index++) {
-        await userEvent.keyboard(indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}');
+        await ue.keyboard(indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}');
       }
-      await userEvent.tab();
+      await ue.tab();
 
       expect(slider).toHaveValue(newValueIndex.toString());
 

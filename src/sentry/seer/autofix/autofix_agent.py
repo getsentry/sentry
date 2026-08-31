@@ -1010,7 +1010,10 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
 
     if features.has("organizations:autofix-pr-iteration-manual", group.organization):
         lines.append(
-            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+            # One command per line, and one `<sub>` tag per line: a blank line
+            # would close the tag and leave the next line full size.
+            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
         )
 
     seer_run = SeerRun.objects.filter(

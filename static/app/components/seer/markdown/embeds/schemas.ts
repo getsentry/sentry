@@ -603,6 +603,39 @@ export const SEER_EMBED_SCHEMAS = {
       },
     ],
   },
+  autofixRef: {
+    featureFlag: 'organizations:seer-agent-autofix',
+    description:
+      'Render a live view of one Seer Autofix step (root cause, solution, code ' +
+      'changes, or PR iteration) that fetches and updates itself in the browser. ' +
+      'Emit this immediately after starting or continuing an autofix step via RPC, in ' +
+      'place of polling for the result yourself and writing it up: the embed ' +
+      'shows progress while the step runs, then the result once it completes, ' +
+      'with buttons to continue to the next step or retry on error. `id` and ' +
+      '`shortId` are the issue the run belongs to, exactly as the issue API ' +
+      'returns them. `runId` is the run identifier returned by the RPC call ' +
+      '(its `sentry_run_id`, or `run_id` if that is unavailable). `step` is the ' +
+      'autofix step identifier exactly as the autofix API reports it — the UI ' +
+      'renders the human-readable label, so do not send a display string.',
+    level: ['block'],
+    schema: z.object({
+      step: z.enum(['root_cause', 'solution', 'code_changes', 'pr_iteration']),
+      id: z.string(),
+      shortId: z.string(),
+      runId: z.union([z.string(), z.number()]),
+    }),
+    examples: [
+      {
+        label: 'Root cause',
+        data: {
+          id: '1234567890',
+          shortId: 'EXMPL-123',
+          runId: '018f2c1a-6b7e-7c3e-9a2f-3e6b1a2c3d4e',
+          step: 'root_cause' as const,
+        },
+      },
+    ],
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export const STRUCTURED_SEER_EMBED_SCHEMAS = {

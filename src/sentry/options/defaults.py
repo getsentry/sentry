@@ -306,6 +306,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.permission-scope-audit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
 register(
     "api.project-transfer.rate-limit-overrides",
