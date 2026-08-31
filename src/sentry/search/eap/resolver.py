@@ -617,12 +617,6 @@ class SearchResolver:
             legacy_filter = self._device_class_raw_key_filter(term, legacy_column, raw_values)
             combine_with_and = is_negated
 
-        if convention_filter is None:
-            resolved_term, _ = self._resolve_term(term)
-            return resolved_term
-        if legacy_filter is None:
-            return convention_filter
-
         combined = (
             and_trace_item_filters(convention_filter, legacy_filter)
             if combine_with_and
@@ -680,10 +674,10 @@ class SearchResolver:
         term: event_search.SearchFilter,
         column: ResolvedAttribute,
         raw_values: str | int | list[str],
-    ) -> TraceItemFilter | None:
+    ) -> TraceItemFilter:
         """Build a filter on a raw device-class storage key using remapped codes."""
         if term.operator not in constants.OPERATOR_MAP:
-            return None
+            raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
         operator = constants.OPERATOR_MAP[term.operator]
 
         comparison = TraceItemFilter(
