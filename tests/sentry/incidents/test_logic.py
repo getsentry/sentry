@@ -30,7 +30,6 @@ from sentry.incidents.logic import (
     AlertRuleTriggerLabelAlreadyUsedError,
     AlertTarget,
     ChannelLookupTimeoutError,
-    GetMetricIssueAggregatesParams,
     InvalidTriggerActionError,
     create_alert_rule,
     create_alert_rule_trigger,
@@ -46,7 +45,6 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
-    get_metric_issue_aggregates,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
     translate_aggregate_field,
@@ -82,7 +80,6 @@ from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.models.group import GroupStatus
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiTimeoutError
@@ -90,7 +87,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, TestCase
+from sentry.testutils.cases import BaseIncidentsTest, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
@@ -273,86 +270,6 @@ class BaseIncidentEventStatsTest(BaseIncidentsTest, BaseIncidentsValidation):
             projects=[],
             groups=[event.group],
         )
-
-
-class GetMetricIssueAggregatesTest(TestCase, BaseIncidentsTest):
-    def test_projects(self) -> None:
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5), query="", projects=[self.project]
-        )
-        self.create_event(self.now - timedelta(minutes=1))
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 123})
-        self.create_event(self.now - timedelta(minutes=2), user={"id": 124})
-        snuba_query = incident.alert_rule.snuba_query
-        params = GetMetricIssueAggregatesParams(
-            snuba_query=snuba_query,
-            date_started=incident.date_started,
-            current_end_date=incident.current_end_date,
-            organization=incident.organization,
-            project_ids=[self.project.id],
-        )
-        assert get_metric_issue_aggregates(params) == {"count": 4}
-
-    def test_is_unresolved_query(self) -> None:
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=5),
-            query="is:unresolved",
-            projects=[self.project],
-        )
-        event = self.create_event(self.now - timedelta(minutes=1))
-        self.create_event(self.now - timedelta(minutes=2))
-        self.create_event(self.now - timedelta(minutes=3))
-        self.create_event(self.now - timedelta(minutes=4))
-
-        event.group.update(status=GroupStatus.UNRESOLVED)
-
-        snuba_query = incident.alert_rule.snuba_query
-        params = GetMetricIssueAggregatesParams(
-            snuba_query=snuba_query,
-            date_started=incident.date_started,
-            current_end_date=incident.current_end_date,
-            organization=incident.organization,
-            project_ids=[self.project.id],
-        )
-        assert get_metric_issue_aggregates(params) == {"count": 4}
-
-
-class GetCrashRateMetricsIncidentAggregatesTest(TestCase, BaseMetricsTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.now = timezone.now().replace(minute=0, second=0, microsecond=0)
-        for _ in range(2):
-            self.store_session(self.build_session(status="exited"))
-        self.dataset = Dataset.Metrics
-
-    def test_sessions(self) -> None:
-        incident = self.create_incident(
-            date_started=self.now - timedelta(minutes=120), query="", projects=[self.project]
-        )
-        alert_rule = self.create_alert_rule(
-            self.organization,
-            [self.project],
-            query="",
-            time_window=1,
-            dataset=self.dataset,
-            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-        )
-        incident.update(alert_rule=alert_rule)
-        snuba_query = incident.alert_rule.snuba_query
-        project_ids = list(
-            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
-        )
-        params = GetMetricIssueAggregatesParams(
-            snuba_query=snuba_query,
-            date_started=incident.date_started,
-            current_end_date=incident.current_end_date,
-            organization=incident.organization,
-            project_ids=project_ids,
-        )
-        incident_aggregates = get_metric_issue_aggregates(params)
-        assert "count" in incident_aggregates
-        assert incident_aggregates["count"] == 100.0
 
 
 @freeze_time()
