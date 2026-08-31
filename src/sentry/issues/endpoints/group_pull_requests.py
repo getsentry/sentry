@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 from typing import TypedDict, cast
 
 from django.db.models import Exists, OuterRef
@@ -28,6 +29,7 @@ from sentry.integrations.source_code_management.pull_request_status_batch import
 from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -44,6 +46,7 @@ class ProviderPullRequestResponse(TypedDict, total=False):
 
 
 class GroupPullRequestsResponse(TypedDict):
+    latestRegressionAt: datetime | None
     pullRequests: list[LinkedPullRequestResponse]
 
 
@@ -68,6 +71,18 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         )
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
+    )
+
+
+def _get_latest_regression_at(group: Group) -> datetime | None:
+    return (
+        GroupHistory.objects.filter(
+            group_id=group.id,
+            status=GroupHistoryStatus.REGRESSED,
+        )
+        .order_by("-date_added")
+        .values_list("date_added", flat=True)
+        .first()
     )
 
 
@@ -151,9 +166,10 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
         organization_id = group.project.organization_id
+        latest_regression_at = _get_latest_regression_at(group)
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
-            return Response({"pullRequests": []})
+            return Response({"latestRegressionAt": latest_regression_at, "pullRequests": []})
 
         pull_request_ids = [link.linked_id for link in group_links]
         pull_requests_by_id = PullRequest.objects.filter(
@@ -208,6 +224,9 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             ),
         )
 
-        response: GroupPullRequestsResponse = {"pullRequests": pull_request_responses}
+        response: GroupPullRequestsResponse = {
+            "latestRegressionAt": latest_regression_at,
+            "pullRequests": pull_request_responses,
+        }
 
         return Response(response)

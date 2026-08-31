@@ -16,6 +16,7 @@ from sentry.integrations.source_code_management.status_check import (
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequest,
@@ -155,7 +156,33 @@ class GroupPullRequestsEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"pullRequests": []}
+        assert response.data == {"latestRegressionAt": None, "pullRequests": []}
+
+    def test_returns_latest_regression_at(self) -> None:
+        now = timezone.now()
+        self.create_group_history(
+            group=self.group,
+            status=GroupHistoryStatus.REGRESSED,
+            date_added=now - timedelta(days=2),
+        )
+        latest_regression = self.create_group_history(
+            group=self.group,
+            status=GroupHistoryStatus.REGRESSED,
+            date_added=now - timedelta(days=1),
+        )
+        self.create_group_history(
+            group=self.group,
+            status=GroupHistoryStatus.RESOLVED,
+            date_added=now,
+        )
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        assert response.data == {
+            "latestRegressionAt": latest_regression.date_added,
+            "pullRequests": [],
+        }
 
     def test_returns_resolving_pull_requests(self) -> None:
         newer_pr, newer_link = self.create_linked_pull_request(
@@ -289,7 +316,7 @@ class GroupPullRequestsEndpointTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {"pullRequests": []}
+        assert response.data == {"latestRegressionAt": None, "pullRequests": []}
 
     def test_returns_display_pull_request_attribution(self) -> None:
         delegated_pull_request, _ = self.create_linked_pull_request(key="1")
