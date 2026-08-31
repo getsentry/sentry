@@ -163,6 +163,19 @@ describe('FormattedQuery', () => {
     expect(screen.queryByText(path)).not.toBeInTheDocument();
   });
 
+  it('constrains the compound chip text wrapper to the filter value width', () => {
+    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
+    render(
+      <FormattedQuery {...defaultProps} query={`transaction:${path}`} useCompoundChips />
+    );
+
+    const value = screen.getByText('/api/0…{organization_id_or_slug}/events/');
+    const chip = value.parentElement?.parentElement?.parentElement;
+    const chipRules = getEmotionRules(chip!).join(' ');
+
+    expect(chipRules).toMatch(/>:last-child>\* \{[^}]*width: 100%/);
+  });
+
   it('shows the full filter value when it fits beyond the fallback length', () => {
     const path = '/api/0/organizations/{organization_id_or_slug}/events/';
     const clientWidthSpy = jest

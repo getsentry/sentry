@@ -446,8 +446,8 @@ describe('AskSeerComboBox', () => {
 
     const groupBy = await screen.findByText('span.name');
     const browserGroupBy = screen.getByText('browser.name');
-    const groupByChip = groupBy.parentElement?.parentElement;
-    const browserGroupByChip = browserGroupBy.parentElement?.parentElement;
+    const groupByChip = groupBy.parentElement?.parentElement?.parentElement;
+    const browserGroupByChip = browserGroupBy.parentElement?.parentElement?.parentElement;
 
     expect(groupByChip).toBeInTheDocument();
     expect(groupByChip).not.toBe(browserGroupByChip);
@@ -467,8 +467,8 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByRole('button', {name: 'span.name'})).not.toBeInTheDocument();
   });
 
-  it('constrains long parameter chips to one line', async () => {
-    const longGroupBy = 'a'.repeat(400);
+  it('middle-ellipsizes long parameter values', async () => {
+    const longGroupBy = '/api/0/organizations/{organization_id_or_slug}/events/';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -493,13 +493,15 @@ describe('AskSeerComboBox', () => {
     });
     await userEvent.type(input, 'test{Enter}');
 
-    const value = await screen.findByText(longGroupBy);
-    const chip = value.parentElement?.parentElement;
+    const value = await screen.findByText('/api/0…{organization_id_or_slug}/events/');
+    const chip = value.parentElement?.parentElement?.parentElement;
     const chipRules = getEmotionRules(chip!).join(' ');
 
+    expect(value).toHaveAttribute('data-overflowing', 'true');
+    expect(screen.queryByText(longGroupBy)).not.toBeInTheDocument();
     expect(chipRules).toContain('max-width: 100%');
     expect(chipRules).toContain('overflow: hidden');
-    expect(chipRules).toContain('text-overflow: ellipsis');
+    expect(chipRules).toMatch(/>\*>\* \{[^}]*width: 100%/);
   });
 
   it('does not show the legacy feedback option', async () => {

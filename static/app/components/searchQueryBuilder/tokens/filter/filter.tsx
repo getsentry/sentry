@@ -145,13 +145,13 @@ function fitMiddleEllipsisToElement(
   }
 }
 
-function TruncatedFilterDisplayValue({
+export function TruncatedFilterDisplayValue({
   value,
-  fallbackMaxLength,
+  fallbackMaxLength = FILTER_VALUE_FALLBACK_MAX_LENGTH,
   multi = false,
 }: {
-  fallbackMaxLength: number;
   value: string;
+  fallbackMaxLength?: number;
   multi?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement>(null);

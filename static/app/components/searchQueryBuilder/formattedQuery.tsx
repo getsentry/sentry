@@ -272,6 +272,11 @@ const CompoundChipRoot = styled(Chip.Root)`
   & > :last-child {
     max-width: 300px;
   }
+
+  & > :last-child > * {
+    min-width: 0;
+    width: 100%;
+  }
 `;
 
 function Paren({children}: {children: React.ReactNode}) {

@@ -13,6 +13,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {TruncatedFilterDisplayValue} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -225,10 +226,12 @@ function ExploreParamTitle({children}: {children: React.ReactNode}) {
   );
 }
 
-function ResolvedValueChip({children}: {children: React.ReactNode}) {
+function ResolvedValueChip({children}: {children: string}) {
   return (
     <ResolvedValueChipRoot size="sm">
-      <Chip.Value variant="primary">{children}</Chip.Value>
+      <Chip.Value variant="primary">
+        <TruncatedFilterDisplayValue value={children} />
+      </Chip.Value>
     </ResolvedValueChipRoot>
   );
 }
@@ -246,8 +249,8 @@ const ResolvedValueChipRoot = styled(Chip.Root)`
   & > * > * {
     display: block;
     min-width: 0;
+    width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 `;
 
