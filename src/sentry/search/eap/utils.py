@@ -374,8 +374,6 @@ def _attribute_names_request(
     value_substring_match: str = "",
     offset: int = 0,
 ) -> TraceItemAttributeNamesRequest:
-    # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
-    # pass names in a OrFilter which means only rows with _all_ attributes will return
     return TraceItemAttributeNamesRequest(
         meta=meta,
         limit=ATTRIBUTE_NAME_LIMIT,
@@ -383,7 +381,9 @@ def _attribute_names_request(
         type=attr_type,
         value_substring_match=value_substring_match,
         match_mode=TraceItemAttributeNamesRequest.MatchMode.MATCH_MODE_ANY,
-        # This filter doesn't actually matter snuba just recollects all the columns
+        # Selects which items snuba scans, not which names come back from them: every
+        # attribute co-occurring on a matching item is returned, so a wide filter can
+        # collect far more names than were asked about
         intersecting_attributes_filter=TraceItemFilter(
             or_filter=OrFilter(
                 filters=[
@@ -450,8 +450,8 @@ def _check_attribute_names_by_type(
     if found == requested_names or not more:
         return found
 
-    # Names come back alphabetically and capped at the limit, so an org with enough
-    # attributes can page out the very name we filtered on
+    # Refiltering on just the missing names shrinks the set of items snuba scans, and
+    # so the co-occurring names it collects, often back under the limit
     filter_names = requested_names - found
     if filter_names != requested_names:
         retry_found, more = _attribute_names_page(meta, attr_type, filter_names)
