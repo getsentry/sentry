@@ -76,8 +76,7 @@ function calculateCategoryPrepaidUsage(
   subscription: Subscription,
   prepaid: number,
   accepted?: number | null,
-  reservedCpe?: number | null,
-  reservedSpend?: number | null
+  reservedCpe?: number | null
 ): {
   onDemandUsage: number;
   prepaidPercentUsed: number;
@@ -91,16 +90,12 @@ function calculateCategoryPrepaidUsage(
   const categoryInfo = subscription.categories[category];
   const usage = accepted ?? categoryInfo?.usage ?? 0;
 
-  // If reservedCpe or reservedSpend aren't provided but category is part of a reserved budget,
-  // try to extract them from subscription.reservedBudgets
+  // If reservedCpe isn't provided but category is part of a reserved budget,
+  // extract reservedCpe / reservedSpend from subscription.reservedBudgets.
   let effectiveReservedCpe = reservedCpe ?? undefined;
-  let effectiveReservedSpend = reservedSpend ?? undefined;
+  let effectiveReservedSpend: number | undefined;
 
-  if (
-    (effectiveReservedCpe === undefined || effectiveReservedSpend === undefined) &&
-    isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])
-  ) {
-    // Look for the category in reservedBudgets
+  if (isPartOfReservedBudget(category, subscription.reservedBudgets ?? [])) {
     for (const budget of subscription.reservedBudgets || []) {
       if (category in budget.categories) {
         const categoryBudget = budget.categories[category];
@@ -108,9 +103,7 @@ function calculateCategoryPrepaidUsage(
           if (effectiveReservedCpe === undefined) {
             effectiveReservedCpe = categoryBudget.reservedCpe;
           }
-          if (effectiveReservedSpend === undefined) {
-            effectiveReservedSpend = categoryBudget.reservedSpend;
-          }
+          effectiveReservedSpend = categoryBudget.reservedSpend;
           break;
         }
       }

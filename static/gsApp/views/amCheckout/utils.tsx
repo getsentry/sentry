@@ -282,7 +282,7 @@ function recordAnalytics(
   data: CheckoutAPIData,
   isMigratingPartnerAccount: boolean
 ) {
-  trackMarketingEvent('Upgrade', {plan: data.plan});
+  trackMarketingEvent('Upgrade');
   const currentData: CheckoutData = {
     plan: data.plan,
   };
