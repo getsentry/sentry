@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconRefresh} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -82,11 +82,9 @@ export function GcpConnectionStatus({
 
         <Flex gap="md" align="center" justify="between">
           <Text variant="muted" size="sm">
-            {typeof lastVerifiedAt === 'string' ? (
-              <TimeSince date={lastVerifiedAt} prefix={t('Last checked')} />
-            ) : (
-              t('Never checked')
-            )}
+            {typeof lastVerifiedAt === 'string'
+              ? tct('Last checked [when]', {when: <TimeSince date={lastVerifiedAt} />})
+              : t('Never checked')}
           </Text>
           <Button
             size="sm"

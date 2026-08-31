@@ -54,6 +54,7 @@ describe('GcpConnectionStatus', () => {
     });
 
     expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByText(/Last checked/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled();
   });
 
