@@ -266,7 +266,7 @@ class GcpIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
         config = self.gcp_config
-        if config is None:
+        if config is None or not config.get("projects"):
             raise IntegrationConfigurationError("GCP integration is not configured.")
 
         new_config: GcpConfig = cast(GcpConfig, dict(config))

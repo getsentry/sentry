@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from django.utils import timezone
@@ -23,7 +24,7 @@ from sentry.api.serializers.rest_framework.base import (
     snake_to_camel_case,
 )
 from sentry.constants import ObjectStatus
-from sentry.integrations.gcp.client import GcpVerifyConnectionResult, verify_gcp_connection
+from sentry.integrations.gcp.client import verify_gcp_connection
 from sentry.integrations.gcp.utils import resolve_project_error_detail
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -62,7 +63,7 @@ class GcpVerifyConnectionResponseSerializer(Serializer[dict[str, object]]):
 def _record_verification_result(
     organization: Organization,
     verified: dict[str, Any],
-    result: GcpVerifyConnectionResult,
+    result: Mapping[str, Any],
 ) -> None:
     ctx = integration_service.organization_context(
         organization_id=organization.id,
@@ -140,17 +141,6 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
         except IntegrationError as exc:
             return Response({"detail": str(exc)}, status=502)
 
-        for project in result["projects"]:
-            project["error_detail"] = resolve_project_error_detail(project)
-
-        try:
-            _record_verification_result(organization, data, result)
-        except Exception:
-            logger.exception(
-                "gcp.verify_connection_record_failed",
-                extra={"organization_id": organization.id},
-            )
-
         response_serializer = GcpVerifyConnectionResponseSerializer(data=result)
         if not response_serializer.is_valid():
             return Response(
@@ -158,6 +148,16 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
                 status=502,
             )
 
-        return Response(
-            convert_dict_key_case(response_serializer.validated_data, snake_to_camel_case)
-        )
+        verified_result = response_serializer.validated_data
+        for project in verified_result["projects"]:
+            project["error_detail"] = resolve_project_error_detail(project)
+
+        try:
+            _record_verification_result(organization, data, verified_result)
+        except Exception:
+            logger.exception(
+                "gcp.verify_connection_record_failed",
+                extra={"organization_id": organization.id},
+            )
+
+        return Response(convert_dict_key_case(verified_result, snake_to_camel_case))
