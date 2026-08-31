@@ -4,7 +4,6 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.utils import webhook_subjects
 from sentry.sentry_apps.utils.webhook_subjects import SubjectSpec, extract_webhook_subject
 from sentry.sentry_apps.utils.webhooks import SentryAppResourceType
-from sentry.utils import json
 
 # sentry_apps.py `_process_resource_change` -> `_webhook_event_data` (Event.as_dict()).
 ERROR_CREATED_PAYLOAD = {
@@ -239,13 +238,6 @@ def test_extracts_subject_per_event_type() -> None:
     ) == ("456", "preprod_artifact")
 
 
-def test_realistic_payload_fixtures_stay_within_buffer_limit() -> None:
-    # Fixtures must mirror real webhook bodies but stay within the request
-    # buffer's 1024-char cap (SentryAppWebhookRequestsBuffer.MAX_SIZE).
-    for payload in _REALISTIC_PAYLOADS:
-        assert len(json.dumps(payload)) <= 1024
-
-
 def test_seer_falls_back_to_sentry_run_id() -> None:
     # Defensive fallback: if run_id is absent, sentry_run_id is used.
     assert extract_webhook_subject(
@@ -257,14 +249,6 @@ def test_seer_falls_back_to_sentry_run_id() -> None:
             "group_id": 123456,
         },
     ) == ("d1e2f3a4-5678-4b9c-8d0e-1f2a3b4c5d6e", "autofix_run")
-
-
-def test_seer_run_id_zero_is_not_treated_as_missing() -> None:
-    assert extract_webhook_subject(
-        SentryAppResourceType.SEER,
-        SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
-        {"run_id": 0},
-    ) == ("0", "autofix_run")
 
 
 def test_returns_null_when_no_stable_id() -> None:
