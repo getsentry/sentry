@@ -69,9 +69,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             def extract_value(self, data_packet: DataPacket[dict[Never, Never]]) -> bool:
                 return True
 
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[Never, Never]]) -> int:
-                return 1
-
             def create_occurrence(
                 self,
                 evaluation_result: DataConditionGroupEvaluation,
