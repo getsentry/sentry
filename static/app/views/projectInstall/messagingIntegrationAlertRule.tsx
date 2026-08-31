@@ -141,10 +141,10 @@ export function ChannelSelect({
   onCreateOption,
 }: ChannelSelectProps) {
   const selectedOption = value ? {label: value.label, value: value.value} : null;
-  const hasSelectedOption =
-    !!selectedOption && !!options?.some(option => option.value === selectedOption.value);
   const optionsWithSelectedValue =
-    selectedOption && !hasSelectedOption ? [selectedOption, ...(options ?? [])] : options;
+    selectedOption && !options?.some(option => option.value === selectedOption.value)
+      ? [selectedOption, ...(options ?? [])]
+      : options;
 
   return (
     <Select
@@ -153,7 +153,6 @@ export function ChannelSelect({
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
       isSearchable
       options={optionsWithSelectedValue}
-      hideSelectedOptions={!!selectedOption && !hasSelectedOption}
       isLoading={isLoading}
       disabled={disabled}
       value={value?.value ?? null}
