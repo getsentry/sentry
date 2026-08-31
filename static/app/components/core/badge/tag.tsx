@@ -119,8 +119,10 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
 
 const Text = styled('div')`
   /* text-overflow only takes effect on a block container, so the label cannot be
-     a flex box. TagPill already centers it, and the occurrences that pass
-     elements rather than a string bring their own layout. */
+     a flex box. Dropping the flex layout is safe: TagPill already centers this
+     box, and no call site passes sibling elements that needed it. It also drops
+     a gap that was splitting concatenated labels: preprodBuildsTableCommon
+     rendered "+ 3" where it meant "+3". */
   display: block;
   overflow: hidden;
   white-space: nowrap;
