@@ -555,7 +555,7 @@ export function AssigneeSelectorDropdown({
 
   const makeTrigger = ({children: _, ref, ...props}: TriggerProps) => {
     return (
-      <Button
+      <AssigneeTriggerButton
         {...props}
         aria-label={t('Modify issue assignee')}
         data-test-id="assignee-selector"
@@ -575,11 +575,12 @@ export function AssigneeSelectorDropdown({
           )
         }
         ref={ref as Ref<HTMLButtonElement>}
+        round={group.assignedTo?.type === 'user' && !showLabel}
         size="zero"
         variant="secondary"
       >
         {null}
-      </Button>
+      </AssigneeTriggerButton>
     );
   };
 
@@ -591,6 +592,7 @@ export function AssigneeSelectorDropdown({
         className={className}
         menuWidth={275}
         position="bottom-end"
+        style={{alignItems: 'center', display: 'flex'}}
         onClick={e => e.stopPropagation()}
         value={
           group.assignedTo
@@ -630,6 +632,12 @@ const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: left;
+`;
+
+const AssigneeTriggerButton = styled(Button, {
+  shouldForwardProp: prop => prop !== 'round',
+})<{round: boolean}>`
+  ${p => p.round && 'border-radius: 50%;'}
 `;
 
 const StyledIconUser = styled(IconUser)`
