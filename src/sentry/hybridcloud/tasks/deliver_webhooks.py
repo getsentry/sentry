@@ -943,7 +943,7 @@ def drain_mailbox(
     dispatcher: str | None = None,
     valid_until: float | None = None,
     mailbox: str | None = None,
-    chain_depth: int = 0,
+    chain_depth: int = 1,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of — in order,
@@ -951,7 +951,8 @@ def drain_mailbox(
 
     The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`);
     each defaults so a rolling deploy can bind drains the previous version sent.
-    `chain_depth` is accepted ahead of drain chaining for the same reason.
+    `chain_depth` — which link of a chain this drain is, an ordinary dispatch
+    being the first — is accepted ahead of drain chaining for the same reason.
     """
     claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
     if claim is not None:
@@ -1287,7 +1288,7 @@ def drain_mailbox_parallel(
     dispatcher: str | None = None,
     valid_until: float | None = None,
     mailbox: str | None = None,
-    chain_depth: int = 0,
+    chain_depth: int = 1,
 ) -> None:
     """
     Transitional alias from when sequential and parallel delivery were separate
