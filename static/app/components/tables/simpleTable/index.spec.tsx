@@ -117,6 +117,20 @@ describe('SimpleTable component', () => {
     expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
   });
 
+  it('keeps the justify alignment off the rendered column header', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell justify="center">A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    expect(screen.getByRole('columnheader', {name: 'A'})).not.toHaveAttribute('justify');
+  });
+
   it('renders a single spanning cell when given a full width row', () => {
     render(
       <SimpleTable

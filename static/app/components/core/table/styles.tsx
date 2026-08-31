@@ -2,6 +2,10 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {FLEX_JUSTIFY_CONTENT} from '@sentry/scraps/layout';
+
+import type {HeaderCellJustify} from 'sentry/components/tables/sortableHeaderCell';
+
 export const TABLE_HEAD_ROW_HEIGHT = 45;
 
 const Z_INDEX_RESIZER = 1;
@@ -54,9 +58,18 @@ export const TableRow = styled('tr', {
     `}
 `;
 
-export const TableHeadCell = styled('th')`
+export const TableHeadCell = styled('th', {
+  shouldForwardProp: prop => prop !== 'justify',
+})<{justify?: HeaderCellJustify}>`
   position: relative;
   min-width: 0;
+
+  /* Only bites when a consumer lays the cell out as a flex container. */
+  ${p =>
+    p.justify &&
+    css`
+      justify-content: ${FLEX_JUSTIFY_CONTENT[p.justify]};
+    `}
 `;
 
 export const TableCell = styled('td')`

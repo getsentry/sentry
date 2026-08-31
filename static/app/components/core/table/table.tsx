@@ -24,6 +24,7 @@ import {DragHandle} from '@sentry/scraps/dragHandle';
 
 import {
   getAriaSort,
+  type HeaderCellJustify,
   SortableHeaderCell,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
@@ -273,6 +274,11 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
    * from an ordered list rather than from a keyed column config.
    */
   columnIndex?: number;
+  /**
+   * Aligns the cell's content, in `Flex`'s `justify` vocabulary, so a column's
+   * header can be given the same alignment as its row cells.
+   */
+  justify?: HeaderCellJustify;
   onSort?: (event: React.MouseEvent) => void;
   overlays?: ReactNode;
   /**
@@ -290,6 +296,7 @@ function HeadCell({
   children,
   column,
   columnIndex,
+  justify,
   onSort,
   overlays,
   replace,
@@ -320,12 +327,14 @@ function HeadCell({
       aria-sort={getAriaSort(sort)}
       {...props}
       id={cellId}
+      justify={justify}
       ref={cellRef}
       role="columnheader"
     >
       {sortable ? (
         <SortableHeaderCell
           direction={sort}
+          justify={justify}
           onSort={onSort}
           overlays={overlays}
           replace={replace}

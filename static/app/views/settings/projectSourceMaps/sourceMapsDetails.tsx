@@ -78,7 +78,7 @@ function ArtifactsTableRow({
       <AlignedRightColumn>
         <FileSize bytes={size} />
       </AlignedRightColumn>
-      <ActionsColumn>
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={tct(
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -100,7 +100,7 @@ function ArtifactsTableRow({
             aria-label={t('Download Artifact')}
           />
         </Tooltip>
-      </ActionsColumn>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
@@ -364,14 +364,6 @@ const ARTIFACT_COLUMNS: TableColumnConfig[] = [
 const ARTIFACT_COLUMNS_WITHOUT_TYPE = ARTIFACT_COLUMNS.filter(
   column => column.key !== 'type'
 );
-
-const Column = styled(SimpleTable.RowCell)`
-  overflow: hidden;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${p => p.theme.space['2xl']};

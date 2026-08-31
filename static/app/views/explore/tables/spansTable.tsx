@@ -126,7 +126,7 @@ export function SpansTable({
 
               return (
                 <DataTable.HeadCell
-                  align={align}
+                  justify={align}
                   columnIndex={i}
                   key={i}
                   isFirst={!canExpandSpanDetails && i === 0}

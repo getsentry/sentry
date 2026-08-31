@@ -255,7 +255,7 @@ export function InviteMissingMembersModal({
                   onChange={() => toggleCheckbox(!checked, i)}
                 />
               </SimpleTable.RowCell>
-              <StyledPanelItem>
+              <SimpleTable.RowCell align="start" direction="column" justify="center">
                 <InlineContentRow>
                   <IconGithub size="sm" />
                   <StyledExternalLink href={`https://github.com/${username}`}>
@@ -263,7 +263,7 @@ export function InviteMissingMembersModal({
                   </StyledExternalLink>
                 </InlineContentRow>
                 <MemberEmail>{member.email}</MemberEmail>
-              </StyledPanelItem>
+              </SimpleTable.RowCell>
               <ContentRow>
                 <IconCommit size="sm" />
                 {member.commitCount}
@@ -347,12 +347,6 @@ export function InviteMissingMembersModal({
 const StyledSimpleTable = styled(SimpleTable)`
   overflow: scroll;
   max-height: 475px;
-`;
-
-const StyledPanelItem = styled(SimpleTable.RowCell)`
-  flex-direction: column;
-  align-items: start;
-  justify-content: center;
 `;
 
 const contentRowStyle = (p: {theme: Theme}) => css`
