@@ -2599,7 +2599,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
         )
         deadline = timezone.now()
 
-        with patch.object(deliver_webhooks.timezone, "now", return_value=deadline):
+        with patch("sentry.hybridcloud.tasks.deliver_webhooks.timezone.now", return_value=deadline):
             drain_mailbox(
                 webhook.id,
                 claimed_count=1,
