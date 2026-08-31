@@ -44,11 +44,11 @@ export function useEnableAuthV2() {
   const setAuthV2CookieState = useCallback((state: AuthV2CookieState) => {
     const domain = getCookieDomain();
     const secure = window.location.protocol === 'https:';
-    const secureOptions: Cookies.CookieAttributes = {sameSite: 'none', secure: true};
-    const laxOptions: Cookies.CookieAttributes = {sameSite: 'lax', domain};
     const options: Cookies.CookieAttributes = {
       path: '/',
-      ...(secure ? secureOptions : laxOptions),
+      sameSite: secure ? 'none' : 'lax',
+      ...(secure ? {secure: true} : {}),
+      ...(domain ? {domain} : {}),
     };
 
     Cookies.remove(REACT_AUTH_COOKIE, {...options, path: '/auth/'});
