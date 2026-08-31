@@ -4,9 +4,8 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
-
-import type {Props as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
+import type {Props as ReactSelectProps} from '@sentry/scraps/select/reactSelectWrapper';
+import {components} from '@sentry/scraps/select/reactSelectWrapper';
 
 import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 

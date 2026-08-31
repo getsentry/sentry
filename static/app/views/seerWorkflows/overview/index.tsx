@@ -401,6 +401,12 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
+        {someUnconfigured && (
+          <ProjectSetupWarning
+            unconfiguredProjects={unconfiguredProjects}
+            orgSlug={organization.slug}
+          />
+        )}
       </FilterBar>
       {isError ? (
         <LoadingError onRetry={refetch} />
@@ -408,12 +414,6 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         <OverviewSkeleton />
       ) : (
         <Fragment>
-          {someUnconfigured && (
-            <ProjectSetupWarning
-              unconfiguredProjects={unconfiguredProjects}
-              orgSlug={organization.slug}
-            />
-          )}
           {allRuns.length === 0 ? (
             noRunsContent
           ) : assigneeRuns.length === 0 ? (

@@ -234,6 +234,7 @@ export type SeerExplorerResponse = {
     blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
     updated_at: string;
+    failure_reason?: 'timeout' | 'stalled' | null;
     owner_user_id?: number | null;
     pending_user_input?: PendingUserInput | null;
     repo_pr_states?: Record<string, RepoPRState>;

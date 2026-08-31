@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
-import {useQuery} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
 

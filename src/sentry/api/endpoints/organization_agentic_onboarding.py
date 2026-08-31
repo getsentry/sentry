@@ -7,6 +7,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from sentry import analytics
+from sentry.analytics.events.agentic_onboarding import AgenticOnboardingStageCompletedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -205,7 +207,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         assert user_id is not None
 
         try:
-            run, _ = get_onboarding_progress_service().update(
+            run, _, stage_status_changed = get_onboarding_progress_service().update(
                 token=values["run_token"],
                 user_id=user_id,
                 organization_id=organization.id,
@@ -219,6 +221,18 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
             return Response({"detail": "Onboarding run is terminal"}, status=409)
         except ValueError:
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
+
+        if stage_status_changed:
+            if values["update"].status is StageStatus.COMPLETED:
+                analytics.record(
+                    AgenticOnboardingStageCompletedEvent(
+                        user_id=user_id,
+                        organization_id=organization.id,
+                        run_id=run.run_id,
+                        stage=values["update"].stage.value,
+                        status=values["update"].status.value,
+                    )
+                )
 
         snapshot = serialize(run, request.user, AgenticOnboardingRunSerializer())
         return Response(snapshot)

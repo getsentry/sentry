@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
-import type {Location, LocationDescriptorObject} from 'history';
+import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -13,7 +13,6 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -22,9 +21,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getEventViewColumnSort} from 'sentry/utils/discover/getEventViewColumnSort';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -440,81 +439,60 @@ export function Table({
     });
   };
 
-  function renderHeadCell(
-    tableMeta: TableData['meta'],
-    column: TableColumn<keyof TableDataRow>,
-    title: ColumnTitle
-  ): React.ReactNode {
-    const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
-    const aggregateAliasTableMeta: MetaType = {};
-    if (tableMeta) {
-      Object.keys(tableMeta).forEach(key => {
-        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key];
-      });
+  function aggregateAliasMeta(tableMeta: TableData['meta']): MetaType | undefined {
+    if (!tableMeta) {
+      return undefined;
     }
 
-    function generateSortLink(): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
-        return undefined;
-      }
-
-      const nextEventView = eventView.sortOnField(field, aggregateAliasTableMeta);
-      const queryStringObject = nextEventView.generateQueryStringObject();
-
-      return {
-        ...location,
-        query: {...location.query, sort: queryStringObject.sort},
-      };
-    }
-    const currentSort = eventView.sortForField(field, aggregateAliasTableMeta);
-    const canSort = isFieldSortable(field, aggregateAliasTableMeta);
-
-    const currentSortKind = currentSort ? currentSort.kind : undefined;
-    const currentSortField = currentSort ? currentSort.field : undefined;
-
-    const sortLink = (
-      <SortLink
-        align={align}
-        title={title.title || field.field}
-        direction={currentSortKind}
-        canSort={canSort}
-        generateSortLink={generateSortLink}
-        onClick={() => onSortClick(currentSortKind, currentSortField)}
-      />
-    );
-
-    if (field.field.startsWith('user_misery')) {
-      if (title.tooltip) {
-        return (
-          <GuideAnchor target="project_transaction_threshold" position="top">
-            <Tooltip isHoverable title={title.tooltip} showUnderline>
-              {sortLink}
-            </Tooltip>
-          </GuideAnchor>
-        );
-      }
-      return (
-        <GuideAnchor target="project_transaction_threshold" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
-    }
-
-    if (!title.tooltip) {
-      return sortLink;
-    }
-    return (
-      <Tooltip isHoverable title={title.tooltip} showUnderline>
-        {sortLink}
-      </Tooltip>
+    return Object.fromEntries(
+      Object.entries(tableMeta).map(([key, value]) => [getAggregateAlias(key), value])
     );
   }
 
-  const renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      renderHeadCell(tableMeta, column, columnTitles[index]!);
-  };
+  function getColumnSort(
+    tableMeta: TableData['meta'],
+    column: TableColumn<keyof TableDataRow>
+  ) {
+    const meta = aggregateAliasMeta(tableMeta);
+    const field = {field: column.name, width: column.width};
+    const currentSort = eventView.sortForField(field, meta);
+
+    return getEventViewColumnSort({
+      align: fieldAlignment(column.name, column.type, tableMeta),
+      eventView,
+      field,
+      location,
+      meta,
+      onSort: () => onSortClick(currentSort?.kind, currentSort?.field),
+    });
+  }
+
+  function renderHeadCell(
+    column: TableColumn<keyof TableDataRow>,
+    title: ColumnTitle
+  ): React.ReactNode {
+    const label = title.title || column.name;
+    const content = title.tooltip ? (
+      <Tooltip isHoverable title={title.tooltip} showUnderline>
+        {label}
+      </Tooltip>
+    ) : (
+      label
+    );
+
+    return column.name.startsWith('user_misery') ? (
+      <GuideAnchor target="project_transaction_threshold" position="top">
+        {content}
+      </GuideAnchor>
+    ) : (
+      content
+    );
+  }
+
+  const renderHeadCellWithTitle = (
+    column: TableColumn<keyof TableDataRow>,
+    index: number
+  ): React.ReactNode => renderHeadCell(column, columnTitles[index]!);
 
   const renderPrependCellWithData = (tableData: TableData | null) => {
     const teamKeyTransactionColumn = eventView
@@ -531,9 +509,7 @@ export function Table({
               data-test-id="team-key-transaction-header"
             />
           );
-          return [
-            renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
-          ];
+          return [renderHeadCell(teamKeyTransactionColumn, {title: star})];
         }
         return [renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
       }
@@ -586,7 +562,6 @@ export function Table({
     });
 
   const sortedEventView = getSortedEventView();
-  const columnSortBy = sortedEventView.getSorts();
 
   const prependColumnWidths = ['max-content'];
   return (
@@ -615,11 +590,11 @@ export function Table({
                       isLoading={isLoading}
                       data={tableData ? tableData.data : []}
                       columnOrder={columnOrder}
-                      columnSortBy={columnSortBy}
                       bodyStyle={{overflow: 'visible'}}
                       grid={{
                         onResizeColumn: handleResizeColumn,
-                        renderHeadCell: renderHeadCellWithMeta(tableData?.meta),
+                        getColumnSort: column => getColumnSort(tableData?.meta, column),
+                        renderHeadCell: renderHeadCellWithTitle,
                         renderBodyCell: renderBodyCellWithData(tableData),
                         renderPrependColumns: renderPrependCellWithData(tableData),
                         prependColumnWidths,

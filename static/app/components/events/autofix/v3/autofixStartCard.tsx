@@ -9,6 +9,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,11 +36,13 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
+  const [enableBashTools] = useForceBashMode();
+
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause');
+      await startStep('root_cause', {enableBashTools: enableBashTools || undefined});
     } catch {
       return;
     } finally {
