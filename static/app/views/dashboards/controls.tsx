@@ -219,9 +219,9 @@ function AddWidgetDropdown({
         tooltipProps: {title: tooltip},
         variant: 'primary',
       }}
-      // Open rightward. bottom-end extends under the side nav because this
-      // control is left-aligned and dropdown z-index stays below sidebar.
-      position="bottom-start"
+      // Keep the default bottom-start placement. bottom-end opens left under the
+      // side nav because this control is left-aligned and dropdown z-index stays
+      // below sidebar.
     />
   );
 }
