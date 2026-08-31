@@ -653,7 +653,6 @@ module = [
     "sentry.api.serializers.rest_framework.groupsearchview",
     "sentry.api.serializers.rest_framework.list",
     "sentry.api.serializers.rest_framework.notification_action",
-    "sentry.api.serializers.rest_framework.organizationmemberinvite",
     "sentry.api.serializers.rest_framework.origin",
     "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.project_key",
