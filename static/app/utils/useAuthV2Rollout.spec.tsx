@@ -2,6 +2,7 @@ import Cookies from 'js-cookie';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -9,9 +10,19 @@ import {useAuthV2Rollout} from 'sentry/utils/useAuthV2Rollout';
 import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 
 describe('useAuthV2Rollout', () => {
+  const originalLocation = window.location.href;
+
   beforeEach(() => {
+    setWindowLocation('https://sentry.io/');
     OrganizationStore.init();
+    Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/'});
     Cookies.remove('sentry_react_auth', {path: '/'});
+  });
+
+  afterEach(() => {
+    Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/'});
+    Cookies.remove('sentry_react_auth', {path: '/'});
+    setWindowLocation(originalLocation);
   });
 
   it('enables Auth V2 when a member organization has the rollout feature', async () => {
