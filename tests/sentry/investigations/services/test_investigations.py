@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from typing import Any
 from unittest import mock
 from uuid import UUID, uuid4
 
@@ -11,11 +12,18 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework import serializers
 
-from sentry.db.models.fields.bounded import I64_MAX
+from sentry.api.serializers import serialize
+from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
+from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
 from sentry.investigations.models import (
     Investigation,
+    InvestigationBlock,
     InvestigationBlockDependency,
+    InvestigationBlockExecution,
+    InvestigationBlockExecutionStatus,
+    InvestigationBlockExecutor,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationRun,
     InvestigationProject,
@@ -48,7 +56,11 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.investigations.services.orchestration_events import (
     MAX_ORCHESTRATION_EVENT_BYTES,
+    InvestigationOrchestrationEventConflict,
+    OrchestrationEventReceipt,
     deliver_orchestration_event,
+    reconcile_orchestration_projection,
+    synchronize_orchestration_projection,
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -677,6 +689,11 @@ class InvestigationOrchestrationEventTransportTest(TestCase):
             filters={},
         )
         event_id = uuid4()
+        projection = {
+            **run.projection,
+            "runId": 8128,
+            "heartbeatAt": "2025-01-01T00:00:00+00:00",
+        }
         event = {
             "schema_version": 1,
             "event_id": event_id,
@@ -685,7 +702,7 @@ class InvestigationOrchestrationEventTransportTest(TestCase):
             "sequence": 1,
             "generation": 1,
             "type": "workflow_updated",
-            "payload": {"projection": {}},
+            "payload": {"projection": projection},
         }
         run.update(
             seer_run_id=8128,
@@ -702,7 +719,7 @@ class InvestigationOrchestrationEventTransportTest(TestCase):
                 "runId": 8128,
                 "investigationId": investigation.id,
                 "generation": 1,
-                "payload": {"projection": {}},
+                "payload": {"projection": projection},
             },
             application_status=InvestigationOrchestrationEventStatus.APPLIED,
         )
@@ -789,3 +806,1429 @@ class OrchestrationCommandConcurrencyTest(TransactionTestCase):
         assert sorted(outcomes) == ["accepted", "conflict"]
         assert run.workflow_version == 2
         assert InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).count() == 1
+
+
+class InvestigationOrchestrationEventTest(TestCase):
+    seer_run_id = 4815
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            title="Agentic investigation",
+        )
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            seer_run_id=self.seer_run_id,
+            source={"type": "manual"},
+            projection=self.projection(),
+        )
+
+    def projection(
+        self,
+        *,
+        workflow_version: int = 1,
+        generation: int = 1,
+        phase: str = "broad_scan",
+        status: str = "processing",
+        report_revision: int = 0,
+        report_status: str | None = None,
+        clear_intent: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "runId": self.seer_run_id,
+            "investigationId": str(self.investigation.id),
+            "sourceType": "manual",
+            "workflowVersion": workflow_version,
+            "generation": generation,
+            "phase": phase,
+            "status": status,
+            "broadScan": {"status": "running"},
+            "hypotheses": [],
+            "report": {
+                "revision": report_revision,
+                "status": report_status or ("composing" if report_revision else "not_started"),
+                "clearIntent": clear_intent,
+                "notebookRevision": 0,
+                "metadata": {"status": "not_started"},
+            },
+            "pendingInput": None,
+            "errors": [],
+            "heartbeatAt": "2025-01-01T00:00:00+00:00",
+        }
+
+    def event(
+        self,
+        sequence: int,
+        event_type: str,
+        payload: dict[str, Any],
+        *,
+        event_id: UUID | None = None,
+        generation: int = 1,
+    ) -> dict[str, Any]:
+        return {
+            "schema_version": 1,
+            "event_id": event_id or uuid4(),
+            "run_id": self.seer_run_id,
+            "investigation_id": self.investigation.id,
+            "sequence": sequence,
+            "generation": generation,
+            "type": event_type,
+            "payload": payload,
+        }
+
+    def deliver(self, event: dict[str, Any]) -> OrchestrationEventReceipt:
+        return deliver_orchestration_event(
+            organization_id=self.organization.id,
+            event=event,
+        )
+
+    def test_out_of_order_events_deduplicate_and_ignore_delayed_responses(self) -> None:
+        second_id = uuid4()
+        second = self.event(
+            2,
+            "workflow_updated",
+            {"projection": self.projection(workflow_version=3, phase="investigating")},
+            event_id=second_id,
+        )
+        first = self.event(
+            1,
+            "workflow_updated",
+            {"projection": self.projection(workflow_version=2, phase="planning")},
+        )
+
+        waiting = self.deliver(second)
+        assert waiting.last_applied_sequence == 0
+        assert waiting.application_status == InvestigationOrchestrationEventStatus.PENDING
+
+        applied = self.deliver(first)
+        assert applied.last_applied_sequence == 2
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        assert self.orchestration_run.phase == "investigating"
+
+        duplicate = self.deliver(second)
+        assert duplicate.duplicate is True
+        assert duplicate.last_applied_sequence == 2
+        assert (
+            InvestigationOrchestrationEvent.objects.filter(
+                orchestration_run=self.orchestration_run
+            ).count()
+            == 2
+        )
+
+        changed = self.event(
+            2,
+            "workflow_updated",
+            {"projection": self.projection(workflow_version=4)},
+            event_id=second_id,
+        )
+        with pytest.raises(InvestigationOrchestrationEventConflict):
+            self.deliver(changed)
+
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=2, phase="planning"),
+        )
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        assert self.orchestration_run.phase == "investigating"
+
+    def test_synchronize_projection_applies_newer_state_without_consuming_events(self) -> None:
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(
+                workflow_version=2,
+                generation=2,
+                phase="planning",
+            ),
+        )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.generation == 2
+        assert self.orchestration_run.phase == "planning"
+        assert self.orchestration_run.last_event_sequence == 0
+
+    def test_synchronize_projection_rejects_invalid_seer_run_ids(self) -> None:
+        for seer_run_id in (True, 0, I64_MAX + 1):
+            with pytest.raises(serializers.ValidationError):
+                synchronize_orchestration_projection(
+                    orchestration_run_id=self.orchestration_run.id,
+                    seer_run_id=seer_run_id,
+                    projection=self.projection(),
+                )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.seer_run_id == self.seer_run_id
+
+    def test_reconcile_projection_can_authoritatively_replace_state(self) -> None:
+        self.orchestration_run.update(
+            workflow_version=3,
+            generation=3,
+            phase="investigating",
+        )
+
+        reconcile_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(
+                workflow_version=2,
+                generation=2,
+                phase="planning",
+            ),
+        )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 2
+        assert self.orchestration_run.generation == 2
+        assert self.orchestration_run.phase == "planning"
+        assert self.orchestration_run.last_event_sequence == 0
+
+    def test_text_and_title_stream_resets_replace_stale_content(self) -> None:
+        manual = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            content="old manual block",
+        )
+        manual_execution = self.create_investigation_block_execution(
+            block=manual,
+            block_version=manual.version,
+            status=InvestigationBlockExecutionStatus.RUNNING,
+        )
+        manual.current_execution = manual_execution
+        manual.save(update_fields=["current_execution", "date_updated"])
+        events = [
+            self.event(1, "report_clear", {"reportRevision": 1}),
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "collapsed": False,
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                3,
+                "report_text_delta",
+                {"reportRevision": 1, "stableAgentKey": "summary", "delta": "stale"},
+            ),
+            self.event(
+                4,
+                "report_text_delta",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "delta": "fresh",
+                    "reset": True,
+                },
+            ),
+            self.event(5, "title_delta", {"reportRevision": 1, "delta": "Stale"}),
+            self.event(
+                6,
+                "title_delta",
+                {"reportRevision": 1, "delta": "Fresh", "reset": True},
+            ),
+            self.event(
+                7,
+                "metadata_completed",
+                {
+                    "reportRevision": 1,
+                    "title": "Final title",
+                    "summary": "Root cause found",
+                    "summaryDescription": "A release changed routing.\nRollback restores service.",
+                },
+            ),
+        ]
+        for event in events[:-1]:
+            self.deliver(event)
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.title == "Fresh"
+        assert self.orchestration_run.projection["report"]["metadata"]["title"] == "Fresh"
+        assert self.orchestration_run.projection["report"]["metadata"]["status"] == "generating"
+        self.deliver(events[-1])
+
+        manual.refresh_from_db()
+        manual_execution.refresh_from_db()
+        assert manual.deleted_at is None
+        assert manual_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        block = InvestigationBlock.objects.get(
+            investigation=self.investigation,
+            stable_agent_key="summary",
+        )
+        assert block.content == "fresh"
+        assert block.generated_content == "fresh"
+        assert block.report_revision == 1
+        assert block.content_execution is not None
+        assert list(
+            block.content_execution.data_project_links.values_list("project_id", flat=True)
+        ) == [self.project.id]
+        restricted_user = self.create_user()
+        self.create_member(organization=self.organization, user=restricted_user)
+        restricted = serialize(
+            block,
+            restricted_user,
+            InvestigationBlockSerializer(accessible_project_ids=set()),
+        )
+        assert restricted["content"] == ""
+        assert restricted["generatedContent"] == ""
+        assert restricted["outputStatus"] == "restricted"
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Final title"
+        assert self.investigation.summary == "Root cause found"
+        assert self.investigation.summary_description == (
+            "A release changed routing.\nRollback restores service."
+        )
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.notebook_revision == 7
+
+    def test_query_upsert_persists_an_immutable_completed_snapshot(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "event-count",
+                    "position": 0,
+                    "kind": "query",
+                    "title": "Event count",
+                    "collapsed": True,
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        in_flight = InvestigationBlock.objects.get(stable_agent_key="event-count")
+        assert in_flight.current_execution is not None
+        assert in_flight.result_execution_id == in_flight.current_execution_id
+        assert in_flight.current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert (
+            serialize(
+                in_flight,
+                self.user,
+                InvestigationBlockSerializer(accessible_project_ids={self.project.id}),
+            )["outputStatus"]
+            == InvestigationBlockExecutionStatus.RUNNING
+        )
+        result = {
+            "schemaVersion": 1,
+            "tableMarkdown": "| Count |\n| ---: |\n| 42 |",
+            "chart": None,
+            "preferredView": "table",
+            "isEmpty": False,
+            "chartUnavailableReason": "A chart is not useful for one value.",
+        }
+        self.deliver(
+            self.event(
+                3,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "event-count",
+                    "position": 0,
+                    "kind": "query",
+                    "title": "Event count",
+                    "collapsed": True,
+                    "projectIds": [self.project.id],
+                    "result": result,
+                    "generationPrompt": "Count matching events once.",
+                    "producingRunId": 90210,
+                },
+            )
+        )
+
+        block = InvestigationBlock.objects.get(stable_agent_key="event-count")
+        assert block.display["queryCollapsed"] is True
+        assert block.prompt == "Count matching events once."
+        assert block.producing_seer_run_id == 90210
+        assert block.current_execution_id == block.result_execution_id
+        execution = InvestigationBlockExecution.objects.get(id=block.result_execution_id)
+        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert execution.executor == InvestigationBlockExecutor.CODE_MODE
+        assert execution.result is not None
+        assert execution.result["tableMarkdown"] == result["tableMarkdown"]
+        assert list(execution.data_project_links.values_list("project_id", flat=True)) == [
+            self.project.id
+        ]
+
+        self.deliver(
+            self.event(
+                4,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="reporting",
+                        report_revision=2,
+                    )
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                5,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "event-count",
+                    "position": 0,
+                    "kind": "query",
+                    "title": "Event count",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        block.refresh_from_db()
+        assert block.current_execution_id != block.result_execution_id
+        assert block.current_execution is not None
+        assert block.current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert block.result_execution_id == execution.id
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+
+    def test_replacement_text_is_published_with_its_execution_provenance(self) -> None:
+        replacement_project = self.create_project(organization=self.organization)
+        self.create_investigation_project(
+            investigation=self.investigation,
+            project=self.project,
+        )
+        self.create_investigation_project(
+            investigation=self.investigation,
+            project=replacement_project,
+        )
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                3,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "content": "Original conclusion",
+                    "generatedContent": "Original conclusion",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        block = InvestigationBlock.objects.get(stable_agent_key="summary")
+        completed_execution_id = block.content_execution_id
+
+        self.deliver(
+            self.event(
+                4,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="reporting",
+                        report_revision=2,
+                    )
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                5,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "projectIds": [replacement_project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                6,
+                "report_text_delta",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "summary",
+                    "delta": "Partial replacement",
+                    "reset": True,
+                },
+            )
+        )
+
+        block.refresh_from_db()
+        assert block.content == "Original conclusion"
+        assert block.generated_content == "Original conclusion"
+        assert block.content_execution_id == completed_execution_id
+        assert block.current_execution_id != completed_execution_id
+        assert list(
+            block.current_execution.data_project_links.values_list("project_id", flat=True)
+        ) == [replacement_project.id]
+
+        self.deliver(
+            self.event(
+                7,
+                "report_block_upserted",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "content": "Replacement conclusion",
+                    "generatedContent": "Replacement conclusion",
+                    "projectIds": [replacement_project.id],
+                },
+            )
+        )
+        block.refresh_from_db()
+        assert block.content == "Replacement conclusion"
+        assert block.generated_content == "Replacement conclusion"
+        assert block.content_execution_id == block.current_execution_id
+        assert block.content_execution_id != completed_execution_id
+
+    def test_stale_and_future_generations_are_consumed_without_mutation(self) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, generation=2)},
+                generation=2,
+            )
+        )
+        stale = self.deliver(self.event(2, "report_clear", {"reportRevision": 4}, generation=1))
+        future_without_projection = self.deliver(
+            self.event(3, "report_clear", {"reportRevision": 5}, generation=3)
+        )
+
+        assert stale.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert future_without_projection.application_status == (
+            InvestigationOrchestrationEventStatus.IGNORED
+        )
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.generation == 2
+        assert self.orchestration_run.notebook_revision == 0
+        assert self.orchestration_run.last_event_sequence == 3
+
+    def test_stale_report_revision_is_consumed_without_mutation(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+
+        stale = self.deliver(self.event(2, "report_completed", {"reportRevision": 0}))
+
+        assert stale.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.last_event_sequence == 2
+        assert self.orchestration_run.projection["report"]["status"] == "composing"
+
+    def test_terminal_full_snapshot_recovers_a_sequence_gap(self) -> None:
+        old_block = self.create_investigation_block(
+            investigation=self.investigation,
+            report_revision=0,
+            stable_agent_key="old-summary",
+            content="stale report",
+        )
+        waiting = self.deliver(
+            self.event(
+                3,
+                "state_snapshot",
+                {
+                    "terminal": False,
+                    "full": True,
+                    "projection": self.projection(workflow_version=3),
+                    "blocks": [],
+                },
+            )
+        )
+        assert waiting.last_applied_sequence == 0
+
+        reconciled = self.deliver(
+            self.event(
+                5,
+                "state_snapshot",
+                {
+                    "terminal": True,
+                    "full": True,
+                    "projection": self.projection(
+                        workflow_version=5,
+                        phase="completed",
+                        status="completed",
+                        report_revision=2,
+                    ),
+                    "reportRevision": 2,
+                    "blocks": [
+                        {
+                            "stableAgentKey": "recovered-summary",
+                            "position": 0,
+                            "kind": "text",
+                            "title": "Recovered summary",
+                            "content": "Recovered report",
+                            "projectIds": [self.project.id],
+                        }
+                    ],
+                    "metadata": {
+                        "title": "Checkout Release Regression",
+                        "summary": "Release caused checkout failures",
+                        "summaryDescription": (
+                            "Checkout failures began with the latest release.\n"
+                            "Roll it back while validating the changed request path."
+                        ),
+                    },
+                },
+            )
+        )
+
+        assert reconciled.last_applied_sequence == 5
+        assert reconciled.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        waiting_event = InvestigationOrchestrationEvent.objects.get(sequence=3)
+        assert waiting_event.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        self.orchestration_run.refresh_from_db()
+        self.investigation.refresh_from_db()
+        assert self.orchestration_run.status == "completed"
+        assert self.orchestration_run.notebook_revision == 1
+        assert self.investigation.title == "Checkout Release Regression"
+        assert self.investigation.summary == "Release caused checkout failures"
+        assert self.investigation.summary_description == (
+            "Checkout failures began with the latest release.\n"
+            "Roll it back while validating the changed request path."
+        )
+        old_block.refresh_from_db()
+        assert old_block.deleted_at is not None
+        recovered = InvestigationBlock.objects.get(stable_agent_key="recovered-summary")
+        assert recovered.content == "Recovered report"
+        assert recovered.content_execution is not None
+        assert recovered.content_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert list(
+            recovered.content_execution.data_project_links.values_list("project_id", flat=True)
+        ) == [self.project.id]
+
+    def test_terminal_snapshots_preserve_authoritative_report_status(self) -> None:
+        terminal_states = [
+            ("completed", "completed", "completed"),
+            ("failed", "failed", "failed"),
+            ("cancelled", "cancelled", "cancelled"),
+        ]
+
+        for sequence, (phase, status, report_status) in enumerate(terminal_states, start=1):
+            with self.subTest(status=status):
+                delivered = self.deliver(
+                    self.event(
+                        sequence,
+                        "state_snapshot",
+                        {
+                            "terminal": True,
+                            "full": True,
+                            "projection": self.projection(
+                                workflow_version=sequence + 1,
+                                phase=phase,
+                                status=status,
+                                report_revision=sequence,
+                                report_status=report_status,
+                            ),
+                            "reportRevision": sequence,
+                            "blocks": [],
+                        },
+                    )
+                )
+
+                assert delivered.application_status == (
+                    InvestigationOrchestrationEventStatus.APPLIED
+                )
+                self.orchestration_run.refresh_from_db()
+                assert self.orchestration_run.status == status
+                assert self.orchestration_run.projection["report"]["status"] == report_status
+
+    def test_failed_terminal_snapshot_is_consumed_after_the_gap_closes(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+        failed = self.deliver(
+            self.event(
+                3,
+                "state_snapshot",
+                {
+                    "terminal": True,
+                    "full": True,
+                    "projection": self.projection(
+                        workflow_version=3,
+                        phase="completed",
+                        status="completed",
+                        report_revision=1,
+                    ),
+                    "reportRevision": 1,
+                    "blocks": [
+                        {
+                            "stableAgentKey": "invalid",
+                            "position": 0,
+                            "kind": "text",
+                            "title": "Invalid",
+                            "content": "Must roll back",
+                            "projectIds": [foreign_project.id],
+                        }
+                    ],
+                },
+            )
+        )
+        assert failed.application_status == InvestigationOrchestrationEventStatus.FAILED
+        assert failed.last_applied_sequence == 0
+        assert not InvestigationBlock.objects.filter(stable_agent_key="invalid").exists()
+
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection()},
+            )
+        )
+        closed = self.deliver(
+            self.event(
+                2,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, phase="planning")},
+            )
+        )
+
+        assert closed.last_applied_sequence == 3
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.phase == "planning"
+
+    def test_targeted_report_revision_preserves_blocks_until_explicit_clear(self) -> None:
+        events = [
+            self.event(1, "report_clear", {"reportRevision": 1}),
+            self.event(
+                2,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "first",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "First",
+                    "content": "first body",
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                3,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "second",
+                    "position": 1,
+                    "kind": "text",
+                    "title": "Second",
+                    "content": "second body",
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                4,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="reporting",
+                        report_revision=2,
+                    )
+                },
+            ),
+            self.event(
+                5,
+                "report_block_moved",
+                {"reportRevision": 2, "stableAgentKey": "first", "position": 1},
+            ),
+            self.event(
+                6,
+                "report_block_removed",
+                {"reportRevision": 2, "stableAgentKey": "second"},
+            ),
+            self.event(
+                7,
+                "report_block_upserted",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "first",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "First",
+                    "content": "revised body",
+                    "projectIds": [self.project.id],
+                },
+            ),
+        ]
+        for event in events[:5]:
+            self.deliver(event)
+
+        first = InvestigationBlock.objects.get(stable_agent_key="first")
+        second = InvestigationBlock.objects.get(stable_agent_key="second")
+        assert first.position == 1
+        assert second.position == 0
+
+        for event in events[5:]:
+            self.deliver(event)
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        assert first.report_revision == 2
+        assert first.content == "revised body"
+        assert first.deleted_at is None
+        assert second.report_revision == 2
+        assert second.deleted_at is not None
+
+        self.deliver(
+            self.event(
+                8,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=3,
+                        phase="reporting",
+                        report_revision=3,
+                        clear_intent={
+                            "id": "clear-3",
+                            "revision": 3,
+                            "reason": "hypothesis_set_changed",
+                            "completed": False,
+                        },
+                    )
+                },
+            )
+        )
+        first.refresh_from_db()
+        assert first.report_revision == 2
+        assert first.deleted_at is None
+        self.deliver(self.event(9, "report_clear", {"reportRevision": 3}))
+        first.refresh_from_db()
+        assert first.deleted_at is not None
+
+    def test_targeted_report_revision_discards_in_flight_block(self) -> None:
+        events = [
+            self.event(1, "report_clear", {"reportRevision": 1}),
+            self.event(
+                2,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "completed",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Completed",
+                    "content": "Keep this evidence",
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                3,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "partial",
+                    "position": 1,
+                    "kind": "text",
+                    "title": "Partial",
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                4,
+                "report_text_delta",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "partial",
+                    "delta": "unfinished",
+                },
+            ),
+            self.event(
+                5,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="reporting",
+                        report_revision=2,
+                    )
+                },
+            ),
+        ]
+        for event in events:
+            self.deliver(event)
+
+        completed = InvestigationBlock.objects.get(stable_agent_key="completed")
+        partial = InvestigationBlock.objects.get(stable_agent_key="partial")
+        assert completed.report_revision == 2
+        assert completed.deleted_at is None
+        assert partial.report_revision == 1
+        assert partial.deleted_at is not None
+        assert partial.current_execution is not None
+        assert partial.current_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert partial.current_execution.error == {
+            "code": "investigation_report_restarted",
+            "message": "The investigation report was restarted.",
+        }
+
+    def test_report_failure_finishes_partial_text_and_query_executions(self) -> None:
+        events = [
+            self.event(1, "report_clear", {"reportRevision": 1}),
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "partial-text",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Partial text",
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                3,
+                "report_text_delta",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "partial-text",
+                    "delta": "Evidence gathered so far",
+                },
+            ),
+            self.event(
+                4,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "partial-query",
+                    "position": 1,
+                    "kind": "query",
+                    "title": "Partial query",
+                    "projectIds": [self.project.id],
+                },
+            ),
+            self.event(
+                5,
+                "report_failed",
+                {
+                    "reportRevision": 1,
+                    "error": {
+                        "code": "report_generation_failed",
+                        "message": "The report could not be generated.",
+                        "retryable": True,
+                    },
+                },
+            ),
+        ]
+        for event in events:
+            self.deliver(event)
+
+        blocks = InvestigationBlock.objects.filter(
+            stable_agent_key__in=["partial-text", "partial-query"]
+        ).order_by("stable_agent_key")
+        assert blocks.count() == 2
+        for block in blocks:
+            assert block.deleted_at is None
+            assert block.current_execution is not None
+            assert block.current_execution.status == InvestigationBlockExecutionStatus.FAILED
+            assert block.current_execution.error == {
+                "code": "investigation_report_failed",
+                "message": "The investigation report could not be completed.",
+            }
+
+    def test_workflow_failure_finishes_partial_execution(self) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "report_block_started",
+                {
+                    "reportRevision": 0,
+                    "stableAgentKey": "partial",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Partial",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                2,
+                "workflow_failed",
+                {
+                    "error": {
+                        "code": "parent_failed",
+                        "message": "The parent workflow failed.",
+                        "retryable": True,
+                    }
+                },
+            )
+        )
+
+        execution = InvestigationBlock.objects.get(stable_agent_key="partial").current_execution
+        assert execution is not None
+        assert execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert execution.error == {
+            "code": "investigation_report_failed",
+            "message": "The investigation report could not be completed.",
+        }
+
+    def test_workflow_cancellation_cancels_partial_execution(self) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "report_block_started",
+                {
+                    "reportRevision": 0,
+                    "stableAgentKey": "partial",
+                    "position": 0,
+                    "kind": "query",
+                    "title": "Partial",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                2,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="cancelled",
+                        status="cancelled",
+                    )
+                },
+            )
+        )
+
+        execution = InvestigationBlock.objects.get(stable_agent_key="partial").current_execution
+        assert execution is not None
+        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.error == {
+            "code": "investigation_cancelled",
+            "message": "The investigation was cancelled.",
+        }
+
+    def test_invalid_contiguous_event_does_not_block_later_events(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+        failed = self.deliver(
+            self.event(
+                1,
+                "report_block_started",
+                {
+                    "reportRevision": 0,
+                    "stableAgentKey": "invalid",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Invalid",
+                    "projectIds": [foreign_project.id],
+                },
+            )
+        )
+        assert failed.application_status == InvestigationOrchestrationEventStatus.FAILED
+        assert not InvestigationBlock.objects.filter(stable_agent_key="invalid").exists()
+        assert not InvestigationBlockExecution.objects.filter(
+            block__stable_agent_key="invalid"
+        ).exists()
+
+        applied = self.deliver(
+            self.event(
+                2,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, phase="planning")},
+            )
+        )
+        assert applied.last_applied_sequence == 2
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.phase == "planning"
+
+    def test_report_blocks_require_nonempty_project_provenance(self) -> None:
+        with pytest.raises(serializers.ValidationError):
+            self.deliver(
+                self.event(
+                    1,
+                    "report_block_started",
+                    {
+                        "reportRevision": 0,
+                        "stableAgentKey": "unsafe",
+                        "position": 0,
+                        "kind": "text",
+                        "title": "Unsafe",
+                        "projectIds": [],
+                    },
+                )
+            )
+
+        assert not InvestigationBlock.objects.filter(stable_agent_key="unsafe").exists()
+        assert not InvestigationOrchestrationEvent.objects.exists()
+
+    def test_manual_report_block_can_use_persisted_investigation_project_scope(self) -> None:
+        self.create_investigation_project(
+            investigation=self.investigation,
+            project=self.project,
+        )
+        self.orchestration_run.source = {
+            "type": "manual",
+            "projectScope": {"type": "investigation"},
+        }
+        self.orchestration_run.save(update_fields=["source", "date_updated"])
+
+        self.deliver(
+            self.event(
+                1,
+                "report_block_started",
+                {
+                    "reportRevision": 0,
+                    "stableAgentKey": "scoped",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Scoped",
+                    "useInvestigationProjectScope": True,
+                },
+            )
+        )
+
+        execution = InvestigationBlock.objects.get(stable_agent_key="scoped").content_execution
+        assert execution is not None
+        assert list(execution.data_project_links.values_list("project_id", flat=True)) == [
+            self.project.id
+        ]
+
+    def test_event_payload_size_is_bounded(self) -> None:
+        with pytest.raises(serializers.ValidationError):
+            self.deliver(
+                self.event(
+                    1,
+                    "workflow_failed",
+                    {"error": {"message": "x" * (1024 * 1024)}},
+                )
+            )
+
+    def test_event_payload_database_integers_are_bounded(self) -> None:
+        for key in ("workflowVersion", "generation"):
+            projection = self.projection()
+            projection[key] = I32_MAX + 1
+            with pytest.raises(serializers.ValidationError):
+                self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+        with pytest.raises(serializers.ValidationError):
+            self.deliver(self.event(1, "report_clear", {"reportRevision": I32_MAX + 1}))
+        with pytest.raises(serializers.ValidationError):
+            self.deliver(
+                self.event(
+                    1,
+                    "report_block_started",
+                    {
+                        "reportRevision": 0,
+                        "stableAgentKey": "unsafe",
+                        "position": 0,
+                        "kind": "text",
+                        "title": "Unsafe",
+                        "projectIds": [I64_MAX + 1],
+                    },
+                )
+            )
+        with pytest.raises(serializers.ValidationError):
+            self.deliver(
+                self.event(
+                    1,
+                    "report_block_started",
+                    {
+                        "reportRevision": 0,
+                        "stableAgentKey": "unsafe",
+                        "position": 0,
+                        "kind": "text",
+                        "title": "Unsafe",
+                        "projectIds": [self.project.id],
+                        "producingRunId": I64_MAX + 1,
+                    },
+                )
+            )
+
+        assert not InvestigationOrchestrationEvent.objects.exists()
+
+    def test_malformed_nested_projection_is_rejected(self) -> None:
+        mutations = [
+            lambda projection: projection.update(
+                {
+                    "hypotheses": [
+                        {
+                            "id": "bad",
+                            "order": 0,
+                            "statement": "Bad projection",
+                            "rationale": "Invalid status",
+                            "status": "surprise",
+                            "effectiveStatus": "pending",
+                            "decisionSource": "none",
+                        }
+                    ]
+                }
+            ),
+            lambda projection: projection["broadScan"].update(
+                {
+                    "error": {
+                        "code": "bad_error",
+                        "message": "Malformed retryability",
+                        "retryable": "yes",
+                    }
+                }
+            ),
+            lambda projection: projection["broadScan"].update({"summary": "x" * (512 * 1024)}),
+            lambda projection: projection["report"].pop("metadata"),
+            lambda projection: projection["report"].pop("notebookRevision"),
+            lambda projection: projection.pop("heartbeatAt"),
+            lambda projection: projection.update({"heartbeatAt": "not-a-timestamp"}),
+            lambda projection: projection.update({"heartbeatAt": "2025-01-01T00:00:00"}),
+        ]
+        for mutate in mutations:
+            projection = self.projection()
+            mutate(projection)
+
+            with pytest.raises(serializers.ValidationError):
+                self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        assert not InvestigationOrchestrationEvent.objects.exists()
+
+    def test_projection_evidence_must_use_investigation_projects(self) -> None:
+        self.create_investigation_project(
+            investigation=self.investigation,
+            project=self.project,
+        )
+        unlinked_project = self.create_project(organization=self.organization)
+        projection = self.projection()
+        projection["hypotheses"] = [
+            {
+                "id": "hypothesis-1",
+                "order": 0,
+                "statement": "A release caused the regression",
+                "rationale": "The timing lines up.",
+                "status": "completed",
+                "effectiveStatus": "supported",
+                "decisionSource": "agent",
+                "verificationSteps": [],
+                "evidence": [
+                    {
+                        "id": "evidence-1",
+                        "title": "Unlinked project event",
+                        "kind": "event",
+                        "projectIds": [unlinked_project.id],
+                    }
+                ],
+                "toolActivity": [],
+            }
+        ]
+
+        delivered = self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        assert delivered.application_status == InvestigationOrchestrationEventStatus.FAILED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["hypotheses"] == []
+
+    def test_projection_accepts_evidence_from_an_investigation_project(self) -> None:
+        self.create_investigation_project(
+            investigation=self.investigation,
+            project=self.project,
+        )
+        projection = self.projection()
+        projection["hypotheses"] = [
+            {
+                "id": "hypothesis-1",
+                "order": 0,
+                "statement": "A release caused the regression",
+                "rationale": "The timing lines up.",
+                "status": "completed",
+                "effectiveStatus": "supported",
+                "decisionSource": "agent",
+                "verificationSteps": [],
+                "evidence": [
+                    {
+                        "id": "evidence-1",
+                        "title": "Linked project event",
+                        "kind": "event",
+                        "projectIds": [self.project.id],
+                    }
+                ],
+                "toolActivity": [],
+            }
+        ]
+
+        delivered = self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        assert delivered.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["hypotheses"][0]["evidence"] == [
+            {
+                "id": "evidence-1",
+                "title": "Linked project event",
+                "kind": "event",
+                "projectIds": [self.project.id],
+            }
+        ]
+
+    def test_verification_evidence_must_use_investigation_projects(self) -> None:
+        self.create_investigation_project(
+            investigation=self.investigation,
+            project=self.project,
+        )
+        unlinked_project = self.create_project(organization=self.organization)
+        projection = self.projection()
+        projection["hypotheses"] = [
+            {
+                "id": "hypothesis-1",
+                "order": 0,
+                "statement": "A release caused the regression",
+                "rationale": "The timing lines up.",
+                "status": "completed",
+                "effectiveStatus": "supported",
+                "decisionSource": "agent",
+                "verificationSteps": [
+                    {
+                        "id": "step-1",
+                        "order": 0,
+                        "title": "Inspect the event",
+                        "objective": "Verify the affected project.",
+                        "method": "Read the event details.",
+                        "status": "completed",
+                        "evidence": [
+                            {
+                                "id": "evidence-1",
+                                "title": "Unlinked project event",
+                                "kind": "event",
+                                "projectIds": [unlinked_project.id],
+                            }
+                        ],
+                    }
+                ],
+                "evidence": [],
+                "toolActivity": [],
+            }
+        ]
+
+        delivered = self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        assert delivered.application_status == InvestigationOrchestrationEventStatus.FAILED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["hypotheses"] == []
+
+    def test_project_backed_evidence_requires_project_provenance(self) -> None:
+        projection = self.projection()
+        projection["hypotheses"] = [
+            {
+                "id": "hypothesis-1",
+                "order": 0,
+                "statement": "A release caused the regression",
+                "rationale": "The timing lines up.",
+                "status": "completed",
+                "effectiveStatus": "supported",
+                "decisionSource": "agent",
+                "verificationSteps": [],
+                "evidence": [
+                    {
+                        "id": "evidence-1",
+                        "title": "Event without provenance",
+                        "kind": "event",
+                    }
+                ],
+                "toolActivity": [],
+            }
+        ]
+
+        with pytest.raises(serializers.ValidationError):
+            self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        assert not InvestigationOrchestrationEvent.objects.exists()
+
+    def test_projection_accepts_visible_broad_scan_steps(self) -> None:
+        projection = self.projection()
+        projection["broadScan"]["toolActivity"] = [
+            {
+                "id": "step-1",
+                "title": "Inspect the error spike",
+                "kind": "step",
+                "status": "queued",
+            }
+        ]
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["broadScan"]["toolActivity"] == [
+            {
+                "id": "step-1",
+                "title": "Inspect the error spike",
+                "kind": "step",
+                "status": "queued",
+            }
+        ]
+
+    def test_projection_accepts_report_query_tool_activity(self) -> None:
+        projection = self.projection(report_status="composing")
+        projection["report"]["currentBlockKey"] = "error-volume-chart"
+        projection["report"]["currentBlockStatus"] = "running"
+        projection["report"]["currentBlockToolActivity"] = [
+            {
+                "id": "query-call-1",
+                "title": "Querying error volume by minute",
+                "kind": "api",
+                "status": "running",
+            }
+        ]
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["report"]["currentBlockToolActivity"] == [
+            {
+                "id": "query-call-1",
+                "title": "Querying error volume by minute",
+                "kind": "api",
+                "status": "running",
+            }
+        ]
+
+    def test_projection_accepts_initial_report_cancellation_fence(self) -> None:
+        projection = self.projection(
+            workflow_version=2,
+            report_revision=1,
+            report_status="waiting",
+            clear_intent={
+                "id": "clear-report-1",
+                "revision": 1,
+                "reason": "Report composition stalled",
+                "requestedAt": "2025-01-01T00:00:00+00:00",
+                "completed": False,
+            },
+        )
+        projection["cancellationIntents"] = [
+            {
+                "id": "cancel-initial-report",
+                "scope": "report",
+                "targetId": "0",
+                "childRunId": None,
+                "generation": 0,
+                "reason": "Report composition stalled",
+                "requestedAt": "2025-01-01T00:00:00+00:00",
+                "completed": False,
+            }
+        ]
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["cancellationIntents"][0]["generation"] == 0
