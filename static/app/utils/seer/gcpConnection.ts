@@ -1,5 +1,3 @@
-import type {SnakeCasedProperties} from 'type-fest';
-
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -54,8 +52,6 @@ interface GcpProjectVerification extends Pick<
 > {
   errorDetail: string | null;
 }
-
-type GcpStoredProjectStatus = SnakeCasedProperties<GcpProjectVerification>;
 
 export interface GcpVerificationInput extends Pick<
   GcpVerifyConnectionResponse,
@@ -147,7 +143,11 @@ export function getConnectionErrorDetails(projectStatuses: unknown): string[] {
   }
 
   const details = projectStatuses
-    .map(status => (status as GcpStoredProjectStatus | null)?.error_detail)
+    .map(status =>
+      status !== null && typeof status === 'object' && 'error_detail' in status
+        ? status.error_detail
+        : null
+    )
     .filter(
       (detail): detail is string => typeof detail === 'string' && detail.length > 0
     );
