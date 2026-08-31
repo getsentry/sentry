@@ -694,7 +694,6 @@ export class VirtualizedViewManager {
   onZoomIntoSpace(
     space: [number, number],
     options: {
-      onComplete?: () => void;
       padding?: boolean;
     } = {}
   ) {
@@ -753,7 +752,6 @@ export class VirtualizedViewManager {
           x: final_x,
           width: final_width,
         });
-        options.onComplete?.();
       }
     };
 
