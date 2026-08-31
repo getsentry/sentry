@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     ExtrapolationMode,
     Function,
+    RankedBy,
     VirtualColumnContext,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
@@ -277,6 +278,7 @@ class ResolvedAggregate(ResolvedFunction):
     internal_name: Function.ValueType
     extrapolation_mode: ExtrapolationMode.ValueType
     is_aggregate: bool = field(default=True, init=False)
+    ranked_by: RankedBy | None = None
     # Only for aggregates, we only support functions with 1 argument right now
     argument: AttributeKey | None = None
 
@@ -291,6 +293,7 @@ class ResolvedAggregate(ResolvedFunction):
                     label=self.public_alias,
                     extrapolation_mode=self.extrapolation_mode,
                     default_value_int64=int(self.default_value),
+                    ranked_by=self.ranked_by,
                 )
             else:
                 return AttributeAggregation(
@@ -299,6 +302,7 @@ class ResolvedAggregate(ResolvedFunction):
                     label=self.public_alias,
                     extrapolation_mode=self.extrapolation_mode,
                     default_value_double=self.default_value,
+                    ranked_by=self.ranked_by,
                 )
         else:
             return AttributeAggregation(
@@ -306,6 +310,7 @@ class ResolvedAggregate(ResolvedFunction):
                 key=self.argument,
                 label=self.public_alias,
                 extrapolation_mode=self.extrapolation_mode,
+                ranked_by=self.ranked_by,
             )
 
 
@@ -398,6 +403,8 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     trace_filter: TraceItemFilter
     # The attribute to conditionally aggregate on
     key: AttributeKey
+    # Only required for OrderedAggregationDefinitions
+    ranked_by: RankedBy | None = None
 
     is_aggregate: bool = field(default=True, init=False)
 
@@ -413,6 +420,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
                     label=self.public_alias,
                     extrapolation_mode=self.extrapolation_mode,
                     default_value_int64=int(self.default_value),
+                    ranked_by=self.ranked_by,
                 )
             else:
                 return AttributeConditionalAggregation(
@@ -422,6 +430,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
                     label=self.public_alias,
                     extrapolation_mode=self.extrapolation_mode,
                     default_value_double=self.default_value,
+                    ranked_by=self.ranked_by,
                 )
         else:
             return AttributeConditionalAggregation(
@@ -430,6 +439,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
                 filter=self.trace_filter,
                 label=self.public_alias,
                 extrapolation_mode=self.extrapolation_mode,
+                ranked_by=self.ranked_by,
             )
 
 
@@ -555,6 +565,79 @@ class AggregateDefinition(FunctionDefinition):
                     search_config, self.extrapolation_mode_override
                 ),
                 argument=resolved_attribute,
+                default_value=default_value,
+            )
+
+
+@dataclass(kw_only=True)
+class OrderedAggregationDefinition(AggregateDefinition):
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
+        query_result_cache: dict[str, EAPResponse],
+        search_config: SearchResolverConfig,
+        default_value: float | None = None,
+    ) -> ResolvedFunction:
+        if len(resolved_arguments) > len(self.arguments):
+            raise InvalidSearchQuery(
+                f"Aggregates expects exactly {len(self.arguments)} argument, got {len(resolved_arguments)}"
+            )
+
+        resolved_attributes = []
+        trace_filter = None
+
+        for index, arg_definition in enumerate(self.arguments):
+            resolved_argument = resolved_arguments[index]
+            if isinstance(arg_definition, AttributeArgumentDefinition):
+                if not isinstance(resolved_argument, AttributeKey):
+                    raise InvalidSearchQuery("Aggregates accept attribute keys only")
+                if self.attribute_resolver is not None:
+                    resolved_attributes.append(self.attribute_resolver(resolved_argument))
+                else:
+                    resolved_attributes.append(resolved_argument)
+            elif isinstance(resolved_argument, TraceItemFilter):
+                trace_filter = resolved_argument
+
+        if len(resolved_attributes) != 2:
+            raise InvalidSearchQuery(
+                "This function needs a column to retrieve and what to order by"
+            )
+
+        resolved_key, resolved_order_by = resolved_attributes[0], resolved_attributes[1]
+
+        # RankedBy takes a Sort type, but other than semver this isn't actually implemented in snuba, and is
+        # currently only included for completeness since ranked by can use DEFAULT without any issue
+
+        if trace_filter is not None:
+            return ResolvedConditionalAggregate(
+                public_alias=alias,
+                internal_name=self.internal_function,
+                search_type=search_type,
+                internal_type=self.internal_type,
+                processor=self.processor,
+                trace_filter=trace_filter,
+                extrapolation_mode=resolve_extrapolation_mode(
+                    search_config, self.extrapolation_mode_override
+                ),
+                key=resolved_key,
+                ranked_by=RankedBy(key=resolved_order_by),
+                default_value=default_value,
+            )
+        else:
+            return ResolvedAggregate(
+                public_alias=alias,
+                internal_name=self.internal_function,
+                search_type=search_type,
+                internal_type=self.internal_type,
+                processor=self.processor,
+                extrapolation_mode=resolve_extrapolation_mode(
+                    search_config, self.extrapolation_mode_override
+                ),
+                argument=resolved_key,
+                ranked_by=RankedBy(key=resolved_order_by),
                 default_value=default_value,
             )
 
