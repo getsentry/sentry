@@ -80,7 +80,13 @@ describe('Seer resource embeds', () => {
     );
     const dashboardRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/123/',
-      body: DashboardFixture(widgets, {id: '123', title: 'Application health'}),
+      body: DashboardFixture(widgets, {
+        environment: ['production'],
+        id: '123',
+        projects: [1],
+        title: 'Application health',
+        utc: true,
+      }),
     });
     const widgetDataRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -110,7 +116,19 @@ describe('Seer resource embeds', () => {
       '/organizations/org-slug/dashboard/123/'
     );
     expect(dashboardRequest).toHaveBeenCalled();
-    await waitFor(() => expect(widgetDataRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(widgetDataRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: ['production'],
+            interval: '10m',
+            project: [1],
+            statsPeriod: '24h',
+          }),
+        })
+      )
+    );
     unmount();
   });
 
