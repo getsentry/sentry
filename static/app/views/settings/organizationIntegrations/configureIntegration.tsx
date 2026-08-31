@@ -35,7 +35,7 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {parseGcpProjectIds} from 'sentry/utils/seer/gcpConnection';
+import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -47,6 +47,7 @@ import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcru
 import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {GcpConnectionStatus} from './gcpConnectionStatus';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
@@ -365,14 +366,8 @@ function ConfigureIntegration() {
     const verifyGcpConnection = async () => {
       const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
         .configData;
-      const customerSaEmail = savedConfig?.customer_sa_email;
-      const projectIds = savedConfig?.projects;
-      if (typeof customerSaEmail !== 'string' || typeof projectIds !== 'string') {
-        return;
-      }
-
-      const gcpProjectIds = parseGcpProjectIds(projectIds);
-      if (!customerSaEmail || !gcpProjectIds.length) {
+      const payload = buildGcpVerifyPayload(savedConfig);
+      if (!payload) {
         return;
       }
 
@@ -382,7 +377,7 @@ function ConfigureIntegration() {
           '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),
-        data: {customerSaEmail, gcpProjectIds},
+        data: payload,
       });
     };
 
@@ -411,6 +406,7 @@ function ConfigureIntegration() {
         if (provider.key === 'gcp') {
           try {
             await verifyGcpConnection();
+            await queryClient.invalidateQueries(integrationQueryOptions);
           } catch (error) {
             // The save itself succeeded; the connection stays recorded as unverified
             // and the customer can re-test, so don't report this as a failed save.
@@ -422,6 +418,14 @@ function ConfigureIntegration() {
 
     return (
       <Fragment>
+        {provider.key === 'gcp' && (
+          <GcpConnectionStatus
+            configData={integration.configData}
+            organization={organization}
+            onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
+          />
+        )}
+
         {(integration.configOrganization?.length ?? 0) > 0 && (
           <FieldGroup
             title={
