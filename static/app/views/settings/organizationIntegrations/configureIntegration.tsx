@@ -170,7 +170,7 @@ function ConfigureIntegration() {
               ...cachedIntegration,
               configData: null,
               configOrganization: [],
-              organizationId: organization.id,
+              organizationId: Number(organization.id),
               externalId: cachedIntegration.externalId ?? '',
             },
             headers: {},
@@ -241,7 +241,7 @@ function ConfigureIntegration() {
   const settingsInstructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
   const hasSettingsTabContent =
-    integration.configOrganization.length > 0 ||
+    (integration.configOrganization?.length ?? 0) > 0 ||
     (settingsInstructions?.length ?? 0) > 0 ||
     provider.features.includes('alert-rule') ||
     provider.features.includes('serverless');
@@ -385,14 +385,14 @@ function ConfigureIntegration() {
 
     return (
       <Fragment>
-        {integration.configOrganization.length > 0 && (
+        {(integration.configOrganization?.length ?? 0) > 0 && (
           <FieldGroup
             title={
               integration.provider.aspects.configure_integration?.title ||
               t('Organization Integration Settings')
             }
           >
-            {integration.configOrganization.map(fieldConfig => (
+            {integration.configOrganization?.map(fieldConfig => (
               <BackendJsonAutoSaveForm
                 key={fieldConfig.name}
                 field={fieldConfig}
