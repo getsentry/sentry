@@ -262,6 +262,26 @@ export function Composer({
     }
     const {source, suggestion} = item;
 
+    if ('onSelect' in source) {
+      const {start, end} = activeTrigger;
+      dismissedRequestKeyRef.current = null;
+      setActiveTrigger(null);
+      source.onSelect(suggestion, {
+        clear: () => {
+          selectionToRestoreRef.current = {start: 0, end: 0};
+          onChange({text: '', mentions: []});
+        },
+        insertText: text => {
+          const nextValue = value.slice(0, start) + text + value.slice(end);
+          const retainedMentions = reconcileMentions(value, nextValue, mentions);
+          const nextCaret = start + text.length;
+          selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
+          onChange({text: nextValue, mentions: retainedMentions});
+        },
+      });
+      return;
+    }
+
     const replacement = source.getText(suggestion);
     const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
     const insertedText = replacement + trailingText;
