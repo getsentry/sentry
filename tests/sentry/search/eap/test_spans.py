@@ -273,6 +273,11 @@ class SearchResolverQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with device.class"):
             self.resolver.resolve_query("device.class:*")
 
+    def test_device_class_filter_rejects_invalid_labels(self) -> None:
+        """Unrecognized labels must not silently remap to the Unknown default."""
+        with pytest.raises(InvalidSearchQuery, match="Unknown value foo for filter device.class"):
+            self.resolver.resolve_query("device.class:foo")
+
     def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!span.description:foo")
         assert where == TraceItemFilter(

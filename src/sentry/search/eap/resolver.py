@@ -583,6 +583,11 @@ class SearchResolver:
         if term.value.is_wildcard():
             raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
 
+        # map_search_term_context_to_original_column falls through to default_value for
+        # unrecognized labels (e.g. device.class:foo → "Unknown"). Reject those here so
+        # dual-read matches normal virtual-context validation.
+        self._validate_device_class_filter_value(term, context_definition)
+
         # high/medium/low → "1"/"2"/"3"; Unknown → ""
         _, raw_values = self.map_search_term_context_to_original_column(term, context_definition)
 
@@ -624,6 +629,30 @@ class SearchResolver:
             else or_trace_item_filters(convention_filter, legacy_filter)
         )
         return combined if combined is not None else convention_filter
+
+    def _validate_device_class_filter_value(
+        self,
+        term: event_search.SearchFilter,
+        context_definition: VirtualColumnDefinition,
+    ) -> None:
+        """Reject unrecognized device.class labels before dual-read remapping."""
+        context = context_definition.constructor(self.params, self)
+        allowed_labels = set(context.value_map.values())
+        if context.default_value:
+            allowed_labels.add(context.default_value)
+
+        values = term.value.value
+        candidates = values if isinstance(values, list) else [values]
+        for candidate in candidates:
+            if candidate not in allowed_labels and str(candidate) not in context.value_map:
+                valid_values = sorted(allowed_labels)[:5]
+                if len(allowed_labels) > 5:
+                    valid_values.append("...")
+                raise InvalidSearchQuery(
+                    constants.REVERSE_CONTEXT_ERROR.format(
+                        candidate, term.key.name, ", ".join(valid_values)
+                    )
+                )
 
     def _device_class_known_codes(self) -> list[str]:
         return sorted({code for values in DEVICE_CLASS.values() for code in values})
