@@ -713,6 +713,7 @@ describe('projectPerformance', () => {
       const performanceIssuesPutMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
         method: 'PUT',
+        asyncDelay: 0,
       });
 
       render(<ProjectPerformance />, {
@@ -745,13 +746,15 @@ describe('projectPerformance', () => {
       expect(performanceIssuesGetMock).toHaveBeenCalled();
       expect(slider).toHaveValue(indexOfValue.toString());
 
-      // Per-key presses: hold syntax (`{ArrowRight>N}`) under-steps the scraps
-      // slider. delay:null keeps large deltas under the default 5s timeout.
+      // Each key release commits the slider value. Wait for auto-save to finish
+      // because the slider is disabled while the request is pending.
       const ue = userEvent.setup({delay: null});
       await ue.click(slider);
       const indexDelta = newValueIndex - indexOfValue;
       for (let index = 0; index < Math.abs(indexDelta); index++) {
         await ue.keyboard(indexDelta > 0 ? '{ArrowRight}' : '{ArrowLeft}');
+        await waitFor(() => expect(slider).toBeDisabled());
+        await waitFor(() => expect(slider).toBeEnabled());
       }
       await ue.tab();
 
