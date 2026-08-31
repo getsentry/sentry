@@ -35,6 +35,20 @@ class FunctionAndModulePattern:
     function_pattern: str
 
 
+@dataclass(frozen=True)
+class StacktraceIgnoreMatcher:
+    """Pattern group for ignoring SDK crashes based on the full stacktrace.
+
+    Unlike FunctionAndModulePattern used in sdk_crash_ignore_matchers, which is only evaluated
+    for frames up to the first SDK frame, a StacktraceIgnoreMatcher is evaluated against the
+    entire stacktrace and only ignores the crash when *every* pattern in the group matches some
+    frame. This is useful for crashes identified by a combination of frames rather than a single
+    frame, e.g. Sentry.init being dispatched through a specific caller.
+    """
+
+    patterns: tuple[FunctionAndModulePattern, ...]
+
+
 @dataclass
 class SDKFrameConfig:
     function_patterns: set[str]
@@ -89,6 +103,14 @@ class SDKCrashDetectionConfig:
     reported as an SDK crash. For example, SentrySwizzleWrapper is used for method swizzling and shouldn't be reported
     as an SDK crash when it's the only SDK frame, since it's highly unlikely the crash stems from that code."""
     sdk_crash_ignore_when_only_sdk_frame_matchers: set[FunctionAndModulePattern] = field(
+        default_factory=set
+    )
+    """Matcher groups evaluated against the full stacktrace. The crash is ignored when every
+    pattern of any group matches some frame in the stacktrace. Use this for crashes that can
+    only be identified by a combination of frames, e.g. Sentry.init being re-run by the React
+    Native dev server (Metro) on hot reload, where init is dispatched through the device event
+    emitter — a path that never happens in production."""
+    sdk_crash_ignore_stacktrace_matchers: set[StacktraceIgnoreMatcher] = field(
         default_factory=set
     )
     """The package names that identify the customer-facing hybrid SDK for an SDK event.
@@ -278,6 +300,34 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="@sentry/core/*/integrations/supabase*",
                     function_pattern="Reflect.apply.then$argument_0",
+                ),
+            },
+            sdk_crash_ignore_stacktrace_matchers={
+                # The React Native dev server (Metro) re-runs the app's entry code — including
+                # Sentry.init — on hot reload / Fast Refresh, dispatching it through the
+                # RCTDeviceEventEmitter websocket. While the module graph is being swapped, an
+                # imported binding is transiently undefined and init throws a TypeError (e.g. in
+                # breadcrumbsIntegration, getDefaultIntegrations, _initNativeSdk, or _encodedAuth
+                # via new URLSearchParams). This is a development-only artifact, not a shippable
+                # SDK bug, so we ignore any crash where Sentry.init is dispatched through the
+                # device event emitter. Requiring both frames keeps genuine crashes inside
+                # Sentry.init (called from app startup) detectable.
+                StacktraceIgnoreMatcher(
+                    patterns=(
+                        # Sentry.init in the React Native SDK. Both the production
+                        # (@sentry/react-native/dist/js/sdk) and development
+                        # (sentry-react-native/dist/js/sdk) module names end with this suffix.
+                        FunctionAndModulePattern(
+                            module_pattern="*react-native/dist/js/sdk",
+                            function_pattern="init",
+                        ),
+                        # React Native's device event emitter dispatching the dev-server
+                        # websocket event that re-invokes init.
+                        FunctionAndModulePattern(
+                            module_pattern="*",
+                            function_pattern="RCTDeviceEventEmitterImpl#emit",
+                        ),
+                    ),
                 ),
             },
         )

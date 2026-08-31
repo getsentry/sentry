@@ -572,3 +572,121 @@ def test_missing_exception_not_detected(
     )
 
     assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+# React Native's dev server (Metro) re-runs the app's entry code — including Sentry.init — on
+# hot reload / Fast Refresh by dispatching it through the RCTDeviceEventEmitter websocket. These
+# frames reproduce that call chain (RCTDeviceEventEmitter#emit -> WebSocket listener -> init).
+_DEVICE_EVENT_EMITTER_FRAMES = [
+    {
+        "function": "RCTDeviceEventEmitterImpl#emit",
+        "module": "react-native/Libraries/EventEmitter/RCTDeviceEventEmitter",
+        "filename": "node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+        "abs_path": "app:///node_modules/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+    },
+    {
+        "function": "emit",
+        "module": "react-native/Libraries/vendor/emitter/EventEmitter",
+        "filename": "node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
+        "abs_path": "app:///node_modules/react-native/Libraries/vendor/emitter/EventEmitter.js",
+    },
+    {
+        "function": "_eventEmitter.addListener$argument_1",
+        "module": "react-native/Libraries/WebSocket/WebSocket",
+        "filename": "node_modules/react-native/Libraries/WebSocket/WebSocket.js",
+        "abs_path": "app:///node_modules/react-native/Libraries/WebSocket/WebSocket.js",
+    },
+]
+
+# A normal app-startup caller of Sentry.init (crashes here are genuine SDK crashes).
+_APP_STARTUP_FRAME = {
+    "function": "<global>",
+    "module": "index",
+    "filename": "index.js",
+    "abs_path": "app:///index.js",
+}
+
+# The crash origin: a TypeError thrown while init sets up the default integrations.
+_BREADCRUMBS_CRASH_FRAME = {
+    "function": "breadcrumbsIntegration",
+    "module": "@sentry/react-native/dist/js/integrations/breadcrumbs",
+    "filename": "node_modules/@sentry/react-native/dist/js/integrations/breadcrumbs.js",
+    "abs_path": "app:///node_modules/@sentry/react-native/dist/js/integrations/breadcrumbs.js",
+}
+
+
+def _sentry_init_frame(module: str = "@sentry/react-native/dist/js/sdk") -> dict[str, str]:
+    return {
+        "function": "init",
+        "module": module,
+        "filename": "node_modules/@sentry/react-native/dist/js/sdk.js",
+        "abs_path": "app:///node_modules/@sentry/react-native/dist/js/sdk.js",
+    }
+
+
+@pytest.mark.parametrize(
+    ["frames", "detected"],
+    [
+        # Sentry.init re-run by Metro hot reload, production module name — should be ignored.
+        (
+            [
+                *_DEVICE_EVENT_EMITTER_FRAMES,
+                _sentry_init_frame("@sentry/react-native/dist/js/sdk"),
+                _BREADCRUMBS_CRASH_FRAME,
+            ],
+            False,
+        ),
+        # Same, development module name (sentry-react-native/...) — should be ignored.
+        (
+            [
+                *_DEVICE_EVENT_EMITTER_FRAMES,
+                _sentry_init_frame("sentry-react-native/dist/js/sdk"),
+                _BREADCRUMBS_CRASH_FRAME,
+            ],
+            False,
+        ),
+        # Genuine crash inside Sentry.init called from app startup (no device event emitter)
+        # — should be detected.
+        (
+            [
+                _APP_STARTUP_FRAME,
+                _sentry_init_frame(),
+                _BREADCRUMBS_CRASH_FRAME,
+            ],
+            True,
+        ),
+        # SDK crash dispatched through the device event emitter but NOT via Sentry.init
+        # — should be detected (only the init + emit combination is ignored).
+        (
+            [
+                *_DEVICE_EVENT_EMITTER_FRAMES,
+                _BREADCRUMBS_CRASH_FRAME,
+            ],
+            True,
+        ),
+    ],
+)
+@decorators
+def test_dev_server_hot_reload_init_not_detected(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    frames,
+    detected: bool,
+) -> None:
+    event_data = get_crash_event(exception={"values": [get_exception(frames=frames)]})
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0

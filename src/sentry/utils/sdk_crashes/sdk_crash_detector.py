@@ -9,6 +9,7 @@ from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     FunctionAndModulePattern,
     SDKCrashDetectionConfig,
+    StacktraceIgnoreMatcher,
 )
 
 
@@ -110,6 +111,16 @@ class SDKCrashDetector:
         if not potential_sdk_crash:
             return False
 
+        # Loop 1.5: Check if the full stacktrace matches an ignore group. Unlike
+        # sdk_crash_ignore_matchers (Loop 2), which only inspects frames up to the first SDK
+        # frame, these matchers inspect the entire stacktrace and only ignore the crash when
+        # *every* pattern in a group matches some frame. This lets us ignore crashes that can
+        # only be identified by a combination of frames, e.g. Sentry.init being re-run by the
+        # React Native dev server (Metro) on hot reload, where init is dispatched through the
+        # device event emitter — never a production path.
+        if self._matches_sdk_crash_ignore_stacktrace(iter_frames):
+            return False
+
         # Loop 2: Check if any frame (up to the first SDK frame) matches sdk_crash_ignore_matchers.
         # These are SDK methods used for testing (e.g., +[SentrySDK crash]) that intentionally
         # trigger crashes and should not be reported as SDK crashes. We only check frames up to
@@ -152,6 +163,22 @@ class SDKCrashDetector:
 
     def _matches_sdk_crash_ignore(self, frame: Mapping[str, Any]) -> bool:
         return self._matches_frame_pattern(frame, self.config.sdk_crash_ignore_matchers)
+
+    def _matches_sdk_crash_ignore_stacktrace(
+        self, frames: Sequence[Mapping[str, Any]]
+    ) -> bool:
+        for matcher in self.config.sdk_crash_ignore_stacktrace_matchers:
+            if self._matches_stacktrace_ignore(frames, matcher):
+                return True
+        return False
+
+    def _matches_stacktrace_ignore(
+        self, frames: Sequence[Mapping[str, Any]], matcher: StacktraceIgnoreMatcher
+    ) -> bool:
+        return all(
+            any(self._matches_frame_pattern(frame, {pattern}) for frame in frames)
+            for pattern in matcher.patterns
+        )
 
     def _matches_frame_pattern(
         self, frame: Mapping[str, Any], matchers: set[FunctionAndModulePattern]
