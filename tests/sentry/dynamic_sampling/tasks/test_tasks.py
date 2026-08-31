@@ -828,18 +828,17 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         assert float(other_factor) == 0.5
 
     @with_feature("organizations:dynamic-sampling")
-    @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_recalibrate_orgs_continues_from_the_per_org_factor_after_switching_back(
-        self, get_blended_sample_rate: MagicMock
+        self,
     ) -> None:
         """An org switched back to the legacy pipeline steps from the factor it was served.
 
         The legacy key expired while the per-org pipeline served the org, so without the
         carry-over the correction would restart from 1.0 and drop the whole boost.
         """
-        get_blended_sample_rate.return_value = 0.1
         self.set_sliding_window_org_sample_rate_for_all(0.2)
 
+        # This org stored metrics at a 10% sampling rate, so it measures at 0.1.
         switched_back_org = self.orgs[0]
         per_org_cache.set_adjusted_factor(switched_back_org.id, 3.0)
 
