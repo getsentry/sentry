@@ -823,7 +823,9 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         assert redis_client.get(generate_recalibrate_orgs_cache_key(served_org.id)) is None
 
         # Every other org still has its factor written by the legacy task.
-        assert float(redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[2].id))) == 0.5
+        other_factor = redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[2].id))
+        assert other_factor is not None
+        assert float(other_factor) == 0.5
 
     @with_feature("organizations:dynamic-sampling")
     @with_feature("organizations:dynamic-sampling-custom")
