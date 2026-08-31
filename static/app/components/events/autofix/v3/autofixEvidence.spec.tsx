@@ -433,6 +433,214 @@ describe('AutofixEvidence', () => {
     });
   });
 
+  describe('EvidenceReadFile', () => {
+    const CODE_URL = 'https://github.com/org/repo/blob/main/src/foo/bar.py';
+
+    it('renders filename with code_url link', () => {
+      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolLink = makeToolLink('read_file', {code_url: CODE_URL});
+      const props = resolveProps(toolCall, toolLink);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('File: bar.py')).toBeInTheDocument();
+      expect(screen.getByText('File: bar.py').closest('a')).toHaveAttribute(
+        'href',
+        CODE_URL
+      );
+    });
+
+    it('renders single line anchor when start_line equals end_line', () => {
+      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolLink = makeToolLink('read_file', {
+        code_url: CODE_URL,
+        start_line: 10,
+        end_line: 10,
+      });
+      const props = resolveProps(toolCall, toolLink);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('File: bar.py L10')).toBeInTheDocument();
+      expect(screen.getByText('File: bar.py L10').closest('a')).toHaveAttribute(
+        'href',
+        `${CODE_URL}#L10`
+      );
+    });
+
+    it('renders line range anchor when start_line and end_line differ', () => {
+      const toolCall = makeToolCall('read_file', {path: 'src/foo/bar.py'});
+      const toolLink = makeToolLink('read_file', {
+        code_url: CODE_URL,
+        start_line: 10,
+        end_line: 20,
+      });
+      const props = resolveProps(toolCall, toolLink);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('File: bar.py L10-L20')).toBeInTheDocument();
+      expect(screen.getByText('File: bar.py L10-L20').closest('a')).toHaveAttribute(
+        'href',
+        `${CODE_URL}#L10-L20`
+      );
+    });
+
+    it('renders truncated filename for long paths', () => {
+      const toolCall = makeToolCall('read_file', {
+        path: 'src/foo/thisisalongfilename.py',
+      });
+      const toolLink = makeToolLink('read_file', {
+        code_url: 'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py',
+      });
+      const props = resolveProps(toolCall, toolLink);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('File: thisisal\u2026ename.py')).toBeInTheDocument();
+    });
+
+    it('returns null when toolLink is missing', () => {
+      expect(
+        resolveProps(makeToolCall('read_file', {path: 'src/foo/bar.py'}))
+      ).toBeNull();
+    });
+
+    it('returns null when path is missing from args', () => {
+      expect(
+        resolveProps(
+          makeToolCall('read_file', {}),
+          makeToolLink('read_file', {code_url: CODE_URL})
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when path is not a string', () => {
+      expect(
+        resolveProps(
+          makeToolCall('read_file', {path: 123}),
+          makeToolLink('read_file', {code_url: CODE_URL})
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when code_url is missing from toolLink params', () => {
+      expect(
+        resolveProps(
+          makeToolCall('read_file', {path: 'src/foo/bar.py'}),
+          makeToolLink('read_file', {})
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when args is invalid JSON', () => {
+      expect(
+        resolveProps(
+          {id: 'tc-1', function: 'read_file', args: '{invalid json'},
+          makeToolLink('read_file', {code_url: CODE_URL})
+        )
+      ).toBeNull();
+    });
+  });
+
+  describe('EvidenceBash', () => {
+    it('renders command label from description', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'Run tests',
+        command: 'pytest tests/ -q',
+      });
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('Command: Run tests')).toBeInTheDocument();
+    });
+
+    it('renders a chip, not a link', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'Run tests',
+        command: 'pytest tests/ -q',
+      });
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      const chip = screen.queryByText('Command: Run tests');
+      expect(chip).toBeInTheDocument();
+      expect(chip!.closest('a')).toBeNull();
+    });
+
+    it('falls back to the command when description is absent', () => {
+      const toolCall = makeToolCall('bash', {command: 'pytest -q'});
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('Command: pytest -q')).toBeInTheDocument();
+    });
+
+    it('renders truncated label for long descriptions', () => {
+      const toolCall = makeToolCall('bash', {
+        description: 'this is a very long description that should be truncated',
+      });
+      const props = resolveProps(toolCall);
+      render(
+        <AutofixEvidence
+          evidenceButtonProps={props!}
+          groupId="123"
+          toolCall={toolCall}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('Command: this is \u2026runcated')).toBeInTheDocument();
+    });
+
+    it('returns null when neither description nor command is present', () => {
+      expect(resolveProps(makeToolCall('bash'))).toBeNull();
+    });
+
+    it('returns null when args is invalid JSON', () => {
+      expect(
+        resolveProps({id: 'tc-1', function: 'bash', args: '{invalid json'})
+      ).toBeNull();
+    });
+  });
+
   describe('EvidenceGitSearch', () => {
     const FULL_SHA = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
     const COMMIT_URL = 'https://github.com/org/repo/commit/a1b2c3d';
@@ -643,7 +851,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
         tool_results: [
           {
@@ -671,7 +879,7 @@ describe('useAutofixSectionEvidence', () => {
           content: '',
           role: 'assistant',
           tool_calls: [
-            makeToolCall('telemetry_live_search', {}, 'tc-1'),
+            makeToolCall('telemetry_live_search', {}),
             makeToolCall('get_trace_waterfall', {}, 'tc-2'),
           ],
         },
@@ -708,7 +916,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
         tool_results: [
           {
@@ -764,7 +972,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
       }),
     ]);
@@ -780,7 +988,7 @@ describe('useAutofixSectionEvidence', () => {
         message: {
           content: '',
           role: 'assistant',
-          tool_calls: [makeToolCall('telemetry_live_search', {}, 'tc-1')],
+          tool_calls: [makeToolCall('telemetry_live_search', {})],
         },
         tool_results: [
           {

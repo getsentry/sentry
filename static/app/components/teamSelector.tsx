@@ -9,11 +9,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps, GeneralSelectValue, StylesConfig} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
+import {createFilter} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IdBadge} from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';

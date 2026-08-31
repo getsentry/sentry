@@ -294,6 +294,7 @@ export function Token({
           level={token.level}
           attrs={token.attrs}
           data={token.data}
+          raw={token.raw}
         />
       );
     }

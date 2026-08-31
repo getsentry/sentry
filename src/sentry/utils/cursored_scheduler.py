@@ -79,6 +79,11 @@ cycle-start query load full rows instead of the PK column alone.
 By default, the scheduler snapshots PKs in ascending PK order. Set
 preserve_queryset_order=True to retain an explicit, deterministic ordering on
 the queryset instead.
+
+A new cycle starts no sooner than cycle_duration after the previous one began.
+A set too small to fill every tick finishes early and then waits, so each item is
+dispatched about once per cycle_duration rather than once per pass. An empty
+queryset likewise costs one cycle-start query per cycle instead of one per tick.
 """
 
 from __future__ import annotations
@@ -109,6 +114,7 @@ BATCH_SIZE_CACHE_KEY_PREFIX = "cursored_scheduler_batch_size"
 CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_cycle_start"
 PK_LIST_CACHE_KEY_PREFIX = "cursored_scheduler_pks"
 TICK_INTERVAL_CACHE_KEY_PREFIX = "cursored_scheduler_tick_interval"
+NEXT_CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_next_cycle_start"
 LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 MIN_BATCH_SIZE = 1
@@ -146,8 +152,8 @@ class CursoredScheduler[M: Model]:
 
     Each call to tick() acquires a lock, fetches the next batch of rows by PK,
     dispatches the configured task for each row's PK, and advances the cursor.
-    When all rows have been processed, the cursor resets and a new cycle
-    begins on the next tick().
+    When all rows have been processed, the cursor resets. A new cycle begins
+    on the first tick() at least cycle_duration after the previous cycle began.
 
     At cycle start, all matching PKs are snapshotted into a Redis list.
     Subsequent ticks read pages from this snapshot via LRANGE, ensuring
@@ -181,6 +187,7 @@ class CursoredScheduler[M: Model]:
         self.cycle_start_cache_key = f"{CYCLE_START_CACHE_KEY_PREFIX}:{name}"
         self.pk_list_cache_key = f"{PK_LIST_CACHE_KEY_PREFIX}:{name}"
         self.tick_interval_cache_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:{name}"
+        self.next_cycle_start_cache_key = f"{NEXT_CYCLE_START_CACHE_KEY_PREFIX}:{name}"
         self.lock_key = f"{LOCK_PREFIX}:{name}"
         self.queryset = queryset
         self.task = task
@@ -232,6 +239,9 @@ class CursoredScheduler[M: Model]:
         cursor = self._get_cursor()
 
         if cursor == 0:
+            if not self._is_cycle_start_due():
+                metrics.incr("cursored_scheduler.cycle_start_deferred", tags=self._metric_tags)
+                return False
             batch_size = self._initialize_cycle()
         elif self._has_tick_interval_changed():
             batch_size = self._recalculate_batch_size(cursor)
@@ -322,7 +332,12 @@ class CursoredScheduler[M: Model]:
             self.tick_interval.total_seconds(),
             self.cache_ttl,
         )
-        cache.set(self.cycle_start_cache_key, time.time(), self.cache_ttl)
+        cache.set(self.cycle_start_cache_key, init_start, self.cache_ttl)
+        cache.set(
+            self.next_cycle_start_cache_key,
+            init_start + self.cycle_duration.total_seconds(),
+            self.cache_ttl,
+        )
 
         metrics.timing(
             "cursored_scheduler.init_duration", time.time() - init_start, tags=self._metric_tags
@@ -330,8 +345,18 @@ class CursoredScheduler[M: Model]:
 
         return batch_size
 
+    def _is_cycle_start_due(self) -> bool:
+        """
+        A cycle that finishes early waits out the rest of cycle_duration, so a set
+        smaller than the ticks per cycle is not re-dispatched on every pass.
+        """
+        next_start_at = cache.get(self.next_cycle_start_cache_key)
+        if next_start_at is None:
+            return True
+        return time.time() >= float(next_start_at)
+
     def _finalize_cycle(self):
-        """Reset cursor, batch size, and PK list, starting a new cycle on the next tick."""
+        """Reset cursor, batch size, and PK list. The next cycle starts once it is due."""
         self._emit_cycle_duration()
         cache.set(self.cache_key, 0, self.cache_ttl)
         cache.set(self.batch_size_cache_key, 0, self.cache_ttl)

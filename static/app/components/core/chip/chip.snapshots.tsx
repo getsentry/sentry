@@ -69,5 +69,77 @@ describe('Chip', () => {
       ),
       {tags: {variant: 'value', dismissable: 'true', area: 'core'}}
     );
+
+    it.snapshot(
+      'interactive-sections',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Chip.Root size="sm">
+              <Chip.Property onClick={() => {}}>browser</Chip.Property>
+              <Chip.Operator onClick={() => {}}>is</Chip.Operator>
+              <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+              <Chip.Dismiss onClick={() => {}} />
+            </Chip.Root>
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {variant: 'query', interactive: 'true', area: 'core'}}
+    );
+
+    it.snapshot(
+      'interactive-section-hover',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Chip.Root size="sm">
+              <Chip.Property onClick={() => {}}>browser</Chip.Property>
+              <Chip.Operator onClick={() => {}}>is</Chip.Operator>
+              <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+              <Chip.Dismiss onClick={() => {}} />
+            </Chip.Root>
+          </div>
+        </ThemeProvider>
+      ),
+      {
+        tags: {variant: 'query', interactive: 'true', state: 'hover', area: 'core'},
+        interaction: {hover: '[data-chip-interactive]'},
+      }
+    );
+
+    it.snapshot(
+      'interactive-section-active',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Chip.Root size="sm">
+              <Chip.Property onClick={() => {}}>browser</Chip.Property>
+              <Chip.Operator onClick={() => {}}>is</Chip.Operator>
+              <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+              <Chip.Dismiss onClick={() => {}} />
+            </Chip.Root>
+          </div>
+        </ThemeProvider>
+      ),
+      {
+        tags: {variant: 'query', interactive: 'true', state: 'active', area: 'core'},
+        interaction: {active: '[data-chip-interactive]'},
+      }
+    );
+
+    it.snapshot(
+      'dismiss-hover',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Chip value="Chrome" onDismiss={() => {}} />
+          </div>
+        </ThemeProvider>
+      ),
+      {
+        tags: {variant: 'value', dismissable: 'true', state: 'hover', area: 'core'},
+        interaction: {hover: '[data-chip-dismiss]'},
+      }
+    );
   });
 });

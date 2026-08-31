@@ -5,8 +5,10 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField, ListField
+from rest_framework.serializers import Serializer
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
@@ -66,6 +68,9 @@ class GcpConfig(TypedDict):
     sentry_sa_email: str
     customer_sa_email: str
     projects: list[str]
+    connection_status: str
+    project_statuses: list[GcpProjectVerification]
+    last_verified_at: str | None
 
 
 class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
@@ -76,6 +81,28 @@ class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
 class GcpConfigInput(TypedDict):
     customer_sa_email: str
     projects: list[str]
+
+
+class GcpVerification(TypedDict):
+    connection_status: str
+    projects: list[GcpProjectVerification]
+
+
+class GcpProjectVerification(TypedDict):
+    gcp_project_id: str
+    connection_status: str
+    error_detail: str | None
+
+
+class GcpProjectVerificationSerializer(Serializer[GcpProjectVerification]):
+    gcp_project_id = CharField(required=True, max_length=64)
+    connection_status = CharField(required=True)
+    error_detail = CharField(required=False, allow_null=True, allow_blank=True, default=None)
+
+
+class GcpVerificationInputSerializer(CamelSnakeSerializer["GcpVerification"]):
+    connection_status = CharField(required=True)
+    projects = GcpProjectVerificationSerializer(many=True, required=True, allow_empty=False)
 
 
 class GcpSaGenerationApiStep:
@@ -119,7 +146,52 @@ class GcpCustomerConfigApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        pipeline.bind_state("config", dict(validated_data))
+        config = dict(validated_data)
+        config["projects"] = list(dict.fromkeys(validated_data["projects"]))
+        pipeline.bind_state("config", config)
+        return PipelineStepResult.advance()
+
+
+class GcpVerificationApiStep:
+    step_name = "gcp_verification"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        config: dict[str, Any] = pipeline.fetch_state("config") or {}
+        return {
+            "customerSaEmail": config.get("customer_sa_email", ""),
+            "projects": config.get("projects", []),
+        }
+
+    def get_serializer_cls(self) -> type:
+        return GcpVerificationInputSerializer
+
+    def handle_post(
+        self,
+        validated_data: GcpVerification,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        config: dict[str, Any] = pipeline.fetch_state("config") or {}
+        configured_projects = set(config.get("projects", []))
+        verified_projects = {p["gcp_project_id"] for p in validated_data["projects"]}
+        if configured_projects != verified_projects:
+            return PipelineStepResult.error(
+                "Verification results do not match the configured GCP projects. "
+                "Please re-run verification."
+            )
+
+        verification: GcpVerification = {
+            "connection_status": validated_data["connection_status"],
+            "projects": [
+                {
+                    "gcp_project_id": project["gcp_project_id"],
+                    "connection_status": project["connection_status"],
+                    "error_detail": project.get("error_detail") or None,
+                }
+                for project in validated_data["projects"]
+            ],
+        }
+        pipeline.bind_state("verification", verification)
         return PipelineStepResult.advance()
 
 
@@ -205,7 +277,11 @@ class GcpIntegrationProvider(IntegrationProvider):
     allow_multiple = False
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
-        return [GcpSaGenerationApiStep(), GcpCustomerConfigApiStep()]
+        return [
+            GcpSaGenerationApiStep(),
+            GcpCustomerConfigApiStep(),
+            GcpVerificationApiStep(),
+        ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
@@ -232,6 +308,7 @@ class GcpIntegrationProvider(IntegrationProvider):
                 "sentry_sa_email": sentry_sa_email,
                 "customer_sa_email": customer_sa_email,
                 "projects": projects,
+                "verification": state.get("verification"),
             },
         }
 
@@ -246,10 +323,35 @@ class GcpIntegrationProvider(IntegrationProvider):
             organization_id=organization.id,
             integration_id=integration.id,
         )
+        verification: GcpVerification | None = extra.get("verification")
+        last_verified_at = timezone.now().isoformat() if verification is not None else None
+        if verification is None:
+            logger.error(
+                "gcp.post_install_missing_verification",
+                extra={
+                    "organization_id": organization.id,
+                    "integration_id": integration.id,
+                },
+            )
+            verification = {
+                "connection_status": "error",
+                "projects": [
+                    {
+                        "gcp_project_id": project_id,
+                        "connection_status": "error",
+                        "error_detail": "Verification failed to run during setup.",
+                    }
+                    for project_id in extra["projects"]
+                ],
+            }
+
         gcp_config: GcpConfig = {
             "sentry_sa_email": extra["sentry_sa_email"],
             "customer_sa_email": extra["customer_sa_email"],
             "projects": extra["projects"],
+            "connection_status": verification["connection_status"],
+            "project_statuses": verification["projects"],
+            "last_verified_at": last_verified_at,
         }
         org_integration.update(config=gcp_config)
 

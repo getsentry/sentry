@@ -9,7 +9,6 @@ describe('SplitPanel', () => {
   it('renders both panes and a divider', () => {
     render(
       <SplitPanel
-        orientation="horizontal"
         defaultSize={200}
         minSize={100}
         sized={<div>sized</div>}
@@ -23,9 +22,7 @@ describe('SplitPanel', () => {
   });
 
   it('renders only the sized pane (no divider) when fill is omitted', () => {
-    render(
-      <SplitPanel orientation="horizontal" defaultSize={200} sized={<div>sized</div>} />
-    );
+    render(<SplitPanel defaultSize={200} sized={<div>sized</div>} />);
 
     expect(screen.getByText('sized')).toBeInTheDocument();
     expect(screen.queryByRole('separator')).not.toBeInTheDocument();
@@ -36,7 +33,6 @@ describe('SplitPanel', () => {
     // negative flex-basis; the rendered size is floored at minSize.
     render(
       <SplitPanel
-        orientation="horizontal"
         defaultSize={200}
         initialSize={-50}
         minSize={100}
@@ -53,16 +49,11 @@ describe('SplitPanel', () => {
   it('preserves the sized pane DOM node when the fill pane is toggled', () => {
     const sized = <div>sized</div>;
     const {rerender} = render(
-      <SplitPanel
-        orientation="horizontal"
-        defaultSize={200}
-        sized={sized}
-        fill={<div>fill</div>}
-      />
+      <SplitPanel defaultSize={200} sized={sized} fill={<div>fill</div>} />
     );
     const before = screen.getByText('sized');
 
-    rerender(<SplitPanel orientation="horizontal" defaultSize={200} sized={sized} />);
+    rerender(<SplitPanel defaultSize={200} sized={sized} />);
 
     expect(screen.getByText('sized')).toBe(before);
   });
@@ -70,7 +61,6 @@ describe('SplitPanel', () => {
   it('places the sized pane after the fill pane when placement is "end"', () => {
     render(
       <SplitPanel
-        orientation="horizontal"
         placement="end"
         defaultSize={200}
         sized={<div>sized</div>}
@@ -89,7 +79,6 @@ describe('SplitPanel', () => {
   it('exposes the divider as a separator with orientation and value attributes', () => {
     render(
       <SplitPanel
-        orientation="horizontal"
         defaultSize={200}
         minSize={100}
         maxSize={600}
@@ -114,7 +103,6 @@ describe('SplitPanel', () => {
     render(
       <SplitPanel
         ref={ref}
-        orientation="horizontal"
         defaultSize={200}
         minSize={100}
         maxSize={600}
@@ -143,7 +131,6 @@ describe('SplitPanel', () => {
 
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           fillMinSize={400}
@@ -165,7 +152,6 @@ describe('SplitPanel', () => {
 
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           sized={<div>sized</div>}
@@ -185,7 +171,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={400}
           minSize={100}
@@ -220,7 +205,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={-50}
           minSize={100}
@@ -251,7 +235,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={-50}
           minSize={100}
@@ -282,7 +265,6 @@ describe('SplitPanel', () => {
       const onResize = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           initialSize={-50}
           minSize={100}
@@ -302,7 +284,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           placement="end"
           defaultSize={200}
           minSize={100}
@@ -328,7 +309,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           onResizeEnd={onResizeEnd}
@@ -352,7 +332,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           defaultSize={200}
           minSize={100}
           onResizeEnd={onResizeEnd}
@@ -380,7 +359,6 @@ describe('SplitPanel', () => {
       const onResizeEnd = jest.fn();
       render(
         <SplitPanel
-          orientation="horizontal"
           placement="end"
           defaultSize={200}
           minSize={100}

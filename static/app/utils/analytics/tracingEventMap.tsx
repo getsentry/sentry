@@ -208,6 +208,9 @@ export type TracingEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
+  'trace_explorer.toggle_span_details': {
+    expanded: boolean;
+  };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
     source: 'trace explorer' | 'new explore';
@@ -275,6 +278,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
   'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',
   'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
+  'trace_explorer.toggle_span_details': 'Trace Explorer: Toggle Span Details in Table',
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',

@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -123,55 +122,38 @@ export function LogsAggregateTable({
           name: field,
           width: COL_WIDTH_UNDEFINED,
         }))}
-        columnSortBy={[
-          {
-            key: allFields[0]!,
-            order: 'desc',
-          },
-        ]}
         grid={{
-          renderHeadCell: (column, i) => {
-            const field = column.name;
-            let title: string;
-            const func = parseFunction(field);
-            if (func) {
-              title = prettifyParsedFunction(func);
-            } else {
-              title = prettifyTagKey(field);
-            }
-
+          getColumnSort: column => {
+            const func = parseFunction(column.name);
             const direction =
               aggregateSortBys?.[0]?.field === column.key
                 ? aggregateSortBys?.[0]?.kind
                 : undefined;
+            const nextSort = (() => {
+              switch (direction) {
+                case 'asc':
+                  return {
+                    field: visualizes[0]?.yAxis ?? allFields[0]!,
+                    kind: 'desc' as const,
+                  };
+                case 'desc':
+                  return {field: column.key, kind: 'asc' as const};
+                default:
+                  return {field: column.key, kind: 'desc' as const};
+              }
+            })();
 
-            return (
-              <SortLink
-                key={i}
-                align={func ? 'right' : 'left'}
-                canSort
-                direction={direction}
-                generateSortLink={() => {
-                  const nextSort = (() => {
-                    switch (direction) {
-                      case 'asc':
-                        return {
-                          field: visualizes[0]?.yAxis ?? allFields[0]!,
-                          kind: 'desc' as const,
-                        };
-                      case 'desc':
-                        return {field: column.key, kind: 'asc' as const};
-                      default:
-                        return {field: column.key, kind: 'desc' as const};
-                    }
-                  })();
-                  return getTargetWithReadableQueryParams(location, {
-                    aggregateSortBys: [nextSort],
-                  });
-                }}
-                title={title}
-              />
-            );
+            return {
+              align: func ? 'right' : 'left',
+              direction,
+              to: getTargetWithReadableQueryParams(location, {
+                aggregateSortBys: [nextSort],
+              }),
+            };
+          },
+          renderHeadCell: column => {
+            const func = parseFunction(column.name);
+            return func ? prettifyParsedFunction(func) : prettifyTagKey(column.name);
           },
           renderBodyCell: (column, row) => {
             const value = row[column.key] === undefined ? null : row[column.key]!;

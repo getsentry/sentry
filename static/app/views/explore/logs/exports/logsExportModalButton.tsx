@@ -1,11 +1,15 @@
 import {downloadRows} from 'sentry/components/exports/downloadRows';
-import {ExportQueryType} from 'sentry/components/exports/useDataExport';
+import {
+  ExportQueryType,
+  type EventsQuerySamplingMode,
+} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {
   OurLogsAggregateResponseItem,
   OurLogsResponseItem,
@@ -18,6 +22,7 @@ export interface LogsQueryInfo {
   field: string[];
   project: number[];
   query: string;
+  sampling: EventsQuerySamplingMode;
   sort: string[];
   end?: string;
   environment?: string[];
@@ -52,6 +57,7 @@ export function useLogsQueryInfo({
     field,
     query: logsSearch.formatString(),
     project: projects,
+    sampling: SAMPLING_MODE.HIGH_ACCURACY,
     sort,
     start: start ? new Date(start).toISOString() : undefined,
     end: end ? new Date(end).toISOString() : undefined,

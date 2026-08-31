@@ -18,7 +18,6 @@ export function ReplayInlineCTAPanel() {
       button={
         <Grid flow="column" align="center" gap="md">
           <Button
-            type="button"
             variant="primary"
             analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
             analyticsEventKey="feedback.replay-onboarding-cta-button-clicked"

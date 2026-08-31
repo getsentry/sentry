@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
@@ -13,7 +14,9 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
   HeaderCellContent,
   type SortDirection,
@@ -60,29 +63,35 @@ function HeaderRow({
 }
 
 function HeaderCell({
+  align,
   children,
   sort,
   handleSortClick,
+  to,
   variant = 'default',
   divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLTableCellElement> & {
+  align?: ColumnAlign;
   children?: React.ReactNode;
   divider?: boolean;
-  handleSortClick?: () => void;
+  handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
+  to?: LocationDescriptor;
   variant?: HeaderCellVariant;
 }) {
   return (
     <ColumnHeaderCell
       {...props}
+      align={align}
       onSort={handleSortClick}
       overlays={
         <Fragment>
           {divider && <HeaderDivider />}
-          {handleSortClick && <InteractionStateLayer />}
+          {(handleSortClick || to) && <InteractionStateLayer />}
         </Fragment>
       }
+      to={to}
       scope="col"
       sort={sort}
       variant={variant}
@@ -169,8 +178,8 @@ const HeaderDivider = styled('div')`
 `;
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'variant',
-})<{variant: HeaderCellVariant}>`
+  shouldForwardProp: prop => prop !== 'align' && prop !== 'variant',
+})<{variant: HeaderCellVariant; align?: ColumnAlign}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -203,6 +212,14 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   &[aria-sort] {
     color: ${p => p.theme.tokens.content.primary};
   }
+
+  ${p =>
+    p.align === 'right' &&
+    css`
+      ${HeaderCellContent} {
+        justify-content: flex-end;
+      }
+    `}
 
   ${p =>
     p.variant === 'first' &&
@@ -264,12 +281,21 @@ function Loading(props: ComponentProps<typeof Empty>) {
   );
 }
 
+function ErrorState(props: ComponentProps<typeof LoadingError>) {
+  return (
+    <Empty>
+      <LoadingError {...props} />
+    </Empty>
+  );
+}
+
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
 SimpleTable.Empty = Empty;
+SimpleTable.Error = ErrorState;
 SimpleTable.Loading = Loading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;

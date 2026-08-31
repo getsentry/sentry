@@ -36,6 +36,17 @@ class Feedback(BaseModel):
     text: str = ""
     ui_text: str = ""
 
+    @property
+    def feedback_id(self) -> str:
+        """Names this one item in a log line, without carrying its payload.
+
+        Delegates to :attr:`FeedbackSourceBase.source_id`. Source types are not
+        comparable (a GitHub issue-comment id and a review-comment id can
+        collide), so pair this with ``source.type`` when uniqueness across
+        sources matters.
+        """
+        return self.source.source_id
+
     @root_validator
     def _populate(cls, values: dict[str, Any]) -> dict[str, Any]:
         source = values.get("source")
