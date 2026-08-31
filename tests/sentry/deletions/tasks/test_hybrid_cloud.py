@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.apps import apps
 from django.db import connections, router, transaction
-from django.db.models import BooleanField, Max, QuerySet
+from django.db.models import BooleanField, Max, Min, QuerySet
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model
@@ -309,8 +309,8 @@ def test_populated_model_table_does_not_fast_forward() -> None:
         CellTombstone.objects.create(
             table_name=Integration._meta.db_table, object_identifier=1000 + i
         )
-    tombstone_max = CellTombstone.objects.aggregate(Max("id"))["id__max"]
-    assert tombstone_max is not None
+    tombstone_min = CellTombstone.objects.aggregate(Min("id"))["id__min"]
+    assert tombstone_min is not None
 
     _process_hybrid_cloud_foreign_key_cascade(
         app_name="fixtures",
@@ -320,8 +320,9 @@ def test_populated_model_table_does_not_fast_forward() -> None:
         silo_mode=SiloMode.CELL,
     )
 
-    # get_batch_size is patched to 1 for this module, so one cycle moves one id.
-    assert get_watermark("tombstone", field)[0] < tombstone_max
+    # get_batch_size is patched to 1 for this module, so one cycle walks a single
+    # id instead of jumping to the top of the tombstone table.
+    assert get_watermark("tombstone", field)[0] == tombstone_min
 
 
 @django_db_all
@@ -342,8 +343,8 @@ def test_rows_hidden_by_the_default_manager_are_not_an_empty_table() -> None:
         CellTombstone.objects.create(
             table_name=Integration._meta.db_table, object_identifier=1000 + i
         )
-    tombstone_max = CellTombstone.objects.aggregate(Max("id"))["id__max"]
-    assert tombstone_max is not None
+    tombstone_min = CellTombstone.objects.aggregate(Min("id"))["id__min"]
+    assert tombstone_min is not None
 
     _process_hybrid_cloud_foreign_key_cascade(
         app_name="fixtures",
@@ -353,7 +354,8 @@ def test_rows_hidden_by_the_default_manager_are_not_an_empty_table() -> None:
         silo_mode=SiloMode.CELL,
     )
 
-    assert get_watermark("tombstone", field)[0] < tombstone_max
+    # The hidden row keeps the table non-empty, so the watermark walks one id.
+    assert get_watermark("tombstone", field)[0] == tombstone_min
 
 
 @assume_test_silo_mode(SiloMode.MONOLITH)
@@ -788,6 +790,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                 up=highest_tombstone_id["id__max"] + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
         assert ids == [monitor.id]
@@ -849,6 +852,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                     up=bounds["up"],
                     has_more=False,
                     transaction_id="foobar",
+                    table_max=0,
                 ),
             )
             assert ids == bounds_with_expected_results
@@ -886,6 +890,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                 up=highest_tombstone_id["id__max"] + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
         assert ids == [monitor.id]
@@ -938,6 +943,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 up=highest_model_id["id__max"] + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
 
@@ -963,6 +969,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 up=highest_model_id + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
 
@@ -1032,6 +1039,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                     up=bounds["up"],
                     has_more=False,
                     transaction_id="foobar",
+                    table_max=0,
                 ),
             )
             assert ids == bounds_with_expected_results, (
@@ -1071,6 +1079,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 up=highest_model_id + 1,
                 has_more=False,
                 transaction_id="foobar",
+                table_max=0,
             ),
         )
         assert ids == [monitor.id]

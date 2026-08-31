@@ -48,7 +48,7 @@ class WatermarkBatch:
     up: int
     has_more: bool
     transaction_id: str
-    table_max: int = 0
+    table_max: int
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -113,15 +113,15 @@ def _chunk_watermark_batch(
     lower, transaction_id = get_watermark(prefix, field)
     agg = manager.aggregate(Min("id"), Max("id"))
     lower = lower or ((agg["id__min"] or 1) - 1)
-    upper = agg["id__max"] or 0
-    batch_upper = min(upper, lower + batch_size)
+    table_max = agg["id__max"] or 0
+    batch_upper = min(table_max, lower + batch_size)
 
     # cap to batch size so that query timeouts don't get us.
-    capped = upper
-    if upper >= batch_upper:
+    capped = table_max
+    if table_max >= batch_upper:
         capped = batch_upper
 
-    watermark_delta = max(upper - lower, 0)
+    watermark_delta = max(table_max - lower, 0)
     metric_field_name = f"{model._meta.db_table}:{field.name}"
     metric_tags = dict(field_name=metric_field_name, watermark_type=prefix)
     metrics.gauge(
@@ -134,9 +134,9 @@ def _chunk_watermark_batch(
     return WatermarkBatch(
         low=lower,
         up=capped,
-        has_more=batch_upper < upper,
+        has_more=batch_upper < table_max,
         transaction_id=transaction_id,
-        table_max=upper,
+        table_max=table_max,
     )
 
 
