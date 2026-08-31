@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry import nodestore
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
 from sentry.issue_detection.detectors.span_first.span_first_utils import (
@@ -23,6 +24,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.services.eventstore.models import Event
 from sentry.spans.consumers.process_segments import message as message_module
 from sentry.spans.consumers.process_segments.message import (
     _bump_release_last_seen,
@@ -266,6 +268,23 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
+
+        # Ensure the spans are present so the issue can render evidence.
+        event = mock_eventstream.call_args[0][0]
+        assert event.get_event_type() == "generic"
+
+        stored = nodestore.backend.get(Event.generate_node_id(self.project.id, event.event_id))
+        assert stored is not None
+
+        evidence = performance_problem.evidence_data
+        referenced = {
+            *evidence["parent_span_ids"],
+            *evidence["cause_span_ids"],
+            *evidence["offender_span_ids"],
+        }
+        assert {span["span_id"] for span in stored["spans"]} == referenced
+        assert len(referenced) < len(spans)
+        assert "attributes" not in stored["spans"][0]
 
     @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
