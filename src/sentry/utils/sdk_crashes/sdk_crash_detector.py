@@ -115,10 +115,11 @@ class SDKCrashDetector:
         # Loop 1.5: Check if the full stacktrace matches an ignore group. Unlike
         # sdk_crash_ignore_matchers (Loop 2), which only inspects frames up to the first SDK
         # frame, these matchers inspect the entire stacktrace and only ignore the crash when
-        # *every* pattern in a group matches some frame. This lets us ignore crashes that can
-        # only be identified by a combination of frames, e.g. SDK setup being re-run by the
-        # React Native dev server (Metro) on hot reload, where it is dispatched through the
-        # device event emitter and the WebSocket module — never a production path.
+        # *every* pattern in a group matches some frame (and, when the group requires it, its last
+        # pattern is directly followed by an SDK frame). This lets us ignore crashes that can only
+        # be identified by a combination of frames, e.g. SDK setup being re-run by the React
+        # Native dev server (Metro) on hot reload, where it is dispatched through the device event
+        # emitter and the WebSocket module directly into SDK code — never a production path.
         if self._matches_sdk_crash_ignore_stacktrace(iter_frames):
             return False
 
@@ -174,9 +175,26 @@ class SDKCrashDetector:
     def _matches_stacktrace_ignore(
         self, frames: Sequence[Mapping[str, Any]], matcher: StacktraceIgnoreMatcher
     ) -> bool:
-        return all(
+        if not all(
             any(self._matches_function_and_path(frame, pattern) for frame in frames)
             for pattern in matcher.patterns
+        ):
+            return False
+
+        if not matcher.require_sdk_frame_after:
+            return True
+
+        # Require that a frame matching the last pattern is directly followed by an SDK frame
+        # (its callee). `frames` is ordered newest (callee) to oldest (caller), so the callee of
+        # frames[i] is frames[i - 1]. This distinguishes a caller that dispatches straight into
+        # SDK code (e.g. the React Native dev server re-evaluating an SDK module) from a
+        # production caller chain that passes through the same frame before reaching app code.
+        anchor = matcher.patterns[-1]
+        return any(
+            i > 0
+            and self._matches_function_and_path(frame, anchor)
+            and self.is_sdk_frame(frames[i - 1])
+            for i, frame in enumerate(frames)
         )
 
     def _matches_function_and_path(

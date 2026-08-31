@@ -44,9 +44,21 @@ class StacktraceIgnoreMatcher:
     only ignores the crash when *every* pattern in the group matches some frame. This is useful
     for crashes identified by a combination of frames rather than a single frame, e.g. an SDK
     crash dispatched through a specific caller chain.
+
+    When require_sdk_frame_after is True, a frame matching the *last* pattern must additionally be
+    directly followed by an SDK frame (its callee). This tightens the match to a caller that
+    dispatches straight into SDK code, distinguishing it from a production caller chain that
+    passes through the same frames before reaching app code.
     """
 
     patterns: tuple[FunctionAndPathPattern, ...]
+    require_sdk_frame_after: bool = False
+
+    def __post_init__(self) -> None:
+        # An empty patterns tuple would make the detector's all(...) check vacuously true and
+        # ignore every SDK crash, so reject it at construction time.
+        if not self.patterns:
+            raise ValueError("StacktraceIgnoreMatcher requires at least one pattern.")
 
 
 @dataclass
@@ -106,10 +118,11 @@ class SDKCrashDetectionConfig:
         default_factory=set
     )
     """Matcher groups evaluated against the full stacktrace. The crash is ignored when every
-    pattern of any group matches some frame in the stacktrace. Use this for crashes that can
-    only be identified by a combination of frames, e.g. Sentry.init being re-run by the React
-    Native dev server (Metro) on hot reload, where init is dispatched through the device event
-    emitter — a path that never happens in production."""
+    pattern of any group matches some frame in the stacktrace (and, when a group sets
+    require_sdk_frame_after, its last pattern is directly followed by an SDK frame). Use this for
+    crashes that can only be identified by a combination of frames, e.g. Sentry.init being re-run
+    by the React Native dev server (Metro) on hot reload, where init is dispatched directly
+    through the device event emitter into SDK code — a path that never happens in production."""
     sdk_crash_ignore_stacktrace_matchers: set[StacktraceIgnoreMatcher] = field(default_factory=set)
     """The package names that identify the customer-facing hybrid SDK for an SDK event.
     Maps the event SDK name to the hybrid SDK name and package name."""
@@ -311,19 +324,22 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # The React Native dev server (Metro) re-runs the app's entry code — including
                 # Sentry.init and SDK integration setup — on hot reload / Fast Refresh by pushing
                 # a message over its websocket. React Native delivers that message as a device
-                # event (RCTDeviceEventEmitter#emit) to the WebSocket module's listener. While the
-                # module graph is being swapped, an imported binding is transiently undefined and
-                # SDK setup throws a TypeError (observed in init, getDefaultIntegrations,
-                # _initNativeSdk, and _encodedAuth via new URLSearchParams). This is a
-                # development-only artifact, not a shippable SDK bug.
+                # event (RCTDeviceEventEmitter#emit) to the WebSocket module's listener, which
+                # dispatches straight into the SDK setup code. While the module graph is being
+                # swapped, an imported binding is transiently undefined and SDK setup throws a
+                # TypeError (observed in init, getDefaultIntegrations, _initNativeSdk, and
+                # _encodedAuth via new URLSearchParams). This is a development-only artifact, not a
+                # shippable SDK bug.
                 #
-                # We ignore any SDK crash whose stacktrace contains both the device event emit and
-                # the React Native WebSocket listener that drives it — a combination that never
-                # occurs on a production startup path. The crashing SDK frame is intentionally not
-                # part of the match, since it varies across reloads. Genuine SDK crashes reached
-                # from app startup (no dev-server websocket frames) remain detectable, and a
-                # production app's own websocket handler runs through app code, which the detector
-                # already treats as a non-SDK crash.
+                # We ignore an SDK crash only when its stacktrace contains both the device event
+                # emit and the React Native WebSocket listener AND that listener dispatches
+                # directly into an SDK frame (require_sdk_frame_after). The direct dispatch is the
+                # Metro module re-evaluation signature: in production the same two frames appear
+                # for every incoming websocket message, but the listener calls the app's own
+                # onmessage handler (app code) before any SDK frame, so a genuine SDK crash reached
+                # from a production websocket handler is not ignored. Crashes reached from app
+                # startup (no dev-server websocket frames) also remain detectable. The crashing SDK
+                # frame is intentionally not pinned by pattern, since it varies across reloads.
                 StacktraceIgnoreMatcher(
                     patterns=(
                         # React Native's native device event emitter dispatching the event.
@@ -332,12 +348,15 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                             path_pattern="**/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
                         ),
                         # The React Native WebSocket module's listener that receives the dev-server
-                        # (Metro) message and drives the re-run of the SDK setup code.
+                        # (Metro) message and dispatches directly into the re-run SDK setup code.
+                        # Kept last: require_sdk_frame_after anchors the SDK-frame adjacency check
+                        # on this frame.
                         FunctionAndPathPattern(
                             function_pattern="_eventEmitter.addListener$argument_1",
                             path_pattern="**/react-native/Libraries/WebSocket/WebSocket.js",
                         ),
                     ),
+                    require_sdk_frame_after=True,
                 ),
             },
         )

@@ -620,6 +620,14 @@ _APP_STARTUP_FRAME = {
     "abs_path": "app:///index.js",
 }
 
+# An app's own WebSocket onmessage handler. In production the RN WebSocket listener dispatches
+# every incoming message through app code like this before any SDK frame is reached.
+_APP_WEBSOCKET_HANDLER_FRAME = {
+    "function": "onmessage",
+    "filename": "src/realtime/socket.js",
+    "abs_path": "app:///src/realtime/socket.js",
+}
+
 
 def _sdk_frame(function: str, filename: str) -> dict[str, str]:
     # Real React Native JS frames carry the SDK module path in filename/abs_path, no `module`.
@@ -660,6 +668,17 @@ _ENCODED_AUTH_CRASH_FRAMES = [
         # Only the WebSocket listener frame, without the device event emitter — should be
         # detected (both dev-server frames are required to ignore).
         ([_DEV_SERVER_WEBSOCKET_FRAMES[2], *_GET_DEFAULT_INTEGRATIONS_CRASH_FRAMES], True),
+        # Production websocket path: both dev-server frames are present, but the WebSocket listener
+        # dispatches through the app's own onmessage handler before the SDK crashes. The listener
+        # is not directly followed by an SDK frame, so a genuine SDK crash must still be detected.
+        (
+            [
+                *_DEV_SERVER_WEBSOCKET_FRAMES,
+                _APP_WEBSOCKET_HANDLER_FRAME,
+                *_INIT_CRASH_FRAMES,
+            ],
+            True,
+        ),
     ],
 )
 @decorators
