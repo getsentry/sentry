@@ -180,8 +180,8 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         renderable: SlackRenderable,
         thread_ts: str,
-    ) -> None:
-        workspace.send_threaded_ephemeral_message(
+    ) -> SlackResponse | None:
+        return workspace.send_threaded_ephemeral_message(
             integration_id=self.model.id,
             channel_id=channel_id,
             renderable=renderable,

@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ToolCall} from '@sentry/scraps/chat';
 
@@ -17,18 +17,18 @@ describe('ToolCall', () => {
     expect(screen.queryByText('Output:')).not.toBeInTheDocument();
   });
 
-  it('renders an output chip when output is provided', () => {
+  it('renders an output slot under an Output label', () => {
     render(
       <ToolCall
         title="Query spans"
-        status="success"
-        output={{label: 'Trace', value: 'a3805648'}}
+        status="failure"
+        output={<span>Returned HTTP 502</span>}
       />
     );
 
     expect(screen.getByText('Query spans')).toBeInTheDocument();
     expect(screen.getByText('Output:')).toBeInTheDocument();
-    expect(screen.getByText('a3805648')).toBeInTheDocument();
+    expect(screen.getByText('Returned HTTP 502')).toBeInTheDocument();
   });
 
   it('communicates status via the leading glyph', () => {
@@ -40,6 +40,39 @@ describe('ToolCall', () => {
 
     rerender(<ToolCall title="Query" status="loading" />);
     expect(screen.getByLabelText('Running')).toBeInTheDocument();
+  });
+
+  it('keeps the leading glyph and hoists a Failed chip beside the result on failure', () => {
+    render(<ToolCall title="Query spans" status="failure" />);
+
+    // Leading glyph (accessible label) plus a visible trailing chip.
+    expect(screen.getByLabelText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+  });
+
+  it('shows the failureLabel (e.g. HTTP status) in the trailing chip', () => {
+    render(<ToolCall title="Query spans" status="failure" failureLabel="502" />);
+
+    expect(screen.getByText('502')).toBeInTheDocument();
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument();
+  });
+
+  it('renders a duration in the meta slot', () => {
+    render(<ToolCall title="Query spans" status="success" durationMs={9400} />);
+    expect(screen.getByText('9.4s')).toBeInTheDocument();
+  });
+
+  it('renders the input slot under an Input label', () => {
+    render(
+      <ToolCall
+        title="Query spans"
+        status="success"
+        input={<span>dataset is spans</span>}
+      />
+    );
+
+    expect(screen.getByText('Input:')).toBeInTheDocument();
+    expect(screen.getByText('dataset is spans')).toBeInTheDocument();
   });
 
   it('surfaces notifications', () => {
@@ -69,19 +102,15 @@ describe('ToolCall', () => {
     );
   });
 
-  it('reveals supplementary detail children when expanded', async () => {
+  it('renders supplementary detail children inline, always visible', () => {
     render(
       <ToolCall title="Query spans" status="success">
         <div>GET /api/0/traces/a3805648/</div>
       </ToolCall>
     );
 
-    // Detail lives in the collapsible panel, so it is hidden until the title is toggled.
-    const detail = screen.getByText('GET /api/0/traces/a3805648/');
-    expect(detail).not.toBeVisible();
-
-    await userEvent.click(screen.getByRole('button', {name: /Query spans/}));
-
-    expect(detail).toBeVisible();
+    // A tool call is not a disclosure: its detail is not tucked behind a toggle.
+    expect(screen.getByText('GET /api/0/traces/a3805648/')).toBeVisible();
+    expect(screen.queryByRole('button', {name: /Query spans/})).not.toBeInTheDocument();
   });
 });

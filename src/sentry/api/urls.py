@@ -733,6 +733,8 @@ from .endpoints.auth_2fa import AuthTwoFactorChallengeEndpoint, AuthTwoFactorEnd
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
+from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
+from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -1085,6 +1087,21 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^/]+)/config/$",
+        AuthOrganizationConfigEndpoint.as_view(),
+        name="sentry-api-0-auth-organization-config",
+    ),
+    re_path(
+        r"^recovery/$",
+        AuthRecoveryEndpoint.as_view(),
+        name="sentry-api-0-auth-recovery",
+    ),
+    re_path(
+        r"^recovery/confirm/$",
+        AuthRecoveryConfirmEndpoint.as_view(),
+        name="sentry-api-0-auth-recovery-confirm",
     ),
     re_path(
         r"^2fa/$",

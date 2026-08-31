@@ -49,7 +49,7 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
                             "rca_completed",
                             "solution_completed",
                             "coding_completed",
-                            "pr_created"
+                            "pr_ready_for_review"
                         ],
                         "conditionResult": true
                     }

@@ -58,7 +58,7 @@ function Chart() {
             <OverlayTrigger.Button
               {...triggerProps}
               aria-label={t('Chart type')}
-              icon={<IconGraph type="line" />}
+              icon={<IconGraph />}
               variant="transparent"
               showChevron={false}
               size="xs"

@@ -105,7 +105,8 @@ def _status_comment_body(github_login: str) -> str:
         "fix attempts, so Seer has stopped iterating on this pull request. It needs a human "
         "decision — you can:\n\n"
         "- push a fix to this branch yourself,\n"
-        "- comment `@sentry <guidance>` to send Seer back for another attempt, or\n"
+        "- comment `@sentry <guidance>` to send Seer back for another attempt,\n"
+        "- comment `@sentry stop iterating` to stop this Autofix run from iterating, or\n"
         "- close this pull request if it is not worth pursuing."
     )
 
