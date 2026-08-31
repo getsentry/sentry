@@ -39,6 +39,59 @@ def _merge_group_links(stale: ExternalIssue, survivor: ExternalIssue) -> None:
     stale_links.delete()
 
 
+def _find_survivor(
+    stale: ExternalIssue, new_key: str, *, for_update: bool = False
+) -> ExternalIssue | None:
+    queryset = ExternalIssue.objects.filter(
+        organization_id=stale.organization_id,
+        integration_id=stale.integration_id,
+        key=new_key,
+    ).exclude(id=stale.id)
+    if for_update:
+        queryset = queryset.select_for_update()
+    return queryset.first()
+
+
+def _update_issue_key(stale: ExternalIssue, new_key: str, provider_issue_id: str | None) -> None:
+    metadata = dict(stale.metadata or {})
+    if provider_issue_id is not None:
+        metadata[PROVIDER_ISSUE_ID_KEY] = str(provider_issue_id)
+    stale.update(key=new_key, metadata=metadata)
+
+
+def _reconcile_after_conflict(
+    stale: ExternalIssue,
+    old_key: str,
+    new_key: str,
+    provider_issue_id: str | None,
+) -> tuple[bool, int | None]:
+    """
+    Retry a rekey after a unique-key race.
+
+    Returns whether this delivery changed a row and the survivor id when rows were merged.
+    """
+    with transaction.atomic(router.db_for_write(ExternalIssue)):
+        try:
+            stale_after_conflict = ExternalIssue.objects.select_for_update().get(
+                id=stale.id,
+                organization_id=stale.organization_id,
+                integration_id=stale.integration_id,
+                key=old_key,
+            )
+        except ExternalIssue.DoesNotExist:
+            return False, None
+
+        survivor = _find_survivor(stale_after_conflict, new_key, for_update=True)
+        if survivor is None:
+            # The row that caused the conflict disappeared, so the rename can now succeed.
+            _update_issue_key(stale_after_conflict, new_key, provider_issue_id)
+            return True, None
+
+        _merge_group_links(stale_after_conflict, survivor)
+        stale_after_conflict.delete()
+        return True, survivor.id
+
+
 def rekey_external_issues(
     integration: Integration | RpcIntegration,
     old_key: str,
@@ -73,29 +126,32 @@ def rekey_external_issues(
         }
         try:
             with transaction.atomic(router.db_for_write(ExternalIssue)):
-                survivor = (
-                    ExternalIssue.objects.filter(
-                        organization_id=stale.organization_id,
-                        integration_id=stale.integration_id,
-                        key=new_key,
-                    )
-                    .exclude(id=stale.id)
-                    .first()
-                )
+                survivor = _find_survivor(stale, new_key)
 
                 if survivor is None:
-                    metadata = dict(stale.metadata or {})
-                    if provider_issue_id is not None:
-                        metadata[PROVIDER_ISSUE_ID_KEY] = str(provider_issue_id)
-                    stale.update(key=new_key, metadata=metadata)
+                    _update_issue_key(stale, new_key, provider_issue_id)
                 else:
                     _merge_group_links(stale, survivor)
                     stale.delete()
                     log_context["merged_into_external_issue_id"] = survivor.id
         except IntegrityError:
-            # A concurrent delivery of the same rename got there first.
-            logger.warning("external_issue.rekey.conflict", extra=log_context, exc_info=True)
-            continue
+            # A row at the new key may have been created after the survivor lookup.
+            logger.info("external_issue.rekey.conflict", extra=log_context)
+            try:
+                applied, survivor_id = _reconcile_after_conflict(
+                    stale, old_key, new_key, provider_issue_id
+                )
+            except IntegrityError:
+                logger.exception(
+                    "external_issue.rekey.conflict_reconciliation_failed", extra=log_context
+                )
+                continue
+
+            if not applied:
+                logger.info("external_issue.rekey.already_applied", extra=log_context)
+                continue
+            if survivor_id is not None:
+                log_context["merged_into_external_issue_id"] = survivor_id
 
         logger.info("external_issue.rekey.applied", extra=log_context)
         rekeyed += 1

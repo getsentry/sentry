@@ -1,4 +1,7 @@
+from unittest.mock import patch
+
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.utils import external_issue_key
 from sentry.integrations.utils.external_issue_key import (
     PROVIDER_ISSUE_ID_KEY,
     rekey_external_issues,
@@ -112,6 +115,75 @@ class RekeyExternalIssuesTest(TestCase):
         survivor.refresh_from_db()
         assert survivor.key == "PLATFORM-45"
         assert self._linked_group_ids(survivor) == {moved_group.id, other_group.id}
+
+    def test_merges_survivor_created_after_lookup(self) -> None:
+        moved_group = self.create_group()
+        stale = self.create_integration_external_issue(
+            group=moved_group, integration=self.integration, key="APP-123"
+        )
+        other_group = self.create_group()
+        survivor = self.create_integration_external_issue(
+            group=other_group, integration=self.integration, key="PLATFORM-45"
+        )
+
+        # Simulate the survivor being created after the first lookup. The attempted
+        # rename then raises IntegrityError on the unique key and enters reconciliation.
+        with patch.object(external_issue_key, "_find_survivor", side_effect=[None, survivor]):
+            assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 1
+
+        assert not ExternalIssue.objects.filter(id=stale.id).exists()
+        assert self._linked_group_ids(survivor) == {moved_group.id, other_group.id}
+
+    def test_retries_rename_when_conflicting_survivor_disappears(self) -> None:
+        moved_group = self.create_group()
+        stale = self.create_integration_external_issue(
+            group=moved_group, integration=self.integration, key="APP-123"
+        )
+        survivor = self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="PLATFORM-45"
+        )
+
+        def find_survivor(
+            stale_issue: ExternalIssue, new_key: str, *, for_update: bool = False
+        ) -> ExternalIssue | None:
+            if for_update:
+                survivor.delete()
+            return None
+
+        with patch.object(external_issue_key, "_find_survivor", side_effect=find_survivor):
+            assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 1
+
+        stale.refresh_from_db()
+        assert stale.key == "PLATFORM-45"
+        assert self._linked_group_ids(stale) == {moved_group.id}
+
+    def test_does_not_count_rekey_completed_by_another_delivery(self) -> None:
+        self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="APP-123"
+        )
+        self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="PLATFORM-45"
+        )
+        reconcile_after_conflict = external_issue_key._reconcile_after_conflict
+
+        def complete_in_another_delivery(
+            stale_issue: ExternalIssue,
+            old_key: str,
+            new_key: str,
+            provider_issue_id: str | None,
+        ) -> tuple[bool, int | None]:
+            ExternalIssue.objects.filter(id=stale_issue.id).delete()
+            return reconcile_after_conflict(stale_issue, old_key, new_key, provider_issue_id)
+
+        with (
+            patch.object(external_issue_key, "_find_survivor", return_value=None),
+            patch.object(
+                external_issue_key,
+                "_reconcile_after_conflict",
+                side_effect=complete_in_another_delivery,
+            ),
+        ):
+            assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 0
 
     def test_merge_drops_duplicate_group_links(self) -> None:
         # The same group linked to both keys: GroupLink is unique on
