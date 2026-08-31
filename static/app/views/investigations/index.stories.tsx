@@ -1,8 +1,7 @@
 import {Container} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
-import {InvestigationsPage} from 'sentry/views/investigations';
-import InvestigationsView from 'sentry/views/investigations';
+import InvestigationsView, {InvestigationsPage} from 'sentry/views/investigations';
 import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
