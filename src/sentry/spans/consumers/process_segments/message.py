@@ -62,6 +62,21 @@ logger = logging.getLogger(__name__)
 
 outcome_aggregator = OutcomeAggregator()
 
+MAX_EVIDENCE_SPANS = 100  # Bound the evidence data included in occurrences.
+MAX_SPAN_VALUE_LENGTH = 500
+EVIDENCE_SPAN_DATA_KEYS = frozenset(  # Used in issue details
+    (
+        "code.filepath",
+        "code.function",
+        "code.lineno",
+        "http.query",
+        "http.request.request_start",
+        "http.request.response_start",
+        "http.response_content_length",
+        "url",
+    )
+)
+
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
 def process_segment(
@@ -422,24 +437,33 @@ def _run_legacy_detectors(
     ):
         return detected_problems
 
-    # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
-    # by the consumer. Once issue detectors can run on standalone spans, we should directly
-    # build a minimal occurrence event payload here, instead.
-    event_data["spans"] = []
-    event_data["timestamp"] = event_data["datetime"]
+    spans_by_id = {span["span_id"]: span for span in event_data["spans"]}
 
     for problem in detected_problems:
+        evidence_data = _evidence_data(problem, spans_by_id)
+        span_ids = (
+            *evidence_data["parent_span_ids"],
+            *evidence_data["cause_span_ids"],
+            *evidence_data["offender_span_ids"],
+        )
+        occurrence_id = uuid.uuid4().hex
+        occurrence_event_data = {  # dict.fromkeys is order preserving
+            **event_data,
+            "event_id": occurrence_id,
+            "spans": [_evidence_span(spans_by_id[id]) for id in dict.fromkeys(span_ids)],
+        }
+
         occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
+            id=occurrence_id,
             resource_id=None,
             project_id=project.id,
-            event_id=event_data["event_id"],
+            event_id=occurrence_id,
             fingerprint=[problem.fingerprint],
             type=problem.type,
             issue_title=problem.title,
             subtitle=problem.desc,
             culprit=event_data["transaction"],
-            evidence_data=problem.evidence_data or {},
+            evidence_data=evidence_data,
             evidence_display=problem.evidence_display,
             detection_time=to_datetime(segment_span["end_timestamp"]),
             level="info",
@@ -448,11 +472,44 @@ def _run_legacy_detectors(
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
-            event_data=event_data,
-            is_buffered_spans=True,
+            event_data=occurrence_event_data,
         )
 
     return detected_problems
+
+
+def _evidence_data(problem: PerformanceProblem, spans_by_id: Mapping[str, Any]) -> dict[str, Any]:
+    # Only the top MAX_EVIDENCE_SPANS to ensure the occurrence isn't too large.
+    ids = (*problem.parent_span_ids, *problem.cause_span_ids, *problem.offender_span_ids)
+    kept = [id for id in ids if id in spans_by_id][:MAX_EVIDENCE_SPANS]
+    return {
+        **(problem.evidence_data or {}),
+        "parent_span_ids": [id for id in problem.parent_span_ids if id in kept],
+        "cause_span_ids": [id for id in problem.cause_span_ids if id in kept],
+        "offender_span_ids": [id for id in problem.offender_span_ids if id in kept],
+    }
+
+
+def _evidence_span(span: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "span_id": span["span_id"],
+        "op": span.get("op"),
+        "description": _truncate(span.get("description")),
+        "start_timestamp": span.get("start_timestamp"),
+        "timestamp": span.get("timestamp"),
+        "exclusive_time": span.get("exclusive_time"),
+        "hash": span.get("hash"),
+        "data": {
+            k: _truncate(v)
+            for k, v in (span.get("data") or {}).items()
+            if k in EVIDENCE_SPAN_DATA_KEYS
+        },
+    }
+
+
+def _truncate(value: Any) -> Any:
+    # Span attribute values aren't bounded, limit their size in span evidence.
+    return value[:MAX_SPAN_VALUE_LENGTH] if isinstance(value, str) else value
 
 
 def _maybe_run_span_first_detector_parity_check(
