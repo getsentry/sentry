@@ -66,8 +66,12 @@ class GetClientKindTest(TestCase):
         request = make_request(user=session_user(), headers={"X-Viewer-Context": "a.b.c"})
         assert self.classify(request) == ClientKind.SEER
 
-    def test_mcp_user_agent_wins_over_the_token_it_carries(self) -> None:
-        request = make_request(auth=api_token(), user_agent="sentry-mcp/0.19.0")
+    def test_mcp_user_agent_wins_over_the_oauth_token_it_carries(self) -> None:
+        # MCP authenticates via OAuth, so its token would otherwise read as INTEGRATION.
+        request = make_request(
+            auth=api_token(application_id=42),
+            user_agent="sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
+        )
         assert self.classify(request) == ClientKind.MCP
 
     def test_sentry_app_token_is_integration(self) -> None:
