@@ -112,6 +112,10 @@ def _resume_generation_id(
 )
 def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: object) -> None:
     """Drain all pending action log entries for a single group into its derived data."""
+    logger.info(
+        "process_group_log_task.started",
+        extra={"group_id": group_id, "incremental": incremental},
+    )
     from sentry.issues.derived.processing import (
         DerivedMetrics,
         ProcessingStrategy,
@@ -139,6 +143,10 @@ def generate_group_derived_data(
     **kwargs: object,
 ) -> None:
     """Generate derived data for a group by draining its action log."""
+    logger.info(
+        "generate_group_derived_data.started",
+        extra={"group_id": group_id, "prior_runs": prior_runs},
+    )
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.processing import GroupLogTimeout
@@ -215,6 +223,14 @@ def generate_project_derived_data(
     row whose ``pipeline_hash`` is outdated or NULL are included.
     Groups without a row are not affected.
     """
+    logger.info(
+        "generate_project_derived_data.started",
+        extra={
+            "project_id": project_id,
+            "cursor_group_id": cursor_group_id,
+            "stale_only": stale_only,
+        },
+    )
     from taskbroker_client.state import current_task
 
     from sentry import options
@@ -317,6 +333,15 @@ def generate_project_derived_data_batch(
     When *stale_only* is True, only groups with a ``GroupDerivedData``
     row whose ``pipeline_hash`` is outdated or NULL are processed.
     """
+    logger.info(
+        "generate_project_derived_data_batch.started",
+        extra={
+            "project_id": project_id,
+            "group_id_start": group_id_start,
+            "group_id_end": group_id_end,
+            "stale_only": stale_only,
+        },
+    )
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.processing import PIPELINE
@@ -447,6 +472,7 @@ def _stale_hash_filter(pipeline_hashes: Sequence[str]) -> Q:
 )
 def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
+    logger.info("heal_stale_derived_data.started")
     from sentry import options
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _pick_random_fresh_group_ranges
@@ -530,6 +556,14 @@ def check_fresh_derived_data_batch(
     **kwargs: object,
 ) -> None:
     """Check fresh GroupDerivedData rows in ``[group_id_start, group_id_end)``."""
+    logger.info(
+        "check_fresh_derived_data_batch.started",
+        extra={
+            "group_id_start": group_id_start,
+            "group_id_end": group_id_end,
+            "prior_runs": prior_runs,
+        },
+    )
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.check import CheckInvalidated, CheckTimeout, check_derived_data
@@ -646,6 +680,14 @@ def regenerate_stale_derived_data_batch(
     Rows that have raced to the current hash are filtered out naturally.
     Reschedules the remaining range on batch or per-group timeout.
     """
+    logger.info(
+        "regenerate_stale_derived_data_batch.started",
+        extra={
+            "stale_pipeline_hashes": stale_pipeline_hashes,
+            "group_id_start": group_id_start,
+            "group_id_end": group_id_end,
+        },
+    )
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.promote import build_and_promote_batch

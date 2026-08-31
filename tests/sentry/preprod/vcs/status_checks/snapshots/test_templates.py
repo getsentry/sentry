@@ -952,21 +952,31 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             app_id="com.example.app", app_name="My App", image_count=24
         )
         snapshot_metrics_map = {artifact.id: metrics}
+        base_sha = "abc123" + "0" * 34
+        base_repo_url = "https://github.com/getsentry/sentry"
 
         title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
-            [artifact], snapshot_metrics_map, project=self.project
+            [artifact],
+            snapshot_metrics_map,
+            project=self.project,
+            base_sha=base_sha,
+            base_repo_url=base_repo_url,
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "No base snapshots found"
+        assert subtitle == f"No base snapshot found for {base_sha}"
         assert "My App" in summary
         assert "24" in summary
         assert "✅ Uploaded" in summary
-        assert "No base snapshots found to compare against" in summary
+        assert (
+            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            in summary
+        )
 
     def test_missing_base_multiple_artifacts(self) -> None:
         artifacts = []
         snapshot_metrics_map: dict[int, PreprodSnapshotMetrics] = {}
+        base_sha = "def456" + "0" * 34
 
         for i in range(3):
             artifact, metrics = self._create_artifact_with_metrics(
@@ -978,27 +988,35 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             snapshot_metrics_map[artifact.id] = metrics
 
         title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
-            artifacts, snapshot_metrics_map, project=self.project
+            artifacts, snapshot_metrics_map, project=self.project, base_sha=base_sha
         )
 
         assert title == "Snapshot Testing"
-        assert subtitle == "No base snapshots found"
+        assert subtitle == f"No base snapshot found for {base_sha}"
         for i in range(3):
             assert f"com.example.app{i}" in summary
-        assert "No base snapshots found to compare against" in summary
+        assert f"No base snapshot found for `{base_sha}`" in summary
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
-            format_missing_base_snapshot_status_check_messages([], {}, project=self.project)
+            format_missing_base_snapshot_status_check_messages(
+                [], {}, project=self.project, base_sha="abc123" + "0" * 34
+            )
 
     def test_missing_base_summary_table_format(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App", image_count=15
         )
         snapshot_metrics_map = {artifact.id: metrics}
+        base_sha = "abc123" + "0" * 34
+        base_repo_url = "https://github.com/getsentry/sentry"
 
         _, _, summary = format_missing_base_snapshot_status_check_messages(
-            [artifact], snapshot_metrics_map, project=self.project
+            [artifact],
+            snapshot_metrics_map,
+            project=self.project,
+            base_sha=base_sha,
+            base_repo_url=base_repo_url,
         )
 
         artifact_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{artifact.id}"
@@ -1009,7 +1027,8 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+            f"\n\nNo base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha}). "
+            "Make sure snapshots are uploaded from your main branch."
             f"\n\n{configure_link}"
         )
         assert summary == expected
