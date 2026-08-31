@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -21,11 +21,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
-type ResultQuery = {
-  email: string;
-  orgSlug: string;
-};
-
 type EventResult = {
   groupID: string;
   id: string;
@@ -33,7 +28,7 @@ type EventResult = {
 };
 
 const schema = z.object({
-  orgSlug: z.string(),
+  orgSlug: z.string().trim(),
   email: z.email('Enter a valid email address'),
 });
 
@@ -41,35 +36,22 @@ export function DataRequests() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const initialOrgSlug = (location.query.orgSlug as string | undefined) || '';
-  const initialEmail = (location.query.email as string | undefined) || '';
-
-  const queryFromRouterOrgSlug = (location.query.orgSlug as string | undefined) || '';
-  const queryFromRouterEmail = (location.query.email as string | undefined) || '';
-  const hasQuery = Boolean(queryFromRouterOrgSlug || queryFromRouterEmail);
-  const isEventSearch = Boolean(queryFromRouterOrgSlug);
-
-  const resultsQuery = useMemo<ResultQuery | undefined>(() => {
-    if (!hasQuery) {
-      return;
-    }
-    return {orgSlug: queryFromRouterOrgSlug, email: queryFromRouterEmail};
-  }, [hasQuery, queryFromRouterOrgSlug, queryFromRouterEmail]);
+  const orgSlug = (location.query.orgSlug as string | undefined) || '';
+  const email = (location.query.email as string | undefined) || '';
+  const hasQuery = Boolean(orgSlug || email);
+  const isEventSearch = Boolean(orgSlug);
 
   const {data: eventsData = [], isLoading: isLoadingEvents} = useQuery(
     apiOptions.as<EventResult[]>()('/organizations/$organizationIdOrSlug/events/', {
-      path:
-        hasQuery && isEventSearch
-          ? {organizationIdOrSlug: queryFromRouterOrgSlug}
-          : skipToken,
-      query: {query: 'user.email:' + queryFromRouterEmail},
+      path: hasQuery && isEventSearch ? {organizationIdOrSlug: orgSlug} : skipToken,
+      query: {query: 'user.email:' + email},
       staleTime: 0,
     })
   );
 
   const {data: usersData = [], isLoading: isLoadingUsers} = useQuery({
     ...apiOptions.as<User[]>()('/users/', {
-      query: {query: 'email:' + queryFromRouterEmail},
+      query: {query: 'email:' + email},
       staleTime: 0,
     }),
     enabled: hasQuery && !isEventSearch,
@@ -85,19 +67,15 @@ export function DataRequests() {
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {orgSlug: initialOrgSlug, email: initialEmail},
+    defaultValues: {orgSlug, email},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
       navigate({
         pathname: location.pathname,
-        query: value,
+        query: schema.parse(value),
       });
     },
   });
-
-  const renderLoading = () => {
-    return <LoadingIndicator>Searching...</LoadingIndicator>;
-  };
 
   const renderResults = () => {
     if (!results) {
@@ -135,7 +113,7 @@ export function DataRequests() {
                 return (
                   <li key={`event-${event.id}`}>
                     <ExternalLink
-                      href={`/organizations/${resultsQuery?.orgSlug}/issues/${event.groupID}/`}
+                      href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
                     >
                       {event.id} - {event.title.substring(0, 128)}
                     </ExternalLink>
@@ -205,7 +183,7 @@ export function DataRequests() {
         </Panel>
       </form.AppForm>
 
-      {isLoading ? renderLoading() : renderResults()}
+      {isLoading ? <LoadingIndicator>Searching...</LoadingIndicator> : renderResults()}
     </Fragment>
   );
 }
