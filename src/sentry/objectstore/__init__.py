@@ -100,7 +100,7 @@ class UsecaseId(Enum):
             case UsecaseId.DEBUG_FILES:
                 return ObjectstoreClientUsecase(
                     self.value,
-                    compression="none",
+                    compression="zstd",
                     expiration_policy=TimeToIdle(timedelta(days=90)),
                 )
             case UsecaseId.PROFILE_ATTACHMENTS:

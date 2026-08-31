@@ -5,7 +5,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -95,7 +95,6 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const [orgRole, setOrgRole] = useState(member.orgRole);
   const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
-  const isLarge = useResponsivePropValue({zero: false, lg: true});
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
     mutationFn: () => {
@@ -279,10 +278,12 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
 
         <PanelBody>
           <PanelItem>
-            <Grid columns={{zero: '1fr', xl: '2fr 1fr 1fr'}} gap="xl" width="100%">
+            <Details>
               <div>
                 <DetailLabel>{t('Email')}</DetailLabel>
-                <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
+                <div>
+                  <ExternalLink href={`mailto:${email}`}>{email}</ExternalLink>
+                </div>
               </div>
               <div>
                 <DetailLabel>{t('Status')}</DetailLabel>
@@ -292,9 +293,11 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
               </div>
               <div>
                 <DetailLabel>{t('Added')}</DetailLabel>
-                <DateTime dateOnly date={member.dateCreated} />
+                <div>
+                  <DateTime dateOnly date={member.dateCreated} />
+                </div>
               </div>
-            </Grid>
+            </Details>
           </PanelItem>
         </PanelBody>
       </Panel>
@@ -304,9 +307,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
           <PanelHeader>{t('Authentication')}</PanelHeader>
           <PanelBody>
             <FieldGroup
-              alignRight={isLarge}
+              alignRight
               flexibleControlStateSize
-              inline={isLarge}
               label={t('Reset two-factor authentication')}
               help={t(
                 'Resetting two-factor authentication will remove all two-factor authentication methods for this member.'
@@ -406,6 +408,19 @@ function OrganizationMemberDetail() {
 }
 
 export default OrganizationMemberDetail;
+
+const Details = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: ${p => p.theme.space.xl};
+  width: 100%;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-auto-flow: row;
+    grid-template-columns: auto;
+  }
+`;
 
 const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};

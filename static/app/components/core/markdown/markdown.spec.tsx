@@ -352,11 +352,17 @@ describe('Markdown', () => {
   });
 
   describe('tags', () => {
-    it('renders nothing for tags by default', () => {
-      const {container} = render(
-        <Markdown raw='{% ref type="issue" id="PROJ-123" /%}' />
-      );
-      expect(container).toHaveTextContent('');
+    it('echoes the original tag source by default', () => {
+      const raw = '{% ref type="issue" id="PROJ-123" /%}';
+      const {container} = render(<Markdown raw={raw} />);
+      expect(container).toHaveTextContent(raw);
+    });
+
+    it('echoes block tag source including the body by default', () => {
+      const raw =
+        '{% artifact type="root-cause" %}{"description":"Race condition"}{% /artifact %}';
+      const {container} = render(<Markdown raw={raw} />);
+      expect(container).toHaveTextContent(raw);
     });
 
     it('renders custom Tag component with attrs', () => {

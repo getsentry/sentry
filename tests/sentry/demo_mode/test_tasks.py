@@ -269,12 +269,11 @@ class SyncArtifactBundlesTest(TestCase):
             data={"features": ["debug"]},
         )
 
-        with self.feature("organizations:objectstore-debugfiles-compression"):
-            _sync_project_debug_files(
-                source_org=self.source_org,
-                target_org=self.target_org,
-                cutoff_date=self.last_three_days(),
-            )
+        _sync_project_debug_files(
+            source_org=self.source_org,
+            target_org=self.target_org,
+            cutoff_date=self.last_three_days(),
+        )
 
         target_project_debug_file = ProjectDebugFile.objects.get(
             project_id=self.target_proj_foo.id,

@@ -101,6 +101,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
@@ -526,6 +527,12 @@ class Factories:
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_organization_avatar(*args, **kwargs) -> OrganizationAvatar:
+        with outbox_runner():
+            return OrganizationAvatar.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
