@@ -8,6 +8,7 @@ from django.db.models.query import QuerySet
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ai_monitoring.conversation_titles import (
+    LEGACY_GEN_AI_REQUEST_MESSAGES,
     MAX_USER_MESSAGE_CHARS,
     clamp_conversation_id_for_storage,
     clamp_user_message,
@@ -55,7 +56,7 @@ def make_gen_ai_span(
         attributes[ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID] = _attr(conversation_id)
     if not omit_messages:
         key = (
-            ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES
+            LEGACY_GEN_AI_REQUEST_MESSAGES
             if use_request_messages
             else ATTRIBUTE_NAMES.GEN_AI_INPUT_MESSAGES
         )
@@ -124,7 +125,7 @@ class TitleHelpersTest(TestCase):
                 ]
             ),
         )
-        span["attributes"][ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES] = _attr(
+        span["attributes"][LEGACY_GEN_AI_REQUEST_MESSAGES] = _attr(
             json.dumps([{"role": "user", "content": "from request"}])
         )
         assert first_user_message_from_span(span) == "from input"

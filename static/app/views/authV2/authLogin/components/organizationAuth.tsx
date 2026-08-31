@@ -80,13 +80,7 @@ export function OrganizationAuth({authOrganization, onClear}: OrganizationAuthPr
   );
 
   return (
-    <OrganizationCardStack
-      gap="0"
-      border="secondary"
-      radius="md"
-      overflow="hidden"
-      position="relative"
-    >
+    <OrganizationCardStack gap="0" border="secondary" radius="md" position="relative">
       <Flex align="center" gap="lg" padding="lg">
         {orgBadge}
         {ssoAction}

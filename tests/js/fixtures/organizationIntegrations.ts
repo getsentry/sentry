@@ -9,6 +9,7 @@ export function OrganizationIntegrationsFixture(
     icon: 'https://a.slack-edge.com/80588/img/avatars-teams/ava_0012-132.png',
     domainName: 'hb-testing.slack.com',
     accountType: null,
+    scopes: null,
     status: 'active',
     provider: {
       key: 'slack',
@@ -25,7 +26,7 @@ export function OrganizationIntegrationsFixture(
     },
     externalId: 'TA99AB9CD',
     gracePeriodEnd: '',
-    organizationId: '',
+    organizationId: 1,
     organizationIntegrationStatus: 'active',
     ...params,
   };
