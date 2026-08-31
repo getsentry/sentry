@@ -97,11 +97,6 @@ def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> N
 
 def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     if is_recalibration_factor_served_per_org(org_id):
-        # The per-org pipeline owns the factor this organization is served. A second writer
-        # here would step a factor that nothing applies, against a measurement the per-org
-        # factor produced, so it would compound to a rebalance bound and reset. The stored
-        # factor expires on its own TTL, which leaves the neutral 1.0 behind if serving ever
-        # falls back to this cache.
         metrics.incr("dynamic_sampling.tasks.recalibrate_orgs.skipped_served_per_org")
         return
 
