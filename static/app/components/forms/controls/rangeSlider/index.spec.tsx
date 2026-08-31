@@ -4,34 +4,29 @@ import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', () => {
   it('changes value / has right label', () => {
-    render(<RangeSlider name="test" value={5} min={0} max={10} onChange={() => {}} />);
+    render(
+      <RangeSlider
+        name="test"
+        value={5}
+        allowedValues={[0, 1, 2, 3, 4, 5, 6, 7]}
+        onChange={() => {}}
+      />
+    );
     expect(screen.getByRole('slider')).toHaveValue('5');
     fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
     expect(screen.getByRole('slider')).toHaveValue('7');
   });
 
-  it('can use formatLabel', () => {
+  it('calls onChange', () => {
+    const onChange = jest.fn();
     render(
       <RangeSlider
         name="test"
         value={5}
-        min={0}
-        max={10}
-        formatLabel={value => (
-          <div data-test-id="test">{value === 7 ? 'SEVEN!' : Number(value) + 1}</div>
-        )}
-        onChange={() => {}}
+        allowedValues={[0, 1, 2, 3, 4, 5, 6, 7]}
+        onChange={onChange}
       />
     );
-    expect(screen.getByTestId('test')).toHaveTextContent('6');
-
-    fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
-    expect(screen.getByTestId('test')).toHaveTextContent('SEVEN!');
-  });
-
-  it('calls onChange', () => {
-    const onChange = jest.fn();
-    render(<RangeSlider name="test" value={5} min={0} max={10} onChange={onChange} />);
     expect(onChange).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole('slider'), {target: {value: '7'}});
     expect(onChange).toHaveBeenCalledWith(7, expect.anything());
@@ -44,8 +39,6 @@ describe('RangeSlider', () => {
       <RangeSlider
         name="test"
         value={1000}
-        min={0}
-        max={10}
         allowedValues={[0, 100, 1000, 10000, 20000]}
         onChange={onChange}
       />
@@ -71,8 +64,6 @@ describe('RangeSlider', () => {
       <RangeSlider
         name="test"
         value={1000}
-        min={0}
-        max={10}
         allowedValues={[0, 100, 1000, 10000, 20000]} // support unsorted arrays?
         onChange={onChange}
       />
