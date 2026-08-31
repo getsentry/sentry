@@ -2067,24 +2067,20 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
     @responses.activate
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_race_outcome_carries_dispatch_attribution(self, mock_metrics: MagicMock) -> None:
-        # A race means the row is already gone, so the outcome carries no provider
-        # and attribution is all that is left to tell the dispatchers apart.
-        drain_mailbox(99, claimed_count=1, dispatcher=Dispatcher.PUSH)
+        records = create_payloads(2, "github:123", provider="github")
+        head_id = records[0].id
+        records[0].delete()
+
+        drain_mailbox(
+            head_id,
+            claimed_count=2,
+            dispatcher=Dispatcher.PUSH,
+            mailbox="github:123",
+            valid_until=fresh_deadline(),
+        )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {"dispatcher": "push", "outcome": "race", "provider": "unknown"}
-        ]
-
-    @responses.activate
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_drain_enqueued_before_deploy_tags_unknown(self, mock_metrics: MagicMock) -> None:
-        # Tasks already queued when this deploys arrive without a dispatcher. The
-        # key must still be emitted: a tag absent from some series breaks grouping
-        # rather than showing a gap.
-        drain_mailbox(99, claimed_count=1)
-
-        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "race", "provider": "unknown"}
+            {"dispatcher": "push", "outcome": "race", "provider": "github"}
         ]
 
 
@@ -2106,7 +2102,7 @@ class LostHeadTest(MetricCallsMixin, TestCase):
         head_id = records[0].id
         records[0].delete()
 
-        drain_mailbox(head_id, claimed_count=3, mailbox="github:123")
+        drain_mailbox(head_id, claimed_count=3, mailbox="github:123", valid_until=fresh_deadline())
 
         assert len(responses.calls) == 0
         assert WebhookPayload.objects.count() == 2
@@ -2130,7 +2126,12 @@ class LostHeadTest(MetricCallsMixin, TestCase):
         head_id = records[0].id
         records[0].delete()
 
-        drain_mailbox(head_id, claimed_count=MIN_RECORDS_PER_THREAD + 1, mailbox="github:123")
+        drain_mailbox(
+            head_id,
+            claimed_count=MIN_RECORDS_PER_THREAD + 1,
+            mailbox="github:123",
+            valid_until=fresh_deadline(),
+        )
 
         assert len(responses.calls) == 0
         assert WebhookPayload.objects.count() == 2
@@ -2338,16 +2339,14 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_expired_claim_with_neither_mailbox_nor_head_reports_a_race(
+    def test_expired_claim_with_neither_mailbox_nor_head_stands_down_quietly(
         self, mock_metrics: MagicMock
     ) -> None:
-        # Nothing left to name the provider with. Only drains enqueued before
-        # dispatch sent a mailbox can land here, and only until they drain out.
+        # Only a drain enqueued before dispatch sent a mailbox can land here;
+        # there is nothing to deliver and nothing left to attribute.
         drain_mailbox(99, claimed_count=1, dispatcher=Dispatcher.PUSH, valid_until=self.expired())
 
-        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {"dispatcher": "push", "outcome": "race", "provider": "unknown"}
-        ]
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == []
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_dispatch_passes_the_rows_own_deadline(self, mock_drain: MagicMock) -> None:
