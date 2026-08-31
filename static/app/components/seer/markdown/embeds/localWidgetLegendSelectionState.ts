@@ -1,5 +1,4 @@
 import {useMemo, useReducer} from 'react';
-import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
@@ -25,13 +24,14 @@ export class LocalWidgetLegendSelectionState extends WidgetLegendSelectionState 
       dashboard,
       organization,
       location: {
+        action: 'POP',
         hash: '',
         key: 'seer-embed',
         pathname: '',
         query: {},
         search: '',
         state: undefined,
-      } as Location,
+      },
       navigate: () => {},
     });
     this.onChange = onChange;
