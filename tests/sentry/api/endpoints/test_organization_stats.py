@@ -73,7 +73,6 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 400, response.content
 
-
     def test_invalid_group(self) -> None:
         self.login_as(user=self.user)
         url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
