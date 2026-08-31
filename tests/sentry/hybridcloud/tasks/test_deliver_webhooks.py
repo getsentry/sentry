@@ -1,6 +1,6 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
-from unittest.mock import ANY, MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 import responses
@@ -126,8 +126,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=webhook_one.id,
             claimed_count=2,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -147,8 +145,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=webhook_one.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -191,8 +187,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=due.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
         # The backing-off record keeps its retry schedule.
         backoff_schedule = backoff.schedule_for
@@ -235,8 +229,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=due_one.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
         backoff_schedule = backoff.schedule_for
         backoff.refresh_from_db()
@@ -262,8 +254,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=expired_backoff.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @override_options(DUE_HEAD_OPTIONS)
@@ -322,8 +312,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=webhook_one.id,
             claimed_count=2,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @responses.activate
@@ -417,8 +405,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             payload_id=webhook.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
         # Option reads are served from the option store's cache in production,
         # so only payload-table statements count toward the round-trip budget.
@@ -2339,54 +2325,16 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_expired_claim_with_neither_mailbox_nor_head_stands_down_quietly(
+    def test_expired_claim_with_neither_mailbox_nor_head_reports_a_race(
         self, mock_metrics: MagicMock
     ) -> None:
-        # Only a drain enqueued before dispatch sent a mailbox can land here;
-        # there is nothing to deliver and nothing left to attribute.
+        # Nothing left to name the provider with; the row read is still the race
+        # site for every drain until dispatch sends the claim.
         drain_mailbox(99, claimed_count=1, dispatcher=Dispatcher.PUSH, valid_until=self.expired())
 
-        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == []
-
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_dispatch_passes_the_rows_own_deadline(self, mock_drain: MagicMock) -> None:
-        # The drain must be handed the schedule_for its claim wrote, not a value
-        # recomputed from an offset that may differ between dispatcher and worker.
-        webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-
-        schedule_webhook_delivery()
-
-        valid_until = datetime.fromtimestamp(
-            mock_drain.delay.call_args.kwargs["valid_until"], tz=UTC
-        )
-        webhook.refresh_from_db()
-        assert webhook.schedule_for == valid_until
-
-
-@control_silo_test
-class WaveConcurrencyTest(TestCase):
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.deliver_message")
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks._run_parallel_delivery_batch")
-    def test_waves_scale_with_remaining_work(
-        self, mock_batch: MagicMock, mock_deliver: MagicMock
-    ) -> None:
-        mock_batch.side_effect = lambda records, deleter, delivery_tags: len(records)
-        mock_deliver.return_value = True
-        records = create_payloads(12, "github:123", provider="github")
-
-        with override_options({"hybridcloud.webhookpayload.worker_threads": 3}):
-            drain_mailbox(
-                records[0].id,
-                claimed_count=12,
-                valid_until=(timezone.now() + BATCH_SCHEDULE_OFFSET).timestamp(),
-                mailbox="github:123",
-            )
-
-        # ceil(remaining / MIN_RECORDS_PER_THREAD), capped at worker_threads,
-        # recomputed per wave; the tail falls back to serial delivery.
-        wave_sizes = [len(call.args[0]) for call in mock_batch.call_args_list]
-        assert wave_sizes == [3, 2, 2]
-        assert mock_deliver.call_count == 5
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
+            {"dispatcher": "push", "outcome": "race", "provider": "unknown"}
+        ]
 
     @responses.activate
     @override_cells(cell_config)
@@ -2509,8 +2457,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=webhook.id,
             claimed_count=1,
             dispatcher=Dispatcher.PUSH,
-            valid_until=ANY,
-            mailbox=ANY,
         )
         # The batch is claimed before dispatch; the claim is what keeps other
         # dispatchers off the mailbox while the drain runs.
@@ -2552,8 +2498,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=older_webhook.id,
             claimed_count=2,
             dispatcher=Dispatcher.PUSH,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -2590,8 +2534,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=due.id,
             claimed_count=1,
             dispatcher=Dispatcher.PUSH,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -2662,8 +2604,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=webhook_b.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -2716,8 +2656,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=webhook_two.id,
             claimed_count=1,
             dispatcher=Dispatcher.PUSH,
-            valid_until=ANY,
-            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -2751,8 +2689,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=records[0].id,
             claimed_count=MIN_RECORDS_PER_THREAD + 1,
             dispatcher=Dispatcher.PUSH,
-            valid_until=ANY,
-            mailbox=ANY,
         )
         assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
             {"dispatcher": "push", "drain": "parallel", "provider": "github"}
@@ -2772,8 +2708,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
             payload_id=records[0].id,
             claimed_count=MIN_RECORDS_PER_THREAD,
             dispatcher=Dispatcher.PUSH,
-            valid_until=ANY,
-            mailbox=ANY,
         )
         assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
             {"dispatcher": "push", "drain": "sequential", "provider": "github"}
