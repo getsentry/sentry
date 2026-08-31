@@ -5,7 +5,9 @@ from time import monotonic
 
 from django.db.models import F, Func, Value
 from django.db.models.fields import IntegerField
+from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import options
 from sentry.debug_files.objectstore_migration.utils import migrate_debug_file
@@ -29,7 +31,7 @@ def enqueue_shard(
     num_shards: int,
     cursor: int,
 ) -> None:
-    migrate_shard.apply_async(
+    delivery = migrate_shard.apply_async_with_future(
         kwargs={
             "shard_id": shard_id,
             "num_shards": num_shards,
@@ -37,11 +39,14 @@ def enqueue_shard(
         },
         headers={"sentry-propagate-traces": False},
     )
+    if delivery is not None:
+        delivery.result()
 
 
 @instrumented_task(
     name="sentry.debug_files.objectstore_migration.migrate_shard",
     namespace=debug_files_migration_tasks,
+    retry=Retry(times=5, delay=30, on=(ProcessingDeadlineExceeded,)),
     processing_deadline_duration=_PROCESSING_DEADLINE_SECONDS,
     silo_mode=SiloMode.CELL,
 )

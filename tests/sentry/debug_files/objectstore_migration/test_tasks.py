@@ -20,7 +20,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
             patch(
                 "sentry.debug_files.objectstore_migration.tasks.migrate_debug_file",
             ) as migrate_one,
-            patch.object(migrate_shard, "apply_async") as enqueue_successor,
+            patch.object(migrate_shard, "apply_async_with_future") as enqueue_successor,
         ):
             # full page → self-chain with inclusive cursor below lowest processed
             migrate_shard(
