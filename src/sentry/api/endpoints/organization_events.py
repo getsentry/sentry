@@ -215,9 +215,10 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
 
-        client_kind = get_client_kind(request)
-        sentry_sdk.set_tag("client_kind", client_kind.value)
-        sentry_sdk.set_attribute("client_kind", client_kind.value)
+        client_kind = get_client_kind(request, organization)
+        if client_kind is not None:
+            sentry_sdk.set_tag("client_kind", client_kind.value)
+            sentry_sdk.set_attribute("client_kind", client_kind.value)
 
         try:
             snuba_params = self.get_snuba_params(

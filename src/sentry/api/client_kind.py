@@ -15,10 +15,14 @@ from enum import StrEnum
 
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
+from sentry.models.organization import Organization
 from sentry.seer.agent_token import is_agent_auth
 from sentry.utils.http import is_mcp_request
+
+FEATURE_FLAG = "organizations:api-client-kind-check"
 
 
 class ClientKind(StrEnum):
@@ -53,8 +57,16 @@ _SCRIPT_USER_AGENT = re.compile(
 )
 
 
-def get_client_kind(request: Request) -> ClientKind:
-    """Classify the caller of an API request. Never raises; falls back to UNKNOWN."""
+def get_client_kind(request: Request, organization: Organization) -> ClientKind | None:
+    """Classify the caller of an API request.
+
+    Returns ``None`` when the org has not opted in, so that a disabled org is
+    distinguishable from one whose traffic genuinely classifies as ``UNKNOWN``.
+    Otherwise never raises; unrecognized callers fall back to ``UNKNOWN``.
+    """
+    if not features.has(FEATURE_FLAG, organization, actor=request.user):
+        return None
+
     auth = getattr(request, "auth", None)
     user = getattr(request, "user", None)
     user_agent = request.META.get("HTTP_USER_AGENT", "")
