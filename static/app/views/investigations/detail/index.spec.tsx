@@ -28,10 +28,7 @@ import {
   investigationListQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
-import type {
-  InvestigationBlock,
-  InvestigationDetail,
-} from 'sentry/views/investigations/types';
+import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -71,74 +68,6 @@ function InstallFeedbackIntegration() {
   }, [setState]);
 
   return null;
-}
-
-function InvestigationDetailFixture(
-  overrides: Partial<InvestigationDetail> = {}
-): InvestigationDetail & {blocks: InvestigationBlock[]} {
-  return {
-    id: 'investigation-1',
-    title: 'Investigate database latency',
-    status: 'active',
-    sourceType: 'manual',
-    createdBy: '1',
-    dateCreated: '2026-08-13T20:00:00Z',
-    dateUpdated: '2026-08-13T21:00:00Z',
-    version: 1,
-    blockCount: 2,
-    isFavorited: false,
-    summary: null,
-    summaryDescription: null,
-    blocks: [
-      {
-        id: 'block-1',
-        position: 0,
-        kind: 'text',
-        title: 'Summary',
-        content: 'Initial notes',
-        generationPrompt: '',
-        generatedContent: '',
-        output: null,
-        outputStatus: 'notRun',
-        currentExecution: null,
-        config: {},
-        display: {type: 'markdown'},
-        dependencies: [],
-        parameterKeys: [],
-        version: 1,
-        staleAt: null,
-        createdBy: '1',
-        lastEditedBy: '1',
-      },
-      {
-        id: 'block-2',
-        position: 1,
-        kind: 'query',
-        title: 'Latency query',
-        content: '',
-        generationPrompt: 'Find slow spans',
-        generatedContent: '',
-        output: null,
-        outputStatus: 'notRun',
-        currentExecution: null,
-        config: {},
-        display: {type: 'table'},
-        dependencies: [],
-        parameterKeys: [],
-        version: 1,
-        staleAt: null,
-        createdBy: '1',
-        lastEditedBy: '1',
-      },
-    ],
-    filters: {},
-    parameters: [],
-    projectIds: [],
-    source: {type: 'manual', ref: {}, revision: null},
-    template: null,
-    titleGeneration: {status: null},
-    ...overrides,
-  };
 }
 
 function renderView(

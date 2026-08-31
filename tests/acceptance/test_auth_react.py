@@ -5,6 +5,7 @@ from django.contrib.sessions.backends.signed_cookies import SessionStore
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.user import User
 
@@ -69,6 +70,55 @@ class ReactAuthTest(AcceptanceTestCase):
         inputs = self.browser.elements('[aria-label="One-time password"]')
         next(input_element for input_element in inputs if input_element.is_displayed()).send_keys(
             code
+        )
+
+    def locate_organization_sso(self, organization_slug: str) -> None:
+        self.open_login()
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Organization SSO']")
+        self.browser.element('[aria-label="Organization Slug"]').send_keys(organization_slug)
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Locate']")
+
+    def select_organization_sso(self, organization_slug: str) -> None:
+        self.locate_organization_sso(organization_slug)
+        self.browser.wait_until(
+            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+        )
+
+    def begin_organization_sso(self, organization_slug: str) -> None:
+        self.select_organization_sso(organization_slug)
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
+
+        # The dummy provider renders its email challenge inline as the initiation response.
+        # A real provider redirects to its identity service before returning to Sentry.
+        self.browser.wait_until('form > input[type="email"][name="email"]:only-child')
+
+    def complete_dummy_sso(self, email: str) -> None:
+        csrf_cookie = self.browser.driver.get_cookie(settings.CSRF_COOKIE_NAME)
+        assert csrf_cookie is not None
+
+        # Simulate the provider callback by posting its identity to the shared SSO continuation
+        # endpoint. Include the browser's CSRF token because this remains a browser-driven POST.
+        self.browser.driver.execute_script(
+            """
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/auth/sso/';
+
+            const input = document.createElement('input');
+            input.name = 'email';
+            input.value = arguments[0];
+            form.appendChild(input);
+
+            const csrfInput = document.createElement('input');
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = arguments[1];
+            form.appendChild(csrfInput);
+
+            document.body.appendChild(form);
+            form.submit();
+            """,
+            email,
+            csrf_cookie["value"],
         )
 
     def wait_for_authenticated_organization(self, organization_slug: str) -> None:
@@ -169,3 +219,176 @@ class ReactAuthTest(AcceptanceTestCase):
         self.clear_session_authentication()
         self.submit_credentials(user.email, PASSWORD, org_b.slug)
         self.wait_for_authenticated_organization(org_b.slug)
+
+    def test_organization_sso(self) -> None:
+        user = self.create_login_user("sso-org")
+        auth_provider = self.create_auth_provider(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
+
+        # The organization lookup shows that SSO is required and starts its provider flow.
+        self.begin_organization_sso(self.organization.slug)
+
+        # The dummy provider callback authenticates the linked user.
+        self.complete_dummy_sso(user.email)
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    def test_organization_sso_with_totp(self) -> None:
+        user = self.create_login_user("sso-totp-org")
+        totp = TotpInterface()
+        totp.enroll(user)
+        auth_provider = self.create_auth_provider(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
+
+        # SSO identifies the user but leaves authentication pending on their second factor.
+        self.begin_organization_sso(self.organization.slug)
+        self.complete_dummy_sso(user.email)
+        self.browser.wait_until_script_execution(
+            "return window.location.pathname === '/auth/login/'"
+        )
+        self.browser.wait_until('[aria-label="One-time password"]')
+
+        assert not self.browser.element_exists('[aria-label="Email"]')
+        assert not self.browser.element_exists('[aria-label="Password"]')
+        self.submit_second_factor(totp.make_otp().generate_otp())
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    def test_organization_without_sso(self) -> None:
+        user = self.create_login_user("password-only-org")
+
+        # The organization lookup explains that members use password authentication.
+        self.locate_organization_sso(self.organization.slug)
+        self.browser.wait_until(
+            xpath="//*[contains(normalize-space(.), 'Members sign in with email and password')]"
+        )
+        sso_button = self.browser.element(xpath="//button[normalize-space(.)='SSO']")
+        assert not sso_button.is_enabled()
+
+        # Password authentication remains available for the selected organization.
+        self.submit_visible_credentials(user.email, PASSWORD)
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    def test_password_authentication_with_optional_organization_sso(self) -> None:
+        user = self.create_login_user("optional-sso-org")
+        auth_provider = self.create_auth_provider(
+            organization_id=self.organization.id, provider="dummy"
+        )
+        auth_provider.flags.allow_unlinked = True
+        auth_provider.save()
+
+        self.locate_organization_sso(self.organization.slug)
+        self.browser.wait_until(
+            xpath="//*[contains(normalize-space(.), 'Members sign in with Dummy')]"
+        )
+        assert self.browser.element_exists('[aria-label="Email"]')
+        assert self.browser.element_exists('[aria-label="Password"]')
+        self.submit_visible_credentials(user.email, PASSWORD)
+
+        self.wait_for_authenticated_organization(self.organization.slug)
+
+    def test_password_login_cannot_access_sso_required_organization(self) -> None:
+        user = self.create_user(email="sso-password@example.com")
+        user.set_password(PASSWORD)
+        user.save()
+        organization = self.create_organization(slug="sso-password-org")
+        self.create_member(organization=organization, user=user)
+        self.create_auth_provider(organization_id=organization.id, provider="dummy")
+
+        # Selecting an SSO-required organization does not force the user to start SSO.
+        self.select_organization_sso(organization.slug)
+        self.submit_visible_credentials(user.email, PASSWORD)
+
+        # Password authentication succeeds, but it does not grant access to the organization.
+        self.browser.wait_until_script_execution(
+            "return window.location.pathname === '/settings/account/'"
+        )
+
+    def test_password_login_uses_organization_without_sso(self) -> None:
+        user = self.create_user(email="multi-org-password@example.com")
+        user.set_password(PASSWORD)
+        user.save()
+        sso_organization = self.create_organization(slug="sso-required-org")
+        self.create_member(organization=sso_organization, user=user)
+        self.create_auth_provider(organization_id=sso_organization.id, provider="dummy")
+        password_organization = self.create_organization(owner=user, slug="password-org")
+
+        # Password login cannot enter the selected organization because it requires SSO.
+        self.select_organization_sso(sso_organization.slug)
+        self.submit_visible_credentials(user.email, PASSWORD)
+
+        # The authenticated user lands in an accessible organization instead.
+        self.wait_for_authenticated_organization(password_organization.slug)
+
+    def test_password_login_preserves_sso_organization_destination(self) -> None:
+        user = self.create_user(email="preserved-sso-destination@example.com")
+        user.set_password(PASSWORD)
+        user.save()
+        sso_organization = self.create_organization(slug="preserved-sso-org")
+        self.create_member(organization=sso_organization, user=user)
+        auth_provider = self.create_auth_provider(
+            organization_id=sso_organization.id,
+            provider="dummy",
+        )
+        self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
+        self.create_organization(owner=user, slug="password-fallback-org")
+
+        self.save_cookie(
+            name="sentry_react_auth",
+            value="1",
+            expires="Tue, 20 Jun 2035 19:07:44 GMT",
+        )
+        self.browser.get(f"/organizations/{sso_organization.slug}/issues/")
+        self.browser.wait_until('[aria-label="Email"]')
+
+        # Password authentication establishes the account session, but the protected
+        # destination takes precedence over the password-capable fallback organization.
+        self.submit_visible_credentials(user.email, PASSWORD)
+        self.browser.wait_until_script_execution(
+            f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
+        )
+        self.browser.wait_until(
+            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+        )
+
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
+        self.browser.wait_until('form > input[type="email"][name="email"]:only-child')
+        self.complete_dummy_sso(user.email)
+        self.wait_for_authenticated_organization(sso_organization.slug)
+
+    @with_feature("organizations:authv2-rollout")
+    def test_switch_to_sso_required_organization(self) -> None:
+        user = self.create_login_user("org-a")
+        password_organization = self.organization
+        sso_organization = self.create_organization(owner=user, slug="org-b")
+        auth_provider = self.create_auth_provider(
+            organization_id=sso_organization.id, provider="dummy"
+        )
+        self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
+
+        # The user first authenticates into an organization that accepts password login.
+        self.submit_credentials(user.email, PASSWORD)
+        self.wait_for_authenticated_organization(password_organization.slug)
+
+        # Navigating to an organization that requires SSO starts an organization-scoped login.
+        self.browser.get(f"/organizations/{sso_organization.slug}/issues/")
+        self.browser.wait_until_script_execution(
+            f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
+        )
+
+        # The current session cannot access the selected organization until SSO completes, so
+        # the login page keeps the organization in focus and offers no alternative auth method.
+        self.browser.wait_until(
+            xpath="//*[contains(normalize-space(.), 'Requires sign in with Dummy')]"
+        )
+        assert not self.browser.element_exists('[aria-label="Email"]')
+        assert not self.browser.element_exists('[aria-label="Password"]')
+        assert not self.browser.element_exists('[aria-label="Clear organization login context"]')
+
+        # SSO authenticates the linked identity and returns the user to the protected org.
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
+        self.browser.wait_until('input[name="email"]')
+        self.complete_dummy_sso(user.email)
+        self.wait_for_authenticated_organization(sso_organization.slug)
