@@ -30,6 +30,8 @@ import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
 import {useUser} from 'sentry/utils/useUser';
 
+const DEFAULT_SIZE_LIMIT = 150;
+
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
   ownershipRule: t('Ownership Rule'),
@@ -99,10 +101,6 @@ interface AssigneeSelectorDropdownProps {
    * Optional list of suggested owners of the group
    */
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
-  /**
-   * Maximum number of teams/users to display in the dropdown
-   */
-  sizeLimit?: number;
   /**
    * Optional trigger for the assignee selector. If nothing passed in,
    * the default trigger will be used
@@ -215,7 +213,6 @@ export function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
-  sizeLimit = 150,
   trigger,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
@@ -538,7 +535,7 @@ export function AssigneeSelectorDropdown({
             {additionalMenuFooterItems}
           </Flex>
         )}
-        sizeLimit={sizeLimit}
+        sizeLimit={DEFAULT_SIZE_LIMIT}
         sizeLimitMessage="Use search to find more users and teams..."
         strategy="fixed"
       />

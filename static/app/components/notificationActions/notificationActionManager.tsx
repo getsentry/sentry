@@ -35,10 +35,6 @@ type NotificationActionManagerProps = {
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
-  /**
-   * Updates the notification alert count for this project
-   */
-  updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
 export function NotificationActionManager({

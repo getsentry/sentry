@@ -1,8 +1,11 @@
 import type {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 
-import {formatDuration, type Format} from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import type {Duration as TDuration, Unit} from 'sentry/utils/duration/types';
+
+const DURATION_MS_FORMAT = 'hh:mm:ss.sss';
+const DURATION_FORMAT = 'hh:mm:ss';
 
 interface Props extends HTMLAttributes<HTMLTimeElement> {
   /**
@@ -15,19 +18,12 @@ interface Props extends HTMLAttributes<HTMLTimeElement> {
    * that has `ms` precision but only show the total number of seconds.
    */
   precision: Unit;
-
-  /**
-   * The style/format to render into.
-   *
-   * Default is `hh:mm:ss.sss` if the precision is `ms`
-   */
-  format?: Format;
 }
 
-export const Duration = styled(({duration, format, precision, ...props}: Props) => {
+export const Duration = styled(({duration, precision, ...props}: Props) => {
   // Style and precision should match, otherwise style will pad out missing or
   // truncated values which we don't want in this component.
-  const style = format ?? (precision === 'ms' ? 'hh:mm:ss.sss' : 'hh:mm:ss');
+  const style = precision === 'ms' ? DURATION_MS_FORMAT : DURATION_FORMAT;
 
   return (
     <time
