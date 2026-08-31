@@ -25,12 +25,12 @@ type RemoveFromOrgFormValues = {
 };
 
 const addToOrgSchema = z.object({
-  organizationSlug: z.string().min(1, 'Organization slug is required'),
-  role: z.string().min(1, 'Role is required'),
+  organizationSlug: z.string().trim().min(1, 'Organization slug is required'),
+  role: z.string().trim().min(1, 'Role is required'),
 });
 
 const removeFromOrgSchema = z.object({
-  organizationSlug: z.string().min(1, 'Organization slug is required'),
+  organizationSlug: z.string().trim().min(1, 'Organization slug is required'),
 });
 
 function getMutationErrorMessage(error: Error | null, fallback: string) {
@@ -64,7 +64,8 @@ function AddToOrgModal({
     ...defaultFormOptions,
     defaultValues: {organizationSlug: '', role: ''},
     validators: {onDynamic: addToOrgSchema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(addToOrgSchema.parse(value)).catch(() => {}),
   });
 
   return (
@@ -142,7 +143,8 @@ function RemoveFromOrgModal({
     ...defaultFormOptions,
     defaultValues: {organizationSlug: ''},
     validators: {onDynamic: removeFromOrgSchema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(removeFromOrgSchema.parse(value)).catch(() => {}),
   });
 
   return (
