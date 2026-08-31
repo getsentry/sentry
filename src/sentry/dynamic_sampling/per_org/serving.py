@@ -66,10 +66,27 @@ def get_transaction_sample_rates(
     return named_rates, implicit_rate
 
 
-def get_recalibration_factor(org_id: int) -> float:
+def _recalibration_source(org_id: int) -> ServingSource:
     source = _serving_source(org_id)
     if source is ServingSource.PER_ORG and not is_org_in_recalibration_rollout(org_id):
-        source = ServingSource.LEGACY
+        return ServingSource.LEGACY
+    return source
+
+
+def is_recalibration_factor_served_per_org(org_id: int) -> bool:
+    """Whether the rules for this organization carry the per-org recalibration factor.
+
+    The legacy recalibration task asks this before writing its own factor. Both loops
+    step by ``previous * target / measured``, which only converges while the factor
+    being stepped is the one that produced the measurement. Two writers against one
+    measurement leave the unserved factor open-loop, so it compounds every cycle until
+    it reaches a rebalance bound.
+    """
+    return _recalibration_source(org_id) is ServingSource.PER_ORG
+
+
+def get_recalibration_factor(org_id: int) -> float:
+    source = _recalibration_source(org_id)
 
     emit_serving_source(ServedValue.RECALIBRATION_FACTOR, source)
     if source is ServingSource.PER_ORG:
