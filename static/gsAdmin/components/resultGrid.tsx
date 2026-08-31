@@ -825,34 +825,35 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const cells = getCells();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
+    // The note shares the row of the selectors and stays at the right end. It
+    // never renders above the results, so nothing moves while the probe runs.
+    const probeNote = this.state.probingRegions ? (
+      <RegionHintNote>Checking other regions…</RegionHintNote>
+    ) : null;
+
     return (
       <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
           {needsRegion && (
-            <Flex align="center" gap="md">
-              <CompactSelect
-                trigger={triggerProps => (
-                  <OverlayTrigger.Button {...triggerProps} prefix="Region" />
-                )}
-                value={this.state.cell ? this.state.cell.locality_url : undefined}
-                options={cells.map(c => {
-                  const hasMatch = this.state.regionMatches.some(
-                    m => m.locality_url === c.locality_url
-                  );
-                  return {
-                    label: c.name,
-                    value: c.locality_url,
-                    trailingItems: hasMatch ? (
-                      <Tag variant="success">found</Tag>
-                    ) : undefined,
-                  };
-                })}
-                onChange={opt => this.onChangeCell(opt.value)}
-              />
-              {this.state.probingRegions && (
-                <RegionHintNote>Checking other regions…</RegionHintNote>
+            <CompactSelect
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix="Region" />
               )}
-            </Flex>
+              value={this.state.cell ? this.state.cell.locality_url : undefined}
+              options={cells.map(c => {
+                const hasMatch = this.state.regionMatches.some(
+                  m => m.locality_url === c.locality_url
+                );
+                return {
+                  label: c.name,
+                  value: c.locality_url,
+                  trailingItems: hasMatch ? (
+                    <Tag variant="success">found</Tag>
+                  ) : undefined,
+                };
+              })}
+              onChange={opt => this.onChangeCell(opt.value)}
+            />
           )}
           {sortOptions && sortOptions.length > 0 && (
             <SortBy
@@ -862,6 +863,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
               location={location}
             />
           )}
+          {probeNote}
           {hasSearch && (
             <Flex align="center" gap="xs" width="100%">
               <SearchInput
@@ -970,6 +972,9 @@ const RegionHintAlert = styled(Alert)`
 `;
 
 const RegionHintNote = styled('div')`
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: auto;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   white-space: nowrap;
