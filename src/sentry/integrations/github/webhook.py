@@ -52,6 +52,7 @@ from sentry.integrations.types import (
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scm_actors import find_user_for_scm_actor
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import (
@@ -938,7 +939,12 @@ class IssuesEventWebhook(GitHubWebhook):
             IssueEvenntWebhookActionType.CLOSED.value,
             IssueEvenntWebhookActionType.REOPENED.value,
         ]:
-            self._handle_status_change(integration, external_issue_key, action)
+            self._handle_status_change(
+                integration,
+                external_issue_key,
+                action,
+                event.get("issue", {}).get("updated_at"),
+            )
 
     def _handle_assignment(
         self,
@@ -1021,7 +1027,11 @@ class IssuesEventWebhook(GitHubWebhook):
         )
 
     def _handle_status_change(
-        self, integration: RpcIntegration, external_issue_key: str, action: str
+        self,
+        integration: RpcIntegration,
+        external_issue_key: str,
+        action: str,
+        updated_at: str | None,
     ) -> None:
         """
         Handle issue status changes (closed/reopened).
@@ -1030,6 +1040,7 @@ class IssuesEventWebhook(GitHubWebhook):
             integration: The GitHub integration
             external_issue_key: The formatted issue key
             action: The action type ('closed' or 'reopened')
+            updated_at: GitHub's own timestamp, used to order deliveries
         """
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id,
@@ -1041,7 +1052,10 @@ class IssuesEventWebhook(GitHubWebhook):
             installation = integration.get_installation(oi.organization_id)
 
             if hasattr(installation, "sync_status_inbound"):
-                installation.sync_status_inbound(external_issue_key, {"action": action})
+                installation.sync_status_inbound(
+                    external_issue_key,
+                    {"action": action, PROVIDER_EVENT_TIME_KEY: updated_at},
+                )
 
                 logger.info(
                     "github.webhook.status-change.synced",

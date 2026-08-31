@@ -48,6 +48,9 @@ embed_widget_schema:
 embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
 
+integration_test_utils:
+  - added|deleted|modified: 'src/sentry/replays/testutils.py'
+
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'

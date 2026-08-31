@@ -67,7 +67,6 @@ function ExploreSecondaryNavigationImpl() {
   if (organization.features.includes('gen-ai-conversations')) {
     navItems.push({
       label: 'Agents',
-      badge: 'beta',
       to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
     });
   }
@@ -212,7 +211,6 @@ function ExploreSecondaryNavigationImpl() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="beta" />}
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>
@@ -223,10 +221,7 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link
                     to={`${baseUrl}/investigations/`}
-                    activeTo={[
-                      `${baseUrl}/investigations/`,
-                      `/organizations/${organization.slug}/seer/investigation/`,
-                    ]}
+                    activeTo={`${baseUrl}/investigations/`}
                     analyticsItemName="explore_investigations"
                     trailingItems={<FeatureBadge type="beta" />}
                   >

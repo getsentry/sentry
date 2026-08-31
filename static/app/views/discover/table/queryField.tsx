@@ -9,10 +9,10 @@ import {Input} from '@sentry/scraps/input';
 import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import type {SingleValueProps} from '@sentry/scraps/select';
+import {components} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -25,7 +25,7 @@ import type {
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
 import {DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
-import type {FieldValueType} from 'sentry/utils/fields';
+import {classifyTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import {ArithmeticInput} from './arithmeticInput';
@@ -304,6 +304,14 @@ class _QueryField extends Component<Props> {
     const equationName = `equation:${name}`;
     if (fieldOptions[equationName]) {
       return fieldOptions[equationName].value;
+    }
+
+    // EAP attributes keep their type in the key, e.g. `tags[foo,boolean]`, and
+    // their options are keyed by the attribute's FieldKind. `classifyTagKey`
+    // returns `tag` for untyped keys, so this only adds a lookup for typed ones.
+    const typedTagName = `${classifyTagKey(name)}:${name}`;
+    if (fieldOptions[typedTagName]) {
+      return fieldOptions[typedTagName].value;
     }
 
     const tagName =

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest.mock import DEFAULT, MagicMock, patch
 
 import orjson
@@ -7,6 +8,7 @@ import orjson
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
+    MIN_RECALIBRATION_FACTOR_AGE,
     generate_project_sample_rates_cache_key,
     generate_transaction_sample_rates_cache_key,
     get_cached_rebalanced_project_sample_rates,
@@ -20,7 +22,11 @@ from sentry.dynamic_sampling.per_org.cache import (
 )
 from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
+from sentry.dynamic_sampling.tasks.constants import (
+    MAX_REBALANCE_FACTOR,
+    MIN_REBALANCE_FACTOR,
+    adjusted_factor_ttl_ms,
+)
 from sentry.dynamic_sampling.tasks.helpers import (
     recalibrate_orgs as legacy_recalibration_cache,
 )
@@ -31,7 +37,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
     generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
+    CACHE,
     DELETE_FACTOR,
     SET_FACTOR,
     mock_configuration,
@@ -73,6 +81,92 @@ class PerOrgRecalibrationCacheTest(TestCase):
         assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
 
 
+class InvalidateProjectConfigsTest(TestCase):
+    """A pass that changed an organization's rates republishes its rules."""
+
+    SERVING_ON = {"dynamic-sampling.per_org.serving-rollout-rate": 1.0}
+    SERVING_OFF = {"dynamic-sampling.per_org.serving-rollout-rate": 0.0}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project(organization=self.organization)
+        self.addCleanup(
+            get_redis_client_for_ds().delete,
+            generate_project_sample_rates_cache_key(self.organization.id),
+        )
+
+    def _write(self, results: DynamicSamplingResults) -> MagicMock:
+        config = mock_configuration(self.organization, results=results)
+        with patch(f"{CACHE}.schedule_invalidate_project_config") as invalidate:
+            write_caches(config)
+        return invalidate
+
+    def _rebalanced(self, sample_rate: float) -> DynamicSamplingResults:
+        return DynamicSamplingResults(
+            rebalanced_projects=[
+                RebalancedItem(id=self.project.id, count=10, new_sample_rate=sample_rate)
+            ]
+        )
+
+    def test_a_served_org_is_invalidated_once_for_all_of_its_projects(self) -> None:
+        with override_options(self.SERVING_ON):
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_called_once_with(
+            organization_id=self.organization.id, trigger="dynamic_sampling_per_org"
+        )
+
+    def test_an_org_served_from_the_legacy_caches_is_left_alone(self) -> None:
+        with override_options(self.SERVING_OFF):
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_not_called()
+
+    def test_a_listed_org_is_invalidated_at_a_serving_rate_of_zero(self) -> None:
+        with override_options(
+            {
+                "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
+                "dynamic-sampling.per_org.serving-org-ids": [self.organization.id],
+            }
+        ):
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_called_once()
+
+    def test_a_pass_that_changed_no_rate_does_not_republish(self) -> None:
+        with override_options(self.SERVING_ON):
+            self._write(self._rebalanced(0.25))
+            invalidate = self._write(self._rebalanced(0.25))
+
+        invalidate.assert_not_called()
+
+    def test_a_moved_recalibration_factor_is_republished(self) -> None:
+        with (
+            override_options(self.SERVING_ON),
+            patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
+        ):
+            invalidate = self._write(DynamicSamplingResults(recalibration_factor=1.5))
+
+        invalidate.assert_called_once()
+
+    def test_a_cleared_recalibration_factor_is_republished(self) -> None:
+        with (
+            override_options(self.SERVING_ON),
+            patch_configuration({SET_FACTOR: DEFAULT, DELETE_FACTOR: DEFAULT}),
+        ):
+            invalidate = self._write(
+                DynamicSamplingResults(recalibration_factor=MAX_REBALANCE_FACTOR * 2)
+            )
+
+        invalidate.assert_called_once()
+
+    def test_a_pass_that_wrote_nothing_does_not_republish(self) -> None:
+        with override_options(self.SERVING_ON):
+            invalidate = self._write(DynamicSamplingResults())
+
+        invalidate.assert_not_called()
+
+
 class WriteCachesTest(TestCase):
     def _write(self, results: DynamicSamplingResults) -> dict[str, MagicMock]:
         config = mock_configuration(self.organization, results=results)
@@ -106,6 +200,44 @@ class WriteCachesTest(TestCase):
 
         mocks[SET_FACTOR].assert_not_called()
         mocks[DELETE_FACTOR].assert_not_called()
+
+    def _store_factor_with_age(self, age: timedelta) -> None:
+        redis = get_redis_client_for_ds()
+        cache_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(
+            self.organization.id
+        )
+        self.addCleanup(redis.delete, cache_key)
+        redis.set(cache_key, 2.0)
+        redis.pexpire(cache_key, adjusted_factor_ttl_ms() - int(age.total_seconds() * 1000))
+
+    def test_a_factor_stored_within_the_cycle_is_left_alone(self) -> None:
+        """A second pass in one cycle would compound the correction, so it does not write."""
+        self._store_factor_with_age(MIN_RECALIBRATION_FACTOR_AGE - timedelta(minutes=1))
+
+        for factor in (1.5, MAX_REBALANCE_FACTOR * 2):
+            mocks = self._write(DynamicSamplingResults(recalibration_factor=factor))
+
+            mocks[SET_FACTOR].assert_not_called()
+            mocks[DELETE_FACTOR].assert_not_called()
+
+    def test_a_factor_older_than_the_minimum_age_is_overwritten(self) -> None:
+        self._store_factor_with_age(MIN_RECALIBRATION_FACTOR_AGE + timedelta(seconds=5))
+
+        mocks = self._write(DynamicSamplingResults(recalibration_factor=1.5))
+
+        mocks[SET_FACTOR].assert_called_once_with(self.organization.id, 1.5)
+
+    def test_a_factor_without_an_expiry_is_overwritten(self) -> None:
+        redis = get_redis_client_for_ds()
+        cache_key = per_org_recalibration_cache.generate_recalibrate_orgs_cache_key(
+            self.organization.id
+        )
+        self.addCleanup(redis.delete, cache_key)
+        redis.set(cache_key, 2.0)
+
+        mocks = self._write(DynamicSamplingResults(recalibration_factor=1.5))
+
+        mocks[SET_FACTOR].assert_called_once_with(self.organization.id, 1.5)
 
     def test_the_balanced_sample_rates_are_stored(self) -> None:
         org_id = self.organization.id

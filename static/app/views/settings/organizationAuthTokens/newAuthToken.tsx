@@ -17,6 +17,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -51,7 +52,9 @@ function AuthTokenCreateForm({
   >({
     mutationFn: data =>
       fetchMutation<OrgAuthTokenWithToken>({
-        url: `/organizations/${organization.slug}/org-auth-tokens/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data,
       }),

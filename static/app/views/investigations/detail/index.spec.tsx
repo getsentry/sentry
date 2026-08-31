@@ -16,6 +16,7 @@ import {
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -154,9 +155,9 @@ function renderView(
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/seer/investigation/investigation-1/',
+        pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
       },
-      route: '/organizations/:orgId/seer/investigation/:investigationId/',
+      route: '/organizations/:orgId/explore/investigations/:investigationId/',
     },
   });
 
@@ -178,6 +179,7 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
+    ConfigStore.set('customerDomain', null);
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -1679,12 +1681,17 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        '/organizations/org-slug/seer/investigation/investigation-2/'
+        '/organizations/org-slug/explore/investigations/investigation-2/'
       )
     );
   });
 
   it('copies the link from the title menu', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {writeText},
@@ -1701,7 +1708,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/investigation/investigation-1/`
+        `${window.location.origin}/explore/investigations/investigation-1/`
       )
     );
   });

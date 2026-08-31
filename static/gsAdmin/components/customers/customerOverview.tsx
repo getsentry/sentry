@@ -91,7 +91,6 @@ function SoftCapTypeDetail({
               {`${getPlanCategoryName({
                 plan,
                 category: categoryHistory.category,
-                capitalize: true,
                 hadCustomDynamicSampling: shouldUseDsNames,
               })}: `}
               {softCapName}

@@ -148,12 +148,15 @@ def select_verdict(
     rather than emit zeroed counters (merge) or guess abandoned (close).
     """
     if not is_activity_tracking_enabled(organization):
-        metrics.incr("pr_metrics.select_verdict.activity_disabled")
+        metrics.incr("pr_metrics.select_verdict.activity_disabled", sample_rate=1.0)
         return VerdictDeferral.INDETERMINATE
 
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
-        logger.warning(
+        # error, not warning: handle_metrics writes this row before emission, so its
+        # absence means that write failed and the PR will never emit. Only ERROR
+        # reaches Sentry as an issue, and silent data loss wants an owner.
+        logger.error(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": pull_request.organization_id,
@@ -161,7 +164,6 @@ def select_verdict(
                 "pull_request_id": pull_request.id,
             },
         )
-        metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
         return VerdictDeferral.INDETERMINATE
 
     has_commits_after_open = _has_commits_after_open(pull_request)
@@ -654,7 +656,7 @@ def _canonical_sibling(siblings: list[PullRequest]) -> PullRequest:
                 "organization_ids": sorted({pr.organization_id for pr in siblings}),
             },
         )
-        metrics.incr("pr_metrics.emit.dedup_no_run_org_row")
+        metrics.incr("pr_metrics.emit.dedup_no_run_org_row", sample_rate=1.0)
     return canonical
 
 
@@ -942,7 +944,9 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
         activity_doc.human_participant_count(doc),
     )
     if legacy != reduced:
-        logger.warning(
+        # error, not warning: the reducers disagreeing is a correctness bug to be told
+        # about once, not a rate to trend.
+        logger.error(
             "pr_metrics.reducer_parity.mismatch",
             extra={
                 "organization_id": pull_request.organization_id,
@@ -952,9 +956,10 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
                 "reduced": reduced,
             },
         )
-        metrics.incr("pr_metrics.reducer_parity.mismatch")
     else:
-        metrics.incr("pr_metrics.reducer_parity.match")
+        # Only the match half is a counter: it tracks how much traffic still takes the
+        # legacy path, a rate that should drain to zero. Mismatch is the error above.
+        metrics.incr("pr_metrics.reducer_parity.match", sample_rate=1.0)
 
 
 def _activity_derived_metrics(pull_request: PullRequest) -> dict[str, Any]:
@@ -1075,6 +1080,10 @@ def emit_pr_metrics_row(
     # and rides along on the emitted row, so the two can't diverge.
     attributions = active_attributions(pull_request)
     if not attributions:
+        # Ambient rate while this metric's rarer reasons are unsampled: `untracked` is
+        # the webhook firehose, so sampling already resolves it. Keep both `untracked`
+        # sites on the same rate — one tag value split across two rates still totals
+        # correctly, but stops being exact.
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return False
 
@@ -1082,7 +1091,9 @@ def emit_pr_metrics_row(
     # and each otherwise emitting — dedupe to a single canonical row so counts
     # aren't inflated by sibling-org duplicates.
     if not is_canonical_github_pr_row(pull_request):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "duplicate_github_pr"})
+        metrics.incr(
+            "pr_metrics.emit.skipped", tags={"reason": "duplicate_github_pr"}, sample_rate=1.0
+        )
         return False
 
     # Derive the activity-sourced counters at the terminal event — before the
@@ -1109,7 +1120,7 @@ def emit_pr_metrics_row(
         diagnosis_labels=diagnosis_labels,
     )
     analytics.record(row)
-    metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action})
+    metrics.incr("pr_metrics.emit.recorded", tags={"close_action": close_action}, sample_rate=1.0)
     logger.info(
         "pr_metrics.emit.recorded",
         extra={
