@@ -149,17 +149,14 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
     return None
 
 
-def _organization_for_gate(
-    run_id: int, organization_id: int, log_ctx: PrIterationLogContext | None = None
-) -> Organization | None:
+def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
     try:
         return Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
-        name = "autofix.pr_iteration.trigger_consume.organization_not_found"
-        if log_ctx is not None:
-            log_ctx.error(name, exc_info=False)
-        else:
-            logger.warning(name, extra={"run_id": run_id, "organization_id": organization_id})
+        logger.warning(
+            "autofix.pr_iteration.trigger_consume.organization_not_found",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
         return None
 
 
@@ -196,7 +193,7 @@ def trigger_consume_pr_iteration_feedback(
     # the user while they are still looking at the failing PR. Blocking here
     # also leaves the feedback in the queue, so the API can see there is CI we
     # would have acted on and the work resumes once the permissions land.
-    organization = _organization_for_gate(run_id, organization_id, log_ctx)
+    organization = _organization_for_gate(run_id, organization_id)
     if organization is not None and block_iteration_for_missing_permissions(
         organization=organization, run_id=run_id, state=run_state, log_ctx=log_ctx
     ):
@@ -297,6 +294,19 @@ def comment_on_missing_permissions(
     if organization is None:
         return
 
+    # TODO: avoid this round trip. The state is fetched only so the comment logs
+    # carry the same run identity as the rest of the flow; the gate already has
+    # it and could hand the identity over in the task args instead.
+    try:
+        state = fetch_run_status(run_id, organization)
+    except (SeerApiError, ValueError):
+        logger.warning(
+            "autofix.pr_iteration.missing_permissions.run_state_not_found",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return
+
+    group_id = state.metadata.get("group_id") if state.metadata else None
     post_missing_permissions_comment(
         organization=organization,
         run_id=run_id,
@@ -304,6 +314,7 @@ def comment_on_missing_permissions(
         pr_number=pr_number,
         pr_id=pr_id,
         integration_id=integration_id,
+        log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
     )
 
 

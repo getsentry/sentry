@@ -172,6 +172,7 @@ class PostMissingPermissionsCommentTest(TestCase):
             pr_number=7,
             pr_id=4242,
             integration_id=INTEGRATION_ID,
+            log_ctx=_log_ctx(_state(getsentry__sentry=7)),
         )
 
     def test_comments_and_marks(self, mock_get_perms) -> None:
@@ -343,6 +344,7 @@ class CommentedMetricTagTest(TestCase):
             pr_number=7,
             pr_id=4242,
             integration_id=INTEGRATION_ID,
+            log_ctx=_log_ctx(_state(getsentry__sentry=7)),
         )
 
         commented = [c for c in mock_incr.call_args_list if c[0][0].endswith(".commented")]
