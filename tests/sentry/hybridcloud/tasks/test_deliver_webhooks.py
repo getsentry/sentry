@@ -1,7 +1,7 @@
 import time
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -2198,11 +2198,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
         # A zero offset makes a freshly computed horizon expire immediately, so a
         # delivery here can only come from the claim's own deadline. A drain that
         # waited in the queue must run on the claim's remainder, not a new horizon.
-        with patch.object(
-            deliver_webhooks,
-            "BATCH_SCHEDULE_OFFSET",
-            new_callable=PropertyMock(return_value=timedelta(minutes=0)),
-        ):
+        with patch.object(deliver_webhooks, "BATCH_SCHEDULE_OFFSET", timedelta(minutes=0)):
             drain_mailbox(
                 records[0].id,
                 claimed_count=1,
