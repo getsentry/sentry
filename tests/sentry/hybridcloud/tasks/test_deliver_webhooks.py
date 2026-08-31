@@ -2372,6 +2372,57 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
 
 
 @control_silo_test
+class LostHeadTest(MetricCallsMixin, TestCase):
+    """
+    A drain whose head row is gone was overtaken: whoever claimed the mailbox next
+    has been delivering it, so anything still there belongs to that drain.
+    """
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_drain_delivers_nothing_when_its_head_is_gone(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
+        )
+        records = create_payloads(3, "github:123", provider="github")
+        head_id = records[0].id
+        records[0].delete()
+
+        drain_mailbox(head_id, claimed_count=3, mailbox="github:123")
+
+        assert len(responses.calls) == 0
+        assert WebhookPayload.objects.count() == 2
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
+            {**UNATTRIBUTED, "outcome": "race", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_parallel_drain_delivers_nothing_when_its_head_is_gone(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # The stand-down must come before the batch is delivered, not after it:
+        # these rows are the overtaking drain's to deliver, and sending them here
+        # duplicates every one of them.
+        responses.add(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
+        )
+        records = create_payloads(3, "github:123", provider="github")
+        head_id = records[0].id
+        records[0].delete()
+
+        drain_mailbox_parallel(head_id, claimed_count=3, mailbox="github:123")
+
+        assert len(responses.calls) == 0
+        assert WebhookPayload.objects.count() == 2
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
+            {**UNATTRIBUTED, "outcome": "race", "provider": "github"}
+        ]
+
+
+@control_silo_test
 class StaleClaimTest(MetricCallsMixin, TestCase):
     """
     A drain that waited past its claim's deadline must stand down: its rows have
