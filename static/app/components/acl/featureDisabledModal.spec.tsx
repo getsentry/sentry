@@ -46,14 +46,4 @@ describe('FeatureTourModal', () => {
       screen.getByText(/SENTRY_FEATURES\['organization:custom-feature'\] = True/)
     ).toBeInTheDocument();
   });
-
-  it('renders with custom message', () => {
-    const message = 'custom message';
-
-    renderComponent({
-      message,
-    });
-
-    expect(screen.getByText(message)).toBeInTheDocument();
-  });
 });

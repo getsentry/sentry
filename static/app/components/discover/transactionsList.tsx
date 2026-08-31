@@ -43,6 +43,7 @@ import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/t
 import {TransactionsTable} from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
+const TRANSACTION_CURSOR_NAME = 'transactionCursor';
 
 /**
  * Normalize an aggregate yAxis so it carries an explicit column argument where
@@ -127,19 +128,11 @@ export type DropdownOption = {
 };
 
 type Props = {
-  /**
-   * The name of the url parameter that contains the cursor info.
-   */
-  cursorName: string;
   eventView: EventView;
   /**
    * The callback for when the dropdown option changes.
    */
   handleDropdownChange: (k: string) => void;
-  /**
-   * The limit to the number of results to fetch.
-   */
-  limit: number;
   location: Location;
   navigate: ReactRouter3Navigate;
   /**
@@ -302,16 +295,11 @@ function TableRender({
 }
 
 class _TransactionsList extends Component<Props> {
-  static defaultProps = {
-    cursorName: 'transactionCursor',
-    limit: DEFAULT_TRANSACTION_LIMIT,
-  };
-
   handleCursor: CursorHandler = (cursor, pathname, query) => {
-    const {cursorName, navigate} = this.props;
+    const {navigate} = this.props;
     navigate({
       pathname,
-      query: {...query, [cursorName]: cursor},
+      query: {...query, [TRANSACTION_CURSOR_NAME]: cursor},
     });
   };
 
@@ -424,8 +412,6 @@ class _TransactionsList extends Component<Props> {
       location,
       organization,
       handleCellAction,
-      cursorName,
-      limit,
       titles,
       generateLink,
       forceLoading,
@@ -435,7 +421,7 @@ class _TransactionsList extends Component<Props> {
 
     const eventView = this.getEventView();
     const columnOrder = eventView.getColumns();
-    const cursor = decodeScalar(location.query?.[cursorName]);
+    const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
     const tableCommonProps: Omit<
       TableRenderProps,
       'isLoading' | 'pageLinks' | 'tableData' | 'header'
@@ -470,7 +456,7 @@ class _TransactionsList extends Component<Props> {
         location={location}
         eventView={eventView}
         orgSlug={organization.slug}
-        limit={limit}
+        limit={DEFAULT_TRANSACTION_LIMIT}
         cursor={cursor}
         referrer="api.discover.transactions-list"
       >
@@ -488,15 +474,8 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-      domainViewFilters,
-    } = this.props;
+    const {trendView, location, selected, organization, generateLink, domainViewFilters} =
+      this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -506,7 +485,7 @@ class _TransactionsList extends Component<Props> {
       selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }
-    const cursor = decodeScalar(location.query?.[cursorName]);
+    const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
 
     return (
       <TrendsEventsDiscoverQuery
@@ -555,12 +534,7 @@ class _TransactionsList extends Component<Props> {
   }
 }
 
-export function TransactionsList(
-  props: Omit<Props, 'cursorName' | 'limit' | 'navigate'> & {
-    cursorName?: Props['cursorName'];
-    limit?: Props['limit'];
-  }
-) {
+export function TransactionsList(props: Omit<Props, 'navigate'>) {
   const navigate = useNavigate();
   return <_TransactionsList {...props} navigate={navigate} />;
 }
