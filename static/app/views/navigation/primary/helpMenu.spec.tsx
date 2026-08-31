@@ -52,7 +52,7 @@ describe('PrimaryNavigationHelpMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Help'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Disable new login'}));
 
-    expect(Cookies.get('sentry_react_auth')).toBeUndefined();
+    expect(Cookies.get('sentry_react_auth')).toBe('0');
   });
 
   it('hides the new login toggle when the feature is disabled', async () => {
