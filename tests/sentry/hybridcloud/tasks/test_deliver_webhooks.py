@@ -1924,9 +1924,9 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
         assert len(delivery_time_tags) == 1
         tags = delivery_time_tags[0]
         assert tags.get("region_sent_to") == "us"
-        # Rows predating the provider column still drain through here.
-        assert tags.get("provider") == "unknown"
-        assert tags.get("event_type") == "none"
+        assert tags.get("provider") == "github"
+        # An event-typed provider whose mailbox carries no event suffix.
+        assert tags.get("event_type") == "unknown"
         # A drain with no dispatcher still emits the attribution key; a tag
         # missing from some series breaks grouping rather than showing a gap.
         assert tags.get("dispatcher") == "unknown"
@@ -2224,8 +2224,9 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_provider_falls_back_to_unknown(self, mock_metrics: MagicMock) -> None:
-        # Rows predating the provider column still drain through here.
+    def test_provider_comes_from_the_mailbox_not_the_row(self, mock_metrics: MagicMock) -> None:
+        # The mailbox is what the dispatcher decided by, so it is what the outcome
+        # is tagged with — a row disagreeing with its own mailbox cannot split it.
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -2234,6 +2235,22 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         )
         webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         webhook.update(provider=None)
+
+        drain_mailbox(webhook.id, claimed_count=MAX_MAILBOX_DRAIN)
+
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
+            {**UNATTRIBUTED, "outcome": "ok", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_provider_falls_back_to_unknown(self, mock_metrics: MagicMock) -> None:
+        # A mailbox name with no provider segment has nothing to name it with.
+        responses.add(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
+        )
+        webhook = self.create_webhook_payload(mailbox_name="legacy", cell_name="us")
 
         drain_mailbox(webhook.id, claimed_count=MAX_MAILBOX_DRAIN)
 
@@ -2253,38 +2270,6 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
 
         assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.push_trigger.success") == [
             {"provider": "github", "drain": "sequential"}
-        ]
-
-    @responses.activate
-    @override_cells(cell_config)
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_retry_tagged_from_failing_record_not_mailbox_head(
-        self, mock_metrics: MagicMock
-    ) -> None:
-        # The sequential drain loops over records but holds a separate reference to
-        # the mailbox head, so `retry` must read the record that actually failed.
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            status=200,
-            body="",
-        )
-        responses.add(
-            responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
-            body=ReadTimeout(),
-        )
-        head = self.create_webhook_payload(
-            mailbox_name="github:123", cell_name="us", provider="github"
-        )
-        legacy = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-        legacy.update(provider=None)
-
-        drain_mailbox(head.id, claimed_count=MAX_MAILBOX_DRAIN)
-
-        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "ok", "provider": "github"},
-            {**UNATTRIBUTED, "outcome": "retry", "provider": "unknown"},
         ]
 
 
@@ -2364,7 +2349,7 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
         # to be missed when attribution is added; assert it alongside the delivery.
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
             {"dispatcher": "scheduler", "outcome": "ok", "provider": "github"},
-            {"dispatcher": "scheduler", "outcome": "claim_exhausted"},
+            {"dispatcher": "scheduler", "outcome": "claim_exhausted", "provider": "github"},
         ]
 
     @responses.activate
