@@ -14,7 +14,6 @@ we include the run_id in every log line to trace through all logs for that run
     ctx.info("autofix.pr_iteration.check_suite.run_resolved", head_sha=head_sha)
 
 Nothing here reads the database, so a context is free on any hot path.
-We aim to acuc
 Per-line data is passed to the emit methods as free-form keywords and is not part of the schema
 Log names are passed full and literal so production names grep directly here.
 """

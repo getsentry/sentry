@@ -32,7 +32,12 @@ from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
-from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER, REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import (
+    ITERATION_FLAG,
+    MANUAL_FLAG,
+    PR_ITERATION_PROVIDER,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -487,8 +492,8 @@ def pr_iteration_enabled(organization: Organization) -> bool:
     """Whether any PR-iteration behaviour is enabled for this org."""
     return (
         features.has(REVIEW_REQUEST_FLAG, organization)
-        or features.has("organizations:autofix-pr-iteration", organization)
-        or features.has("organizations:autofix-pr-iteration-manual", organization)
+        or features.has(ITERATION_FLAG, organization)
+        or features.has(MANUAL_FLAG, organization)
     )
 
 
