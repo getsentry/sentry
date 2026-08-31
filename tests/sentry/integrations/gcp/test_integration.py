@@ -604,6 +604,29 @@ class GcpIntegrationTest(TestCase):
         ]
         assert config["connection_status"] == GCP_STATUS_UNVERIFIED
 
+    def test_update_config_reordering_projects_is_not_a_change(self) -> None:
+        installation = self._create_installed_integration(
+            projects=["project-prod", "project-staging"]
+        )
+
+        installation.update_organization_config({"projects": "project-staging, project-prod"})
+
+        config = self._stored_config()
+        assert config["projects"] == ["project-prod", "project-staging"]
+        assert config["connection_status"] == "connected"
+        assert config["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+
+    def test_update_config_changing_the_project_set_marks_unverified(self) -> None:
+        installation = self._create_installed_integration(
+            projects=["project-prod", "project-staging"]
+        )
+
+        installation.update_organization_config({"projects": "project-staging, project-new"})
+
+        config = self._stored_config()
+        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
+        assert config["last_verified_at"] is None
+
     def test_update_config_rejects_invalid_project_id(self) -> None:
         installation = self._create_installed_integration()
 

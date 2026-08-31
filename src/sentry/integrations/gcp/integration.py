@@ -280,7 +280,7 @@ class GcpIntegration(IntegrationInstallation):
 
         if "projects" in data:
             projects = parse_gcp_project_ids(data["projects"])
-            if projects != config.get("projects"):
+            if set(projects) != set(config.get("projects", [])):
                 new_config["projects"] = projects
                 changed = True
 

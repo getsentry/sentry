@@ -289,6 +289,52 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
         assert config["sentry_sa_email"] == _SENTRY_SA
 
     @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
+    @patch(
+        _PATCH_VERIFY,
+        return_value={
+            "connection_status": "connected",
+            "projects": [
+                {
+                    "gcp_project_id": "proj-a",
+                    "connection_status": "connected",
+                    "services": [
+                        {"service": "logging", "status": "connected", "error_detail": None},
+                        {"service": "monitoring", "status": "connected", "error_detail": None},
+                        {"service": "cloudtrace", "status": "connected", "error_detail": None},
+                    ],
+                    "error_detail": None,
+                }
+            ],
+            "error_detail": None,
+        },
+    )
+    def test_records_a_connected_result(
+        self, mock_verify: MagicMock, mock_sa_email: MagicMock
+    ) -> None:
+        self._install()
+
+        with self.feature("organizations:seer-infra-telemetry"):
+            response = self.get_success_response(
+                self.organization.slug,
+                customer_sa_email=_CUSTOMER_SA,
+                gcp_project_ids=["proj-a"],
+            )
+
+        assert response.data["connectionStatus"] == "connected"
+        assert response.data["projects"][0]["errorDetail"] is None
+
+        config = self._config()
+        assert config["connection_status"] == "connected"
+        assert config["project_statuses"] == [
+            {
+                "gcp_project_id": "proj-a",
+                "connection_status": "connected",
+                "error_detail": None,
+            }
+        ]
+        assert config["last_verified_at"] is not None
+
+    @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
     @patch(_PATCH_VERIFY, return_value=_denied_result())
     def test_skips_recording_when_the_sa_email_is_stale(
         self, mock_verify: MagicMock, mock_sa_email: MagicMock
