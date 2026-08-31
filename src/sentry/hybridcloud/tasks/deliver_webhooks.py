@@ -412,18 +412,13 @@ def _begin_drain(
             .values_list("mailbox_name", "schedule_for")
             .first()
         )
-        if head is not None:
-            mailbox = mailbox if mailbox is not None else head[0]
-            deadline = deadline if deadline is not None else head[1]
+        if head is None:
+            # Head already delivered or discarded; whoever claimed the mailbox
+            # next is delivering the rest.
+            return None
+        mailbox = mailbox if mailbox is not None else head[0]
+        deadline = deadline if deadline is not None else head[1]
     _set_webhook_delivery_sentry_context(mailbox, _provider_from_mailbox(mailbox))
-    if mailbox is None or deadline is None:
-        _record_lost_head(
-            payload_id,
-            dispatcher=dispatcher,
-            provider=_provider_from_mailbox(mailbox),
-            log_key="deliver_webhook.potential_race",
-        )
-        return None
     claim = _MailboxClaim(
         claimed=claimed_count,
         head_id=payload_id,
@@ -484,12 +479,7 @@ def _claim_mailbox_batch(
 
 
 class DispatchOutcome(enum.StrEnum):
-    """
-    What `_claim_and_dispatch` did for a mailbox; doubles as a metric tag.
-
-    SEQUENTIAL and PARALLEL name the delivery mode the claim's drain will use
-    (`_MailboxClaim.threaded`) — one task runs both.
-    """
+    """What `_claim_and_dispatch` did for a mailbox; doubles as a metric tag."""
 
     NOT_DUE = "not_due"
     SEQUENTIAL = "sequential"
