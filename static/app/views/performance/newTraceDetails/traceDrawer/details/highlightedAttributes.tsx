@@ -145,13 +145,9 @@ function getAISpanAttributes({
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens =
-    attributes['gen_ai.usage.cache_read.input_tokens'] ??
-    attributes['gen_ai.usage.input_tokens.cached'];
+  const cachedTokens = attributes['gen_ai.usage.cache_read.input_tokens'];
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
-  const reasoningTokens =
-    attributes['gen_ai.usage.reasoning.output_tokens'] ??
-    attributes['gen_ai.usage.output_tokens.reasoning'];
+  const reasoningTokens = attributes['gen_ai.usage.reasoning.output_tokens'];
   const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) !== 0) {
@@ -257,7 +253,7 @@ function getAISpanAttributes({
 function getMCPAttributes(attributes: Record<string, string | number | boolean>) {
   const highlightedAttributes = [];
 
-  const toolName = attributes['mcp.tool.name'];
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
@@ -273,7 +269,7 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     });
   }
 
-  const promptName = attributes['mcp.prompt.name'];
+  const promptName = attributes['gen_ai.prompt.name'];
   if (promptName) {
     highlightedAttributes.push({
       name: t('Prompt Name'),
@@ -281,7 +277,7 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     });
   }
 
-  const transport = attributes['mcp.transport'];
+  const transport = attributes['network.transport'];
   if (transport) {
     highlightedAttributes.push({
       name: t('Transport'),
