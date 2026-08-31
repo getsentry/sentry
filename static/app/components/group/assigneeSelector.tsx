@@ -11,28 +11,17 @@ import {
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {
-  useAssignIssueMutation,
-  type AssignedBy,
-} from 'sentry/views/issueDetails/useAssignIssueMutation';
-
-type HandleAssignOptions = {
-  assignedBy?: AssignedBy;
-};
+import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: AssigneeGroup;
-  handleAssigneeChange: (
-    assignedActor: AssignableEntity | null,
-    options?: HandleAssignOptions
-  ) => void;
+  handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
   additionalMenuFooterItems?: React.ReactNode;
   assignmentDetails?: AssignmentDetails;
   memberList?: User[];
@@ -41,51 +30,28 @@ interface AssigneeSelectorProps {
   useOwnerAssignmentDetails?: boolean;
 }
 
-type OnAssignCallback = (
-  type: Actor['type'],
-  assignee: User | Actor,
-  suggestedAssignee?: SuggestedAssignee
-) => void;
-
 export function useHandleAssigneeChange({
   organization,
   group,
-  onAssign,
   onSuccess,
-  onError,
 }: {
   group: AssigneeGroup;
   organization: Organization;
-  onAssign?: OnAssignCallback;
-  onError?: (error: Error) => void;
   onSuccess?: (assignedTo: Group['assignedTo']) => void;
 }) {
   const {mutate: assignMutate, isPending: assigneeLoading} = useAssignIssueMutation();
 
-  const handleAssigneeChange = (
-    newAssignee: AssignableEntity | null,
-    {assignedBy = 'assignee_selector'}: HandleAssignOptions = {}
-  ) => {
+  const handleAssigneeChange = (newAssignee: AssignableEntity | null) => {
     assignMutate(
       {
         groupId: group.id,
         orgSlug: organization.slug,
         actor: newAssignee ? {id: newAssignee.id, type: newAssignee.type} : null,
-        assignedBy,
+        assignedBy: 'assignee_selector',
       },
       {
         onSuccess: updatedGroup => {
-          if (onAssign && newAssignee) {
-            onAssign(
-              newAssignee.type,
-              newAssignee.assignee,
-              newAssignee.suggestedAssignee
-            );
-          }
           onSuccess?.(updatedGroup.assignedTo);
-        },
-        onError: error => {
-          onError?.(error);
         },
       }
     );
