@@ -57,6 +57,7 @@ const TagPill = styled('div')<{
 }>`
   ${p => ({...makeTagPillTheme(p.variant, p.theme)})};
 
+  max-width: 100%;
   height: 20px;
   font-size: ${p => p.theme.font.size.sm};
   display: inline-flex;
