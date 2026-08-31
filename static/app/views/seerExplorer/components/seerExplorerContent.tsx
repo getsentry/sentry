@@ -4,6 +4,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {ComposerValue} from '@sentry/scraps/composer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
@@ -60,7 +61,9 @@ import {
   useSeerExplorerResumeDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
-export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
+// Bumped when the persisted shape changed from a plain string to
+// ComposerValue, so stale drafts from the old format are never read back.
+export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft-v2';
 
 /**
  * Wraps the shared header content with the surface's chrome. The drawer passes
@@ -179,7 +182,7 @@ export function SeerExplorerContent({
     false
   );
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
@@ -217,10 +220,16 @@ export function SeerExplorerContent({
     value: inputValue,
     setValue: setInputValue,
     reset: clearInput,
-  } = useDeferredSessionStorage(
+  } = useDeferredSessionStorage<ComposerValue>(
     runId === null ? null : `${INPUT_STORAGE_KEY_PREFIX}:${runId}`,
-    ''
+    {text: '', mentions: []}
   );
+
+  // Suggestion popups (mention autocomplete) take priority over Enter-to-send.
+  const isMentionMenuOpenRef = useRef(false);
+  const handleMentionMenuOpenChange = useCallback((isOpen: boolean) => {
+    isMentionMenuOpenRef.current = isOpen;
+  }, []);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -420,7 +429,7 @@ export function SeerExplorerContent({
   // Menu component
   const {menu, closeMenu, openPRWidget} = useExplorerMenu({
     clearInput,
-    inputValue,
+    inputValue: inputValue.text,
     focusInput,
     composerRef: textareaRef,
     panelSize: 'max',
@@ -446,18 +455,22 @@ export function SeerExplorerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
-  const canSendMessage = !readOnly && !isPolling && !!inputValue.trim();
+  const canSendMessage = !readOnly && !isPolling && !!inputValue.text.trim();
   const handleSend = useCallback(() => {
     if (!canSendMessage) {
       return;
     }
-    sendMessage(inputValue.trim(), blocks.length);
+    sendMessage(inputValue.text.trim(), blocks.length);
     clearInput();
     userScrolledUpRef.current = false;
   }, [canSendMessage, inputValue, sendMessage, blocks.length, clearInput]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.nativeEvent.isComposing) {
+      return;
+    }
+    // Defer to mention-suggestion selection while the popup is open.
+    if (isMentionMenuOpenRef.current) {
       return;
     }
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -469,8 +482,8 @@ export function SeerExplorerContent({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
+  const handleInputChange = (value: ComposerValue) => {
+    setInputValue(value);
     textareaRef.current?.focus();
   };
 
@@ -737,6 +750,7 @@ export function SeerExplorerContent({
           onInterrupt={interruptRun}
           onKeyDown={handleInputKeyDown}
           onSend={handleSend}
+          onSuggestionsOpenChange={handleMentionMenuOpenChange}
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
