@@ -102,12 +102,7 @@ export function transferProject(
 /**
  *  Adds a team to a project
  */
-export function addTeamToProject(
-  api: Client,
-  orgSlug: string,
-  projectSlug: string,
-  team: Team
-) {
+function addTeamToProject(api: Client, orgSlug: string, projectSlug: string, team: Team) {
   const endpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
     {

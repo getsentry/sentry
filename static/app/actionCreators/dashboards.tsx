@@ -28,7 +28,7 @@ import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 export function fetchDashboards(
   api: Client,
   orgSlug: string,
-  query?: {filter?: DashboardFilter; sort?: string}
+  query?: {filter?: DashboardFilter}
 ) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
