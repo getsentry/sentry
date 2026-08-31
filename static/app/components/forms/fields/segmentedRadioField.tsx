@@ -139,7 +139,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
     border-top-color: transparent;
   }
 
-   @container (min-width: ${p => p.theme.container['3xs']}) {
+  @container (min-width: ${p => p.theme.container['3xs']}) {
     &:nth-child(n + 2) {
       border-top-color: ${p => p.theme.colors.gray200};
       border-left-color: transparent;
