@@ -7,13 +7,14 @@ import {
   useRef,
   useState,
 } from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
@@ -36,6 +37,7 @@ import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useMedia} from 'sentry/utils/useMedia';
 import type {
   ScmInstallation,
   ScmRepoMatches,
@@ -409,8 +411,9 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
-  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, xl: true});
-  const manageRepositoriesLabel = t('Manage repositories');
+
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   return (
     <Fragment>
@@ -424,9 +427,8 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
           variant="link"
           size="xs"
           icon={<IconOpen />}
-          aria-label={manageRepositoriesLabel}
         >
-          {showManageRepositoriesLabel ? manageRepositoriesLabel : undefined}
+          {isSmallScreen ? undefined : t('Manage repositories')}
         </LinkButton>
       )}
       {(onUninstall || onSettings || !!overflowMenuItems?.length) && (

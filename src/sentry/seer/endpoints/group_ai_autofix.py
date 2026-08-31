@@ -64,6 +64,7 @@ from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -80,7 +81,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
-from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
@@ -401,7 +402,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     },
                 )
 
+                # Shared by both calls, so one arrival of feedback logs its queue
+                # and trigger decisions under one identity.
+                log_ctx = PrIterationLogContext.for_run(
+                    logger, run_state, group.organization.id, group.id
+                )
+
                 try_enqueue_autofix_feedback(
+                    log_ctx=log_ctx,
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,
                     group_id=group.id,
@@ -411,11 +419,12 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     actor_user_id=request.user.id,
                 )
 
-                consume_queued_autofix_feedback.apply_async(
-                    kwargs={
-                        "run_id": resolved_run_id,
-                        "organization_id": group.organization.id,
-                    }
+                trigger_consume_pr_iteration_feedback(
+                    log_ctx=log_ctx,
+                    run_id=resolved_run_id,
+                    organization_id=group.organization.id,
+                    feedback=feedback,
+                    run_state=run_state,
                 )
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
