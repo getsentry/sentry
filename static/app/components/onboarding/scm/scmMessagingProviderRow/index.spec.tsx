@@ -24,10 +24,25 @@ import {ScmMessagingProviderRow} from '.';
 const organization = OrganizationFixture();
 
 const slackProvider = GitHubIntegrationProviderFixture({key: 'slack', name: 'Slack'});
-const msteamsProvider = GitHubIntegrationProviderFixture({
+const msteamsBase = GitHubIntegrationProviderFixture({
   key: 'msteams',
   name: 'Microsoft Teams',
+  canAdd: false,
 });
+const msteamsProvider = {
+  ...msteamsBase,
+  metadata: {
+    ...msteamsBase.metadata,
+    aspects: {
+      ...msteamsBase.metadata.aspects,
+      externalInstall: {
+        url: 'https://teams.microsoft.com/l/app/test-app-id',
+        buttonText: 'Teams Marketplace',
+        noticeText: 'Visit the Teams Marketplace to install this integration.',
+      },
+    },
+  },
+};
 
 const slackIntegration = OrganizationIntegrationsFixture({
   id: 'slack-1',
@@ -216,11 +231,16 @@ describe('ScmMessagingProviderRow', () => {
       renderGlobalModal({organization});
       renderRow(installableMsteams);
 
-      await userEvent.click(screen.getByRole('button', {name: /Connect/}));
+      const connect = screen.getByRole('button', {name: /Connect/});
+      expect(connect).toBeEnabled();
+
+      await userEvent.click(connect);
 
       expect(
         await screen.findByText('Installing Microsoft Teams Integration')
       ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Teams Marketplace'})).toBeInTheDocument();
+      expect(pipelineModal.openPipelineModal).not.toHaveBeenCalled();
     });
   });
 
