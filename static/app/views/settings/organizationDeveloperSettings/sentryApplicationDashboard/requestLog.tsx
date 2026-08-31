@@ -38,8 +38,6 @@ import {WebhookSubject} from './webhookSubjects';
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
 const EMPTY_VALUE = '—';
-const is24Hours = shouldUse24Hours();
-const TIME_FORMAT = is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
 
 const NO_RESPONSE_STATUS_LABELS: Record<number, string> = {
   0: t('timeout'),
@@ -143,9 +141,15 @@ interface RequestLogDetailsProps {
   isInternal: boolean;
   organization: Organization;
   request: SentryAppWebhookRequest;
+  timeFormat: string;
 }
 
-function RequestLogDetails({request, isInternal, organization}: RequestLogDetailsProps) {
+function RequestLogDetails({
+  request,
+  isInternal,
+  organization,
+  timeFormat,
+}: RequestLogDetailsProps) {
   return (
     <Stack gap="xl" padding="md 0">
       <Grid columns="max-content minmax(0, 1fr)" gap="md xl" align="start">
@@ -157,7 +161,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         </DetailField>
         <DetailField label={t('Time')}>
           <Text>
-            <DateTime date={request.date} format={TIME_FORMAT} />
+            <DateTime date={request.date} format={timeFormat} />
           </Text>
         </DetailField>
         <DetailField label={t('Status Code')}>
@@ -230,6 +234,7 @@ interface RequestLogProps {
 
 export function RequestLog({app}: RequestLogProps) {
   const organization = useOrganization();
+  const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
@@ -366,7 +371,7 @@ export function RequestLog({app}: RequestLogProps) {
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell>
                       <Text>
-                        <DateTime date={request.date} format={TIME_FORMAT} />
+                        <DateTime date={request.date} format={timeFormat} />
                       </Text>
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell>
@@ -406,6 +411,7 @@ export function RequestLog({app}: RequestLogProps) {
                         request={request}
                         isInternal={isInternal}
                         organization={organization}
+                        timeFormat={timeFormat}
                       />
                     </SimpleTable.FullWidthRow>
                   )}
