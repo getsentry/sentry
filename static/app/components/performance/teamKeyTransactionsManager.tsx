@@ -214,14 +214,6 @@ export function Provider({
 
 export const Consumer = TeamKeyTransactionsManagerContext.Consumer;
 
-/**
- * Reads the key transaction state supplied by the nearest {@link Provider}.
- * Equivalent to {@link Consumer} for callers that build values rather than
- * render children — e.g. assembling menu items.
- *
- * Outside a Provider this returns the empty default (no teams, nothing keyed),
- * so callers should gate on `teams` rather than assume data is on its way.
- */
 export function useTeamKeyTransactions() {
   return use(TeamKeyTransactionsManagerContext);
 }

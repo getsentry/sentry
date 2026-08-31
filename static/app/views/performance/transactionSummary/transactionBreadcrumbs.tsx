@@ -36,7 +36,17 @@ interface TransactionBreadcrumbsProps {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 }
 
+interface ContentProps extends TransactionBreadcrumbsProps {
+  /**
+   * Whether `useTeams` has finished loading the viewer's teams. TeamStore is
+   * global and often already holds teams loaded elsewhere, so a non-empty list
+   * is not on its own a complete one.
+   */
+  areTeamsLoaded: boolean;
+}
+
 interface StarForTeamItemProps {
+  areTeamsLoaded: boolean;
   eventView: EventView;
   organization: Organization;
   projects: Project[];
@@ -47,10 +57,11 @@ interface StarForTeamItemProps {
  * The "Star for Team" entry of the page-title menu: a submenu of the viewer's
  * teams on this project, each toggling whether the transaction is keyed for
  * them. Renders disabled — without a submenu — whenever there is nothing to
- * toggle, which covers a still-loading manager, a failed fetch, a
- * multi-project view, and a project the viewer shares no team with.
+ * toggle, which covers teams or key transactions still loading, a failed
+ * fetch, a multi-project view, and a project the viewer shares no team with.
  */
 function useStarForTeamItem({
+  areTeamsLoaded,
   eventView,
   organization,
   projects,
@@ -79,7 +90,7 @@ function useStarForTeamItem({
     ),
   } satisfies MenuItemProps;
 
-  if (!isSingleProject || !project || isLoading || error) {
+  if (!areTeamsLoaded || !isSingleProject || !project || isLoading || error) {
     return {...item, disabled: true};
   }
 
@@ -137,6 +148,7 @@ function useStarForTeamItem({
 }
 
 function TransactionBreadcrumbsContent({
+  areTeamsLoaded,
   eventView,
   location,
   organization,
@@ -144,8 +156,9 @@ function TransactionBreadcrumbsContent({
   projects,
   transactionName,
   onChangeThreshold,
-}: TransactionBreadcrumbsProps) {
+}: ContentProps) {
   const starForTeamItem = useStarForTeamItem({
+    areTeamsLoaded,
     eventView,
     organization,
     projects,
@@ -214,14 +227,14 @@ function TransactionBreadcrumbsContent({
  */
 export function TransactionBreadcrumbs(props: TransactionBreadcrumbsProps) {
   const {eventView, organization, projects} = props;
-  const {teams} = useTeams({provideUserTeams: true});
+  const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const keyTransactionProject = useEventViewProject(projects, eventView);
 
   // Nothing to key against, so skip the provider and its fetch entirely.
   // Outside it the manager context resolves to its empty default, which is
   // exactly the disabled star state this case should render.
   if (eventView.project.length !== 1 || !keyTransactionProject) {
-    return <TransactionBreadcrumbsContent {...props} />;
+    return <TransactionBreadcrumbsContent {...props} areTeamsLoaded={initiallyLoaded} />;
   }
 
   return (
@@ -231,7 +244,7 @@ export function TransactionBreadcrumbs(props: TransactionBreadcrumbsProps) {
       selectedTeams={['myteams']}
       selectedProjects={[keyTransactionProject.id]}
     >
-      <TransactionBreadcrumbsContent {...props} />
+      <TransactionBreadcrumbsContent {...props} areTeamsLoaded={initiallyLoaded} />
     </TeamKeyTransactionProvider>
   );
 }

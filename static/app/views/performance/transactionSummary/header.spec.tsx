@@ -139,6 +139,29 @@ describe('Performance > Transaction Summary Header', () => {
     ).toBeInTheDocument();
   });
 
+  it('disables the star action until the viewer teams have finished loading', async () => {
+    const data = initializeData();
+    // TeamStore is global and already holds teams here, but `hasMore` leaves
+    // `loadedUserTeams` false — so the list is not yet known to be complete.
+    // Holding the response open pins that state.
+    act(() => TeamStore.loadInitialData(data.teams, true, null));
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/user-teams/',
+      body: data.teams,
+      asyncDelay: new Promise<void>(() => {}),
+    });
+
+    renderHeader(data);
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Transaction Actions'})
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Star for Team'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('lists the project teams in the star submenu', async () => {
     const data = initializeData();
     renderHeader(data);
