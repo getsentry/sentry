@@ -156,7 +156,7 @@ export function Table({
     const hidden: string[] = [];
 
     for (const column of columns) {
-      if (column.visible !== undefined && !resolveResponsiveProp(column.visible)) {
+      if (!resolveResponsiveProp(column.visible ?? true)) {
         hidden.push(column.key);
         continue;
       }
@@ -164,8 +164,7 @@ export function Table({
       visible.push({
         key: column.key,
         resizable: column.resizable,
-        width:
-          column.width === undefined ? undefined : resolveResponsiveProp(column.width),
+        width: resolveResponsiveProp(column.width),
       });
     }
 

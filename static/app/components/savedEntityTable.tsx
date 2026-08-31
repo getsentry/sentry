@@ -24,13 +24,13 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 type SavedEntityTableProps = {
   children: ReactNode;
-  columns: TableColumnConfig[];
   emptyMessage: ReactNode;
   header: ReactNode;
   isEmpty: boolean;
   isError: boolean;
   isLoading: boolean;
   className?: string;
+  columns?: TableColumnConfig[];
   'data-test-id'?: string;
   pageSize?: number;
 };

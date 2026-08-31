@@ -8,9 +8,7 @@ const Z_INDEX_RESIZER = 1;
 
 const Z_INDEX_STICKY_HEAD = 2;
 
-export const TableGrid = styled('table', {
-  shouldForwardProp: prop => prop !== 'hiddenColumnKeys' && isPropValid(prop),
-})<{hiddenColumnKeys?: string[]}>`
+export const TableGrid = styled('table')<{hiddenColumnKeys?: string[]}>`
   position: inherit;
   display: grid;
 
@@ -18,19 +16,21 @@ export const TableGrid = styled('table', {
   border-collapse: collapse;
   margin: 0;
 
-  /* Doubled up to outrank the display value cell primitives set on themselves
-     with a single class. */
   ${p =>
-    p.hiddenColumnKeys?.length
-      ? css`
-          && {
-            ${p.hiddenColumnKeys.map(key => `[data-column-name='${key}']`).join(',\n')} {
-              display: none;
-            }
-          }
-        `
-      : undefined}
+    p.hiddenColumnKeys?.map(
+      key => css`
+        [data-column-name='${escapeSelectorValue(key)}'] {
+          display: none;
+        }
+      `
+    )}
 `;
+
+// A column key reaches the stylesheet inside a quoted attribute selector, where
+// an unescaped quote or backslash would break every rule after it.
+function escapeSelectorValue(value: string) {
+  return value.replace(/['\\]/g, '\\$&');
+}
 
 const subgrid = css`
   display: grid;

@@ -205,12 +205,16 @@ function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
 // eslint-disable-next-line @sentry/no-default-exports
 export default UsageTableWithHooks;
 
+const STAT_COLUMN_WIDTH = {zero: 'auto', xl: 'minmax(0, auto)'};
+
 const USAGE_COLUMNS: TableColumnConfig[] = [
   {key: 'project', width: {zero: 'auto', xl: '1fr'}},
-  ...['total', 'accepted', 'filtered', 'rateLimited', 'invalid', 'actions'].map(key => ({
-    key,
-    width: {zero: 'auto', xl: 'minmax(0, auto)'},
-  })),
+  {key: 'total', width: STAT_COLUMN_WIDTH},
+  {key: 'accepted', width: STAT_COLUMN_WIDTH},
+  {key: 'filtered', width: STAT_COLUMN_WIDTH},
+  {key: 'rateLimited', width: STAT_COLUMN_WIDTH},
+  {key: 'invalid', width: STAT_COLUMN_WIDTH},
+  {key: 'actions', width: STAT_COLUMN_WIDTH},
 ];
 
 const cellStatStyle = css`
