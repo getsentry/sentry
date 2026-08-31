@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import ANY, MagicMock, PropertyMock, patch
 
@@ -121,7 +121,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         schedule_webhook_delivery()
         assert mock_deliver.delay.call_count == 1
         mock_deliver.delay.assert_called_with(
-            webhook_one.id,
+            payload_id=webhook_one.id,
             claimed_count=2,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -142,7 +142,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         schedule_webhook_delivery()
         assert mock_deliver.delay.call_count == 1
         mock_deliver.delay.assert_called_with(
-            webhook_one.id,
+            payload_id=webhook_one.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -186,7 +186,11 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         schedule_webhook_delivery()
 
         mock_deliver.delay.assert_called_once_with(
-            due.id, claimed_count=1, dispatcher=Dispatcher.SCHEDULER, valid_until=ANY, mailbox=ANY
+            payload_id=due.id,
+            claimed_count=1,
+            dispatcher=Dispatcher.SCHEDULER,
+            valid_until=ANY,
+            mailbox=ANY,
         )
         # The backing-off record keeps its retry schedule.
         backoff_schedule = backoff.schedule_for
@@ -226,7 +230,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         schedule_webhook_delivery()
 
         mock_deliver.delay.assert_called_once_with(
-            due_one.id,
+            payload_id=due_one.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -253,7 +257,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         schedule_webhook_delivery()
 
         mock_deliver.delay.assert_called_once_with(
-            expired_backoff.id,
+            payload_id=expired_backoff.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -288,7 +292,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         schedule_webhook_delivery()
 
         assert mock_deliver.delay.call_count == 2
-        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+        call_args_list = [call.kwargs["payload_id"] for call in mock_deliver.delay.call_args_list]
         assert call_args_list == [stripe_webhook.id, github_webhook.id]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -313,7 +317,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
 
         assert mock_deliver.delay.call_count == 1
         mock_deliver.delay.assert_called_with(
-            webhook_one.id,
+            payload_id=webhook_one.id,
             claimed_count=2,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -415,7 +419,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
 
         assert outcome == "sequential"
         mock_drain.delay.assert_called_once_with(
-            webhook.id,
+            payload_id=webhook.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -462,7 +466,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         # Verify webhooks were processed in priority order (stripe first, then github, then slack)
         assert mock_deliver.delay.call_count == 3
         # Check the order of calls
-        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+        call_args_list = [call.kwargs["payload_id"] for call in mock_deliver.delay.call_args_list]
 
         # Stripe (priority 1) should be first
         assert call_args_list[0] == stripe_webhook.id
@@ -496,7 +500,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         # Verify webhooks were processed in priority order (stripe first, then unknown)
         assert mock_deliver.delay.call_count == 2
         # Check the order of calls
-        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+        call_args_list = [call.kwargs["payload_id"] for call in mock_deliver.delay.call_args_list]
 
         # Stripe (priority 1) should be first
         assert call_args_list[0] == stripe_webhook.id
@@ -535,7 +539,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         # Verify webhooks were processed in priority order (stripe first, then null provider)
         assert mock_deliver.delay.call_count == 2
         # Check the order of calls
-        call_args_list = [call[0][0] for call in mock_deliver.delay.call_args_list]
+        call_args_list = [call.kwargs["payload_id"] for call in mock_deliver.delay.call_args_list]
 
         # Stripe (priority 1) should be first
         assert call_args_list[0] == stripe_webhook.id
@@ -561,7 +565,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
 
         schedule_webhook_delivery()
 
-        dispatched = [call[0][0] for call in mock_drain.delay.call_args_list]
+        dispatched = [call.kwargs["payload_id"] for call in mock_drain.delay.call_args_list]
         assert dispatched == [webhooks[1].id, webhooks[2].id]
 
     @patch.object(deliver_webhooks, "BATCH_SIZE", 2)
@@ -575,7 +579,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
 
         schedule_webhook_delivery()
 
-        dispatched = [call[0][0] for call in mock_drain.delay.call_args_list]
+        dispatched = [call.kwargs["payload_id"] for call in mock_drain.delay.call_args_list]
         assert dispatched == [webhooks[0].id, webhooks[1].id]
         # The surplus head is untouched — still due for the next cycle.
         webhooks[2].refresh_from_db()
@@ -597,7 +601,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     @patch(
         "sentry.hybridcloud.tasks.deliver_webhooks._claim_mailbox_batch",
-        return_value=deliver_webhooks._MailboxClaim(claimed=0, valid_until=timezone.now()),
+        return_value=None,
     )
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_records_claim_lost(
@@ -634,7 +638,7 @@ class CarryoverTestBase(MetricCallsMixin, TestCase):
         return cache.get(deliver_webhooks.CARRYOVER_CACHE_KEY)
 
     def dispatched_ids(self, mock_drain: MagicMock) -> list[int]:
-        return [call[0][0] for call in mock_drain.delay.call_args_list]
+        return [call.kwargs["payload_id"] for call in mock_drain.delay.call_args_list]
 
     def carried(self, webhooks: list[WebhookPayload]) -> list[dict[str, Any]]:
         return [{"id": w.id, "mailbox_name": w.mailbox_name} for w in webhooks]
@@ -2374,9 +2378,9 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
     fallen due for another dispatcher, so delivering them again duplicates.
     """
 
-    def expired(self) -> str:
+    def expired(self) -> float:
         """A claim deadline that has already passed."""
-        return (timezone.now() - timedelta(seconds=1)).isoformat()
+        return (timezone.now() - timedelta(seconds=1)).timestamp()
 
     @responses.activate
     @override_cells(cell_config)
@@ -2439,7 +2443,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
             drain_mailbox(
                 records[0].id,
                 claimed_count=1,
-                valid_until=(timezone.now() + timedelta(minutes=5)).isoformat(),
+                valid_until=(timezone.now() + timedelta(minutes=5)).timestamp(),
             )
 
         assert len(responses.calls) == 1
@@ -2461,7 +2465,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
             drain_mailbox_parallel(
                 records[0].id,
                 claimed_count=1,
-                valid_until=(timezone.now() + timedelta(minutes=5)).isoformat(),
+                valid_until=(timezone.now() + timedelta(minutes=5)).timestamp(),
             )
 
         assert len(responses.calls) == 1
@@ -2495,7 +2499,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
             mailbox_name="github:123", cell_name="us", provider="github"
         )
 
-        valid_until = (timezone.now() + BATCH_SCHEDULE_OFFSET).isoformat()
+        valid_until = (timezone.now() + BATCH_SCHEDULE_OFFSET).timestamp()
         drain_mailbox(webhook.id, claimed_count=1, valid_until=valid_until)
 
         assert len(responses.calls) == 1
@@ -2516,7 +2520,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
             drain_mailbox(
                 webhook.id,
                 claimed_count=1,
-                valid_until=deadline.isoformat(),
+                valid_until=deadline.timestamp(),
                 mailbox="github:123",
             )
 
@@ -2564,15 +2568,35 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_expired_claim_without_a_mailbox_reports_unknown_provider(
+    def test_expired_claim_without_a_mailbox_reads_it_off_the_head(
         self, mock_metrics: MagicMock
     ) -> None:
-        # Drains enqueued before dispatch sent a mailbox: attribution is the only
-        # thing lost, and only until they drain out.
+        # Drains enqueued before dispatch sent a mailbox still name their provider:
+        # the head row carries it, and the drain reads it before anything else.
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123", cell_name="us", provider="github"
+        )
+
+        drain_mailbox(
+            webhook.id, claimed_count=1, dispatcher=Dispatcher.PUSH, valid_until=self.expired()
+        )
+
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
+            {"dispatcher": "push", "outcome": "delivery_deadline", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_expired_claim_with_neither_mailbox_nor_head_reports_a_race(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # Nothing left to name the provider with. Only drains enqueued before
+        # dispatch sent a mailbox can land here, and only until they drain out.
         drain_mailbox(99, claimed_count=1, dispatcher=Dispatcher.PUSH, valid_until=self.expired())
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {"dispatcher": "push", "outcome": "delivery_deadline", "provider": "unknown"}
+            {"dispatcher": "push", "outcome": "race", "provider": "unknown"}
         ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -2583,7 +2607,9 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
 
         schedule_webhook_delivery()
 
-        valid_until = datetime.fromisoformat(mock_drain.delay.call_args.kwargs["valid_until"])
+        valid_until = datetime.fromtimestamp(
+            mock_drain.delay.call_args.kwargs["valid_until"], tz=UTC
+        )
         webhook.refresh_from_db()
         assert webhook.schedule_for == valid_until
 
@@ -2595,7 +2621,11 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         webhook = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         maybe_trigger_drain(webhook.mailbox_name)
         mock_drain.delay.assert_called_once_with(
-            webhook.id, claimed_count=1, dispatcher=Dispatcher.PUSH, valid_until=ANY, mailbox=ANY
+            payload_id=webhook.id,
+            claimed_count=1,
+            dispatcher=Dispatcher.PUSH,
+            valid_until=ANY,
+            mailbox=ANY,
         )
         # The batch is claimed before dispatch; the claim is what keeps other
         # dispatchers off the mailbox while the drain runs.
@@ -2634,7 +2664,7 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         maybe_trigger_drain(newer_webhook.mailbox_name)
         # Must drain from the head of the mailbox so the older payload is not skipped
         mock_drain.delay.assert_called_once_with(
-            older_webhook.id,
+            payload_id=older_webhook.id,
             claimed_count=2,
             dispatcher=Dispatcher.PUSH,
             valid_until=ANY,
@@ -2672,7 +2702,11 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         maybe_trigger_drain("github:123")
 
         mock_drain.delay.assert_called_once_with(
-            due.id, claimed_count=1, dispatcher=Dispatcher.PUSH, valid_until=ANY, mailbox=ANY
+            payload_id=due.id,
+            claimed_count=1,
+            dispatcher=Dispatcher.PUSH,
+            valid_until=ANY,
+            mailbox=ANY,
         )
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
@@ -2740,7 +2774,7 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
 
         # Only mailbox B should have been scheduled
         mock_drain.delay.assert_called_once_with(
-            webhook_b.id,
+            payload_id=webhook_b.id,
             claimed_count=1,
             dispatcher=Dispatcher.SCHEDULER,
             valid_until=ANY,
@@ -2794,7 +2828,7 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         webhook_two = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
         maybe_trigger_drain(webhook_two.mailbox_name)
         mock_drain.delay.assert_called_once_with(
-            webhook_two.id,
+            payload_id=webhook_two.id,
             claimed_count=1,
             dispatcher=Dispatcher.PUSH,
             valid_until=ANY,
@@ -2831,7 +2865,7 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         # A mailbox this deep is behind; the sequential drain would work it off at
         # one in-flight request for its whole run.
         mock_drain_parallel.delay.assert_called_once_with(
-            records[0].id,
+            payload_id=records[0].id,
             claimed_count=PARALLEL_DRAIN_THRESHOLD,
             dispatcher=Dispatcher.PUSH,
             valid_until=ANY,
@@ -2850,7 +2884,7 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
 
         # One record short of the threshold keeps strict ordering.
         mock_drain.delay.assert_called_once_with(
-            records[0].id,
+            payload_id=records[0].id,
             claimed_count=PARALLEL_DRAIN_THRESHOLD - 1,
             dispatcher=Dispatcher.PUSH,
             valid_until=ANY,
