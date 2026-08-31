@@ -406,47 +406,17 @@ def _begin_drain(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None,
-    valid_until: float | None,
-    mailbox: str | None,
+    valid_until: float,
+    mailbox: str,
 ) -> _MailboxClaim | None:
-    """
-    The claim a drain runs under, or None when it must stand down first.
-
-    A drain enqueued before dispatch sent the mailbox and deadline reads both off
-    its head row: its claim already wrote its deadline as the rows' schedule_for.
-    That one-query fallback goes away once no such drains are left in flight.
-    """
-    deadline = (
-        datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC)
-        if valid_until is not None
-        else None
-    )
-    if mailbox is None or deadline is None:
-        head = (
-            WebhookPayload.objects.filter(id=payload_id)
-            .values_list("mailbox_name", "schedule_for")
-            .first()
-        )
-        if head is None:
-            # Whoever claimed the mailbox next is delivering the rest. Every
-            # drain resolves through this read until dispatch sends the claim,
-            # so this is where a lost race shows up.
-            _record_lost_head(
-                payload_id,
-                dispatcher=dispatcher,
-                provider=_provider_from_mailbox(mailbox),
-                log_key="deliver_webhook.potential_race",
-            )
-            return None
-        mailbox = mailbox if mailbox is not None else head[0]
-        deadline = deadline if deadline is not None else head[1]
+    """The claim a drain runs under, or None when it has already lapsed."""
     _set_webhook_delivery_sentry_context(mailbox, _provider_from_mailbox(mailbox))
     claim = _MailboxClaim(
         claimed=claimed_count,
         head_id=payload_id,
         mailbox_name=mailbox,
         dispatcher=dispatcher,
-        valid_until=deadline,
+        valid_until=datetime.datetime.fromtimestamp(valid_until, tz=datetime.UTC),
     )
     if claim.lapsed(log_key="deliver_webhook.stale_claim", extra={"id": payload_id}):
         return None
@@ -938,16 +908,16 @@ def drain_mailbox(
     payload_id: int,
     claimed_count: int,
     dispatcher: str | None = None,
-    valid_until: float | None = None,
-    mailbox: str | None = None,
+    *,
+    valid_until: float,
+    mailbox: str,
     chain_depth: int = 1,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of — in order,
     or in concurrent waves when the claim qualifies (`_MailboxClaim.threaded`).
 
-    The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`);
-    each defaults so a rolling deploy can bind drains the previous version sent.
+    The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`).
     `chain_depth` is which link of a chain this drain is, an ordinary dispatch
     being the first.
     """
@@ -1322,31 +1292,6 @@ def _run_parallel_delivery_batch(
                 ):
                     delivered += 1
     return delivered
-
-
-@instrumented_task(
-    name="sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel",
-    namespace=hybridcloud_control_tasks,
-    # The pre-merge task's deadline, kept for the in-flight drains this shim serves.
-    processing_deadline_duration=int(BATCH_SCHEDULE_OFFSET.total_seconds() + 10),
-    silo_mode=SiloMode.CONTROL,
-)
-def drain_mailbox_parallel(
-    payload_id: int,
-    claimed_count: int,
-    dispatcher: str | None = None,
-    valid_until: float | None = None,
-    mailbox: str | None = None,
-    chain_depth: int = 1,
-) -> None:
-    """
-    Transitional alias from when sequential and parallel delivery were separate
-    tasks; `drain_mailbox` now runs both modes. Dispatch no longer enqueues this,
-    so it is deletable once no drains from the previous deploy are left in flight.
-    """
-    claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
-    if claim is not None:
-        _drain_mailbox(claim)
 
 
 def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
