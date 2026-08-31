@@ -56,7 +56,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
-from sentry.search.eap.rpc_utils import and_trace_item_filters
+from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
@@ -554,11 +554,106 @@ class SearchResolver:
         resolved_contexts = []
 
         for t in terms:
+            # device.class is stored as convention `device.class` (span-streaming) or
+            # legacy `sentry.device.class` (V1 sentry_tags). VirtualColumnContext is
+            # single-source, so filters dual-read both raw keys with remapped values.
+            if t.key.name == "device.class":
+                resolved_term = self._resolve_device_class_term(t)
+                resolved_terms.append(resolved_term)
+                resolved_contexts.append(None)
+                continue
+
             resolved_term, resolved_context = self._resolve_term(t)
             resolved_terms.append(resolved_term)
             resolved_contexts.append(resolved_context)
 
         return resolved_terms, resolved_contexts
+
+    def _resolve_device_class_term(self, term: event_search.SearchFilter) -> TraceItemFilter:
+        """Filter device.class against both convention and legacy storage keys."""
+        context_definition = self.definitions.contexts.get("device.class")
+        if context_definition is None:
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+
+        # high/medium/low → "1"/"2"/"3"; Unknown → ""
+        _, raw_values = self.map_search_term_context_to_original_column(term, context_definition)
+
+        convention_column, _ = self.resolve_column("device.class")
+        legacy_column, _ = self.resolve_column("sentry.device.class")
+        if not isinstance(convention_column.proto_definition, AttributeKey):
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+        if not isinstance(legacy_column.proto_definition, AttributeKey):
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+
+        # Build raw-key filters (no VCC): values are already remapped storage codes.
+        convention_filter = self._device_class_raw_key_filter(
+            term, convention_column, raw_values
+        )
+        legacy_filter = self._device_class_raw_key_filter(term, legacy_column, raw_values)
+        if convention_filter is None:
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+        if legacy_filter is None:
+            return convention_filter
+
+        combined = or_trace_item_filters(convention_filter, legacy_filter)
+        return combined if combined is not None else convention_filter
+
+    def _device_class_raw_key_filter(
+        self,
+        term: event_search.SearchFilter,
+        column: ResolvedAttribute,
+        raw_values: str | int | list[str],
+    ) -> TraceItemFilter | None:
+        """Build a filter on a raw device-class storage key using remapped codes."""
+        if not isinstance(column.proto_definition, AttributeKey):
+            return None
+
+        if term.operator not in constants.OPERATOR_MAP:
+            return None
+        operator = constants.OPERATOR_MAP[term.operator]
+
+        # Unknown / empty maps to "". Match missing attribute OR empty string.
+        if raw_values == "" or raw_values == [] or raw_values == [""]:
+            exists_filter = TraceItemFilter(
+                exists_filter=ExistsFilter(key=column.proto_definition)
+            )
+            empty_filter = TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=column.proto_definition,
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=self._resolve_search_value(column, "=", ""),
+                )
+            )
+            if term.operator == "=":
+                # Unknown: attribute missing OR explicitly empty.
+                not_exists = TraceItemFilter(not_filter=NotFilter(filters=[exists_filter]))
+                combined = or_trace_item_filters(not_exists, empty_filter)
+                return combined if combined is not None else not_exists
+            if term.operator == "!=":
+                # Not unknown: attribute present AND not empty.
+                not_empty = TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=column.proto_definition,
+                        op=ComparisonFilter.OP_NOT_EQUALS,
+                        value=self._resolve_search_value(column, "!=", ""),
+                    )
+                )
+                combined = and_trace_item_filters(exists_filter, not_empty)
+                return combined if combined is not None else exists_filter
+            return None
+
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=column.proto_definition,
+                op=operator,
+                value=self._resolve_search_value(column, term.operator, raw_values),
+                ignore_case=self.params.case_insensitive and column.search_type == "string",
+            )
+        )
 
     def _resolve_term(
         self, term: event_search.SearchFilter

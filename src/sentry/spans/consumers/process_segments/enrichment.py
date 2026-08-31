@@ -24,6 +24,9 @@ SHARED_SENTRY_ATTRIBUTES = (
     "sentry.trace.status",
     "sentry.mobile",
     "sentry.os.name",
+    # Convention name (span-streaming / Relay V2). Prefer this for EAP mapping.
+    "device.class",
+    # Legacy V1 key kept for older segments.
     "sentry.device.class",
     ATTRIBUTE_NAMES.SENTRY_BROWSER_NAME,
     "sentry.profiler_id",

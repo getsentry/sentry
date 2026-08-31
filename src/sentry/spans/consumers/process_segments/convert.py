@@ -45,6 +45,11 @@ RENAME_ATTRIBUTES = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_ID: "sentry.segment_id",
 }
 
+# Convention name used by span-streaming / Relay V2. EAP maps this key.
+DEVICE_CLASS_ATTRIBUTE = "device.class"
+# Legacy V1 key from sentry_tags.device.class → attributes["sentry.device.class"].
+LEGACY_DEVICE_CLASS_ATTRIBUTE = "sentry.device.class"
+
 
 def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     attributes: dict[str, AnyValue] = {}
@@ -101,6 +106,10 @@ def convert_span_to_item(span: CompatibleSpan) -> TraceItem:
     for convention_name, eap_name in RENAME_ATTRIBUTES.items():
         if convention_name in attributes:
             attributes[eap_name] = attributes.pop(convention_name)
+
+    # EAP device.class virtual column reads `device.class`. V1 paths often only
+    # have `sentry.device.class`; dual-write so new transaction-derived spans still map.
+    _dual_write_device_class(attributes)
 
     try:
         attributes["sentry.duration_ms"] = AnyValue(
@@ -167,6 +176,36 @@ def _uuid_or_empty(value: Any) -> str:
         uuid.UUID(value)
     except ValueError:
         return ""
+    return value
+
+
+def _dual_write_device_class(attributes: dict[str, AnyValue]) -> None:
+    """Ensure device class exists under the convention key used by EAP mapping."""
+    convention_value = attributes.get(DEVICE_CLASS_ATTRIBUTE)
+    legacy_value = attributes.get(LEGACY_DEVICE_CLASS_ATTRIBUTE)
+    source = convention_value if convention_value is not None else legacy_value
+    if source is None:
+        return
+
+    normalized = _device_class_as_string(source)
+    attributes[DEVICE_CLASS_ATTRIBUTE] = normalized
+    attributes[LEGACY_DEVICE_CLASS_ATTRIBUTE] = normalized
+
+
+def _device_class_as_string(value: AnyValue) -> AnyValue:
+    """Normalize device class to a string AnyValue for EAP value_map keys."""
+    which = value.WhichOneof("value")
+    if which == "string_value":
+        return value
+    if which == "int_value":
+        return AnyValue(string_value=str(value.int_value))
+    if which == "double_value":
+        double_value = value.double_value
+        if double_value.is_integer():
+            return AnyValue(string_value=str(int(double_value)))
+        return AnyValue(string_value=str(double_value))
+    if which == "bool_value":
+        return AnyValue(string_value=str(value.bool_value).lower())
     return value
 
 

@@ -150,6 +150,37 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_device_class_filter_dual_reads_storage_keys(self) -> None:
+        """device.class:high matches convention or legacy storage keys as code \"3\"."""
+        where, having, contexts = self.resolver.resolve_query("device.class:high")
+        assert having is None
+        # No VCC needed for dual-read raw-key filters.
+        assert all(context is None for context in contexts)
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="device.class", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str="3"),
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=AttributeKey(
+                                name="sentry.device.class", type=AttributeKey.Type.TYPE_STRING
+                            ),
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str="3"),
+                        )
+                    ),
+                ]
+            )
+        )
+
     def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!span.description:foo")
         assert where == TraceItemFilter(
@@ -891,6 +922,20 @@ class SearchResolverColumnTest(TestCase):
             to_column_name="project",
             value_map={str(self.project.id): self.project.slug},
         )
+
+    def test_device_class_virtual_context(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("device.class")
+        assert resolved_column.proto_definition == AttributeKey(
+            name="device.class", type=AttributeKey.Type.TYPE_STRING
+        )
+        assert virtual_context is not None
+        context = virtual_context.constructor(self.resolver.params, self.resolver)
+        assert context.from_column_name == "device.class"
+        assert context.to_column_name == "device.class"
+        assert context.default_value == "Unknown"
+        assert context.value_map["1"] == "low"
+        assert context.value_map["2"] == "medium"
+        assert context.value_map["3"] == "high"
 
     def test_project_slug_field(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("project.slug")
