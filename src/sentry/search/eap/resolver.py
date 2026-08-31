@@ -551,8 +551,8 @@ class SearchResolver:
     ) -> tuple[list[TraceItemFilter], list[VirtualColumnDefinition | None]]:
         terms = self.convert_term(term)
 
-        resolved_terms = []
-        resolved_contexts = []
+        resolved_terms: list[TraceItemFilter] = []
+        resolved_contexts: list[VirtualColumnDefinition | None] = []
 
         for t in terms:
             # device.class is stored as convention `device.class` (span-streaming) or
@@ -588,10 +588,10 @@ class SearchResolver:
 
         convention_column, _ = self.resolve_column("device.class")
         legacy_column, _ = self.resolve_column("sentry.device.class")
-        if not isinstance(convention_column.proto_definition, AttributeKey):
+        if not isinstance(convention_column, ResolvedAttribute):
             resolved_term, _ = self._resolve_term(term)
             return resolved_term
-        if not isinstance(legacy_column.proto_definition, AttributeKey):
+        if not isinstance(legacy_column, ResolvedAttribute):
             resolved_term, _ = self._resolve_term(term)
             return resolved_term
 
@@ -632,11 +632,8 @@ class SearchResolver:
         self,
         column: ResolvedAttribute,
         is_negated: bool,
-    ) -> TraceItemFilter | None:
+    ) -> TraceItemFilter:
         """Unknown on one storage key: not a known class code (or the inverse)."""
-        if not isinstance(column.proto_definition, AttributeKey):
-            return None
-
         known_codes = self._device_class_known_codes()
         # !Unknown → key IN known codes; Unknown → key NOT IN known codes.
         # Missing attributes satisfy NOT IN, so empty/missing count as Unknown.
@@ -656,9 +653,6 @@ class SearchResolver:
         raw_values: str | int | list[str],
     ) -> TraceItemFilter | None:
         """Build a filter on a raw device-class storage key using remapped codes."""
-        if not isinstance(column.proto_definition, AttributeKey):
-            return None
-
         if term.operator not in constants.OPERATOR_MAP:
             return None
         operator = constants.OPERATOR_MAP[term.operator]
