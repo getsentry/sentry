@@ -1,11 +1,11 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ORG_ROLES} from 'sentry/constants';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -33,11 +33,6 @@ const removeFromOrgSchema = z.object({
   organizationSlug: z.string().trim().min(1, 'Organization slug is required'),
 });
 
-function getMutationErrorMessage(error: Error | null, fallback: string) {
-  const detail = error instanceof RequestError ? error.responseJSON?.detail : undefined;
-  return error ? (typeof detail === 'string' ? detail : fallback) : null;
-}
-
 function AddToOrgModal({
   Header,
   Body,
@@ -56,9 +51,12 @@ function AddToOrgModal({
       closeModal();
       window.location.reload();
     },
+    onError: error => {
+      const detail =
+        error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      addErrorMessage(typeof detail === 'string' ? detail : 'Unable to add member');
+    },
   });
-
-  const errorMessage = getMutationErrorMessage(mutation.error, 'Unable to add member');
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -102,13 +100,6 @@ function AddToOrgModal({
             )}
           </form.AppField>
           <Text>Note: This action will be recorded in the audit log.</Text>
-          {errorMessage && (
-            <Alert.Container>
-              <Alert variant="danger" showIcon={false}>
-                {errorMessage}
-              </Alert>
-            </Alert.Container>
-          )}
         </Stack>
       </Body>
       <Footer>
@@ -135,9 +126,12 @@ function RemoveFromOrgModal({
       closeModal();
       window.location.reload();
     },
+    onError: error => {
+      const detail =
+        error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      addErrorMessage(typeof detail === 'string' ? detail : 'Unable to remove member');
+    },
   });
-
-  const errorMessage = getMutationErrorMessage(mutation.error, 'Unable to remove member');
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -166,11 +160,6 @@ function RemoveFromOrgModal({
             )}
           </form.AppField>
           <Text>Note: This action will be recorded in the audit log.</Text>
-          {errorMessage && (
-            <Alert.Container>
-              <Alert variant="danger">{errorMessage}</Alert>
-            </Alert.Container>
-          )}
         </Stack>
       </Body>
       <Footer>
