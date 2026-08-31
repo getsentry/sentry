@@ -312,7 +312,7 @@ class PrMetricsEmissionTest(TestCase):
                 select_verdict(self.pull_request, self.organization)
                 == VerdictDeferral.INDETERMINATE
             )
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
@@ -322,8 +322,8 @@ class PrMetricsEmissionTest(TestCase):
         )
 
     def test_select_verdict_closed_without_metrics_row_is_indeterminate(self) -> None:
-        # A missing row is an error state (handle_metrics failed): warn, and defer
-        # as indeterminate rather than guess "abandoned".
+        # A missing row is an error state (handle_metrics failed): raise it as a
+        # Sentry issue, and defer as indeterminate rather than guess "abandoned".
         self.pull_request.merged_at = None
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
@@ -331,7 +331,7 @@ class PrMetricsEmissionTest(TestCase):
                 select_verdict(self.pull_request, self.organization)
                 == VerdictDeferral.INDETERMINATE
             )
-        mock_logger.warning.assert_called_once_with(
+        mock_logger.error.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
@@ -359,7 +359,9 @@ class PrMetricsEmissionTest(TestCase):
                     select_verdict(self.pull_request, self.organization)
                     == VerdictDeferral.INDETERMINATE
                 )
-        mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
+        mock_metrics.incr.assert_called_once_with(
+            "pr_metrics.select_verdict.activity_disabled", sample_rate=1.0
+        )
 
     def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
         assert _ci_failing_at_close(self.pull_request, doc=None) is False

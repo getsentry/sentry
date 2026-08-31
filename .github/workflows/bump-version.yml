@@ -12,7 +12,7 @@ on:
       pr_options:
         type: string
         default: ''
-        description: additional options for gh pr create, such as for asking for specific reviewers
+        description: space-delimited additional options for gh pr create, such as asking for specific reviewers
 
   # for use in other (cron/scheduled) workflows to bump specific
   # company-internal dependencies on a more aggressive schedule
@@ -27,17 +27,27 @@ on:
       pr_options:
         type: string
         default: ''
+    secrets:
+      SENTRY_RELEASE_BOT_PRIVATE_KEY:
+        required: true
 
-# disable all permissions -- we use the PAT's permissions instead
+# Disable the default token permissions; the GitHub App token below supplies access.
 permissions: {}
 
 jobs:
   bump-version:
     runs-on: ubuntu-latest
     steps:
+      - name: getsentry token
+        id: getsentry
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          token: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          token: ${{ steps.getsentry.outputs.token }}
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
           version: '0.9.28'
@@ -66,10 +76,17 @@ jobs:
 
           git push origin HEAD --quiet
 
-          gh pr create --fill ${{ inputs.pr_options }}
+          # Keep caller-provided options as arguments rather than interpolating them into shell source.
+          if [[ -n "$PR_OPTIONS" ]]; then
+            read -r -a PR_OPTION_ARGS <<< "$PR_OPTIONS"
+            gh pr create --fill "${PR_OPTION_ARGS[@]}"
+          else
+            gh pr create --fill
+          fi
         env:
-          GH_TOKEN: ${{ secrets.BUMP_SENTRY_TOKEN }}
+          GH_TOKEN: ${{ steps.getsentry.outputs.token }}
           PACKAGE: ${{ inputs.package }}
           VERSION: ${{ inputs.version }}
+          PR_OPTIONS: ${{ inputs.pr_options }}
           SENDER: ${{ github.event.sender.login }}
           SENDER_ID: ${{ github.event.sender.id }}

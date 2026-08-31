@@ -1,25 +1,36 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DataTable} from 'sentry/components/tables/dataTable';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {
+  useQueryParamsCursor,
   useQueryParamsFields,
+  useQueryParamsQuery,
   useQueryParamsSortBys,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 
 import {FieldRenderer} from './fieldRenderer';
+import {SpanItemDetails} from './spanItemDetails';
+
+const SPAN_DETAILS_COLUMN_WIDTH = 40;
 
 interface SpansTableProps {
   booleanTags: TagCollection;
@@ -37,8 +48,14 @@ export function SpansTable({
   validatedFieldTypes,
 }: SpansTableProps) {
   const fields = useQueryParamsFields();
+  const query = useQueryParamsQuery();
+  const cursor = useQueryParamsCursor();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
+  const organization = useOrganization();
+  const canExpandSpanDetails = organization.features.includes(
+    'explore-span-item-details'
+  );
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? [...fields] : ['id', ...fields]),
@@ -59,6 +76,10 @@ export function SpansTable({
     () => eventView.getColumns(meta),
     [eventView, meta]
   );
+  const expansionResetKey = useMemo(
+    () => JSON.stringify([query, cursor, fields, sortBys]),
+    [cursor, fields, query, sortBys]
+  );
 
   const paginationAnalyticsEvent = usePaginationAnalytics(
     'samples',
@@ -71,13 +92,22 @@ export function SpansTable({
         data-test-id="spans-table"
         fields={visibleFields}
         minimumColumnWidth={50}
+        prefixColumnWidth={canExpandSpanDetails ? SPAN_DETAILS_COLUMN_WIDTH : undefined}
       >
         <DataTable.Head>
           <DataTable.Row>
+            {canExpandSpanDetails && (
+              <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
+            )}
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
+                return (
+                  <DataTable.HeadCell
+                    key={i}
+                    isFirst={!canExpandSpanDetails && i === 0}
+                  />
+                );
               }
 
               const fieldType = meta.fields?.[field];
@@ -99,7 +129,7 @@ export function SpansTable({
                   align={align}
                   columnIndex={i}
                   key={i}
-                  isFirst={i === 0}
+                  isFirst={!canExpandSpanDetails && i === 0}
                   onSort={updateSort}
                   sort={direction}
                 >
@@ -120,20 +150,14 @@ export function SpansTable({
             </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => (
-              <DataTable.Row key={i}>
-                {visibleFields.map((field, j) => {
-                  return (
-                    <DataTable.Cell key={j}>
-                      <FieldRenderer
-                        column={columnsFromEventView[j]}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </DataTable.Cell>
-                  );
-                })}
-              </DataTable.Row>
+              <SpanSampleRow
+                key={`${expansionResetKey}:${getSpanKey(row, i)}`}
+                canExpandSpanDetails={canExpandSpanDetails}
+                columns={columnsFromEventView}
+                data={row}
+                fields={visibleFields}
+                meta={meta}
+              />
             ))
           ) : (
             <DataTable.Status>
@@ -151,6 +175,87 @@ export function SpansTable({
     </Fragment>
   );
 }
+
+function SpanSampleRow({
+  canExpandSpanDetails,
+  columns,
+  data,
+  fields,
+  meta,
+}: {
+  canExpandSpanDetails: boolean;
+  columns: Array<TableColumn<string>>;
+  data: EventData;
+  fields: readonly string[];
+  meta: MetaType;
+}) {
+  const organization = useOrganization();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <Fragment>
+      <DataTable.Row>
+        {canExpandSpanDetails ? (
+          <SpanDetailsToggleCell>
+            <Button
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? t('Hide span details') : t('Show span details')}
+              icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+              size="zero"
+              variant="transparent"
+              onClick={() => {
+                setIsExpanded(e => !e);
+                trackAnalytics('trace_explorer.toggle_span_details', {
+                  organization,
+                  expanded: !isExpanded,
+                });
+              }}
+            />
+          </SpanDetailsToggleCell>
+        ) : null}
+        {fields.map((field, index) => (
+          <DataTable.Cell key={field}>
+            <FieldRenderer
+              column={columns[index]}
+              data={data}
+              unit={meta.units?.[field]}
+              meta={meta}
+            />
+          </DataTable.Cell>
+        ))}
+      </DataTable.Row>
+      {canExpandSpanDetails && isExpanded ? (
+        <DataTable.Row>
+          <SpanDetailsCell>
+            <SpanItemDetails dataRow={data} />
+          </SpanDetailsCell>
+        </DataTable.Row>
+      ) : null}
+    </Fragment>
+  );
+}
+
+function getSpanKey(row: EventData, index: number) {
+  return (
+    [row.project, row.trace, row.id, row.timestamp].filter(Boolean).join(':') || index
+  );
+}
+
+const SpanDetailsToggleHeadCell = styled(DataTable.HeadCell)`
+  align-items: center;
+  padding: 0;
+`;
+
+const SpanDetailsToggleCell = styled(DataTable.Cell)`
+  align-items: center;
+  padding: 0;
+`;
+
+const SpanDetailsCell = styled(DataTable.Cell)`
+  background-color: ${p => p.theme.colors.gray100};
+  grid-column: 1 / -1;
+  padding: ${p => p.theme.space.md};
+`;
 
 export function addValidatedFieldTypesToMeta({
   meta,
