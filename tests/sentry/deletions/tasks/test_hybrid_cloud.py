@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Generator
 from operator import itemgetter
 from typing import Any, ContextManager, NotRequired, TypedDict, cast
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.apps import apps
@@ -14,10 +14,16 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.deletions.tasks.hybrid_cloud import (
+    ROW_WATERMARK,
+    TOMBSTONE_WATERMARK,
+    WATERMARK_PREFIXES,
     WatermarkBatch,
+    _get_redis_client,
+    _process_hybrid_cloud_foreign_key_cascade,
     get_ids_cross_db_for_row_watermark,
     get_ids_cross_db_for_tombstone_watermark,
     get_watermark,
+    get_watermark_key,
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
     set_watermark,
@@ -87,8 +93,8 @@ def reset_watermarks() -> None:
                 if not isinstance(field, HybridCloudForeignKey):
                     continue
                 max_val = model.objects.aggregate(Max("id"))["id__max"] or 0
-                set_watermark("tombstone", field, max_val, "abc123")
-                set_watermark("row", field, max_val, "abc123")
+                set_watermark(TOMBSTONE_WATERMARK, field, max_val, "abc123")
+                set_watermark(ROW_WATERMARK, field, max_val, "abc123")
 
 
 @pytest.fixture
@@ -105,12 +111,90 @@ def test_no_work_is_no_op(
 
     # Transaction id should not change when no processing occurs.  (this would happen if setting the next cursor
     # to the same, previous value.)
-    level, tid = get_watermark("tombstone", project_bookmark_user_id_field)
+    level, tid = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     with task_runner():
         schedule_hybrid_cloud_foreign_key_jobs()
 
-    assert get_watermark("tombstone", project_bookmark_user_id_field) == (level, tid)
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (level, tid)
+
+
+@django_db_all
+def test_no_work_rewrites_both_watermarks(
+    task_runner: Callable[[], ContextManager[None]],
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    reset_watermarks()
+
+    before = {
+        prefix: get_watermark(prefix, project_bookmark_user_id_field)
+        for prefix in WATERMARK_PREFIXES
+    }
+    prefix_by_key = {
+        get_watermark_key(prefix, project_bookmark_user_id_field): prefix
+        for prefix in WATERMARK_PREFIXES
+    }
+
+    recording_client = Mock(wraps=_get_redis_client())
+    with patch(
+        "sentry.deletions.tasks.hybrid_cloud._get_redis_client", return_value=recording_client
+    ):
+        with task_runner():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+    written = {
+        prefix_by_key[call.args[0]]
+        for call in recording_client.set.call_args_list
+        if call.args[0] in prefix_by_key
+    }
+    assert written == set(WATERMARK_PREFIXES)
+
+    for prefix, watermark in before.items():
+        assert get_watermark(prefix, project_bookmark_user_id_field) == watermark
+
+
+@django_db_all
+def test_catch_up_rewrites_both_watermarks(
+    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
+) -> None:
+    """
+    The `or` in _process_hybrid_cloud_foreign_key_cascade skips the second
+    reconciliation while the first one still has work. Both keys must be
+    written on such a cycle.
+    """
+    reset_watermarks()
+
+    prefix_by_key = {
+        get_watermark_key(prefix, project_bookmark_user_id_field): prefix
+        for prefix in WATERMARK_PREFIXES
+    }
+
+    recording_client = Mock(wraps=_get_redis_client())
+    with (
+        patch(
+            "sentry.deletions.tasks.hybrid_cloud._get_redis_client", return_value=recording_client
+        ),
+        patch(
+            "sentry.deletions.tasks.hybrid_cloud._process_tombstone_reconciliation",
+            return_value=True,
+        ) as reconciliation,
+    ):
+        _process_hybrid_cloud_foreign_key_cascade(
+            app_name=ProjectBookmark._meta.app_label,
+            model_name=ProjectBookmark.__name__,
+            field_name=project_bookmark_user_id_field.name,
+            process_task=Mock(),
+            silo_mode=SiloMode.CELL,
+        )
+
+    assert reconciliation.call_count == 1
+
+    written = {
+        prefix_by_key[call.args[0]]
+        for call in recording_client.set.call_args_list
+        if call.args[0] in prefix_by_key
+    }
+    assert written == set(WATERMARK_PREFIXES)
 
 
 @django_db_all
@@ -118,22 +202,22 @@ def test_watermark_and_transaction_id(
     task_runner: Callable[[], ContextManager[None]],
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
-    _, tid1 = get_watermark("tombstone", project_bookmark_user_id_field)
+    _, tid1 = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
     # TODO: Add another test to validate the tid is unique per field
 
-    _, tid2 = get_watermark("row", project_bookmark_user_id_field)
+    _, tid2 = get_watermark(ROW_WATERMARK, project_bookmark_user_id_field)
 
     assert tid1
     assert tid2
     assert tid1 != tid2
 
-    set_watermark("tombstone", project_bookmark_user_id_field, 5, tid1)
-    wm, new_tid1 = get_watermark("tombstone", project_bookmark_user_id_field)
+    set_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field, 5, tid1)
+    wm, new_tid1 = get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)
 
     assert new_tid1 != tid1
     assert wm == 5
 
-    assert get_watermark("tombstone", project_bookmark_user_id_field) == (wm, new_tid1)
+    assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field) == (wm, new_tid1)
 
 
 @assume_test_silo_mode(SiloMode.MONOLITH)
