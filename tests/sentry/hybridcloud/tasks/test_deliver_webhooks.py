@@ -15,12 +15,14 @@ from sentry import options
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
+    BATCH_SCHEDULE_OFFSET,
     DRAIN_LOCK_TTL,
     MAX_MAILBOX_DRAIN,
     PARALLEL_DRAIN_THRESHOLD,
     SLOW_DELIVERY_THRESHOLD,
     Dispatcher,
     _claim_and_dispatch,
+    _due_mailbox_heads,
     drain_mailbox,
     drain_mailbox_parallel,
     maybe_trigger_drain,
@@ -45,6 +47,8 @@ DISPATCH_METRIC = "hybridcloud.deliver_webhooks.dispatch"
 DISPATCH_CLAIMED_METRIC = "hybridcloud.deliver_webhooks.dispatch.claimed"
 PUSH_TRIGGER_ERROR_METRIC = "hybridcloud.deliver_webhooks.push_trigger.error"
 SCHEDULER_SKIPPED_METRIC = "hybridcloud.deliver_webhooks.scheduler.skipped"
+DUE_ROWS_METRIC = "hybridcloud.schedule_webhook_delivery.due_rows"
+IN_FLIGHT_ROWS_METRIC = "hybridcloud.schedule_webhook_delivery.in_flight_rows"
 CYCLE_METRIC = "hybridcloud.schedule_webhook_delivery.cycle"
 CARRYOVER_METRIC = "hybridcloud.schedule_webhook_delivery.carryover"
 CARRYOVER_ERROR_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.error"
@@ -812,6 +816,86 @@ class ScheduleCarryoverFloorTest(CarryoverTestBase):
 
         assert self.carryover() is None
         assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == [{}]
+
+
+@control_silo_test
+class DueHeadDepthTest(MetricCallsMixin, TestCase):
+    """
+    Discovery reports what sits in each mailbox, not just which are due: a mailbox
+    count cannot tell one record per mailbox from a thousand.
+    """
+
+    def rows_by_provider(self, mock_metrics: MagicMock, metric: str) -> dict[str, float]:
+        """The value recorded per provider, keyed so emission order doesn't matter."""
+        return {
+            tags["provider"]: value for value, tags in self.distribution_calls(mock_metrics, metric)
+        }
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_claimed_and_backing_off_rows_are_both_in_flight(self, mock_metrics: MagicMock) -> None:
+        due = create_payloads(2, "github:123", provider="github")
+        claimed = create_payloads(3, "github:123", provider="github")
+        WebhookPayload.objects.filter(id__in=[record.id for record in claimed]).update(
+            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+        )
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+
+        heads = _due_mailbox_heads()
+
+        # The head is the oldest due record, not the mailbox's true head.
+        assert heads == [{"id": due[0].id, "mailbox_name": "github:123"}]
+        # Claimed rows and the backing-off row are both in flight: neither is
+        # available to this cycle's dispatch.
+        assert self.rows_by_provider(mock_metrics, DUE_ROWS_METRIC) == {"github": 2}
+        assert self.rows_by_provider(mock_metrics, IN_FLIGHT_ROWS_METRIC) == {"github": 4}
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_depth_summed_per_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(2, "github:123", provider="github")
+        create_payloads(1, "github:456", provider="github")
+        jira = create_payloads(3, "jira:123", provider="jira")
+        WebhookPayload.objects.filter(id=jira[-1].id).update(
+            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+        )
+
+        _due_mailbox_heads()
+
+        assert self.rows_by_provider(mock_metrics, DUE_ROWS_METRIC) == {"github": 3, "jira": 2}
+        assert self.rows_by_provider(mock_metrics, IN_FLIGHT_ROWS_METRIC) == {
+            "github": 0,
+            "jira": 1,
+        }
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_depth_counts_mailboxes_that_cannot_dispatch(self, mock_metrics: MagicMock) -> None:
+        # An undispatchable mailbox is still backlog worth seeing.
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        # jira is strict-ordering: a claimed head gates the due rows behind it.
+        self.create_webhook_payload(
+            mailbox_name="jira:123",
+            cell_name="us",
+            provider="jira",
+            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET,
+        )
+        create_payloads(2, "jira:123", provider="jira")
+
+        assert _due_mailbox_heads() == []
+
+        assert self.rows_by_provider(mock_metrics, DUE_ROWS_METRIC) == {"github": 0, "jira": 2}
+        assert self.rows_by_provider(mock_metrics, IN_FLIGHT_ROWS_METRIC) == {
+            "github": 1,
+            "jira": 1,
+        }
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
