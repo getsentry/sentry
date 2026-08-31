@@ -13,9 +13,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption} from '@sentry/scraps/select';
+import {Select, SelectOption, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
-import {components} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';

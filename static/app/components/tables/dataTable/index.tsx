@@ -14,6 +14,7 @@ import {
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {defined} from 'sentry/utils/defined';
 
 export const DATA_TABLE_ROW_HEIGHT = 42;
@@ -145,10 +146,18 @@ const HeadCell = styled(Table.HeadCell, {
     min-width: 12px;
   }
 
+  ${HeaderCellContent} > svg {
+    align-self: flex-start;
+  }
+
   ${p =>
     p.align &&
     css`
       justify-content: ${p.align};
+
+      ${HeaderCellContent} {
+        justify-content: ${p.align};
+      }
     `}
 `;
 

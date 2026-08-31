@@ -1,9 +1,10 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     is_pr_iteration_paused,
@@ -27,19 +28,23 @@ class PausePrIterationTest(TestCase):
         )
 
     def _enqueue(self, run_id: int = RUN_ID) -> bool:
+        run_state = SeerRunState(
+            run_id=run_id,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+        )
         return try_enqueue_autofix_feedback(
+            log_ctx=PrIterationLogContext(
+                MagicMock(), run_state=run_state, organization_id=self.organization.id
+            ),
             run_id=run_id,
             organization_id=self.organization.id,
             group_id=1,
             feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
-            run_state=SeerRunState(
-                run_id=run_id,
-                blocks=[],
-                status="completed",
-                updated_at="2024-01-01T00:00:00Z",
-                repo_pr_states={},
-            ),
+            run_state=run_state,
         )
 
     def _marker(self) -> dict | None:
