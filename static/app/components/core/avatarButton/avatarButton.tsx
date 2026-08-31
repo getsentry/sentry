@@ -179,8 +179,9 @@ function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
 }
 /* eslint-enable @typescript-eslint/no-non-null-assertion */
 
+const SAMPLE_SIZE = 12;
+
 function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
-  const SAMPLE_SIZE = 12;
   try {
     const canvas = document.createElement('canvas');
     canvas.width = SAMPLE_SIZE;
@@ -212,17 +213,29 @@ function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   }
 }
 
-function sampleAvatarColor(
-  img: HTMLImageElement
-): {hex: string | null; style: 'fill' | 'padded'} | null {
-  const data = readPixels(img);
-  if (!data) {
-    return null;
+// Indices (into the flat RGBA array) of every pixel that sits on the outer
+// ring of the SAMPLE_SIZE×SAMPLE_SIZE canvas. Used to sample only the edge
+// of full-bleed ('fill') images, since that's the part of the image that
+// actually meets the button's border — the center of the image (e.g. a logo
+// in the middle of a photo) shouldn't influence the border color.
+const EDGE_PIXEL_INDICES = (() => {
+  const indices: number[] = [];
+  for (let row = 0; row < SAMPLE_SIZE; row++) {
+    for (let col = 0; col < SAMPLE_SIZE; col++) {
+      if (row === 0 || row === SAMPLE_SIZE - 1 || col === 0 || col === SAMPLE_SIZE - 1) {
+        indices.push((row * SAMPLE_SIZE + col) * 4);
+      }
+    }
   }
+  return indices;
+})();
 
-  const style = shouldPadImage(data);
-
-  // Accumulate two sets: chromatic pixels (saturation ≥ 0.15) and all opaque pixels.
+// Averages the color of a set of pixels, preferring chromatic pixels
+// (saturation ≥ 0.15) over grayscale ones when any are present.
+function averagePixels(
+  data: Uint8ClampedArray,
+  indices: Iterable<number>
+): string | null {
   let cr = 0,
     cg = 0,
     cb = 0,
@@ -232,7 +245,7 @@ function sampleAvatarColor(
     ab = 0,
     acount = 0;
 
-  for (let i = 0; i < data.length; i += 4) {
+  for (const i of indices) {
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
     if (data[i + 3]! < 128) {
       continue;
@@ -241,15 +254,13 @@ function sampleAvatarColor(
     const r = data[i]!,
       g = data[i + 1]!,
       b = data[i + 2]!;
-
     /* eslint-enable @typescript-eslint/no-non-null-assertion */
-    // accumulate all pixels
+
     ar += r;
     ag += g;
     ab += b;
     acount++;
 
-    // accumulate chromatic pixels
     if ((Math.max(r, g, b) - Math.min(r, g, b)) / 255 >= 0.15) {
       cr += r;
       cg += g;
@@ -260,26 +271,211 @@ function sampleAvatarColor(
 
   const [r, g, b, count] = ccount > 0 ? [cr, cg, cb, ccount] : [ar, ag, ab, acount];
   if (count === 0) {
-    return {hex: null, style};
+    return null;
   }
 
   const toHex = (v: number) =>
     Math.round(v / count)
       .toString(16)
       .padStart(2, '0');
-  return {hex: `#${toHex(r)}${toHex(g)}${toHex(b)}`, style};
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-function fetchAvatarColor(
-  url: string
-): Promise<ReturnType<typeof sampleAvatarColor> | null> {
+// Finds the dominant color of an inset/padded logo by bucketing pixels into
+// coarse RGB buckets, preferring chromatic buckets over grayscale ones when
+// present. A simple global average tends to wash out multi-color logos into
+// gray, so we look at bucket population instead.
+//
+// A single largest bucket is a reliable "winner" when one color clearly
+// covers more area than the rest (e.g. a logo on a solid-color background).
+// But for logos built from several similarly-sized color regions — e.g.
+// Slack's four roughly equal quadrants — pixel counts at this sample size
+// are dominated by anti-aliasing noise and where quantization bucket edges
+// happen to fall, so the "largest" bucket is effectively arbitrary and can
+// flip between colors run to run. In that case, prefer the most saturated
+// (vibrant) color among the top contenders instead of trusting the noisy
+// count — it's both more deterministic and a better border color.
+const DOMINANT_BUCKET_SIZE = 24;
+// Buckets within this fraction of the top bucket's pixel count are treated
+// as tied rather than picking whichever edged out the others by noise.
+const DOMINANT_TIE_THRESHOLD = 0.8;
+
+function quantizeChannel(v: number): number {
+  return Math.round(v / DOMINANT_BUCKET_SIZE) * DOMINANT_BUCKET_SIZE;
+}
+
+function saturationOf(r: number, g: number, b: number): number {
+  return (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+}
+
+function dominantColor(data: Uint8ClampedArray): string | null {
+  let hasChromatic = false;
+  for (let i = 0; i < data.length; i += 4) {
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    if (data[i + 3]! < 128) {
+      continue;
+    }
+    const r = data[i]!,
+      g = data[i + 1]!,
+      b = data[i + 2]!;
+    /* eslint-enable @typescript-eslint/no-non-null-assertion */
+    if (saturationOf(r, g, b) >= 0.15) {
+      hasChromatic = true;
+      break;
+    }
+  }
+
+  const buckets = new Map<string, {b: number; count: number; g: number; r: number}>();
+
+  for (let i = 0; i < data.length; i += 4) {
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    if (data[i + 3]! < 128) {
+      continue;
+    }
+    const r = data[i]!,
+      g = data[i + 1]!,
+      b = data[i + 2]!;
+    /* eslint-enable @typescript-eslint/no-non-null-assertion */
+
+    const chromatic = saturationOf(r, g, b) >= 0.15;
+    if (hasChromatic && !chromatic) {
+      continue;
+    }
+
+    const key = `${quantizeChannel(r)},${quantizeChannel(g)},${quantizeChannel(b)}`;
+    const bucket = buckets.get(key);
+    if (bucket) {
+      bucket.r += r;
+      bucket.g += g;
+      bucket.b += b;
+      bucket.count++;
+    } else {
+      buckets.set(key, {r, g, b, count: 1});
+    }
+  }
+
+  if (buckets.size === 0) {
+    return null;
+  }
+
+  let topCount = 0;
+  for (const bucket of buckets.values()) {
+    topCount = Math.max(topCount, bucket.count);
+  }
+
+  // Among the buckets effectively tied for largest, pick the most saturated
+  // one rather than whichever happens to have the (noisy) highest count.
+  let dominant: {b: number; count: number; g: number; r: number} | null = null;
+  let dominantSaturation = -1;
+  for (const bucket of buckets.values()) {
+    if (bucket.count < topCount * DOMINANT_TIE_THRESHOLD) {
+      continue;
+    }
+
+    const saturation = saturationOf(
+      bucket.r / bucket.count,
+      bucket.g / bucket.count,
+      bucket.b / bucket.count
+    );
+    if (saturation > dominantSaturation) {
+      dominant = bucket;
+      dominantSaturation = saturation;
+    }
+  }
+
+  if (!dominant) {
+    return null;
+  }
+
+  const {count} = dominant;
+  const toHex = (v: number) =>
+    Math.round(v / count)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${toHex(dominant.r)}${toHex(dominant.g)}${toHex(dominant.b)}`;
+}
+
+function sampleAvatarColor(
+  img: HTMLImageElement
+): {edgeHex: string | null; style: 'fill' | 'padded'; vibrantHex: string | null} | null {
+  const data = readPixels(img);
+  if (!data) {
+    return null;
+  }
+
+  const style = shouldPadImage(data);
+
+  // Inset/padded logos have no shared edge with the border, so there's
+  // nothing to sample there — only the logo's own dominant color matters.
+  return {
+    style,
+    edgeHex: style === 'fill' ? averagePixels(data, EDGE_PIXEL_INDICES) : null,
+    vibrantHex: dominantColor(data),
+  };
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement | null> {
   return new Promise(resolve => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(sampleAvatarColor(img));
+    img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = url;
+    img.src = src;
   });
+}
+
+async function fetchAvatarColor(
+  url: string
+): Promise<ReturnType<typeof sampleAvatarColor> | null> {
+  // Fetch the image bytes ourselves and draw from an object URL rather than
+  // pointing an <img crossorigin="anonymous"> tag directly at `url`. Object
+  // URLs are always same-origin for canvas tainting purposes, so this reads
+  // pixel data reliably regardless of how the avatar endpoint's CORS headers
+  // behave for the current origin/protocol (e.g. plain http in local dev vs
+  // https in production).
+  let objectUrl: string | undefined;
+  try {
+    const response = await fetch(url, {mode: 'cors', credentials: 'omit'});
+    if (!response.ok) {
+      return null;
+    }
+
+    const blob = await response.blob();
+    objectUrl = URL.createObjectURL(blob);
+
+    const img = await loadImageElement(objectUrl);
+    return img ? sampleAvatarColor(img) : null;
+  } catch {
+    return null;
+  } finally {
+    if (objectUrl) {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+}
+
+// WCAG 1.4.11 (non-text contrast) recommends a 3:1 minimum for UI components
+// like borders against their adjacent content.
+const MIN_EDGE_CONTRAST = 3;
+
+// Darkens `hex` until it clears MIN_EDGE_CONTRAST against `edgeHex`, giving up
+// (and returning the darkest attempt) after a handful of steps — `hex` and
+// `edgeHex` are frequently the same color, and contrast against a fixed
+// reference increases monotonically as a color darkens toward black, so this
+// always converges rather than needing a fixed, one-size-fits-all amount.
+function darkenUntilContrasts(
+  hex: string,
+  edgeHex: string,
+  theme: Theme['type']
+): string {
+  const edge = color(edgeHex);
+  let candidate = color(hex);
+  const step = theme === 'dark' ? 0.2 : 0.12;
+
+  for (let i = 0; i < 12 && candidate.contrast(edge) < MIN_EDGE_CONTRAST; i++) {
+    candidate = candidate.darken(step);
+  }
+
+  return candidate.hex();
 }
 
 async function resolveImageAvatarColors(
@@ -288,13 +484,35 @@ async function resolveImageAvatarColors(
 ): Promise<{chonk: string | undefined; style: 'fill' | 'padded'} | null> {
   const sampled = await fetchAvatarColor(url);
 
-  if (!sampled?.hex) {
+  if (!sampled) {
     return null;
   }
 
-  const chonk = color(sampled.hex)
-    .darken(theme === 'dark' ? 0.85 : 0.45)
-    .hex();
+  // Padded/inset logos sit on their own background within the frame, so the
+  // sampled color never touches the button's border directly — use the
+  // logo's dominant color as-is rather than darkening it for contrast.
+  if (sampled.style === 'padded') {
+    return sampled.vibrantHex ? {chonk: sampled.vibrantHex, style: sampled.style} : null;
+  }
+
+  // Full-bleed images: prefer the image's own dominant vibrant color (e.g.
+  // the bright blue of a jacket) when it already reads clearly against the
+  // image's edge. Only fall back to adjusting the edge color itself — e.g.
+  // for a smooth gradient, where the "dominant" color is essentially the
+  // same as the edge — so the border still looks like it belongs to the
+  // image instead of collapsing to a generic dark tone.
+  const {edgeHex, vibrantHex} = sampled;
+  const base = edgeHex ?? vibrantHex;
+  if (!base) {
+    return null;
+  }
+
+  const chonk =
+    vibrantHex &&
+    edgeHex &&
+    color(vibrantHex).contrast(color(edgeHex)) >= MIN_EDGE_CONTRAST
+      ? vibrantHex
+      : darkenUntilContrasts(base, base, theme);
 
   return {
     chonk,
