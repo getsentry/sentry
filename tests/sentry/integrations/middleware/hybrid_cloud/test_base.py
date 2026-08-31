@@ -10,7 +10,10 @@ from rest_framework import status
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
-from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
+from sentry.integrations.middleware.hybrid_cloud.parser import (
+    SHED_INBOUND_KILLSWITCH,
+    BaseRequestParser,
+)
 from sentry.integrations.middleware.metrics import MiddlewareHaltReason
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -19,8 +22,6 @@ from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.types.cell import Cell
-
-SHED_INBOUND_OPTION = "hybridcloud.webhookpayload.shed-inbound"
 
 
 def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
@@ -160,7 +161,7 @@ class BaseRequestParserTest(TestCase):
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     @override_options(
         {
-            SHED_INBOUND_OPTION: [
+            SHED_INBOUND_KILLSWITCH: [
                 {"provider": "other_provider", "integration_id": None},
                 {"provider": "test_provider", "integration_id": "98765"},
             ]
@@ -180,7 +181,7 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
-    @override_options({SHED_INBOUND_OPTION: [{"provider": "test_provider"}]})
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "test_provider"}]})
     def test_shed_inbound_by_provider(self, mock_incr: MagicMock, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -200,7 +201,7 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
-    @override_options({SHED_INBOUND_OPTION: [{"provider": "test_provider"}]})
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "test_provider"}]})
     def test_shed_inbound_by_provider_without_integration_id(self, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -213,7 +214,7 @@ class BaseRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     @override_options(
-        {SHED_INBOUND_OPTION: [{"provider": "test_provider", "integration_id": "12345"}]}
+        {SHED_INBOUND_KILLSWITCH: [{"provider": "test_provider", "integration_id": "12345"}]}
     )
     def test_shed_inbound_by_integration(self, mock_trigger: MagicMock) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
@@ -236,7 +237,7 @@ class BaseRequestParserTest(TestCase):
         assert mock_trigger.call_count == 2
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options({SHED_INBOUND_OPTION: [{"unknown_field": "test_provider"}]})
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"unknown_field": "test_provider"}]})
     def test_shed_inbound_ignores_unknown_condition_fields(self) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)
 
@@ -249,7 +250,7 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
-    @override_options({SHED_INBOUND_OPTION: [{}, {"integration_id": "12345"}]})
+    @override_options({SHED_INBOUND_KILLSWITCH: [{}, {"integration_id": "12345"}]})
     def test_shed_inbound_ignores_conditions_without_a_provider(self, mock_incr: MagicMock) -> None:
         """A provider-less condition is an every-provider wildcard, which is more reach
         than this valve should have. It is dropped, and counted so it is not silent."""

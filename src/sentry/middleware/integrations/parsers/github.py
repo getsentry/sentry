@@ -214,9 +214,8 @@ class GithubRequestParser(BaseRequestParser):
             )
             return HttpResponse(status=202)
 
-        # Shed ahead of the forwarded_event counter and the mailbox lookup, so a shed
-        # webhook is neither counted as forwarded nor charged for routing work it will
-        # not use. The base class check still covers every other provider.
+        # Ahead of the forwarded_event counter and the mailbox lookup, so a shed webhook
+        # is neither counted as forwarded nor charged for routing it will not use.
         shed_response = self.get_shed_response(integration_id=integration.id)
         if shed_response is not None:
             return shed_response

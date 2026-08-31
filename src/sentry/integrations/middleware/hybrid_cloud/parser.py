@@ -43,7 +43,7 @@ SHED_INBOUND_KILLSWITCH = "hybridcloud.webhookpayload.shed-inbound"
 SHED_RETRY_AFTER_SECONDS = 60
 # Its own logger so the sampling stays on the shed line, rather than quietly
 # applying to every info log a future caller adds to this module.
-shed_logger = logging.getLogger(f"{__name__}.shed")
+shed_logger = logging.getLogger("sentry.integrations.webhooks.shed")
 shed_logger.addFilter(SamplingFilter(0.1))
 
 
@@ -206,20 +206,17 @@ class BaseRequestParser(ABC):
 
     def get_shed_response(self, integration_id: int | None = None) -> HttpResponse | None:
         """
-        Break glass valve for inbound floods. Drops the webhook with a 429 before the
-        WebhookPayload INSERT and the push trigger, the writes that make a flood
-        expensive. Callers reach here after their integration and cell lookups, so
-        those reads still happen. Returns None to handle the request normally.
-
-        Targets come from the hybridcloud.webhookpayload.shed-inbound killswitch, whose
-        conditions are documented in sentry.killswitches. A shed webhook is lost unless
-        the sender redelivers it.
+        Get an optional response when inbound webhooks have been shed with a killswitch.
+        Drops the webhook with a 429 before the WebhookPayload INSERT and the push
+        trigger, the writes that make a flood expensive. Use the
+        `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
+        and integrations are dropped. Returns None to handle the request normally.
         """
         conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
         # A condition with no provider matches every provider. There are few enough
         # providers to name them, so drop those rather than let one option typo shed
         # all inbound traffic. Counted so an ignored condition is not a silent no-op.
-        targeted = [condition for condition in conditions if condition["provider"] is not None]
+        targeted = [condition for condition in conditions if condition.get("provider") is not None]
         if len(targeted) != len(conditions):
             metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
 

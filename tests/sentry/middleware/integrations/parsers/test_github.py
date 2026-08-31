@@ -12,6 +12,7 @@ from rest_framework import status
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.middleware.hybrid_cloud.parser import SHED_INBOUND_KILLSWITCH
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
@@ -27,7 +28,6 @@ cell = Cell("us", 1, "https://us.testserver")
 cell_config = (cell,)
 
 DROP_NO_OWN_REPO_PR_OPTION = "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr"
-SHED_INBOUND_OPTION = "hybridcloud.webhookpayload.shed-inbound"
 
 
 @control_silo_test
@@ -757,7 +757,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
-    @override_options({SHED_INBOUND_OPTION: [{"provider": "github"}]})
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "github"}]})
     def test_shed_inbound_is_not_counted_as_forwarded(self, mock_metrics: Mock) -> None:
         self.get_integration()
         request = self.factory.post(
