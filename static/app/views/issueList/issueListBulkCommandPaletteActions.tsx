@@ -156,15 +156,13 @@ function AssignActionItems({
 function AssignActions({
   onConfirmBulkUpdate,
   onBulkUpdate,
-  label = t('Assign to'),
 }: {
   onBulkUpdate: (data: Record<string, unknown>) => void;
-  label?: string;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
     <CMDKAction
-      display={{label, icon: <IconUser />}}
+      display={{label: t('Assign to'), icon: <IconUser />}}
       keywords={['assign', 'owner', 'assignee']}
       prompt={t('Search assignees...')}
     >
