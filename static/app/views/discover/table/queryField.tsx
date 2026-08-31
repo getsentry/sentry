@@ -6,11 +6,8 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
-import type {ControlProps} from '@sentry/scraps/select';
-import {Select} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
-import type {SingleValueProps} from '@sentry/scraps/select';
-import {components} from '@sentry/scraps/select';
+import type {ControlProps, SelectValue, SingleValueProps} from '@sentry/scraps/select';
+import {Select, components} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';

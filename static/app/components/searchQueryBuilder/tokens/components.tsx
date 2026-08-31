@@ -3,8 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {FocusableElement} from '@react-types/shared';
 
-import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
-import type {
+import {
+  Container,
+  Flex,
+  type FlexProps,
   ContainerProps,
   ContainerPropsWithRenderFunction,
 } from '@sentry/scraps/layout';
