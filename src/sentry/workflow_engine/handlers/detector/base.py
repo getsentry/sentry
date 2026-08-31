@@ -166,6 +166,7 @@ class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEva
                     "Failed to find the data condition group for detector",
                     extra={"detector_id": detector.id},
                 )
+
                 self.condition_group = None
         else:
             self.condition_group = None
@@ -177,12 +178,18 @@ class ConditionDetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEva
             "detector_type": self.detector.type,
             "result": "unknown",
         }
+
         try:
             value = self.evaluate(data_packet)
+
             tags["result"] = "tainted" if value.tainted else "success"
+
             metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
             return value.result
         except Exception:
             tags["result"] = "failure"
+
             metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
             raise
