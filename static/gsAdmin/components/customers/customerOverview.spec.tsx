@@ -511,6 +511,65 @@ describe('CustomerOverview', () => {
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
+  it('disables non-Seer product trial start/allow on enterprise plans', () => {
+    const organization = OrganizationFixture();
+    const enterpriseSubscription = InvoicedSubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+
+    render(
+      <CustomerOverview
+        customer={enterpriseSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    const productTrialsHeading = screen.getByRole('heading', {
+      name: 'Product Trials',
+    });
+    const productTrialsList = productTrialsHeading.nextElementSibling;
+    expect(productTrialsList).toBeInTheDocument();
+    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
+      throw new Error('Product trials list not found or not an HTMLElement');
+    }
+
+    const getTrialButtons = (label: string) => {
+      const termElement = within(productTrialsList).getByText(label);
+      const definition = termElement.nextElementSibling;
+      expect(definition).toBeInTheDocument();
+      if (!definition || !(definition instanceof HTMLElement)) {
+        throw new Error(`${label} definition not found or not an HTMLElement`);
+      }
+
+      return {
+        allowTrialButton: within(definition).getByRole('button', {name: 'Allow Trial'}),
+        startTrialButton: within(definition).getByRole('button', {name: 'Start Trial'}),
+        stopTrialButton: within(definition).getByRole('button', {name: 'Stop Trial'}),
+        extendTrialButton: within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        }),
+      };
+    };
+
+    const spansButtons = getTrialButtons('Spans:');
+    expect(spansButtons.startTrialButton).toBeDisabled();
+    expect(spansButtons.allowTrialButton).toBeDisabled();
+    expect(spansButtons.stopTrialButton).toBeDisabled();
+    expect(spansButtons.extendTrialButton).toBeDisabled();
+
+    const replaysButtons = getTrialButtons('Replays:');
+    expect(replaysButtons.startTrialButton).toBeDisabled();
+    expect(replaysButtons.allowTrialButton).toBeDisabled();
+
+    const seerButtons = getTrialButtons('Seer:');
+    expect(seerButtons.startTrialButton).toBeEnabled();
+    expect(seerButtons.allowTrialButton).toBeDisabled();
+    expect(seerButtons.stopTrialButton).toBeDisabled();
+    expect(seerButtons.extendTrialButton).toBeDisabled();
+  });
+
   it('renders SIZE_ANALYSIS admin-only product trials (GA, no feature flag required)', () => {
     // SIZE_ANALYSIS is now GA: adminOnlyProductTrialFeature is true, no feature flag check needed
     const organization = OrganizationFixture({

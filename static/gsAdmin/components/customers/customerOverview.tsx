@@ -636,6 +636,16 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
     onAction(data);
   };
 
+  const isEnterprisePlan = !!customer.planDetails?.isEnterprise;
+  const isSeerProductTrial = (category: DataCategory, apiName: string) =>
+    [
+      DataCategory.SEER_USER,
+      DataCategory.SEER_AUTOFIX,
+      DataCategory.SEER_SCANNER,
+    ].includes(category) ||
+    apiName === AddOnCategory.SEER ||
+    apiName === AddOnCategory.LEGACY_SEER;
+
   const getTrialManagementActions = (
     category: DataCategory,
     apiName: string,
@@ -655,6 +665,12 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       moment(activeProductTrial?.endDate).add(1, 'day').diff(moment(), 'days') < 1;
     const hasUsedProductTrial =
       hasActiveProductTrial || categoryHasUsedProductTrial(category);
+    // Enterprise plans: only Seer product trials can be started/allowed from _admin.
+    // Stop/extend stay available for any in-flight non-Seer trial.
+    const blockEnterpriseNonSeerStart =
+      isEnterprisePlan && !isSeerProductTrial(category, apiName);
+    const enterpriseNonSeerStartTooltip =
+      'Non-Seer product trials cannot be started on enterprise plans. Use gifts or a plan trial instead.';
 
     const handleExtendTrial = () => {
       if (!activeProductTrial) {
@@ -699,15 +715,21 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`allowTrial${formattedApiName}`)}
-              disabled={!hasUsedProductTrial || hasActiveProductTrial}
+              disabled={
+                blockEnterpriseNonSeerStart ||
+                !hasUsedProductTrial ||
+                hasActiveProductTrial
+              }
               tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `A product trial is currently active for ${formattedTrialName}`
-                  : hasUsedProductTrial
-                    ? isAdminOnly
-                      ? `Reset trial eligibility for ${formattedTrialName}`
-                      : `Allow customer to start a new trial for ${formattedTrialName}`
-                    : `A product trial is already available for ${formattedTrialName}`,
+                title: blockEnterpriseNonSeerStart
+                  ? enterpriseNonSeerStartTooltip
+                  : hasActiveProductTrial
+                    ? `A product trial is currently active for ${formattedTrialName}`
+                    : hasUsedProductTrial
+                      ? isAdminOnly
+                        ? `Reset trial eligibility for ${formattedTrialName}`
+                        : `Allow customer to start a new trial for ${formattedTrialName}`
+                      : `A product trial is already available for ${formattedTrialName}`,
               }}
             >
               Allow Trial
@@ -715,13 +737,19 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
             <Button
               size="xs"
               onClick={() => updateCustomerStatus(`startTrial${formattedApiName}`)}
-              disabled={hasActiveProductTrial || hasUsedProductTrial}
+              disabled={
+                blockEnterpriseNonSeerStart ||
+                hasActiveProductTrial ||
+                hasUsedProductTrial
+              }
               tooltipProps={{
-                title: hasActiveProductTrial
-                  ? `A product trial is currently active for ${formattedTrialName}`
-                  : hasUsedProductTrial
-                    ? `No product trial is available for ${formattedTrialName}`
-                    : `Start the 14-day ${formattedTrialName} product trial`,
+                title: blockEnterpriseNonSeerStart
+                  ? enterpriseNonSeerStartTooltip
+                  : hasActiveProductTrial
+                    ? `A product trial is currently active for ${formattedTrialName}`
+                    : hasUsedProductTrial
+                      ? `No product trial is available for ${formattedTrialName}`
+                      : `Start the 14-day ${formattedTrialName} product trial`,
               }}
             >
               Start Trial
