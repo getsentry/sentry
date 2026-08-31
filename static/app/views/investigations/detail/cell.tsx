@@ -427,7 +427,7 @@ function CellProgress({state}: {state: CellProgressState}) {
     <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
       <IconSeer
         size="xs"
-        animation={['running', 'waiting'].includes(state) ? 'waiting' : undefined}
+        animation={['running', 'waiting'].includes(state) ? 'idle' : undefined}
       />
       <Text variant="muted">{message}</Text>
     </Flex>
@@ -713,7 +713,7 @@ function RefinementPanel({
   return (
     <RefinementDisclosure defaultExpanded size="sm">
       <AgentActivityDisclosureTitle
-        leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
+        leadingItems={<IconSeer size="xs" animation={active ? 'idle' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
             {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}

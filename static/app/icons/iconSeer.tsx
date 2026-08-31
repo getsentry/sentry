@@ -5,7 +5,7 @@ import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 interface IconSeerProps extends SVGIconProps {
-  animation?: 'loading' | 'waiting';
+  animation?: 'idle' | 'loading';
 }
 
 export function IconSeer({animation, ...props}: IconSeerProps) {
@@ -14,35 +14,42 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
   const prefersReducedMotion = useReducedMotion();
 
   if (!prefersReducedMotion) {
-    if (animation === 'waiting') {
+    if (animation === 'loading') {
+      // Pupil continuously slides across the eye and wraps back around,
+      // squashing flat at the wrap point to disguise the reset -- a
+      // continuous "rolling" look rather than an oscillation.
       return (
         <SvgIcon {...props}>
           <Fragment>
             <style>{`
-            @keyframes moveHorizontal {
-              0% { transform: translateX(0); }
-              5%, 40% { transform: translateX(-1.6px); }
-              50%, 95% { transform: translateX(1.6px); }
-              100% { transform: translateX(0); }
+            @keyframes seerRoll {
+              0% { transform: translateX(-1.8px) scaleX(1); }
+              46% { transform: translateX(1.8px) scaleX(1); }
+              50% { transform: translateX(2px) scaleX(0.001); }
+              54% { transform: translateX(-2px) scaleX(0.001); }
+              58% { transform: translateX(-1.8px) scaleX(1); }
+              100% { transform: translateX(-1.8px) scaleX(1); }
             }
 
-            .pupil-waiting {
-              animation: moveHorizontal 4s ease-out infinite;
+            .pupil-loading {
+              transform-box: fill-box;
+              transform-origin: center;
+              animation: seerRoll 4s linear infinite;
             }
           `}</style>
             <path d={commonPath} />
-            <circle className="pupil-waiting" cx="8" cy="9" r="2" />
+            <circle className="pupil-loading" cx="8" cy="9" r="2" />
           </Fragment>
         </SvgIcon>
       );
     }
 
-    if (animation === 'loading') {
+    if (animation === 'idle') {
       return (
         <SvgIcon {...props}>
           <Fragment>
             <path d={commonPath} />
-            <circle className="pupil-loading" r="2">
+            <circle className="pupil-idle" r="2">
               <animateMotion
                 path="M 8 7 A 1 1 0 0 1 8 9 A 1 1 0 0 1 8 7"
                 dur="1s"

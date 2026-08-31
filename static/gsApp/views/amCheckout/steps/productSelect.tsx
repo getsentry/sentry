@@ -123,7 +123,7 @@ export function ProductSelect({
                 ariaRole="checkbox"
                 topDecoration={
                   <Flex align="center" gap="lg">
-                    <IconSeer animation="waiting" size="lg" />
+                    <IconSeer animation="idle" size="lg" />
                     <Heading as="h2">
                       {t('Detect and fix issues faster with our AI agent')}
                     </Heading>
