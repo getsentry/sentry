@@ -586,7 +586,7 @@ export function BackendJsonSubmitForm({
                     case 'choice_mapper': {
                       const choiceValue = fieldApi.state.value as Record<
                         string,
-                        Record<string, unknown>
+                        Record<string, string>
                       >;
                       const fieldLabels = choiceMapperLabels[field.name] ?? {};
                       return (

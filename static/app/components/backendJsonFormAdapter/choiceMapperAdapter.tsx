@@ -37,7 +37,7 @@ interface ChoiceMapperTableProps {
   labels: Record<string, ReactNode>;
   onSave: (value: Record<string, Record<string, unknown>>) => void;
   onUpdate: (value: Record<string, Record<string, unknown>>) => void;
-  value: Record<string, Record<string, unknown>>;
+  value: Record<string, Record<string, string>>;
   disabled?: boolean;
 }
 
