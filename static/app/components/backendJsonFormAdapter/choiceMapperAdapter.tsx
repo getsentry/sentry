@@ -382,7 +382,7 @@ export function ChoiceMapperTable({
  * Transform choice tuples from the backend config into Select options.
  */
 function transformMappedChoices(
-  selector?: {choices?: Array<[string, string]>; placeholder?: string} | unknown
+  selector?: {choices?: Array<[string, string]>} | unknown
 ): Array<{label: string; value: string}> {
   if (!selector || typeof selector !== 'object') {
     return [];

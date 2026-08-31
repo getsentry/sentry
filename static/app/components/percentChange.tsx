@@ -5,7 +5,6 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 interface Props {
   value: number;
-  colorize?: boolean;
   minimumValue?: number;
   preferredPolarity?: Polarity;
 }
@@ -16,7 +15,6 @@ type Rating = 'good' | 'bad' | 'neutral';
 
 export function PercentChange({
   value,
-  colorize = true,
   preferredPolarity = '+',
   minimumValue,
 }: Props) {
@@ -25,7 +23,7 @@ export function PercentChange({
 
   return (
     <NumberContainer>
-      <ColorizedRating rating={colorize ? rating : 'neutral'} data-rating={rating}>
+      <ColorizedRating rating={rating} data-rating={rating}>
         {polarity}
         {formatPercentage(Math.abs(value), 2, {minimumValue})}
       </ColorizedRating>
