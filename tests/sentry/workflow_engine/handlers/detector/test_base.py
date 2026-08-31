@@ -38,7 +38,7 @@ def build_mock_group_evaluation() -> DataConditionGroupEvaluation:
 
 
 def build_mock_occurrence_and_event(
-    handler: BaseDetectorHandler[Any],
+    handler: BaseDetectorHandler[Any, Any],
     value: DataPacketEvaluationType,
     priority: PriorityLevel,
 ) -> tuple[DetectorOccurrence, dict[str, Any]]:
