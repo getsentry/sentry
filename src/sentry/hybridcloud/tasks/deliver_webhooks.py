@@ -70,8 +70,17 @@ worker-slot time a lone thread would spend dominates the burst cost.
 RELEASE_MARGIN = datetime.timedelta(seconds=30)
 """
 How long before its claim's deadline a drain stops delivering and releases the
-unworked tail back to the mailbox. Sized to cover a worst-case delivery wave
-plus the final delete flush, so the release lands while the claim still holds.
+unworked tail back to the mailbox. Covers a worst-case delivery wave (bounded
+by CELL_REQUEST_TIMEOUT for connect and read each) plus the final delete
+flush, so the release lands while the claim still holds.
+"""
+
+CELL_REQUEST_TIMEOUT = 12
+"""
+Connect and read timeout, each, for one delivery request to a cell. Twice this
+must stay under RELEASE_MARGIN, or a request started just ahead of the
+soft-stop carries the drain past its claim's deadline into rows another
+dispatcher may already own.
 """
 
 
@@ -295,7 +304,9 @@ class _MailboxClaim:
         strict-ordering provider would deliver out of order exactly when its
         mailbox is deep.
         """
-        return self.skip_on_failure and self.claimed > MIN_RECORDS_PER_THREAD
+        if not self.skip_on_failure or self.claimed <= MIN_RECORDS_PER_THREAD:
+            return False
+        return options.get("hybridcloud.webhookpayload.worker_threads") > 1
 
     def task_args(self) -> dict[str, Any]:
         """
@@ -347,7 +358,9 @@ class _MailboxClaim:
         Matching the exact `schedule_for` this claim wrote is what makes the
         release safe: a record another claim took carries that claim's timestamp,
         and a record this drain failed and rescheduled carries its backoff — both
-        pass untouched.
+        pass untouched. A record that entered the claim already backing off is
+        the exception: the claim rewrote its schedule (gated claims sweep the
+        whole prefix), so releasing it forfeits what remained of that backoff.
         """
         released = WebhookPayload.objects.filter(
             mailbox_name=self.mailbox_name,
@@ -413,8 +426,15 @@ def _begin_drain(
             .first()
         )
         if head is None:
-            # Head already delivered or discarded; whoever claimed the mailbox
-            # next is delivering the rest.
+            # Whoever claimed the mailbox next is delivering the rest. Every
+            # drain resolves through this read until dispatch sends the claim,
+            # so this is where a lost race shows up.
+            _record_lost_head(
+                payload_id,
+                dispatcher=dispatcher,
+                provider=_provider_from_mailbox(mailbox),
+                log_key="deliver_webhook.potential_race",
+            )
             return None
         mailbox = mailbox if mailbox is not None else head[0]
         deadline = deadline if deadline is not None else head[1]
@@ -544,7 +564,15 @@ def _claim_and_dispatch(
     claim = _claim_mailbox_batch(head_id, mailbox_name, dispatcher=dispatcher)
     if claim is None:
         return DispatchOutcome.NOT_DUE
-    drain_mailbox.delay(**claim.task_args())
+    # Only the arguments workers from the previous deploy bind: an unknown kwarg
+    # is a TypeError the taskbroker discards without retry. The drain recovers
+    # the mailbox and deadline from its head row; the full claim shape
+    # (`task_args`) starts crossing the wire one deploy later.
+    drain_mailbox.delay(
+        payload_id=claim.head_id,
+        claimed_count=claim.claimed,
+        dispatcher=claim.dispatcher,
+    )
     outcome = DispatchOutcome.PARALLEL if claim.threaded else DispatchOutcome.SEQUENTIAL
     _record_dispatch(
         dispatcher=dispatcher,
@@ -915,6 +943,7 @@ def drain_mailbox(
     dispatcher: str | None = None,
     valid_until: float | None = None,
     mailbox: str | None = None,
+    chain_depth: int = 0,
 ) -> None:
     """
     Deliver webhooks from the mailbox that `payload_id` is the head of — in order,
@@ -922,6 +951,7 @@ def drain_mailbox(
 
     The arguments are one claim flattened for the wire (`_MailboxClaim.task_args`);
     each defaults so a rolling deploy can bind drains the previous version sent.
+    `chain_depth` is accepted ahead of drain chaining for the same reason.
     """
     claim = _begin_drain(payload_id, claimed_count, dispatcher, valid_until, mailbox)
     if claim is not None:
@@ -1257,6 +1287,7 @@ def drain_mailbox_parallel(
     dispatcher: str | None = None,
     valid_until: float | None = None,
     mailbox: str | None = None,
+    chain_depth: int = 0,
 ) -> None:
     """
     Transitional alias from when sequential and parallel delivery were separate
@@ -1333,6 +1364,7 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
                 # We need to send the body as raw bytes to avoid interfering with webhook signatures
                 data=payload.request_body.encode("utf-8"),
                 json=False,
+                timeout=CELL_REQUEST_TIMEOUT,
             )
         logger.debug(
             "deliver_webhooks.success",
