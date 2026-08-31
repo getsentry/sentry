@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 function renderWithTracking(ui: React.ReactElement) {
@@ -19,17 +20,52 @@ describe('Button', () => {
     render(<Button variant="primary">Button</Button>);
   });
 
-  it('resolves a responsive size', () => {
-    render(
-      <Fragment>
-        <Button size={{zero: 'xs', md: 'md'}}>Responsive button</Button>
-        <Button size="xs">Extra small button</Button>
-      </Fragment>
-    );
+  it('updates a responsive size when its container is resized', () => {
+    let resizeObserverCallback: ResizeObserverCallback | undefined;
+    const originalResizeObserver = window.ResizeObserver;
+    window.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeObserverCallback = callback;
+      }
 
-    expect(screen.getByRole('button', {name: 'Responsive button'})).toHaveClass(
-      ...screen.getByRole('button', {name: 'Extra small button'}).classList
-    );
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+
+    try {
+      render(
+        <Fragment>
+          <Container containerType="inline-size">
+            <Button size={{zero: 'xs', md: 'md'}}>Responsive button</Button>
+          </Container>
+          <Button size="xs">Extra small button</Button>
+          <Button size="md">Medium button</Button>
+        </Fragment>
+      );
+
+      const responsiveButton = screen.getByRole('button', {name: 'Responsive button'});
+      expect(responsiveButton).toHaveClass(
+        ...screen.getByRole('button', {name: 'Extra small button'}).classList
+      );
+
+      act(() => {
+        resizeObserverCallback?.(
+          [
+            {
+              contentBoxSize: [{inlineSize: 576}],
+            } as ResizeObserverEntry,
+          ],
+          {} as ResizeObserver
+        );
+      });
+
+      expect(responsiveButton).toHaveClass(
+        ...screen.getByRole('button', {name: 'Medium button'}).classList
+      );
+    } finally {
+      window.ResizeObserver = originalResizeObserver;
+    }
   });
 
   it('calls `onClick` callback', async () => {

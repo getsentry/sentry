@@ -2,6 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
+import type {DistributedOmit} from 'type-fest';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -20,11 +21,9 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
 
-type ResolvedLinkButtonProps = LinkButtonProps extends infer Props
-  ? Props extends unknown
-    ? Omit<Props, 'size'> & {size: ButtonSize}
-    : never
-  : never;
+type ResolvedLinkButtonProps = DistributedOmit<LinkButtonProps, 'size'> & {
+  size: ButtonSize;
+};
 
 export function LinkButton({
   disabled,
