@@ -57,7 +57,6 @@ def serialize_organization_mapping_flags(
         enhanced_privacy=org_mapping.enhanced_privacy,
         disable_shared_issues=org_mapping.disable_shared_issues,
         disable_new_visibility_features=org_mapping.disable_new_visibility_features,
-        require_email_verification=org_mapping.require_email_verification,
         disable_member_project_creation=org_mapping.disable_member_project_creation,
         prevent_superuser_access=org_mapping.prevent_superuser_access,
         disable_member_invite=org_mapping.disable_member_invite,
