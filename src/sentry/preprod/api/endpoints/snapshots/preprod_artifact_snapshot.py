@@ -43,8 +43,11 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
 from sentry.preprod.api.models.public.snapshots import (
+    SnapshotApproverResponseDict,
     SnapshotCreateResponseDict,
     SnapshotDetailsResponseDict,
+    SnapshotImageResponseDict,
+    VcsInfoResponseDict,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotApprover,
@@ -64,7 +67,7 @@ from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
 )
-from sentry.preprod.snapshots.image_serialization import ImageDict, build_head_image_dict
+from sentry.preprod.snapshots.image_serialization import build_head_image_dict
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -360,7 +363,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
             ) as span:
                 head_manifest = orjson.loads(raw_manifest)
-                head_images: dict[str, ImageDict] = head_manifest.get("images", {})
+                head_images: dict[str, Any] = head_manifest.get("images", {})
                 head_diff_threshold = head_manifest.get("diff_threshold")
                 set_span_data(span, "image_count", len(head_images))
         except Exception:
@@ -489,12 +492,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             op="preprod.snapshot.serialize_images", name="serialize_head_images"
         ) as span:
             set_span_data(span, "image_count", len(head_images))
-            image_list: list[ImageDict] = [
+            image_list: list[SnapshotImageResponseDict] = [
                 build_head_image_dict(key, metadata, head_diff_threshold)
                 for key, metadata in sorted(head_images.items())
             ]
 
-        images_by_file_name: dict[str, ImageDict] = {
+        images_by_file_name: dict[str, SnapshotImageResponseDict] = {
             img["image_file_name"]: img for img in image_list
         }
 
@@ -610,13 +613,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             op="preprod.snapshot.serialize_response", name="serialize_response_body"
         ) as span:
             set_span_data(span, "image_count", len(image_list))
-            response_data: dict[str, Any] = {
+            response_data: SnapshotDetailsResponseDict = {
                 "head_artifact_id": str(artifact.id),
                 "base_artifact_id": base_artifact_id,
                 "project_id": str(artifact.project_id),
                 "comparison_type": comparison_type,
                 "state": artifact.state,
-                "vcs_info": vcs_info.dict(),
+                "vcs_info": cast(VcsInfoResponseDict, vcs_info.dict()),
                 "app_id": artifact.app_id,
                 "is_selective": snapshot_metrics.is_selective,
                 "images": image_list if comparison_type != "diff" else [],
@@ -639,19 +642,26 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 "comparison_state": derived_status.comparison_state,
                 "approval_status": derived_status.approval_status,
                 "comparison_error_message": derived_status.comparison_error_message,
-                "approvers": [a.dict() for a in approver_list] if approved else [],
+                "approvers": (
+                    [cast(SnapshotApproverResponseDict, a.dict()) for a in approver_list]
+                    if approved
+                    else []
+                ),
             }
 
             if compact:
+                # Compact mode strips images to a subset of keys, producing a shape that
+                # is intentionally looser than the response TypedDict; mutate via a plain
+                # dict view.
+                compact_data = cast(dict[str, Any], response_data)
                 for key in _COMPACT_IMAGE_LIST_KEYS:
-                    response_data[key] = [_strip_to_compact(img) for img in response_data[key]]
+                    compact_data[key] = [_strip_to_compact(img) for img in compact_data[key]]
                 for key in _COMPACT_PAIR_LIST_KEYS:
-                    for pair in response_data[key]:
+                    for pair in compact_data[key]:
                         pair["base_image"] = _strip_to_compact(pair["base_image"])
                         pair["head_image"] = _strip_to_compact(pair["head_image"])
 
-        body = cast(SnapshotDetailsResponseDict, response_data)
-        return Response(body)
+        return Response(response_data)
 
 
 @extend_schema(tags=["Snapshots"])

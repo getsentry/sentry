@@ -1,26 +1,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
-from sentry.preprod.snapshots.image_serialization import (
-    ImageDict,
-    bare_image_dict,
-    build_base_image_dict,
+from sentry.preprod.api.models.public.snapshots import (
+    SnapshotDiffPairResponseDict,
+    SnapshotImageResponseDict,
 )
+from sentry.preprod.snapshots.image_serialization import bare_image_dict, build_base_image_dict
 
 
 @dataclass
 class CategorizedComparison:
-    changed: list[ImageDict] = field(default_factory=list)
-    added: list[ImageDict] = field(default_factory=list)
-    removed: list[ImageDict] = field(default_factory=list)
-    unchanged: list[ImageDict] = field(default_factory=list)
-    renamed: list[ImageDict] = field(default_factory=list)
-    errored: list[ImageDict] = field(default_factory=list)
-    skipped: list[ImageDict] = field(default_factory=list)
+    changed: list[SnapshotDiffPairResponseDict] = field(default_factory=list)
+    added: list[SnapshotImageResponseDict] = field(default_factory=list)
+    removed: list[SnapshotImageResponseDict] = field(default_factory=list)
+    unchanged: list[SnapshotImageResponseDict] = field(default_factory=list)
+    renamed: list[SnapshotDiffPairResponseDict] = field(default_factory=list)
+    errored: list[SnapshotDiffPairResponseDict] = field(default_factory=list)
+    skipped: list[SnapshotImageResponseDict] = field(default_factory=list)
 
 
-def _base_image_from_comparison(name: str, img: ImageDict) -> ImageDict:
+def _base_image_from_comparison(name: str, img: dict[str, Any]) -> SnapshotImageResponseDict:
     return bare_image_dict(
         key=img.get("base_hash") or "",
         display_name=name,
@@ -31,11 +32,11 @@ def _base_image_from_comparison(name: str, img: ImageDict) -> ImageDict:
 
 
 def _diff_pair(
-    base_image: ImageDict,
-    head_image: ImageDict,
+    base_image: SnapshotImageResponseDict,
+    head_image: SnapshotImageResponseDict,
     diff_image_key: str | None = None,
     diff: float | None = None,
-) -> ImageDict:
+) -> SnapshotDiffPairResponseDict:
     return {
         "base_image": base_image,
         "head_image": head_image,
@@ -45,15 +46,15 @@ def _diff_pair(
 
 
 def categorize_comparison_images(
-    comparison_images: dict[str, ImageDict],
-    head_images_by_file_name: dict[str, ImageDict],
-    base_images: dict[str, ImageDict] | None,
+    comparison_images: dict[str, dict[str, Any]],
+    head_images_by_file_name: dict[str, SnapshotImageResponseDict],
+    base_images: dict[str, dict[str, Any]] | None,
 ) -> CategorizedComparison:
     result = CategorizedComparison()
 
     base_images = base_images or {}
 
-    def get_base_image(key: str | None) -> ImageDict | None:
+    def get_base_image(key: str | None) -> SnapshotImageResponseDict | None:
         if key is None:
             return None
         meta = base_images.get(key)

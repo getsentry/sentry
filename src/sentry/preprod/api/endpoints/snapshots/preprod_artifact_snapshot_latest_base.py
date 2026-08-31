@@ -32,7 +32,10 @@ from sentry.preprod.analytics import PreprodArtifactApiGetLatestBaseSnapshotEven
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
 )
-from sentry.preprod.api.models.public.snapshots import LatestBaseSnapshotResponseDict
+from sentry.preprod.api.models.public.snapshots import (
+    LatestBaseSnapshotImageResponseDict,
+    LatestBaseSnapshotResponseDict,
+)
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.image_serialization import build_head_image_dict
 
@@ -217,13 +220,16 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         image_base_url = f"/api/0/projects/{organization.slug}/{artifact.project.slug}/files/images"
 
-        images = []
+        images: list[LatestBaseSnapshotImageResponseDict] = []
         for key, metadata in sorted(manifest_images.items()):
-            img = build_head_image_dict(key, metadata, manifest_diff_threshold)
+            img = cast(
+                LatestBaseSnapshotImageResponseDict,
+                build_head_image_dict(key, metadata, manifest_diff_threshold),
+            )
             img["image_url"] = f"{image_base_url}/{metadata['content_hash']}/"
             images.append(img)
 
-        response_data: dict[str, Any] = {
+        response_data: LatestBaseSnapshotResponseDict = {
             "head_artifact_id": str(artifact.id),
             "project_id": str(artifact.project_id),
             "project_slug": artifact.project.slug,
@@ -246,13 +252,10 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             }
 
         if compact:
-            response_data["images"] = [
+            compact_data = cast(dict[str, Any], response_data)
+            compact_data["images"] = [
                 {**_strip_to_compact(img), "image_url": img["image_url"]}
-                for img in response_data["images"]
+                for img in compact_data["images"]
             ]
 
-        # cast() sanctioned: response_data is a hand-built dict[str, Any] whose
-        # shape mirrors LatestBaseSnapshotResponseDict. The TypedDict and the
-        # builder are kept in sync by hand at the source of truth.
-        body = cast(LatestBaseSnapshotResponseDict, response_data)
-        return Response(body)
+        return Response(response_data)
