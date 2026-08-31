@@ -64,16 +64,34 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
     return aggregation_value
 
 
-def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float:
+def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float | None:
     aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
     # In some cases Snuba can return a None value for an aggregation. This means
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
     # the update in the future.
     if aggregation_value is None:
-        aggregation_value = 0
+        return 0.0
 
-    return aggregation_value
+    if isinstance(aggregation_value, bool):
+        # bool is a subclass of int; treat explicitly before numeric checks.
+        return float(aggregation_value)
+
+    if isinstance(aggregation_value, (int, float)):
+        return float(aggregation_value)
+
+    # Snuba occasionally returns empty/non-numeric strings for max/min-style
+    # aggregates when no matching rows exist. Skip those updates rather than
+    # crashing in math.isnan() or coercing to 0 (which can false-trigger alerts).
+    if isinstance(aggregation_value, str):
+        if aggregation_value.strip() == "":
+            return None
+        try:
+            return float(aggregation_value)
+        except ValueError:
+            return None
+
+    return None
 
 
 def get_eap_aggregation_value(
@@ -187,6 +205,8 @@ def get_comparison_aggregation_value(
 ) -> float | None:
     # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
     aggregation_value = get_aggregation_value_helper(subscription_update)
+    if aggregation_value is None:
+        return None
     if comparison_delta is None:
         return aggregation_value
 
