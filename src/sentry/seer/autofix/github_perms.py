@@ -112,6 +112,14 @@ def _repo_name_from_tool_call(call: ToolCall) -> str | None:
     return repo_name if isinstance(repo_name, str) and repo_name else None
 
 
+def failed_tool_calls(blocks: Iterable[MemoryBlock]) -> list[ToolCall]:
+    """Tool calls in ``blocks`` whose matching tool link is marked ``is_error``."""
+    calls: list[ToolCall] = []
+    for block in blocks:
+        calls.extend(_failed_tool_calls(block))
+    return calls
+
+
 def repos_with_failed_tool_calls(blocks: Iterable[MemoryBlock]) -> set[str]:
     """Repo names that a failed tool call in the given blocks was made against.
 
