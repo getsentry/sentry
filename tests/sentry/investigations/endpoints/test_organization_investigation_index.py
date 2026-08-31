@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -159,7 +160,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert projection.data["notebookRevision"] == 0
 
         request_id = str(uuid4())
-        command = {
+        command: dict[str, Any] = {
             "requestId": request_id,
             "expectedWorkflowVersion": 1,
             "command": {
