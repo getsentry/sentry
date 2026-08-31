@@ -297,7 +297,6 @@ function InvestigationsPage() {
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
-                    columnSortBy={[]}
                     grid={{
                       renderHeadCell: column => column.name,
                       renderBodyCell,
