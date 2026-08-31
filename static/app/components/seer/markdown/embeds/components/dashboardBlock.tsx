@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -10,7 +9,10 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {LocalWidgetLegendSelectionState} from 'sentry/components/seer/markdown/embeds/localWidgetLegendSelectionState';
+import {
+  LocalWidgetLegendSelectionState,
+  useLocalWidgetLegendSelectionState,
+} from 'sentry/components/seer/markdown/embeds/localWidgetLegendSelectionState';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconDashboard} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -115,14 +117,10 @@ function DashboardPreview({
   const selection = hasSavedPageFilters(dashboard)
     ? getSavedFiltersAsPageFilters(dashboard)
     : currentSelection;
-  const widgetLegendState = useMemo(
-    () =>
-      new LocalWidgetLegendSelectionState({
-        dashboard,
-        organization,
-      }),
-    [dashboard, organization]
-  );
+  const widgetLegendState = useLocalWidgetLegendSelectionState({
+    dashboard,
+    organization,
+  });
 
   if (dashboard.widgets.length === 0) {
     return <Text variant="muted">{t('This dashboard has no widgets.')}</Text>;

@@ -9,6 +9,6 @@ navigation history, or shareable state.
 - Disable widget actions that the embed does not handle locally.
 - Explicit resource links may navigate away from the embed.
 
-For dashboard widget legends, use `LocalWidgetLegendSelectionState` instead of
+For dashboard widget legends, use `useLocalWidgetLegendSelectionState` instead of
 `WidgetLegendSelectionState`. When introducing a new interactive widget embed, add coverage
 that verifies its interaction state stays local to the embed.

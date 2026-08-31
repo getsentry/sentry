@@ -1,3 +1,4 @@
+import {useMemo, useReducer} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
@@ -11,10 +12,15 @@ type Props = {
   organization: Organization;
 };
 
+type StateProps = Props & {
+  onChange: () => void;
+};
+
 export class LocalWidgetLegendSelectionState extends WidgetLegendSelectionState {
   private readonly selectionByWidget = new Map<string, LegendSelection>();
+  private readonly onChange: () => void;
 
-  constructor({dashboard, organization}: Props) {
+  constructor({dashboard, onChange, organization}: StateProps) {
     super({
       dashboard,
       organization,
@@ -28,10 +34,12 @@ export class LocalWidgetLegendSelectionState extends WidgetLegendSelectionState 
       } as Location,
       navigate: () => {},
     });
+    this.onChange = onChange;
   }
 
   override setWidgetSelectionState(selected: LegendSelection, widget: Widget) {
     this.selectionByWidget.set(this.getWidgetKey(widget), selected);
+    this.onChange();
   }
 
   override getWidgetSelectionState(widget: Widget): LegendSelection {
@@ -44,4 +52,18 @@ export class LocalWidgetLegendSelectionState extends WidgetLegendSelectionState 
   private getWidgetKey(widget: Widget): string {
     return widget.id ?? widget.tempId ?? widget.title;
   }
+}
+
+export function useLocalWidgetLegendSelectionState({dashboard, organization}: Props) {
+  const [, rerender] = useReducer(count => count + 1, 0);
+
+  return useMemo(
+    () =>
+      new LocalWidgetLegendSelectionState({
+        dashboard,
+        onChange: rerender,
+        organization,
+      }),
+    [dashboard, organization]
+  );
 }
