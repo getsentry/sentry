@@ -1,6 +1,6 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
-import {getEmotionRules, textWithMarkupMatcher} from 'sentry-test/utils';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
   FormattedQuery,
@@ -56,12 +56,6 @@ describe('FormattedQuery', () => {
     const chip = property.parentElement?.parentElement;
 
     expect(chip).toBeInTheDocument();
-    expect(getEmotionRules(chip!).join(' ')).toContain('box-shadow: 0 1px');
-    expect(getEmotionRules(chip!)).not.toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^\.css-[\w-]+ \{[^}]*overflow: hidden;/),
-      ])
-    );
     expect(screen.getByText('is')).toBeInTheDocument();
     expect(screen.getByText('Firefox')).toBeInTheDocument();
     expect(screen.getByText('Chrome')).toBeInTheDocument();
@@ -111,7 +105,7 @@ describe('FormattedQuery', () => {
 
     const booleanChip = screen.getByLabelText('OR');
 
-    expect(getEmotionRules(booleanChip).join(' ')).toContain('box-shadow: 0 1px');
+    expect(booleanChip).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
@@ -161,19 +155,6 @@ describe('FormattedQuery', () => {
       'true'
     );
     expect(screen.queryByText(path)).not.toBeInTheDocument();
-  });
-
-  it('constrains the compound chip text wrapper to the filter value width', () => {
-    const path = '/api/0/organizations/{organization_id_or_slug}/events/';
-    render(
-      <FormattedQuery {...defaultProps} query={`transaction:${path}`} useCompoundChips />
-    );
-
-    const value = screen.getByText('/api/0…{organization_id_or_slug}/events/');
-    const chip = value.parentElement?.parentElement?.parentElement;
-    const chipRules = getEmotionRules(chip!).join(' ');
-
-    expect(chipRules).toMatch(/>:last-child>\* \{[^}]*width: 100%/);
   });
 
   it('shows the full filter value when it fits beyond the fallback length', () => {

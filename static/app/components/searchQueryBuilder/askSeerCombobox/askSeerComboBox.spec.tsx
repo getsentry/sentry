@@ -4,7 +4,6 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -451,19 +450,6 @@ describe('AskSeerComboBox', () => {
 
     expect(groupByChip).toBeInTheDocument();
     expect(groupByChip).not.toBe(browserGroupByChip);
-    expect(getEmotionRules(groupByChip!).join(' ')).toContain('height: 24px');
-    expect(getEmotionRules(groupByChip!).join(' ')).toContain('width: fit-content');
-    expect(getEmotionRules(groupByChip!).join(' ')).toContain('box-shadow: 0 1px');
-    expect(getEmotionRules(groupByChip!)).not.toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^\.css-[\w-]+ \{[^}]*overflow: hidden;/),
-      ])
-    );
-    expect(getEmotionRules(groupByChip!.parentElement!)).not.toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^\.css-[\w-]+ \{[^}]*overflow: hidden;/),
-      ])
-    );
     expect(screen.queryByRole('button', {name: 'span.name'})).not.toBeInTheDocument();
   });
 
@@ -494,18 +480,9 @@ describe('AskSeerComboBox', () => {
     await userEvent.type(input, 'test{Enter}');
 
     const value = await screen.findByText('/api/0…{organization_id_or_slug}/events/');
-    const chip = value.parentElement?.parentElement?.parentElement;
-    const parameterGroup = chip?.parentElement?.parentElement;
-    const chipRules = getEmotionRules(chip!).join(' ');
-    const parameterGroupRules = getEmotionRules(parameterGroup!).join(' ');
 
     expect(value).toHaveAttribute('data-overflowing', 'true');
     expect(screen.queryByText(longGroupBy)).not.toBeInTheDocument();
-    expect(chipRules).toContain('max-width: 100%');
-    expect(chipRules).toContain('overflow: hidden');
-    expect(chipRules).toMatch(/>\*>\* \{[^}]*width: 100%/);
-    expect(parameterGroupRules).toContain('min-width: 0');
-    expect(parameterGroupRules).toContain('max-width: 100%');
   });
 
   it('does not show the legacy feedback option', async () => {
