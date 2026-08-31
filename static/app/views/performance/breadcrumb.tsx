@@ -1,49 +1,15 @@
 import type {Location} from 'history';
 
+import type {LinkProps} from '@sentry/scraps/link';
+
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {DOMAIN_VIEW_BASE_TITLE} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
-type Props = {
-  location: Location;
-  organization: Organization;
-  transaction?: {
-    name: string;
-    project: string;
-  };
-};
-
-export function getCrumbs(props: Props) {
-  const crumbs: Crumb[] = [];
-  const {organization, location, transaction} = props;
-
-  if (!organization.features.includes('insights-to-dashboards-ui-rollout')) {
-    crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-    });
-  }
-
-  crumbs.push(
-    ...getTabCrumbs({
-      location,
-      organization,
-      transaction,
-    })
-  );
-
-  return crumbs;
-}
-
-export const getTabCrumbs = ({
-  location,
-  organization,
-  transaction,
-  view,
-}: {
+type TabCrumbProps = {
   location: Location;
   organization: Organization;
   transaction?: {
@@ -51,26 +17,48 @@ export const getTabCrumbs = ({
     project: string;
   };
   view?: DomainView;
-}) => {
-  const crumbs: Crumb[] = [];
+};
 
+/**
+ * A parent crumb of the transaction summary. Labels are plain strings so the
+ * same list can feed the legacy `Breadcrumbs` and the typed `BreadcrumbList`.
+ */
+export interface TransactionSummaryParentCrumb {
+  label: string;
+  to: LinkProps['to'];
+}
+
+/**
+ * The crumbs leading up to the transaction summary. Excludes the transaction
+ * itself — that is the page title. Only linked crumbs are produced, since an
+ * unlinked parent is not worth a slot.
+ */
+export function getTransactionSummaryParentCrumbs({
+  location,
+  organization,
+  transaction,
+  view,
+}: TabCrumbProps): TransactionSummaryParentCrumb[] {
   if (!transaction) {
-    return crumbs;
+    return [];
   }
 
-  const routeQuery = {
-    organization,
-    transaction: transaction.name,
-    projectID: transaction.project,
-    query: location.query,
-    view,
-  };
+  return [
+    {
+      label: t('Transaction Summary'),
+      to: transactionSummaryRouteWithQuery({
+        organization,
+        transaction: transaction.name,
+        projectID: transaction.project,
+        query: location.query,
+        view,
+      }),
+    },
+  ];
+}
 
-  crumbs.push({
-    to: transactionSummaryRouteWithQuery(routeQuery),
-    label: t('Transaction Summary'),
+export const getTabCrumbs = (props: TabCrumbProps): Crumb[] =>
+  getTransactionSummaryParentCrumbs(props).map(crumb => ({
+    ...crumb,
     preservePageFilters: true,
-  });
-
-  return crumbs;
-};
+  }));
