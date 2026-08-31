@@ -1,10 +1,13 @@
-import {Fragment} from 'react';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
+const theme = ThemeFixture();
 
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
@@ -20,52 +23,51 @@ describe('Button', () => {
     render(<Button variant="primary">Button</Button>);
   });
 
-  it('updates a responsive size when its container is resized', () => {
-    let resizeObserverCallback: ResizeObserverCallback | undefined;
-    const originalResizeObserver = window.ResizeObserver;
-    window.ResizeObserver = class {
-      constructor(callback: ResizeObserverCallback) {
-        resizeObserverCallback = callback;
-      }
+  describe('responsive sizing', () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let originalResizeObserver: typeof window.ResizeObserver;
 
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    };
+    beforeEach(() => {
+      originalResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class {
+        constructor(callback: ResizeObserverCallback) {
+          resizeCallback = callback;
+        }
 
-    try {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
+    });
+
+    afterEach(() => {
+      window.ResizeObserver = originalResizeObserver;
+      jest.restoreAllMocks();
+    });
+
+    it('updates its size at container breakpoints', () => {
       render(
-        <Fragment>
-          <Container containerType="inline-size">
-            <Button size={{zero: 'xs', md: 'md'}}>Responsive button</Button>
-          </Container>
-          <Button size="xs">Extra small button</Button>
-          <Button size="md">Medium button</Button>
-        </Fragment>
+        <Container containerType="inline-size">
+          <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
+        </Container>
       );
 
-      const responsiveButton = screen.getByRole('button', {name: 'Responsive button'});
-      expect(responsiveButton).toHaveClass(
-        ...screen.getByRole('button', {name: 'Extra small button'}).classList
+      const button = screen.getByRole('button', {name: 'Button'});
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.xs.height}`
       );
 
       act(() => {
-        resizeObserverCallback?.(
-          [
-            {
-              contentBoxSize: [{inlineSize: 576}],
-            } as ResizeObserverEntry,
-          ],
+        resizeCallback?.(
+          [{contentBoxSize: [{inlineSize: 800}]} as unknown as ResizeObserverEntry],
           {} as ResizeObserver
         );
       });
-
-      expect(responsiveButton).toHaveClass(
-        ...screen.getByRole('button', {name: 'Medium button'}).classList
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.sm.height}`
       );
-    } finally {
-      window.ResizeObserver = originalResizeObserver;
-    }
+    });
   });
 
   it('calls `onClick` callback', async () => {
