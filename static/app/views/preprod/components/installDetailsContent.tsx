@@ -234,9 +234,9 @@ export function InstallDetailsContent({
             <Flex
               gap="md"
               width="100%"
-         direction={{zero: 'column', sm: 'row'}}
+              direction={{zero: 'column', sm: 'row'}}
               justify="center"
-           align={{zero: 'stretch', sm: 'center'}}
+              align={{zero: 'stretch', sm: 'center'}}
             >
               <Flex width={{sm: '100%', xl: 'auto'}}>
                 <Button
@@ -253,7 +253,7 @@ export function InstallDetailsContent({
                   alignSelf={{sm: 'stretch', xl: 'center'}}
                   width={{sm: '100%', xl: 'auto'}}
                 >
-                  <Container display={{zero: 'block', sm: 'none'}}  width="100%">
+                  <Container display={{zero: 'block', sm: 'none'}} width="100%">
                     <Button
                       onClick={() =>
                         copy(installDetails.install_url!, {
