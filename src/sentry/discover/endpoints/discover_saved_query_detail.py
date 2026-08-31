@@ -94,7 +94,8 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         self.check_object_permissions(request, query)
 
         return Response(
-            serialize(query, serializer=DiscoverSavedQueryModelSerializer()), status=200
+            serialize(query, request.user, serializer=DiscoverSavedQueryModelSerializer()),
+            status=200,
         )
 
     @extend_schema(
