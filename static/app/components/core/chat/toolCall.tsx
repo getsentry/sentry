@@ -1,4 +1,5 @@
 import type {MouseEvent, ReactNode} from 'react';
+import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -6,10 +7,51 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {IconSpan} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
+
+// A tool call's input/output can be a one-line chip or a multi-hundred-line JSON dump — capping
+// it keeps a single verbose call from pushing every later message off screen, while the reveal
+// stays one click away.
+const DETAIL_CLIP_HEIGHT = 180;
+
+// `ClippedBox` defaults to a vertical `padding` (and a `Show More` fade sized for full-page
+// content); both fight the compact `Input:`/`Output:` boxes here, so they are zeroed and the fade
+// swapped for a plain-text link sized to match.
+const DetailClippedBox = styled(ClippedBox)`
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+`;
+
+function DetailClipFade({showMoreButton}: {showMoreButton: ReactNode}) {
+  return (
+    <Flex justify="start" paddingTop="xs">
+      {showMoreButton}
+    </Flex>
+  );
+}
+
+/**
+ * Caps an `Input:`/`Output:` box's content at {@link DETAIL_CLIP_HEIGHT} with a click-to-expand
+ * affordance, rather than letting one verbose call (a large JSON body, a long result) push
+ * everything after it off screen. A short value never shows the affordance at all — `ClippedBox`
+ * only clips once the content actually exceeds the cap.
+ */
+function ClippedDetail({children}: {children: ReactNode}) {
+  return (
+    <DetailClippedBox
+      clipHeight={DETAIL_CLIP_HEIGHT}
+      buttonProps={{size: 'xs', variant: 'transparent'}}
+      clipFade={DetailClipFade}
+    >
+      {children}
+    </DetailClippedBox>
+  );
+}
 
 /**
  * A compact chip referencing an entity a tool call produced or acted on (e.g.
@@ -167,7 +209,7 @@ function InputBox({input}: {input: ReactNode}) {
         <Text size="sm" variant="secondary" monospace bold>
           {t('Input:')}
         </Text>
-        {input}
+        <ClippedDetail>{input}</ClippedDetail>
       </Flex>
     </Container>
   );
@@ -181,7 +223,7 @@ function OutputBox({output}: {output: ReactNode}) {
         <Text size="sm" variant="secondary" monospace bold>
           {t('Output:')}
         </Text>
-        {output}
+        <ClippedDetail>{output}</ClippedDetail>
       </Flex>
     </Container>
   );
