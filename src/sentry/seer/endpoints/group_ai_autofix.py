@@ -49,7 +49,6 @@ from sentry.seer.autofix.autofix_agent import (
     NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
-    get_iterations,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -61,7 +60,7 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import (
-    get_out_of_date_github_permissions,
+    get_blocked_pr_iteration_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -425,6 +424,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     organization_id=group.organization.id,
                     feedback=feedback,
                     run_state=run_state,
+                    bypass=True,
                 )
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
@@ -573,10 +573,16 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         run = get_seer_run(state.run_id, group.organization)
         blocks = [block.dict() for block in state.blocks]
-        iteration_blocks = [
-            block for iteration in get_iterations(state) for block in iteration.blocks
-        ]
-        missing_perms = get_out_of_date_github_permissions(group.organization, iteration_blocks)
+        queued_items = peek_queued_autofix_feedback(state.run_id)
+
+        missing_perms = get_blocked_pr_iteration_permissions(
+            group.organization,
+            state,
+            has_actionable_feedback=any(
+                item.feedback.source.should_consume(state).ok for item in queued_items
+            ),
+        )
+
         warnings = [
             GithubAppPermissionsWarning(
                 repo_name=repo_name,
@@ -585,9 +591,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             ).dict()
             for repo_name, info in missing_perms.items()
         ]
-        queued_feedback = [
-            item.feedback.dict() for item in peek_queued_autofix_feedback(state.run_id)
-        ]
+        queued_feedback = [item.feedback.dict() for item in queued_items]
         return Response(
             {
                 "autofix": {

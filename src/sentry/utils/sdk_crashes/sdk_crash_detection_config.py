@@ -266,10 +266,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # The fetch instrumentation wraps globalThis.fetch as a pass-through.
                 # When a user's fetch call fails (e.g., "Failed to fetch" network errors),
                 # the SDK wrapper frame appears in the stack but is not the cause.
+                # The `fetch` wrapper rethrows synchronously, while the `<anonymous>` promise
+                # rejection handler rethrows the error asynchronously (surfacing via
+                # onunhandledrejection), so both pass-through frames must be ignored.
                 # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
                 FunctionAndModulePattern(
                     module_pattern="@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    function_pattern="<anonymous>",
                 ),
                 # The Supabase integration wraps PostgREST queries and captures errors from
                 # Supabase responses via captureException. The Error is constructed inside SDK
