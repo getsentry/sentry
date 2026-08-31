@@ -11,6 +11,7 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -122,18 +123,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
             <InfiniteTable.HeaderCell
               key={key}
               handleSortClick={
-                sortKey
-                  ? () =>
-                      onSortClick({
-                        field: sortKey,
-                        kind:
-                          sortKey === sort.field
-                            ? sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc'
-                            : 'desc',
-                      })
-                  : undefined
+                sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
               }
               sort={sort?.field === sortKey ? sort.kind : undefined}
             >
