@@ -41,8 +41,8 @@ class TestCategorizeComparisonImagesUnexpectedStatus:
         assert len(caplog.records) == 1
         record = caplog.records[0]
         assert record.getMessage() == "preprod.snapshot.unexpected_comparison_status"
-        assert record.status == "bogus"
-        assert record.image_file_name == "weird.png"
+        assert record.__dict__["status"] == "bogus"
+        assert record.__dict__["image_file_name"] == "weird.png"
 
 
 class TestCategorizeComparisonImagesAllStatuses:
