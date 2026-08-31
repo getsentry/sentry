@@ -109,6 +109,19 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 <Button size="zero">Zero</Button>
 ```
 
+The `size` prop is responsive. Bare breakpoint keys respond to the nearest query
+container, while `screen:`-prefixed keys respond to the viewport. Drag the demo's
+resize handle to see the container-responsive button change size.
+
+<Storybook.Demo resizable>
+  <Button size={{zero: 'xs', md: 'md'}}>Container responsive</Button>
+  <Button size={{'screen:xs': 'xs', 'screen:md': 'md'}}>Viewport responsive</Button>
+</Storybook.Demo>
+```jsx
+<Button size={{zero: 'xs', md: 'md'}}>Container responsive</Button>
+<Button size={{'screen:xs': 'xs', 'screen:md': 'md'}}>Viewport responsive</Button>
+```
+
 ## Icons
 
 Buttons support an optional leading icon.

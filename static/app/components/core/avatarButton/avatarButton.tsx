@@ -7,12 +7,15 @@ import color from 'color';
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
+
+type AvatarButtonSize = 'xs' | 'sm' | 'md';
 
 interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
   'aria-label': string;
   avatar: BaseAvatarProps;
-  size?: Exclude<ButtonProps['size'], 'zero'>;
+  size?: Responsive<AvatarButtonSize>;
 }
 
 export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButtonProps) {
@@ -41,7 +44,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
   });
 
   const contextSize = useSizeContext();
-  const size = explicitSize ?? contextSize ?? 'md';
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
 
   if (avatarDefinition.type === 'letter') {
     const avatarChonk = color(avatarDefinition.configuration.background)
@@ -49,7 +52,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
       .hex();
 
     return (
-      <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} resolvedSize={size} chonk={avatarChonk}>
         <AvatarContainer size={size} padded={false} chonk={avatarChonk}>
           <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         </AvatarContainer>
@@ -58,7 +61,12 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
   }
 
   return (
-    <StyledAvatarButton {...props} size={size} chonk={imageResult?.chonk}>
+    <StyledAvatarButton
+      {...props}
+      size={size}
+      resolvedSize={size}
+      chonk={imageResult?.chonk}
+    >
       <AvatarContainer
         size={size}
         padded={imageResult?.style === 'padded'}
@@ -71,7 +79,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
 }
 
 const AvatarContainer = styled('div')<{
-  size: NonNullable<ButtonProps['size']>;
+  size: AvatarButtonSize;
   chonk?: string;
   padded?: boolean;
 }>`
@@ -115,17 +123,20 @@ const AVATAR_BUTTON_ELEVATION: Record<string, string> = {
   xs: '1px',
 };
 
-const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
+const StyledAvatarButton = styled(Button)<{
+  chonk: string | undefined;
+  resolvedSize: AvatarButtonSize;
+}>`
   padding: 0;
-  width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
-  min-width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
+  width: ${p => p.theme.form[p.resolvedSize].height};
+  min-width: ${p => p.theme.form[p.resolvedSize].height};
 
   ${p =>
     p.chonk &&
     css`
       &&::before {
         background: ${p.chonk};
-        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size ?? 'md'] ?? '2px'} 0 0px ${p.chonk};
+        box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.resolvedSize] ?? '2px'} 0 0px ${p.chonk};
       }
       &&::after {
         border-color: ${p.chonk};

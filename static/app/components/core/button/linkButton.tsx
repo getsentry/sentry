@@ -3,7 +3,7 @@ import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,10 +15,16 @@ import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
+import type {ButtonSize, DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
+
+type ResolvedLinkButtonProps = LinkButtonProps extends infer Props
+  ? Props extends unknown
+    ? Omit<Props, 'size'> & {size: ButtonSize}
+    : never
+  : never;
 
 export function LinkButton({
   disabled,
@@ -27,7 +33,7 @@ export function LinkButton({
   ...props
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
-  const size = explicitSize ?? contextSize ?? 'md';
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
   const {hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
@@ -94,7 +100,7 @@ const StyledLinkButton = styled(
     size: _size,
     shapeVariant: _shapeVariant,
     ...props
-  }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
+  }: ResolvedLinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
     const {handleClick} = useClickTracking(props, 'link');
 
     if ('to' in props && props.to) {
@@ -157,15 +163,12 @@ const StyledLinkButton = styled(
       prop === 'variant' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`
+)<ResolvedLinkButtonProps>`
   ${p => getLinkButtonStyles(p, p.theme)}
 `;
 
 const getLinkButtonStyles = (
-  p: Omit<LinkButtonProps, 'size'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: NonNullable<LinkButtonProps['size']>;
-  },
+  p: ResolvedLinkButtonProps & {shapeVariant: 'rectangular' | 'square'},
   theme: Theme
 ) => {
   const buttonStyles = getButtonStyles({...p, theme, shapeVariant: p.shapeVariant});

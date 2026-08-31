@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -15,6 +17,19 @@ function renderWithTracking(ui: React.ReactElement) {
 describe('Button', () => {
   it('renders', () => {
     render(<Button variant="primary">Button</Button>);
+  });
+
+  it('resolves a responsive size', () => {
+    render(
+      <Fragment>
+        <Button size={{zero: 'xs', md: 'md'}}>Responsive button</Button>
+        <Button size="xs">Extra small button</Button>
+      </Fragment>
+    );
+
+    expect(screen.getByRole('button', {name: 'Responsive button'})).toHaveClass(
+      ...screen.getByRole('button', {name: 'Extra small button'}).classList
+    );
   });
 
   it('calls `onClick` callback', async () => {
