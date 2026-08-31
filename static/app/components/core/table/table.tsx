@@ -267,7 +267,7 @@ function Cell(props: ComponentProps<typeof TableCell>) {
   return <TableCell role="cell" {...props} />;
 }
 
-interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
+interface HeadCellProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'align'> {
   column?: string;
   /**
    * Identifies the column by position, for callers that render their head cells

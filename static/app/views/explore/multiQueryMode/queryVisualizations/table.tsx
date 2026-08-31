@@ -129,7 +129,7 @@ function AggregatesTable({
               const direction = sortBys.find(s => s.field === field)?.kind;
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                <TableHeadCell justify={align} key={i} isFirst={i === 0} sort={direction}>
                   {label}
                 </TableHeadCell>
               );
@@ -232,7 +232,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                <TableHeadCell justify={align} key={i} isFirst={i === 0} sort={direction}>
                   {label}
                 </TableHeadCell>
               );
