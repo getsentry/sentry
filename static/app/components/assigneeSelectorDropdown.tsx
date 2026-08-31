@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type Ref} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -553,7 +553,7 @@ export function AssigneeSelectorDropdown({
     return options;
   };
 
-  const makeTrigger = ({children: _, ...props}: TriggerProps) => {
+  const makeTrigger = ({children: _, ref, ...props}: TriggerProps) => {
     return (
       <Fragment>
         {loading && (
@@ -575,9 +575,12 @@ export function AssigneeSelectorDropdown({
                 suggestedActors={getSuggestedAssignees()}
               />
             }
+            ref={ref as Ref<HTMLButtonElement>}
             size="zero"
             variant="secondary"
-          />
+          >
+            {null}
+          </Button>
         )}
       </Fragment>
     );
