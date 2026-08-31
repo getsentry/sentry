@@ -2,6 +2,39 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ThinkingBlock} from '@sentry/scraps/chat';
 
+// `ClippedBox` measures content via `ResizeObserver`; this mock reports a fixed height
+// synchronously (as the real observer would on first layout) so a clip decision is available
+// immediately, without waiting on a real browser layout pass.
+function mockContentHeight(height: number) {
+  const previous = window.ResizeObserver;
+
+  class MockResizeObserver {
+    callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+    observe(element: Element) {
+      this.callback(
+        [
+          {
+            target: element,
+            // @ts-expect-error partial mock: only `blockSize` is read.
+            contentBoxSize: [{blockSize: height}],
+          },
+        ],
+        this
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+
+  window.ResizeObserver = MockResizeObserver;
+  return () => {
+    window.ResizeObserver = previous;
+  };
+}
+
 describe('ThinkingBlock', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
@@ -148,5 +181,40 @@ describe('ThinkingBlock', () => {
     );
 
     expect(screen.getByText('1.5min')).toBeInTheDocument();
+  });
+
+  it('does not clip short thinking content, and shows no expand affordance', () => {
+    jest.useRealTimers();
+    const restore = mockContentHeight(20);
+
+    render(
+      <ThinkingBlock title="Thinking..." startTime={new Date()}>
+        <div>Short thought</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('Short thought')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    restore();
+  });
+
+  it('clips long thinking content behind a click-to-expand affordance', async () => {
+    jest.useRealTimers();
+    const restore = mockContentHeight(500);
+
+    render(
+      <ThinkingBlock title="Thinking..." startTime={new Date()}>
+        <div>A very long chain of reasoning</div>
+      </ThinkingBlock>
+    );
+
+    const expandButton = screen.getByRole('button', {name: 'Show More'});
+    expect(expandButton).toBeInTheDocument();
+    // The content itself still renders (it is clipped via `max-height`, not removed).
+    expect(screen.getByText('A very long chain of reasoning')).toBeInTheDocument();
+
+    await userEvent.click(expandButton);
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+    restore();
   });
 });
