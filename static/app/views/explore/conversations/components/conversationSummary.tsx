@@ -539,14 +539,10 @@ export function ConversationAggregatesBar({
   nodes,
   conversationId,
   isLoading,
-  lastMessageDate,
-  onErrorsLinkClick,
 }: {
   conversationId: string;
   nodes: AITraceSpanNode[];
   isLoading?: boolean;
-  lastMessageDate?: Date | null;
-  onErrorsLinkClick?: () => void;
 }) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -571,7 +567,6 @@ export function ConversationAggregatesBar({
         value={<Count value={aggregates.errorCount} />}
         to={aggregates.errorCount > 0 ? errorsUrl : undefined}
         isLoading={isLoading}
-        onClick={aggregates.errorCount > 0 ? onErrorsLinkClick : undefined}
       />
       <AggregateItem
         label={t('Tokens')}
@@ -594,21 +589,6 @@ export function ConversationAggregatesBar({
         }
         isLoading={isLoading}
       />
-      {lastMessageDate !== undefined && (
-        <AggregateItem
-          label={t('Last message')}
-          value={
-            lastMessageDate ? (
-              <TimeSince date={lastMessageDate} />
-            ) : (
-              <Text size="sm" variant="muted">
-                {'—'}
-              </Text>
-            )
-          }
-          isLoading={isLoading}
-        />
-      )}
       {isLoading ? (
         <Flex align="center" gap="xs" flexShrink={0}>
           <Text size="sm" bold variant="muted">
@@ -678,12 +658,10 @@ function AggregateItem({
   value,
   to,
   isLoading,
-  onClick,
 }: {
   label: string;
   value: React.ReactNode;
   isLoading?: boolean;
-  onClick?: () => void;
   to?: string;
 }) {
   const isInteractive = !!to && !isLoading;
@@ -704,11 +682,7 @@ function AggregateItem({
   );
 
   if (isInteractive) {
-    return (
-      <StyledLink to={to} onClick={onClick}>
-        {content}
-      </StyledLink>
-    );
+    return <StyledLink to={to}>{content}</StyledLink>;
   }
 
   return content;
