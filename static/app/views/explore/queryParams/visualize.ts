@@ -105,7 +105,6 @@ export class VisualizeFunction extends Visualize {
     yAxis,
   }: {
     chartType?: ChartType;
-    internalExpression?: string;
     visible?: boolean;
     yAxis?: string;
   }): VisualizeFunction {

@@ -46,13 +46,11 @@ interface GetSimilarEventsUrlArgs {
   projectIds: number[];
   queryString: string;
   selection: PageFilters;
-  mode?: Mode;
   table?: GetExploreUrlArgs['table'];
 }
 
 export function getSimilarEventsUrl({
   queryString,
-  mode,
   table,
   organization,
   projectIds,
@@ -60,7 +58,7 @@ export function getSimilarEventsUrl({
 }: GetSimilarEventsUrlArgs) {
   return getExploreUrl({
     organization,
-    mode: mode ?? Mode.SAMPLES,
+    mode: Mode.SAMPLES,
     query: queryString,
     table,
     selection: {

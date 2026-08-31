@@ -90,12 +90,6 @@ describe('useTraces', () => {
     const {result} = renderHookWithProviders(useTracesQuery, {
       ...context,
       initialProps: {
-        datetime: {
-          end: null,
-          period: '3d',
-          start: null,
-          utc: null,
-        },
         limit: 10,
         query: 'foo:bar',
       },
