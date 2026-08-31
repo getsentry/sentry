@@ -8,8 +8,8 @@ import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatState
 import type {
   SeerExplorerResponse,
   SeerExplorerRunId,
+  Block,
 } from 'sentry/views/seerExplorer/types';
-import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
   makeSeerExplorerQueryKey,

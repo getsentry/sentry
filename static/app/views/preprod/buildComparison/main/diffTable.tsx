@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -74,11 +75,37 @@ export const DiffTableWithColumns = styled(SimpleTable)`
   border-right: 0px;
 `;
 
-export const DiffTableHeaderRow = styled(SimpleTable.HeaderRow)`
+const DiffTableHeaderRow = styled(SimpleTable.HeaderRow)`
   border-radius: 0;
   border-left: 0px;
   border-right: 0px;
 `;
+
+export function DiffTableHeader({
+  headers,
+  onSort,
+  sort,
+}: {
+  headers: ReadonlyArray<{key: string; label: React.ReactNode}>;
+  onSort: (sort: DiffTableSort) => void;
+  sort: DiffTableSort | undefined;
+}) {
+  return (
+    <DiffTableHeaderRow>
+      {headers.map(header => (
+        <SimpleTable.HeaderCell
+          key={header.key}
+          handleSortClick={
+            header.key ? () => onSort(getNextSort(header.key, sort, 'asc')) : undefined
+          }
+          sort={sort?.field === header.key ? sort.kind : undefined}
+        >
+          {header.label}
+        </SimpleTable.HeaderCell>
+      ))}
+    </DiffTableHeaderRow>
+  );
+}
 
 export const DiffTableChangeAmountCell = styled(SimpleTable.RowCell)<{
   changeType: DiffType;
