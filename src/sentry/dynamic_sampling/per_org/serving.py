@@ -9,13 +9,13 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     ServingSource,
     emit_serving_source,
 )
+from sentry.dynamic_sampling.tasks.helpers import recalibrate_orgs as legacy_cache
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
     get_transactions_resampling_rates,
 )
-from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import get_adjusted_factor
 
 
 def _serving_source(org_id: int) -> ServingSource:
@@ -67,10 +67,41 @@ def is_recalibration_factor_served_per_org(org_id: int) -> bool:
     return _serving_source(org_id) is ServingSource.PER_ORG
 
 
+# Tags the read of the factor an organization was served by the other pipeline.
+CARRY_OVER_SOURCE = "carry_over"
+
+
+def _recalibration_factor(org_id: int, source: ServingSource, *, read_by: str) -> float:
+    """The recalibration factor in effect for an organization.
+
+    The cache of the pipeline that serves the organization is authoritative. That cache is
+    empty for the first pass after serving switches pipelines, and in that window the
+    pipeline that handed over still holds the factor the organization was last served, so
+    that factor is carried over as the base to continue from. Both caches expire after the
+    same short TTL, so outside such a switch only the serving pipeline holds a factor.
+
+    Without the carry-over the correction would restart from 1.0 on every switch. The
+    organization would then sample at its uncorrected rate and need several passes to climb
+    back to the factor it already had.
+    """
+    if source is ServingSource.PER_ORG:
+        factor = cache.read_adjusted_factor(org_id, read_by)
+        if factor is None:
+            factor = legacy_cache.read_adjusted_factor(org_id, CARRY_OVER_SOURCE)
+    else:
+        factor = legacy_cache.read_adjusted_factor(org_id, read_by)
+        if factor is None:
+            factor = cache.read_adjusted_factor(org_id, CARRY_OVER_SOURCE)
+
+    return 1.0 if factor is None else factor
+
+
 def get_recalibration_factor(org_id: int) -> float:
     source = _serving_source(org_id)
     emit_serving_source(ServedValue.RECALIBRATION_FACTOR, source)
-    if source is ServingSource.PER_ORG:
-        return cache.get_adjusted_factor(org_id, source="serving")
+    return _recalibration_factor(org_id, source, read_by="serving")
 
-    return get_adjusted_factor(org_id, source="serving")
+
+def get_previous_recalibration_factor(org_id: int) -> float:
+    """The factor a recalibration pass applies its correction on top of."""
+    return _recalibration_factor(org_id, _serving_source(org_id), read_by="task")
