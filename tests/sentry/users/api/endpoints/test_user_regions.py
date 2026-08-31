@@ -12,12 +12,8 @@ st = Cell("acme", 3, "https://acme.testserver")
 cell_config = (us, de, st)
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
-us_locality = Locality(
-    name="us", cells=frozenset(["us"]), category=RegionCategory.MULTI_TENANT, new_org_cell="us"
-)
-de_locality = Locality(
-    name="de", cells=frozenset(["de"]), category=RegionCategory.MULTI_TENANT, new_org_cell="de"
-)
+us_locality = Locality(name="us", cells=frozenset(["us"]), new_org_cell="us")
+de_locality = Locality(name="de", cells=frozenset(["de"]), new_org_cell="de")
 st_locality = Locality(
     name="acme",
     cells=frozenset(["acme"]),

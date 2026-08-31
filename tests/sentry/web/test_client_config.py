@@ -71,12 +71,8 @@ def create_test_localities(
         cell.Locality(
             name=c.name,
             cells=frozenset([c.name]),
-            category=(
-                cell.RegionCategory.SINGLE_TENANT
-                if c.name in single_tenants
-                else cell.RegionCategory.MULTI_TENANT
-            ),
             new_org_cell=c.name,
+            visible=c.name not in single_tenants,
         )
         for c in cells
     )
