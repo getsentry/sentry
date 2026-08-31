@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+from sentry.utils import json
 from sentry.workflow_engine.types import DataConditionResult
 
 from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
@@ -20,6 +21,7 @@ ConditionEvaluationData: TypeAlias = Any
 
 @dataclass(frozen=True)
 class DataConditionEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    comparison: str
     condition_id: int
     condition_type: str
     input_type: str
@@ -57,12 +59,18 @@ class DataConditionEvaluation(
     condition: DataCondition
 
     def _build_artifact(
-        self, *, triggered: bool, error: str | None
+        self,
+        *,
+        triggered: bool,
+        error: str | None,
     ) -> DataConditionEvaluationArtifact:
         safe_input = self.data if isinstance(self.data, (bool, int, float, str)) else None
+        comparison = json.dumps(self.condition.comparison, sort_keys=True)
+
         return DataConditionEvaluationArtifact(
             triggered=triggered,
             error=error,
+            comparison=comparison,
             condition_id=self.condition.id,
             condition_type=self.condition.type,
             input_type=type(self.data).__name__,
