@@ -8,12 +8,9 @@ resources:
 
 import * as Storybook from 'sentry/stories';
 
-import {
-  BasicDemo,
-  EmbedRegistry,
-  LinkifyDemo,
-  StreamingEmbedDemo,
-} from './__stories__/components';
+import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
+import {EmbedStory} from './__stories__/embedStory';
+import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
 
@@ -39,17 +36,95 @@ Renders standard markdown with Seer's component overrides and opinionated embeds
 
 Embeds are rich widgets rendered inline from [Markdoc-style tag syntax](https://markdoc.dev/). The Seer agent produces these tags; the frontend resolves them through a **registry + schema** system.
 
-### Syntax
+Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
 
-```
-{% timestamp %}{"value":"2025-07-15T14:30:00Z","format":"relative"}{% /timestamp %}
-```
+### timestamp
 
-The JSON body between the opening and closing tags is the embed's data payload. It is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
+<EmbedStory name="timestamp" />
 
-### Registry
+### docs
 
-<EmbedRegistry />
+<EmbedStory name="docs" />
+
+### dashboard
+
+<EmbedStory name="dashboard" />
+
+### dsn
+
+<EmbedStory name="dsn" />
+
+### user
+
+<EmbedStory name="user" />
+
+### issue
+
+<EmbedStory name="issue" />
+
+### issues
+
+<EmbedStory name="issues" />
+
+### replay
+
+<ReplayEmbedStory />
+
+### chart
+
+<EmbedStory name="chart" />
+
+### autofix
+
+<EmbedStory name="autofix" />
+
+### alert
+
+<EmbedStory name="alert" />
+
+### monitor
+
+<EmbedStory name="monitor" />
+
+### savedIssueView
+
+<EmbedStory name="savedIssueView" />
+
+### savedQuery
+
+<EmbedStory name="savedQuery" />
+
+### trace
+
+<EmbedStory name="trace" />
+
+### profile
+
+<EmbedStory name="profile" />
+
+### issuesQuery
+
+<EmbedStory name="issuesQuery" />
+
+### errorsQuery
+
+<EmbedStory name="errorsQuery" />
+
+### spansQuery
+
+<EmbedStory name="spansQuery" />
+
+### logsQuery
+
+<EmbedStory name="logsQuery" />
+
+### replaysQuery
+
+<EmbedStory name="replaysQuery" />
+
+### metricsQuery
+
+<EmbedStory name="metricsQuery" />
 
 ## Embed Architecture
 

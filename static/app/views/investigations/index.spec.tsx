@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
 import {
@@ -18,10 +19,8 @@ import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
 } from 'sentry/views/investigations/api';
-import type {
-  InvestigationDetail,
-  InvestigationListItem,
-} from 'sentry/views/investigations/types';
+import {InvestigationListItemFixture as InvestigationFixture} from 'sentry/views/investigations/fixtures';
+import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const organization = OrganizationFixture({
@@ -51,31 +50,11 @@ function renderView({
   return {...result, queryClient};
 }
 
-function InvestigationFixture(
-  overrides: Partial<InvestigationListItem> = {}
-): InvestigationListItem {
-  return {
-    id: '1',
-    title: 'Database latency investigation',
-    status: 'active',
-    sourceType: 'manual',
-    createdBy: '1',
-    dateCreated: '2026-08-13T20:00:00Z',
-    dateUpdated: '2026-08-13T21:00:00Z',
-    version: 3,
-    blockCount: 4,
-    isFavorited: false,
-    summary: null,
-    summaryDescription: null,
-    titleGeneration: {status: null},
-    ...overrides,
-  };
-}
-
 describe('Explore Investigations', () => {
   beforeEach(() => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    ConfigStore.set('customerDomain', null);
   });
 
   it('shows the standard feature-disabled state without the feature', () => {
@@ -110,6 +89,11 @@ describe('Explore Investigations', () => {
   });
 
   it('renders loading and populated table states without unsupported controls', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
@@ -120,7 +104,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/1/');
+    ).toHaveAttribute('href', '/explore/investigations/1/');
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -252,7 +236,7 @@ describe('Explore Investigations', () => {
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/seer/investigation/1/'
+      '/organizations/org-slug/explore/investigations/1/'
     );
     expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
       unrelatedDetail
@@ -434,7 +418,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/investigation/1/`
+        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(

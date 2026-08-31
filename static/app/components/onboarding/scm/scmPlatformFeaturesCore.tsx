@@ -7,10 +7,10 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select, type StylesConfig} from '@sentry/scraps/select';
+import {createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -401,9 +401,9 @@ export function ScmPlatformFeaturesCore({
     >
       <Flex
         justify="between"
-        align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+        align={{zero: 'start', xl: 'center'}}
         gap="md"
-        direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+        direction={{zero: 'column', xl: 'row'}}
       >
         <Flex align="center" gap="sm">
           <Flex flexShrink={0}>
@@ -425,8 +425,8 @@ export function ScmPlatformFeaturesCore({
         ) : (
           <Grid
             columns={{
-              'screen:xs': '1fr',
-              'screen:md':
+              zero: '1fr',
+              '3xl':
                 resolvedPlatforms.length < 3
                   ? 'repeat(2, minmax(0, 1fr))'
                   : 'repeat(3, minmax(0, 1fr))',

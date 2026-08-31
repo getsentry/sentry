@@ -20,6 +20,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
@@ -55,7 +56,16 @@ export function KeySettings({
   const api = useApi();
 
   const {keyId, projectId} = params;
-  const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
+  const apiEndpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: projectId,
+        keyId,
+      },
+    }
+  );
 
   const mutationOptions = {
     mutationFn: (fieldData: Partial<ProjectKey>) =>
@@ -74,7 +84,13 @@ export function KeySettings({
 
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/keys/${keyId}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectId,
+            keyId,
+          },
+        }),
         {
           method: 'DELETE',
         }

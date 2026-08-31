@@ -148,8 +148,7 @@ class SpendLimitsEditModal extends Component<Props, State> {
         trackOnDemandBudgetAnalytics(
           organization,
           this.state.currentOnDemandBudget,
-          newOnDemandBudget,
-          'ondemand_budget_modal'
+          newOnDemandBudget
         );
 
         if (this.getTotalBudget() > 0) {

@@ -93,6 +93,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
             {
                 "changelog": EXAMPLE_PAYLOAD["changelog"]["items"][0],
                 "issue": EXAMPLE_PAYLOAD["issue"],
+                "provider_event_time": "2023-01-01T00:00:00.000+0000",
             },
         )
 

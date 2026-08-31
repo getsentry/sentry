@@ -120,25 +120,39 @@ export default Storybook.story('SimpleTable', story => {
   });
 
   story('Empty states', () => {
+    const emptyStateHeader = (
+      <SimpleTable.HeaderRow>
+        {headers.map(header => (
+          <SimpleTable.HeaderCell key={header.key}>{header.label}</SimpleTable.HeaderCell>
+        ))}
+      </SimpleTable.HeaderRow>
+    );
+
     return (
       <Fragment>
         <p>
-          Use the <Storybook.JSXNode name="SimpleTable.Empty" /> component for empty
-          states
+          Use <Storybook.JSXNode name="SimpleTable.Empty" /> for empty states,{' '}
+          <Storybook.JSXNode name="SimpleTable.Loading" /> while a request is in flight,
+          and <Storybook.JSXNode name="SimpleTable.Error" /> when one fails.{' '}
+          <Storybook.JSXNode name="SimpleTable.Error" /> takes the same props as{' '}
+          <Storybook.JSXNode name="LoadingError" />, so pass{' '}
+          <Storybook.JSXProperty name="onRetry" value={Function} /> to offer a retry.
         </p>
 
-        <SimpleTableWithColumns
-          header={
-            <SimpleTable.HeaderRow>
-              {headers.map(header => (
-                <SimpleTable.HeaderCell key={header.key}>
-                  {header.label}
-                </SimpleTable.HeaderCell>
-              ))}
-            </SimpleTable.HeaderRow>
-          }
-        >
+        <SimpleTableWithColumns header={emptyStateHeader}>
           <SimpleTable.Empty>No data</SimpleTable.Empty>
+        </SimpleTableWithColumns>
+
+        <br />
+
+        <SimpleTableWithColumns header={emptyStateHeader}>
+          <SimpleTable.Loading />
+        </SimpleTableWithColumns>
+
+        <br />
+
+        <SimpleTableWithColumns header={emptyStateHeader}>
+          <SimpleTable.Error message="Failed to load automations." onRetry={() => {}} />
         </SimpleTableWithColumns>
       </Fragment>
     );

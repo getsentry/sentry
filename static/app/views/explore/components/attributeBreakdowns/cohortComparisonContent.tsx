@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import moment from 'moment-timezone';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getUserTimezone} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
@@ -47,7 +47,7 @@ export function CohortComparison({
   const {breakdownQuery} = useQueryParams();
   const setQueryParams = useSetQueryParams();
   const searchQuery = breakdownQuery ?? '';
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 200);
+  const [debouncedSearchQuery] = useDebouncedValue(searchQuery, {wait: 200});
 
   const {data, isLoading, error} = useAttributeBreakdownComparison({
     aggregateFunction: yAxis,

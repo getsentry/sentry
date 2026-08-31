@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
@@ -44,7 +45,9 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
     # (provider, external_id) unique index, so an external_id-only lookup does a
     # sequential scan of the whole table on every inbound Jira Server webhook.
     integration = integration_service.get_integration(
-        provider=IntegrationProviderSlug.JIRA_SERVER.value, external_id=unvalidated["id"]
+        provider=IntegrationProviderSlug.JIRA_SERVER.value,
+        external_id=unvalidated["id"],
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if not integration:
         raise ValueError("Could not find integration for token")

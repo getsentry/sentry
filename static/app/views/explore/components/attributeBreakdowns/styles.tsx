@@ -260,7 +260,6 @@ function Chart({
     <BaseChart
       ref={chartRef}
       autoHeightResize
-      isGroupedByDate={false}
       tooltip={tooltip}
       grid={{
         left: 2,
