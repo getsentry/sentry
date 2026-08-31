@@ -4,6 +4,8 @@ import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
 type Option = SelectOption<SelectKey>;
 
+const DEFAULT_CACHE_KEY = 'cacheKey';
+
 /**
  * Cache designed for the `option` prop of a `CompactSelect`. Accepts
  * an array of `Option` objects. Returns a list of all `Option` objects
@@ -19,30 +21,29 @@ type Option = SelectOption<SelectKey>;
  * cache is returned on next call of the hook.
  */
 export function useCompactSelectOptionsCache<T extends Option>(
-  options: T[],
-  cacheKey = 'cacheKey'
+  options: T[]
 ): {
   clear: () => void;
   options: T[];
 } {
-  const cacheMap = useRef({[cacheKey]: new Map()});
-  if (!cacheMap.current[cacheKey]) {
-    cacheMap.current[cacheKey] = new Map();
+  const cacheMap = useRef({[DEFAULT_CACHE_KEY]: new Map()});
+  if (!cacheMap.current[DEFAULT_CACHE_KEY]) {
+    cacheMap.current[DEFAULT_CACHE_KEY] = new Map();
   }
 
   const clearCache = useCallback(() => {
-    cacheMap.current[cacheKey]?.clear();
-  }, [cacheKey]);
+    cacheMap.current[DEFAULT_CACHE_KEY]?.clear();
+  }, []);
 
   const outgoingOptions = useMemo(() => {
     options.forEach(option => {
-      cacheMap.current[cacheKey]?.set(option.value, option);
+      cacheMap.current[DEFAULT_CACHE_KEY]?.set(option.value, option);
     });
 
-    return Array.from(cacheMap.current[cacheKey]?.values() ?? []).sort(
+    return Array.from(cacheMap.current[DEFAULT_CACHE_KEY]?.values() ?? []).sort(
       alphabeticalCompare
     );
-  }, [options, cacheKey]);
+  }, [options]);
 
   return {options: outgoingOptions, clear: clearCache};
 }
