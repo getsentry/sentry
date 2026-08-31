@@ -447,7 +447,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: SeerExplorerRunId | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
+    (newRunId: SeerExplorerRunId | null) => {
       if (newRunId === runId) {
         return;
       }
@@ -463,32 +463,20 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
         });
       }
-
-      onSuccess?.();
     },
     [orgSlug, queryClient, runId, dispatch]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
-  const startNewSession = useCallback(
-    ({onSuccess}: {onSuccess?: () => void} = {}) => {
-      switchToRun(null, {onSuccess});
-    },
-    [switchToRun]
-  );
+  const startNewSession = useCallback(() => {
+    switchToRun(null);
+  }, [switchToRun]);
 
   const sendMessage = useCallback(
-    (
-      query: string,
-      explicitInsertIndex?: number,
-      explicitRunId?: SeerExplorerRunId | null
-    ) => {
+    (query: string, explicitInsertIndex?: number) => {
       if (!orgSlug) {
         return;
       }
-
-      // explicitRunId: undefined = use current runId, null = force new run, number = use that run
-      const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
       // The snapshot is the source of location for both branches below, so take it
       // once here rather than only on the structured path.
@@ -525,7 +513,7 @@ export const useSeerExplorer = () => {
         organization,
       });
 
-      if (effectiveRunId === null) {
+      if (runId === null) {
         trackAnalytics('seer.explorer.session_created', {
           referrer: getPageReferrer(),
           surface: 'global_panel',
@@ -556,7 +544,7 @@ export const useSeerExplorer = () => {
       sendMessageMutate({
         query,
         insertIndex: newInsertIndex,
-        runId: effectiveRunId,
+        runId,
         orgSlug,
         pageName,
         pageLocation: snapshot?.location,
