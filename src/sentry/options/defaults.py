@@ -306,6 +306,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "api.permission-scope-audit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
 register(
     "api.project-transfer.rate-limit-overrides",
@@ -1286,13 +1293,6 @@ register(
 # 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Deterministic % of organizations that use Seer's one-shot title generator.
-register(
-    "ai-monitoring.conversation-title-generation.oneshot-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2419,10 +2419,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the recalibration step within the per-org pipeline,
-# keyed on organization id. Recalibration writes the factor that serving applies,
-# so it rolls out separately from the rest of the pipeline. An org must be in both
-# this group and dynamic-sampling.per_org.rollout-rate for its factor to be updated.
+# No longer read. Kept registered until the options automator stops setting it.
 register(
     "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
@@ -2631,6 +2628,15 @@ register(
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
+register(
+    "hybridcloud.webhookpayload.shed-inbound",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -2776,6 +2782,27 @@ register(
     type=Int,
     default=6,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
+# Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
+# sentry-options-automator.
+register(
+    "crons.check_accept_monitor_checkin.timeout_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Bound how long the crons ingest consumer waits on seat/quota acceptance when
+# the timeout rollout selects the check-in. On timeout the check-in is accepted
+# (fail-open) so a slow quotas backend cannot stall the consumer. Set to 0 to
+# disable the timeout wrapper even for selected traffic.
+register(
+    "crons.check_accept_monitor_checkin.timeout_sec",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 

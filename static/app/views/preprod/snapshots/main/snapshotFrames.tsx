@@ -1,5 +1,4 @@
-import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Stack} from '@sentry/scraps/layout';

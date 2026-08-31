@@ -444,6 +444,31 @@ class TestGroupOwners(TestCase):
         assert user3_owner.context["commitId"] == 3
 
     @patch("sentry.tasks.groupowner.get_event_file_committers")
+    def test_select_preferred_owners_by_score(self, patched_committers: MagicMock) -> None:
+        users = [self.create_user() for _ in range(4)]
+        scores = [2, 8, 9, 10]
+        patched_committers.return_value = [
+            {
+                "commits": [(MagicMock(id=index), score)],
+                "author": {"id": user.id},
+            }
+            for index, (user, score) in enumerate(zip(users, scores, strict=True))
+        ]
+
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_frames=get_frame_paths(self.event),
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+
+        owner_ids = set(
+            GroupOwner.objects.filter(group=self.event.group).values_list("user_id", flat=True)
+        )
+        assert owner_ids == {users[2].id, users[3].id}
+
+    @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_low_suspect_committer_score(self, patched_committers: MagicMock) -> None:
         self.user = self.create_user()
         mock_commit = MagicMock(id=1)

@@ -8,11 +8,13 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -59,16 +61,18 @@ function HeaderCell({
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
   const navigate = useNavigate();
-  const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const newSort =
-      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    const nextSort = getNextSort(sortKey, sort ?? undefined, 'asc');
     navigate({
       pathname: location.pathname,
-      query: {...location.query, sort: newSort, cursor: undefined},
+      query: {
+        ...location.query,
+        sort: encodeSort(nextSort),
+        cursor: undefined,
+      },
     });
   };
 
