@@ -5,6 +5,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.urls import reverse
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -22,6 +23,7 @@ from sentry.http import get_server_hostname
 from sentry.models.organization import Organization
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.auth import (
+    clear_active_org,
     get_org_redirect_url,
     get_pending_2fa_user,
     has_user_registration,
@@ -45,10 +47,23 @@ class AuthConfigResponse(TypedDict):
 
 
 @control_silo_endpoint
+class AuthConfigClearOrganizationEndpoint(Endpoint):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    owner = ApiOwner.FOUNDATIONS
+    permission_classes = ()
+
+    @extend_schema(
+        operation_id="Clear active organization from auth session",
+        responses={204: None},
+    )
+    def post(self, request: Request) -> Response:
+        clear_active_org(request)
+        return Response(status=204)
+
+
+@control_silo_endpoint
 class AuthConfigEndpoint(Endpoint, OrganizationMixin):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.FOUNDATIONS
     # Disable authentication and permission requirements.
     permission_classes = ()

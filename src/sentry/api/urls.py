@@ -730,7 +730,7 @@ from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_2fa import AuthTwoFactorChallengeEndpoint, AuthTwoFactorEndpoint
-from .endpoints.auth_config import AuthConfigEndpoint
+from .endpoints.auth_config import AuthConfigClearOrganizationEndpoint, AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
@@ -1082,6 +1082,11 @@ AUTH_URLS = [
         r"^config/$",
         AuthConfigEndpoint.as_view(),
         name="sentry-api-0-auth-config",
+    ),
+    re_path(
+        r"^config/clear-organization/$",
+        AuthConfigClearOrganizationEndpoint.as_view(),
+        name="sentry-api-0-auth-config-clear-organization",
     ),
     re_path(
         r"^login/$",
