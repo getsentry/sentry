@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -48,7 +49,13 @@ function FingerprintRulesForm({
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
-          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+          if (
+            error instanceof RequestError &&
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            )
+          ) {
             return;
           }
           addErrorMessage(t('Unable to save changes.'));
@@ -146,7 +153,13 @@ function StackTraceRulesForm({
         })
         .catch((error: unknown) => {
           // Surface API validation errors (e.g. invalid rule syntax) inline.
-          if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+          if (
+            error instanceof RequestError &&
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            )
+          ) {
             return;
           }
           addErrorMessage(t('Unable to save changes.'));

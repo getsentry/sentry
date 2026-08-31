@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {LoadingError} from 'sentry/components/loadingError';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
@@ -188,12 +187,10 @@ function OrganizationFeatureFlagsChangeTracking() {
         }
       >
         {isError && (
-          <SimpleTable.Empty>
-            <LoadingError
-              message={t('Failed to load secrets and providers for the organization.')}
-              onRetry={refetchSecretList}
-            />
-          </SimpleTable.Empty>
+          <SimpleTable.Error
+            message={t('Failed to load secrets and providers for the organization.')}
+            onRetry={refetchSecretList}
+          />
         )}
         {!isError && isPending && <SimpleTable.Loading />}
         {!isError && !isPending && !secretList?.data?.length && (

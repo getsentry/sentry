@@ -263,6 +263,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "auth.email-verification-at-signup.sso-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -298,6 +304,13 @@ register(
     "api.rate-limit.org-create",
     default=5,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "api.permission-scope-audit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
@@ -369,7 +382,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# Idempotency guard for self-chaining tasks (e.g. merge_groups, unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
     "taskworker.selfchain_idempotency.enabled",
@@ -984,7 +997,7 @@ register(
 )
 
 
-# Refresh Bundle Indexes reported as used by symbolicator
+# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
@@ -1284,13 +1297,6 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Deterministic % of organizations that use Seer's one-shot title generator.
-register(
-    "ai-monitoring.conversation-title-generation.oneshot-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1362,6 +1368,12 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.action_log.dedicated_outbox_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -2407,10 +2419,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the recalibration step within the per-org pipeline,
-# keyed on organization id. Recalibration writes the factor that serving applies,
-# so it rolls out separately from the rest of the pipeline. An org must be in both
-# this group and dynamic-sampling.per_org.rollout-rate for its factor to be updated.
+# No longer read. Kept registered until the options automator stops setting it.
 register(
     "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
@@ -2618,6 +2627,15 @@ register(
     "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
+register(
+    "hybridcloud.webhookpayload.shed-inbound",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(

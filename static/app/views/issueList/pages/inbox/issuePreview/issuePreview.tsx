@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -18,8 +18,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ProgressState, type Group} from 'sentry/types/group';
-import {getMessage, getTitle} from 'sentry/utils/events';
+import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,6 +53,7 @@ import {
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
+import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -68,6 +70,27 @@ function useMarkPreviewedGroupSeen(group: Group | undefined) {
   }, [groupId, markGroupSeen]);
 }
 
+function useTrackPreviewedGroup(group: Group | undefined) {
+  const organization = useOrganization();
+  const lastTrackedGroupId = useRef<string | null>(null);
+  const [assignmentFilter] = useAssignmentFilter();
+
+  useEffect(() => {
+    if (!group || lastTrackedGroupId.current === group.id) {
+      return;
+    }
+
+    lastTrackedGroupId.current = group.id;
+    trackAnalytics('issue_inbox.issue_viewed', {
+      organization,
+      ...getAnalyticsDataForGroup(group),
+      assignment_filter: assignmentFilter,
+      progress: group.derivedData?.progress,
+      last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
+    });
+  }, [assignmentFilter, group, organization]);
+}
+
 export function IssuePreview({groupId}: IssuePreviewProps) {
   const {data: group, isPending, isError} = useGroup({groupId});
   const organization = useOrganization();
@@ -76,8 +99,13 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
+  const issueDetailsLocation = {
+    pathname: issueDetailsUrl,
+    query: {referrer: 'inbox'},
+  };
 
   useMarkPreviewedGroupSeen(group);
+  useTrackPreviewedGroup(group);
 
   return (
     <AnalyticsArea name="issue_inbox" overrideParent>
@@ -91,9 +119,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
-          {group && group.derivedData?.progress !== ProgressState.FIX_APPLIED && (
-            <OpenIssueButton group={group} to={issueDetailsUrl} />
-          )}
+          {group && <OpenIssueButton group={group} to={issueDetailsLocation} />}
         </Flex>
       </Container>
       <Container
@@ -133,10 +159,18 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
+  const issueDetailsLocation = {
+    pathname: issueDetailsUrl,
+    query: {referrer: 'inbox'},
+  };
   function openSeerDrawer(seerDrawerAction?: string) {
     navigate({
       pathname: issueDetailsUrl,
-      query: {seerDrawer: 'true', seerDrawerAction},
+      query: {
+        ...issueDetailsLocation.query,
+        seerDrawer: 'true',
+        seerDrawerAction,
+      },
     });
   }
 
@@ -155,7 +189,7 @@ function IssuePreviewContent() {
                   delay={1000}
                 >
                   <TitleLink
-                    to={issueDetailsUrl}
+                    to={issueDetailsLocation}
                     analyticsEventKey="issue_inbox.open_issue_clicked"
                     analyticsEventName="Issue Inbox: Open Issue Clicked"
                     analyticsParams={{
@@ -203,12 +237,9 @@ function IssuePreviewContent() {
         gap="md"
       >
         <IssuePreviewActions
-          autofix={previewSeer.autofix}
           group={group}
           project={project}
           disabled={disableActions}
-          isLoading={previewSeer.isLoading}
-          shouldShowSeerActions={previewSeer.shouldShowSeerActions}
           onContinueInSeer={() => openSeerDrawer()}
           onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
         />

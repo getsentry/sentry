@@ -103,14 +103,14 @@ describe('AIContentRenderer', () => {
 
   it('renders collapsible XML tags with tag name label', () => {
     const text = '<thinking>\nsome thought\n</thinking>';
-    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+    render(<AIContentRenderer text={text} inline />);
 
     expect(screen.getByText('<thinking>')).toBeInTheDocument();
   });
 
   it('renders nested collapsible XML with hierarchy', () => {
     const text = '<outer>\n<inner>nested content</inner>\n</outer>';
-    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+    render(<AIContentRenderer text={text} inline />);
 
     expect(screen.getByText('<outer>')).toBeInTheDocument();
     expect(screen.getByText('<inner>')).toBeInTheDocument();
@@ -134,7 +134,7 @@ describe('AIContentRenderer', () => {
 
   it('collapses generic XML tags by default', () => {
     const text = '<thinking>\nhidden thought\n</thinking>';
-    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+    render(<AIContentRenderer text={text} inline />);
 
     expect(screen.getByText('<thinking>').closest('details')).not.toHaveAttribute('open');
   });
@@ -143,9 +143,17 @@ describe('AIContentRenderer', () => {
     'expands the %s tag by default',
     tagName => {
       const text = `<${tagName}>\nhello there\n</${tagName}>`;
-      render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+      render(<AIContentRenderer text={text} inline />);
 
       expect(screen.getByText(`<${tagName}>`).closest('details')).toHaveAttribute('open');
     }
   );
+
+  it('renders Seer-style embed tags as plaintext via default Markdown', () => {
+    const embed = '{% issue %}{"id":"PROJ-1"}{% /issue %}';
+    const text = `Before ${embed} after`;
+    const {container} = render(<AIContentRenderer text={text} inline />);
+
+    expect(container).toHaveTextContent(text);
+  });
 });

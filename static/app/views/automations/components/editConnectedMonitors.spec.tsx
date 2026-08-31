@@ -42,7 +42,7 @@ describe('EditConnectedMonitors', () => {
   });
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project, otherProject]);
 

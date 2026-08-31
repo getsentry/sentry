@@ -15,8 +15,11 @@ import {clearIndicators} from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {IssuePreview} from './issuePreview';
+
+jest.mock('sentry/utils/analytics');
 
 describe('IssuePreview', () => {
   const organization = OrganizationFixture({features: ['gen-ai-features']});
@@ -261,6 +264,7 @@ describe('IssuePreview', () => {
       `/organizations/${organization.slug}/issues/${group.id}/`
     );
     expect(router.location.query).toEqual({
+      referrer: 'inbox',
       seerDrawer: 'true',
       seerDrawerAction: 'retry_code_changes',
     });
@@ -349,7 +353,7 @@ describe('IssuePreview', () => {
     expect(resolveButton).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/${group.id}/`
+      `/organizations/${organization.slug}/issues/${group.id}/?referrer=inbox`
     );
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
 
@@ -360,6 +364,10 @@ describe('IssuePreview', () => {
       expect.objectContaining({
         data: {status: 'resolved', statusDetails: {}, substatus: null},
       })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_inbox.resolve_clicked',
+      expect.objectContaining({action_type: GroupStatus.RESOLVED})
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Unresolve'}));

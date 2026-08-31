@@ -206,7 +206,7 @@ SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 SENTRY_SCM_REDIS_CLUSTER = "default"
-# Ephemeral dedup markers for self-chaining tasks (merge_groups / unmerge).
+# Ephemeral dedup markers for self-chaining tasks (e.g. merge_groups, unmerge).
 SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
@@ -438,7 +438,7 @@ TEMPLATES = [
     }
 ]
 
-SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
+SENTRY_HYBRIDCLOUD_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
     "CELL": ["sentry.CellOutbox"],
 }
@@ -1203,10 +1203,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer.code_review:sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
         # Run once a day at 04:00 UTC, off-peak.
         "schedule": crontab("0", "4", "*", "*", "*"),
-    },
-    "refresh-artifact-bundles-in-use": {
-        "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
-        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "performance:sentry.tasks.on_demand_metrics.schedule_on_demand_check",

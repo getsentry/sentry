@@ -4,6 +4,7 @@ import asyncio
 import copy
 import functools
 import logging
+import re
 import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
@@ -103,6 +104,10 @@ SAMPLED_ROUTES = {
     "/api/0/auth/validate/": 0.0,
 }
 
+AI_CONVERSATION_ROUTE = re.compile(
+    r"/api/0/organizations/[^/]+/(?:ai-conversations|agents/conversations)(?:/[^/]+)?/"
+)
+
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
@@ -195,8 +200,11 @@ def get_project_key():
 
 def traces_sampler(sampling_context):
     wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
-        return SAMPLED_ROUTES[wsgi_path]
+    if wsgi_path:
+        if wsgi_path in SAMPLED_ROUTES:
+            return SAMPLED_ROUTES[wsgi_path]
+        if AI_CONVERSATION_ROUTE.fullmatch(wsgi_path):
+            return 1.0
 
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")

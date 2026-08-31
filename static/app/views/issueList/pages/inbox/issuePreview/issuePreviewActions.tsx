@@ -1,5 +1,6 @@
-import {Fragment, useMemo, useState, type ReactNode} from 'react';
+import {Fragment, useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
+import type {LocationDescriptor} from 'history';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -7,7 +8,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addSuccessMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {ResolveActions} from 'sentry/components/actions/resolve';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
@@ -41,7 +41,6 @@ import {t} from 'sentry/locale';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {
   GroupStatus,
-  GroupSubstatus,
   ProgressState,
   type Group,
   type GroupStatusResolution,
@@ -54,12 +53,14 @@ import {defined} from 'sentry/utils/defined';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
+import {
+  GroupActions,
+  GroupResolutionActions,
+} from 'sentry/views/issueDetails/actions/index';
+import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 
 type ExplorerAutofix = ReturnType<typeof useExplorerAutofix>;
 
@@ -76,13 +77,10 @@ function shouldShowFixAppliedActions(group: Group, project: Project) {
 }
 
 interface IssuePreviewActionsProps {
-  autofix: ExplorerAutofix;
   group: Group;
-  isLoading: boolean;
   onContinueInSeer: () => void;
   onRetryCodeChanges: () => void;
   project: Project;
-  shouldShowSeerActions: boolean;
   disabled?: boolean;
 }
 
@@ -112,7 +110,7 @@ export function OpenIssueButton({
   size = 'xs',
 }: {
   group: Group;
-  to: string;
+  to: LocationDescriptor;
   size?: 'xs' | 'sm';
 }) {
   return (
@@ -145,17 +143,6 @@ function FixAppliedActions({
   const organization = useOrganization();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const hasRelease = !!project.features?.includes('releases');
-  const hasSemverReleaseFeature = useProjectReleaseVersionIsSemver({
-    version: project.latestRelease?.version,
-    enabled: true,
-  });
-  const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-  const {resolveInRelease: resolveInReleaseCap} = config.actions;
-  const issueDetailsUrl = normalizeUrl(
-    `/organizations/${organization.slug}/issues/${group.id}/`
-  );
-
   function handleUpdate(data: GroupStatusResolution) {
     bulkUpdate(
       api,
@@ -192,7 +179,7 @@ function FixAppliedActions({
     );
 
     const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAnalytics('issue_details.action_clicked', {
+    trackAnalytics('issue_inbox.resolve_clicked', {
       organization,
       action_type: data.status,
       action_substatus: data.substatus ?? undefined,
@@ -208,51 +195,13 @@ function FixAppliedActions({
   }
 
   return (
-    <Flex gap="sm">
-      {group.status === GroupStatus.RESOLVED ? (
-        <Button
-          disabled={disabled}
-          onClick={() =>
-            handleUpdate({
-              status: GroupStatus.UNRESOLVED,
-              statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
-            })
-          }
-          size="sm"
-        >
-          {t('Unresolve')}
-        </Button>
-      ) : group.status === GroupStatus.IGNORED ? (
-        <Button
-          disabled={disabled}
-          onClick={() =>
-            handleUpdate({
-              status: GroupStatus.UNRESOLVED,
-              statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
-            })
-          }
-          size="sm"
-        >
-          {t('Unarchive')}
-        </Button>
-      ) : (
-        <ResolveActions
-          disableResolveInRelease={!resolveInReleaseCap.enabled}
-          disabled={disabled}
-          disableDropdown={disabled}
-          hasRelease={hasRelease}
-          latestRelease={project.latestRelease}
-          hasSemverReleaseFeature={hasSemverReleaseFeature}
-          onUpdate={handleUpdate}
-          project={project}
-          size="sm"
-          priority="primary"
-        />
-      )}
-      <OpenIssueButton group={group} to={issueDetailsUrl} size="sm" />
-    </Flex>
+    <GroupResolutionActions
+      disabled={disabled}
+      event={null}
+      group={group}
+      onUpdate={handleUpdate}
+      project={project}
+    />
   );
 }
 
@@ -777,15 +726,14 @@ function AutofixActions({
 }
 
 export function IssuePreviewActions({
-  autofix,
   disabled = false,
   group,
-  isLoading,
   onContinueInSeer,
   onRetryCodeChanges,
   project,
-  shouldShowSeerActions,
 }: IssuePreviewActionsProps) {
+  const {autofix, isLoading, shouldShowSeerActions} = useIssuePreviewSeer(group, project);
+
   if (shouldShowFixAppliedActions(group, project)) {
     return <FixAppliedActions disabled={disabled} group={group} project={project} />;
   }

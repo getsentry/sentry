@@ -199,7 +199,7 @@ function EventDisplay({
   if (!defined(eventData) || !defined(eventIds)) {
     return (
       <EmptyStateWrapper>
-        <EmptyStateWarning withIcon>
+        <EmptyStateWarning>
           <div>{t('Unable to find a sample event')}</div>
         </EmptyStateWarning>
       </EmptyStateWrapper>

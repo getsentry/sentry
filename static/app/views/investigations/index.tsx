@@ -270,7 +270,6 @@ function InvestigationsPage() {
                   marginBottom="xl"
                 >
                   <SearchBar
-                    defaultQuery=""
                     query={query ?? ''}
                     placeholder={t('Search Investigations')}
                     onSearch={handleSearch}
@@ -298,7 +297,6 @@ function InvestigationsPage() {
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
-                    columnSortBy={[]}
                     grid={{
                       renderHeadCell: column => column.name,
                       renderBodyCell,

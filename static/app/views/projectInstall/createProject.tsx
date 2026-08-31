@@ -7,6 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -519,7 +520,6 @@ export function CreateProject() {
             organization={organization}
             source="project-creation"
             variant="legacy"
-            showOther
             noAutoFilter
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
@@ -562,7 +562,16 @@ export function CreateProject() {
               ? t('Name your project')
               : t('Name your project and assign it a team')}
           </StyledListItem>
-          <FormFieldGroup>
+          <Grid
+            columns={{
+              zero: 'minmax(0, 1fr)',
+              lg: 'minmax(0, 300px) minmax(250px, 1fr) max-content',
+            }}
+            gap="xl"
+            align="end"
+            padding="2xl 0"
+            background="primary"
+          >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
@@ -641,7 +650,7 @@ export function CreateProject() {
                 </Button>
               </Tooltip>
             </div>
-          </FormFieldGroup>
+          </Grid>
           {!isModalVisible && (
             <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
@@ -654,15 +663,6 @@ export function CreateProject() {
 const StyledListItem = styled(ListItem)`
   margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
-`;
-
-const FormFieldGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${p => p.theme.space.xl};
-  align-items: end;
-  padding: ${p => p.theme.space['2xl']} 0;
-  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`
