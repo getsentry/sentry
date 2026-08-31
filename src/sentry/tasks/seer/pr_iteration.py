@@ -149,14 +149,17 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
     return None
 
 
-def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
+def _organization_for_gate(
+    run_id: int, organization_id: int, log_ctx: PrIterationLogContext | None = None
+) -> Organization | None:
     try:
         return Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
-        logger.warning(
-            "autofix.pr_iteration.trigger_consume.organization_not_found",
-            extra={"run_id": run_id, "organization_id": organization_id},
-        )
+        name = "autofix.pr_iteration.trigger_consume.organization_not_found"
+        if log_ctx is not None:
+            log_ctx.error(name, exc_info=False)
+        else:
+            logger.warning(name, extra={"run_id": run_id, "organization_id": organization_id})
         return None
 
 
@@ -193,9 +196,9 @@ def trigger_consume_pr_iteration_feedback(
     # the user while they are still looking at the failing PR. Blocking here
     # also leaves the feedback in the queue, so the API can see there is CI we
     # would have acted on and the work resumes once the permissions land.
-    organization = _organization_for_gate(run_id, organization_id)
+    organization = _organization_for_gate(run_id, organization_id, log_ctx)
     if organization is not None and block_iteration_for_missing_permissions(
-        organization=organization, run_id=run_id, state=run_state
+        organization=organization, run_id=run_id, state=run_state, log_ctx=log_ctx
     ):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",

@@ -45,6 +45,7 @@ from sentry.seer.autofix.github_perms import (
     get_github_missing_permissions,
     get_missing_permissions_by_repo,
 )
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
@@ -139,18 +140,17 @@ def _post_comment(
 
 
 def get_blocking_permissions(
-    *, organization: Organization, run_id: int, state: SeerRunState
+    *, organization: Organization, state: SeerRunState, log_ctx: PrIterationLogContext
 ) -> dict[str, MissingGithubPermissions]:
     """Missing-permission info per repo, empty when nothing blocks the iteration.
 
     Fails open: a lookup error here leaves iteration alone rather than
     silently stopping a run that might have worked.
     """
-    log_extra: dict[str, Any] = {"organization_id": organization.id, "run_id": run_id}
     try:
         missing_by_repo = repos_missing_permissions(organization, state)
     except Exception:
-        logger.exception("autofix.pr_iteration.missing_permissions.check_failed", extra=log_extra)
+        log_ctx.error("autofix.pr_iteration.missing_permissions.check_failed")
         return {}
 
     if not missing_by_repo:
@@ -164,14 +164,11 @@ def get_blocking_permissions(
             )
         },
     )
-    logger.info(
+    log_ctx.info(
         "autofix.pr_iteration.missing_permissions.blocked",
-        extra={
-            **log_extra,
-            "repo_ids": sorted(
-                info.repository_id for info in missing_by_repo.values() if info.repository_id
-            ),
-        },
+        repo_ids=sorted(
+            info.repository_id for info in missing_by_repo.values() if info.repository_id
+        ),
     )
     return missing_by_repo
 
@@ -183,13 +180,17 @@ def _skip(reason: str, log_extra: dict[str, Any]) -> None:
 
 
 def block_iteration_for_missing_permissions(
-    *, organization: Organization, run_id: int, state: SeerRunState
+    *,
+    organization: Organization,
+    run_id: int,
+    state: SeerRunState,
+    log_ctx: PrIterationLogContext,
 ) -> bool:
     """True when the iteration should not run because the GitHub App is missing
     permissions. Queues one comment per affected PR the first time we hit this.
     """
     missing_by_repo = get_blocking_permissions(
-        organization=organization, run_id=run_id, state=state
+        organization=organization, state=state, log_ctx=log_ctx
     )
     if not missing_by_repo:
         return False
@@ -199,6 +200,7 @@ def block_iteration_for_missing_permissions(
         run_id=run_id,
         state=state,
         missing_by_repo=missing_by_repo,
+        log_ctx=log_ctx,
     )
     return True
 
@@ -209,15 +211,15 @@ def _queue_missing_permissions_comments(
     run_id: int,
     state: SeerRunState,
     missing_by_repo: dict[str, MissingGithubPermissions],
+    log_ctx: PrIterationLogContext,
 ) -> None:
     from sentry.tasks.seer.pr_iteration import comment_on_missing_permissions
 
-    log_extra: dict[str, Any] = {"organization_id": organization.id, "run_id": run_id}
     seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
     if seer_run is None:
         # Legacy runs predating SeerRun mirroring have no row to dedupe
         # against; staying silent beats commenting on every failing suite.
-        _skip("no_seer_run", log_extra)
+        log_ctx.info("autofix.pr_iteration.missing_permissions.skipped", reason="no_seer_run")
         return
 
     for repo_name, info in missing_by_repo.items():

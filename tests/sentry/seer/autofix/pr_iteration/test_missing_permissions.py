@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     MISSING_PERMISSIONS_EXTRA,
     _scopes_tag,
@@ -42,6 +44,12 @@ def _perms(
     )
 
 
+def _log_ctx(state: SeerRunState) -> PrIterationLogContext:
+    return PrIterationLogContext.for_run(
+        logging.getLogger(MODULE), state, organization_id=1, group_id=None
+    )
+
+
 def _state(**pr_numbers: int | None) -> SeerRunState:
     return SeerRunState(
         run_id=RUN_ID,
@@ -70,7 +78,10 @@ class BlockIterationForMissingPermissionsTest(TestCase):
 
     def _run(self, state: SeerRunState) -> bool:
         return block_iteration_for_missing_permissions(
-            organization=self.organization, run_id=RUN_ID, state=state
+            organization=self.organization,
+            run_id=RUN_ID,
+            state=state,
+            log_ctx=_log_ctx(state),
         )
 
     def test_allows_iteration_when_nothing_missing(self, mock_get_perms, mock_delay) -> None:
@@ -297,10 +308,12 @@ class MissingPermissionsMetricsTest(TestCase):
             OTHER_REPO_NAME: _perms(2, missing_scopes=["contents", "checks"]),
         }
 
+        state = _state(getsentry__sentry=7, getsentry__seer=9)
         block_iteration_for_missing_permissions(
             organization=self.organization,
             run_id=RUN_ID,
-            state=_state(getsentry__sentry=7, getsentry__seer=9),
+            state=state,
+            log_ctx=_log_ctx(state),
         )
 
         blocked = [c for c in mock_incr.call_args_list if c[0][0].endswith(".blocked")]
