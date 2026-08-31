@@ -2,10 +2,12 @@ import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {
-  PrebuiltWidget,
   PrebuiltDashboard,
+  PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
+  APP_START_SCREEN_FILTER_FALLBACK,
+  AVG_START_VALUE,
   COLD_START_CONDITION,
   COLD_START_TABLE_OPERATIONS_CONDITION,
   TRANSACTION_COUNT,
@@ -27,8 +29,8 @@ const AVG_COLD_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -81,8 +83,8 @@ const AVG_WARM_STARTS_BIG_NUMBER_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',
@@ -135,12 +137,12 @@ const AVG_COLD_START_LINE_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       fieldAliases: [],
       conditions: COLD_START_CONDITION,
-      orderby: `-avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
+      orderby: `-${AVG_START_VALUE}`,
     },
   ],
   layout: {
@@ -163,12 +165,12 @@ const AVG_WARM_START_LINE_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [],
       fieldAliases: [],
       conditions: WARM_START_CONDITION,
-      orderby: `-avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
+      orderby: `-${AVG_START_VALUE}`,
     },
   ],
   layout: {
@@ -191,8 +193,8 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [SpanFields.DEVICE_CLASS, AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: COLD_START_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
@@ -218,8 +220,8 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: PrebuiltWidget = {
   queries: [
     {
       name: '',
-      fields: [SpanFields.DEVICE_CLASS, `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [SpanFields.DEVICE_CLASS, AVG_START_VALUE],
+      aggregates: [AVG_START_VALUE],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: WARM_START_CONDITION,
       orderby: SpanFields.DEVICE_CLASS,
@@ -260,6 +262,7 @@ const COLD_OPERATIONS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: COLD_START_TABLE_OPERATIONS_CONDITION,
+      globalFilterFallback: APP_START_SCREEN_FILTER_FALLBACK,
       orderby: '-avg(span.self_time)',
     },
   ],
@@ -298,6 +301,7 @@ const WARM_OPERATIONS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.avg,
       ],
       conditions: WARM_START_TABLE_OPERATIONS_CONDITION,
+      globalFilterFallback: APP_START_SCREEN_FILTER_FALLBACK,
       orderby: '-avg(span.self_time)',
     },
   ],
@@ -352,8 +356,8 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: SpanFields.TRANSACTION,
-          name: SpanFields.TRANSACTION,
+          key: SpanFields.APP_VITALS_START_SCREEN,
+          name: SpanFields.APP_VITALS_START_SCREEN,
           kind: FieldKind.TAG,
         },
         value: '',
