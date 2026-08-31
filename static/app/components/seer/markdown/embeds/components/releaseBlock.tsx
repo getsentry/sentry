@@ -91,6 +91,8 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
   const packageName =
     release?.versionInfo?.package ?? parseVersion(release?.version ?? version)?.package;
   const lastCommitTitle = release?.lastCommit?.message?.split(/\r?\n/, 1)[0];
+  const sectionCount =
+    4 + Number((release?.commitCount ?? 0) > 0) + Number(Boolean(release?.lastCommit));
 
   return (
     <Container
@@ -124,7 +126,7 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
             columns={{
               zero: 'minmax(0, 1fr)',
               sm: 'repeat(2, minmax(0, 1fr))',
-              xl: 'repeat(4, minmax(0, 1fr))',
+              lg: `repeat(${sectionCount}, minmax(0, 1fr))`,
             }}
             gap="xl"
           >
@@ -165,7 +167,11 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
             ) : null}
 
             {release.lastCommit ? (
-              <Stack column={{zero: 'auto', sm: 'span 2'}} gap="xs" minWidth="0">
+              <Stack
+                column={{zero: 'auto', sm: 'span 2', lg: 'auto'}}
+                gap="xs"
+                minWidth="0"
+              >
                 <Text bold size="xs" uppercase variant="muted">
                   {t('Last Commit')}
                 </Text>
@@ -192,7 +198,11 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
               </Stack>
             ) : null}
 
-            <Stack column={{zero: 'auto', sm: 'span 2'}} gap="xs" minWidth="0">
+            <Stack
+              column={{zero: 'auto', sm: 'span 2', lg: 'auto'}}
+              gap="xs"
+              minWidth="0"
+            >
               <Text bold size="xs" uppercase variant="muted">
                 {t('Deploys')}
               </Text>
