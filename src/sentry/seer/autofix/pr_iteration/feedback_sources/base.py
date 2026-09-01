@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import ClassVar
+from typing import Any, ClassVar
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.seer.agent.client_models import SeerRunState
 
@@ -35,6 +36,29 @@ ConsumeTask.Now = _ConsumeNow()
 ConsumeTask.Later = _ConsumeLater
 
 
+@dataclass(frozen=True)
+class Decision:
+    """`should_queue` and `should_consume` decisions
+
+    `ok` decides whether the gate (`should_decision` and `should_queue`) resolves
+    `reason` is purely for o11y, included as a tag in logs and metrics
+    """
+
+    ok: bool
+    reason: str
+
+
+@dataclass(frozen=True)
+class TriggerDecision:
+    """`should_trigger` decision with `reason` for o11y
+
+    returns a `ConsumeTask` so we can either trigger now or queue up a trigger job for laters
+    """
+
+    task: ConsumeTask | None
+    reason: str
+
+
 class ConsumeTriggerSource:
     """Why ``consume_queued_autofix_feedback`` was scheduled.
 
@@ -52,6 +76,10 @@ class FeedbackSourceBase(BaseModel):
     class Config:
         extra = "ignore"
 
+    # Always set. Provider-backed sources overwrite this with the provider's id;
+    # sources with none (UI) keep the UUID minted here.
+    source_id: str = Field(default_factory=lambda: str(uuid4()))
+
     @property
     def text(self) -> str:
         """Verbatim text passed to the explorer agent in the prompt."""
@@ -64,20 +92,28 @@ class FeedbackSourceBase(BaseModel):
 
     @property
     def is_automated(self) -> bool:
-        """Whether this feedback came from an automated actor (CI, a bot) rather
-        than a human.
+        """Whether this feedback came from an automated actor (CI, a bot).
 
-        Consecutive iterations driven only by automated feedback are capped (see
-        ``automated_iteration_cap_reached``); human feedback resets that streak.
-        Defaults to human — subclasses opt in.
+        Consecutive automated-only iterations are capped.
         """
         return False
 
-    def should_queue(self, run_state: SeerRunState) -> bool:
-        return True
+    def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
+        """The inputs this source's gates read, for the caller logging a decision.
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
-        return True
+        Takes ``run_state`` because different fields in the run state are relevant depending
+        on the feedback source, and we don't want to pollute logs with the whole run_state object.
+        """
+        return {}
 
-    def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
-        return ConsumeTask.Now
+    # A source that overrides none of these has nothing to check: its feedback is
+    # queued, consumed, and triggered on arrival. ``no_gate`` says so explicitly,
+    # which is worth distinguishing in a log from a gate that ran and passed.
+    def should_queue(self, run_state: SeerRunState) -> Decision:
+        return Decision(ok=True, reason="no_gate")
+
+    def should_consume(self, run_state: SeerRunState) -> Decision:
+        return Decision(ok=True, reason="no_gate")
+
+    def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
+        return TriggerDecision(task=ConsumeTask.Now, reason="no_gate")

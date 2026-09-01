@@ -44,10 +44,11 @@ function makeIntegration(id: string, name: string): OrganizationIntegration {
     icon: null,
     organizationIntegrationStatus: 'active',
     status: 'active',
+    scopes: null,
     configData: null,
     configOrganization: [],
     externalId: id,
-    organizationId: '',
+    organizationId: 1,
     provider: {
       key: 'github',
       slug: 'github',

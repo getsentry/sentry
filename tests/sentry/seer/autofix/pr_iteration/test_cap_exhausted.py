@@ -9,13 +9,14 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     GithubCheckSuiteEvent,
 )
+from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
 from sentry.seer.autofix.pr_iteration.pause import pause_pr_iteration
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
 CAP_EXHAUSTED_PATH = "sentry.seer.autofix.pr_iteration.cap_exhausted"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
-FLAG = "organizations:autofix-pr-iteration-cap-assign"
+FLAG = CAP_ASSIGN_FLAG
 
 RUN_ID = 67890
 REPO_NAME = "owner/repo"

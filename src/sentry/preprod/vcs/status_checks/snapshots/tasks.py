@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 from sentry.integrations.github.status_check import GitHubCheckStatus
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.repository import Repository
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodComparisonApproval,
@@ -237,11 +238,27 @@ def create_preprod_snapshot_status_check_task(
                     },
                 )
             else:
+                assert commit_comparison.base_sha is not None
+                base_repo_name = (
+                    commit_comparison.base_repo_name or commit_comparison.head_repo_name
+                )
+                if base_repo_name == repository.name:
+                    base_repo_url = repository.url
+                else:
+                    base_repository = Repository.objects.filter(
+                        organization_id=preprod_artifact.project.organization_id,
+                        name=base_repo_name,
+                        provider=f"integrations:{commit_comparison.provider}",
+                    ).first()
+                    # Prefer no link over a fork URL that would 404 for the base SHA.
+                    base_repo_url = base_repository.url if base_repository else None
                 status = StatusCheckStatus.FAILURE
                 title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=preprod_artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=base_repo_url,
                 )
         else:
             status = StatusCheckStatus.SUCCESS

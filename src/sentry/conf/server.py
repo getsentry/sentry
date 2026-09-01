@@ -442,8 +442,6 @@ SENTRY_HYBRIDCLOUD_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
     "CELL": ["sentry.CellOutbox"],
 }
-# Backwards-compatible alias for getsentry, which extends this mapping with UsageOutbox.
-SENTRY_OUTBOX_MODELS = SENTRY_HYBRIDCLOUD_OUTBOX_MODELS
 
 # Do not modify reordering
 # The applications listed first in INSTALLED_APPS have precedence

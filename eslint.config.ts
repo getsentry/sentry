@@ -139,7 +139,7 @@ const restrictedImportPaths = [
   },
   {
     name: 'react-select',
-    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+    message: "Use '@sentry/scraps/select' instead.",
   },
   {
     name: 'qs',
@@ -999,7 +999,6 @@ export default typescript.config([
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      'import/no-duplicates': 'off',
     },
   },
   {

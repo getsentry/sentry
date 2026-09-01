@@ -2,7 +2,6 @@ import types
 from unittest.mock import patch
 
 import pytest
-from django.conf import settings as django_settings
 from django.core.cache import caches
 from django.test import override_settings
 
@@ -266,10 +265,6 @@ def test_validate_outbox_config_includes_group_action_log_outbox() -> None:
         validate_outbox_config()
 
     validate_cell_outbox.assert_any_call(GroupActionLogOutbox._meta.label)
-
-
-def test_legacy_outbox_model_setting_alias() -> None:
-    assert django_settings.SENTRY_OUTBOX_MODELS is django_settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS
 
 
 def test_require_secret_key(settings) -> None:

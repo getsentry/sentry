@@ -1217,6 +1217,39 @@ describe('ToolUseBlock', () => {
       });
     }
 
+    it('drops in-flight narration once the call reports back', () => {
+      // Progress describes work in flight. Seer clears it when the call settles, but an older
+      // seer or a failed clear must not leave narration rendering as settled rows.
+      const settled = executeBlock(null);
+      settled.loading = false;
+      settled.progress = [
+        {token: 'call-1', progress: 1, message: 'Searching for the issue'},
+      ];
+      settled.tool_results = [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent: null,
+        },
+      ];
+
+      render(<BlockComponent block={settled} blockIndex={0} />);
+
+      expect(screen.queryByText('Searching for the issue')).not.toBeInTheDocument();
+    });
+
+    it('still shows narration while the call is in flight', () => {
+      const running = executeBlock(null);
+      running.progress = [
+        {token: 'call-1', progress: 1, message: 'Searching for the issue'},
+      ];
+
+      render(<BlockComponent block={running} blockIndex={0} />);
+
+      expect(screen.getByText('Searching for the issue')).toBeInTheDocument();
+    });
+
     it('keeps the placeholder up while a search runs, which reports no calls', () => {
       render(<BlockComponent block={runningBlock()} blockIndex={0} />);
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();

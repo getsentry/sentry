@@ -1,5 +1,4 @@
-import {useQueryClient} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';

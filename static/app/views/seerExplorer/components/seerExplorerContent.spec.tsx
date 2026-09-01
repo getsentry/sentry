@@ -574,6 +574,66 @@ describe('SeerExplorerContent', () => {
     });
   });
 
+  describe('Timeout Recovery', () => {
+    it('shows the warning and retries the latest user turn', async () => {
+      const sendMessage = jest.fn();
+      const startNewSession = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        isTimedOut: true,
+        runId: 123,
+        sendMessage,
+        startNewSession,
+        sessionData: {
+          blocks: [
+            {
+              id: 'user-1',
+              message: {role: 'user', content: 'First question'},
+              timestamp: '2024-01-01T00:00:00Z',
+            },
+            {
+              id: 'assistant-1',
+              message: {role: 'assistant', content: 'First answer'},
+              timestamp: '2024-01-01T00:01:00Z',
+            },
+            {
+              id: 'user-2',
+              message: {role: 'user', content: 'Timed out question'},
+              timestamp: '2024-01-01T00:02:00Z',
+            },
+          ],
+          status: 'error',
+          updated_at: '2024-01-01T00:03:00Z',
+          failure_reason: 'timeout',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+
+      expect(await screen.findByText('Response timed out.')).toBeInTheDocument();
+      expect(screen.getByTestId('seer-explorer-input')).toHaveAttribute(
+        'placeholder',
+        'Ask Seer a question, or press / for commands.'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+      expect(sendMessage).toHaveBeenCalledWith('Timed out question', 2);
+
+      await userEvent.click(screen.getByRole('button', {name: 'New chat'}));
+      expect(startNewSession).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Input Persistence', () => {
     it('restores the persisted draft when the drawer remounts', async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({

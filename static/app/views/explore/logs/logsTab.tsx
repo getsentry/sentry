@@ -467,7 +467,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
           </Container>
           <ExploreContentSection gap="md">
             <OverChartButtonGroup>
-              <Container display={{zero: 'none', '4xl': 'inline-flex'}}>
+              <Container display={{zero: 'none', '3xl': 'inline-flex'}}>
                 <LogsSidebarCollapseButton
                   sidebarOpen={sidebarOpen}
                   aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}

@@ -9,11 +9,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DataTable} from 'sentry/components/tables/dataTable';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {
   fieldAlignment,
   parseFunction,
@@ -131,24 +129,8 @@ function AggregatesTable({
               const direction = sortBys.find(s => s.field === field)?.kind;
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <Flex align="center" gap="xs">
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </Flex>
+                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                  {label}
                 </TableHeadCell>
               );
             })}
@@ -250,24 +232,8 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0}>
-                  <Flex align="center" gap="xs">
-                    <Tooltip showOnlyOnOverflow title={label}>
-                      {label}
-                    </Tooltip>
-                    {defined(direction) && (
-                      <IconArrow
-                        size="xs"
-                        direction={
-                          direction === 'desc'
-                            ? 'down'
-                            : direction === 'asc'
-                              ? 'up'
-                              : undefined
-                        }
-                      />
-                    )}
-                  </Flex>
+                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                  {label}
                 </TableHeadCell>
               );
             })}

@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -34,7 +34,6 @@ import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -59,7 +58,10 @@ export function SnapshotHeaderActions({
   useEffect(() => () => clientRef.current.clear(), []);
   const navigate = useNavigate();
   const organization = useOrganization();
-  const breakpoints = useBreakpoints();
+  const approveButtonSize = useResponsivePropValue<'xs' | 'sm'>({
+    zero: 'xs',
+    sm: 'sm',
+  });
   const isSentryEmployee = useIsSentryEmployee();
   const project = ProjectsStore.getById(data.project_id);
   const [isApproving, setIsApproving] = useState(false);
@@ -285,20 +287,20 @@ export function SnapshotHeaderActions({
               )}
             </Flex>
             {approvers.length > 0 && (
-              <Container display={{'screen:2xs': 'none', 'screen:md': 'flex'}}>
+              <Container display={{zero: 'none', '3xl': 'flex'}}>
                 <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
               </Container>
             )}
           </Flex>
         ) : approvalStatus === 'requires_approval' ? (
           <Flex align="center" gap="sm">
-            <Container display={{'screen:2xs': 'none', 'screen:lg': 'block'}}>
+            <Container display={{zero: 'none', '4xl': 'block'}}>
               <Tag variant="warning" icon={<IconTimer />}>
                 {t('Needs approval')}
               </Tag>
             </Container>
             <Button
-              size={breakpoints.xs ? 'sm' : 'xs'}
+              size={approveButtonSize}
               variant="primary"
               icon={<IconThumb />}
               onClick={handleApprove}

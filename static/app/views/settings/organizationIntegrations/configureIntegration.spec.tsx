@@ -380,3 +380,142 @@ describe('ConfigureIntegration mapping removals', () => {
     );
   });
 });
+
+describe('ConfigureIntegration GCP re-verification', () => {
+  const integrationId = '1';
+  const CUSTOMER_SA = 'gcp-sentry@my-project.iam.gserviceaccount.com';
+
+  function setup({providerKey = 'gcp'}: {providerKey?: string} = {}) {
+    const organization = OrganizationFixture({
+      access: ['org:integrations', 'org:write'],
+    });
+    const provider = GitHubIntegrationProviderFixture({
+      key: providerKey,
+      slug: providerKey,
+      name: 'Google Cloud Platform',
+      features: [],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: integrationId,
+      provider: {
+        ...OrganizationIntegrationsFixture().provider,
+        key: providerKey,
+        slug: providerKey,
+        name: provider.name,
+        features: [],
+      },
+      configOrganization: [
+        {
+          name: 'customer_sa_email',
+          type: 'string' as const,
+          label: 'Customer Service Account',
+          required: true,
+        },
+      ],
+      configData: {
+        customer_sa_email: CUSTOMER_SA,
+        projects: 'project-prod, project-staging',
+      },
+    });
+
+    // Stand in for the stored config, so a save is visible to the refetch that
+    // follows it — which is what the verification payload is built from.
+    let storedConfig: Record<string, unknown> = {...integration.configData};
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      body: () => ({...integration, configData: storedConfig}),
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      method: 'POST',
+      body: (_url: string, options: {data?: Record<string, unknown>}) => {
+        storedConfig = {...storedConfig, ...options.data};
+        return {};
+      },
+    });
+    const verifyRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/monitoring-providers/gcp/verify-connection/`,
+      method: 'POST',
+      body: {connectionStatus: 'connected', projects: []},
+    });
+
+    render(<ConfigureIntegration />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`,
+          query: {},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    return {
+      saveRequest,
+      verifyRequest,
+      setStoredConfig: (next: Record<string, unknown>) => {
+        storedConfig = {...storedConfig, ...next};
+      },
+    };
+  }
+
+  async function saveNewSaEmail(value: string) {
+    const field = await screen.findByRole('textbox', {name: 'Customer Service Account'});
+    await userEvent.clear(field);
+    await userEvent.type(field, value);
+    await userEvent.tab();
+  }
+
+  it('re-runs verification with the saved settings', async () => {
+    const {verifyRequest} = setup();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    await waitFor(() =>
+      expect(verifyRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            customerSaEmail: 'new-sa@my-project.iam.gserviceaccount.com',
+            gcpProjectIds: ['project-prod', 'project-staging'],
+          },
+        })
+      )
+    );
+  });
+
+  it('builds the payload from the refetched config, not the local one', async () => {
+    const {verifyRequest, setStoredConfig} = setup();
+
+    // A sibling field was saved elsewhere, so what this render closed over is stale.
+    setStoredConfig({projects: 'project-prod, project-staging, project-new'});
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    await waitFor(() =>
+      expect(verifyRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            customerSaEmail: 'new-sa@my-project.iam.gserviceaccount.com',
+            gcpProjectIds: ['project-prod', 'project-staging', 'project-new'],
+          },
+        })
+      )
+    );
+  });
+
+  it('does not re-run verification for other providers', async () => {
+    const {saveRequest, verifyRequest} = setup({providerKey: 'github'});
+
+    await saveNewSaEmail('someone@example.com');
+
+    await waitFor(() => expect(saveRequest).toHaveBeenCalled());
+    expect(verifyRequest).not.toHaveBeenCalled();
+  });
+});

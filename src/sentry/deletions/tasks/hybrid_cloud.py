@@ -31,11 +31,20 @@ from taskbroker_client.task import Task
 from sentry import options
 from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.deletions.models.watermark import (
+    BaseDeletionWatermark,
+    CellDeletionWatermark,
+    ControlDeletionWatermark,
+)
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils import json, metrics, redis
+
+TOMBSTONE_WATERMARK = "tombstone"
+ROW_WATERMARK = "row"
+WATERMARK_PREFIXES = (TOMBSTONE_WATERMARK, ROW_WATERMARK)
 
 
 @dataclass
@@ -44,6 +53,7 @@ class WatermarkBatch:
     up: int
     has_more: bool
     transaction_id: str
+    table_max: int
 
 
 def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
@@ -54,13 +64,65 @@ def get_watermark_key(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> st
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
+def _watermark_model(
+    field: HybridCloudForeignKey[Any, Any],
+) -> type[BaseDeletionWatermark]:
+    current_mode = SiloMode.get_current_mode()
+    if current_mode == SiloMode.CONTROL:
+        return ControlDeletionWatermark
+    if current_mode == SiloMode.CELL:
+        return CellDeletionWatermark
+
+    silo_limit = getattr(field.model._meta, "silo_limit", None)
+    if silo_limit is not None and silo_limit.modes == frozenset({SiloMode.CONTROL}):
+        return ControlDeletionWatermark
+    return CellDeletionWatermark
+
+
+def _write_watermark(
+    prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, transaction_id: str
+) -> None:
+    _get_redis_client().set(
+        get_watermark_key(prefix, field),
+        json.dumps((value, transaction_id)),
+    )
+    metrics.gauge(
+        "deletion.hybrid_cloud.low_bound",
+        value,
+        tags=dict(
+            field_name=f"{field.model._meta.db_table}.{field.name}",
+            watermark=prefix,
+        ),
+    )
+
+    # Dual-write deletion watermarks to Redis and Postgres
+    if options.get("hybrid_cloud.write_deletion_watermark_to_postgres"):
+        try:
+            _watermark_model(field).objects.update_or_create(
+                prefix=prefix,
+                table_name=field.model._meta.db_table,
+                field_name=field.name,
+                defaults={"low_bound": value, "transaction_id": transaction_id},
+            )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+            metrics.incr(
+                "deletion.hybrid_cloud.watermark_dual_write_error",
+                tags=dict(
+                    field_name=f"{field.model._meta.db_table}.{field.name}",
+                    watermark=prefix,
+                ),
+                sample_rate=1.0,
+            )
+
+
 def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
     client = _get_redis_client()
     key = get_watermark_key(prefix, field)
     v = client.get(key)
     if v is None:
         result = (0, uuid4().hex)
-        client.set(key, json.dumps(result))
+        _write_watermark(prefix, field, *result)
         return result
     lower, transaction_id = json.loads(v)
     if not (isinstance(lower, int) and isinstance(transaction_id, str)):
@@ -71,18 +133,13 @@ def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[
 def set_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
 ) -> None:
-    _get_redis_client().set(
-        get_watermark_key(prefix, field),
-        json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
-    )
-    metrics.gauge(
-        "deletion.hybrid_cloud.low_bound",
-        value,
-        tags=dict(
-            field_name=f"{field.model._meta.db_table}.{field.name}",
-            watermark=prefix,
-        ),
-    )
+    _write_watermark(prefix, field, value, sha1(prev_transaction_id.encode("utf8")).hexdigest())
+
+
+def refresh_watermarks(field: HybridCloudForeignKey[Any, Any]) -> None:
+    for prefix in WATERMARK_PREFIXES:
+        low_bound, transaction_id = get_watermark(prefix, field)
+        _write_watermark(prefix, field, low_bound, transaction_id)
 
 
 def _chunk_watermark_batch(
@@ -96,15 +153,15 @@ def _chunk_watermark_batch(
     lower, transaction_id = get_watermark(prefix, field)
     agg = manager.aggregate(Min("id"), Max("id"))
     lower = lower or ((agg["id__min"] or 1) - 1)
-    upper = agg["id__max"] or 0
-    batch_upper = min(upper, lower + batch_size)
+    table_max = agg["id__max"] or 0
+    batch_upper = min(table_max, lower + batch_size)
 
     # cap to batch size so that query timeouts don't get us.
-    capped = upper
-    if upper >= batch_upper:
+    capped = table_max
+    if table_max >= batch_upper:
         capped = batch_upper
 
-    watermark_delta = max(upper - lower, 0)
+    watermark_delta = max(table_max - lower, 0)
     metric_field_name = f"{model._meta.db_table}:{field.name}"
     metric_tags = dict(field_name=metric_field_name, watermark_type=prefix)
     metrics.gauge(
@@ -115,7 +172,11 @@ def _chunk_watermark_batch(
     )
 
     return WatermarkBatch(
-        low=lower, up=capped, has_more=batch_upper < upper, transaction_id=transaction_id
+        low=lower,
+        up=capped,
+        has_more=batch_upper < table_max,
+        transaction_id=transaction_id,
+        table_max=table_max,
     )
 
 
@@ -232,6 +293,8 @@ def _process_hybrid_cloud_foreign_key_cascade(
         tombstone_cls = TombstoneBase.class_for_silo_mode(silo_mode)
         assert tombstone_cls, "A tombstone class is required"
 
+        refresh_watermarks(field)
+
         # We rely on the return value of _process_tombstone_reconciliation
         # to short circuit the second half of this `or` so that the terminal batch
         # also updates the tombstone watermark.
@@ -275,10 +338,10 @@ def _process_tombstone_reconciliation(
 ) -> bool:
     from sentry import deletions
 
-    prefix = "tombstone"
+    prefix = TOMBSTONE_WATERMARK
     watermark_manager: Manager[Any] = tombstone_cls.objects
     if row_after_tombstone:
-        prefix = "row"
+        prefix = ROW_WATERMARK
         watermark_manager = field.model.objects
 
     watermark_batch = _chunk_watermark_batch(
@@ -286,6 +349,18 @@ def _process_tombstone_reconciliation(
     )
     has_more = watermark_batch.has_more
     if watermark_batch.low < watermark_batch.up:
+        if not row_after_tombstone and not model._base_manager.exists():
+            # The model table holds no rows, so no tombstone can cascade to
+            # anything. Move the watermark to the top of the tombstone table
+            # instead of walking the range batch by batch.
+            set_watermark(prefix, field, watermark_batch.table_max, watermark_batch.transaction_id)
+            metrics.incr(
+                "deletion.hybrid_cloud.empty_model_skip",
+                tags=dict(field_name=f"{model._meta.db_table}.{field.name}"),
+                sample_rate=1.0,
+            )
+            return False
+
         to_delete_ids, oldest_seen = _get_model_ids_for_tombstone_cascade(
             tombstone_cls=tombstone_cls,
             model=model,
