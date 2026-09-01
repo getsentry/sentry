@@ -29,6 +29,23 @@ describe('getAttributeValue', () => {
     expect(getAttributeValue({method: 'POST'}, 'http.request.method')).toBe('POST');
   });
 
+  it('returns values from attribute entry arrays', () => {
+    expect(
+      getAttributeValue(
+        [{name: 'span.category', type: 'str', value: 'http'}],
+        'span.category',
+        'string'
+      )
+    ).toBe('http');
+    expect(
+      getAttributeValue(
+        [{name: 'tags[http.method,string]', type: 'str', value: 'GET'}],
+        'http.request.method',
+        'string'
+      )
+    ).toBe('GET');
+  });
+
   it('prettifies an explicit typed tag lookup key', () => {
     expect(
       getAttributeValue({'http.request.method': 'GET'}, 'tags[http.method,string]')

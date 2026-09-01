@@ -17,6 +17,13 @@ type AttributeValueByKind = {
 
 type AttributeValueKind = keyof AttributeValueByKind;
 
+type AttributeEntry = {
+  name: string;
+  value: unknown;
+};
+
+type AttributeSource = Record<string, unknown> | unknown[];
+
 function isAttributeValue(value: unknown): value is AttributeValue {
   return (
     typeof value === 'string' ||
@@ -49,19 +56,63 @@ function isAttributeValueOfKind<K extends AttributeValueKind>(
   }
 }
 
+function isAttributeEntry(attribute: unknown): attribute is AttributeEntry {
+  return (
+    typeof attribute === 'object' &&
+    attribute !== null &&
+    'name' in attribute &&
+    typeof attribute.name === 'string' &&
+    'value' in attribute
+  );
+}
+
+function prettifyAttributeName(name: string): string {
+  const prettifiedName = name.match(TYPED_TAG_KEY_RE)?.[1] ?? name;
+  return prettifiedName.replace(/^log\.|^sentry\./, '');
+}
+
+function findAttributeEntry(
+  attributes: unknown[],
+  candidateKey: string
+): AttributeEntry | undefined {
+  return (
+    attributes.find(
+      (attribute): attribute is AttributeEntry =>
+        isAttributeEntry(attribute) && attribute.name === candidateKey
+    ) ??
+    attributes.find(
+      (attribute): attribute is AttributeEntry =>
+        isAttributeEntry(attribute) &&
+        prettifyAttributeName(attribute.name) === candidateKey
+    )
+  );
+}
+
 function getAttributeValueFromDeprecationChain(
-  attributes: Record<string, unknown>,
+  attributes: AttributeSource,
   deprecationChain: readonly string[],
   kind?: AttributeValueKind
 ): AttributeValue | undefined {
   for (const candidateKey of deprecationChain) {
-    if (Object.hasOwn(attributes, candidateKey)) {
-      const value = attributes[candidateKey];
-      return isAttributeValue(value) &&
-        (kind === undefined || isAttributeValueOfKind(value, kind))
-        ? value
-        : undefined;
+    let value: unknown;
+
+    if (Array.isArray(attributes)) {
+      const attribute = findAttributeEntry(attributes, candidateKey);
+      if (!attribute) {
+        continue;
+      }
+      value = attribute.value;
+    } else {
+      if (!Object.hasOwn(attributes, candidateKey)) {
+        continue;
+      }
+      value = attributes[candidateKey];
     }
+
+    return isAttributeValue(value) &&
+      (kind === undefined || isAttributeValueOfKind(value, kind))
+      ? value
+      : undefined;
   }
 
   return undefined;
@@ -93,7 +144,7 @@ export function getAttributeValue(
     }
 
     return getAttributeValueFromDeprecationChain(
-      attributes as Record<string, unknown>,
+      attributes as AttributeSource,
       deprecationChain,
       kind
     );
@@ -112,7 +163,7 @@ export function getAttributeValue(
   }
 
   return getAttributeValueFromDeprecationChain(
-    attributes as Record<string, unknown>,
+    attributes as AttributeSource,
     metadata.deprecationChain,
     kind
   );
