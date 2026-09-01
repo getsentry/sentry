@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
-import {IconCheckmark, IconFire, IconIssues, IconWarning} from 'sentry/icons';
+import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
@@ -15,25 +15,14 @@ interface AlertBadgeProps {
   status?: IncidentStatus;
 }
 
-type AlertBadgeStatus = IncidentStatus | 'issue';
 interface AlertBadgeConfig {
   icon: React.FC<SVGIconProps>;
   style: React.CSSProperties;
   text: string;
 }
-function useAlertBadgeConfig(status: AlertBadgeStatus, theme: Theme): AlertBadgeConfig {
+function useAlertBadgeConfig(status: IncidentStatus, theme: Theme): AlertBadgeConfig {
   const {t} = useTranslation();
   switch (status) {
-    case 'issue':
-      return {
-        text: t('Issue'),
-        icon: IconIssues,
-        style: {
-          color: theme.tokens.content.primary,
-          background: theme.tokens.background.primary,
-          border: `1px solid ${theme.tokens.border.primary}`,
-        },
-      };
     case IncidentStatus.CRITICAL:
       return {
         text: t('Critical'),
