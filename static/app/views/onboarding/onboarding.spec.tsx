@@ -542,9 +542,10 @@ describe('Onboarding', () => {
 
     expect(deleteProjectMock).toHaveBeenCalled();
 
-    // Legacy flow should clear all context
-    const stored = sessionStorage.getItem('onboarding');
-    expect(stored).toBeNull();
+    // Legacy flow should drop the selected platform. Agentic progress may
+    // still write its own session keys after the back navigation.
+    const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+    expect(stored.selectedPlatform).toBeUndefined();
   });
 
   describe('SCM onboarding flow', () => {
