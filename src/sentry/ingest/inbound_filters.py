@@ -556,12 +556,8 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# A filter's data type selects the item its conditions match against, since only that
-# item carries such data. Release lives on a different field on each of them.
-#
-# Replays, sessions and profiles are not selectable data types: Relay reads a release
-# off all three under `event.release`, so they cannot be told apart from errors. The
-# catch-all below still reaches them, through the error entry's field.
+# Replays, sessions and profiles are not selectable data types: Relay reads their
+# release under `event.release`, so they cannot be told apart from errors.
 _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
     CustomInboundFilterDataType.ERROR: {
         CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
@@ -589,13 +585,8 @@ _MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMa
 
 
 def _any_data_type_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
-    """
-    Matches one condition against the field every data type keeps it in.
-
-    An item resolves at most one of those fields, and Relay reads a field it does not
-    carry as no match, so the item is matched on its own field alone.
-    """
-
+    # Relay reads a field the item does not carry as no match, so the OR reduces to the
+    # item's own field.
     def match(values: list[str]) -> RuleCondition:
         return {"op": "or", "inner": [matcher(values) for matcher in matchers]}
 
@@ -603,12 +594,6 @@ def _any_data_type_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
 
 
 def _build_all_data_types_matchers() -> _ConditionMatchers:
-    """
-    The conditions a catch-all filter can use: those every data type carries a field for.
-
-    Deriving this keeps the catch-all in step with the data types above, so a condition
-    added to all of them becomes available to catch-all filters with no further work.
-    """
     per_data_type = list(_MATCHERS_BY_SINGLE_DATA_TYPE.values())
     shared_condition_types = set.intersection(*(set(matchers) for matchers in per_data_type))
 
@@ -630,13 +615,6 @@ _MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers]
 def get_supported_condition_types(
     data_type: CustomInboundFilterDataType,
 ) -> list[CustomInboundFilterConditionType]:
-    """
-    The conditions a filter on this data type can use, in the order they are declared.
-
-    A condition is supported when the data type carries the field it reads. Callers
-    validate a filter against this before storing it, so a stored filter always
-    translates into a Relay rule.
-    """
     return list(_MATCHERS_BY_DATA_TYPE[data_type])
 
 

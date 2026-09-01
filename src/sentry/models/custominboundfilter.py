@@ -17,14 +17,6 @@ class CustomInboundFilterConditionType(StrEnum):
 
 
 class CustomInboundFilterDataType(StrEnum):
-    """
-    The data a filter matches against.
-
-    ``ALL`` is the catch-all: the filter matches every data type Sentry ingests,
-    including ones added after the filter was written. Only conditions that read a
-    field every data type carries, such as ``release``, are available to it.
-    """
-
     ALL = "all"
     ERROR = "error"
     LOG = "log"

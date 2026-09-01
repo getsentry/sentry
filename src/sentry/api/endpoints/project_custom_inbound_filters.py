@@ -31,8 +31,6 @@ MAX_FILTERS_PER_PROJECT = 50
 
 
 # Ingestion feature an organization needs before a filter can target a data type.
-# Errors need none, and neither does the catch-all: it filters whichever data types the
-# organization does ingest.
 _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
     CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
     CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
@@ -107,13 +105,8 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         return data_type
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """
-        Rejects a condition reading a field the filter's data type does not carry.
-
-        A partial update may change either side alone, so each side falls back to the
-        stored filter. Checking only the side that changed would let an update to the
-        data type strand conditions the new one cannot read.
-        """
+        # A partial update may change the data type or the conditions alone, so the
+        # other side comes from the stored filter.
         stored = self.instance
         conditions = attrs.get("conditions")
         if conditions is None:
@@ -125,23 +118,14 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
 
         data_type = CustomInboundFilterDataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
-        # Compared as raw strings, since the stored conditions read here may name a
-        # condition type a newer deploy added and this revision does not know.
-        supported_values = {condition_type.value for condition_type in supported}
-        unsupported = sorted(
-            {
-                str(condition.get("type"))
-                for condition in conditions
-                if condition.get("type") not in supported_values
-            }
-        )
+        unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
             raise serializers.ValidationError(
                 {
                     "conditions": (
                         f"A filter on {data_type.value} data cannot use the "
                         f"{', '.join(unsupported)} condition. It accepts "
-                        f"{', '.join(condition_type.value for condition_type in supported)}."
+                        f"{', '.join(supported)}."
                     )
                 }
             )
