@@ -5,6 +5,7 @@ import {mergeRefs} from '@react-aria/utils';
 
 import type {
   CssHeight,
+  CssInset,
   CssMaxHeight,
   CssMaxWidth,
   CssMinHeight,
@@ -55,11 +56,11 @@ interface ContainerLayoutProps {
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
-  inset?: Responsive<React.CSSProperties['inset']>;
-  top?: Responsive<React.CSSProperties['top']>;
-  bottom?: Responsive<React.CSSProperties['bottom']>;
-  left?: Responsive<React.CSSProperties['left']>;
-  right?: Responsive<React.CSSProperties['right']>;
+  inset?: Responsive<CssInset>;
+  top?: Responsive<CssInset>;
+  bottom?: Responsive<CssInset>;
+  left?: Responsive<CssInset>;
+  right?: Responsive<CssInset>;
 
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;

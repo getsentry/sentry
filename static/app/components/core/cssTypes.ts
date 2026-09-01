@@ -1,14 +1,7 @@
-type Globals = 'inherit' | 'initial' | 'revert' | 'revert-layer' | 'unset';
+type Globals = 'inherit' | 'initial' | 'revert' | 'revert-layer' | 'unset' | CssFunction;
 type CssFunction = `${string}(${string})`;
-type BaseSize =
-  | 'auto'
-  | 'fit-content'
-  | 'max-content'
-  | 'min-content'
-  | 'stretch'
-  | '0'
-  | 0
-  | CssFunction;
+type BaseDimension = 'auto' | '0' | 0;
+type BaseSize = 'fit-content' | 'max-content' | 'min-content' | 'stretch' | BaseDimension;
 
 /**
  * Units that make sense for either dimension.
@@ -61,3 +54,4 @@ export type CssMaxWidth = CssWidth | 'none';
 export type CssHeight = BaseSize | `${number}${HeightUnit}` | Globals;
 export type CssMinHeight = CssHeight;
 export type CssMaxHeight = CssHeight | 'none';
+export type CssInset = `${number}${HeightUnit}` | Globals | BaseDimension;

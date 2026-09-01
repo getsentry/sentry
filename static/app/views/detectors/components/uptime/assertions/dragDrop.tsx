@@ -87,11 +87,13 @@ export function DroppableHitbox(props: DroppableProps) {
     before: {bottom: isGroup ? 'calc(100% - 10px)' : '50%'},
     after: {top: isGroup ? 'calc(100% - 10px)' : '50%'},
     inside: {inset: '0px', top: '-10px', left: '-12px'},
-  };
+  } as const;
 
   const offset = offsetConfig[position];
   const groupHitboxAdjust =
-    isGroup && position === 'after' ? {bottom: '-10px', top: 'calc(100%)'} : {};
+    isGroup && position === 'after'
+      ? ({bottom: '-10px', top: 'calc(100%)'} as const)
+      : {};
 
   return (
     <Container
