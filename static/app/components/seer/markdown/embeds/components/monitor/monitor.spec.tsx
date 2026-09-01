@@ -12,7 +12,10 @@ import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 
 import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {hrefFor, renderEmbed} from 'sentry/components/seer/markdown/embeds/testUtils';
+import {
+  getEmbedLinkHref,
+  renderEmbed,
+} from 'sentry/components/seer/markdown/embeds/components/resourceEmbedTestUtils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
@@ -30,9 +33,9 @@ function renderMonitor(detector: Detector, data: Record<string, unknown> = {}) {
 
 describe('Seer monitor embed', () => {
   it('links to the detector detail page inline', () => {
-    expect(hrefFor('monitor', 'nightly-sync', {id: '9931', name: 'nightly-sync'})).toBe(
-      '/organizations/org-slug/monitors/9931/'
-    );
+    expect(
+      getEmbedLinkHref('monitor', 'nightly-sync', {id: '9931', name: 'nightly-sync'})
+    ).toBe('/organizations/org-slug/monitors/9931/');
   });
 
   it('renders unresolved issues for an error monitor', async () => {

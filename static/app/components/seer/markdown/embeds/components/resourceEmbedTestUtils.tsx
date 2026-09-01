@@ -8,17 +8,17 @@ interface RenderEmbedOptions {
   level?: 'block' | 'inline';
 }
 
-/**
- * Render a single embed the way Seer emits it, by round-tripping the payload
- * through the markdown tag syntax the renderer actually parses.
- */
 export function renderEmbed({name, data, level = 'block'}: RenderEmbedOptions) {
   const tag = `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
   const raw = level === 'inline' ? `text ${tag} text` : tag;
   return render(<SeerMarkdown raw={raw} />);
 }
 
-export function hrefFor(name: string, label: string, data: Record<string, unknown>) {
+export function getEmbedLinkHref(
+  name: string,
+  label: string,
+  data: Record<string, unknown>
+) {
   renderEmbed({name, data, level: 'inline'});
   return screen.getByRole('link', {name: label}).getAttribute('href') ?? '';
 }
