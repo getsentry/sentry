@@ -44,6 +44,7 @@ from sentry.integrations.models.integration_external_project import IntegrationE
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
+from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -871,6 +872,8 @@ class JiraIntegration(IssueSyncIntegration):
             "key": issue_id,
             "title": fields.get("summary"),
             "description": fields.get("description"),
+            # Jira reassigns the key when an issue moves projects; the id never changes.
+            "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -1456,6 +1459,8 @@ class JiraIntegration(IssueSyncIntegration):
             "integration_id": external_issue.integration_id,
             "is_resolved": is_resolved,
             "issue_key": external_issue.key,
+            "jira_project_id": jira_project["id"],
+            "jira_project_key": jira_project.get("key"),
         }
         if not external_project:
             logger.info("jira.external-project-not-found", extra=log_context)
