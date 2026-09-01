@@ -1,6 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {WidgetFixture} from 'sentry-fixture/widget';
+import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -76,6 +77,7 @@ describe('Seer resource embeds', () => {
           displayType: index === 0 ? DisplayType.LINE : DisplayType.TEXT,
           widgetType: index === 0 ? WidgetType.ERRORS : undefined,
           description: `${title} details`,
+          limit: index === 0 ? 20 : undefined,
         })
     );
     const dashboardRequest = MockApiClient.addMockResponse({
@@ -125,10 +127,60 @@ describe('Seer resource embeds', () => {
             interval: '10m',
             project: [1],
             statsPeriod: '24h',
+            topEvents: 5,
           }),
         })
       )
     );
+    unmount();
+  });
+
+  it('keeps dashboard legend interactions local to the embed', async () => {
+    const widget = WidgetFixture({
+      id: '1',
+      title: 'Errors',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.ERRORS,
+      queries: [
+        WidgetQueryFixture({
+          name: 'Current',
+          conditions: 'release:current',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+        }),
+        WidgetQueryFixture({
+          name: 'Previous',
+          conditions: 'release:previous',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/123/',
+      body: DashboardFixture([widget], {id: '123', title: 'Application health'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+
+    const {router, unmount} = renderEmbed({name: 'dashboard', data: {id: '123'}});
+    await userEvent.click(await screen.findByRole('button', {name: '+2 more'}));
+    const option = await screen.findByRole('option', {name: /Current : count\(\)/});
+
+    expect(option).toHaveAttribute('aria-selected', 'true');
+
+    await userEvent.click(option);
+
+    expect(option).toHaveAttribute('aria-selected', 'false');
+    expect(router.location.query.unselectedSeries).toBeUndefined();
     unmount();
   });
 
