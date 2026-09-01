@@ -13,11 +13,7 @@ export type Polarity = '+' | '-' | '';
 
 type Rating = 'good' | 'bad' | 'neutral';
 
-export function PercentChange({
-  value,
-  preferredPolarity = '+',
-  minimumValue,
-}: Props) {
+export function PercentChange({value, preferredPolarity = '+', minimumValue}: Props) {
   const polarity = getPolarity(value);
   const rating = getPolarityRating(polarity, preferredPolarity);
 

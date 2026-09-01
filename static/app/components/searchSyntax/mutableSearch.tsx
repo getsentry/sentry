@@ -525,7 +525,12 @@ export class MutableSearch {
   }
 
   addDisjunctionStartsWithFilterValues(key: string, values: string[]): this {
-    return this._addDisjunctionFilterValues(key, values, true, 'addStartsWithFilterValue');
+    return this._addDisjunctionFilterValues(
+      key,
+      values,
+      true,
+      'addStartsWithFilterValue'
+    );
   }
 
   addDisjunctionEndsWithFilterValues(key: string, values: string[]): this {
