@@ -3569,6 +3569,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "workflow_engine.all_projects_detectors.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "workflow_engine.auto_creation.pull_request_workflow",
     type=Bool,
     default=False,
