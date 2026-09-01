@@ -109,13 +109,12 @@ class BaseRequestParser(ABC):
     def integration_for_request(self) -> Integration | None:
         """``get_integration_from_request`` memoized for the life of the parser.
 
-        A parser is built once per request, so the provider's ``get_response`` and the
-        base's organization lookup share one query and one decrypt of the integration's
-        encrypted metadata instead of each paying for both. Subclasses still override
-        the uncached ``get_integration_from_request``; nothing should call it directly.
+        A parser is built once per request, so its callers share one query and one
+        decrypt of the integration's encrypted metadata. Subclasses override the
+        uncached ``get_integration_from_request``; nothing else should call it.
 
-        Named apart from any parser's own cache — GitlabRequestParser already keeps its
-        result in ``_integration`` — so the two never share an attribute.
+        The field is named apart from ``_integration``, which GitlabRequestParser
+        already owns.
         """
         if not self._request_integration_fetched:
             self._request_integration = self.get_integration_from_request()
@@ -428,8 +427,7 @@ class BaseRequestParser(ABC):
 
             lifecycle.add_extra("integration_id", integration.id)
 
-            # Only the ids are read, so this is one query returning one column rather
-            # than a COUNT followed by a fetch of rows that get discarded.
+            # Only the ids are read, so one column beats a COUNT plus a discarded fetch.
             organization_ids = list(
                 OrganizationIntegration.objects.filter(
                     integration_id=integration.id,

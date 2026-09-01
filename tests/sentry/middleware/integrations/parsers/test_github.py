@@ -67,14 +67,8 @@ class GithubRequestParserTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     def test_forwarding_reads_each_routing_table_once(self) -> None:
-        """Routing a webhook queries each table it needs exactly once.
-
-        get_response and the base class's organization lookup both need the
-        integration, and the cells were previously re-read from the mappings the
-        organization lookup had already fetched. Counting the queries is the only way
-        to catch a caller quietly reintroducing one of those round trips, since
-        nothing about the response changes when it does.
-        """
+        """Counting queries is the only way to catch a caller reintroducing a round
+        trip, since nothing about the response changes when it does."""
         self.get_integration()
         request = self.factory.post(
             self.path,

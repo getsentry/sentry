@@ -256,13 +256,11 @@ class CellDirectoryTest(TestCase):
             mappings = organization_mapping_service.get_many(organization_ids=[organization.id])
 
             assert find_cells_for_org_mappings(mappings) == {"us"}
-            # The whole point of the function: the same answer as the query it saves.
+            # The whole point: the same answer as the query it saves.
             assert find_cells_for_org_mappings(mappings) == find_cells_for_orgs([organization.id])
 
-            # The fallback cell is synthetic and matches no mapping row, so monolith
-            # cannot be served by reading cell_name off the mapping. Pinned explicitly
-            # rather than read from settings, which the directory state above may set to
-            # a real cell and hide the difference this asserts.
+            # Pinned explicitly rather than read from settings, which the directory
+            # state above may set to a real cell and hide the difference asserted here.
             with override_settings(
                 SILO_MODE=SiloMode.MONOLITH, SENTRY_FALLBACK_CELL="--monolith--"
             ):

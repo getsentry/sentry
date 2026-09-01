@@ -465,10 +465,9 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
 def find_cells_for_org_mappings(organizations: Iterable[RpcOrganizationMapping]) -> set[str]:
     """The cells for organizations whose mappings the caller already holds.
 
-    Same result as ``find_cells_for_orgs`` over the same organizations, without the
-    query: ``cell_name`` is already on the mapping. The monolith short-circuit has to
-    be repeated rather than reading the field, because ``SENTRY_FALLBACK_CELL`` is a
-    synthetic name that appears in no mapping row.
+    Same answer as ``find_cells_for_orgs`` without the query — ``cell_name`` is already
+    on the mapping. Monolith keeps the short-circuit because ``SENTRY_FALLBACK_CELL`` is
+    synthetic and appears in no mapping row.
     """
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_FALLBACK_CELL}
