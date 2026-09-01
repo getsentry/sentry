@@ -43,7 +43,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -1190,7 +1190,7 @@ class JiraIntegration(IssueSyncIntegration):
             if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
-        projects_form_field = {
+        projects_form_field: IntegrationIssueConfigField = {
             "name": "project",
             "label": "Jira Project",
             "choices": [(p["id"], f"{p['key']} - {p['name']}") for p in jira_projects],

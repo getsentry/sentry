@@ -135,6 +135,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:slack-reinstall-nudge-on-issue-alert", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GitHub Enterprise to accept github.com as a valid Installation URL
     manager.add("organizations:github-enterprise-github-com-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Load GitHub issue form options asynchronously instead of blocking form config
+    manager.add("organizations:github-issue-form-prefetch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # API-driven integration setup pipeline (per-provider rollout)
     # ...
     # Project Management Integrations Feature Parity Flags

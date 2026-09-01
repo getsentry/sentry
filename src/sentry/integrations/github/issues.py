@@ -7,10 +7,12 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -149,7 +151,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User | RpcUser, **kwargs: Any
-    ) -> list[dict[str, Any]]:
+    ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -176,48 +178,64 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             org = org_context.organization
 
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
-
-        assignees = self.get_allowed_assignees(default_repo, PAGE_LIMIT) if default_repo else []
-        labels: Sequence[tuple[str, str]] = []
-        if default_repo:
-            owner, repo = default_repo.split("/")
-            labels = self.get_repo_labels(owner, repo, PAGE_LIMIT)
+        prefetch_options = features.has("organizations:github-issue-form-prefetch", org, actor=user)
+        if prefetch_options:
+            defaults = self.get_project_defaults(group.project_id) if group else {}
+            configured_repo = params.get("repo") or defaults.get("repo")
+            default_repo = str(configured_repo) if configured_repo else ""
+            repo_choices = [self.create_default_repo_choice(default_repo)] if default_repo else []
+            assignees: Sequence[tuple[str, str]] = []
+            labels: Sequence[tuple[str, str]] = []
+        else:
+            default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
+            assignees = self.get_allowed_assignees(default_repo, PAGE_LIMIT) if default_repo else []
+            labels = []
+            if default_repo:
+                owner, repo = default_repo.split("/")
+                labels = self.get_repo_labels(owner, repo, PAGE_LIMIT)
 
         autocomplete_url = reverse(
             "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
-        return [
-            {
-                "name": "repo",
-                "label": "GitHub Repository",
-                "type": "select",
-                "default": default_repo,
-                "choices": repo_choices,
-                "url": autocomplete_url,
-                "updatesForm": True,
-                "required": True,
-            },
-            *fields,
-            {
-                "name": "assignee",
-                "label": "Assignee",
-                "default": "",
-                "type": "select",
-                "required": False,
-                "choices": assignees,
-            },
-            {
-                "name": "labels",
-                "label": "Labels",
-                "default": [],
-                "type": "select",
-                "multiple": True,
-                "required": False,
-                "choices": labels,
-            },
-        ]
+        repo_field: IntegrationIssueConfigField = {
+            "name": "repo",
+            "label": "GitHub Repository",
+            "type": "select",
+            "default": default_repo,
+            "choices": repo_choices,
+            "url": autocomplete_url,
+            "updatesForm": True,
+            "required": True,
+        }
+        assignee_field: IntegrationIssueConfigField = {
+            "name": "assignee",
+            "label": "Assignee",
+            "default": "",
+            "type": "select",
+            "required": False,
+            "choices": assignees,
+        }
+        label_field: IntegrationIssueConfigField = {
+            "name": "labels",
+            "label": "Labels",
+            "default": [],
+            "type": "select",
+            "multiple": True,
+            "required": False,
+            "choices": labels,
+        }
+
+        if prefetch_options:
+            repo_field["prefetch"] = True
+            assignee_field["prefetch"] = True
+            assignee_field["dependsOn"] = ["repo"]
+            assignee_field["url"] = autocomplete_url
+            label_field["prefetch"] = True
+            label_field["dependsOn"] = ["repo"]
+            label_field["url"] = autocomplete_url
+
+        return [repo_field, *fields, assignee_field, label_field]
 
     def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client()
