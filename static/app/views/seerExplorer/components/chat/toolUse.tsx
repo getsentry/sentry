@@ -148,8 +148,9 @@ export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean
       const structured = result?.structuredContent;
       return Boolean(
         structured?.calls?.length ||
-        structured?.links?.length ||
-        structured?.todos?.length ||
+        // Errored links render no row, and todos render only from the block holding the newest
+        // snapshot — already checked above. Counting either unfiltered reopens the empty box.
+        structured?.links?.some(link => link?.params?.is_error !== true) ||
         (structured && result.content.trimStart().startsWith('{%'))
       );
     })
