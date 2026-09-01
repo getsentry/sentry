@@ -506,6 +506,74 @@ describe('LogsTabContent', () => {
     );
   });
 
+  it('leaves the aggregate fields alone when switching to aggregates while ungrouped', async () => {
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    await waitFor(() => {
+      expect(router.location.query.mode).toBe(Mode.AGGREGATE);
+    });
+    expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toBeUndefined();
+  });
+
+  it('keeps the sample columns as group bys when switching to aggregates', async () => {
+    const samplesRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {
+          ...initialRouterConfig.location.query,
+          mode: Mode.SAMPLES,
+          [LOGS_FIELDS_KEY]: [
+            'timestamp',
+            'message',
+            'tags[ds_proj_id,number]',
+            'tags[relative_deviation,number]',
+          ],
+          [LOGS_SORT_BYS_KEY]: ['-timestamp'],
+          [LOGS_AGGREGATE_FIELD_KEY]: [
+            JSON.stringify({groupBy: 'message'}),
+            JSON.stringify({yAxes: ['avg(tags[relative_deviation,number])']}),
+          ],
+        },
+      },
+    };
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: samplesRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toEqual([
+        JSON.stringify({groupBy: 'message'}),
+        JSON.stringify({groupBy: 'tags[ds_proj_id,number]'}),
+        JSON.stringify({yAxes: ['avg(tags[relative_deviation,number])']}),
+      ]);
+    });
+    expect(router.location.query.mode).toBe(Mode.AGGREGATE);
+    expect(router.location.query[LOGS_FIELDS_KEY]).toEqual([
+      'timestamp',
+      'message',
+      'tags[ds_proj_id,number]',
+      'tags[relative_deviation,number]',
+    ]);
+  });
+
   it('should pass caseInsensitive to the query', async () => {
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig,

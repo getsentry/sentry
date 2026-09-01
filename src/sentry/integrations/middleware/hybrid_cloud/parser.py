@@ -283,27 +283,18 @@ class BaseRequestParser(ABC):
         Falls back to the integration-level mailbox when the integration is below
         the volume that warrants buckets, or when no bucket ID is available."""
         if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
+            self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
             return str(integration.id)
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
+            self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
-        metrics.incr(
-            "hybridcloud.webhookpayload.mailbox_routing",
-            tags={"provider": self.provider, "bucketed": "true"},
-        )
+        self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
         return f"{integration.id}:{bucket_number}"
 
@@ -320,6 +311,17 @@ class BaseRequestParser(ABC):
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             return True
         return False
+
+    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={
+                "provider": self.provider,
+                "bucketed": "true" if bucketed else "false",
+                "reason": reason,
+            },
+        )
 
     def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
         raise NotImplementedError(

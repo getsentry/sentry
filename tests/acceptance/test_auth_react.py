@@ -346,6 +346,7 @@ class ReactAuthTest(AcceptanceTestCase):
         # Password authentication establishes the account session, but the protected
         # destination takes precedence over the password-capable fallback organization.
         self.submit_visible_credentials(user.email, PASSWORD)
+        self.browser.wait_until_not('[aria-label="Email"]')
         self.browser.wait_until_script_execution(
             f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
         )
