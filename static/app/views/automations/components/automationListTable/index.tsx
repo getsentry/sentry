@@ -166,20 +166,20 @@ export function AutomationListTable({
               </Flex>
             </HeaderCell>
             <HeaderCell
-              data-column-name="last-triggered"
+              column="last-triggered"
               sort={sort}
               sortKey="lastTriggered"
             >
               {t('Last Triggered')}
             </HeaderCell>
-            <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
+            <HeaderCell column="action" sort={sort} sortKey="actions">
               {t('Actions')}
             </HeaderCell>
-            <HeaderCell data-column-name="projects" sort={sort}>
+            <HeaderCell column="projects" sort={sort}>
               {t('Projects')}
             </HeaderCell>
             <HeaderCell
-              data-column-name="connected-monitors"
+              column="connected-monitors"
               sort={sort}
               sortKey="connectedDetectors"
             >

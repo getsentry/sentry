@@ -55,17 +55,17 @@ function Skeletons({canEdit, numberOfRows}: {canEdit: boolean; numberOfRows: num
               <Placeholder height="16px" width="20%" />
             </div>
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="type">
+          <SimpleTable.RowCell column="type">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="last-issue">
+          <SimpleTable.RowCell column="last-issue">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="owner">
+          <SimpleTable.RowCell column="owner">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
           {canEdit && (
-            <SimpleTable.RowCell data-column-name="connected">
+            <SimpleTable.RowCell column="connected">
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
@@ -142,16 +142,16 @@ export function ConnectedMonitorsList({
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="type">
+            <SimpleTable.HeaderCell column="type">
               {t('Type')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="last-issue">
+            <SimpleTable.HeaderCell column="last-issue">
               {t('Last Issue')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="owner">
+            <SimpleTable.HeaderCell column="owner">
               {t('Assignee')}
             </SimpleTable.HeaderCell>
-            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+            {canEdit && <SimpleTable.HeaderCell column="connected" />}
           </SimpleTable.HeaderRow>
         }
       >
@@ -176,17 +176,17 @@ export function ConnectedMonitorsList({
               <SimpleTable.RowCell>
                 <DetectorLink detector={detector} openInNewTab={openInNewTab} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="type">
+              <SimpleTable.RowCell column="type">
                 <DetectorTypeCell type={detector.type} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="last-issue">
+              <SimpleTable.RowCell column="last-issue">
                 <IssueCell group={detector.latestGroup} />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="owner">
+              <SimpleTable.RowCell column="owner">
                 <DetectorAssigneeCell assignee={detector.owner} />
               </SimpleTable.RowCell>
               {canEdit && (
-                <SimpleTable.RowCell data-column-name="connected" justify="end">
+                <SimpleTable.RowCell column="connected" justify="end">
                   <Button onClick={() => toggleConnected?.({detector})} size="sm">
                     {connectedDetectorIds?.has(detector.id)
                       ? t('Disconnect')

@@ -581,10 +581,10 @@ function FilteredVolumeCells({
   if (isPending) {
     return (
       <Fragment>
-        <SimpleTable.RowCell data-column-name="trend">
+        <SimpleTable.RowCell column="trend">
           <Placeholder height={`${CHART_HEIGHT}px`} width={`${CHART_WIDTH}px`} />
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell data-column-name="filtered">
+        <SimpleTable.RowCell column="filtered">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Placeholder height="16px" width="40px" />
           </Flex>
@@ -596,12 +596,12 @@ function FilteredVolumeCells({
   if (isError) {
     return (
       <Fragment>
-        <SimpleTable.RowCell data-column-name="trend">
+        <SimpleTable.RowCell column="trend">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
         </SimpleTable.RowCell>
-        <SimpleTable.RowCell data-column-name="filtered">
+        <SimpleTable.RowCell column="filtered">
           <Flex height={`${CHART_HEIGHT}px`} align="center">
             <Text variant="muted">{'—'}</Text>
           </Flex>
@@ -663,7 +663,7 @@ function FilteredVolumeCells({
 
   return (
     <Fragment>
-      <SimpleTable.RowCell data-column-name="trend">
+      <SimpleTable.RowCell column="trend">
         <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
           <MiniBarChart
             stacked
@@ -685,7 +685,7 @@ function FilteredVolumeCells({
           />
         </Container>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="filtered">
+      <SimpleTable.RowCell column="filtered">
         <Flex height={`${CHART_HEIGHT}px`} align="center">
           <Text tabular variant={total === 0 ? 'muted' : 'primary'}>
             {formatAbbreviatedNumber(total)}
@@ -917,16 +917,16 @@ export function CustomFilters({project}: {project: Project}) {
                 <SimpleTable.HeaderCell divider={false}>
                   {t('Conditions')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="trend">
+                <SimpleTable.HeaderCell divider={false} column="trend">
                   {t('Trend')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
+                <SimpleTable.HeaderCell divider={false} column="filtered">
                   {t('Filtered')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="created">
+                <SimpleTable.HeaderCell divider={false} column="created">
                   {t('Created')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell divider={false} data-column-name="edited">
+                <SimpleTable.HeaderCell divider={false} column="edited">
                   {t('Edited')}
                 </SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell divider={false}>
@@ -979,10 +979,10 @@ export function CustomFilters({project}: {project: Project}) {
                   isPending={isStatsPending}
                   isError={isStatsError}
                 />
-                <SimpleTable.RowCell whiteSpace="nowrap" data-column-name="created">
+                <SimpleTable.RowCell whiteSpace="nowrap" column="created">
                   <TimeSince date={filter.dateCreated} unitStyle="extraShort" />
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell whiteSpace="nowrap" data-column-name="edited">
+                <SimpleTable.RowCell whiteSpace="nowrap" column="edited">
                   <TimeSince date={filter.dateUpdated} unitStyle="extraShort" />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>

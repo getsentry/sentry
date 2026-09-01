@@ -41,13 +41,13 @@ function Skeletons() {
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="type">
+          <SimpleTable.RowCell column="type">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="last-issue">
+          <SimpleTable.RowCell column="last-issue">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="owner">
+          <SimpleTable.RowCell column="owner">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>

@@ -8,22 +8,13 @@ const Z_INDEX_RESIZER = 1;
 
 const Z_INDEX_STICKY_HEAD = 2;
 
-export const TableGrid = styled('table')<{hiddenColumnKeys?: string[]}>`
+export const TableGrid = styled('table')`
   position: inherit;
   display: grid;
 
   box-sizing: border-box;
   border-collapse: collapse;
   margin: 0;
-
-  ${p =>
-    p.hiddenColumnKeys?.map(
-      key => css`
-        [data-column-name='${CSS.escape(key)}'] {
-          display: none;
-        }
-      `
-    )}
 `;
 
 const subgrid = css`

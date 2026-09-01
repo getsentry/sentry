@@ -15,7 +15,7 @@ import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   GridLineLabels,
@@ -191,17 +191,17 @@ export function DetectorListTable({
                   <span>{t('Name')}</span>
                 </Flex>
               </HeaderCell>
-              <HeaderCell data-column-name="type" divider sortKey="type">
+              <HeaderCell column="type" divider sortKey="type">
                 {t('Type')}
               </HeaderCell>
-              <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
+              <HeaderCell column="last-issue" divider sortKey="latestGroup">
                 {t('Last Issue')}
               </HeaderCell>
-              <HeaderCell data-column-name="assignee" divider>
+              <HeaderCell column="assignee" divider>
                 {t('Assignee')}
               </HeaderCell>
               <HeaderCell
-                data-column-name="connected-automations"
+                column="connected-automations"
                 divider
                 sortKey="connectedWorkflows"
               >
@@ -211,21 +211,12 @@ export function DetectorListTable({
                 <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
               ))}
               {hasVisualization && detectors.length > 0 && (
-                <VisualizationHeaderCell
-                  data-column-name="visualization"
-                  ref={elementRef}
-                  role="columnheader"
-                  scope="col"
-                >
+                <VisualizationHeaderCell column="visualization" ref={elementRef} scope="col">
                   <GridLineLabels timeWindowConfig={timeWindowConfig} />
                 </VisualizationHeaderCell>
               )}
               {hasVisualization && (
-                <VisualizationExpandButtonCell
-                  data-column-name="visualization-expand"
-                  role="columnheader"
-                  scope="col"
-                >
+                <VisualizationExpandButtonCell column="visualization-expand" scope="col">
                   <Button
                     size="xs"
                     variant="transparent"
@@ -416,14 +407,14 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
   }
 `;
 
-const VisualizationHeaderCell = styled('th')`
+const VisualizationHeaderCell = styled(Table.HeadCell)`
   grid-column: -3 / -1;
   border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   min-height: 50px;
   min-width: 0;
 `;
 
-const VisualizationExpandButtonCell = styled('th')`
+const VisualizationExpandButtonCell = styled(Table.HeadCell)`
   grid-row: 1;
   grid-column: -1;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};

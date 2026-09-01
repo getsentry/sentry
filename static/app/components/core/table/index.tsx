@@ -3,6 +3,7 @@ export {
   COL_WIDTH_UNDEFINED,
   Table,
   type TableColumnConfig,
+  useColumnStyle,
   useTableElement,
 } from './table';
 

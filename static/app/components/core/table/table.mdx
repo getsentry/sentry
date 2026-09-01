@@ -85,8 +85,7 @@ Pass `onColumnResize` to control them instead, which is how `GridEditable` persi
 Keys are container breakpoints on the `theme.container` scale, and both resolve mobile-first, like every other responsive prop.
 
 A column whose `visible` resolves to `false` loses its track entirely, so the remaining columns divide the full width.
-Its cells are matched by `data-column-name`, which they need to carry to be hidden along with their track.
-Give every column the rows render an entry, `visible: false` included — a column left out of the array keeps its cells, and they will claim a track meant for something else.
+Cells name their column with `column`, and a cell whose column is hidden is not rendered at all.
 
 ```jsx
 const columns = [
@@ -99,11 +98,7 @@ const columns = [
   <Table.Head>
     <Table.Row>
       {columns.map(column => (
-        <Table.HeadCell
-          column={column.key}
-          data-column-name={column.key}
-          key={column.key}
-        >
+        <Table.HeadCell column={column.key} key={column.key}>
           {column.key}
         </Table.HeadCell>
       ))}

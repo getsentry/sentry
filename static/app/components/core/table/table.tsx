@@ -1,7 +1,9 @@
 import type {
   ComponentProps,
+  CSSProperties,
   HTMLAttributes,
   ReactNode,
+  Ref,
   RefObject,
   TdHTMLAttributes,
   ThHTMLAttributes,
@@ -14,7 +16,6 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -30,6 +31,7 @@ import {
 } from 'sentry/components/tables/sortableHeaderCell';
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
+import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
 
 import {
   TableBody,
@@ -52,19 +54,17 @@ export interface TableColumnConfig {
   resizable?: boolean;
   /**
    * Whether the column takes part in the layout, defaulting to `true`. A
-   * responsive value drops the column's track from the grid template and hides
-   * its cells as the container crosses a breakpoint.
+   * responsive value drops the column's track from the grid template and its
+   * cells from the table as the container crosses a breakpoint.
    *
-   * Cells of a hidden column are matched by `data-column-name={key}`, so they
-   * must carry that attribute to be hidden along with their track.
+   * Cells name their column with `column={key}`, which is how they are dropped
+   * along with their track.
    */
   visible?: Responsive<boolean>;
   width?: Responsive<number | string>;
 }
 
-interface ResolvedColumn {
-  key: string;
-  resizable?: boolean;
+interface ResolvedColumn extends Omit<TableColumnConfig, 'visible' | 'width'> {
   width?: number | string;
 }
 
@@ -91,6 +91,7 @@ function getDefaultColumnTrack(
 
 interface TableContextValue {
   columnIndexByKey: Map<string, number>;
+  hiddenColumnKeys: Set<string>;
   lastColumnIndex: number;
   minimumColumnWidth: number;
   onResetColumnSize: (event: React.MouseEvent, index: number) => void;
@@ -111,6 +112,19 @@ const DETACHED_TABLE_REF: RefObject<HTMLTableElement | null> = {current: null};
 
 export function useTableElement() {
   return useTableContext()?.tableRef ?? DETACHED_TABLE_REF;
+}
+
+/**
+ * Drops a cell whose column is currently hidden. Inline because a cell's own
+ * `display` comes from a class, and hidden rather than unrendered so that the
+ * table still holds its content when it is measured at zero width.
+ */
+export function useColumnStyle(column: string | undefined, style?: CSSProperties) {
+  const context = useTableContext();
+
+  return column !== undefined && context?.hiddenColumnKeys.has(column)
+    ? {...style, display: 'none'}
+    : style;
 }
 
 const EMPTY_COLUMNS: TableColumnConfig[] = [];
@@ -151,99 +165,55 @@ export function Table({
   // stylesheet rule would lose to. Hidden columns are dropped entirely so that
   // every index downstream — resize handles, the template, the context — counts
   // only the columns currently on screen.
-  const {hiddenColumnKeys, visibleColumns} = useMemo(() => {
-    const visible: ResolvedColumn[] = [];
-    const hidden: string[] = [];
+  const visibleColumns: ResolvedColumn[] = [];
+  const hiddenColumnKeys = new Set<string>();
 
-    for (const column of columns) {
-      if (!resolveResponsiveProp(column.visible ?? true)) {
-        hidden.push(column.key);
-        continue;
-      }
+  for (const {visible, width, ...column} of columns) {
+    if (resolveResponsiveProp(visible ?? true)) {
+      visibleColumns.push({...column, width: resolveResponsiveProp(width)});
+    } else {
+      hiddenColumnKeys.add(column.key);
+    }
+  }
 
-      visible.push({
-        key: column.key,
-        resizable: column.resizable,
-        width: resolveResponsiveProp(column.width),
-      });
+  const resolveWidth = (column: ResolvedColumn): ResolvedWidth =>
+    isControlled ? column.width : (internalWidths[column.key] ?? column.width);
+
+  const buildTemplate = (overrideIndex?: number, overrideWidth?: number) => {
+    const tracks = visibleColumns.map((column, index) =>
+      getDefaultColumnTrack(
+        index === overrideIndex ? overrideWidth : resolveWidth(column),
+        {
+          flexible: flexibleLastColumn && index === visibleColumns.length - 1,
+          minimumColumnWidth,
+        }
+      )
+    );
+
+    if (!tracks.length) {
+      return '';
     }
 
-    return {hiddenColumnKeys: hidden, visibleColumns: visible};
-  }, [columns, resolveResponsiveProp]);
+    return [...(prependColumnWidths ?? []), ...tracks].join(' ');
+  };
 
-  const resolveWidth = useCallback(
-    (column: ResolvedColumn): ResolvedWidth =>
-      isControlled ? column.width : (internalWidths[column.key] ?? column.width),
-    [internalWidths, isControlled]
-  );
+  const commitWidth = (index: number, width: number) => {
+    const key = visibleColumns[index]?.key;
 
-  const buildTemplate = useCallback(
-    (overrideIndex?: number, overrideWidth?: number) => {
-      const tracks = visibleColumns.map((column, index) =>
-        getDefaultColumnTrack(
-          index === overrideIndex ? overrideWidth : resolveWidth(column),
-          {
-            flexible: flexibleLastColumn && index === visibleColumns.length - 1,
-            minimumColumnWidth,
-          }
-        )
-      );
-
-      if (!tracks.length) {
-        return '';
-      }
-
-      return [...(prependColumnWidths ?? []), ...tracks].join(' ');
-    },
-    [
-      flexibleLastColumn,
-      minimumColumnWidth,
-      prependColumnWidths,
-      resolveWidth,
-      visibleColumns,
-    ]
-  );
-
-  const commitWidth = useCallback(
-    (index: number, width: number) => {
-      const key = visibleColumns[index]?.key;
-
-      if (onColumnResize) {
-        onColumnResize(index, width);
-      } else if (key) {
-        setInternalWidths(current => ({...current, [key]: width}));
-      }
-    },
-    [onColumnResize, visibleColumns]
-  );
-
-  const getResizeTemplate = useCallback(
-    (index: number, newWidth: number) =>
-      buildTemplate(index, Math.max(newWidth, minimumColumnWidth)),
-    [buildTemplate, minimumColumnWidth]
-  );
-
-  const onColumnResizeEnd = useCallback(
-    (index: number, newWidth: number) =>
-      commitWidth(index, Math.max(newWidth, minimumColumnWidth)),
-    [commitWidth, minimumColumnWidth]
-  );
+    if (onColumnResize) {
+      onColumnResize(index, width);
+    } else if (key) {
+      setInternalWidths(current => ({...current, [key]: width}));
+    }
+  };
 
   const {applyTemplate, onResizeEnd, onResizeMove, onResizeStart} = useColumnResize({
     gridRef,
-    getResizeTemplate,
-    onColumnResizeEnd,
+    getResizeTemplate: (index, newWidth) =>
+      buildTemplate(index, Math.max(newWidth, minimumColumnWidth)),
+    onColumnResizeEnd: (index, newWidth) =>
+      commitWidth(index, Math.max(newWidth, minimumColumnWidth)),
   });
-
-  const onResetColumnSize = useCallback(
-    (event: React.MouseEvent, index: number) => {
-      event.stopPropagation();
-
-      applyTemplate(buildTemplate(index, COL_WIDTH_UNDEFINED));
-      commitWidth(index, COL_WIDTH_UNDEFINED);
-    },
-    [applyTemplate, buildTemplate, commitWidth]
-  );
 
   const template = buildTemplate();
 
@@ -262,36 +232,28 @@ export function Table({
     return () => window.removeEventListener('resize', redraw);
   }, [redraw]);
 
-  const contextValue = useMemo<TableContextValue>(
-    () => ({
-      columnIndexByKey: new Map(
-        visibleColumns.map((column, index) => [column.key, index])
-      ),
-      lastColumnIndex: visibleColumns.length - 1,
-      minimumColumnWidth,
-      onResetColumnSize,
-      onResizeEnd,
-      onResizeMove,
-      onResizeStart,
-      resizableByIndex: visibleColumns.map(column => column.resizable !== false),
-      tableRef: gridRef,
-    }),
-    [
-      gridRef,
-      minimumColumnWidth,
-      onResetColumnSize,
-      onResizeEnd,
-      onResizeMove,
-      onResizeStart,
-      visibleColumns,
-    ]
-  );
+  const contextValue: TableContextValue = {
+    columnIndexByKey: new Map(visibleColumns.map((column, index) => [column.key, index])),
+    hiddenColumnKeys,
+    lastColumnIndex: visibleColumns.length - 1,
+    minimumColumnWidth,
+    onResetColumnSize: (event, index) => {
+      event.stopPropagation();
+
+      applyTemplate(buildTemplate(index, COL_WIDTH_UNDEFINED));
+      commitWidth(index, COL_WIDTH_UNDEFINED);
+    },
+    onResizeEnd,
+    onResizeMove,
+    onResizeStart,
+    resizableByIndex: visibleColumns.map(column => column.resizable !== false),
+    tableRef: gridRef,
+  };
 
   return (
     <TableContext value={contextValue}>
       <TableGrid
         {...props}
-        hiddenColumnKeys={hiddenColumnKeys}
         ref={gridRef}
         role="table"
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
@@ -314,8 +276,19 @@ function Row(props: ComponentProps<typeof TableRow>) {
   return <TableRow role="row" {...props} />;
 }
 
-function Cell(props: ComponentProps<typeof TableCell>) {
-  return <TableCell role="cell" {...props} />;
+interface CellProps extends ComponentProps<typeof TableCell> {
+  column?: string;
+}
+
+function Cell({column, style, ...props}: CellProps) {
+  return (
+    <TableCell
+      data-column-name={column}
+      role="cell"
+      {...props}
+      style={useColumnStyle(column, style)}
+    />
+  );
 }
 
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
@@ -327,6 +300,7 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
   columnIndex?: number;
   onSort?: (event: React.MouseEvent) => void;
   overlays?: ReactNode;
+  ref?: Ref<HTMLTableCellElement>;
   /**
    * Whether `to` should replace the history entry rather than pushing a new one.
    */
@@ -344,6 +318,7 @@ function HeadCell({
   columnIndex,
   onSort,
   overlays,
+  ref,
   replace,
   sort,
   to,
@@ -363,6 +338,7 @@ function HeadCell({
   const sortable = !!onSort || !!sort || !!overlays || !!to;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
+  const getMergedRef = useStableMergeRef(cellRef);
   const {max, width} = useObservedColumnSize(cellRef);
   const fallbackId = useId();
   const cellId = props.id || fallbackId;
@@ -370,10 +346,12 @@ function HeadCell({
   return (
     <TableHeadCell
       aria-sort={getAriaSort(sort)}
+      data-column-name={column}
       {...props}
       id={cellId}
-      ref={cellRef}
+      ref={getMergedRef(ref)}
       role="columnheader"
+      style={useColumnStyle(column, props.style)}
     >
       {sortable ? (
         <SortableHeaderCell

@@ -7,8 +7,6 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
-
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -26,11 +24,7 @@ function TestTable({
       <Table.Head>
         <Table.Row>
           {columns.map(column => (
-            <Table.HeadCell
-              column={column.key}
-              data-column-name={column.key}
-              key={column.key}
-            >
+            <Table.HeadCell column={column.key} key={column.key}>
               {column.key}
             </Table.HeadCell>
           ))}
@@ -40,7 +34,7 @@ function TestTable({
         <Table.Row>
           {columns.map(column => (
             <Table.Cell
-              data-column-name={column.key}
+              column={column.key}
               key={column.key}
             >{`${column.key}-value`}</Table.Cell>
           ))}
@@ -282,11 +276,8 @@ describe('Table', () => {
         </QueryContainer>
       );
 
-      // jsdom's getComputedStyle does not resolve descendant rules, so the
-      // hiding rule is read off the emitted stylesheet rather than the cell.
-      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        "[data-column-name='age'] {display: none;}"
-      );
+      expect(screen.getByText('age-value')).not.toBeVisible();
+      expect(screen.getByText('name-value')).toBeVisible();
     });
 
     it('leaves the last visible column flexible when a later column is hidden', () => {

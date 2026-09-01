@@ -203,10 +203,10 @@ function OrganizationAuthTokensIndex() {
             header={
               <SimpleTable.HeaderRow>
                 <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell data-column-name="created">
+                <SimpleTable.HeaderCell column="created">
                   {t('Created')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell data-column-name="lastAccess">
+                <SimpleTable.HeaderCell column="lastAccess">
                   {t('Last access')}
                 </SimpleTable.HeaderCell>
                 <SimpleTable.HeaderCell />

@@ -3,6 +3,7 @@ import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
+import {setContainerWidth} from 'sentry-test/containerQuery';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -98,6 +99,9 @@ describe('ProjectFilters', () => {
   }
 
   beforeEach(() => {
+    // The custom filters table only shows its date columns once its container
+    // is wide.
+    setContainerWidth(1600);
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({

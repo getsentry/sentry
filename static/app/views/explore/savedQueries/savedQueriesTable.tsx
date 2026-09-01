@@ -177,31 +177,31 @@ export function SavedQueriesTable({
         isLoading={isLoading}
         header={
           <SavedEntityTable.Header>
-            <SavedEntityTable.HeaderCell data-column-name="star" />
-            <SavedEntityTable.HeaderCell data-column-name="name" divider={false}>
+            <SavedEntityTable.HeaderCell column="star" />
+            <SavedEntityTable.HeaderCell column="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.HeaderCell data-column-name="dataset">
+              <SavedEntityTable.HeaderCell column="dataset">
                 {t('Type')}
               </SavedEntityTable.HeaderCell>
             )}
-            <SavedEntityTable.HeaderCell data-column-name="project">
+            <SavedEntityTable.HeaderCell column="project">
               {t('Project')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column-name="envs">
+            <SavedEntityTable.HeaderCell column="envs">
               {t('Envs')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column-name="query">
+            <SavedEntityTable.HeaderCell column="query">
               {t('Query')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column-name="created-by">
+            <SavedEntityTable.HeaderCell column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column-name="last-visited">
+            <SavedEntityTable.HeaderCell column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column-name="actions" />
+            <SavedEntityTable.HeaderCell column="actions" />
           </SavedEntityTable.Header>
         }
         isEmpty={filteredData.length === 0}
@@ -214,7 +214,7 @@ export function SavedQueriesTable({
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
-            <SavedEntityTable.Cell hasButton data-column-name="star">
+            <SavedEntityTable.Cell hasButton column="star">
               <SavedEntityTable.CellStar
                 isStarred={starredIds.includes(query.id)}
                 onClick={() =>
@@ -226,7 +226,7 @@ export function SavedQueriesTable({
                 }
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column-name="name">
+            <SavedEntityTable.Cell column="name">
               <SavedEntityTable.CellName
                 to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
               >
@@ -234,17 +234,17 @@ export function SavedQueriesTable({
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.Cell data-column-name="dataset">
+              <SavedEntityTable.Cell column="dataset">
                 {getSavedQueryDatasetLabel(query.dataset)}
               </SavedEntityTable.Cell>
             )}
-            <SavedEntityTable.Cell data-column-name="project">
+            <SavedEntityTable.Cell column="project">
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column-name="envs">
+            <SavedEntityTable.Cell column="envs">
               <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column-name="query">
+            <SavedEntityTable.Cell column="query">
               <StyledExploreParams
                 query={query.query[0].query}
                 visualizes={query.query[0].visualize}
@@ -252,7 +252,7 @@ export function SavedQueriesTable({
                 agent={query.agent}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column-name="created-by">
+            <SavedEntityTable.Cell column="created-by">
               {query.isPrebuilt ? (
                 <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
@@ -261,10 +261,10 @@ export function SavedQueriesTable({
                 <UserAvatar user={query.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column-name="last-visited">
+            <SavedEntityTable.Cell column="last-visited">
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column-name="actions" hasButton>
+            <SavedEntityTable.Cell column="actions" hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   ...(query.isPrebuilt

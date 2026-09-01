@@ -118,10 +118,10 @@ export default function ApiApplications() {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Application Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="age">
+            <SimpleTable.HeaderCell column="age">
               {t('Age')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="actions" />
+            <SimpleTable.HeaderCell column="actions" />
           </SimpleTable.HeaderRow>
         }
       >

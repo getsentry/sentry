@@ -182,10 +182,10 @@ function OrganizationFeatureFlagsChangeTracking() {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="created">
+            <SimpleTable.HeaderCell column="created">
               {t('Created')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell data-column-name="createdBy">
+            <SimpleTable.HeaderCell column="createdBy">
               {t('Created by')}
             </SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell />

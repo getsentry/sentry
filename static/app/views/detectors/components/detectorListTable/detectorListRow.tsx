@@ -42,16 +42,16 @@ export function DetectorListRow({detector, selected, onSelect}: DetectorListRowP
           <DetectorLink detector={detector} />
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="type">
+      <SimpleTable.RowCell column="type">
         <DetectorTypeCell type={detector.type} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="last-issue">
+      <SimpleTable.RowCell column="last-issue">
         <IssueCell group={detector.latestGroup} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="assignee">
+      <SimpleTable.RowCell column="assignee">
         <DetectorAssigneeCell assignee={detector.owner} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="connected-automations">
+      <SimpleTable.RowCell column="connected-automations">
         {detector.projectId && (
           <DetectorListConnectedAutomations
             automationIds={detector.workflowIds}
@@ -81,22 +81,22 @@ export function DetectorListRowSkeleton() {
           </Container>
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="type">
+      <SimpleTable.RowCell column="type">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="last-issue">
+      <SimpleTable.RowCell column="last-issue">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="assignee">
+      <SimpleTable.RowCell column="assignee">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="connected-automations">
+      <SimpleTable.RowCell column="connected-automations">
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
       {additionalColumns.map(col => (
         <Fragment key={col.id}>
           {col.renderPendingCell?.() ?? (
-            <SimpleTable.RowCell data-column-name={col.id}>
+            <SimpleTable.RowCell column={col.id}>
               <Placeholder height="20px" />
             </SimpleTable.RowCell>
           )}
