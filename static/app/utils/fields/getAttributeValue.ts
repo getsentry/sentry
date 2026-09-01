@@ -1,7 +1,10 @@
 import {ATTRIBUTE_SEARCH_METADATA, type AttributeValue} from '@sentry/conventions';
 
 const TYPED_TAG_KEY_RE = /tags\[(\S*),(\S*)\]/;
-const ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY = new Map<string, readonly string[]>();
+const ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY = new Map<
+  string,
+  readonly string[] | undefined
+>();
 
 type AttributeValueByKind = {
   boolean: boolean;
@@ -84,7 +87,11 @@ export function getAttributeValue(
 
   const prettifiedKey = key.match(TYPED_TAG_KEY_RE)?.[1] ?? key;
   const deprecationChain = ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.get(prettifiedKey);
-  if (deprecationChain) {
+  if (ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.has(prettifiedKey)) {
+    if (!deprecationChain) {
+      return undefined;
+    }
+
     return getAttributeValueFromDeprecationChain(
       attributes as Record<string, unknown>,
       deprecationChain,
@@ -98,11 +105,12 @@ export function getAttributeValue(
       chain.includes(prettifiedKey)
     );
 
+  ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(prettifiedKey, metadata?.deprecationChain);
+
   if (!metadata) {
     return undefined;
   }
 
-  ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(prettifiedKey, metadata.deprecationChain);
   return getAttributeValueFromDeprecationChain(
     attributes as Record<string, unknown>,
     metadata.deprecationChain,
