@@ -11,6 +11,7 @@ from requests.exceptions import ConnectionError, Timeout
 from sentry.notifications.platform.service import NotificationService
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.sentry_apps.utils.webhooks import (
     CommentActionType,
     IssueActionType,
@@ -666,8 +667,13 @@ class WebhookInvalidHeaderTest(TestCase):
             "latin-1", "Bearer　token", 6, 7, "ordinal not in range(256)"
         )
 
-        with pytest.raises(UnicodeEncodeError):
+        with pytest.raises(SentryAppIntegratorError) as exc_info:
             send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        assert "non-latin-1" in exc_info.value.message
+        assert exc_info.value.status_code == 400
+        # Exception message must not include the raw header/token.
+        assert "Bearer" not in repr(exc_info.value)
 
         buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
         requests = buffer.get_requests()
