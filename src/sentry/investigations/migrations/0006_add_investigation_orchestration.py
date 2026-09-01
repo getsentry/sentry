@@ -26,13 +26,19 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("investigations", "0005_add_investigation_summary_fields"),
+        ("seer", "0032_add_extras_to_seer_run_milestone"),
     ]
 
     operations = [
         migrations.AddField(
             model_name="investigationblock",
-            name="producing_seer_run_id",
-            field=models.BigIntegerField(null=True),
+            name="producing_seer_run",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="+",
+                to="seer.seerrun",
+            ),
         ),
         migrations.AddField(
             model_name="investigationblock",
@@ -55,10 +61,6 @@ class Migration(CheckedMigration):
                 ),
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
-                (
-                    "seer_run_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True, unique=True),
-                ),
                 (
                     "schema_version",
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
@@ -104,6 +106,15 @@ class Migration(CheckedMigration):
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="orchestration_run",
                         to="investigations.investigation",
+                    ),
+                ),
+                (
+                    "seer_run",
+                    models.OneToOneField(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="investigation_orchestration_run",
+                        to="seer.seerrun",
                     ),
                 ),
             ],

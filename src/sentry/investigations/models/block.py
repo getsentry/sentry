@@ -84,7 +84,9 @@ class InvestigationBlock(DefaultFieldsModel):
     # The owning investigation identifies the one-to-one orchestration run.
     report_revision = BoundedPositiveIntegerField(null=True)
     stable_agent_key = models.CharField(max_length=128, null=True)
-    producing_seer_run_id = models.BigIntegerField(null=True)
+    producing_seer_run = FlexibleForeignKey(
+        "seer.SeerRun", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
 
     # Blocks are hidden rather than hard-deleted so execution history remains
     # inspectable and stale references retain a stable target.

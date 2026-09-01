@@ -5,7 +5,7 @@ from typing import Any
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -59,7 +59,12 @@ class InvestigationOrchestrationRun(DefaultFieldsModel):
         related_name="orchestration_run",
     )
     # This remains empty while Sentry has durably queued creation with Seer.
-    seer_run_id = BoundedBigIntegerField(null=True, unique=True)
+    seer_run = models.OneToOneField(
+        "seer.SeerRun",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="investigation_orchestration_run",
+    )
     schema_version = BoundedPositiveIntegerField(default=1, db_default=1)
     workflow_version = BoundedPositiveIntegerField(default=1, db_default=1)
     generation = BoundedPositiveIntegerField(default=1, db_default=1)
