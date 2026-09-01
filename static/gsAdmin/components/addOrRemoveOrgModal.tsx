@@ -8,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ORG_ROLES} from 'sentry/constants';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -43,7 +44,9 @@ function AddToOrgModal({
   const mutation = useMutation({
     mutationFn: (data: AddToOrgFormValues) =>
       fetchMutation({
-        url: `/customers/${data.organizationSlug}/users/${userId}/members/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/users/$userId/members/', {
+          path: {organizationIdOrSlug: data.organizationSlug, userId},
+        }),
         method: 'POST',
         data: {orgRole: data.role},
       }),
@@ -119,7 +122,9 @@ function RemoveFromOrgModal({
   const mutation = useMutation({
     mutationFn: (data: RemoveFromOrgFormValues) =>
       fetchMutation({
-        url: `/customers/${data.organizationSlug}/users/${userId}/members/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/users/$userId/members/', {
+          path: {organizationIdOrSlug: data.organizationSlug, userId},
+        }),
         method: 'DELETE',
       }),
     onSuccess: () => {
