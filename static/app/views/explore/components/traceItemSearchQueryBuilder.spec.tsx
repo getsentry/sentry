@@ -169,6 +169,9 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.getFilterTokenWarning?.('ai.completion_tokens.used')).toBe(
       'Deprecated. Use gen_ai.usage.output_tokens instead.'
     );
+    expect(result.current.getFilterTokenWarning?.('sentry.segment.name')).toBe(
+      'Deprecated. Use transaction instead.'
+    );
     expect(
       result.current.getFilterTokenWarning?.('gen_ai.usage.output_tokens')
     ).toBeUndefined();
