@@ -17,16 +17,21 @@ from __future__ import annotations
 import logging
 from dataclasses import fields
 
+from django.utils import timezone
+
 from sentry import analytics
-from sentry.analytics.events.pr_iteration_events import AiAutofixPrIterationDetailsCompletedEvent
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchCompletedEvent,
+)
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations
+from sentry.seer.autofix.autofix_agent import get_iterations, get_latest_iteration_index
 from sentry.seer.autofix.pr_iteration.details_store import (
     add_iteration,
+    claim_iteration,
     get_iteration,
-    open_iterations,
     remove_iteration,
+    untriggered_iteration,
     update_iteration,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -36,22 +41,21 @@ logger = logging.getLogger(__name__)
 
 ITERATION_ID_METADATA_KEY = "iteration_id"
 
-TRIGGERED_KEY = "triggered"
-
 
 def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
     return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
 
 
-def _untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
-    """The run's iteration no drain has handed to the agent yet.
+def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
+    """The run's waiting iteration, claimed. None when another caller won it.
 
-    At most one exists, since only an enqueue onto an empty queue opens one.
+    At most one waits, since only an enqueue onto an empty queue opens one and
+    a drain that returns without triggering closes the one it popped.
     """
-    for iteration in open_iterations(seer_run):
-        if not iteration.data.get(TRIGGERED_KEY):
-            return iteration
-    return None
+    iteration = untriggered_iteration(seer_run)
+    if iteration is None or not claim_iteration(iteration):
+        return None
+    return iteration
 
 
 def open_pr_iteration_details(
@@ -100,7 +104,16 @@ def open_pr_iteration_details(
         )
 
 
-def trigger_pr_iteration_details(*, run_id: int, organization_id: int) -> int | None:
+def trigger_pr_iteration_details(
+    *,
+    run_id: int,
+    organization_id: int,
+    referrer: str | None = None,
+    feedback_count: int = 0,
+    queued_count: int = 0,
+    dropped_count: int = 0,
+    automated_feedback_count: int = 0,
+) -> int | None:
     """Claim the waiting iteration for the agent run about to start, and name it.
 
     The returned id travels with the agent request so the completion hook can
@@ -111,11 +124,18 @@ def trigger_pr_iteration_details(*, run_id: int, organization_id: int) -> int | 
         if seer_run is None:
             return None
 
-        iteration = _untriggered(seer_run)
+        iteration = _claim_untriggered(seer_run)
         if iteration is None:
             return None
 
-        update_iteration(iteration, **{TRIGGERED_KEY: True})
+        update_iteration(
+            iteration,
+            referrer=referrer,
+            feedback_count=feedback_count,
+            queued_count=queued_count,
+            dropped_count=dropped_count,
+            automated_feedback_count=automated_feedback_count,
+        )
         return iteration.id
     except Exception:
         logger.exception(
@@ -123,6 +143,31 @@ def trigger_pr_iteration_details(*, run_id: int, organization_id: int) -> int | 
             extra={"run_id": run_id, "organization_id": organization_id},
         )
         return None
+
+
+def discard_pr_iteration_details(
+    *, run_id: int, organization_id: int, iteration_id: int | None = None
+) -> None:
+    """Drop the row of an iteration that will never reach the agent."""
+    try:
+        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = (
+            get_iteration(seer_run, iteration_id)
+            if iteration_id is not None
+            else _claim_untriggered(seer_run)
+        )
+        if iteration is None:
+            return
+
+        remove_iteration(iteration)
+    except Exception:
+        logger.exception(
+            "autofix.pr_iteration.details.discard_failed",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
 
 
 def state_iteration_id(run_state: SeerRunState) -> int | None:
@@ -144,8 +189,41 @@ def state_iteration_id(run_state: SeerRunState) -> int | None:
         return None
 
 
+def _build_event(
+    iteration: SeerRunPrIteration, *, iteration_index: int, pushed_changes: bool
+) -> AiAutofixPrIterationFeedbackBatchCompletedEvent | None:
+    """The event for a finished iteration. None when its row is incomplete."""
+    known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
+    payload = {key: value for key, value in iteration.data.items() if key in known}
+    duration_ms = int((timezone.now() - iteration.date_added).total_seconds() * 1000)
+    try:
+        return AiAutofixPrIterationFeedbackBatchCompletedEvent(
+            iteration_id=iteration.id,
+            iteration_index=iteration_index,
+            duration_ms=duration_ms,
+            pushed_changes=pushed_changes,
+            **payload,
+        )
+    except TypeError:
+        written = payload.keys() | {
+            "iteration_id",
+            "iteration_index",
+            "duration_ms",
+            "pushed_changes",
+        }
+        logger.error(
+            "autofix.pr_iteration.details.incomplete_row",
+            extra={"iteration_id": iteration.id, "missing": sorted(known - written)},
+        )
+        return None
+
+
 def complete_pr_iteration_details(
-    *, log_ctx: PrIterationLogContext, run_state: SeerRunState, organization_id: int
+    *,
+    log_ctx: PrIterationLogContext,
+    run_state: SeerRunState,
+    organization_id: int,
+    pushed_changes: bool,
 ) -> None:
     """Emit the row for the iteration that just finished, and drop it."""
     iteration_id = state_iteration_id(run_state)
@@ -164,19 +242,19 @@ def complete_pr_iteration_details(
             return
 
         iteration = get_iteration(seer_run, iteration_id)
-        if iteration is None or not remove_iteration(iteration):
-            # The completion hook re-fires across an iteration's passes; only the
-            # pass that claims the row emits it.
+        if iteration is None:
             log_ctx.info("autofix.pr_iteration.details.skipped", reason="already_emitted")
             return
 
-        known = {f.name for f in fields(AiAutofixPrIterationDetailsCompletedEvent)}
-        analytics.record(
-            AiAutofixPrIterationDetailsCompletedEvent(
-                iteration_id=iteration.id,
-                **{key: value for key, value in iteration.data.items() if key in known},
-            )
+        event = _build_event(
+            iteration,
+            iteration_index=get_latest_iteration_index(run_state),
+            pushed_changes=pushed_changes,
         )
+        if event is None or not remove_iteration(iteration):
+            return
+
+        analytics.record(event)
     except Exception:
         logger.exception(
             "autofix.pr_iteration.details.complete_failed",

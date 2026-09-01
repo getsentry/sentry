@@ -8,6 +8,7 @@ one never locks the run, and two iterations never contend with each other.
 
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime
 from typing import Any
 
@@ -31,6 +32,22 @@ def open_iterations(seer_run: SeerRun) -> list[SeerRunPrIteration]:
     return list(SeerRunPrIteration.objects.filter(seer_run=seer_run).order_by("date_added"))
 
 
+def untriggered_iteration(seer_run: SeerRun) -> SeerRunPrIteration | None:
+    """The run's oldest row no drain has handed to the agent yet."""
+    return (
+        SeerRunPrIteration.objects.filter(seer_run=seer_run, triggered=False)
+        .order_by("date_added")
+        .first()
+    )
+
+
+def claim_iteration(iteration: SeerRunPrIteration) -> bool:
+    """Mark one row triggered. False when another writer got there first."""
+    return bool(
+        SeerRunPrIteration.objects.filter(id=iteration.id, triggered=False).update(triggered=True)
+    )
+
+
 def update_iteration(iteration: SeerRunPrIteration, **updates: Any) -> SeerRunPrIteration:
     """Fold what an iteration has learned into its row."""
     iteration.update(data={**iteration.data, **updates})
@@ -47,15 +64,20 @@ def remove_iteration(iteration: SeerRunPrIteration) -> bool:
     return bool(deleted)
 
 
-def remove_iterations_before(cutoff: datetime, limit: int) -> int:
-    """Delete rows untouched since ``cutoff``. Returns how many went."""
-    stale_ids = list(
+def count_iterations_before(cutoff: datetime) -> int:
+    """How many rows are untouched since ``cutoff``."""
+    return SeerRunPrIteration.objects.filter(date_updated__lt=cutoff).count()
+
+
+def remove_iterations_before(cutoff: datetime, limit: int) -> dict[bool, int]:
+    """Delete rows untouched since ``cutoff``. Returns how many went, by ``triggered``."""
+    stale = list(
         SeerRunPrIteration.objects.filter(date_updated__lt=cutoff)
         .order_by("date_updated")
-        .values_list("id", flat=True)[:limit]
+        .values_list("id", "triggered")[:limit]
     )
-    if not stale_ids:
-        return 0
+    if not stale:
+        return {}
 
-    deleted, _ = SeerRunPrIteration.objects.filter(id__in=stale_ids).delete()
-    return deleted
+    SeerRunPrIteration.objects.filter(id__in=[row_id for row_id, _ in stale]).delete()
+    return dict(Counter(triggered for _, triggered in stale))

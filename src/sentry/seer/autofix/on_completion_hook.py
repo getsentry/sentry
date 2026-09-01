@@ -849,7 +849,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 cls._consume_queued_feedback(log_ctx, organization, run_id)
 
             complete_pr_iteration_details(
-                log_ctx=log_ctx, run_state=state, organization_id=organization.id
+                log_ctx=log_ctx,
+                run_state=state,
+                organization_id=organization.id,
+                pushed_changes=pushed,
             )
             return
 

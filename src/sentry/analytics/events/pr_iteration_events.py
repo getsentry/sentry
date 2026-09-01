@@ -1,25 +1,33 @@
 from sentry import analytics
 
 
-@analytics.eventclass("ai.autofix.pr_iteration.details.completed")
-class AiAutofixPrIterationDetailsCompletedEvent(analytics.Event):
-    """One iteration of the automated PR-iteration flow, emitted when it ends.
+@analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.completed")
+class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
+    """One batch of PR feedback turned into one agent run, emitted when it ends.
 
-    Buffered on the run from the first queued feedback item and flushed here, so
-    everything an iteration learns lands on one row. Only an iteration that
-    reaches its completion hook is recorded; the ways one can end without
-    getting there are not events yet.
+    Accumulated on a ``SeerRunPrIteration`` row from the first queued feedback
+    item and flushed here. An iteration that never reaches its completion hook
+    is not recorded.
     """
 
-    # The ``SeerRunPrIteration`` row this was accumulated on; ties the row to the
-    # agent run that did the work, since it rides the iteration's memory-block
-    # metadata.
     iteration_id: int
 
     organization_id: int
     project_id: int
     group_id: int
     run_id: int
+    referrer: str | None
+    iteration_index: int
+
+    # Queue counts, written by the drain.
+    feedback_count: int
+    queued_count: int
+    dropped_count: int
+    automated_feedback_count: int
+
+    # Outcome, written when the iteration ends.
+    duration_ms: int
+    pushed_changes: bool
 
 
-analytics.register(AiAutofixPrIterationDetailsCompletedEvent)
+analytics.register(AiAutofixPrIterationFeedbackBatchCompletedEvent)

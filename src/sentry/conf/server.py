@@ -1228,8 +1228,8 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autofix-sweep-pr-iteration-details": {
         "task": "seer:sentry.tasks.autofix.sweep_pr_iteration_details",
-        # Hourly: the buffers it flushes are already a day old, so the pass only
-        # needs to be regular, not prompt.
+        # Hourly: the task discards iteration rows more than a day old, so it
+        # must be regular, not prompt.
         "schedule": crontab("40", "*", "*", "*", "*"),
     },
     "relocation-find-transfer-region": {

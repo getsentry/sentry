@@ -117,6 +117,8 @@ class SeerRunPrIteration(DefaultFieldsModel):
     # row's own id names the iteration: it travels with the agent request, so
     # the completion hook can find this row from the run state alone.
     data = models.JSONField(db_default={}, default=dict)
+    # Set once, by the drain that hands this iteration to the agent.
+    triggered = models.BooleanField(db_default=False, default=False)
 
     class Meta:
         app_label = "seer"

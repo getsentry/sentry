@@ -40,6 +40,7 @@ class Migration(CheckedMigration):
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("data", models.JSONField(db_default={}, default=dict)),
+                ("triggered", models.BooleanField(db_default=False, default=False)),
                 (
                     "seer_run",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(

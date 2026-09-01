@@ -3,21 +3,26 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
-from sentry.analytics.events.pr_iteration_events import AiAutofixPrIterationDetailsCompletedEvent
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchCompletedEvent,
+)
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.pr_iteration.details_store import (
     open_iterations,
     remove_iterations_before,
+    update_iteration,
 )
 from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
+    discard_pr_iteration_details,
     open_pr_iteration_details,
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import freeze_time
 
 RUN_ID = 4242
 
@@ -68,6 +73,25 @@ class PrIterationDetailsTest(TestCase):
             group_id=self.group.id,
         )
 
+    def _trigger(self) -> int | None:
+        return trigger_pr_iteration_details(
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            referrer="github_pr_comment",
+            feedback_count=2,
+            queued_count=3,
+            dropped_count=1,
+            automated_feedback_count=1,
+        )
+
+    def _complete(self, iteration_id: int, *, pushed_changes: bool = True) -> None:
+        complete_pr_iteration_details(
+            log_ctx=self.log_ctx,
+            run_state=_run_state(blocks=[_iteration_block(iteration_id)]),
+            organization_id=self.organization.id,
+            pushed_changes=pushed_changes,
+        )
+
     def _open_rows(self) -> list:
         return open_iterations(self.seer_run)
 
@@ -78,69 +102,144 @@ class PrIterationDetailsTest(TestCase):
         assert len(self._open_rows()) == 1
         assert not mock_record.called
 
+    def test_the_trigger_writes_what_the_drain_saw(self) -> None:
+        self._open()
+        assert self._trigger() is not None
+
+        (row,) = self._open_rows()
+        assert row.triggered
+        assert row.data["referrer"] == "github_pr_comment"
+        assert row.data["feedback_count"] == 2
+        assert row.data["queued_count"] == 3
+        assert row.data["dropped_count"] == 1
+        assert row.data["automated_feedback_count"] == 1
+
+    @freeze_time("2024-01-01 00:00:00")
     def test_the_iteration_it_opened_is_emitted_when_it_completes(self) -> None:
         self._open()
-        iteration_id = trigger_pr_iteration_details(
-            run_id=RUN_ID, organization_id=self.organization.id
-        )
+        iteration_id = self._trigger()
         assert iteration_id is not None
 
         with patch("sentry.analytics.record") as mock_record:
-            complete_pr_iteration_details(
-                log_ctx=self.log_ctx,
-                run_state=_run_state(blocks=[_iteration_block(iteration_id)]),
-                organization_id=self.organization.id,
-            )
+            self._complete(iteration_id)
 
         assert_last_analytics_event(
             mock_record,
-            AiAutofixPrIterationDetailsCompletedEvent(
+            AiAutofixPrIterationFeedbackBatchCompletedEvent(
                 iteration_id=iteration_id,
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 group_id=self.group.id,
                 run_id=RUN_ID,
+                referrer="github_pr_comment",
+                iteration_index=0,
+                feedback_count=2,
+                queued_count=3,
+                dropped_count=1,
+                automated_feedback_count=1,
+                duration_ms=0,
+                pushed_changes=True,
             ),
         )
         # A surviving row is an iteration still owing an event.
         assert self._open_rows() == []
 
-    def test_a_second_completion_pass_emits_nothing(self) -> None:
+    def test_the_completion_measures_how_long_the_iteration_took(self) -> None:
         self._open()
-        iteration_id = trigger_pr_iteration_details(
-            run_id=RUN_ID, organization_id=self.organization.id
-        )
+        iteration_id = self._trigger()
         assert iteration_id is not None
-        state = _run_state(blocks=[_iteration_block(iteration_id)])
-        complete_pr_iteration_details(
-            log_ctx=self.log_ctx, run_state=state, organization_id=self.organization.id
-        )
+        (row,) = self._open_rows()
+        row.update(date_added=timezone.now() - timedelta(seconds=30))
 
         with patch("sentry.analytics.record") as mock_record:
-            complete_pr_iteration_details(
-                log_ctx=self.log_ctx, run_state=state, organization_id=self.organization.id
-            )
+            self._complete(iteration_id, pushed_changes=False)
+
+        event = mock_record.call_args.args[0]
+        assert 30_000 <= event.duration_ms < 60_000
+        assert event.pushed_changes is False
+
+    def test_an_incomplete_row_keeps_its_row_and_emits_nothing(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        (row,) = self._open_rows()
+        row.update(data={k: v for k, v in row.data.items() if k != "project_id"})
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id)
+
+        assert not mock_record.called
+        assert len(self._open_rows()) == 1
+
+    def test_a_second_completion_pass_emits_nothing(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        self._complete(iteration_id)
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id)
 
         assert not mock_record.called
 
     def test_only_an_unclaimed_iteration_is_handed_to_a_trigger(self) -> None:
         self._open()
-        first = trigger_pr_iteration_details(run_id=RUN_ID, organization_id=self.organization.id)
+        first = self._trigger()
 
         # A drain arriving with nothing new to open finds nothing to claim: the
         # iteration already running is not handed out twice.
-        assert (
-            trigger_pr_iteration_details(run_id=RUN_ID, organization_id=self.organization.id)
-            is None
-        )
+        assert self._trigger() is None
         assert first is not None
+
+    def test_a_discarded_iteration_leaves_no_row(self) -> None:
+        self._open()
+
+        discard_pr_iteration_details(run_id=RUN_ID, organization_id=self.organization.id)
+
+        assert self._open_rows() == []
+
+    def test_a_triggered_iteration_is_discarded_by_id(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        discard_pr_iteration_details(
+            run_id=RUN_ID, organization_id=self.organization.id, iteration_id=iteration_id
+        )
+
+        assert self._open_rows() == []
 
     def test_a_row_left_behind_is_discarded_unemitted(self) -> None:
         # The iteration never reached a completion hook, so no event is owed.
         self._open()
 
         with patch("sentry.analytics.record") as mock_record:
-            assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == 1
+            assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == {
+                False: 1
+            }
 
         assert not mock_record.called
         assert self._open_rows() == []
+
+    def test_the_sweep_counts_triggered_rows_apart(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        self._open()
+
+        assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == {
+            True: 1,
+            False: 1,
+        }
+
+    def test_an_unknown_field_never_reaches_the_event(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        (row,) = self._open_rows()
+        update_iteration(row, surprise="value")
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id)
+
+        assert mock_record.called
