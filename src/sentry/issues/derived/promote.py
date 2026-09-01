@@ -81,17 +81,13 @@ class PromotionFailed(Exception):
         super().__init__(f"group {group_id}: {result.value} after {attempts} attempts")
 
 
-class _RowVersion(NamedTuple):
-    id: int
-    generated_at: datetime
-
-
-def _read_row_version(group_id: int) -> _RowVersion | None:
-    """Read the live row's ``(id, generated_at)``, or None if absent."""
-    row = (
-        GroupDerivedData.objects.filter(group_id=group_id).values_list("id", "generated_at").first()
+def _read_live_generated_at(group_id: int) -> datetime | None:
+    """Return the live row's ``generated_at``, or None if the row is absent."""
+    return (
+        GroupDerivedData.objects.filter(group_id=group_id)
+        .values_list("generated_at", flat=True)
+        .first()
     )
-    return _RowVersion(*row) if row is not None else None
 
 
 def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionResult:
@@ -101,8 +97,8 @@ def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionR
     Group, so the error is either a concurrent writer winning the create
     race or the group having been deleted underneath us.
     """
-    live_row = _read_row_version(group_id)
-    if live_row is None:
+    live_generated_at = _read_live_generated_at(group_id)
+    if live_generated_at is None:
         # No visible winner. If the group is gone, that's the FK
         # violation. Otherwise we lost to some other race (e.g. a
         # concurrent GDD delete between our INSERT and this read);
@@ -111,7 +107,7 @@ def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionR
             return PromotionResult.GROUP_MISSING
         return PromotionResult.RACE_LOST
 
-    if live_row.generated_at > generated_at:
+    if live_generated_at > generated_at:
         return PromotionResult.SUPERSEDED
     # The winner is same-or-older generation, so its cursor position
     # tells us nothing about the log tail. Not CURSOR_BEHIND: that name
@@ -154,9 +150,9 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
         return PromotionResult.PROMOTED
 
     # Check why we failed: row missing or newer generation?
-    live_row = _read_row_version(candidate.group_id)
+    live_generated_at = _read_live_generated_at(candidate.group_id)
 
-    if live_row is None:
+    if live_generated_at is None:
         # Row doesn't exist — try to create it. enforce_constraints so a
         # violation surfaces here instead of floating up to an
         # enclosing transaction's commit.
@@ -172,7 +168,7 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
             return _classify_failed_create(candidate.group_id, generated_at)
         return PromotionResult.PROMOTED
 
-    if live_row.generated_at > generated_at:
+    if live_generated_at > generated_at:
         return PromotionResult.SUPERSEDED
     return PromotionResult.CURSOR_BEHIND
 

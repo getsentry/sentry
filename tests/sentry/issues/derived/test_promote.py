@@ -1,6 +1,6 @@
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -23,8 +23,7 @@ from sentry.issues.derived.promote import (
     PromotionFailed,
     PromotionResult,
     _generation_cache,
-    _read_row_version,
-    _RowVersion,
+    _read_live_generated_at,
     build_and_promote_batch,
     build_and_promote_derived_data,
     promote_to_live,
@@ -59,12 +58,12 @@ def _hide_first_row_read() -> Generator[None]:
     """
     seen = iter([True])
 
-    def hide_once(group_id: int) -> _RowVersion | None:
+    def hide_once(group_id: int) -> datetime | None:
         if next(seen, False):
             return None
-        return _read_row_version(group_id)
+        return _read_live_generated_at(group_id)
 
-    with patch("sentry.issues.derived.promote._read_row_version", hide_once):
+    with patch("sentry.issues.derived.promote._read_live_generated_at", hide_once):
         yield
 
 
