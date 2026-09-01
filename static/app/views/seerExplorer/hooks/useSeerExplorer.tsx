@@ -467,10 +467,17 @@ export const useSeerExplorer = () => {
   }, [switchToRun]);
 
   const sendMessage = useCallback(
-    (query: string, explicitInsertIndex?: number) => {
+    (
+      query: string,
+      explicitInsertIndex?: number,
+      explicitRunId?: SeerExplorerRunId | null
+    ) => {
       if (!orgSlug) {
         return;
       }
+
+      // explicitRunId: undefined = use current runId, null = force new run, number = use that run
+      const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
       // The snapshot is the source of location for both branches below, so take it
       // once here rather than only on the structured path.
@@ -507,7 +514,7 @@ export const useSeerExplorer = () => {
         organization,
       });
 
-      if (runId === null) {
+      if (effectiveRunId === null) {
         trackAnalytics('seer.explorer.session_created', {
           referrer: getPageReferrer(),
           surface: 'global_panel',
@@ -538,7 +545,7 @@ export const useSeerExplorer = () => {
       sendMessageMutate({
         query,
         insertIndex: newInsertIndex,
-        runId,
+        runId: effectiveRunId,
         orgSlug,
         pageName,
         pageLocation: snapshot?.location,
