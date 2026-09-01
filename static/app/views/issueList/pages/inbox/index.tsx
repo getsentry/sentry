@@ -725,13 +725,14 @@ function InboxIssueCard({
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    if (selected && cardRef.current) {
-      restoreSelectedIssueScroll(group.id, cardRef.current);
-    }
-  }, [group.id, restoreSelectedIssueScroll, selected]);
+  const cardRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (selected && element) {
+        restoreSelectedIssueScroll(group.id, element);
+      }
+    },
+    [group.id, restoreSelectedIssueScroll, selected]
+  );
 
   return (
     <Container ref={cardRef} position="relative">
