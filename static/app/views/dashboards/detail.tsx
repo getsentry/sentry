@@ -1219,7 +1219,8 @@ class DashboardDetail extends Component<Props, State> {
                           flexGrow={0}
                           padding="0"
                           position="sticky"
-                          style={{zIndex: theme.zIndex.header}}
+                          // z-index needs to match dropdown so the menu isn't hidden behind the Seer chat panel.
+                          style={{zIndex: theme.zIndex.dropdown}}
                           top={`var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px)`}
                         >
                           <Layout.Main width="full">

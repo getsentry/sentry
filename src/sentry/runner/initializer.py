@@ -717,10 +717,10 @@ def validate_outbox_config() -> None:
     from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
     from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 
-    for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
+    for outbox_name in settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)
 
-    for outbox_name in settings.SENTRY_OUTBOX_MODELS["CELL"]:
+    for outbox_name in settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS["CELL"]:
         CellOutboxBase.from_outbox_name(outbox_name)
 
     CellOutboxBase.from_outbox_name(GroupActionLogOutbox._meta.label)

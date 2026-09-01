@@ -7,10 +7,10 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select, type StylesConfig} from '@sentry/scraps/select';
+import {createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';

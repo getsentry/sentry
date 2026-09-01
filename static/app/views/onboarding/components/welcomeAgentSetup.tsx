@@ -79,7 +79,11 @@ export function WelcomeAgentSetup({
             animate={{opacity: 1, scale: 1}}
             exit={{opacity: 0, scale: 0.9}}
           >
-            <AgentSetupCard onCopyCommand={onCopyCommand} prompt={prompt} />
+            <AgentSetupCard
+              onboardingCode={initialization.data?.onboardingCode}
+              onCopyCommand={onCopyCommand}
+              prompt={prompt}
+            />
           </MotionContainer>
         )}
       </AnimatePresence>

@@ -6,6 +6,7 @@ import debounce from 'lodash/debounce';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -45,6 +46,8 @@ import {AccordionRow} from './components/accordionRow';
 interface Props {
   subscription: Subscription;
 }
+
+const PROJECT_COLUMNS: TableColumnConfig[] = [{key: 'project', width: 'auto'}];
 
 function SpikeProtectionProjects({subscription}: Props) {
   const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
@@ -283,6 +286,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         </ButtonBar>
       </Flex>
       <StyledSimpleTable
+        columns={PROJECT_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>
@@ -306,6 +310,7 @@ function SpikeProtectionProjects({subscription}: Props) {
               <SimpleTable.RowCell
                 gap="xl"
                 padding="xl"
+                overflow="visible"
                 data-test-id={`${project.slug}-accordion-row${
                   isAccordionDisabled ? '-disabled' : ''
                 }`}
@@ -344,10 +349,6 @@ const StyledSearch = styled(SearchBar)`
 const StyledSimpleTable = styled(SimpleTable)`
   align-items: center;
   overflow: visible;
-
-  [role='cell'] {
-    padding: 0;
-  }
 `;
 
 const StyledProjectBadge = styled(ProjectBadge)`

@@ -5,8 +5,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -123,13 +122,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
         <KeyValueTableRow
           keyName={t('Owner')}
-          value={
-            monitor.owner ? (
-              <ActorAvatar size={24} actor={monitor.owner} />
-            ) : (
-              t('Unassigned')
-            )
-          }
+          value={monitor.owner ? <ActorAvatar actor={monitor.owner} /> : t('Unassigned')}
         />
         <KeyValueTableRow
           keyName={t('Date created')}

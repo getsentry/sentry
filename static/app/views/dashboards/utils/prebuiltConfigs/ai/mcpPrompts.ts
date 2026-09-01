@@ -13,7 +13,7 @@ import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfig
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-const MCP_PROMPT_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`;
+const MCP_PROMPT_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.GEN_AI_PROMPT_NAME}`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -28,9 +28,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_PROMPT_FILTER,
-          fields: [SpanFields.MCP_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_PROMPT_NAME],
+          columns: [SpanFields.GEN_AI_PROMPT_NAME],
           fieldAliases: [t('Prompt'), t('Calls')],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
@@ -48,9 +48,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_PROMPT_FILTER,
-          fields: [SpanFields.MCP_PROMPT_NAME, `avg(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_PROMPT_NAME, `avg(${SpanFields.SPAN_DURATION})`],
           aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_PROMPT_NAME],
+          columns: [SpanFields.GEN_AI_PROMPT_NAME],
           fieldAliases: [t('Prompt'), WIDGET_COLUMN_LABELS.avg],
           orderby: `-avg(${SpanFields.SPAN_DURATION})`,
         },
@@ -68,9 +68,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_PROMPT_FILTER,
-          fields: [SpanFields.MCP_PROMPT_NAME, `${SpanFunction.FAILURE_RATE}()`],
+          fields: [SpanFields.GEN_AI_PROMPT_NAME, `${SpanFunction.FAILURE_RATE}()`],
           aggregates: [`${SpanFunction.FAILURE_RATE}()`],
-          columns: [SpanFields.MCP_PROMPT_NAME],
+          columns: [SpanFields.GEN_AI_PROMPT_NAME],
           fieldAliases: [t('Prompt'), t('Error Rate')],
           orderby: `-${SpanFunction.FAILURE_RATE}()`,
         },
@@ -93,7 +93,7 @@ const PROMPTS_TABLE: PrebuiltWidget = {
       name: '',
       conditions: MCP_PROMPT_FILTER,
       fields: [
-        SpanFields.MCP_PROMPT_NAME,
+        SpanFields.GEN_AI_PROMPT_NAME,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
         `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error) + count_if(${SpanFields.SPAN_STATUS},equals,error)`,
@@ -107,7 +107,7 @@ const PROMPTS_TABLE: PrebuiltWidget = {
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
-      columns: [SpanFields.MCP_PROMPT_NAME],
+      columns: [SpanFields.GEN_AI_PROMPT_NAME],
       fieldAliases: [
         t('Prompt Name'),
         t('Requests'),
@@ -138,8 +138,8 @@ export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
-          key: 'mcp.prompt.name',
-          name: 'mcp.prompt.name',
+          key: 'gen_ai.prompt.name',
+          name: 'gen_ai.prompt.name',
           kind: FieldKind.TAG,
         },
         value: '',

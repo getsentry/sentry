@@ -7,7 +7,6 @@ import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
@@ -132,11 +131,7 @@ export function ConnectedAutomationsList({
             }
           />
         )}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {((isSuccess && automations?.length === 0) ||
           (automationIds !== null && automationIds.length === 0)) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>

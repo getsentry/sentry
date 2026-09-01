@@ -790,12 +790,13 @@ class GitHubBaseClient(
             api_request_type=GitHubApiRequestType.SEARCH_REPOSITORIES,
         )
 
-    def get_assignees(self, repo: str) -> Sequence[Any]:
+    def get_assignees(self, repo: str, page_number_limit: int | None = None) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
         return self._get_with_pagination(
             f"/repos/{repo}/assignees",
+            page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_ASSIGNEES,
         )
 
@@ -1094,13 +1095,14 @@ class GitHubBaseClient(
         """
         return self.get(f"/users/{gh_username}", api_request_type=GitHubApiRequestType.GET_USER)
 
-    def get_labels(self, owner: str, repo: str) -> list[Any]:
+    def get_labels(self, owner: str, repo: str, page_number_limit: int | None = None) -> list[Any]:
         """
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
         return self._get_with_pagination(
             f"/repos/{owner}/{repo}/labels",
+            page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_LABELS,
         )
 

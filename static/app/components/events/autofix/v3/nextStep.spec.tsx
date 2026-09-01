@@ -930,6 +930,39 @@ describe('SeerDrawerNextStep', () => {
       jest.mocked(trackAnalytics).mockClear();
     });
 
+    it('does not show a next step when PR creation failed', () => {
+      const autofix = makePrIterationAutofix({
+        runState: {
+          run_id: 1,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {
+            'org/repo': {
+              repo_name: 'org/repo',
+              branch_name: null,
+              commit_sha: null,
+              pr_creation_error: 'Failed to create pull request',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+              title: null,
+            },
+          },
+        } as any,
+      });
+      const {container} = render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes'), makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
     it('returns null when the run is not valid for PR iteration', () => {
       const autofix = makeAutofix({
         runState: {run_id: 1, blocks: []} as any,

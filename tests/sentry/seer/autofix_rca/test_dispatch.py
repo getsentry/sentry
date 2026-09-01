@@ -42,6 +42,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         assert client_kwargs["organization"] == self.group.organization
         assert client_kwargs["project"] == self.group.project
         assert client_kwargs["group"] == self.group
+        assert client_kwargs["enable_bash_tools"] is False
 
         # Feature run dispatched with the RCA payload.
         run_kwargs = client.start_feature_run.call_args.kwargs
@@ -99,3 +100,25 @@ class TestTriggerAutofixRCAFeature(TestCase):
             )
 
         assert mock_client_cls.return_value.start_feature_run.call_args.kwargs["flush"] is False
+
+    def test_forwards_run_options_to_client(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+        user = self.create_user()
+
+        with (
+            patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            mock_client_cls.return_value.start_feature_run.return_value = fake_run
+
+            trigger_autofix_rca_feature(
+                self.group,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                user=user,
+                enable_bash_tools=True,
+            )
+
+        client_kwargs = mock_client_cls.call_args.kwargs
+        assert client_kwargs["user"] == user
+        assert client_kwargs["enable_bash_tools"] is True

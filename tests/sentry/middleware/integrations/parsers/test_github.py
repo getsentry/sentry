@@ -12,6 +12,7 @@ from rest_framework import status
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.middleware.hybrid_cloud.parser import SHED_INBOUND_KILLSWITCH
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
@@ -25,8 +26,6 @@ from sentry.types.cell import Cell
 
 cell = Cell("us", 1, "https://us.testserver")
 cell_config = (cell,)
-
-DROP_NO_OWN_REPO_PR_OPTION = "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr"
 
 
 @control_silo_test
@@ -756,6 +755,63 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "github"}]})
+    def test_shed_inbound_is_not_counted_as_forwarded(self, mock_metrics: Mock) -> None:
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert response["Retry-After"] == "60"
+        assert_no_webhook_payloads()
+        forwarded_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "github.webhook.forwarded_event"
+        ]
+        assert forwarded_calls == []
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics")
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"integration_id": "12345"}]})
+    def test_shed_condition_ignored_counted_once_per_webhook(self, mock_metrics: Mock) -> None:
+        """GitHub checks the shed twice per request: once ahead of its own counters and
+        again inside get_response_from_webhookpayload. An ignored condition is a property
+        of the config, so it must be counted per webhook, not per check."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        ignored_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "hybridcloud.webhookpayload.shed_condition_ignored"
+        ]
+        assert len(ignored_calls) == 1
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @patch("sentry.middleware.integrations.parsers.github.metrics")
     def test_forwarded_event_metric_omits_action_when_unfiltered(self, mock_metrics: Mock) -> None:
         """Event types with no action allowlist are not tagged by action, which would
         otherwise be an unbounded value read off an unverified body."""
@@ -802,8 +858,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_forwarded_event_metric_own_repo_pull_request(self, mock_metrics: Mock) -> None:
-        """A check whose PR entry is based in this repo is work the cell will do."""
+    def test_forwarded_event_metric_check_run_completed(self, mock_metrics: Mock) -> None:
+        """A completed check that survives the own-repo predicate is counted forwarded."""
         self.get_integration()
         request = self._post_check_event(
             action="completed",
@@ -816,59 +872,15 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_metrics.incr.assert_any_call(
             "github.webhook.forwarded_event",
-            tags={"event_type": "check_run", "action": "completed", "has_own_repo_pr": "true"},
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: False})
-    @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_forwarded_event_metric_foreign_repo_pull_request(self, mock_metrics: Mock) -> None:
-        """GitHub also lists PRs that merely share a head sha but live in another repo;
-        the cell skips those, so they count as no work. Reachable only with the drop
-        disabled -- with it on, these are dropped before the forward."""
-        self.get_integration()
-        request = self._post_check_event(
-            action="completed",
-            container={"pull_requests": [{"number": 7, "base": {"repo": {"id": 456}}}]},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        mock_metrics.incr.assert_any_call(
-            "github.webhook.forwarded_event",
-            tags={"event_type": "check_run", "action": "completed", "has_own_repo_pr": "false"},
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: False})
-    @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_forwarded_event_metric_no_pull_requests(self, mock_metrics: Mock) -> None:
-        """The common case for CI on a non-PR commit: an empty pull_requests array.
-        Reachable only with the drop disabled."""
-        self.get_integration()
-        request = self._post_check_event(action="completed", container={"pull_requests": []})
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        mock_metrics.incr.assert_any_call(
-            "github.webhook.forwarded_event",
-            tags={"event_type": "check_run", "action": "completed", "has_own_repo_pr": "false"},
+            tags={"event_type": "check_run", "action": "completed"},
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_forwarded_event_metric_check_suite_pull_requests(self, mock_metrics: Mock) -> None:
-        """check_suite lists its PRs under its own payload member."""
+    def test_forwarded_event_metric_check_suite_completed(self, mock_metrics: Mock) -> None:
+        """check_suite is counted under its own event_type on the same counter."""
         self.get_integration()
         request = self._post_check_event(
             action="completed",
@@ -882,7 +894,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         mock_metrics.incr.assert_any_call(
             "github.webhook.forwarded_event",
-            tags={"event_type": "check_suite", "action": "completed", "has_own_repo_pr": "true"},
+            tags={"event_type": "check_suite", "action": "completed"},
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -905,39 +917,11 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
             tags={"event_type": "check_run", "action": "rerequested"},
         )
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: False})
-    @patch("sentry.middleware.integrations.parsers.github.metrics")
-    def test_forwarded_event_metric_malformed_pull_requests(self, mock_metrics: Mock) -> None:
-        """The body is unverified here, so junk in place of any nested member must not
-        raise — it just means no pull request was matched. Pinned off to assert the
-        forward; the drop path has its own test."""
-        self.get_integration()
-        request = self._post_check_event(
-            action="completed",
-            container={"pull_requests": ["junk", {"base": "junk"}, {"base": {"repo": []}}]},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        mock_metrics.incr.assert_any_call(
-            "github.webhook.forwarded_event",
-            tags={"event_type": "check_run", "action": "completed", "has_own_repo_pr": "false"},
-        )
-
     # --- Dropping check_run.completed with no pull request based in its own repo ---
-    #
-    # The option is off by default, so each of these sets it explicitly; the
-    # default-off behaviour is its own test below.
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     @patch("sentry.middleware.integrations.parsers.github.metrics")
     def test_drops_check_run_completed_with_only_foreign_repo_prs(self, mock_metrics: Mock) -> None:
         """The case the drop exists for: GitHub matched a PR by head sha, but it is
@@ -961,7 +945,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_run_completed_with_no_pull_requests(self) -> None:
         """CI on a commit with no PR at all — the bulk of the reclaimed volume."""
         self.get_integration()
@@ -976,7 +959,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_forwards_check_run_completed_with_own_repo_pr(self) -> None:
         self.get_integration()
         request = self._post_check_event(
@@ -993,7 +975,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_forwards_check_run_completed_when_a_later_entry_is_own_repo(self) -> None:
         """A foreign entry ahead of ours must not short-circuit the scan."""
         self.get_integration()
@@ -1016,7 +997,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     @patch("sentry.middleware.integrations.parsers.github.metrics")
     def test_drops_check_suite_completed_with_only_foreign_repo_prs(
         self, mock_metrics: Mock
@@ -1043,7 +1023,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_suite_completed_with_no_pull_requests(self) -> None:
         """An empty list is a no-op for both consumers, and is most of the volume."""
         self.get_integration()
@@ -1062,7 +1041,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_forwards_check_suite_completed_with_own_repo_pr(self) -> None:
         self.get_integration()
         request = self._post_check_event(
@@ -1080,7 +1058,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_suite_completed_with_malformed_pull_requests(self) -> None:
         """Junk resolves to no base.repo, so no consumer can place it either."""
         self.get_integration()
@@ -1099,7 +1076,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_run_completed_with_an_unplaceable_pr(self) -> None:
         """An entry with no base.repo cannot be placed, and every consumer of these
         actions skips it — pr_metrics because a number is scoped to its base repo,
@@ -1119,7 +1095,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_suite_completed_with_an_unplaceable_pr(self) -> None:
         """Same rule for check_suite: its second consumer resolves by global id, but
         skips the unplaceable entry so both consumers act on the same set."""
@@ -1139,44 +1114,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    def test_check_suite_completed_without_own_repo_pr_is_dropped_by_default(self) -> None:
-        """Same for check_suite."""
-        self.get_integration()
-        request = self._post_check_event(
-            action="completed",
-            event_type=GithubWebhookType.CHECK_SUITE,
-            container={"pull_requests": []},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert_no_webhook_payloads()
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: False})
-    def test_check_suite_completed_without_own_repo_pr_is_forwarded_when_disabled(self) -> None:
-        """The kill switch, for check_suite."""
-        self.get_integration()
-        request = self._post_check_event(
-            action="completed",
-            event_type=GithubWebhookType.CHECK_SUITE,
-            container={"pull_requests": []},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert WebhookPayload.objects.count() == 1
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_check_run_rerequested_is_never_dropped_by_the_pr_predicate(self) -> None:
         """Only completed resolves PRs from the payload; rerequested is keyed off the
         check run's own id, so an empty pull_requests must still be forwarded."""
@@ -1192,7 +1129,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: True})
     def test_drops_check_run_completed_with_malformed_pull_requests(self) -> None:
         """The body is unverified here. Junk resolves to no own-repo PR, and dropping
         is the safe reading: the cell could not have resolved a PR from it either."""
@@ -1207,35 +1143,6 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_no_webhook_payloads()
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    def test_check_run_completed_without_own_repo_pr_is_dropped_by_default(self) -> None:
-        """An unset option drops: the registered default carries the drop."""
-        self.get_integration()
-        request = self._post_check_event(action="completed", container={"pull_requests": []})
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert_no_webhook_payloads()
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    @responses.activate
-    @override_options({DROP_NO_OWN_REPO_PR_OPTION: False})
-    def test_check_run_completed_without_own_repo_pr_is_forwarded_when_disabled(self) -> None:
-        """The kill switch: setting the option false forwards instead of dropping."""
-        self.get_integration()
-        request = self._post_check_event(action="completed", container={"pull_requests": []})
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert WebhookPayload.objects.count() == 1
 
 
 @control_silo_test

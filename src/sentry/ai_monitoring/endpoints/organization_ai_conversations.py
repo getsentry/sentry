@@ -10,8 +10,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
+from sentry.ai_monitoring.message_normalizer import (
+    FILTERED,
+    extract_assistant_output,
+    normalize_to_messages,
+    stringify_message_content,
+)
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
-from sentry.ai_monitoring.utils import fetch_conversation_titles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -27,12 +33,6 @@ from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.ai_message_normalizer import (
-    FILTERED,
-    extract_assistant_output,
-    normalize_to_messages,
-    stringify_message_content,
-)
 from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")

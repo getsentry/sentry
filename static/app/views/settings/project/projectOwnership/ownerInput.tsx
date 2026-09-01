@@ -162,7 +162,7 @@ export function OwnerInput({
         <ActionBar>
           <div>{parseError(error)}</div>
           <Grid flow="column" align="center" gap="md">
-            <Button type="button" size="sm" onClick={onCancel}>
+            <Button size="sm" onClick={onCancel}>
               {t('Cancel')}
             </Button>
             <Button

@@ -101,7 +101,6 @@ describe('Seer resource embeds', () => {
         id: '4c1f2e3d1234567890',
         eventTimestamp: '2026-08-25T16:37:12Z',
       },
-      level: 'block',
     });
 
     await waitFor(() => {
@@ -113,7 +112,6 @@ describe('Seer resource embeds', () => {
     renderEmbed({
       name: 'replay',
       data: {id: 'abcdef1234567890'},
-      level: 'block',
     });
 
     expect(screen.getByRole('link', {name: 'Replay abcdef12'})).toHaveAttribute(
@@ -271,6 +269,23 @@ describe('Seer resource embeds', () => {
         {groupBy: 'span.op'},
         {yAxes: ['p95(span.duration)']},
       ]);
+    });
+
+    it('coerces numeric project IDs so agent payloads still render', () => {
+      const href = hrefFor('spansQuery', 'Issue Pageloads (Last 30 Days)', {
+        mode: 'aggregate',
+        query: 'span.op:pageload transaction:*issues*',
+        groupBy: ['transaction'],
+        yAxes: ['count()'],
+        statsPeriod: '30d',
+        projects: [11276],
+        title: 'Issue Pageloads (Last 30 Days)',
+      });
+
+      expect(href).toContain('/organizations/org-slug/explore/traces/');
+      expect(href).toContain('project=11276');
+      expect(href).toContain('statsPeriod=30d');
+      expect(href).toContain('mode=aggregate');
     });
   });
 

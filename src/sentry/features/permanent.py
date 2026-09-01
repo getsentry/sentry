@@ -166,8 +166,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
     permanent_system_features = {
         # Enables user registration.
         "auth:register": True,
-        # Require email verification during SSO signup.
-        "auth:email-verification-at-sso-signup": False,
         # Enable support for multiple regions, and org slug subdomains (customer-domains).
         "system:multi-region": False,
     }

@@ -15,7 +15,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {
+  useTraceItemDatasetAttributes,
+  useTraceMetricItemAttributes,
+} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
@@ -87,6 +90,12 @@ describe('Visualize', () => {
           isLoading: false,
         };
       });
+
+    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
+      attributes: {},
+      isLoading: false,
+      secondaryAliases: {},
+    });
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -2162,6 +2171,113 @@ describe('Visualize', () => {
     expect(aggregateSelectors).toHaveLength(2);
     expect(aggregateSelectors[0]).toHaveTextContent('sum');
     expect(aggregateSelectors[1]).toHaveTextContent('sum');
+  });
+
+  it('uses the attribute selector for group-by columns in trace metrics tables', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: ['span.op', 'sum(value,alpha_metric,counter,none)'],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'alpha_metric'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.op'
+    );
+  });
+
+  it('lets users switch trace metrics table columns between aggregates and fields', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: [
+              'sum(value,alpha_metric,counter,none)',
+              'sum(value,alpha_metric,counter,none)',
+            ],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'alpha_metric'}))[0]!
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'field'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('span.description');
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
+          }),
+        }),
+        expect.anything()
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'field'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: [
+              'sum(value,alpha_metric,counter,none)',
+              'sum(value,alpha_metric,counter,none)',
+            ],
+          }),
+        }),
+        expect.anything()
+      );
+    });
   });
 
   it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {

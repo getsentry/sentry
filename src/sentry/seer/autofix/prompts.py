@@ -54,7 +54,8 @@ def root_cause_prompt(
 
         If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
 
-        When you have enough information, always generate the root_cause artifact {artifact_tool_str(artifact_key)}:
+        When you have enough information, always generate the root_cause artifact {artifact_tool_str(artifact_key)}. Provide all fields when available, but always include `headline`, `one_line_description`, `five_whys`, and `fixability`:
+        - headline: A headline of at most 12 words in plain language describing what is broken and where, like a good bug-report title. Do not use error class names unless essential, markdown, code formatting, or pipe characters.
         - one_line_description: A concise summary under 30 words
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.

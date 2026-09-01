@@ -84,10 +84,8 @@ class OrganizationMemberTeam(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     id = BoundedAutoField(primary_key=True)
-    # Shadow column for the in-progress widening of `id` to int8. Writing it as rows are
-    # inserted keeps new rows in step, so a one-off backfill only has to cover rows
-    # predating the deploy; it is swapped into the primary key once backfilled.
-    new_id = BoundedBigIntegerField(null=True)
+    # Shadow column for the in-progress widening of `id` to int8. Every write keeps it equal to `id`.
+    new_id = BoundedBigIntegerField()
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list

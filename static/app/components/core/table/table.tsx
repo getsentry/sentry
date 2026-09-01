@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {LocationDescriptor} from 'history';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
 
@@ -272,9 +273,17 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
    * from an ordered list rather than from a keyed column config.
    */
   columnIndex?: number;
-  onSort?: () => void;
+  onSort?: (event: React.MouseEvent) => void;
   overlays?: ReactNode;
+  /**
+   * Whether `to` should replace the history entry rather than pushing a new one.
+   */
+  replace?: boolean;
   sort?: SortDirection;
+  /**
+   * Sort destination to navigate to on sort.
+   */
+  to?: LocationDescriptor;
 }
 
 function HeadCell({
@@ -283,7 +292,9 @@ function HeadCell({
   columnIndex,
   onSort,
   overlays,
+  replace,
   sort,
+  to,
   ...props
 }: HeadCellProps) {
   const context = useTableContext();
@@ -297,7 +308,7 @@ function HeadCell({
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
-  const sortable = !!onSort || !!sort || !!overlays;
+  const sortable = !!onSort || !!sort || !!overlays || !!to;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
@@ -313,7 +324,13 @@ function HeadCell({
       role="columnheader"
     >
       {sortable ? (
-        <SortableHeaderCell direction={sort} onSort={onSort} overlays={overlays}>
+        <SortableHeaderCell
+          direction={sort}
+          onSort={onSort}
+          overlays={overlays}
+          replace={replace}
+          to={to}
+        >
           {children}
         </SortableHeaderCell>
       ) : (

@@ -63,9 +63,58 @@ describe('LogsDirectExportModalButton', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    // A sample count well above the loaded rows, so the modal offers row counts
+    // the browser can't serve and the export goes to the server.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {timeSeries: []},
+      body: {
+        timeSeries: [
+          {
+            yAxis: 'count(message)',
+            values: [{timestamp: 1508208080000, value: 5000, sampleCount: 5000}],
+            meta: {valueType: 'integer', valueUnit: null, interval: 3600000},
+          },
+        ],
+      },
+    });
+  });
+
+  it('asks the server export for the highest accuracy without flex-time windows', async () => {
+    const exportRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(
+      <LogsQueryParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        source="location"
+      >
+        <LogsDirectExportModalButton
+          error={null}
+          isLoading={false}
+          tableData={tableData}
+        />
+      </LogsQueryParamsProvider>,
+      {initialRouterConfig}
+    );
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(exportRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query_info: expect.objectContaining({
+              sampling: 'HIGHEST_ACCURACY',
+            }),
+          }),
+        })
+      );
     });
   });
 

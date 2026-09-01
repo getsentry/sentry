@@ -1,10 +1,10 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, memo, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -44,7 +44,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {CodeChanges} from './codeChanges';
 import {OpenSeerButton} from './openSeerButton';
 import {getProcessingLabel} from './overviewActions';
-import {ButtonSpinner, OverviewCardAction} from './overviewCardAction';
+import {ActionButtonBar, ButtonSpinner, OverviewCardAction} from './overviewCardAction';
 import {OverviewIssueAssignee} from './overviewIssueAssignee';
 import {
   OverviewIssuePriority,
@@ -162,7 +162,7 @@ function OverviewAction({
     });
   if (status === 'processing') {
     return (
-      <ButtonBar>
+      <ActionButtonBar>
         <Button
           size="sm"
           variant="secondary"
@@ -172,15 +172,15 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
-        <OpenSeerButton run={run} section={sectionKey} size="sm" variant="secondary" />
-      </ButtonBar>
+        <OpenSeerButton run={run} section={sectionKey} size="sm" />
+      </ActionButtonBar>
     );
   }
 
   if (sectionKey === 'merged') {
     if (pullRequests.length > 0) {
       return (
-        <Stack gap="xs" align="end">
+        <Stack gap="xs" align={{xs: 'start', sm: 'end'}} width="100%">
           {pullRequests.map(pullRequest => {
             const label = t('Merged #%s', pullRequest.number);
             const title = t('The pull request for this fix was merged.');
@@ -194,7 +194,7 @@ function OverviewAction({
               );
             }
             return (
-              <ButtonBar key={pullRequest.id}>
+              <ActionButtonBar key={pullRequest.id}>
                 <Tooltip title={title} skipWrapper>
                   <LinkButton
                     size="sm"
@@ -207,13 +207,8 @@ function OverviewAction({
                     {label}
                   </LinkButton>
                 </Tooltip>
-                <OpenSeerButton
-                  run={run}
-                  section={sectionKey}
-                  size="sm"
-                  variant="secondary"
-                />
-              </ButtonBar>
+                <OpenSeerButton run={run} section={sectionKey} size="sm" />
+              </ActionButtonBar>
             );
           })}
         </Stack>
@@ -241,8 +236,8 @@ function OverviewAction({
         : [];
 
     return (
-      <Stack align="end" gap="xs">
-        <ButtonBar>
+      <Stack align={{xs: 'start', sm: 'end'}} gap="xs" width="100%">
+        <ActionButtonBar>
           <LinkButton
             size="sm"
             variant="primary"
@@ -256,7 +251,7 @@ function OverviewAction({
             </Flex>
           </LinkButton>
           <OpenSeerButton run={run} section={sectionKey} size="sm" variant="primary" />
-        </ButtonBar>
+        </ActionButtonBar>
         {reviewStatusTag && (
           <Tag variant={reviewStatusTag.variant} icon={reviewStatusTag.icon}>
             {reviewStatusTag.label}
@@ -304,16 +299,18 @@ function OverviewAction({
 
   if (sectionKey === 'review_pr') {
     return (
-      <Tooltip title={REVIEW_PR_META.description} skipWrapper>
-        <LinkButton
-          size="sm"
-          variant="secondary"
-          icon={<REVIEW_PR_META.Icon />}
-          to={issueUrl}
-        >
-          {REVIEW_PR_META.label}
-        </LinkButton>
-      </Tooltip>
+      <ActionButtonBar>
+        <Tooltip title={REVIEW_PR_META.description} skipWrapper>
+          <LinkButton
+            size="sm"
+            variant="secondary"
+            icon={<REVIEW_PR_META.Icon />}
+            to={issueUrl}
+          >
+            {REVIEW_PR_META.label}
+          </LinkButton>
+        </Tooltip>
+      </ActionButtonBar>
     );
   }
 
@@ -523,7 +520,7 @@ function PriorityAndAssignee({
   );
 }
 
-export function OverviewCard({
+export const OverviewCard = memo(function OverviewCardComponent({
   orgSlug,
   run,
   sectionKey,
@@ -558,6 +555,7 @@ export function OverviewCard({
       }
     }
   }, [inView, scmWindows, requestScmWindow]);
+  const headline = run.rootCause?.headline;
   const rootCause = run.rootCause?.oneLineDescription;
   const proposedFix = run.proposedFix?.oneLineSummary;
   const issueUrl = `/organizations/${orgSlug}/issues/${run.groupId}/`;
@@ -579,108 +577,138 @@ export function OverviewCard({
       section: sectionKey,
     });
 
+  const showCodeChanges = Boolean(
+    sectionKey === 'code_changes_ready' && run.codeChanges?.length
+  );
+  const showEnrichmentPlaceholder = enrichmentPending && Boolean(reviewPullRequest?.url);
+  const showPullRequestFiles =
+    !showEnrichmentPlaceholder && Boolean(reviewPullRequest) && changedFiles.length > 0;
+  const hasBody = Boolean(
+    rootCause ||
+    proposedFix ||
+    showCodeChanges ||
+    showEnrichmentPlaceholder ||
+    showPullRequestFiles
+  );
+
   return (
     <CardFrame
       containerRef={cardRef}
-      aside={
-        <Fragment>
-          <OverviewAction
-            sectionKey={sectionKey}
-            run={run}
-            reviewPullRequest={reviewPullRequest}
-            issueUrl={issueUrl}
-            projectConfig={projectConfig}
-          />
-          <PriorityAndAssignee
-            run={run}
-            memberList={memberList}
-            assigneeReady={assigneeReady}
-          />
-        </Fragment>
-      }
-    >
-      {/* Grid, not flex: items stretch by default, so the level bar spans
-          every wrapped title line and the text cell can't escape the row */}
-      <Grid columns="max-content minmax(0, 1fr)" gap="sm">
-        <LevelBar level={run.issue.level ?? undefined} />
-        <Stack minWidth="0" gap="xs">
-          <Text bold display="block" textWrap="pretty" wordBreak="break-word" size="lg">
-            <TitleLink
-              to={issueUrl}
-              onClick={() =>
-                trackAnalytics('autofix.overview.issue_clicked', {
-                  organization,
-                  group_id: run.groupId,
-                  run_id: run.seerRunId,
-                  section: sectionKey,
-                })
-              }
-            >
-              {run.title}
-            </TitleLink>
-          </Text>
-          <Flex wrap="wrap" gap="md" align="center">
-            <Flex gap="xs" align="center">
-              <ProjectAvatar
-                project={run.issue.project}
-                size={12}
-                hasTooltip
-                tooltip={run.issue.project.slug}
-              />
-              <Text size="sm" monospace variant="muted">
-                {run.shortId}
+      title={
+        // Grid, not flex: items stretch by default, so the level bar spans
+        // every wrapped title line and the text cell can't escape the row
+        <Grid columns="max-content minmax(0, 1fr)" gap="sm">
+          <LevelBar level={run.issue.level ?? undefined} />
+          <Stack minWidth="0" gap="xs">
+            <Text bold display="block" textWrap="pretty" wordBreak="break-word" size="lg">
+              <TitleLink
+                to={issueUrl}
+                onClick={() =>
+                  trackAnalytics('autofix.overview.issue_clicked', {
+                    organization,
+                    group_id: run.groupId,
+                    run_id: run.seerRunId,
+                    section: sectionKey,
+                  })
+                }
+              >
+                {headline || run.title}
+              </TitleLink>
+            </Text>
+            {headline && (
+              <Text size="sm" variant="muted" ellipsis>
+                {run.title}
               </Text>
+            )}
+            <Flex wrap="wrap" gap="md" align="center">
+              <Flex gap="xs" align="center">
+                <ProjectAvatar
+                  project={run.issue.project}
+                  size={12}
+                  hasTooltip
+                  tooltip={run.issue.project.slug}
+                />
+                <Text size="sm" monospace variant="muted">
+                  {run.shortId}
+                </Text>
+              </Flex>
+              <IssueVitals
+                run={run}
+                statsPeriod={statsPeriod}
+                vitalsPending={vitalsPending}
+              />
             </Flex>
-            <IssueVitals
-              run={run}
-              statsPeriod={statsPeriod}
-              vitalsPending={vitalsPending}
-            />
-          </Flex>
-        </Stack>
-      </Grid>
-      {rootCause && (
-        <NarrativeBlock
-          icon={<IconBug size="xs" variant="secondary" aria-hidden />}
-          label={t('Root Cause')}
-        >
-          {rootCause}
-        </NarrativeBlock>
-      )}
-      {proposedFix && (
-        <NarrativeBlock
-          icon={<IconCommit size="xs" variant="secondary" aria-hidden />}
-          label={t('Plan')}
-        >
-          {proposedFix}
-        </NarrativeBlock>
-      )}
-      {sectionKey === 'code_changes_ready' && run.codeChanges?.length ? (
-        <CodeChanges
-          codeChanges={run.codeChanges}
-          onFirstExpand={trackCodeChangesExpanded}
+          </Stack>
+        </Grid>
+      }
+      meta={
+        <PriorityAndAssignee
+          run={run}
+          memberList={memberList}
+          assigneeReady={assigneeReady}
         />
-      ) : null}
-      {enrichmentPending && reviewPullRequest?.url ? (
-        <Placeholder height="3rem" />
-      ) : reviewPullRequest && changedFiles.length > 0 ? (
-        <PullRequestFiles
-          orgSlug={orgSlug}
-          pullRequest={reviewPullRequest}
-          onFirstExpand={trackCodeChangesExpanded}
+      }
+      actions={
+        <OverviewAction
+          sectionKey={sectionKey}
+          run={run}
+          reviewPullRequest={reviewPullRequest}
+          issueUrl={issueUrl}
+          projectConfig={projectConfig}
         />
-      ) : null}
-    </CardFrame>
+      }
+      body={
+        hasBody ? (
+          <Fragment>
+            {rootCause && (
+              <NarrativeBlock
+                icon={<IconBug size="xs" variant="secondary" aria-hidden />}
+                label={t('Root Cause')}
+              >
+                {rootCause}
+              </NarrativeBlock>
+            )}
+            {proposedFix && (
+              <NarrativeBlock
+                icon={<IconCommit size="xs" variant="secondary" aria-hidden />}
+                label={t('Plan')}
+              >
+                {proposedFix}
+              </NarrativeBlock>
+            )}
+            {showCodeChanges && run.codeChanges ? (
+              <CodeChanges
+                codeChanges={run.codeChanges}
+                onFirstExpand={trackCodeChangesExpanded}
+              />
+            ) : null}
+            {showEnrichmentPlaceholder ? (
+              <Placeholder height="3rem" />
+            ) : showPullRequestFiles && reviewPullRequest ? (
+              <PullRequestFiles
+                orgSlug={orgSlug}
+                pullRequest={reviewPullRequest}
+                onFirstExpand={trackCodeChangesExpanded}
+              />
+            ) : null}
+          </Fragment>
+        ) : undefined
+      }
+    />
   );
-}
+});
 
 function CardFrame({
-  aside,
-  children,
+  actions,
+  body,
+  meta,
+  title,
   containerRef,
 }: {
-  aside: React.ReactNode;
-  children: React.ReactNode;
+  actions: React.ReactNode;
+  meta: React.ReactNode;
+  title: React.ReactNode;
+  body?: React.ReactNode;
   containerRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
@@ -691,27 +719,45 @@ function CardFrame({
       radius="md"
       padding="xl"
     >
-      <Stack gap="xl">
-        <Flex
-          gap={{xs: 'xl', sm: '3xl'}}
-          align="stretch"
-          justify="between"
-          direction={{xs: 'column-reverse', sm: 'row'}}
-        >
-          <Stack gap="lg" minWidth="0" flex="1">
-            {children}
+      <Grid
+        areas={{
+          xs: body ? `"title" "meta" "body" "actions"` : `"title" "meta" "actions"`,
+          sm: body ? `"title aside" "body aside"` : `"title aside"`,
+        }}
+        columns={{xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1fr) max-content'}}
+        rows={{xs: 'auto', sm: body ? 'auto 1fr' : 'auto'}}
+        gap={{xs: 'lg', sm: 'lg 3xl'}}
+      >
+        <Container area="title" minWidth="0">
+          {title}
+        </Container>
+        {body ? (
+          <Stack area="body" gap="lg" minWidth="0">
+            {body}
           </Stack>
-
-          {/* justify=between + parent align=stretch pins the action to the top
-              and the priority/assignee controls to the bottom-right */}
-          <Stack gap="lg" align="end" justify="between" flexShrink={0} minWidth="0">
-            {aside}
+        ) : null}
+        <Aside gap="lg" align="end" justify="between">
+          <Stack area="actions" align={{xs: 'start', sm: 'end'}}>
+            {actions}
           </Stack>
-        </Flex>
-      </Stack>
+          <Flex area="meta" align="center">
+            {meta}
+          </Flex>
+        </Aside>
+      </Grid>
     </Container>
   );
 }
+
+const Aside = styled(Stack)`
+  grid-area: aside;
+
+  @container (width < ${p => p.theme.container.sm}) {
+    && {
+      display: contents;
+    }
+  }
+`;
 
 export function TextLineSkeleton({
   size,
@@ -731,34 +777,37 @@ export function OverviewCardSkeleton() {
   const theme = useTheme();
   return (
     <CardFrame
-      aside={
+      title={
+        <Grid columns="max-content minmax(0, 1fr)" gap="sm">
+          <LevelBar />
+          <Stack minWidth="0" gap="xs">
+            <TextLineSkeleton size="lg" width="70%" />
+            <Flex wrap="wrap" gap="md" align="center">
+              {['4.5rem', '4rem', '4rem', '5rem', '5rem'].map((width, index) => (
+                <TextLineSkeleton key={index} size="sm" width={width} />
+              ))}
+            </Flex>
+          </Stack>
+        </Grid>
+      }
+      meta={
+        <Flex gap="xs">
+          <Placeholder height={theme.form.xs.height} width={theme.form.xs.height} />
+          <Placeholder height={theme.form.xs.height} width={theme.form.xs.height} />
+        </Flex>
+      }
+      actions={<Placeholder height={theme.form.sm.height} width="9rem" />}
+      body={
         <Fragment>
-          <Placeholder height={theme.form.sm.height} width="9rem" />
-          <Flex gap="xs">
-            <Placeholder height={theme.form.xs.height} width={theme.form.xs.height} />
-            <Placeholder height={theme.form.xs.height} width={theme.form.xs.height} />
-          </Flex>
+          {['90%', '75%'].map((width, index) => (
+            <Stack key={index} gap="xs">
+              <TextLineSkeleton size="xs" width="4rem" />
+              <TextLineSkeleton size="sm" width={width} />
+            </Stack>
+          ))}
+          <Placeholder />
         </Fragment>
       }
-    >
-      <Grid columns="max-content minmax(0, 1fr)" gap="sm">
-        <LevelBar />
-        <Stack minWidth="0" gap="xs">
-          <TextLineSkeleton size="lg" width="70%" />
-          <Flex wrap="wrap" gap="md" align="center">
-            {['4.5rem', '4rem', '4rem', '5rem', '5rem'].map((width, index) => (
-              <TextLineSkeleton key={index} size="sm" width={width} />
-            ))}
-          </Flex>
-        </Stack>
-      </Grid>
-      {['90%', '75%'].map((width, index) => (
-        <Stack key={index} gap="xs">
-          <TextLineSkeleton size="xs" width="4rem" />
-          <TextLineSkeleton size="sm" width={width} />
-        </Stack>
-      ))}
-      <Placeholder />
-    </CardFrame>
+    />
   );
 }

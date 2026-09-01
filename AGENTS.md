@@ -118,6 +118,12 @@ Skills under `.agents/skills/` should follow the same current-practice conventio
 
 New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/. Deleting a finished flag or option requires a fixed PR order across sentry and sentry-options-automator → use the **`remove-option-or-flag`** skill.
 
+## Redis TTLs
+
+**Every new Redis key sets a TTL, or is registered with Infrastructure Engineering as accepted durable data.** `CommonRedisCache.set` and `RedisKVStorage.set` raise `MissingTTL` rather than write a key with no expiry. There is no opt-out argument: the exemption is granted by Infrastructure Engineering, not at the callsite.
+
+Two things a "does this write set an expiry?" review will miss. A bare `SET`, `GETSET` or `SETEX` over an existing key clears the TTL it already had, while `SADD`, `ZADD`, `HSET`, `HINCRBY` and `INCR` leave it alone. And a TTL refreshed on every write is not a bound — shard by time window and give each shard a fixed TTL instead. Full rules: https://develop.sentry.dev/backend/application-domains/redis/.
+
 ## Customer Information
 
 **Never include customer information in pull requests, commits, or code.** This covers organization slugs, user emails, account names, internal IDs tied to specific customers, support ticket details, and any other data that identifies a Sentry customer. Use anonymized or synthetic examples (`org-slug`, `user@example.com`) in PR descriptions, commit messages, code comments, tests, and fixtures. If a real identifier is needed for debugging, keep it in internal tooling (Slack, tickets, private notes)—not in the public git history.

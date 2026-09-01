@@ -273,8 +273,6 @@ export const OnionCardBody = memo(function OnionCardBodyImpl({
         </Text>
         <Flex width="200px">
           <Slider
-            min={0}
-            max={100}
             value={opacity}
             onChange={setOpacity}
             formatOptions={{style: 'unit', unit: 'percent'}}

@@ -263,6 +263,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "auth.email-verification-at-signup.sso-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -298,6 +304,13 @@ register(
     "api.rate-limit.org-create",
     default=5,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "api.permission-scope-audit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
@@ -369,7 +382,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# Idempotency guard for self-chaining tasks (e.g. merge_groups, unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
     "taskworker.selfchain_idempotency.enabled",
@@ -984,7 +997,7 @@ register(
 )
 
 
-# Refresh Bundle Indexes reported as used by symbolicator
+# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
@@ -1284,13 +1297,6 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Deterministic % of organizations that use Seer's one-shot title generator.
-register(
-    "ai-monitoring.conversation-title-generation.oneshot-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1362,6 +1368,12 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.action_log.dedicated_outbox_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -2407,10 +2419,7 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the recalibration step within the per-org pipeline,
-# keyed on organization id. Recalibration writes the factor that serving applies,
-# so it rolls out separately from the rest of the pipeline. An org must be in both
-# this group and dynamic-sampling.per_org.rollout-rate for its factor to be updated.
+# No longer read. Kept registered until the options automator stops setting it.
 register(
     "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
@@ -2504,23 +2513,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables a feature flag check in dynamic sampling tasks that switches
-# organizations between transactions and spans for rebalancing. This check is
-# expensive, so it can be disabled using this option.
-register(
-    "dynamic-sampling.check_span_feature_flag",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
-# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
-register(
-    "dynamic-sampling.measure.spans",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -2610,14 +2602,14 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Drops GitHub check webhooks that reference no pull request based in their own
-# repo (see ActionFilter.own_repo_pr_actions). The predicate reads payload shape
-# rather than a header, so it keeps a switch: setting this false stops the drop
-# without a deploy.
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
 register(
-    "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "hybridcloud.webhookpayload.shed-inbound",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -2764,6 +2756,27 @@ register(
     type=Int,
     default=6,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
+# Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
+# sentry-options-automator.
+register(
+    "crons.check_accept_monitor_checkin.timeout_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Bound how long the crons ingest consumer waits on seat/quota acceptance when
+# the timeout rollout selects the check-in. On timeout the check-in is accepted
+# (fail-open) so a slow quotas backend cannot stall the consumer. Set to 0 to
+# disable the timeout wrapper even for selected traffic.
+register(
+    "crons.check_accept_monitor_checkin.timeout_sec",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -3363,13 +3376,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.process-segments-task-rollout-rate",
-    type=Float,
-    default=1.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3400,8 +3406,8 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TTL in seconds for span deduplication tracking. When > 0, the consumer
-# will use Redis SETNX to detect duplicate spans and emit metrics.
+# TTL in seconds for span deduplication tracking. When > 0, the process_segment
+# task will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.
 register(
     "spans.process-segments.dedupe-ttl",

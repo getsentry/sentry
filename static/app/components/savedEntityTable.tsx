@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -64,11 +63,7 @@ export function SavedEntityTable({
   return (
     <SimpleTable className={className} data-test-id={dataTestId}>
       {header}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error />}
       {isLoading && <LoadingSkeleton pageSize={pageSize} />}
       {!isError && !isLoading && isEmpty && (
         <SimpleTable.Empty>

@@ -131,7 +131,7 @@ class BaseAttachmentCache:
         self,
         key: str,
         attachments: list[CachedAttachment],
-        timeout=None,
+        timeout: int,
         project: Project | None = None,
     ) -> list[dict]:
         for id, attachment in enumerate(attachments):
@@ -177,12 +177,12 @@ class BaseAttachmentCache:
 
         return meta
 
-    def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout=None):
+    def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout: int):
         key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
         compressed = zstandard.compress(chunk_data)
         self.inner.set(key, compressed, timeout, raw=True)
 
-    def set_unchunked_data(self, key: str, id: int, data: bytes, timeout=None, metrics_tags=None):
+    def set_unchunked_data(self, key: str, id: int, data: bytes, timeout: int, metrics_tags=None):
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
         compressed = zstandard.compress(data)
         metrics.distribution("attachments.blob-size.raw", len(data), tags=metrics_tags, unit="byte")

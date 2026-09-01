@@ -14,6 +14,10 @@ import {darkTheme} from 'sentry/utils/theme/theme';
 
 interface CodeBlockProps {
   children: string;
+  /**
+   * Keeps the copy button visible when it floats over the code snippet.
+   */
+  alwaysShowCopyButton?: boolean;
   className?: string;
   dark?: boolean;
   ['data-render-inline']?: boolean;
@@ -66,9 +70,16 @@ interface CodeBlockProps {
     label: string;
     value: string;
   }>;
+  /**
+   * Controls whether long lines scroll horizontally or wrap within the snippet.
+   *
+   * @default 'scroll'
+   */
+  wrapMode?: 'scroll' | 'wrap';
 }
 
 export function CodeBlock({
+  alwaysShowCopyButton,
   children,
   className,
   dark,
@@ -86,6 +97,7 @@ export function CodeBlock({
   onTabClick,
   selectedTab,
   tabs,
+  wrapMode = 'scroll',
 }: CodeBlockProps) {
   const {t} = useTranslation();
   const ref = useRef<HTMLModElement | null>(null);
@@ -153,7 +165,9 @@ export function CodeBlock({
 
   const snippet = (
     <Wrapper
+      reserveCopyButtonSpace={alwaysShowCopyButton && hasFloatingHeader}
       isRounded={isRounded}
+      wrapMode={wrapMode}
       className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}
       data-render-inline={dataRenderInline}
     >
@@ -186,13 +200,18 @@ export function CodeBlock({
             onClick={handleCopy}
             tooltipProps={{position: 'left', title: tooltipTitle}}
             onMouseLeave={() => setTooltipState('copy')}
-            isAlwaysVisible={!hasFloatingHeader || (!!icon && hasFloatingHeader)}
+            isAlwaysVisible={
+              alwaysShowCopyButton || !hasFloatingHeader || (!!icon && hasFloatingHeader)
+            }
             aria-label={t('Copy snippet')}
             icon={<IconCopy />}
           />
         )}
       </Header>
-      <ScrollWrapper>
+      <ScrollWrapper
+        reserveCopyButtonSpace={alwaysShowCopyButton && hasFloatingHeader}
+        wrapMode={wrapMode}
+      >
         <pre
           className={`language-${String(language)}`}
           data-line={linesToHighlight?.join(',')}
@@ -202,6 +221,7 @@ export function CodeBlock({
             className={`language-${String(language)}`}
             onCopy={onSelectAndCopy}
             disableUserSelection={disableUserSelection}
+            wrapMode={wrapMode}
           >
             {children}
           </Code>
@@ -215,18 +235,36 @@ export function CodeBlock({
   return <ThemeProvider theme={dark ? darkTheme : theme}>{snippet}</ThemeProvider>;
 }
 
-const Wrapper = styled('div')<{isRounded: boolean}>`
+const Wrapper = styled('div')<{
+  isRounded: boolean;
+  wrapMode: 'scroll' | 'wrap';
+  reserveCopyButtonSpace?: boolean;
+}>`
   position: relative;
   height: 100%;
   min-width: 0;
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
-  pre {
+  && pre[class*='language-'] {
     margin: 0;
     height: 100%;
-    width: max-content;
+    width: ${p => (p.wrapMode === 'wrap' ? '100%' : 'max-content')};
     min-width: 100%;
+    white-space: ${p => (p.wrapMode === 'wrap' ? 'pre-wrap' : 'pre')};
+    overflow-wrap: ${p => (p.wrapMode === 'wrap' ? 'anywhere' : 'normal')};
+
+    ${p =>
+      p.wrapMode === 'wrap' &&
+      p.reserveCopyButtonSpace &&
+      css`
+        &::before {
+          content: '';
+          float: right;
+          width: ${p.theme.space.lg};
+          height: ${p.theme.space.xl};
+        }
+      `}
   }
 
   &[data-render-inline='true'] pre {
@@ -311,11 +349,28 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
   ${p => (p.isAlwaysVisible ? 'opacity: 1;' : '')}
 `;
 
-const ScrollWrapper = styled('div')`
-  overflow-x: auto;
+const ScrollWrapper = styled('div')<{
+  wrapMode: 'scroll' | 'wrap';
+  reserveCopyButtonSpace?: boolean;
+}>`
+  overflow-x: ${p => (p.wrapMode === 'wrap' ? 'hidden' : 'auto')};
   height: 100%;
+  margin-right: ${p =>
+    p.wrapMode === 'scroll' && p.reserveCopyButtonSpace ? p.theme.space['3xl'] : '0'};
 `;
 
-const Code = styled('code')<{disableUserSelection?: boolean}>`
+const Code = styled('code')<{
+  wrapMode: 'scroll' | 'wrap';
+  disableUserSelection?: boolean;
+}>`
   user-select: ${p => (p.disableUserSelection ? 'none' : 'auto')};
+
+  ${p =>
+    p.wrapMode === 'wrap' &&
+    css`
+      && {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+    `}
 `;

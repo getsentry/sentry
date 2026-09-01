@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {Container} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 
 type RegionData = {region: string; version: string};
@@ -69,20 +70,16 @@ export function AwsLambdaArnSelector({
 
   return (
     <div>
-      <Select
-        styles={{
-          control: base => ({...base, width: 300}),
-          menu: base => ({...base, zIndex: 2}),
-        }}
-        placeholder={t('Select Region')}
-        options={options}
-        value={regionOption}
-        onChange={value => {
-          if (value) {
-            setRegion(value);
-          }
-        }}
-      />
+      <Container maxWidth="300px">
+        <Select
+          placeholder={t('Select Region')}
+          options={options}
+          value={regionOption?.value}
+          onChange={option => {
+            setRegion(option);
+          }}
+        />
+      </Container>
 
       <ArnWrapper>
         <ArnLabel>ARN</ArnLabel>

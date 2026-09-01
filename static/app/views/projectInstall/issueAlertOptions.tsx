@@ -9,6 +9,10 @@ import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import {
+  INTERVAL_CHOICES,
+  Interval,
+} from 'sentry/views/automations/components/actionFilters/constants';
+import {
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
@@ -52,19 +56,9 @@ export const METRIC_CHOICES = [
   {value: MetricValues.USERS, label: t('users affected by')},
 ];
 
-export const INTERVAL_CHOICES = [
-  {value: '1m', label: t('one minute')},
-  {value: '5m', label: t('5 minutes')},
-  {value: '15m', label: t('15 minutes')},
-  {value: '1h', label: t('one hour')},
-  {value: '1d', label: t('one day')},
-  {value: '1w', label: t('one week')},
-  {value: '30d', label: t('30 days')},
-];
-
 export const DEFAULT_ISSUE_ALERT_OPTIONS_VALUES = {
   alertSetting: RuleAction.DEFAULT_ALERT,
-  interval: '1m',
+  interval: Interval.FIVE_MINUTES,
   metric: MetricValues.ERRORS,
   threshold: '10',
 };
@@ -138,7 +132,7 @@ export function IssueAlertOptions({
     [RuleAction.DEFAULT_ALERT, t('Alert me on high priority issues')],
     [
       RuleAction.CUSTOMIZED_ALERTS,
-      tct('When there are more than [threshold][metric] a unique error in [interval]', {
+      tct('When there are more than [threshold][metric] a unique error [interval]', {
         threshold: (
           // 80px is just enough to see 6 digits at a time
           <div style={{width: '80px'}}>
@@ -169,6 +163,7 @@ export function IssueAlertOptions({
         interval: (
           <div style={{width: '140px'}} onClick={e => e.preventDefault()}>
             <Select
+              aria-label={t('Alert interval')}
               value={interval}
               options={INTERVAL_CHOICES}
               onChange={(option: (typeof INTERVAL_CHOICES)[number]) => {

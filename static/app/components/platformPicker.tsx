@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -31,7 +31,7 @@ import {comparePlatformNames} from 'sentry/utils/platform';
 const PlatformList = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.md};
-  grid-template-columns: repeat(auto-fill, 112px);
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   margin-bottom: ${p => p.theme.space.xl};
 
   &.centered {
@@ -197,8 +197,13 @@ export function PlatformPicker({
 
   return (
     <Fragment>
-      <NavContainer>
-        <Container marginBottom="xl">
+      <Grid
+        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) minmax(0, 12rem)'}}
+        gap="xl"
+        align="start"
+        marginBottom="xl"
+      >
+        <Container minWidth="0">
           <Tabs
             value={category}
             onChange={val => {
@@ -219,16 +224,18 @@ export function PlatformPicker({
             </TabList>
           </Tabs>
         </Container>
-        <StyledSearchBar
-          size="sm"
-          query={filter}
-          placeholder={t('Filter Platforms')}
-          onChange={val => {
-            setFilter(val);
-            debounceSearch();
-          }}
-        />
-      </NavContainer>
+        <Container width="100%" justifySelf="end">
+          <SearchBar
+            size="sm"
+            query={filter}
+            placeholder={t('Filter Platforms')}
+            onChange={val => {
+              setFilter(val);
+              debounceSearch();
+            }}
+          />
+        </Container>
+      </Grid>
       <PlatformList>
         {platformList.map(item => {
           return (
@@ -284,29 +291,6 @@ export function PlatformPicker({
     </Fragment>
   );
 }
-
-const NavContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  grid-template-columns: 1fr minmax(0, 200px);
-  align-items: start;
-
-  &.centered {
-    grid-template-columns: none;
-    justify-content: center;
-  }
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  min-width: 6rem;
-  max-width: 12rem;
-  margin-top: -${p => p.theme.space['2xs']};
-  margin-left: auto;
-  flex-shrink: 0;
-  flex-basis: 0;
-  flex-grow: 1;
-`;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${p => p.theme.space.xl};

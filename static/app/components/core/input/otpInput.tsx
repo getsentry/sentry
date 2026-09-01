@@ -134,7 +134,7 @@ export function OTPInput<const Format extends string>({
 }
 
 const OTPInputSlot = styled(Flex)<{$isActive: boolean}>`
-  ${p => inputStyles({theme: p.theme, size: 'md'})};
+  ${p => inputStyles({theme: p.theme})};
   display: flex;
   min-width: ${p => p.theme.form.md.height};
   padding: 0;

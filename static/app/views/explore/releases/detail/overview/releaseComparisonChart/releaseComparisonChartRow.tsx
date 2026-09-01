@@ -183,8 +183,13 @@ const ChartTableRow = styled(SimpleTable.Row, {
   isLoading: boolean;
   rowRole: ReleaseComparisonRow['role'];
 }>`
+  align-items: stretch;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   margin-bottom: 0;
+
+  &:not(:last-child) {
+    border-bottom: 0;
+  }
 
   > * {
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
