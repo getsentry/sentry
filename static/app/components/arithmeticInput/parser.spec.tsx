@@ -36,7 +36,9 @@ describe('arithmeticInput/parser', () => {
   });
 
   it('handles some multiplication', () => {
-    expect(parseArithmetic('1 * 2').result).toStrictEqual(operation('multiply', '1', '2'));
+    expect(parseArithmetic('1 * 2').result).toStrictEqual(
+      operation('multiply', '1', '2')
+    );
   });
 
   it('handles three term multiplication', () => {
