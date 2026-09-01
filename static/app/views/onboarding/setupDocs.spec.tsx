@@ -456,15 +456,18 @@ describe('Onboarding Setup Docs', () => {
       );
     }
 
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedFeatures: [
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ],
+      })
+    );
+
     render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedFeatures: [
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ],
-        }}
-      >
+      <OnboardingContextProvider>
         <FeaturesObserver />
         <SetupDocs
           onComplete={() => {}}
@@ -527,15 +530,18 @@ describe('Onboarding Setup Docs', () => {
       );
     }
 
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedFeatures: [
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ],
+      })
+    );
+
     render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedFeatures: [
-            ProductSolution.PERFORMANCE_MONITORING,
-            ProductSolution.SESSION_REPLAY,
-          ],
-        }}
-      >
+      <OnboardingContextProvider>
         <FeaturesObserver />
         <SetupDocs
           onComplete={() => {}}

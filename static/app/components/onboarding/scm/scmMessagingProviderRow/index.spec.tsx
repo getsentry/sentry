@@ -25,7 +25,6 @@ import type {Organization} from 'sentry/types/organization';
 
 import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import {ScmMessagingProviderRow} from '.';
-
 jest.mock('./scmMessagingChannelPicker', () => ({
   ScmMessagingChannelPicker: jest.fn(() => <div>channel-picker</div>),
 }));
@@ -556,9 +555,8 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('shows the picker when the parent sets activeRow to configuring', () => {
-
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        initialActiveRow: {providerKey: 'slack', mode: 'configuring'}
+        initialActiveRow: {providerKey: 'slack', mode: 'configuring'},
       });
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
