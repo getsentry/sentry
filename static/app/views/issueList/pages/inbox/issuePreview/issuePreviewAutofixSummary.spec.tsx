@@ -198,7 +198,7 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
   });
 
-  it('renders the section with a loading indicator while it is processing', () => {
+  it('renders progress messages with a loading indicator while processing', () => {
     render(
       <IssuePreviewAutofixSummary
         autofix={ExplorerAutofixFixture({
@@ -207,8 +207,25 @@ describe('IssuePreviewAutofixSummary', () => {
               ExplorerAutofixBlockFixture({
                 artifacts: undefined,
                 message: {
-                  content: 'Thinking...',
+                  content: 'Start the root cause analysis',
                   metadata: {step: 'root_cause'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Tracing the failing request...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'thinking',
+                artifacts: undefined,
+                message: {
+                  content: 'Thinking...',
+                  thinking_content: 'Inspecting the event context...',
                   role: 'assistant',
                 },
               }),
@@ -222,6 +239,12 @@ describe('IssuePreviewAutofixSummary', () => {
 
     const rootCause = screen.getByRole('region', {name: 'Root Cause'});
     expect(within(rootCause).getByText('Generating root cause...')).toBeInTheDocument();
+    expect(within(rootCause).getByText('Inspecting the event context...')).toBeVisible();
+    expect(within(rootCause).getByText('Tracing the failing request...')).toBeVisible();
+    expect(within(rootCause).queryByText('Thinking...')).not.toBeInTheDocument();
+    expect(
+      within(rootCause).queryByText('Start the root cause analysis')
+    ).not.toBeInTheDocument();
     expect(within(rootCause).getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       screen.queryByRole('region', {name: 'Implementation Plan'})
