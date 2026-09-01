@@ -165,11 +165,7 @@ def trigger_pr_iteration_agent(
         feedback=feedback_items,
         actor_user_id=actor_user_id,
         commit_author=commit_author_for_feedback(feedback_items, organization_id),
-        extra_prompt_metadata=(
-            # Names the analytics buffer this iteration's work belongs to; the
-            # completion hook reads it back off the iteration's first block.
-            {"iteration_id": str(iteration_id)} if iteration_id is not None else None
-        ),
+        iteration_id=iteration_id,
     )
 
 

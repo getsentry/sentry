@@ -1624,9 +1624,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         (row,) = open_iterations(seer_run)
-        assert mock_trigger.call_args.kwargs["extra_prompt_metadata"] == {
-            "iteration_id": str(row.id)
-        }
+        assert mock_trigger.call_args.kwargs["iteration_id"] == row.id
         assert row.data["feedback_count"] == 1
         assert row.data["dropped_count"] == 0
 
