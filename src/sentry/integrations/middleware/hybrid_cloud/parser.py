@@ -5,6 +5,7 @@ from abc import ABC
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
+import orjson
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -257,6 +258,19 @@ class BaseRequestParser(ABC):
             extra={"provider": self.provider, "integration_id": integration_id},
         )
         return True
+
+    def get_request_body(self) -> dict[str, Any]:
+        """
+        The request's JSON body as a mapping, empty when it is not a JSON object.
+
+        A payload that does not parse still has to be queued, so callers fall back to
+        the integration-level mailbox rather than raise.
+        """
+        try:
+            body = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
+            return {}
+        return body if isinstance(body, dict) else {}
 
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]

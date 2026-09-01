@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
 from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
@@ -77,14 +76,9 @@ class GitlabRequestParser(BaseRequestParser):
         if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
-        try:
-            data = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            data = {}
-
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, data),
+            identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
             integration_id=integration.id,
         )
 

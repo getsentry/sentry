@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.http.response import HttpResponseBase
@@ -79,7 +81,26 @@ class JiraRequestParser(BaseRequestParser):
 
         if self.view_class in self.outbox_response_cell_classes:
             return self.get_response_from_webhookpayload(
-                cells=cells, identifier=integration.id, integration_id=integration.id
+                cells=cells,
+                identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
+                integration_id=integration.id,
             )
 
         return self.get_response_from_control_silo()
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """
+        Used by get_mailbox_identifier to find the issue.id a payload is for.
+        The Connect descriptor registers only `jira:issue_updated`, so the issue is
+        the only axis a Jira mailbox can be split on.
+        """
+        issue = data.get("issue")
+        if not isinstance(issue, dict):
+            return None
+        issue_id = issue.get("id")
+        if issue_id is None:
+            return None
+        try:
+            return int(issue_id)
+        except (TypeError, ValueError):
+            return None
