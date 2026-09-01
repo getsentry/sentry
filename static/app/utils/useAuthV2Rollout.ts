@@ -10,7 +10,7 @@ import {
 
 export function useAuthV2Rollout() {
   const {loading, organization} = useLegacyStore(OrganizationStore);
-  const {setAuthV2CookieState} = useEnableAuthV2();
+  const {authV2RolloutOrganization, setAuthV2CookieState} = useEnableAuthV2();
 
   useEffect(() => {
     if (loading || !organization) {
@@ -18,16 +18,18 @@ export function useAuthV2Rollout() {
     }
 
     const authV2CookieState = getAuthV2CookieState();
-
     if (!organization.features.includes('authv2-rollout')) {
-      if (authV2CookieState === AuthV2CookieState.ENABLED) {
+      if (
+        authV2CookieState === AuthV2CookieState.ENABLED &&
+        authV2RolloutOrganization === organization.slug
+      ) {
         setAuthV2CookieState(AuthV2CookieState.UNSET);
       }
       return;
     }
 
     if (authV2CookieState === AuthV2CookieState.UNSET) {
-      setAuthV2CookieState(AuthV2CookieState.ENABLED);
+      setAuthV2CookieState(AuthV2CookieState.ENABLED, organization.slug);
     }
-  }, [loading, organization, setAuthV2CookieState]);
+  }, [authV2RolloutOrganization, loading, organization, setAuthV2CookieState]);
 }
