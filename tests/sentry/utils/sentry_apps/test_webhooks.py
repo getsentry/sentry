@@ -673,4 +673,3 @@ class WebhookInvalidHeaderTest(TestCase):
         requests = buffer.get_requests()
         assert len(requests) == 1
         assert requests[0]["response_code"] == 0
-
