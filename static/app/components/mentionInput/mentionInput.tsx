@@ -201,7 +201,6 @@ export function MentionInput<TSuggestion>({
     position: 'bottom-start',
     offset: 4,
     shouldApplyMinWidth: false,
-    shouldCloseOnBlur: false,
     isKeyboardDismissDisabled: true,
     onClose: () => setActiveMention(null),
     shouldCloseOnInteractOutside: element => !inputRef.current?.contains(element),

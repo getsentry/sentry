@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 ai_monitoring: 0002_add_date_updated_index
 
-discover: 0001_squashed_0003_discover_json_field
+discover: 0004_discover_starred_and_last_visited
 
 explore: 0013_delete_project_column_from_metric_context
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0032_add_extras_to_seer_run_milestone
 
-sentry: 1157_externalissue_provider_status_updated_at
+sentry: 1160_create_deletion_watermark
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

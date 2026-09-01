@@ -691,7 +691,7 @@ describe('Onboarding', () => {
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(
-        await screen.findByDisplayValue('npx @sentry/agent-plugin install')
+        await screen.findByText('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
       expect(screen.getByText('Connect your repository')).toBeInTheDocument();
       expect(screen.getByText('Choose your platform')).toBeInTheDocument();
@@ -721,7 +721,7 @@ describe('Onboarding', () => {
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(
-        await screen.findByDisplayValue('npx @sentry/agent-plugin install')
+        await screen.findByText('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
 
       act(resolveAgenticRunRequest);
@@ -729,7 +729,7 @@ describe('Onboarding', () => {
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Switch to Manual'})).toBeInTheDocument();
       expect(
-        screen.queryByDisplayValue('npx @sentry/agent-plugin install')
+        screen.queryByText('npx @sentry/agent-plugin install')
       ).not.toBeInTheDocument();
     });
 

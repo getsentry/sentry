@@ -101,6 +101,13 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
         type=str,
         description="The name of environments to filter by.",
     )
+    REFERRER = OpenApiParameter(
+        name="referrer",
+        location="query",
+        required=False,
+        type=str,
+        description="Internal referrer identifier used for query tracing. Most clients can omit this.",
+    )
     EVENT_ID = OpenApiParameter(
         name="event_id",
         location="path",
@@ -217,6 +224,19 @@ Valid fields include:
 - `members`: By number of members
 - `events`: By number of events in the past 24 hours
 """,
+    )
+
+    MEMBER_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description=(
+            "Limit results to members matching the given query. `id, `user.id`, ... are supported prefixes "
+            "match on: `id`, `user.id`, `email`, `role`, `scope`, `isInvited`, `ssoLinked`, "
+            "`has2fa`, `hasExternalUsers`. For example, `query=user.id:1234`. An unrecognized "
+            "field returns no results."
+        ),
     )
 
     PROJECT_QUERY = OpenApiParameter(
@@ -358,6 +378,19 @@ class IssueParams:
         name="groupStatsPeriod",
         description="The timeline on which stats for the groups should be presented.",
         enum=["", "24h", "14d", "auto"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+    PROJECT_GROUP_STATS_PERIOD = OpenApiParameter(
+        name="statsPeriod",
+        description=(
+            "The timeline on which stats for the groups should be presented. "
+            'Defaults to `"24h"`. Pass `""` to omit stats entirely. Unlike the '
+            "organization-wide issues endpoint, this does not filter the query "
+            "window and does not accept arbitrary periods."
+        ),
+        enum=["", "24h", "14d"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,
@@ -556,6 +589,15 @@ class WorkflowParams:
         required=True,
         type=int,
         description="The ID of the alert you'd like to query.",
+    )
+
+    DETECTOR = OpenApiParameter(
+        name="detector",
+        location="query",
+        required=False,
+        type=int,
+        many=True,
+        description="The IDs of monitors connected to the alerts you'd like to query.",
     )
 
     QUERY = OpenApiParameter(
@@ -1214,6 +1256,58 @@ class DashboardParams:
         required=True,
         type=int,
         description="""The ID of the dashboard you'd like to retrieve.""",
+    )
+
+    FILTER = OpenApiParameter(
+        name="filter",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=[
+            "excludeFavorites",
+            "excludePrebuilt",
+            "onlyFavorites",
+            "onlyPrebuilt",
+            "owned",
+            "shared",
+            "showHidden",
+        ],
+        description="Filter the dashboards returned. Repeat this parameter to apply multiple filters.",
+    )
+
+    PIN = OpenApiParameter(
+        name="pin",
+        location="query",
+        required=False,
+        type=str,
+        enum=["favorites"],
+        description="Pin favorited dashboards to the top of the results.",
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="Filter dashboards by title.",
+    )
+
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. Prefix the value with `-` to sort in descending order.
+
+Available fields are:
+- `title`
+- `dateCreated`
+- `mostPopular`
+- `recentlyViewed`
+- `mydashboards`
+- `myDashboardsAndRecentlyViewed`
+""",
     )
 
 

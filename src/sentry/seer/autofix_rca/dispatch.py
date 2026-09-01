@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
@@ -15,6 +17,8 @@ from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.autofix_rca.models import FEATURE_ID, AutofixRCAPayload, AutofixRCATweaks
 from sentry.seer.models.run import SeerRun
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -30,6 +34,8 @@ def trigger_autofix_rca_feature(
     reasoning_effort: Literal["low", "medium", "high"] | None = "medium",
     flush: bool = True,
     allow_free_cohort: bool = False,
+    user: User | RpcUser | AnonymousUser | None = None,
+    enable_bash_tools: bool = False,
 ) -> SeerRun:
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
@@ -59,6 +65,8 @@ def trigger_autofix_rca_feature(
         organization=group.organization,
         project=group.project,
         group=group,
+        user=user,
+        enable_bash_tools=enable_bash_tools,
     )
 
     # Store the stopping point here for delivery to use when advancing steps.

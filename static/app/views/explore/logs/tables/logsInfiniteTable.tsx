@@ -951,7 +951,7 @@ function BackToTopButton({
       }}
       aria-label="Back to top"
     >
-      <IconArrow direction="up" size="md" />
+      <IconArrow size="md" />
     </Button>
   );
 }

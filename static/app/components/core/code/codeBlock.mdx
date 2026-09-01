@@ -175,6 +175,40 @@ Use `hideCopyButton` to hide the copy button in the top right.
 </CodeBlock>
 ```
 
+### Always-visible copy button
+
+Use `alwaysShowCopyButton` when copying is the primary action for a snippet.
+
+<Storybook.Demo>
+  <CodeBlock alwaysShowCopyButton language="bash">
+    pnpm install @sentry/browser
+  </CodeBlock>
+</Storybook.Demo>
+
+```tsx
+<CodeBlock alwaysShowCopyButton language="bash">
+  pnpm install @sentry/browser
+</CodeBlock>
+```
+
+### Wrapping long lines
+
+Use `wrapMode="wrap"` for prose-like commands or prompts that should fit their
+container instead of scrolling horizontally.
+
+<Storybook.Demo>
+  <CodeBlock alwaysShowCopyButton wrapMode="wrap">
+    Ask your coding agent to configure Sentry and verify that an error reaches your
+    project.
+  </CodeBlock>
+</Storybook.Demo>
+
+```tsx
+<CodeBlock alwaysShowCopyButton wrapMode="wrap">
+  Ask your coding agent to configure Sentry and verify that an error reaches your project.
+</CodeBlock>
+```
+
 ## Disable User Selection
 
 Use `disableUserSelection` to prevent users from manually selecting and copying text. Useful when loading parts of a code snippet.

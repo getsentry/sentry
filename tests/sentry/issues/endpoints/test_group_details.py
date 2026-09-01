@@ -11,15 +11,10 @@ from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.issues.action_log import action_context_scope
-from sentry.issues.action_log.types import (
-    ActionSource,
-    GroupActionActor,
-    ReconcileStatusAction,
-)
+from sentry.issues.action_log.types import ActionSource, GroupActionActor, ReconcileStatusAction
 from sentry.issues.constants import cache_key_for_issue_view
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
-from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -420,7 +415,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.issues.endpoints.group_details.logger")
     def test_diverged_closed_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
-        GroupDerivedData.objects.create(group=group, data={"status": "open"})
+        self.create_group_derived_data(group=group, data={"status": "open"})
 
         with capture_action_log() as log:
             self._get(group)
@@ -432,7 +427,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
                 "group_id": group.id,
                 "project_id": group.project_id,
                 "derived_status": "open",
-                "expected_status": "closed",
+                "actual_status": "closed",
             },
         )
 
@@ -440,7 +435,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.issues.endpoints.group_details.logger")
     def test_diverged_open_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+        self.create_group_derived_data(group=group, data={"status": "closed"})
 
         with capture_action_log() as log:
             self._get(group)
@@ -452,14 +447,14 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
                 "group_id": group.id,
                 "project_id": group.project_id,
                 "derived_status": "closed",
-                "expected_status": "open",
+                "actual_status": "open",
             },
         )
 
     @with_feature("projects:issue-status-reconciliation")
     def test_aligned_status_skips(self) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
-        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+        self.create_group_derived_data(group=group, data={"status": "closed"})
 
         with capture_action_log() as log:
             self._get(group)
@@ -483,7 +478,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     )
     def test_feature_flags_off_skip(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
-        GroupDerivedData.objects.create(group=group, data={"status": "open"})
+        self.create_group_derived_data(group=group, data={"status": "open"})
 
         with capture_action_log() as log:
             self._get(group)
@@ -502,7 +497,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     ) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
-        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+        self.create_group_derived_data(group=group, data={"status": "closed"})
 
         self._get(group)
 
@@ -512,7 +507,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
                 "group_id": group.id,
                 "project_id": group.project_id,
                 "derived_status": "closed",
-                "expected_status": "open",
+                "actual_status": "open",
             },
         )
 
@@ -521,7 +516,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.issues.endpoints.group_details.logger")
     def test_read_path_checks_killswitch(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+        self.create_group_derived_data(group=group, data={"status": "closed"})
 
         self._get(group)
 

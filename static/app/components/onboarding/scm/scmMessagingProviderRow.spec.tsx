@@ -5,15 +5,17 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ScmMessagingActiveRow} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import type {
+  ScmMessagingActiveRow,
+  ScmMessagingSetup,
+} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm/scmMessagingSetup';
-import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import {ScmMessagingProviderRow} from './scmMessagingProviderRow';
-import type {ScmMessagingProviderViewModel} from './useScmMessagingProviders';
+import type {ScmMessagingResolvedProvider} from './useScmMessagingProviders';
 
 const organization = OrganizationFixture();
 
@@ -52,7 +54,7 @@ const msteamsIntegration = OrganizationIntegrationsFixture({
   configData: {installationType: 'tenant'},
 });
 
-const installableSlack: ScmMessagingProviderViewModel = {
+const installableSlack: ScmMessagingResolvedProvider = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'installable',
@@ -60,7 +62,7 @@ const installableSlack: ScmMessagingProviderViewModel = {
   permissionLimitedIntegration: undefined,
 };
 
-const connectedSlack: ScmMessagingProviderViewModel = {
+const connectedSlack: ScmMessagingResolvedProvider = {
   providerKey: 'slack',
   provider: slackProvider,
   status: 'connected',
@@ -68,7 +70,7 @@ const connectedSlack: ScmMessagingProviderViewModel = {
   permissionLimitedIntegration: undefined,
 };
 
-const permissionLimitedMsteams: ScmMessagingProviderViewModel = {
+const permissionLimitedMsteams: ScmMessagingResolvedProvider = {
   providerKey: 'msteams',
   provider: msteamsProvider,
   status: 'permission-limited',
@@ -101,7 +103,7 @@ function mockPipeline(): {callbacks: PipelineCallbacks} {
 }
 
 function ControlledRow({
-  viewModel,
+  resolvedProvider,
   messagingSetup,
   initialActiveRow = null,
   isRefetchingIntegrations = false,
@@ -110,7 +112,7 @@ function ControlledRow({
   renderChannelPicker,
 }: {
   messagingSetup: ScmMessagingSetup;
-  viewModel: ScmMessagingProviderViewModel;
+  resolvedProvider: ScmMessagingResolvedProvider;
   initialActiveRow?: ScmMessagingActiveRow;
   isRefetchingIntegrations?: boolean;
   onInstallComplete?: jest.Mock;
@@ -120,7 +122,7 @@ function ControlledRow({
   const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(initialActiveRow);
   return (
     <ScmMessagingProviderRow
-      viewModel={viewModel}
+      resolvedProvider={resolvedProvider}
       messagingSetup={messagingSetup}
       activeRow={activeRow}
       onActiveRowChange={setActiveRow}
@@ -133,7 +135,7 @@ function ControlledRow({
 }
 
 function renderRow(
-  viewModel: ScmMessagingProviderViewModel,
+  resolvedProvider: ScmMessagingResolvedProvider,
   messagingSetup: ScmMessagingSetup = UNCONFIGURED_SCM_MESSAGING_SETUP,
   overrides: {
     initialActiveRow?: ScmMessagingActiveRow;
@@ -151,7 +153,7 @@ function renderRow(
 
   return render(
     <ControlledRow
-      viewModel={viewModel}
+      resolvedProvider={resolvedProvider}
       messagingSetup={messagingSetup}
       initialActiveRow={overrides.initialActiveRow}
       onInstallComplete={onInstallComplete}
@@ -337,7 +339,7 @@ describe('ScmMessagingProviderRow', () => {
 
       const {rerender} = render(
         <ScmMessagingProviderRow
-          viewModel={installableSlack}
+          resolvedProvider={installableSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
@@ -358,7 +360,7 @@ describe('ScmMessagingProviderRow', () => {
       // would reinstall an existing integration.
       rerender(
         <ScmMessagingProviderRow
-          viewModel={connectedSlack}
+          resolvedProvider={connectedSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
@@ -392,13 +394,12 @@ describe('ScmMessagingProviderRow', () => {
       // Render directly (not via ControlledRow) so rerender preserves hook state.
       const {rerender} = render(
         <ScmMessagingProviderRow
-          viewModel={installableSlack}
+          resolvedProvider={installableSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
           onInstallComplete={onInstallComplete}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />
       );
 
@@ -410,7 +411,7 @@ describe('ScmMessagingProviderRow', () => {
       // Parent signals that refetch is now active.
       rerender(
         <ScmMessagingProviderRow
-          viewModel={installableSlack}
+          resolvedProvider={installableSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
@@ -425,7 +426,7 @@ describe('ScmMessagingProviderRow', () => {
 
     it('stops spinning when the installed integration resolves to permission-limited', async () => {
       const {callbacks} = mockPipeline();
-      const installableMsteams: ScmMessagingProviderViewModel = {
+      const installableMsteams: ScmMessagingResolvedProvider = {
         providerKey: 'msteams',
         provider: msteamsProvider,
         status: 'installable',
@@ -435,13 +436,12 @@ describe('ScmMessagingProviderRow', () => {
 
       const {rerender} = render(
         <ScmMessagingProviderRow
-          viewModel={installableMsteams}
+          resolvedProvider={installableMsteams}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />,
         {organization}
       );
@@ -452,7 +452,7 @@ describe('ScmMessagingProviderRow', () => {
       // Simulate parent refetch starting.
       rerender(
         <ScmMessagingProviderRow
-          viewModel={installableMsteams}
+          resolvedProvider={installableMsteams}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
@@ -464,16 +464,15 @@ describe('ScmMessagingProviderRow', () => {
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
-      // The refetched view model settles to a tenant (permission-limited) result.
+      // The refetched resolved provider settles to a tenant (permission-limited) result.
       rerender(
         <ScmMessagingProviderRow
-          viewModel={permissionLimitedMsteams}
+          resolvedProvider={permissionLimitedMsteams}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />
       );
 
@@ -490,13 +489,12 @@ describe('ScmMessagingProviderRow', () => {
 
       const {rerender} = render(
         <ScmMessagingProviderRow
-          viewModel={installableSlack}
+          resolvedProvider={installableSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />,
         {organization}
       );
@@ -507,7 +505,7 @@ describe('ScmMessagingProviderRow', () => {
       // Simulate parent refetch starting (spinner should show).
       rerender(
         <ScmMessagingProviderRow
-          viewModel={installableSlack}
+          resolvedProvider={installableSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
@@ -522,13 +520,12 @@ describe('ScmMessagingProviderRow', () => {
       // Refetch settles but still no integration — must fall back to Connect.
       rerender(
         <ScmMessagingProviderRow
-          viewModel={installableSlack}
+          resolvedProvider={installableSlack}
           messagingSetup={UNCONFIGURED_SCM_MESSAGING_SETUP}
           activeRow={null}
           onActiveRowChange={jest.fn()}
           onInstallComplete={jest.fn()}
           onMessagingSetupChange={jest.fn()}
-          isRefetchingIntegrations={false}
         />
       );
 
@@ -630,7 +627,7 @@ describe('ScmMessagingProviderRow', () => {
         configData: {installationType: 'team'},
       });
 
-      const mixedMsteams: ScmMessagingProviderViewModel = {
+      const mixedMsteams: ScmMessagingResolvedProvider = {
         providerKey: 'msteams',
         provider: msteamsProvider,
         status: 'connected',
@@ -666,7 +663,7 @@ describe('ScmMessagingProviderRow', () => {
         configData: {installationType: 'team'},
       });
 
-      const mixedMsteams: ScmMessagingProviderViewModel = {
+      const mixedMsteams: ScmMessagingResolvedProvider = {
         providerKey: 'msteams',
         provider: msteamsProvider,
         status: 'connected',
@@ -720,7 +717,7 @@ describe('ScmMessagingProviderRow', () => {
       // Simulate the parent updating the messagingSetup prop after the save.
       rerender(
         <ScmMessagingProviderRow
-          viewModel={connectedSlack}
+          resolvedProvider={connectedSlack}
           messagingSetup={selectedSlackSetup}
           activeRow={null}
           onActiveRowChange={jest.fn()}

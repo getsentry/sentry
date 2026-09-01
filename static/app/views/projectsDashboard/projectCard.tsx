@@ -85,7 +85,7 @@ export function ProjectCard({
     defined(currentCrashFreeRate) && defined(crashFreeTrend) ? (
       <div>
         {crashFreeTrend >= 0 ? (
-          <IconArrow direction="up" size="xs" />
+          <IconArrow size="xs" />
         ) : (
           <IconArrow direction="down" size="xs" />
         )}

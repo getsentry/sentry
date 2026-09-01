@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -25,6 +26,12 @@ import {
   getSeerProjectReposInfiniteQueryOptions,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const REPOSITORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'repositories', width: '1fr'},
+  {key: 'integration', width: 'max-content'},
+  {key: 'actions', width: 'max-content'},
+];
 
 interface Props {
   canWrite: boolean;
@@ -160,6 +167,7 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
       </Flex>
 
       <StyledSimpleTable
+        columns={REPOSITORY_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             {tableHeaders.map((header, i) => (
@@ -186,5 +194,4 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
 
 const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: 0;
-  grid-template-columns: 1fr repeat(2, max-content);
 `;

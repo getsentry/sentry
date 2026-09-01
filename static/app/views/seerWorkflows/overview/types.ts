@@ -111,7 +111,7 @@ export interface OverviewIssue {
   owners?: Group['owners'];
 }
 
-export type OverviewSort = 'seer' | 'issue' | 'events' | 'users';
+export type OverviewSort = 'recommended' | 'seer' | 'issue' | 'events' | 'users';
 
 // The milestone a run reached, as keyed in the endpoint's `runsByMilestone`.
 export type MilestoneKey =
@@ -204,7 +204,7 @@ export interface OverviewRun {
   lastTriggeredAt: string;
   proposedFix: {oneLineSummary: string | null} | null;
   pullRequests: OverviewPullRequest[];
-  rootCause: {oneLineDescription: string | null} | null;
+  rootCause: {headline: string | null; oneLineDescription: string | null} | null;
   seerRunId: string;
   shortId: string;
   status: RunStatus | null;

@@ -6,6 +6,7 @@ from typing import TypeVar
 from redis import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
+from sentry.exceptions import MissingTTL
 from sentry.utils.kvstore.abstract import KVStorage
 
 T = TypeVar("T", str, bytes)
@@ -24,6 +25,8 @@ class RedisKVStorage(KVStorage[str, T]):
         return self.client.get(key.encode("utf8"))
 
     def set(self, key: str, value: T, ttl: timedelta | None = None) -> None:
+        if not ttl:
+            raise MissingTTL(key)
         self.client.set(key.encode("utf8"), value, ex=ttl)
 
     def delete(self, key: str) -> None:

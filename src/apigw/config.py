@@ -81,6 +81,15 @@ def load_config(app: App) -> None:
     if proxy_client_keepalive_max := os.environ.get("APIGW_PROXY_KEEPALIVE"):
         app.config.proxy.client_keepalive_max_connections = int(proxy_client_keepalive_max)
 
+    app.config.cache.max_items = 1000
+    app.config.cache.ttl = 60
+
+    if cache_max_items := os.environ.get("APIGW_CACHE_MAX_ITEMS"):
+        app.config.cache.max_items = int(cache_max_items)
+
+    if cache_ttl := os.environ.get("APIGW_CACHE_TTL"):
+        app.config.cache.ttl = int(cache_ttl)
+
     app.config.Sentry.environment = os.environ.get("APIGW_SENTRY_ENVIRONMENT", "development")
     app.config.Sentry.dsn = os.environ.get("APIGW_SENTRY_DSN", "")
     app.config.Sentry.release = os.environ.get("GETSENTRY_VERSION_SHA", "latest")

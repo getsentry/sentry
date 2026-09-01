@@ -38,7 +38,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'code',
           language: 'rust',
-          code: getInstallSnippet(params, '0.42.0'),
+          code: getInstallSnippet(params),
         },
       ],
     },

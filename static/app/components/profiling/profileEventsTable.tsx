@@ -27,7 +27,7 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
+import {getTableColumnSort} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -80,9 +80,8 @@ export function ProfileEventsTable<F extends FieldType>(
       error={props.error}
       data={props.data?.data ?? []}
       columnOrder={props.columns.map(field => getColumnOrder(field))}
-      columnSortBy={[props.sort]}
       grid={{
-        renderHeadCell: renderTableHead<F>({
+        getColumnSort: getTableColumnSort<F>({
           currentSort: props.sort,
           generateSortLink,
           rightAlignedColumns: getRightAlignedColumns(props.columns),

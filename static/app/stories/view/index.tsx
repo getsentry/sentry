@@ -183,11 +183,12 @@ function useStoriesFavicon() {
   }, []);
 }
 
-const storiesTracking: React.ComponentProps<typeof TrackingContextProvider>['value'] =
-  () => props => {
-    // eslint-disable-next-line no-console
-    console.log('analyticsEvent', props);
-  };
+const storiesTracking: React.ComponentProps<
+  typeof TrackingContextProvider
+>['value'] = props => {
+  // eslint-disable-next-line no-console
+  console.log('analyticsEvent', props);
+};
 
 function StoriesLayout(props: PropsWithChildren) {
   useStoriesFavicon();

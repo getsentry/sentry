@@ -83,6 +83,7 @@ describe('AutofixOverview', () => {
     shortId: 'PROJ-1',
     title: 'TypeError in checkout cart',
     rootCause: {
+      headline: null,
       oneLineDescription: 'The cart total is read before it is set.',
     },
     proposedFix: null,
@@ -97,7 +98,10 @@ describe('AutofixOverview', () => {
     groupId: '3',
     shortId: 'PROJ-2',
     title: 'KeyError in proxy handler',
-    rootCause: {oneLineDescription: 'The Authorization header is dropped.'},
+    rootCause: {
+      headline: null,
+      oneLineDescription: 'The Authorization header is dropped.',
+    },
     proposedFix: {
       oneLineSummary: 'Restore the Authorization header as a fallback.',
     },
@@ -172,6 +176,12 @@ describe('AutofixOverview', () => {
       resolve = r;
     });
     return {promise, resolve};
+  }
+
+  // Flush pending microtasks so already-resolved mock responses apply and render.
+  async function tick() {
+    await Promise.resolve();
+    await Promise.resolve();
   }
 
   const originalIntersectionObserver = window.IntersectionObserver;
@@ -709,6 +719,39 @@ describe('AutofixOverview', () => {
     expect(screen.getAllByText('Plan')).toHaveLength(1);
   });
 
+  it('uses the root cause headline as the card title with the issue title beneath', async () => {
+    mockOverview({
+      base: {
+        autofix_root_cause: [
+          {
+            ...rootCauseRun,
+            rootCause: {
+              headline: 'Checkout crashes on an empty cart',
+              oneLineDescription: 'The cart total is read before it is set.',
+            },
+          },
+        ],
+      },
+    });
+
+    renderPage();
+
+    // The generated headline becomes the linked card title.
+    const titleLink = await screen.findByRole('link', {
+      name: 'Checkout crashes on an empty cart',
+    });
+    expect(titleLink).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/2/`
+    );
+    // The raw issue title still shows, beneath the headline.
+    expect(screen.getByText('TypeError in checkout cart')).toBeInTheDocument();
+    // The issue title is not itself a link (only the headline links out).
+    expect(
+      screen.queryByRole('link', {name: 'TypeError in checkout cart'})
+    ).not.toBeInTheDocument();
+  });
+
   it('shows "0 users" for a card with events but zero affected users', async () => {
     mockOverview({
       base: {
@@ -739,23 +782,44 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('0 users')).not.toBeInTheDocument();
   });
 
-  it('shimmers the Snuba vitals until the issueStats call resolves', async () => {
+  it('holds the skeleton until the issueStats call resolves, then shows vitals', async () => {
     const issueStats = deferredResponse();
-    mockOverview({
+    const {statusPollRequest, projectConfigRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
       issueStatsAsyncDelay: issueStats.promise,
     });
 
     renderPage();
 
-    expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    // Let the status + projectConfig responses land and render; only the vitals
+    // stay pending. Cards must not paint yet, so events/users never shimmer.
+    await waitFor(() => expect(statusPollRequest).toHaveBeenCalled());
+    await waitFor(() => expect(projectConfigRequest).toHaveBeenCalled());
+    await act(tick);
+    expect(screen.queryByText('TypeError in checkout cart')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('loading-placeholder').length).toBeGreaterThan(0);
-    expect(screen.queryByText('1.2K events')).not.toBeInTheDocument();
 
     issueStats.resolve();
 
-    expect(await screen.findByText('1.2K events')).toBeInTheDocument();
+    expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+    expect(screen.getByText('1.2K events')).toBeInTheDocument();
     expect(screen.getByText('5 users')).toBeInTheDocument();
+  });
+
+  it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
+    mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+      issueStatsStatusCode: 500,
+    });
+
+    renderPage();
+
+    // A failed vitals call must not withhold the cards forever; once the query
+    // settles (after its one retry) the cards render. The timeout covers the
+    // issueStats retry backoff.
+    expect(
+      await screen.findByText('TypeError in checkout cart', undefined, {timeout: 5000})
+    ).toBeInTheDocument();
   });
 
   it('fetches the vitals once for a stable run set, without looping', async () => {
@@ -776,6 +840,7 @@ describe('AutofixOverview', () => {
           {
             ...solutionRun,
             rootCause: {
+              headline: null,
               oneLineDescription: 'The request is passed to `dateutil.parse()`.',
             },
             proposedFix: {
@@ -1846,25 +1911,49 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Code Changes')).not.toBeInTheDocument();
   });
 
-  it('defaults to Recent Seer Activity and omits the sort param', async () => {
+  it('defaults to Recommended and keeps the sort param out of the URL', async () => {
     const {statusPollRequest} = mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
     });
 
-    renderPage();
+    const {router} = renderPage();
 
     expect(
       await screen.findByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent(
-      'Recent Seer Activity'
-    );
+    expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent('Recommended');
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
       expect.objectContaining({
-        query: expect.not.objectContaining({sort: expect.anything()}),
+        query: expect.objectContaining({sort: 'recommended'}),
       })
     );
+    expect(router.location.query.sort).toBeUndefined();
+  });
+
+  it('omits the sort param for the Recent Seer Activity backend default', async () => {
+    const {statusPollRequest} = mockOverview({
+      base: {autofix_root_cause: [rootCauseRun]},
+    });
+
+    const {router} = renderPage();
+
+    expect(
+      await screen.findByRole('link', {name: 'TypeError in checkout cart'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: /Sort/}));
+    await userEvent.click(screen.getByRole('option', {name: 'Recent Seer Activity'}));
+
+    await waitFor(() =>
+      expect(statusPollRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/seer/autofix-overview/`,
+        expect.objectContaining({
+          query: expect.not.objectContaining({sort: expect.anything()}),
+        })
+      )
+    );
+    expect(router.location.query.sort).toBe('seer');
   });
 
   it.each([
@@ -2305,18 +2394,18 @@ describe('AutofixOverview', () => {
     expect(
       screen.queryByRole('link', {name: 'TypeError in checkout cart'})
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
 
     deferred.resolve();
 
     // Once project config resolves, the warning and the cards appear together.
-    expect(await screen.findByText(/Seer isn't set up for/)).toBeInTheDocument();
+    expect(await screen.findByLabelText('Seer setup warning')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: 'TypeError in checkout cart'})
     ).toBeInTheDocument();
   });
 
-  it('shows the subset warning banner naming only the unconfigured projects', async () => {
+  it('shows the subset warning counting only the unconfigured projects', async () => {
     mockOverview({
       base: {autofix_root_cause: [rootCauseRun]},
       projectConfig: [
@@ -2327,12 +2416,13 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    const banner = await screen.findByText(/Seer isn't set up for/);
-    expect(banner).toHaveTextContent(
-      "Seer isn't set up for beta-project. Set it up here."
+    await userEvent.hover(await screen.findByLabelText('Seer setup warning'));
+
+    const tooltip = await screen.findByText(/Seer automation isn't set up for/);
+    expect(tooltip).toHaveTextContent(
+      "Seer automation isn't set up for 1 project in the current filter. Enable automation"
     );
-    expect(banner).not.toHaveTextContent('alpha-project');
-    expect(screen.getByRole('link', {name: 'here'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Enable automation'})).toHaveAttribute(
       'href',
       '/settings/org-slug/seer/'
     );
@@ -2352,7 +2442,7 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByRole('button', {name: 'Create Plan 1'})
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Seer isn't set up for/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Seer setup warning')).not.toBeInTheDocument();
     expect(
       screen.queryByText('Set up Seer to start fixing issues')
     ).not.toBeInTheDocument();

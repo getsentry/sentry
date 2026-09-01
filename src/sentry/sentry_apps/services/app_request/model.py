@@ -22,6 +22,10 @@ class RpcSentryAppRequest(RpcModel):
     request_body: str | None = None
     request_headers: Mapping[str, str] | None = Field(repr=False, default=None)
     response_body: str | None = None
+    request_id: str | None = None
+    subject_id: str | None = None
+    subject_type: str | None = None
+    duration_ms: int | None = None
 
 
 class SentryAppRequestFilterArgs(TypedDict, total=False):

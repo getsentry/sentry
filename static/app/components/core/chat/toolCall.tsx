@@ -1,13 +1,14 @@
-import {Fragment, type MouseEvent, type ReactNode} from 'react';
+import type {MouseEvent, ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconSpan} from 'sentry/icons';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {SECOND} from 'sentry/utils/formatters';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';
@@ -46,7 +47,8 @@ export interface ToolCallReference {
 interface ToolCallProps {
   /**
    * Lifecycle status. Drives the leading glyph (spinner while running, semantic
-   * icon once settled) via `ToolCallIndicator`.
+   * icon once settled) via `ToolCallIndicator`. A `failure` also surfaces a
+   * trailing `Failed` chip in the result area so the outcome reads on the right.
    */
   status: ToolCallStatus;
   /**
@@ -54,27 +56,46 @@ interface ToolCallProps {
    */
   title: string;
   /**
-   * Supplementary detail rendered beneath the title and output — e.g. an
-   * expandable request/response for the call. Kept in the title's column so it
-   * aligns under the headline rather than the status glyph. When omitted, the
-   * call renders as a plain row with no toggle affordance, since there is
-   * nothing to disclose.
+   * Supplementary detail rendered beneath the title — e.g. the request body.
+   * Always visible: a nested tool call has no disclosure of its own.
    */
   children?: ReactNode;
+  /**
+   * How long the call took, in milliseconds. Rendered right-aligned in the
+   * trailing meta slot. Omit when the duration is unknown.
+   */
+  durationMs?: number;
+  /**
+   * The trailing danger chip's text when `status` is `failure` (e.g. the HTTP
+   * status code `502`). Defaults to `Failed`.
+   */
+  failureLabel?: string;
+  /**
+   * The call's request, rendered under an `Input:` label. Pass a decomposed
+   * view (e.g. a `FormattedQuery`) so the request reads as its filters rather
+   * than a raw URL string.
+   */
+  input?: ReactNode;
   /**
    * Short status lines surfaced beneath the call (e.g. "Truncated to 100 rows").
    */
   notifications?: string[];
   /**
-   * The primary result of the call, rendered as a chip under an `Output:` label.
+   * The call's result, rendered under an `Output:` label — a result value, or on
+   * failure the error itself. A slot, mirroring `input`.
    */
-  output?: ToolCallReference;
+  output?: ReactNode;
   /**
    * A trailing chip shown inline with the title. Typically the entity the call
-   * acted on.
+   * acted on — the call's result.
    */
   reference?: ToolCallReference;
 }
+
+// The leading status glyph and the indent of every row beneath the title are
+// pinned to this width so detail (input chips, notifications, children) aligns
+// under the headline rather than under the glyph.
+const GLYPH_SLOT_WIDTH = '16px';
 
 function ChipContent({label, value}: {value: string; label?: string}) {
   return label ? (
@@ -116,10 +137,67 @@ function ReferenceChip({reference}: {reference: ToolCallReference}) {
   );
 }
 
-function SecondaryBox({children}: {children: ReactNode}) {
+/**
+ * The hoisted failure marker. A failed call keeps its leading glyph but also
+ * surfaces this danger chip in the trailing result slot, where a successful call
+ * would show its `reference` — so the outcome is legible on the right rather than
+ * only as a small glyph on the far left. The `label` is typically the HTTP status
+ * code (e.g. `502`).
+ */
+function FailureChip({label}: {label: ReactNode}) {
+  return (
+    <Container
+      border="danger"
+      radius="sm"
+      paddingLeft="sm"
+      paddingRight="sm"
+      background="primary"
+    >
+      <Text size="sm" variant="danger" bold>
+        {label}
+      </Text>
+    </Container>
+  );
+}
+
+function ToolCallDuration({durationMs}: {durationMs: number}) {
+  return (
+    <Text size="sm" variant="secondary" align="right" monospace>
+      {getDuration(durationMs / 1000, 1, true, false, false, SECOND)}
+    </Text>
+  );
+}
+
+function InputBox({input}: {input: ReactNode}) {
+  const {t} = useTranslation();
+  return (
+    <Container
+      background="secondary"
+      border="primary"
+      radius="md"
+      padding="sm"
+      width="100%"
+    >
+      <Flex align="center" gap="sm" wrap="wrap">
+        <Text size="sm" variant="secondary" monospace bold>
+          {t('Input:')}
+        </Text>
+        {input}
+      </Flex>
+    </Container>
+  );
+}
+
+function OutputBox({output}: {output: ReactNode}) {
+  const {t} = useTranslation();
   return (
     <Container background="secondary" radius="md" padding="sm" width="100%">
-      {children}
+      <Flex align="center" gap="sm" wrap="wrap">
+        <Text size="sm" variant="secondary" monospace bold>
+          {t('Output:')}
+        </Text>
+        {output}
+      </Flex>
     </Container>
   );
 }
@@ -149,80 +227,68 @@ function getStatusLabel(
 /**
  * A single agent tool call within a `ThinkingBlock`.
  *
- * Built on the same outline `Disclosure` as `ThinkingBlock`: the lifecycle glyph
- * (`ToolCallIndicator`) is the leading item, the `title` is the toggle, and an
- * optional `reference` chip trails it. `output` and `notifications` sit under the
- * title and stay visible; pass `children` to tuck supplementary detail (e.g. the
- * request/response) into the collapsible panel. Without `children` there is
- * nothing to disclose, so the call renders as a plain (non-toggleable) row
- * instead of promising an expand affordance that has no content behind it.
+ * Unlike the collapsible `ThinkingBlock` it lives in, a tool call is not itself a
+ * disclosure — its detail is always visible. The lifecycle glyph
+ * (`ToolCallIndicator`) leads the title; an optional `reference` chip and, on
+ * failure, a `failureLabel` chip (the HTTP status) trail it; and a `durationMs`
+ * reads right-aligned in the meta slot. `input`, `output`, `notifications`, and
+ * `children` stack beneath the title, indented to align under the headline.
  */
 export function ToolCall({
   title,
   status,
+  durationMs,
+  failureLabel,
+  input,
   output,
   reference,
   notifications,
   children,
 }: ToolCallProps) {
   const {t} = useTranslation();
-
-  const indicator = (
-    <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
-  );
-  const titleText = (
-    <Text size="sm" variant="secondary" monospace>
-      {title}
-    </Text>
-  );
-  const referenceChip = reference ? <ReferenceChip reference={reference} /> : null;
-
-  const details = (
-    <Fragment>
-      {output ? (
-        <SecondaryBox>
-          <Flex align="center" gap="sm" wrap="wrap">
-            <Text size="sm" variant="secondary" monospace bold>
-              {t('Output:')}
-            </Text>
-            <ReferenceChip reference={output} />
-          </Flex>
-        </SecondaryBox>
-      ) : null}
-
-      {notifications?.map((note, i) => (
-        <Text key={i} size="sm" variant="muted">
-          {note}
-        </Text>
-      ))}
-    </Fragment>
-  );
-
-  if (!children) {
-    return (
-      <Stack gap="xs" flex={1}>
-        <Flex align="center" gap="sm" width="100%">
-          {indicator}
-          <Flex flexGrow={1}>{titleText}</Flex>
-          {referenceChip}
-        </Flex>
-        {details}
-      </Stack>
-    );
-  }
+  const isFailure = status === 'failure';
+  const hasTrailing = Boolean(reference) || isFailure;
+  const hasDetail =
+    Boolean(input) ||
+    Boolean(output) ||
+    Boolean(notifications?.length) ||
+    Boolean(children);
 
   return (
-    <Disclosure variant="outline" size="sm" gap="xs" flex={1}>
-      <Disclosure.Title
-        leadingItems={indicator}
-        trailingItems={referenceChip ?? undefined}
-      >
-        {titleText}
-      </Disclosure.Title>
+    <Stack gap="xs" flex={1} minWidth={0} width="100%">
+      <Flex gap="md" align="center" width="100%">
+        <Flex width={GLYPH_SLOT_WIDTH} justify="center" flexShrink={0}>
+          <ToolCallIndicator status={status} aria-label={getStatusLabel(status, t)} />
+        </Flex>
+        <Flex flex={1} minWidth={0} align="center" justify="between" gap="md">
+          <Text size="sm" variant="secondary" monospace>
+            {title}
+          </Text>
+          {hasTrailing ? (
+            <Flex align="center" gap="sm" flexShrink={0}>
+              {reference ? <ReferenceChip reference={reference} /> : null}
+              {isFailure ? <FailureChip label={failureLabel ?? t('Failed')} /> : null}
+            </Flex>
+          ) : null}
+        </Flex>
+        {durationMs === undefined ? null : <ToolCallDuration durationMs={durationMs} />}
+      </Flex>
 
-      {details}
-
-      <Disclosure.Content>{children}</Disclosure.Content>
-    </Disclosure>
+      {hasDetail ? (
+        <Flex gap="md" align="start" width="100%">
+          <Flex width={GLYPH_SLOT_WIDTH} flexShrink={0} aria-hidden />
+          <Stack gap="xs" flex={1} minWidth={0}>
+            {input ? <InputBox input={input} /> : null}
+            {output ? <OutputBox output={output} /> : null}
+            {notifications?.map((note, i) => (
+              <Text key={i} size="sm" variant="muted">
+                {note}
+              </Text>
+            ))}
+            {children}
+          </Stack>
+        </Flex>
+      ) : null}
+    </Stack>
   );
 }

@@ -481,3 +481,23 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         assert not DataConditionGroup.objects.filter(id=dcg.id).exists()
         assert not DataCondition.objects.filter(id=dc.id).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
+
+    def test_all_projects_detector_cleanup(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        all_projects_detector = self.create_all_projects_detector(organization=org)
+        project_detector = self.create_detector(project=project)
+
+        assert Detector.objects.filter(id=all_projects_detector.id).exists()
+        assert Detector.objects.filter(id=project_detector.id).exists()
+        assert all_projects_detector.project_id is None
+        assert project_detector.project_id == project.id
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Detector.objects.filter(id=all_projects_detector.id).exists()
+        assert not Detector.objects.filter(id=project_detector.id).exists()

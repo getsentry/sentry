@@ -111,6 +111,7 @@ class AgentPrStateRequest(TypedDict):
 class AgentRunOptions(TypedDict):
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
+    enable_bash_mode: NotRequired[bool]
     enable_coding: NotRequired[bool]
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]

@@ -133,9 +133,7 @@ function GDPREditModal({
         </Stack>
         <Footer>
           <Grid flow="column" align="center" gap="md">
-            <Button type="button" onClick={closeModal}>
-              {t('Cancel')}
-            </Button>
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
             <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
           </Grid>
         </Footer>

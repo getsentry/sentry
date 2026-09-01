@@ -1,7 +1,9 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -451,7 +453,7 @@ describe('ScmMessagingChannelPicker', () => {
     });
 
     it('only shows the integrations it receives — eligibility is enforced upstream', () => {
-      // The row (via the view model) is responsible for filtering to eligibleIntegrations
+      // The row (via the resolved provider) is responsible for filtering to eligibleIntegrations
       // before passing them to the picker. The picker renders whatever it receives.
       const msteamsTeam = OrganizationIntegrationsFixture({
         id: '41',
@@ -477,6 +479,86 @@ describe('ScmMessagingChannelPicker', () => {
 
       expect(screen.getByLabelText('workspace')).toBeDisabled(); // only 1 workspace
       expect(screen.getByText('team-workspace')).toBeInTheDocument();
+    });
+  });
+
+  describe('background refetch resilience', () => {
+    it('keeps channel options when a later channels refetch fails', async () => {
+      const queryClient = makeTestQueryClient();
+      mockChannels('10', [slackChannel]);
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ScmMessagingChannelPicker
+            eligibleIntegrations={[slackIntegration]}
+            providerKey="slack"
+            onConfigured={jest.fn()}
+            existingSetup={selectedSlackSetup}
+          />
+        </QueryClientProvider>,
+        {organization}
+      );
+
+      // Wait for the channel list to settle: the pre-seeded channel resolves its
+      // label once the list loads, enabling Add destination.
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled()
+      );
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/10/channels/`,
+        statusCode: 500,
+      });
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+
+      // A failed background refetch (isLoadingError false) must not show the
+      // error alert or clear the cached selection.
+      expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      expect(
+        screen.queryByText('Failed to load channels. You can still type a channel name.')
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps Add destination enabled when a later typed-channel validate refetch fails', async () => {
+      const queryClient = makeTestQueryClient();
+      mockChannels('10', [slackChannel]);
+      mockChannelValidate(true, '10');
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <ScmMessagingChannelPicker
+            eligibleIntegrations={[slackIntegration]}
+            providerKey="slack"
+            onConfigured={jest.fn()}
+          />
+        </QueryClientProvider>,
+        {organization}
+      );
+
+      await selectEvent.create(screen.getByLabelText('channel'), '#monitoring', {
+        createOptionText: '#monitoring',
+      });
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled()
+      );
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/10/channel-validate/`,
+        statusCode: 500,
+      });
+      await act(async () => {
+        await queryClient.invalidateQueries();
+      });
+
+      // A failed background refetch (isLoadingError false) must not set channelError
+      // or disable Add destination.
+      expect(screen.getByRole('button', {name: 'Add destination'})).toBeEnabled();
+      expect(
+        screen.queryByText('Unexpected integration channel validation error')
+      ).not.toBeInTheDocument();
     });
   });
 });

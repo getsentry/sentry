@@ -5,9 +5,14 @@ import secrets
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
-from django.db.models import Q, Sum
+from django.contrib.postgres.fields import ArrayField
+from django.db import models
+from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
+from django.db.models.fields.json import KeyTextTransform
+from django.db.models.functions import Cast, NullIf
 from django.utils import timezone
 from packaging.version import parse as parse_version
 
@@ -27,9 +32,9 @@ def parse_build_number(build: str) -> int | None:
     """Parse a build number into the sortable int launchpad stores on the artifact.
 
     Mirrors launchpad's ``_parse_build_number``: plain integers pass through,
-    period-separated integers (e.g. "1.2.3") are packed by zero-padding each
-    component, and anything else (or a value too large for the build_number
-    column) returns None. Per the CFBundleVersion spec, more than three
+    period-separated integers (e.g. "1.2.3") are encoded into a sortable integer
+    by zero-padding each component, and anything else (or a value too large for
+    the build_number column) returns None. Per the CFBundleVersion spec, more than three
     period-separated integer groups are accepted and groups beyond the third
     are dropped.
     """
@@ -285,6 +290,46 @@ def find_current_artifact(
         return None
 
 
+_NUMERIC_BUILD_NUMBER_RE = r"^[0-9]+(\.[0-9]+)*$"
+# The artifact update API limits the complete raw build number to 255 characters,
+# so this precision can represent any individual component without truncation.
+_BUILD_NUMBER_SUFFIX_FIELD: ArrayField[Any, list[Decimal]] = ArrayField(
+    models.DecimalField(max_digits=255, decimal_places=0)
+)
+
+
+class _StringToArray(Func):
+    function = "STRING_TO_ARRAY"
+    output_field = ArrayField(models.TextField())
+
+
+class _ArrayFromFourthComponent(Func):
+    template = "(%(expressions)s)[4:]"
+    output_field = ArrayField(models.TextField())
+
+
+def _build_number_suffix() -> Case:
+    """Return numeric components after the encoded three-component prefix."""
+    raw_build_number = KeyTextTransform("build_number_raw", F("mobile_app_info__extras"))
+    # Treat an empty suffix as missing so builds with at most three components
+    # retain the existing date-based tiebreaker.
+    raw_suffix = NullIf(
+        Cast(
+            _ArrayFromFourthComponent(_StringToArray(raw_build_number, Value("."))),
+            output_field=_BUILD_NUMBER_SUFFIX_FIELD,
+        ),
+        Value([], output_field=_BUILD_NUMBER_SUFFIX_FIELD),
+    )
+    return Case(
+        When(
+            mobile_app_info__extras__build_number_raw__regex=_NUMERIC_BUILD_NUMBER_RE,
+            then=raw_suffix,
+        ),
+        default=None,
+        output_field=_BUILD_NUMBER_SUFFIX_FIELD,
+    )
+
+
 def find_latest_installable_artifact(
     project: Project,
     app_id: str,
@@ -337,22 +382,31 @@ def find_latest_installable_artifact(
     if not highest_version:
         return None
 
-    # Get the installable artifact with the highest build number for this version
+    # Select the winning ID before loading related objects to keep the candidate sort narrow.
     filter_kwargs["mobile_app_info__build_version"] = highest_version
-    potential_artifacts_qs = (
+    candidate_artifacts = (
+        PreprodArtifact.objects.filter(**filter_kwargs)
+        .annotate(build_number_suffix=_build_number_suffix())
+        .order_by(
+            "-mobile_app_info__build_number",
+            F("build_number_suffix").desc(nulls_last=True),
+            "-date_added",
+        )
+    )
+    if install_groups_q:
+        candidate_artifacts = candidate_artifacts.filter(install_groups_q)
+
+    latest_artifact_id = Subquery(candidate_artifacts.values("id")[:1])
+    return (
         PreprodArtifact.objects.select_related(
             "project__organization",
             "build_configuration",
             "commit_comparison",
             "mobile_app_info",
         )
-        .filter(**filter_kwargs)
-        .order_by("-mobile_app_info__build_number", "-date_added")
+        .filter(id=latest_artifact_id)
+        .first()
     )
-    if install_groups_q:
-        potential_artifacts_qs = potential_artifacts_qs.filter(install_groups_q)
-
-    return potential_artifacts_qs.first()
 
 
 def find_current_and_latest(

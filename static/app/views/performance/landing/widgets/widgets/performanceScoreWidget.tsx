@@ -89,7 +89,6 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   width={280}
                   height={240}
                   size={160}
-                  barWidth={16}
                   ringBackgroundColors={ringBackgroundColors}
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}

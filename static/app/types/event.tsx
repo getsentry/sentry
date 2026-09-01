@@ -3,6 +3,7 @@ import type {CloudResourceContext} from '@sentry/core';
 import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
+import type {WERContext} from 'sentry/components/events/contexts/knownContext/wer';
 import type {
   AggregateSpanType,
   RawSpanType,
@@ -666,6 +667,7 @@ export type EventContexts = {
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
+  wer?: WERContext;
 };
 
 export type Measurement = {value: number; type?: string; unit?: string};

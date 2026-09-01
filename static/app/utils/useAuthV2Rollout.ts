@@ -1,0 +1,33 @@
+import {useEffect} from 'react';
+
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {
+  AuthV2CookieState,
+  getAuthV2CookieState,
+  useEnableAuthV2,
+} from 'sentry/utils/useEnableAuthV2';
+
+export function useAuthV2Rollout() {
+  const {loading, organization} = useLegacyStore(OrganizationStore);
+  const {setAuthV2CookieState} = useEnableAuthV2();
+
+  useEffect(() => {
+    if (loading || !organization) {
+      return;
+    }
+
+    const authV2CookieState = getAuthV2CookieState();
+
+    if (!organization.features.includes('authv2-rollout')) {
+      if (authV2CookieState === AuthV2CookieState.ENABLED) {
+        setAuthV2CookieState(AuthV2CookieState.UNSET);
+      }
+      return;
+    }
+
+    if (authV2CookieState === AuthV2CookieState.UNSET) {
+      setAuthV2CookieState(AuthV2CookieState.ENABLED);
+    }
+  }, [loading, organization, setAuthV2CookieState]);
+}

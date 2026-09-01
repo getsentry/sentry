@@ -118,7 +118,7 @@ function LoadedHighlightsSettingsForm({project}: LoadedHighlightsSettingsFormPro
             hintText={tct(
               'Enter a valid JSON entry for mapping [Structured Context] types, to their keys. E.g. [example]',
               {
-                link: <ExternalLink openInNewTab href={CONTEXT_DOCS_LINK} />,
+                link: <ExternalLink href={CONTEXT_DOCS_LINK} />,
                 example: '{"user": ["id", "email"]}',
               }
             )}

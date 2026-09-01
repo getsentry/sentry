@@ -1,3 +1,5 @@
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import type {CallRecord} from 'sentry/views/seerExplorer/types';
 
@@ -86,6 +88,121 @@ export function callRecordDetail(record: CallRecord): {
     request: `${record.method} ${path}`,
     body: withEllipsis(record.body, record.body_truncated),
   };
+}
+
+// Query params that scope or format a request rather than describe what it looked for. Decomposing
+// these into chips would bury the meaningful filters (dataset, project, the search itself) under
+// pagination and field-selection noise, so they are dropped.
+const NON_FILTER_PARAMS = new Set([
+  'referrer',
+  'per_page',
+  'cursor',
+  'sort',
+  'field',
+  'useRpc',
+  'sampling',
+  'noPagination',
+  'partial',
+  'utc',
+]);
+
+/**
+ * A filter key's specificity, for ordering the `Input:` chips from broadest scope to narrowest
+ * identifier. An id (`trace_id`, `ai_conversation.id`) pins one record; a namespaced attribute
+ * (`span.description`) narrows within a dataset; a plain key (`dataset`, `project`) scopes broadly.
+ * Higher sorts later.
+ */
+function keySpecificity(key: string): number {
+  if (key === 'id' || key.endsWith('.id') || key.endsWith('_id')) {
+    return 3;
+  }
+  return key.includes('.') ? 2 : 1;
+}
+
+// Wrap a value that would otherwise re-tokenize wrong (spaces, quotes, parens) so the assembled
+// query parses back to the same filter.
+function quoteValue(value: string): string {
+  return /[\s"()]/.test(value)
+    ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    : value;
+}
+
+/**
+ * Reorder a flat query into canonical least→most specific order.
+ *
+ * Only safe for a flat conjunction: boolean/parenthesized grouping makes order meaningful, so a
+ * grouped query is returned untouched. Otherwise each term is sorted by its key's specificity
+ * (ties broken by text) so the same request always reads the same way regardless of the order the
+ * params happened to arrive in.
+ */
+function canonicalizeQuery(query: string): string {
+  const parsed = parseSearch(query);
+  if (!parsed) {
+    return query;
+  }
+
+  // Anything beyond flat filters and whitespace — a logic group `(a OR b)`, a bare boolean, a
+  // stray paren — makes token order meaningful, so the query is left exactly as written.
+  const hasGrouping = parsed.some(
+    token =>
+      token.type !== Token.FILTER &&
+      token.type !== Token.FREE_TEXT &&
+      token.type !== Token.SPACES
+  );
+  if (hasGrouping) {
+    return query;
+  }
+
+  const terms = parsed.flatMap(token => {
+    if (token.type === Token.FILTER) {
+      return [
+        {text: token.text.trim(), specificity: keySpecificity(getKeyName(token.key))},
+      ];
+    }
+    // Free text has no key to rank, so it sorts first (least specific).
+    if (token.type === Token.FREE_TEXT && token.text.trim()) {
+      return [{text: token.text.trim(), specificity: 0}];
+    }
+    return [];
+  });
+
+  terms.sort((a, b) => a.specificity - b.specificity || a.text.localeCompare(b.text));
+  return terms.map(term => term.text).join(' ');
+}
+
+/**
+ * The call's request as a single canonical query string for the `Input:` row, or null when there
+ * is nothing to show.
+ *
+ * Reads the query string off `resolved_path` (the literal URL requested): each meaningful param
+ * becomes a `key:value` term and a Sentry `query` param is folded in as its own filters, then the
+ * whole thing is canonicalized (see `canonicalizeQuery`). The Explorer hands the result to
+ * `FormattedQuery`, which parses grouping and renders the chips — so this only has to assemble and
+ * order the terms. Scope/format params are dropped (`NON_FILTER_PARAMS`).
+ */
+export function callRecordInputQuery(record: CallRecord): string | null {
+  const path = record.resolved_path ?? record.path;
+  const queryIndex = path?.indexOf('?') ?? -1;
+  if (!path || queryIndex === -1) {
+    return null;
+  }
+
+  const params = new URLSearchParams(path.slice(queryIndex + 1));
+  const terms: string[] = [];
+  let search = '';
+  for (const [key, value] of params) {
+    if (!value || NON_FILTER_PARAMS.has(key)) {
+      continue;
+    }
+    if (key === 'query') {
+      search = value;
+      continue;
+    }
+    terms.push(`${key}:${quoteValue(value)}`);
+  }
+
+  const raw = [...terms, search].filter(Boolean).join(' ').trim();
+  return raw ? canonicalizeQuery(raw) : null;
 }
 
 /** Mark a cut-short preview so the box does not read as the whole payload. */

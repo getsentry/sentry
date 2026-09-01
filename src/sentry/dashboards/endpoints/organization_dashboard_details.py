@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -153,6 +153,14 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if dashboard.prebuilt_id is not None:
             return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
+        audit_data = dashboard.get_audit_log_data()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=audit_data["id"],
+            event=audit_log.get_event_id("DASHBOARD_REMOVE"),
+            data=audit_data,
+        )
         dashboard.delete()
 
         return self.respond(status=204)
@@ -241,7 +249,17 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         except IntegrityError:
             return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
-        body: DashboardDetailsResponse = serialize(serializer.instance, request.user)
+        updated_dashboard = serializer.instance
+        assert updated_dashboard is not None
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=updated_dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_EDIT"),
+            data=updated_dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(updated_dashboard, request.user)
         return self.respond(body, status=200)
 
 

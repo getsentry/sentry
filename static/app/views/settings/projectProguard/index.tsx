@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -21,6 +22,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {ProjectProguardRow} from './projectProguardRow';
+
+const MAPPING_COLUMNS: TableColumnConfig[] = [
+  {key: 'mapping', width: 'minmax(220px, 1fr)'},
+  {key: 'fileSize', width: 'max-content'},
+  {key: 'actions', width: '120px'},
+];
 
 export default function ProjectProguard() {
   const api = useApi();
@@ -114,7 +121,8 @@ export default function ProjectProguard() {
           onSearch={handleSearch}
           query={query}
         />
-        <StyledSimpleTable
+        <SimpleTable
+          columns={MAPPING_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Mapping')}</SimpleTable.HeaderCell>
@@ -150,16 +158,12 @@ export default function ProjectProguard() {
                 );
               })
             : null}
-        </StyledSimpleTable>
+        </SimpleTable>
         <Pagination pageLinks={mappingsPageLinks} />
       </Stack>
     </Fragment>
   );
 }
-
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: minmax(220px, 1fr) max-content 120px;
-`;
 
 const SizeColumn = styled('div')`
   text-align: right;

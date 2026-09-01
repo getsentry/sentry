@@ -624,6 +624,53 @@ class TestTriggerAutofixAgent(TestCase):
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix_rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_rca_feature_receives_run_options(
+        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_feature.return_value = self.create_seer_run(
+            organization=self.group.organization, type="feature_run", seer_run_state_id=777
+        )
+        user = self.create_user()
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+                user=user,
+                enable_bash_tools=True,
+            )
+
+        assert mock_feature.call_args.kwargs["user"] == user
+        assert mock_feature.call_args.kwargs["enable_bash_tools"] is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix_rca.dispatch.trigger_autofix_rca_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_night_shift_repo_checks_force_bash_tools_on_the_feature(
+        self, mock_client_class, mock_feature, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        with (
+            self.feature("organizations:autofix-rca-in-seer"),
+            self.feature("organizations:autofix-should-run-repo-checks"),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                run_id=None,
+            )
+
+        assert mock_feature.call_args.kwargs["enable_bash_tools"] is True
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix_rca.dispatch.trigger_autofix_rca_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_solution_step_does_not_route_to_rca_feature(
