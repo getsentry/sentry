@@ -65,6 +65,29 @@ class RunsByIdsRequest(TypedDict):
     run_ids: list[int]
 
 
+class UserOrgContextTeam(TypedDict):
+    id: int
+    slug: str
+
+
+class UserOrgContextProject(TypedDict):
+    id: int
+    slug: str
+    repos: list[dict[str, Any]]
+
+
+class UserOrgContext(TypedDict):
+    org_slug: str
+    user_id: NotRequired[int]
+    user_ip: NotRequired[str | None]
+    user_name: NotRequired[str | None]
+    user_email: NotRequired[str | None]
+    user_timezone: NotRequired[str | None]
+    user_teams: NotRequired[list[UserOrgContextTeam]]
+    user_projects: NotRequired[list[UserOrgContextProject]]
+    all_org_projects: NotRequired[list[UserOrgContextProject]]
+
+
 class AgentChatRequest(TypedDict):
     organization_id: int
     query: str
@@ -75,7 +98,7 @@ class AgentChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     page_location: NotRequired[dict[str, Any] | None]
     sent_at: NotRequired[list[str] | None]
-    user_org_context: NotRequired[dict[str, Any] | None]
+    user_org_context: NotRequired[UserOrgContext | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -123,7 +146,7 @@ class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
-    user_org_context: NotRequired[dict[str, Any]]
+    user_org_context: NotRequired[UserOrgContext]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -378,7 +401,7 @@ def collect_user_org_context(
     organization: Organization,
     request: Request | None = None,
     project_ids: Sequence[int] | None = None,
-) -> dict[str, Any]:
+) -> UserOrgContext:
     """Collect user and organization context, optionally scoped to specific projects."""
     all_projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
     if project_ids is not None:
@@ -392,7 +415,7 @@ def collect_user_org_context(
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
     }
 
-    all_org_projects = [
+    all_org_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in project_values
     ]
@@ -419,7 +442,9 @@ def collect_user_org_context(
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
         }
-    user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+    user_teams: list[UserOrgContextTeam] = [
+        {"id": t.id, "slug": t.slug} for t in member.get_teams()
+    ]
     my_projects = (
         Project.objects.filter(
             organization=organization,
@@ -431,7 +456,7 @@ def collect_user_org_context(
     )
     if project_ids is not None:
         my_projects = my_projects.filter(id__in=project_ids)
-    user_projects = [
+    user_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
     ]

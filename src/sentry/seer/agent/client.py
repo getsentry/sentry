@@ -32,6 +32,7 @@ from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
+    UserOrgContext,
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_status,
@@ -550,7 +551,7 @@ class SeerAgentClient:
         on_run_created: Callable[[SeerRun], None] | None = None,
         referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
-        user_org_context: dict[str, Any] | None = None,
+        user_org_context: UserOrgContext | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
