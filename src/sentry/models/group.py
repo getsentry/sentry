@@ -12,7 +12,7 @@ from operator import or_
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
-from django.db import models, router, transaction
+from django.db import models
 from django.db.models import Q, QuerySet
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -49,7 +49,6 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
-from sentry.issues.regression import advance_latest_regression_at
 from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
@@ -714,48 +713,37 @@ class GroupManager(BaseManager["Group"]):
         )
 
         modified_groups_list = []
+        selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
+            status=status, substatus=substatus
+        )
+
         should_update_priority = (
             from_substatus == GroupSubStatus.ESCALATING
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
+
+        # Track the resolved groups that are being unresolved and need to have their open period reopened
+        should_reopen_open_period = {
+            group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
+        }
         resolved_at = update_date if update_date is not None else timezone.now()
         updated_priority = {}
-        should_reopen_open_period: dict[int, bool] = {}
+        for group in selected_groups:
+            group.status = status
+            group.substatus = substatus
+            if status == GroupStatus.RESOLVED:
+                group.resolved_at = resolved_at
+            if should_update_priority:
+                priority = get_priority_for_ongoing_group(group)
+                if priority and group.priority != priority:
+                    group.priority = priority
+                    updated_priority[group.id] = priority
 
-        with transaction.atomic(router.db_for_write(Group)):
-            selected_groups = (
-                Group.objects.select_for_update()
-                .filter(id__in=[g.id for g in groups])
-                .exclude(status=status, substatus=substatus)
-                .order_by("id")
-            )
+            modified_groups_list.append(group)
 
-            for group in selected_groups:
-                should_reopen_open_period[group.id] = group.status == GroupStatus.RESOLVED
-                group.status = status
-                group.substatus = substatus
-                if status == GroupStatus.RESOLVED:
-                    group.resolved_at = resolved_at
-                if should_update_priority:
-                    priority = get_priority_for_ongoing_group(group)
-                    if priority and group.priority != priority:
-                        group.priority = priority
-                        updated_priority[group.id] = priority
-
-                modified_groups_list.append(group)
-
-            Group.objects.bulk_update(
-                modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
-            )
-            if status == GroupStatus.UNRESOLVED:
-                advance_latest_regression_at(
-                    tuple(
-                        group_id
-                        for group_id, should_reopen in should_reopen_open_period.items()
-                        if should_reopen
-                    ),
-                    timezone.now(),
-                )
+        Group.objects.bulk_update(
+            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
+        )
 
         for group in modified_groups_list:
             activity = Activity.objects.create_group_activity(

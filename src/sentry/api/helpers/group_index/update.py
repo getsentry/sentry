@@ -38,7 +38,6 @@ from sentry.issues.ignored import handle_archived_until_escalating, handle_ignor
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.priority import update_priority
-from sentry.issues.regression import advance_latest_regression_at
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -726,22 +725,10 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        previous_status_by_group_id = dict(
-            queryset.select_for_update().order_by("id").values_list("id", "status")
-        )
         status_updated = queryset.exclude(status=new_status).update_with_returning(
             ["id"], status=new_status, substatus=new_substatus
         )
         changed_group_ids = {row[0] for row in status_updated}
-        if new_status == GroupStatus.UNRESOLVED:
-            advance_latest_regression_at(
-                tuple(
-                    group_id
-                    for group_id in changed_group_ids
-                    if previous_status_by_group_id[group_id] == GroupStatus.RESOLVED
-                ),
-                django_timezone.now(),
-            )
         GroupResolution.objects.filter(group__in=group_ids).delete()
         # Also delete commit/PR resolution links when unresolving to prevent
         # showing old "resolved by commit" after manual re-resolution

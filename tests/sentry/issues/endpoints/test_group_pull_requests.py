@@ -14,7 +14,6 @@ from sentry.integrations.source_code_management.status_check import (
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
-from sentry.issues.regression import advance_latest_regression_at
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -381,35 +380,24 @@ class GroupPullRequestsEndpointTest(APITestCase):
             "agent": None,
         }
 
-    def test_returns_pull_request_and_regression_after_issues_are_merged(self) -> None:
+    def test_returns_pull_request_after_issues_are_merged(self) -> None:
         surviving_group = self.create_group(project=self.group.project)
-        final_group = self.create_group(project=self.group.project)
         self.create_linked_pull_request(key="1")
-        latest_regression = self.create_group_history(
-            group=self.group,
-            status=GroupHistoryStatus.REGRESSED,
-            date_added=timezone.now() - timedelta(days=1),
-        )
-        advance_latest_regression_at(
-            (final_group.id,), latest_regression.date_added - timedelta(days=1)
-        )
 
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
-        assert response.data["latestRegressionAt"] == latest_regression.date_added
 
         with self.tasks():
             merge_groups([self.group.id], surviving_group.id)
-            merge_groups([surviving_group.id], final_group.id)
 
         response = self.client.get(
-            f"/api/0/organizations/{self.organization.slug}/issues/{final_group.id}/pull-requests/"
+            f"/api/0/organizations/{self.organization.slug}/issues/"
+            f"{surviving_group.id}/pull-requests/"
         )
 
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
-        assert response.data["latestRegressionAt"] == latest_regression.date_added
 
     def test_ignores_invalid_display_pull_request_attribution(self) -> None:
         pull_request, _ = self.create_linked_pull_request(key="1")
