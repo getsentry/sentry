@@ -257,7 +257,7 @@ function getAISpanAttributes({
 function getMCPAttributes(attributes: Record<string, string | number | boolean>) {
   const highlightedAttributes = [];
 
-  const toolName = attributes['mcp.tool.name'];
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
@@ -273,7 +273,7 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     });
   }
 
-  const promptName = attributes['mcp.prompt.name'];
+  const promptName = attributes['gen_ai.prompt.name'];
   if (promptName) {
     highlightedAttributes.push({
       name: t('Prompt Name'),
@@ -281,7 +281,7 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     });
   }
 
-  const transport = attributes['mcp.transport'];
+  const transport = attributes['network.transport'];
   if (transport) {
     highlightedAttributes.push({
       name: t('Transport'),

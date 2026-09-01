@@ -11,23 +11,24 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire, IconUser} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getUserDisplayName,
   normalizeUserField,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -102,18 +103,6 @@ export function ConversationSummary({
     return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
   }, [nodeTraceMap]);
 
-  // A single trace deep-links to the trace view; multiple traces open the
-  // traces explorer filtered to this conversation.
-  const singleTrace = traces.length === 1 ? traces[0] : undefined;
-  const tracesUrl = singleTrace
-    ? getTraceUrl(organization.slug, singleTrace.traceId, singleTrace.spanId)
-    : getExploreUrl({
-        organization,
-        selection,
-        query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
-        table: 'trace',
-      });
-
   return (
     <Flex
       direction={{'screen:xs': 'column', 'screen:md': 'row'}}
@@ -140,9 +129,22 @@ export function ConversationSummary({
             </Tooltip>
           )}
         </Container>
-        <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
-          {isLoading ? (
-            <Fragment>
+        {isLoading ? (
+          <Fragment>
+            <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+              <Placeholder width="40px" height="14px" />
+              <Placeholder width="72px" height="20px" />
+              <Placeholder width="72px" height="20px" />
+            </Flex>
+            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+              <Flex align="center" gap="xs">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="140px" height="14px" />
+              </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="12px" height="12px" />
+                <Placeholder width="40px" height="14px" />
+              </Flex>
               {project && (
                 <Flex align="center" gap="xs">
                   <Placeholder width="16px" height="16px" />
@@ -153,17 +155,62 @@ export function ConversationSummary({
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
               </Flex>
-              <Flex align="center" gap="xs">
-                <Placeholder width="12px" height="12px" />
-                <Placeholder width="40px" height="14px" />
+            </Flex>
+          </Fragment>
+        ) : (
+          <Fragment>
+            {aggregates.toolNames.length > 0 && (
+              <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+                <Text size="sm" wrap="nowrap">
+                  {t('Tools:')}
+                </Text>
+                {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
+                  <ToolTag
+                    key={name}
+                    name={name}
+                    hasError={aggregates.erroredToolNames.has(name)}
+                  />
+                ))}
+                {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    wrap="nowrap"
+                    title={
+                      <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
+                        {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                          <ToolTag
+                            key={name}
+                            name={name}
+                            hasError={aggregates.erroredToolNames.has(name)}
+                          />
+                        ))}
+                      </Flex>
+                    }
+                  >
+                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </InfoText>
+                )}
               </Flex>
-              <Flex align="center" gap="sm">
-                <Placeholder width="72px" height="20px" />
-                <Placeholder width="72px" height="20px" />
-              </Flex>
-            </Fragment>
-          ) : (
-            <Fragment>
+            )}
+            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+              {aggregates.startTimestamp !== null && (
+                <Flex align="center" gap="xs">
+                  <IconCalendar size="md" />
+                  <InfoText
+                    size="sm"
+                    title={
+                      <TimeSince
+                        date={aggregates.startTimestamp}
+                        disabledAbsoluteTooltip
+                      />
+                    }
+                  >
+                    <DateTime date={aggregates.startTimestamp} year timeZone />
+                  </InfoText>
+                </Flex>
+              )}
+              <ConversationTraceLink conversationId={conversationId} traces={traces} />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
@@ -186,54 +233,9 @@ export function ConversationSummary({
                   </InfoText>
                 )}
               </Flex>
-              {traces.length > 0 && (
-                <Link
-                  to={tracesUrl}
-                  onClick={() =>
-                    trackAnalytics('conversations.detail.click-trace-link', {
-                      organization,
-                    })
-                  }
-                >
-                  <Text size="sm" variant="inherit" wrap="nowrap">
-                    {tn('Trace', 'Traces', traces.length)}
-                  </Text>
-                </Link>
-              )}
-              {aggregates.toolNames.length > 0 && (
-                <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-                  {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                    <ToolTag
-                      key={name}
-                      name={name}
-                      hasError={aggregates.erroredToolNames.has(name)}
-                    />
-                  ))}
-                  {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
-                    <InfoText
-                      size="sm"
-                      variant="muted"
-                      wrap="nowrap"
-                      title={
-                        <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
-                          {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
-                            <ToolTag
-                              key={name}
-                              name={name}
-                              hasError={aggregates.erroredToolNames.has(name)}
-                            />
-                          ))}
-                        </Flex>
-                      }
-                    >
-                      {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
-                    </InfoText>
-                  )}
-                </Flex>
-              )}
-            </Fragment>
-          )}
-        </Flex>
+            </Flex>
+          </Fragment>
+        )}
       </Stack>
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
@@ -332,16 +334,12 @@ function Stat({
   );
 }
 
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
-  return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
-  );
-}
-
 interface ConversationAggregates {
   errorCount: number;
   erroredToolNames: Set<string>;
   llmCalls: number;
+  /** When the conversation began, or null when no span carries a start time. */
+  startTimestamp: number | null;
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
@@ -358,12 +356,19 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let errorCount = 0;
   let totalTokens = 0;
   let totalCost = 0;
+  let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
     const nodeHasError = hasError(node);
+
+    // Nodes without a timestamp leave space at its [0, 0] default.
+    const [nodeStart] = node.space;
+    if (nodeStart > 0 && (startTimestamp === null || nodeStart < startTimestamp)) {
+      startTimestamp = nodeStart;
+    }
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -385,14 +390,22 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     }
   }
 
+  // Errored tools lead, so they survive the row's truncation.
+  const sortedToolNames = Array.from(toolNameSet).sort();
+  const toolNames = [
+    ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
+    ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
+  ];
+
   return {
     llmCalls,
     toolCalls,
     errorCount,
+    startTimestamp,
     erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
-    toolNames: Array.from(toolNameSet).sort(),
+    toolNames,
   };
 }
 
