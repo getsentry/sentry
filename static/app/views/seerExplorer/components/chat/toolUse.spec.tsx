@@ -1543,7 +1543,7 @@ describe('blockRendersToolContent', () => {
           tool_call_id: `${id}-call`,
           tool_call_function: 'sentry_api_execute',
           content: 'ok',
-          structuredContent: structuredContent as any,
+          structuredContent,
         },
       ],
     };
