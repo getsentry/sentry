@@ -8,12 +8,12 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/variants/cron';
-import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/variants/error';
-import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/variants/metric';
-import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/variants/mobileBuild';
-import {ProjectMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/variants/projectMonitor';
-import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/variants/uptime';
+import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
+import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/error';
+import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
+import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/mobileBuild';
+import {ProjectMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/projectMonitor';
+import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {
@@ -68,11 +68,11 @@ function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) 
 }
 
 /**
- * Dispatches to the one variant that knows how to preview this monitor type.
- * Adding a monitor type is a new file under `variants/` plus a case here and an
- * icon above -- keep the type-specific rendering out of this file.
+ * Dispatches to the one component that knows how to preview this monitor type.
+ * Adding a monitor type is a new file under `monitorTypes/`, plus a case here
+ * and an icon above -- keep the type-specific rendering out of this file.
  */
-function MonitorVariant({
+function MonitorTypeContent({
   detector,
   hasOngoingIssue,
   statsPeriod,
@@ -112,7 +112,7 @@ function MonitorBlockContent({
 
   if (!hasOngoingIssue) {
     return (
-      <MonitorVariant
+      <MonitorTypeContent
         detector={detector}
         hasOngoingIssue={hasOngoingIssue}
         statsPeriod={statsPeriod}
@@ -129,7 +129,7 @@ function MonitorBlockContent({
         />
       </ErrorBoundary>
       <Stack.Separator />
-      <MonitorVariant
+      <MonitorTypeContent
         detector={detector}
         hasOngoingIssue={hasOngoingIssue}
         statsPeriod={statsPeriod}
