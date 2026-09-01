@@ -1,4 +1,4 @@
-from unittest.mock import DEFAULT, patch
+from unittest.mock import create_autospec, patch
 
 import responses
 
@@ -9,6 +9,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -247,9 +248,63 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         self.login_as(self.user)
         self.integration.add_organization(self.organization, self.user)
 
+    def test_action_create_only_calls_create_issue_config(self) -> None:
+        params = {"action": "create", "ignored": "Sprint"}
+        create_issue_config = [{"name": "project"}, {"name": "issuetype"}]
+        installation = create_autospec(JiraIntegration, instance=True)
+        installation.get_create_issue_config.return_value = create_issue_config
+
+        with patch.object(RpcIntegration, "get_installation", return_value=installation):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.integration.id,
+                qs_params=params,
+            )
+        data = response.data
+
+        installation.get_create_issue_config.assert_called_once()
+        installation.get_organization_config.assert_not_called()
+        installation.get_config_data.assert_not_called()
+        installation.get_dynamic_display_information.assert_not_called()
+
+        create_issue_call = installation.get_create_issue_config.call_args
+        assert create_issue_call.args[0] is None
+        assert create_issue_call.args[1].id == self.user.id
+        assert create_issue_call.kwargs["params"]["action"] == "create"
+        assert create_issue_call.kwargs["params"]["ignored"] == "Sprint"
+
+        assert data["id"] == str(self.integration.id)
+        assert data["name"] == self.integration.name
+        assert data["icon"] == self.integration.metadata.get("icon")
+        assert data["domainName"] == self.integration.metadata.get("domain_name")
+        assert data["accountType"] == self.integration.metadata.get("account_type")
+        assert data["scopes"] == self.integration.metadata.get("scopes")
+        assert data["status"] == self.integration.get_status_display()
+
+        resp_provider = data["provider"]
+        provider = self.integration.get_provider()
+        assert resp_provider["key"] == provider.key
+        assert resp_provider["slug"] == provider.key
+        assert resp_provider["name"] == provider.name
+        assert resp_provider["canAdd"] == provider.can_add
+        assert resp_provider["canDisable"] == provider.can_disable
+        assert resp_provider["features"] == sorted(f.value for f in provider.features)
+        assert resp_provider["aspects"] == getattr(provider.metadata, "aspects", {})
+
+        assert data["createIssueConfig"] == create_issue_config
+        assert data["configOrganization"] == []
+
+        assert data["configData"] is None
+        assert data["externalId"] == self.integration.external_id
+        assert data["organizationId"] == self.organization.id
+        assert (
+            data["organizationIntegrationStatus"]
+            == self.organization_integration.get_status_display()
+        )
+        assert data["gracePeriodEnd"] == self.organization_integration.grace_period_end
+
     @responses.activate
-    def test_action_create_only_serializes_create_issue_config_for_jira(self) -> None:
-        # Mock the paginated projects response
+    def test_action_create_only_fetches_jira_create_issue_fields(self) -> None:
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project/search",
@@ -261,8 +316,6 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
                 "total": 2,
             },
         )
-
-        # Mock the create issue metadata endpoint
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/issue/createmeta",
@@ -291,70 +344,16 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
             },
         )
 
-        params = {"action": "create", "ignored": "Sprint"}
-        create_issue_config_impl = JiraIntegration.get_create_issue_config
-        with patch.multiple(
-            JiraIntegration,
-            autospec=True,
-            get_create_issue_config=DEFAULT,
-            get_organization_config=DEFAULT,
-            get_config_data=DEFAULT,
-            get_dynamic_display_information=DEFAULT,
-        ) as jira_methods:
-            jira_methods["get_create_issue_config"].side_effect = create_issue_config_impl
-            response = self.get_success_response(
-                self.organization.slug,
-                self.integration.id,
-                qs_params=params,
-            )
-        data = response.data
+        response = self.get_success_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create", "ignored": "Sprint"},
+        )
 
-        jira_methods["get_create_issue_config"].assert_called_once()
-        for method_name in (
-            "get_organization_config",
-            "get_config_data",
-            "get_dynamic_display_information",
-        ):
-            jira_methods[method_name].assert_not_called()
-
-        create_issue_call = jira_methods["get_create_issue_config"].call_args
-        assert create_issue_call.args[1] is None
-        assert create_issue_call.args[2].id == self.user.id
-        assert create_issue_call.kwargs["params"]["action"] == "create"
-        assert create_issue_call.kwargs["params"]["ignored"] == "Sprint"
-
-        assert data["id"] == str(self.integration.id)
-        assert data["name"] == self.integration.name
-        assert data["icon"] == self.integration.metadata.get("icon")
-        assert data["domainName"] == self.integration.metadata.get("domain_name")
-        assert data["accountType"] == self.integration.metadata.get("account_type")
-        assert data["scopes"] == self.integration.metadata.get("scopes")
-        assert data["status"] == self.integration.get_status_display()
-
-        resp_provider = data["provider"]
-        provider = self.integration.get_provider()
-        assert resp_provider["key"] == provider.key
-        assert resp_provider["slug"] == provider.key
-        assert resp_provider["name"] == provider.name
-        assert resp_provider["canAdd"] == provider.can_add
-        assert resp_provider["canDisable"] == provider.can_disable
-        assert resp_provider["features"] == sorted(f.value for f in provider.features)
-        assert resp_provider["aspects"] == getattr(provider.metadata, "aspects", {})
-
-        assert [field["name"] for field in data["createIssueConfig"]] == [
+        assert [field["name"] for field in response.data["createIssueConfig"]] == [
             "project",
             "issuetype",
         ]
-        assert data["configOrganization"] == []
-
-        assert data["configData"] is None
-        assert data["externalId"] == self.integration.external_id
-        assert data["organizationId"] == self.organization.id
-        assert (
-            data["organizationIntegrationStatus"]
-            == self.organization_integration.get_status_display()
-        )
-        assert data["gracePeriodEnd"] == self.organization_integration.grace_period_end
 
         jira_request_urls = [call.request.url for call in responses.calls]
         assert len(jira_request_urls) == 2
