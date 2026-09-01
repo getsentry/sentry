@@ -134,10 +134,15 @@ export function ConversationsChart() {
     if (!timeSeries?.length) {
       return [];
     }
-    const PlottableConstructor =
-      chartType === 'line' ? Line : chartType === 'area' ? Area : Bars;
     return timeSeries.map(series => {
-      return new PlottableConstructor(markDelayedData(series, INGESTION_DELAY));
+      const markedSeries = markDelayedData(series, INGESTION_DELAY);
+      if (chartType === 'bar') {
+        return new Bars(markedSeries, {stack: 'agents'});
+      }
+      if (chartType === 'area') {
+        return new Area(markedSeries);
+      }
+      return new Line(markedSeries);
     });
   }, [data?.timeSeries, chartType]);
 
