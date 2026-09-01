@@ -8,7 +8,7 @@ import type {DistributedOmit} from 'type-fest';
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
@@ -54,7 +54,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
 
     return (
       <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
-        <AvatarContainer size={size} padded={false} chonk={avatarChonk}>
+        <AvatarContainer size={size} chonk={avatarChonk}>
           <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         </AvatarContainer>
       </StyledAvatarButton>
@@ -74,27 +74,49 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
   );
 }
 
-const AvatarContainer = styled('div')<{
-  size: AvatarButtonSize;
+const RADIUS_BY_SIZE: Record<
+  NonNullable<ButtonProps['size']>,
+  'xs' | 'sm' | 'md' | 'lg'
+> = {
+  zero: 'xs',
+  xs: 'sm',
+  sm: 'md',
+  md: 'lg',
+};
+
+function AvatarContainer({
+  children,
+  chonk,
+  padded = false,
+  size,
+}: {
+  children: React.ReactNode;
+  size: NonNullable<ButtonProps['size']>;
   chonk?: string;
   padded?: boolean;
-}>`
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  border: 1px solid ${p => p.chonk ?? 'transparent'};
+}) {
+  return (
+    <StyledAvatarContainer
+      width="100%"
+      height="100%"
+      overflow="hidden"
+      border="primary"
+      radius={RADIUS_BY_SIZE[size] ?? 'xs'}
+      padding={padded ? 'xs' : '0'}
+      background={padded ? 'primary' : undefined}
+      position="relative"
+      chonk={chonk}
+    >
+      {children}
+    </StyledAvatarContainer>
+  );
+}
+
+// ponytail: styled(Container) only for dynamic borderColor — Container's
+// border prop handles the 1px solid, we just override the color.
+const StyledAvatarContainer = styled(Container)<{chonk?: string}>`
+  border-color: ${p => p.chonk ?? 'transparent'};
   will-change: transform;
-  border-radius: ${p =>
-    p.size === 'md'
-      ? p.theme.radius.lg
-      : p.size === 'sm'
-        ? p.theme.radius.md
-        : p.size === 'xs'
-          ? p.theme.radius.sm
-          : p.theme.radius.xs};
-  padding: ${p => (p.padded ? p.theme.space.xs : '0')};
-  background: ${p => (p.padded ? p.theme.tokens.background.primary : 'transparent')};
-  position: relative;
 `;
 
 const StyledImageAvatar = styled(ImageAvatar)`
@@ -459,16 +481,6 @@ async function fetchAvatarColor(
     const response = await fetch(toPageOriginIfSameHost(url), {
       mode: 'cors',
       credentials: 'omit',
-      // The avatar endpoint reflects whatever Origin sent the request back
-      // as Access-Control-Allow-Origin, but caches the response for a very
-      // long time (Cache-Control: max-age=315360000) without varying by
-      // Origin. A response already cached from a previous request — e.g. a
-      // different dev/CI host, or a plain <img> load that cached it with no
-      // CORS headers at all — would get reused here and fail the CORS check
-      // even though a fresh request against the same URL would succeed.
-      // Bypass the cache so we always get a response with the right header
-      // for *our* origin.
-      cache: 'no-store',
     });
     if (!response.ok) {
       return null;
