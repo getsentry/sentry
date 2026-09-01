@@ -60,11 +60,7 @@ class MockSuperUser:
         return True
 
 
-class DefaultControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
-    permission_classes = ()
-
-
-class LightweightControlSiloOrganizationEndpoint(DefaultControlSiloOrganizationEndpoint):
+class LightweightControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
     include_organization_projects = False
     include_organization_teams = False
 
@@ -449,9 +445,7 @@ class ControlSiloOrganizationEndpointTest(TestCase):
     def test_convert_args_includes_projects_and_teams_by_default(
         self, mock_get_organization: mock.MagicMock
     ) -> None:
-        DefaultControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.slug
-        )
+        ControlSiloOrganizationEndpoint().convert_args(self.build_request(), self.organization.slug)
 
         mock_get_organization.assert_called_once_with(
             slug=self.organization.slug,
