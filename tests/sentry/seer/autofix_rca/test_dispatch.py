@@ -24,7 +24,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         with (
             patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
             patch(
-                "sentry.seer.autofix_rca.dispatch.collect_user_org_context",
+                "sentry.seer.autofix_rca.dispatch.collect_project_org_context",
                 return_value=expected_context,
             ) as mock_collect_context,
             patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
@@ -73,7 +73,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         mock_collect_context.assert_called_once_with(
             None,
             self.group.organization,
-            project_id=self.group.project_id,
+            self.group.project,
         )
 
         # A new run consumes Seer autofix budget.

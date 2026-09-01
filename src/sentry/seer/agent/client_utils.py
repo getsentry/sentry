@@ -400,14 +400,11 @@ def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
-    project_id: int | None = None,
 ) -> UserOrgContext:
-    """Collect user and organization context, optionally scoped to a project."""
+    """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
     ).values("id", "slug")
-    if project_id is not None:
-        all_projects = all_projects.filter(id=project_id)
 
     prefs_by_pid = bulk_read_preferences_from_sentry_db(
         organization.id, [p["id"] for p in all_projects]
@@ -455,8 +452,6 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    if project_id is not None:
-        my_projects = my_projects.filter(id=project_id)
     user_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
@@ -485,6 +480,49 @@ def collect_user_org_context(
         "user_projects": user_projects,
         "all_org_projects": all_org_projects,
     }
+
+
+def collect_project_org_context(
+    user: SentryUser | RpcUser | AnonymousUser | None,
+    organization: Organization,
+    project: Project,
+) -> UserOrgContext:
+    preferences = bulk_read_preferences_from_sentry_db(organization.id, [project.id])
+    preference = preferences.get(project.id)
+    project_context = UserOrgContextProject(
+        id=project.id,
+        slug=project.slug,
+        repos=[repo.dict() for repo in preference.repositories] if preference else [],
+    )
+    context = UserOrgContext(
+        org_slug=organization.slug,
+        all_org_projects=[project_context],
+    )
+
+    if user is None or isinstance(user, AnonymousUser):
+        return context
+
+    try:
+        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    except OrganizationMember.DoesNotExist:
+        return context
+
+    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
+    context["user_id"] = user.id
+    context["user_name"] = user.name
+    context["user_email"] = user.email
+    context["user_timezone"] = get_option_from_list(user_options, key="timezone")
+    context["user_teams"] = [{"id": team.id, "slug": team.slug} for team in member.get_teams()]
+    context["user_projects"] = (
+        [project_context]
+        if Project.objects.filter(
+            id=project.id,
+            organization=organization,
+            teams__organizationmember__user_id=user.id,
+        ).exists()
+        else []
+    )
+    return context
 
 
 def get_proxy_headers() -> dict[str, str] | None:

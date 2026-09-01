@@ -1455,12 +1455,17 @@ class TestStartFeatureRun(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_flush_false_enqueues_without_dispatch(self, mock_request, _mock_access) -> None:
+        context = {
+            "org_slug": self.organization.slug,
+            "all_org_projects": [{"id": 1, "slug": "project", "repos": []}],
+        }
         client = SeerAgentClient(self.organization, self.user)
         run = client.start_feature_run(
             feature_id="night_shift",
             payload={"candidates": [1, 2]},
             title="Agentic triage (2 candidates)",
             flush=False,
+            user_org_context=context,
         )
 
         mock_request.assert_not_called()
@@ -1474,30 +1479,10 @@ class TestStartFeatureRun(TestCase):
         assert outbox.payload is not None
         body = outbox.payload["body"]
         assert body["feature_id"] == "night_shift"
+        assert body["user_org_context"] == context
         # ref/external_idempotency_key are stamped by the handler at dispatch, not enqueue.
         assert "ref" not in body
         assert outbox.payload["viewer_context"]["organization_id"] == self.organization.id
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
-    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
-    def test_forwards_user_org_context(self, mock_request, _mock_access) -> None:
-        context = {
-            "org_slug": self.organization.slug,
-            "all_org_projects": [{"id": 1, "slug": "project", "repos": []}],
-        }
-        client = SeerAgentClient(self.organization, self.user)
-
-        run = client.start_feature_run(
-            feature_id="autofix",
-            payload={"group_id": 1},
-            title="Autofix RCA",
-            flush=False,
-            user_org_context=context,
-        )
-
-        outbox = self._outbox_for(run)
-        assert outbox is not None and outbox.payload is not None
-        assert outbox.payload["body"]["user_org_context"] == context
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
