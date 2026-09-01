@@ -76,12 +76,9 @@ class GitlabRequestParserTest(TestCase):
     @override_cells(cell_config)
     @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "gitlab"}]})
     def test_provider_wide_shed_skips_the_routing_lookups(self) -> None:
-        """A condition naming no integration_id matches on the provider alone.
-
-        Shedding is break-glass for a flood, so it settles before the lookups rather
-        than after them. Placed below the token check so an invalid request is still
-        rejected without consulting the killswitch.
-        """
+        """A condition naming no integration_id matches on the provider alone, so the
+        shed settles before the lookups — but below the token check, so an invalid
+        request is still rejected without consulting the killswitch."""
         self.get_integration()
         request = self.factory.post(
             self.path,

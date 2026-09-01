@@ -136,9 +136,8 @@ class GithubRequestParser(BaseRequestParser):
     ) -> HttpResponse | None:
         """A 202 for a webhook no cell-side consumer reads, or None to keep routing it.
 
-        Every filter here reads the event header and the request body and nothing else.
-        Needing neither the integration nor its organizations is what lets the whole
-        decision run before those are looked up.
+        Reads the event header and the request body and nothing else, which is what
+        lets it run before the integration and cell lookups.
         """
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the cell
@@ -217,16 +216,13 @@ class GithubRequestParser(BaseRequestParser):
         action = event.get("action")
         action_filter = CELL_PROCESSED_ACTIONS.get(github_event or "")
 
-        # Decided ahead of the lookups below so a webhook no cell consumes is not
-        # charged for resolving the integration and cells it will never be routed to.
+        # Ahead of the lookups: a webhook no cell consumes should not pay to resolve them.
         drop_response = self._get_drop_response(github_event, event, action, action_filter)
         if drop_response is not None:
             return drop_response
 
-        # A shed condition that names no integration_id sheds the whole provider, which
-        # is decidable here. Shedding is break-glass for a flood, so the lookups below
-        # are the last thing it should be waiting on. Conditions that do name an
-        # integration_id cannot match a None context, and are still caught after it.
+        # A condition naming no integration_id sheds the whole provider, so it needs no
+        # lookup. Break-glass for a flood should not wait on the queries below.
         shed_response = self.get_shed_response()
         if shed_response is not None:
             return shed_response
@@ -243,10 +239,9 @@ class GithubRequestParser(BaseRequestParser):
         if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
-        # The integration-scoped half of the check above, now that there is an id to
-        # match on. Ahead of the forwarded_event counter and the mailbox lookup, so a
-        # shed webhook is neither counted as forwarded nor charged for routing it will
-        # not use.
+        # The integration-scoped half. Ahead of the forwarded_event counter and the
+        # mailbox lookup, so a shed webhook is neither counted as forwarded nor charged
+        # for routing it will not use.
         shed_response = self.get_shed_response(integration_id=integration.id)
         if shed_response is not None:
             return shed_response

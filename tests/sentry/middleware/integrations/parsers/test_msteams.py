@@ -184,12 +184,8 @@ class MsTeamsRequestParserTest(TestCase):
 
     @responses.activate
     def test_synchronous_event_skips_the_routing_lookups(self) -> None:
-        """An installationUpdate is handled on control whoever it belongs to.
-
-        The decision comes from the payload alone, so resolving the integration and its
-        cells first is work the response never uses. "remove" rather than "add" because
-        an add is already answered by the new-installation check above it.
-        """
+        """An installationUpdate is decided from the payload, so the integration and
+        cells are never resolved. "remove" because an "add" is caught further up."""
         request = self.factory.post(
             self.path,
             data={
