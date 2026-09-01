@@ -11,7 +11,6 @@ from requests.exceptions import ConnectionError, Timeout
 from sentry.notifications.platform.service import NotificationService
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.sentry_apps.utils.webhooks import (
     CommentActionType,
     IssueActionType,
@@ -633,47 +632,3 @@ class WebhookRequestIdAndDurationTest(TestCase):
         assert row.get("subject_type") is None
         assert row["request_id"] == event.sentry_headers["Request-ID"]
         assert row["duration_ms"] == 10
-
-
-@cell_silo_test
-class WebhookInvalidHeaderTest(TestCase):
-    def setUp(self) -> None:
-        self.organization = self.create_organization()
-        # Ideographic space U+3000 is not latin-1 encodable (SENTRY-5TWJ).
-        bad_header = "Authorization: Bearer　token"
-        self.sentry_app = self.create_sentry_app(
-            name="HeaderApp",
-            organization=self.organization,
-            webhook_url="https://example.com/webhook",
-            published=True,
-            webhook_headers=[bad_header],
-        )
-        self.install = self.create_sentry_app_installation(
-            organization=self.organization, slug=self.sentry_app.slug
-        )
-
-    def _make_event(self):
-        return AppPlatformEvent(
-            resource=SentryAppResourceType.ISSUE,
-            action=IssueActionType.CREATED,
-            install=self.install,
-            data={"test": "data"},
-        )
-
-    @override_options(CIRCUIT_BREAKER_OPTIONS)
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_non_latin1_header_raises_integrator_error(self, mock_safe_urlopen: Mock) -> None:
-        mock_safe_urlopen.side_effect = UnicodeEncodeError(
-            "latin-1", "Bearer　token", 6, 7, "ordinal not in range(256)"
-        )
-
-        with pytest.raises(SentryAppIntegratorError) as exc_info:
-            send_and_save_webhook_request(self.sentry_app, self._make_event())
-
-        assert "unsupported characters" in exc_info.value.message
-        assert exc_info.value.status_code == 400
-        assert "Bearer" not in repr(exc_info.value)
-
-        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests()
-        assert len(requests) == 1
-        assert requests[0]["response_code"] == TIMEOUT_STATUS_CODE

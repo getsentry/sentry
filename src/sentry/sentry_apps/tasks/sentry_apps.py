@@ -64,7 +64,7 @@ from sentry.sentry_apps.services.app.service import (
     get_installations_for_organization,
 )
 from sentry.sentry_apps.services.hook.service import hook_service
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import (
     ActivityAlertActionType,
     IssueAlertActionType,
@@ -97,7 +97,6 @@ logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 _SENTRY_APP_WEBHOOK_RETRY_ON = (RequestException, InnerTimeoutError)
 _SENTRY_APP_WEBHOOK_RETRY_IGNORE = (
     ClientError,
-    SentryAppIntegratorError,
     SentryAppSentryError,
     AssertionError,
     ValueError,

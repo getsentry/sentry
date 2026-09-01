@@ -39,7 +39,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.service import app_service
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhook_subjects import extract_webhook_subject
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -403,34 +403,6 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
             )
             raise
-        except UnicodeEncodeError:
-            # Headers are persisted on the SentryApp and reused on every send, so
-            # legacy invalid values can still reach this path. Treat as customer
-            # config: fixed halt reason (never the exception — its .object can
-            # contain bearer tokens) and a safe integrator error for callers.
-            halt_reason = (
-                f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INVALID_HEADER}"
-            )
-            lifecycle.record_halt(halt_reason=halt_reason)
-            buffer.add_request(
-                response_code=TIMEOUT_STATUS_CODE,
-                org_id=org_id,
-                event=event,
-                url=url,
-                headers=app_platform_event.loggable_headers,
-                request_id=request_id,
-                subject_id=subject_id,
-                subject_type=subject_type,
-                duration_ms=None,
-            )
-            raise SentryAppIntegratorError(
-                message=(
-                    "Webhook header contains unsupported characters and cannot be "
-                    "sent as an HTTP header."
-                ),
-                webhook_context={"error_type": halt_reason},
-                status_code=400,
-            )
         except InnerTimeoutError:
             # This means we didn't even start the request since the prev. steps took too long
             lifecycle.record_halt(

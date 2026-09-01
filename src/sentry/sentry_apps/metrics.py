@@ -76,7 +76,6 @@ class SentryAppWebhookHaltReason(StrEnum):
     EMAIL_FAILED = "email_failed"
     APP_DISABLED = "app_disabled"
     INNER_TIMEOUT = "inner_timeout"
-    INVALID_HEADER = "invalid_header"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):
@@ -93,4 +92,3 @@ class SentryAppExternalRequestHaltReason(StrEnum):
 
     MISSING_FIELDS = "missing_fields"
     BAD_RESPONSE = "bad_response"
-    INVALID_HEADER = "invalid_header"
