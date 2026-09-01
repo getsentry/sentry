@@ -55,7 +55,6 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
-    PrIterationNotEnabledException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
@@ -545,11 +544,7 @@ def _drain_queued_autofix_feedback(
             actor_user_id=actor_user_id,
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
         )
-    except (
-        PrIterationNoPullRequestException,
-        PrIterationNotEnabledException,
-        SeerPermissionError,
-    ) as error:
+    except (PrIterationNoPullRequestException, SeerPermissionError) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",
             outcome="skipped",
