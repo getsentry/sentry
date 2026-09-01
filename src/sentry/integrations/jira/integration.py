@@ -1459,8 +1459,6 @@ class JiraIntegration(IssueSyncIntegration):
             "integration_id": external_issue.integration_id,
             "is_resolved": is_resolved,
             "issue_key": external_issue.key,
-            # The project is read off the issue, so it follows the issue if it was moved.
-            # A move into an unmapped project is a common reason for the bail below.
             "jira_project_id": jira_project["id"],
             "jira_project_key": jira_project.get("key"),
         }

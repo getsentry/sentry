@@ -102,13 +102,14 @@ def rekey_external_issues(
     """
     Follow a provider-side key rename over to `ExternalIssue`, returning the rows moved.
 
-    Every inbound lookup — status sync, assignee sync, the provider-side "linked issues"
-    panels — matches on `ExternalIssue.key`, so a row left at the old key silently stops
+    Inbound lookups match on `ExternalIssue.key`, so a row left at the old key stops
     matching the issue it describes.
 
-    `ExternalIssue` is unique on (organization, integration, key), so an organization that
-    already has a row at `new_key` (someone linked the issue again under its new key) is
-    merged into rather than renamed over.
+    `ExternalIssue` is unique on (organization, integration, key), so which row survives
+    depends on what is already at `new_key`. With nothing there, the row is renamed in
+    place and keeps its links. Otherwise the row already at `new_key` wins, and the
+    Sentry issues linked to the old row are relinked onto it, joining any that were
+    linked there already.
     """
     if old_key == new_key:
         return 0

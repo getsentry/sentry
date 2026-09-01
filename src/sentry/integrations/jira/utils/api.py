@@ -89,13 +89,8 @@ def handle_issue_moved(integration: RpcIntegration | Integration, data: Mapping[
     Follow a Jira-side issue key change over to `ExternalIssue`.
 
     Jira reassigns an issue's key when the issue moves to another project (and when a
-    project itself is rekeyed), announcing it as a `Key` item in the `issue.updated`
-    changelog. Jira keeps redirecting the retired key, so links from Sentry into Jira
-    keep working — but `ExternalIssue.key` still holds the old key, and every inbound
-    lookup matches on it, so status sync, assignee sync and the "Sentry -> Linked
-    Issues" glance all silently stop matching until the row is renamed.
-
-    Jira Server sends the same changelog shape, so both flavors share this handler.
+    project itself is rekeyed), announcing it as a `Key` changelog item. Jira Server
+    sends the same shape, so both flavors share this handler.
     """
     changelog_items = (data.get("changelog") or {}).get("items") or []
     key_change = next(
@@ -125,15 +120,12 @@ def handle_issue_moved(integration: RpcIntegration | Integration, data: Mapping[
             lifecycle.record_halt(
                 ProjectManagementHaltReason.REKEY_UNUSABLE_KEY_CHANGE, extra=log_context
             )
-            logger.info("jira.issue-moved.unusable-key-change", extra=log_context)
             return
 
         rekeyed = rekey_external_issues(
             integration, old_key, new_key, provider_issue_id=issue.get("id")
         )
-        # A move of an issue nobody linked to Sentry is by far the common case, and not
-        # something to halt on.
-        logger.info("jira.issue-moved", extra={**log_context, "rekeyed_count": rekeyed})
+        lifecycle.add_extras({"rekeyed_count": rekeyed})
 
 
 # TODO(Gabe): Consolidate this with VSTS's implementation, create DTO for status
