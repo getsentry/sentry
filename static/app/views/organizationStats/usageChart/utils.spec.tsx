@@ -59,9 +59,9 @@ describe('getDateFromMoment', () => {
         clock24Hours: true,
       },
     });
-    expect(getDateFromMoment(start, '6h', false)).toBe('Jul 8 20:00 - 02:00 (-04:00)');
-    expect(getDateFromMoment(start, '1h', false)).toBe('Jul 8 20:00 - 21:00 (-04:00)');
-    expect(getDateFromMoment(start, '5m', false)).toBe('Jul 8 20:00 - 20:05 (-04:00)');
+    expect(getDateFromMoment(start, '6h')).toBe('Jul 8 20:00 - 02:00 (-04:00)');
+    expect(getDateFromMoment(start, '1h')).toBe('Jul 8 20:00 - 21:00 (-04:00)');
+    expect(getDateFromMoment(start, '5m')).toBe('Jul 8 20:00 - 20:05 (-04:00)');
   });
 });
 
