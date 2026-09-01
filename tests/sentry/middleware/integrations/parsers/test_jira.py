@@ -152,7 +152,7 @@ class JiraRequestParserTest(TestCase):
         cache.set(use_buckets_key, 1)
         request = self.factory.post(
             path=f"{self.path_base}/issue-updated/",
-            data={"issue": {"id": "10403"}},
+            data={"issue": {"id": "10425"}},
             content_type="application/json",
         )
         parser = JiraRequestParser(request, self.get_response)
@@ -165,8 +165,8 @@ class JiraRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
-            # Mailbox name should have an extra segment: 10403 % 100
-            mailbox_name=f"jira:{integration.id}:3",
+            # Mailbox name should have an extra segment: 10425 % 10
+            mailbox_name=f"jira:{integration.id}:5",
             cell_names=[cell.name],
             request=request,
         )

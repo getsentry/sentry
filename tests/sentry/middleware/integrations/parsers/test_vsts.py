@@ -160,8 +160,8 @@ class VstsRequestParserTest(TestCase):
         cache.delete(use_buckets_key)
         assert_webhook_payloads_for_mailbox(
             request=request,
-            # Mailbox name should have an extra segment: workItemId 31 % 100
-            mailbox_name=f"vsts:{self.integration.id}:31",
+            # Mailbox name should have an extra segment: workItemId 31 % 10
+            mailbox_name=f"vsts:{self.integration.id}:1",
             cell_names=["us"],
         )
 

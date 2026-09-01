@@ -77,6 +77,14 @@ class BaseRequestParser(ABC):
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
 
+    mailbox_bucket_count: ClassVar[int] = 100
+    """How many sub-mailboxes `mailbox_bucket_id` is spread over.
+
+    Bucketing starts at 3,000/hr, so this many buckets means ~3000/count per hour
+    each. Every mailbox costs a scheduler row and has to win a dispatch slot, so
+    splitting past what the volume needs buys queue rows rather than parallelism.
+    """
+
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
@@ -314,9 +322,7 @@ class BaseRequestParser(ABC):
             )
             return str(integration.id)
 
-        # Split high volume integrations into 100 buckets.
-        # 100 is arbitrary but we can't leave it unbounded.
-        bucket_number = mailbox_bucket_id % 100
+        bucket_number = mailbox_bucket_id % self.mailbox_bucket_count
         metrics.incr(
             "hybridcloud.webhookpayload.mailbox_routing",
             tags={"provider": self.provider, "bucketed": "true"},

@@ -36,6 +36,11 @@ class JiraRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.JIRA.value
     webhook_identifier = WebhookProviderIdentifier.JIRA
 
+    # These providers have one webhook each and far lower volume than GitHub, so a
+    # smaller spread is enough to unserialize a burst without thinning the mailboxes
+    # out into scheduler rows that each carry a handful of payloads.
+    mailbox_bucket_count = 10
+
     control_classes = [
         JiraDescriptorEndpoint,
         JiraSentryInstallationView,
