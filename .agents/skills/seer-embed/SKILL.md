@@ -70,7 +70,8 @@ export const MyEmbed = defineSeerEmbed({
 **Rules:**
 
 - The `name` parameter **must** match the key in `SEER_EMBED_SCHEMAS` exactly.
-- The `render` function receives the Zod output type — props are already parsed and validated.
+- The `render` function receives the Zod output type as its first argument — props are already parsed and validated.
+- If the schema's `level` includes both `'inline'` and `'block'`, `render` gets a second argument telling it which one is rendering. Use it to branch: see Step 2b for the pattern once that branch has real content on the block side.
 - Keep the component simple. Import existing Sentry components (`DateTime`, `TimeSince`, `Link`, etc.) rather than building from scratch.
 - The component receives no context about where it appears — it only gets the data from the tag body.
 
@@ -91,23 +92,41 @@ components/monitor/
   monitor.spec.tsx     # colocated, not in resourceEmbeds.spec.tsx
 ```
 
+The `<name>.tsx` entry does nothing but pick which level to render, using the
+second argument to `render` from Step 2:
+
+```tsx
+const LazyMonitorBlock = lazy(() => import('./monitorBlock'));
+
+export const Monitor = defineSeerEmbed({
+  name: 'monitor',
+  render(props, level) {
+    if (level === 'block') {
+      return <LazyLoad LazyComponent={LazyMonitorBlock} {...props} />;
+    }
+    return <MonitorLink {...props} />;
+  },
+});
+```
+
 **Rules:**
 
 - The directory has no `index.tsx`. Name the entry after the embed
   (`monitor/monitor.tsx`) and import it explicitly in `embeds/index.ts`.
-- `<name>.tsx` holds only `defineSeerEmbed`. Everything the block needs goes
-  behind `lazy(() => import('./<name>Block'))` so an inline mention of the
-  resource does not pull the block into the bundle. `dashboard` and `monitor`
-  both follow this.
-- Give the block a `default` export -- that is what `lazy()` expects.
+- `<name>.tsx` holds only `defineSeerEmbed`, dispatching on `level` as above.
+  Everything the block needs goes behind `lazy(() => import('./<name>Block'))`,
+  with the block as a `default` export (what `lazy()` expects), so an inline
+  mention of the resource does not pull the block into the bundle. `dashboard`
+  and `monitor` both follow this.
 - When the block branches on a subtype (a detector type, a widget type), each
   branch is one file in a sibling directory named for the axis it varies on
   (`monitorTypes/`, not `types/`, which reads as TypeScript types), and the
   dispatcher is a single `switch` in the block. Adding a subtype should be a new
-  file plus a case, never an edit to three switches spread across one long
-  module.
+  file plus a case, never an edit to the two switches spread across one long
+  module that this convention replaces.
 - Derive shared conditions once in the block and pass them down as props, rather
-  than re-deriving them inside each variant.
+  than re-deriving them inside each variant — re-derivation inside each subtype
+  file is what made the switches in the old monolith hard to keep in sync.
 - Colocate the spec as `<name>.spec.tsx` and use the shared `renderEmbed` /
   `hrefFor` helpers from `embeds/testUtils.tsx`. `resourceEmbeds.spec.tsx` is for
   link-level embeds only -- it is shared by every embed, so it conflicts
