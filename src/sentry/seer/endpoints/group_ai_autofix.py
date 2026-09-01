@@ -64,7 +64,11 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
-from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
+from sentry.seer.autofix.pr_iteration.pause import (
+    PAUSED_EXTRA,
+    PauseReason,
+    get_pause_reason,
+)
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -91,6 +95,11 @@ from sentry.utils.http import is_mcp_request
 logger = logging.getLogger(__name__)
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+PAUSED_PR_ITERATION_DETAIL = {
+    PauseReason.USER_STOP: "Iteration was stopped for this pull request",
+    PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
+}
 
 
 def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
@@ -389,6 +398,15 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     return Response(
                         {"detail": "Cannot iterate on a PR before one has been created"},
                         status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                pause_reason = get_pause_reason(
+                    run_id=resolved_run_id, organization_id=group.organization.id
+                )
+                if pause_reason is not None:
+                    return Response(
+                        {"detail": PAUSED_PR_ITERATION_DETAIL[pause_reason]},
+                        status=status.HTTP_409_CONFLICT,
                     )
 
                 serialized_users = user_service.serialize_many(

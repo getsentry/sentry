@@ -32,6 +32,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
+    PauseReason,
     is_pr_iteration_paused,
     pause_pr_iteration,
 )
@@ -457,7 +458,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
-        pause_pr_iteration(run_id=67890, organization_id=self.organization.id)
+        pause_pr_iteration(
+            run_id=67890,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
         mock_get_state.return_value = self._agent_state()
 
         self._call()
@@ -1027,6 +1032,22 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_trigger.assert_not_called()
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_returns_when_errored(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state(status="error")
+
+        self._call()
+
+        mock_pop.assert_not_called()
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.fetch_run_status", side_effect=SeerApiError("nope", 500))
     def test_returns_when_run_state_not_found(
         self,
@@ -1565,7 +1586,11 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
-        pause_pr_iteration(run_id=67890, organization_id=self.organization.id)
+        pause_pr_iteration(
+            run_id=67890,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
 
         with patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
             self._trigger(bypass=True)

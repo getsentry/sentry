@@ -21,7 +21,11 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pause import (
+    PAUSED_EXTRA,
+    PauseReason,
+    pause_pr_iteration,
+)
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
@@ -96,7 +100,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["pr_iteration_paused"] is False
 
-        pause_pr_iteration(run_id=888, organization_id=self.organization.id)
+        pause_pr_iteration(
+            run_id=888, organization_id=self.organization.id, reason=PauseReason.USER_STOP
+        )
         run.refresh_from_db()
         assert run.extras is not None and PAUSED_EXTRA in run.extras
 
@@ -863,6 +869,38 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.data
         assert response.data["detail"] == "Cannot iterate on a PR before one has been created"
+        mock_try_enqueue.assert_not_called()
+
+    @with_feature("organizations:autofix-pr-iteration-manual")
+    @patch("sentry.seer.endpoints.group_ai_autofix.try_enqueue_autofix_feedback")
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    def test_pr_iteration_rejected_when_paused(self, mock_run_state, mock_try_enqueue):
+        group = self.create_group()
+        self.create_seer_run(
+            organization=group.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        mock_run_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7)},
+        )
+        pause_pr_iteration(
+            run_id=123,
+            organization_id=group.organization.id,
+            reason=PauseReason.RUN_ERRORED,
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
+            format="json",
+        )
+
+        assert response.status_code == 409, response.data
+        assert response.data["detail"] == "Seer can no longer iterate on this pull request"
         mock_try_enqueue.assert_not_called()
 
     @with_feature("organizations:autofix-pr-iteration-manual")
