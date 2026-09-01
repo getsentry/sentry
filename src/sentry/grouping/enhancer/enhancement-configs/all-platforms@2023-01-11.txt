@@ -12,6 +12,51 @@ family:native package:**/Containers/Bundle/Application/**            +app
 family:native package:**.app/Contents/**                             +app
 family:native package:/Users/**                                      +app
 
+# Unity IL2CPP compiles game, engine and BCL code into one binary, so the bundle rules above
+# would mark all of it in-app. Exclude the binary and the engine, then restore only the frames the
+# IL2CPP line mapping attributes back to project sources; anything still pointing at generated
+# `il2cppOutput/cpp/*.cpp` went unmapped and is engine, BCL or runtime code. Each restore is
+# qualified by the binary, since `Assets/` and `Packages/` are not specific to Unity.
+family:native package:**/GameAssembly.*                              -app
+family:native package:**/UnityFramework                              -app
+family:native package:**/libil2cpp.so                                -app
+
+## The engine, which never contains game code
+family:native package:**/UnityPlayer.*                               -app
+family:native package:**/libunity.so                                 -app
+family:native package:**/libiPhone-lib.dylib                         -app
+family:native package:**/UnityRuntime.framework/**                   -app
+# Unity's Android GameActivity glue, not the developer's `libgame`
+family:native package:**/libgame.so                                  -app
+
+## Unity's generated iOS launch stubs: template code rather than anything the developer wrote,
+## and iOS-only, so leaving them in splits an otherwise identical crash from its counterparts.
+family:native path:**/MainApp/main.mm                                -app
+
+## Code the IL2CPP line mapping attributed back to project sources
+family:native package:**/GameAssembly.* path:**/Assets/**            +app
+family:native package:**/UnityFramework path:**/Assets/**            +app
+family:native package:**/libil2cpp.so   path:**/Assets/**            +app
+family:native package:**/GameAssembly.* path:**/Packages/**          +app
+family:native package:**/UnityFramework path:**/Packages/**          +app
+family:native package:**/libil2cpp.so   path:**/Packages/**          +app
+
+## ...except Unity's own engine C#, which ships sources under an `Assets` directory of its own.
+family:native package:**/GameAssembly.* path:**/unity/Modules/**     -app
+family:native package:**/UnityFramework path:**/unity/Modules/**     -app
+family:native package:**/libil2cpp.so   path:**/unity/Modules/**     -app
+
+## ...and registry packages, which are third-party. They miss the restore only by UPM convention
+## (sources under `Runtime/`), so one shipping an `Assets` directory needs excluding explicitly.
+family:native package:**/GameAssembly.* path:**/Library/PackageCache/**  -app
+family:native package:**/UnityFramework path:**/Library/PackageCache/**  -app
+family:native package:**/libil2cpp.so   path:**/Library/PackageCache/**  -app
+
+# Unity dispatches coroutines from its own scheduler, so the frames below `InvokeMoveNext` are
+# whoever started the coroutine rather than the caller that threw. Which of them get captured
+# differs by platform, splitting one crash into several issues.
+family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group
+
 # Unreal Engine
 
 ## UE internal fatal log message handling
@@ -83,6 +128,14 @@ family:native package:**/Frameworks/libswift*.dylib                  -app
 family:native package:**/Frameworks/KSCrash.framework/**             -app
 family:native package:**/Frameworks/SentrySwift.framework/**         -app
 family:native package:**/Frameworks/Sentry.framework/**              -app
+# Unity ships the Sentry SDK under a different name on each platform, none of them the
+# embedded `Sentry.framework` covered above
+family:native package:**/PlugIns/Sentry.*                            -app
+family:native package:**/PlugIns/libsentry.*                         -app
+family:native package:**/SentryObjC.framework/**                     -app
+family:native package:**/libsentry.so                                -app
+family:native package:**/libsentry-android.so                        -app
+family:native package:**/sentry.dll                                  -app
 
 # Needed for versions < sentry-cocoa 7.0.0 and static linking.
 # Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
