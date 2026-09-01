@@ -13,6 +13,7 @@ from selenium import webdriver
 from selenium.common.exceptions import (
     NoSuchElementException,
     SessionNotCreatedException,
+    StaleElementReferenceException,
     WebDriverException,
 )
 from selenium.webdriver.common.action_chains import ActionChains
@@ -180,13 +181,30 @@ class Browser:
 
     def click_when_visible(self, selector=None, xpath=None, timeout=3):
         """
-        Waits until ``selector`` is available to be clicked before attempting to click
+        Wait until the element is clickable, retrying the click if the DOM replaces it.
         """
-        if selector or xpath:
-            self.wait_until_clickable(selector, xpath, timeout)
-            self.click(selector, xpath)
+        if selector:
+            locator = (By.CSS_SELECTOR, selector)
+        elif xpath:
+            locator = (By.XPATH, xpath)
         else:
             raise ValueError
+
+        wait = WebDriverWait(
+            self.driver,
+            timeout,
+            ignored_exceptions=(StaleElementReferenceException,),
+        )
+
+        def click_element(driver):
+            element = expected_conditions.element_to_be_clickable(locator)(driver)
+            if not element:
+                return False
+
+            element.click()
+            return True
+
+        wait.until(click_element)
 
         return self
 
