@@ -79,7 +79,7 @@ export function RangeSlider({
       return;
     }
 
-    setSliderValue(value);
+    setSliderValue(value === '' ? 0 : value);
   }
 
   function getActualValue(newSliderValue: number): number {
@@ -112,7 +112,7 @@ export function RangeSlider({
           max={max}
           onChange={handleSliderChange}
           value={sliderValue}
-          aria-valuetext={labelText}
+          aria-valuetext={String(labelText)}
           aria-label={props['aria-label']}
           formatOptions={showLabel ? undefined : 'hidden'}
         />

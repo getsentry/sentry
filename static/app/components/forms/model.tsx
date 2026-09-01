@@ -331,14 +331,14 @@ export class FormModel {
     return fieldState[key];
   }
 
-  getValue<T = FieldValue>(id: string): T {
+  getValue(id: string): FieldValue {
     if (this.fields.has(id)) {
-      return this.fields.get(id) as T;
+      return this.fields.get(id) as FieldValue;
     }
 
     // XXX(epurkhiser): Missing fields become an empty string, which is not
     // correctly accounted for in the types. We're doing this for legacy reasons
-    return '' as T;
+    return '';
   }
 
   getTransformedValue(id: string) {
