@@ -97,60 +97,7 @@ describe('IssuePreview', () => {
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
   });
 
-  it('focuses on pull requests linked after the latest regression', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-      body: ExplorerAutofixResponseFixture({autofix: null}),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
-      body: {
-        latestRegressionAt: '2026-07-20T12:00:00Z',
-        pullRequests: [
-          {
-            ...PullRequestFixture({
-              id: '10',
-              externalUrl: 'https://github.com/example/repo-name/pull/10',
-            }),
-            attribution: null,
-            checksStatus: null,
-            dateLinked: '2026-07-20T11:00:00Z',
-            reviewStatus: null,
-            status: 'open',
-          },
-          {
-            ...PullRequestFixture({
-              id: '11',
-              externalUrl: 'https://github.com/example/repo-name/pull/11',
-            }),
-            attribution: null,
-            checksStatus: null,
-            dateLinked: '2026-07-20T13:00:00Z',
-            reviewStatus: null,
-            status: 'open',
-          },
-        ],
-      },
-    });
-
-    render(<IssuePreview groupId={group.id} />, {organization});
-
-    expect(await screen.findByRole('button', {name: 'View PR'})).toHaveAttribute(
-      'href',
-      'https://github.com/example/repo-name/pull/11'
-    );
-    expect(screen.queryByRole('button', {name: 'View PR #10'})).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Pull request #11/})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', {name: /Pull request #10/})
-    ).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Show other PRs'}));
-
-    expect(screen.getByRole('link', {name: /Pull request #10/})).toBeInTheDocument();
-  });
-
-  it('labels and links each CTA when multiple pull requests exist', async () => {
+  it('labels and links each current PR CTA when multiple pull requests exist', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({
@@ -179,7 +126,20 @@ describe('IssuePreview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
+        latestRegressionAt: '2026-08-16T12:00:00Z',
         pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '9',
+              dateCreated: '2026-08-15T12:00:00Z',
+              externalUrl: 'https://github.com/example/repo-name/pull/9',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-08-15T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
           {
             ...PullRequestFixture({
               id: '10',
@@ -218,6 +178,7 @@ describe('IssuePreview', () => {
       'href',
       'https://github.com/example/repo-name/pull/10'
     );
+    expect(screen.queryByRole('button', {name: 'View PR #9'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
