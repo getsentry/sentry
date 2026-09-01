@@ -229,8 +229,10 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if prefetch_options:
             repo_field["prefetch"] = True
             assignee_field["prefetch"] = True
+            assignee_field["dependsOn"] = ["repo"]
             assignee_field["url"] = autocomplete_url
             label_field["prefetch"] = True
+            label_field["dependsOn"] = ["repo"]
             label_field["url"] = autocomplete_url
 
         return [repo_field, *fields, assignee_field, label_field]

@@ -114,9 +114,11 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         assert repo_field["prefetch"] is True
         assert assignee_field["choices"] == []
         assert assignee_field["prefetch"] is True
+        assert assignee_field["dependsOn"] == ["repo"]
         assert assignee_field["url"] == repo_field["url"]
         assert label_field["choices"] == []
         assert label_field["prefetch"] is True
+        assert label_field["dependsOn"] == ["repo"]
         assert label_field["url"] == repo_field["url"]
 
 

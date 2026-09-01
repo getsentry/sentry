@@ -25,6 +25,7 @@ class IntegrationIssueConfigField(TypedDict):
     help: NotRequired[str]
     placeholder: NotRequired[str]
     prefetch: NotRequired[bool]
+    dependsOn: NotRequired[Sequence[str]]
 
 
 class ExternalProviders(ValueEqualityEnum):
