@@ -1,5 +1,6 @@
 import {
   type ComponentProps,
+  useCallback,
   useEffectEvent,
   useLayoutEffect,
   useRef,
@@ -75,6 +76,8 @@ const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
+type RestoreSelectedIssueScroll = (issueId: string, element: HTMLDivElement) => void;
+
 interface AssignmentCounts {
   all: number;
   me: number;
@@ -323,6 +326,16 @@ function InboxContent() {
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
   );
+  const issueIdToRestoreScroll = useRef(selectedIssueId);
+  const restoreSelectedIssueScroll = useCallback<RestoreSelectedIssueScroll>(
+    (issueId, element) => {
+      if (issueIdToRestoreScroll.current === issueId) {
+        issueIdToRestoreScroll.current = null;
+        element.scrollIntoView({block: 'center'});
+      }
+    },
+    []
+  );
   const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
@@ -347,6 +360,7 @@ function InboxContent() {
   });
 
   const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    issueIdToRestoreScroll.current = null;
     trackAnalytics('issue_inbox.assignment_filter_changed', {
       organization,
       assignment_filter: filter,
@@ -414,6 +428,7 @@ function InboxContent() {
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
                 onInitialResult={handleInitialSectionResult}
+                restoreSelectedIssueScroll={restoreSelectedIssueScroll}
               />
             ))}
           </Stack>
@@ -490,6 +505,7 @@ function AssignmentCountBadge({count}: {count: number | undefined}) {
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
+  restoreSelectedIssueScroll: RestoreSelectedIssueScroll;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
@@ -497,6 +513,7 @@ interface InboxSectionProps {
 function InboxSection({
   assignmentFilter,
   onInitialResult,
+  restoreSelectedIssueScroll,
   section,
   selectedIssueId,
 }: InboxSectionProps) {
@@ -604,6 +621,7 @@ function InboxSection({
                   assignmentFilter={assignmentFilter}
                   group={group}
                   progressLabel={section.label}
+                  restoreSelectedIssueScroll={restoreSelectedIssueScroll}
                   selected={selectedIssueId === group.id}
                   showPullRequests={
                     section.progress === ProgressState.FIX_PROPOSED ||
@@ -689,12 +707,14 @@ function InboxIssueCard({
   assignedUser,
   group,
   progressLabel,
+  restoreSelectedIssueScroll,
   selected,
   showPullRequests,
 }: {
   assignmentFilter: AssignmentFilter;
   group: Group;
   progressLabel: string;
+  restoreSelectedIssueScroll: RestoreSelectedIssueScroll;
   selected: boolean;
   showPullRequests: boolean;
   assignedUser?: User;
@@ -705,9 +725,17 @@ function InboxIssueCard({
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
+  const cardRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (selected && element) {
+        restoreSelectedIssueScroll(group.id, element);
+      }
+    },
+    [group.id, restoreSelectedIssueScroll, selected]
+  );
 
   return (
-    <Container position="relative">
+    <Container ref={cardRef} position="relative">
       <IssueCardLink
         {...prefetchHoverProps}
         aria-current={selected ? 'true' : undefined}
