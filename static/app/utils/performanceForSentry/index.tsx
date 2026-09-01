@@ -304,16 +304,16 @@ export function addUIElementTagToSegmentSpan(client: Client) {
     const segmentSpan = Sentry.getRootSpan(span);
     const segmentSpanJson = spanToJSON(segmentSpan);
 
-    if (segmentSpanJson.attributes?.['sentry.op'] !== 'ui.action.click') {
+    if (segmentSpanJson.attributes['sentry.op'] !== 'ui.action.click') {
       return;
     }
 
     const spanJson = spanToJSON(span);
-    const spanOp = spanJson.attributes?.['sentry.op'];
+    const spanOp = spanJson.attributes['sentry.op'];
 
     if (
       spanOp === 'ui.interaction.click' &&
-      !segmentSpanJson.attributes?.interactionElement
+      !segmentSpanJson.attributes.interactionElement
     ) {
       segmentSpan.setAttribute('interactionElement', spanJson.name);
     }

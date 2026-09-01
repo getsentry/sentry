@@ -123,7 +123,7 @@ export function initializeSdk(config: Config) {
     ignoreSpans: IGNORED_SPAN_NAMES,
 
     beforeSendSpan: span => {
-      const op = span.attributes?.['sentry.op'];
+      const op = span.attributes['sentry.op'];
       if (span.name && (op === 'pageload' || op === 'navigation')) {
         span.name = normalizeUrl(span.name, {forceCustomerDomain: true});
       }
