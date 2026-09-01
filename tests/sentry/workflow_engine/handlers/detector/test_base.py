@@ -8,8 +8,8 @@ from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import (
     BaseDetectorHandler,
-    ConditionDetectorHandler,
     DataPacketEvaluationType,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
     StatefulDetectorHandler,
@@ -109,7 +109,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             description = "no handler"
             category = GroupCategory.METRIC.value
 
-        class MockConditionDetectorHandler(ConditionDetectorHandler[dict[str, Any], int]):
+        class MockDetectorHandler(DetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
@@ -144,7 +144,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("dedupe", 0)
 
-        class MockConditionDetectorWithUpdateHandler(ConditionDetectorHandler[dict[str, Any], int]):
+        class MockDetectorWithUpdateHandler(DetectorHandler[dict[str, Any], int]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[str, Any]]
             ) -> GroupedDetectorEvaluationResult:
@@ -191,7 +191,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "handler"
             description = "handler"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockConditionDetectorHandler)
+            detector_settings = DetectorSettings(handler=MockDetectorHandler)
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
@@ -205,7 +205,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "handler_update"
             description = "handler update"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockConditionDetectorWithUpdateHandler)
+            detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType

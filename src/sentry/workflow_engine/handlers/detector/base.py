@@ -101,7 +101,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType]):
         pass
 
 
-class ConditionDetectorHandler(
+class DetectorHandler(
     BaseDetectorHandler[DataPacketType],
     Generic[DataPacketType, DataPacketEvaluationType],
 ):
