@@ -85,6 +85,7 @@ export function AutomationStatsChart({
                   name: automation.date,
                   value: automation.count,
                 })),
+                barMaxWidth: 40,
                 emphasis: {
                   disabled: true,
                 },
