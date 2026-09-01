@@ -1295,6 +1295,58 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert WebhookPayload.objects.count() == 1
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_drop_never_looks_up_the_integration(self) -> None:
+        """The drop decision reads the event header and body and nothing else.
+
+        Asserted as "the lookup never happens" rather than as a query count, because
+        not calling it is what keeps the dropped majority of inbound webhooks off the
+        integration and organization queries.
+        """
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "status"},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with patch.object(
+            GithubRequestParser, "get_integration_from_request"
+        ) as mock_get_integration:
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert mock_get_integration.call_count == 0
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_drops_unprocessed_event_with_no_integration(self) -> None:
+        """A droppable event is dropped even when no integration matches it.
+
+        Returns 202 where the previous ordering returned 400. Neither path stored the
+        payload, so no delivery is lost; GitHub is simply no longer told that a webhook
+        we never process failed to deliver.
+        """
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "does-not-exist"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": "status"},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
 
 @control_silo_test
 class GithubRequestParserTypeRoutingTest(GithubRequestParserTest):
