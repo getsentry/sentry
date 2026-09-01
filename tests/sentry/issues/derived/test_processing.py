@@ -6,7 +6,6 @@ import pytest
 from django.db import connection, router, transaction
 from django.utils import timezone as django_timezone
 
-from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
@@ -65,6 +64,7 @@ from sentry.issues.derived.processing import (
 from sentry.issues.derived.promote import PromotionResult, promote_to_live
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
@@ -1222,7 +1222,7 @@ class DerivedDataTransactionTest(TestCase):
         group = self.create_group()
 
         try:
-            with transaction.atomic(using=router.db_for_write(CellOutbox)):
+            with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                 publish_action(
                     ViewAction(),
                     source=SOURCE,
@@ -1230,14 +1230,14 @@ class DerivedDataTransactionTest(TestCase):
                     project=group.project,
                     actor=GroupActionActor.user(self.user.id),
                 )
-                assert CellOutbox.objects.filter(
+                assert GroupActionLogOutbox.objects.filter(
                     category=OutboxCategory.GROUP_ACTION_LOG_EVENT
                 ).exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
-        assert not CellOutbox.objects.filter(
+        assert not GroupActionLogOutbox.objects.filter(
             category=OutboxCategory.GROUP_ACTION_LOG_EVENT
         ).exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
