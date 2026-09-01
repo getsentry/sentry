@@ -48,7 +48,7 @@ export default function TeamStatsIssues() {
 
   if (teams.length === 0) {
     return (
-      <NoProjectMessage organization={organization} superuserNeedsToBeProjectMember />
+      <NoProjectMessage organization={organization} requireProjectMembership />
     );
   }
 

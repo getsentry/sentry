@@ -150,11 +150,26 @@ describe('NoProjectMessage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows empty message to non-members when membership is required', () => {
+  it('renders children for non-superusers when superuserNeedsToBeProjectMember', () => {
     ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
 
     render(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
+        <div data-test-id="child">Test</div>
+      </NoProjectMessage>
+    );
+
+    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(
+      screen.queryByText('You need at least one project to use this view')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows empty message to non-members when requireProjectMembership', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({hasAccess: true, isMember: false})]);
+
+    render(
+      <NoProjectMessage organization={org} requireProjectMembership>
         {null}
       </NoProjectMessage>
     );

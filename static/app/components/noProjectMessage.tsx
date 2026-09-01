@@ -16,16 +16,19 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 type Props = {
   organization: Organization;
   children?: React.ReactNode;
+  requireProjectMembership?: boolean;
   superuserNeedsToBeProjectMember?: boolean;
 };
 
 export function NoProjectMessage({
   children,
   organization,
+  requireProjectMembership,
   superuserNeedsToBeProjectMember,
 }: Props) {
   const {projects} = useProjects();
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess({
+    requireProjectMembership,
     superuserNeedsToBeProjectMember,
   });
 
