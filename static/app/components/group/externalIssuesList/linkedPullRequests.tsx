@@ -95,7 +95,9 @@ export function partitionLinkedPullRequests(
 
   for (const pullRequest of pullRequests) {
     const dateLinkedTimestamp = Date.parse(pullRequest.dateLinked);
+    const isTerminal = pullRequest.status === 'closed' || pullRequest.status === 'merged';
     if (
+      isTerminal &&
       !Number.isNaN(dateLinkedTimestamp) &&
       dateLinkedTimestamp < latestRegressionTimestamp
     ) {

@@ -171,7 +171,7 @@ describe('LinkedPullRequests', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('collapses pull requests linked before the latest regression', async () => {
+  it('keeps active pull requests visible and collapses completed pull requests linked before the latest regression', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
@@ -180,8 +180,8 @@ describe('LinkedPullRequests', () => {
           {
             ...PullRequestFixture({id: '123', repository}),
             attribution: null,
-            dateLinked: '2026-06-08T23:11:32.000000Z',
-            status: 'open',
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'draft',
           },
           {
             ...PullRequestFixture({id: '122', repository}),
