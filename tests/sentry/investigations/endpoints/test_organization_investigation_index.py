@@ -9,6 +9,7 @@ from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRun,
@@ -114,6 +115,19 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert run.projection["pendingInput"] is None
         assert run.projection["broadScan"]["status"] == "queued"
 
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_agentic_creation_schedules_automatic_execution(self, dispatch: mock.Mock) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                self.collection_url,
+                data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+                format="json",
+            )
+
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        dispatch.assert_called_once_with(run.id)
+
     def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())
 
@@ -177,6 +191,8 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.data["duplicate"] is False
         assert response.data["runId"] == "42"
         assert response.data["workflowVersion"] == 2
+        assert response.data["commandStatus"] == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert response.data["commandError"] is None
         assert response.data["projection"]["runId"] == "42"
         assert response.data["projection"]["workflowVersion"] == 2
         assert response.data["projection"]["phase"] == "broad_scan"
@@ -197,6 +213,8 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert duplicate.data["duplicate"] is True
         assert duplicate.data["runId"] == "42"
         assert duplicate.data["workflowVersion"] == 2
+        assert duplicate.data["commandStatus"] == (InvestigationOrchestrationCommandStatus.ACCEPTED)
+        assert duplicate.data["commandError"] is None
         assert duplicate.data["projection"]["runId"] == "42"
         assert InvestigationOrchestrationCommand.objects.filter(request_id=request_id).count() == 1
 
@@ -215,6 +233,94 @@ class OrganizationInvestigationIndexTest(APITestCase):
         )
         assert stale.status_code == 409
         assert InvestigationOrchestrationCommand.objects.count() == 1
+
+    @mock.patch(
+        "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
+    )
+    def test_accepted_command_schedules_dispatch(self, dispatch: mock.Mock) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=creation.data["id"])
+        run.seer_run_id = 42
+        run.save(update_fields=["seer_run_id", "date_updated"])
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": creation.data["id"],
+            },
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                command_url,
+                data={
+                    "requestId": str(uuid4()),
+                    "expectedWorkflowVersion": 1,
+                    "command": {"type": "cancel"},
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.data
+        dispatch.assert_called_once_with(run.id)
+
+    def test_workflow_command_preserves_notebook_until_seer_clears_the_report(self) -> None:
+        creation = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate latency"}},
+            format="json",
+        )
+        investigation = Investigation.objects.get(id=creation.data["id"])
+        run = investigation.orchestration_run
+        run.seer_run_id = 42
+        run.save(update_fields=["seer_run_id", "date_updated"])
+        block = self.create_investigation_block(
+            investigation=investigation,
+            kind="text",
+            report_revision=1,
+            stable_agent_key="summary",
+        )
+        execution = self.create_investigation_block_execution(
+            block=block,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=block.version,
+        )
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {
+                    "type": "add_hypothesis",
+                    "statement": "A release caused this",
+                },
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data["projection"]["notebookRevision"] == 0
+        assert "_sentryControl" not in response.data["projection"]
+        run.refresh_from_db()
+        assert run.notebook_revision == 0
+        assert "_sentryControl" not in run.projection
+        block.refresh_from_db()
+        assert block.deleted_at is None
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
 
     def test_orchestration_read_returns_not_found_for_a_manual_investigation(self) -> None:
         investigation = self.create_investigation(
@@ -323,8 +429,10 @@ class OrganizationInvestigationIndexTest(APITestCase):
 
         assert response.status_code == 400
         run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
-        assert run.workflow_version == 1
-        assert not run.commands.exists()
+        assert run.workflow_version == 2
+        command = run.commands.get()
+        assert command.type == "cancel"
+        assert command.payload == {"reason": "investigation_archived"}
 
     def test_list_includes_summary_when_projects_are_accessible(self) -> None:
         investigation = self.create_investigation(
