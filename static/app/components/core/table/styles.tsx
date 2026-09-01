@@ -19,18 +19,12 @@ export const TableGrid = styled('table')<{hiddenColumnKeys?: string[]}>`
   ${p =>
     p.hiddenColumnKeys?.map(
       key => css`
-        [data-column-name='${escapeSelectorValue(key)}'] {
+        [data-column-name='${CSS.escape(key)}'] {
           display: none;
         }
       `
     )}
 `;
-
-// A column key reaches the stylesheet inside a quoted attribute selector, where
-// an unescaped quote or backslash would break every rule after it.
-function escapeSelectorValue(value: string) {
-  return value.replace(/['\\]/g, '\\$&');
-}
 
 const subgrid = css`
   display: grid;
