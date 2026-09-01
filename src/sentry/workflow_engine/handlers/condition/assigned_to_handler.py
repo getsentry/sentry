@@ -110,10 +110,9 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         if target_type == AssigneeTargetType.TEAM:
             return any(assignee.team_id and assignee.team_id == target_id for assignee in assignees)
-        elif target_type == AssigneeTargetType.MEMBER:
-            return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
 
-        return False
+        # Remaining AssigneeTargetType is MEMBER.
+        return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
