@@ -479,6 +479,7 @@ function IssueVitals({
 
 function PriorityAndAssignee({
   run,
+  memberList,
   assigneeReady,
 }: {
   assigneeReady: boolean;
@@ -510,6 +511,7 @@ function PriorityAndAssignee({
           projectSlug={issue.project.slug}
           assignedTo={issue.assignedTo ?? undefined}
           owners={issue.owners}
+          memberList={memberList}
         />
       ) : (
         <Placeholder shape="circle" width="24px" height="24px" />
