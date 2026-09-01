@@ -27,10 +27,7 @@ export function PlaceHolder({
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
-          <TraceBreadcrumbs
-            organization={organization}
-            traceSlug={traceSlug}
-          />
+          <TraceBreadcrumbs organization={organization} traceSlug={traceSlug} />
           <Grid flow="column" align="center" gap="md">
             <TopBar.Slot name="feedback">
               <FeedbackButton
