@@ -1349,7 +1349,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         assert self.all_projects_detector not in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_includes_all_projects_detector_with_option(self) -> None:
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
         result = get_detectors_for_event_data(event_data)
@@ -1357,7 +1357,7 @@ class TestGetDetectorsForEventAllProject(TestCase):
         assert self.all_projects_detector in result.detectors
         assert result.preferred_detector == self.error_detector
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_missing_all_projects_detector_no_effect(self) -> None:
         self.all_projects_detector.delete()
         event_data = WorkflowEventData(event=self.group_event, group=self.group)
