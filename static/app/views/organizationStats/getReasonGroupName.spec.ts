@@ -104,6 +104,10 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'no_parent_span')).toBe(
       ClientDiscardReason.NO_PARENT_SPAN
     );
+
+    expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'callback_error')).toBe(
+      ClientDiscardReason.CALLBACK_ERROR
+    );
   });
 
   it('handles abuse limit reason types', () => {

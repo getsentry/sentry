@@ -85,6 +85,7 @@ export enum ClientDiscardReason {
   BACKPRESSURE = 'backpressure',
   IGNORED = 'ignored',
   NO_PARENT_SPAN = 'no_parent_span',
+  CALLBACK_ERROR = 'callback_error',
 }
 
 enum RateLimitedReason {
@@ -242,6 +243,7 @@ function getClientDiscardReasonGroupName(reason: ClientDiscardReason): string {
     case ClientDiscardReason.BACKPRESSURE:
     case ClientDiscardReason.IGNORED:
     case ClientDiscardReason.NO_PARENT_SPAN:
+    case ClientDiscardReason.CALLBACK_ERROR:
       return reason;
     default:
       return 'other';
