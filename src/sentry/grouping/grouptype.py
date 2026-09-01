@@ -31,10 +31,10 @@ class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
         return {}
 
     def evaluate(self, data_packet: DataPacket[object]) -> GroupedDetectorEvaluationResult:
-        return GroupedDetectorEvaluationResult(result={}, tainted=False)
+        raise NotImplementedError
 
     def extract_value(self, data_packet: DataPacket[object]) -> object:
-        return None
+        raise NotImplementedError
 
     def create_occurrence(
         self,
