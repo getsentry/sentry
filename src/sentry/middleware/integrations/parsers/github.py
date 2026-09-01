@@ -8,7 +8,6 @@ import orjson
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry import options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.github.check_payloads import references_own_repo_pull_request
 from sentry.integrations.github.webhook import (
@@ -46,7 +45,6 @@ def _bounded_action_tag(action: Any, action_filter: ActionFilter) -> str:
 
 def _forwarded_event_tags(
     github_event: str | None,
-    event: Mapping[str, Any],
     action: Any,
     action_filter: ActionFilter | None,
 ) -> dict[str, str]:
@@ -57,18 +55,10 @@ def _forwarded_event_tags(
     that are action-filtered; on the rest the tag would be unbounded.
     """
     tags = {"event_type": github_event or "unknown"}
-    if action_filter is None or github_event is None:
+    if action_filter is None:
         return tags
 
     tags["action"] = _bounded_action_tag(action, action_filter)
-    # The container holding "pull_requests" is named after the event itself, and only
-    # the completed action has a cell-side consumer that reads it. Keyed off the
-    # action rather than `own_repo_pr_actions` so the series measures the share a
-    # drop could reclaim even before one is enabled for that event type.
-    if action == "completed":
-        tags["has_own_repo_pr"] = (
-            "true" if references_own_repo_pull_request(event, github_event) else "false"
-        )
     return tags
 
 
@@ -195,13 +185,10 @@ class GithubRequestParser(BaseRequestParser):
             return HttpResponse(status=202)
 
         # A check payload whose `pull_requests` are all based in other repos is a
-        # no-op for every consumer of these actions, so it never needs storing. This
-        # predicate reads the unverified body rather than a header, so it stays behind
-        # an option — see the register() call for why.
+        # no-op for every consumer of these actions, so it never needs storing.
         if (
             action_filter is not None
             and action in action_filter.own_repo_pr_actions
-            and options.get("hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr")
             and not references_own_repo_pull_request(event, github_event or "")
         ):
             metrics.incr(
@@ -222,7 +209,7 @@ class GithubRequestParser(BaseRequestParser):
 
         metrics.incr(
             "github.webhook.forwarded_event",
-            tags=_forwarded_event_tags(github_event, event, action, action_filter),
+            tags=_forwarded_event_tags(github_event, action, action_filter),
         )
 
         response = self.get_response_from_webhookpayload(
