@@ -48,7 +48,7 @@ type ModuleNameStrings = `${ModuleName}`;
 export type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 
 export const useModuleURL = (moduleName: RoutableModuleNames): string => {
-  const builder = useModuleURLBuilder(false);
+  const builder = useModuleURLBuilder();
   return builder(moduleName);
 };
 
