@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 from datetime import timedelta
-from typing import Any, cast, override
+from typing import Any, override
 from uuid import uuid4
 
 from django.conf import settings
@@ -529,30 +529,6 @@ class StatefulDetectorHandler(
             detector_id=self.detector.id,
             activity_data=evidence_data,
         )
-
-    def _extract_value_from_packet(
-        self,
-        data_packet: DataPacket[DataPacketType],
-    ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
-        """
-        This method will normalize the extracted value to support grouping results.
-
-        If `extract_value` returns a `dict[DetectorGroupKey, DataPacketEvaluationType]`
-        it will cast it to the correct data type.
-
-        If `extract_value` returns a single value, it will be wrapped in a dict
-        with `None` as the key, to normalize the type as `dict[DetectorGroupKey, DataPacketEvaluationType]`.
-        """
-        data_values = self.extract_value(data_packet)
-        group_data_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
-
-        # Normalize the type to dict[DetectorGroupKey, DataPacketEvaluationType]
-        if self._is_detector_group_value(data_values):
-            group_data_values = cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
-        else:
-            group_data_values = {None: cast(DataPacketEvaluationType, data_values)}
-
-        return group_data_values
 
     def _build_detector_evaluation_result(
         self,
