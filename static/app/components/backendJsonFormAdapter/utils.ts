@@ -37,7 +37,7 @@ export function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
 
 export function transformChoices(
   choices?: readonly JsonFormAdapterChoice[]
-): Array<{label: string; value: string}> {
+): Array<{label: string; value: JsonFormAdapterChoice[0]}> {
   if (!choices) {
     return [];
   }

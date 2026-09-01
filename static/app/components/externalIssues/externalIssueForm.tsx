@@ -13,6 +13,7 @@ import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,
+  JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
@@ -192,7 +193,7 @@ export function ExternalIssueForm({
     Record<string, JsonFormAdapterChoice[]>
   >({});
   const handleAsyncOptionsFetched = useCallback(
-    (fieldName: string, options: Array<SelectValue<string>>) => {
+    (fieldName: string, options: Array<SelectValue<JsonFormAdapterChoiceValue>>) => {
       setAsyncOptionsCache(prev => ({
         ...prev,
         [fieldName]: options.map((o): JsonFormAdapterChoice => {

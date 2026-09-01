@@ -15,7 +15,10 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import type {
+  JsonFormAdapterChoiceValue,
+  JsonFormAdapterFieldConfig,
+} from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
 import type {Choices, Choice} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -281,9 +284,11 @@ function mergeFieldChoices(
   return choices;
 }
 
-function toSelectValues(choices: Choices): Array<SelectValue<string>> {
+function toSelectValues(
+  choices: Choices
+): Array<SelectValue<JsonFormAdapterChoiceValue>> {
   return choices.map(([value, label]) => ({
-    value: value as unknown as string,
+    value,
     label: choiceLabelToString(label),
   }));
 }
@@ -765,15 +770,9 @@ export function SentryAppExternalForm({
           };
         case 'select':
           return {
-            // The adapter types choices as [string, string], but react-select
-            // round-trips the original value type at runtime — see
-            // BackendJsonSubmitForm's transformChoices which only renames
-            // tuple positions to {value, label}. Cast so a schema choice with
-            // a numeric value (e.g. an integration's project/board ID) reaches
-            // the wire with its type preserved.
-            choices: mergeFieldChoices(field, normalizedResetValues) as Array<
-              [string, string]
-            >,
+            choices: mergeFieldChoices(field, normalizedResetValues).map(
+              ([value, label]) => [value, choiceLabelToString(label)] as const
+            ),
             default: defaultValue,
             disabled,
             help: field.help,
@@ -829,7 +828,7 @@ export function SentryAppExternalForm({
             fetchFieldChoices,
             fieldGroups,
           ],
-          queryFn: async (): Promise<Array<SelectValue<string>>> => {
+          queryFn: async (): Promise<Array<SelectValue<JsonFormAdapterChoiceValue>>> => {
             if (!debouncedInput) {
               return toSelectValues(mergeFieldChoices(field, normalizedResetValues));
             }

@@ -24,7 +24,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
-import type {JsonFormAdapterFieldConfig} from './types';
+import type {JsonFormAdapterChoiceValue, JsonFormAdapterFieldConfig} from './types';
 import {
   getDefaultForField,
   getDisabledProp,
@@ -40,9 +40,9 @@ import {
 const API_CLIENT = new Client({baseUrl: '', headers: {}});
 
 type AsyncSelectQueryOptions = UseQueryOptions<
-  Array<SelectValue<string>>,
+  Array<SelectValue<JsonFormAdapterChoiceValue>>,
   Error,
-  Array<SelectValue<string>>,
+  Array<SelectValue<JsonFormAdapterChoiceValue>>,
   // The queryKey shape is dynamic across consumers (URL-based default vs.
   // customAsyncQueryOptions). TanStack's TQueryKey is contravariant inside
   // `enabled`, so anything narrower than `any` here breaks variance with
@@ -102,7 +102,7 @@ interface BackendJsonSubmitFormProps {
    */
   onAsyncOptionsFetched?: (
     fieldName: string,
-    options: Array<SelectValue<string>>
+    options: Array<SelectValue<JsonFormAdapterChoiceValue>>
   ) => void;
   /**
    * Called when a field with `updatesForm: true` changes value.
@@ -403,7 +403,9 @@ export function BackendJsonSubmitForm({
                               prefetchReady,
                               JSON.stringify(onAsyncOptionsFetchedRef),
                             ],
-                            queryFn: async (): Promise<Array<SelectValue<string>>> => {
+                            queryFn: async (): Promise<
+                              Array<SelectValue<JsonFormAdapterChoiceValue>>
+                            > => {
                               if (field.prefetch && !prefetchReady) {
                                 return staticOptions;
                               }
@@ -442,9 +444,10 @@ export function BackendJsonSubmitForm({
                               <fieldApi.SelectAsync
                                 multiple
                                 value={
-                                  (fieldApi.state.value as Array<string | number>) ?? []
+                                  (fieldApi.state
+                                    .value as JsonFormAdapterChoiceValue[]) ?? []
                                 }
-                                onChange={(value: Array<string | number>) =>
+                                onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                   handleChange(value)
                                 }
                                 disabled={disabledProp}
@@ -461,16 +464,26 @@ export function BackendJsonSubmitForm({
                           >
                             {field.required ? (
                               <fieldApi.SelectAsync
-                                value={(fieldApi.state.value ?? null) as string | null}
-                                onChange={(value: string) => handleChange(value)}
+                                value={
+                                  (fieldApi.state.value ??
+                                    null) as JsonFormAdapterChoiceValue | null
+                                }
+                                onChange={(value: JsonFormAdapterChoiceValue) =>
+                                  handleChange(value)
+                                }
                                 disabled={disabledProp}
                                 queryOptions={asyncQueryOptions}
                               />
                             ) : (
                               <fieldApi.SelectAsync
                                 clearable
-                                value={(fieldApi.state.value ?? null) as string | null}
-                                onChange={(value: string | null) => handleChange(value)}
+                                value={
+                                  (fieldApi.state.value ??
+                                    null) as JsonFormAdapterChoiceValue | null
+                                }
+                                onChange={(value: JsonFormAdapterChoiceValue | null) =>
+                                  handleChange(value)
+                                }
                                 disabled={disabledProp}
                                 queryOptions={asyncQueryOptions}
                               />
@@ -487,8 +500,13 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={(fieldApi.state.value as string[]) ?? []}
-                              onChange={(value: string[]) => handleChange(value)}
+                              value={
+                                (fieldApi.state.value as JsonFormAdapterChoiceValue[]) ??
+                                []
+                              }
+                              onChange={(value: JsonFormAdapterChoiceValue[]) =>
+                                handleChange(value)
+                              }
                               options={transformChoices(field.choices)}
                               disabled={disabledProp}
                             />
@@ -503,16 +521,26 @@ export function BackendJsonSubmitForm({
                         >
                           {field.required ? (
                             <fieldApi.Select
-                              value={(fieldApi.state.value ?? null) as string | null}
-                              onChange={(value: string) => handleChange(value)}
+                              value={
+                                (fieldApi.state.value ??
+                                  null) as JsonFormAdapterChoiceValue | null
+                              }
+                              onChange={(value: JsonFormAdapterChoiceValue) =>
+                                handleChange(value)
+                              }
                               options={transformChoices(field.choices)}
                               disabled={disabledProp}
                             />
                           ) : (
                             <fieldApi.Select
                               clearable
-                              value={(fieldApi.state.value ?? null) as string | null}
-                              onChange={(value: string | null) => handleChange(value)}
+                              value={
+                                (fieldApi.state.value ??
+                                  null) as JsonFormAdapterChoiceValue | null
+                              }
+                              onChange={(value: JsonFormAdapterChoiceValue | null) =>
+                                handleChange(value)
+                              }
                               options={transformChoices(field.choices)}
                               disabled={disabledProp}
                             />

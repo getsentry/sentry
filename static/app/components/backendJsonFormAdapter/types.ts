@@ -1,6 +1,10 @@
 import type {PlatformKey} from 'sentry/types/platform';
 
-export type JsonFormAdapterChoice = readonly [value: string, label: string];
+export type JsonFormAdapterChoiceValue = string | number;
+export type JsonFormAdapterChoice = readonly [
+  value: JsonFormAdapterChoiceValue,
+  label: string,
+];
 
 /**
  * Field configuration returned by the backend's `get_organization_config()`.
@@ -155,7 +159,7 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
       : T extends JsonFormAdapterNumber
         ? number
         : T extends JsonFormAdapterSelect
-          ? string | null
+          ? JsonFormAdapterChoiceValue | null
           : T extends JsonFormAdapterChoiceMapper
             ? Record<string, Record<string, unknown>>
             : T extends JsonFormAdapterTable

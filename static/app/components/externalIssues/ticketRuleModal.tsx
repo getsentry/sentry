@@ -13,6 +13,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
 import type {
   JsonFormAdapterChoice,
+  JsonFormAdapterChoiceValue,
   JsonFormAdapterFieldConfig,
 } from 'sentry/components/backendJsonFormAdapter/types';
 import {
@@ -103,7 +104,7 @@ export function TicketRuleModal({
     Record<string, JsonFormAdapterChoice[]>
   >({});
   const handleAsyncOptionsFetched = useCallback(
-    (fieldName: string, options: Array<SelectValue<string>>) => {
+    (fieldName: string, options: Array<SelectValue<JsonFormAdapterChoiceValue>>) => {
       setAsyncOptionsCache(prev => ({
         ...prev,
         [fieldName]: options.map(

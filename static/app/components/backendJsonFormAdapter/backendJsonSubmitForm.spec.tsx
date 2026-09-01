@@ -480,6 +480,36 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('select variants', () => {
+    it('preserves numeric choice values', async () => {
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'externalIssue',
+              type: 'select',
+              label: 'Issue',
+              choices: [[25, '#25 Example issue']],
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Link"
+        />,
+        {organization: org}
+      );
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue'}),
+        '#25 Example issue'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Link'}));
+
+      await waitFor(() => {
+        expect(onSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({externalIssue: 25})
+        );
+      });
+    });
+
     it('renders multi-select field and allows multiple selections', async () => {
       render(
         <BackendJsonSubmitForm
