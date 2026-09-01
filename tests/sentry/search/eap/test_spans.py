@@ -1219,6 +1219,51 @@ class SearchResolverColumnTest(TestCase):
             ),
         )
 
+    def test_collect_unique(self) -> None:
+        # collect_unique isn't allowed in the default acl
+        with pytest.raises(
+            InvalidSearchQuery, match="The function collect_unique is not allowed for this query"
+        ):
+            resolved_column, _ = self.resolver.resolve_column("collect_unique(span.description)")
+        # Enable collect_unique
+        self.resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(
+                fields_acl=FieldsACL(functions={"collect_unique", "collect_unique_if"}),
+            ),
+            definitions=SPAN_DEFINITIONS,
+        )
+        function = "collect_unique(span.description)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_COLLECT_UNIQUE,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            label=function,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        )
+
+        function = "collect_unique_if(`span.description:foo`, span.description)"
+        resolved_column, _ = self.resolver.resolve_column(function)
+        assert function in self.resolver._resolved_function_cache
+
+        assert resolved_column.proto_definition == AttributeConditionalAggregation(
+            aggregate=Function.FUNCTION_COLLECT_UNIQUE,
+            key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(val_str="foo"),
+                )
+            ),
+            label=function,
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        )
+
 
 def _make_deprecated_metadata(
     attr_type: AttributeType,

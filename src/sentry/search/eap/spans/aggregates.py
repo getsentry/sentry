@@ -499,6 +499,28 @@ SPAN_AGGREGATE_DEFINITIONS = {
             AttributeArgumentDefinition(),
         ],
     ),
+    "collect_unique": AggregateDefinition(
+        internal_function=Function.FUNCTION_COLLECT_UNIQUE,
+        default_search_type="array",
+        infer_search_type_from_arguments=False,
+        private=True,
+        # This function cannot support extrapolation since it wouldn't make sense to extrapolate an array of values
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
 }
 
 DEPRECATED_SPAN_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
