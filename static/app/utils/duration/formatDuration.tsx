@@ -1,7 +1,7 @@
 import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import type {Duration, Unit} from 'sentry/utils/duration/types';
 
-type Format =
+export type Format =
   // example: `3,600`
   | 'count-locale'
   // example: `86400`
