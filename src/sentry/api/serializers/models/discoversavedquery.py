@@ -36,6 +36,7 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     topEvents: int
     interval: str
     exploreQuery: dict
+    lastVisited: str
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
@@ -49,7 +50,6 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     dateCreated: str
     dateUpdated: str
     createdBy: UserSerializerResponse
-    lastVisited: str
 
 
 @register(DiscoverSavedQuery)
@@ -157,10 +157,6 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                 result[discover_saved_query]["user_last_visited"] = user_last_visited.get(
                     discover_saved_query.id
                 )
-            else:
-                result[discover_saved_query]["user_last_visited"] = (
-                    discover_saved_query.last_visited
-                )
 
         return result
 
@@ -193,8 +189,10 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,
             "createdBy": attrs.get("created_by"),
-            "lastVisited": attrs.get("user_last_visited") or obj.last_visited,
         }
+
+        if "user_last_visited" in attrs:
+            data["lastVisited"] = attrs["user_last_visited"]
 
         for key in query_keys:
             if obj.query.get(key) is not None:
