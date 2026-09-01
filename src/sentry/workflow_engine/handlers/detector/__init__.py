@@ -4,6 +4,7 @@ __all__ = [
     "DataPacketEvaluationResultType",
     "DataPacketEvaluationType",
     "DataPacketType",
+    "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
     "GroupedDetectorEvaluationResult",
@@ -16,6 +17,7 @@ from .base import (
     DataPacketEvaluationResultType,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
