@@ -3897,9 +3897,32 @@ export function prettifyTagKey(key: string): string {
   return result?.[1] ?? key;
 }
 
+const ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY = new Map<string, readonly string[]>();
+
+function getAttributeValueFromDeprecationChain(
+  attributes: Record<string, unknown>,
+  deprecationChain: readonly string[]
+): unknown {
+  for (const candidateKey of deprecationChain) {
+    if (Object.hasOwn(attributes, candidateKey)) {
+      return attributes[candidateKey];
+    }
+  }
+
+  return undefined;
+}
+
 export function getAttributeValue(attributes: unknown, key: string): unknown {
   if (typeof attributes !== 'object' || attributes === null) {
     return undefined;
+  }
+
+  const deprecationChain = ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.get(key);
+  if (deprecationChain) {
+    return getAttributeValueFromDeprecationChain(
+      attributes as Record<string, unknown>,
+      deprecationChain
+    );
   }
 
   const metadata =
@@ -3912,11 +3935,9 @@ export function getAttributeValue(attributes: unknown, key: string): unknown {
     return undefined;
   }
 
-  for (const candidateKey of metadata.deprecationChain) {
-    if (Object.hasOwn(attributes, candidateKey)) {
-      return (attributes as Record<string, unknown>)[candidateKey];
-    }
-  }
-
-  return undefined;
+  ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(key, metadata.deprecationChain);
+  return getAttributeValueFromDeprecationChain(
+    attributes as Record<string, unknown>,
+    metadata.deprecationChain
+  );
 }
