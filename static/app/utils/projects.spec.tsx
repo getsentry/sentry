@@ -462,7 +462,7 @@ describe('utils.projects', () => {
       );
     });
 
-    it('queries API for more projects and replaces results', async () => {
+    it('does not duplicate projects when search is repeated', async () => {
       const myRenderer = jest.fn(({onSearch}) => (
         <input onChange={({target}) => onSearch(target.value)} />
       ));
