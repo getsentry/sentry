@@ -126,24 +126,11 @@ export const ImageColumn = memo(function ImageColumnImpl({
   src,
   alt,
   image,
-  overlayColor,
-  overlayOpacity,
-  diffImageKey,
-  diffImageBaseUrl,
 }: {
   alt: string;
   image: SnapshotImage;
   src: string;
-  diffImageBaseUrl?: string;
-  diffImageKey?: string | null;
-  overlayColor?: string;
-  overlayOpacity?: number;
 }) {
-  const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
-  const diffMaskUrl =
-    hasVisibleOverlay && diffImageKey && diffImageBaseUrl
-      ? `${diffImageBaseUrl}${diffImageKey}/`
-      : null;
   return (
     <Stack minWidth="0">
       <Flex justify="center">
@@ -152,16 +139,7 @@ export const ImageColumn = memo(function ImageColumnImpl({
           alt={alt}
           width={image.width || undefined}
           height={image.height || undefined}
-        >
-          {diffMaskUrl && (
-            <DiffOverlay
-              $overlayColor={overlayColor!}
-              $opacity={overlayOpacity}
-              $maskUrl={diffMaskUrl}
-              $maskSize="100% 100%"
-            />
-          )}
-        </LazyImage>
+        />
       </Flex>
     </Stack>
   );

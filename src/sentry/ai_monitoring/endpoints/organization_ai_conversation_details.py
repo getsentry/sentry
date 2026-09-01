@@ -8,7 +8,6 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -103,9 +102,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization, conversation_id: str) -> Response:
-        if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:

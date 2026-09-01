@@ -544,8 +544,7 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    # TODO: we want to support bash tools under the autofix-rca-in-seer feature
-    use_seer_rca_feature = not enable_bash_tools and features.has(
+    use_seer_rca_feature = features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
     if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:

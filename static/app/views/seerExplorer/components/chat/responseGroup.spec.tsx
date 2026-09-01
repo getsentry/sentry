@@ -114,8 +114,10 @@ describe('ResponseGroup', () => {
       organization,
     });
 
-    // One consolidated reasoning toggle for the whole response, titled by the latest activity.
-    expect(screen.getByRole('button', {name: /Queried spans/})).toBeInTheDocument();
+    // One consolidated reasoning toggle for the whole response.
+    expect(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    ).toBeInTheDocument();
     // The final answer is hoisted out of the collapsible reasoning.
     expect(screen.getByText('The final answer')).toBeInTheDocument();
   });
@@ -133,7 +135,9 @@ describe('ResponseGroup', () => {
     // A completed response's reasoning starts collapsed, so the thinking prose is hidden.
     expect(screen.getByText('my private reasoning')).not.toBeVisible();
 
-    await userEvent.click(screen.getByRole('button', {name: /Queried spans/}));
+    await userEvent.click(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    );
 
     expect(screen.getByText('my private reasoning')).toBeVisible();
   });
@@ -146,7 +150,7 @@ describe('ResponseGroup', () => {
     });
 
     expect(
-      screen.queryByRole('button', {name: /Thinking|Queried/})
+      screen.queryByRole('button', {name: /See thinking and tool calls/})
     ).not.toBeInTheDocument();
     expect(screen.getByText('Just an answer')).toBeInTheDocument();
   });
@@ -162,7 +166,9 @@ describe('ResponseGroup', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('button', {name: /Queried spans/}));
+    await userEvent.click(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    );
 
     expect(screen.queryByText('my private reasoning')).not.toBeInTheDocument();
     // The tool call row still renders (as its own link), just without the reasoning prose.

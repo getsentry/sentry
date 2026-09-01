@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry import nodestore
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
 from sentry.issue_detection.detectors.span_first.span_first_utils import (
@@ -17,15 +18,27 @@ from sentry.issue_detection.performance_detection import (
     detect_performance_problems,
     get_detection_settings,
 )
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.services.eventstore.models import Event
 from sentry.spans.consumers.process_segments import message as message_module
 from sentry.spans.consumers.process_segments.message import (
+    EVIDENCE_SPAN_DATA_KEYS,
+    MAX_EVIDENCE_LIST_ITEMS,
+    MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_SPAN_DATA_VALUE_LENGTH,
+    MAX_SPAN_DESCRIPTION_LENGTH,
+    OVERALL_MAX_EVIDENCE_SPANS,
     _bump_release_last_seen,
+    _get_evidence_data_for_occurrence,
+    _get_evidence_span_for_occurrence,
+    _truncate_value_for_occurrence,
     _verify_compatibility,
     process_segment,
 )
@@ -36,6 +49,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
@@ -266,6 +280,23 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
+
+        # Ensure the spans are present so the issue can render evidence.
+        event = mock_eventstream.call_args[0][0]
+        assert event.get_event_type() == "generic"
+
+        stored = nodestore.backend.get(Event.generate_node_id(self.project.id, event.event_id))
+        assert stored is not None
+
+        evidence = performance_problem.evidence_data
+        referenced = {
+            *evidence["parent_span_ids"],
+            *evidence["cause_span_ids"],
+            *evidence["offender_span_ids"],
+        }
+        assert {span["span_id"] for span in stored["spans"]} == referenced
+        assert len(referenced) < len(spans)
+        assert "attributes" not in stored["spans"][0]
 
     @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
@@ -560,6 +591,135 @@ def test_verify_compatibility() -> None:
     result = _verify_compatibility(spans)
     assert len(result) == len(spans)
     assert [v is None for v in result] == [True, True, False, False, False, False, False]
+
+
+def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
+    span = _get_evidence_span_for_occurrence(
+        {
+            "span_id": "a" * 16,
+            "trace_id": "t" * 32,
+            "op": "db",
+            "hash": "abcdef0123456789",
+            "description": "S" * (MAX_SPAN_DESCRIPTION_LENGTH * 2),
+            "data": {
+                "code.filepath": "F" * (MAX_SPAN_DATA_VALUE_LENGTH * 2),
+                "code.lineno": 42,  # non-strings pass through untouched
+                "db.system": "postgresql",  # not in the allowlist
+                # The span schema allows any attribute to be an array or an object, so an
+                # allowlisted key is not guaranteed to hold a scalar.
+                "url": ["U" * (MAX_SPAN_DATA_VALUE_LENGTH * 2)] * (MAX_EVIDENCE_LIST_ITEMS * 2),
+            },
+            "attributes": {"sentry.description": {"value": "S" * 10000}},
+        }
+    )
+
+    assert len(span["description"]) == MAX_SPAN_DESCRIPTION_LENGTH
+    assert len(span["data"]["code.filepath"]) == MAX_SPAN_DATA_VALUE_LENGTH
+    assert span["data"]["code.lineno"] == 42
+    assert "db.system" not in span["data"]
+    assert len(span["data"]["url"]) == MAX_EVIDENCE_LIST_ITEMS
+    assert {len(v) for v in span["data"]["url"]} == {MAX_SPAN_DATA_VALUE_LENGTH}
+    assert span["trace_id"] == "t" * 32
+    # Raw `attributes` forms the bulk of a span's size and must not reach the occurrence
+    assert "attributes" not in span
+
+
+def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> None:
+    bounded = _truncate_value_for_occurrence(
+        {
+            "repeating_spans": ["x" * 5000] * 500,
+            "span_evidence_key_value": [
+                {"key": "Parallelizable Spans", "value": ["y" * 5000] * 500},
+            ],
+            "transaction_name": "z" * 5000,
+            "num_repeating_spans": "500",
+            "pattern_size": 3,
+            "detector_id": None,
+        },
+        MAX_EVIDENCE_VALUE_LENGTH,
+    )
+
+    assert len(bounded["repeating_spans"]) == MAX_EVIDENCE_LIST_ITEMS
+    assert {len(v) for v in bounded["repeating_spans"]} == {MAX_EVIDENCE_VALUE_LENGTH}
+    nested = bounded["span_evidence_key_value"][0]["value"]
+    assert len(nested) == MAX_EVIDENCE_LIST_ITEMS
+    assert {len(v) for v in nested} == {MAX_EVIDENCE_VALUE_LENGTH}
+    assert len(bounded["transaction_name"]) == MAX_EVIDENCE_VALUE_LENGTH
+    # Counts, sizes and ids are not display strings and must survive intact.
+    assert bounded["num_repeating_spans"] == "500"
+    assert bounded["pattern_size"] == 3
+    assert bounded["detector_id"] is None
+
+
+def test_evidence_stays_under_the_producer_message_limit() -> None:
+    producer_message_limit = 1_000_000
+    query = "SELECT " + "x" * 10_000  # a pathological ORM query
+
+    # A segment where every span is huge, and evidence pointing at far more spans than the cap.
+    segment = {
+        f"{i:016x}": {
+            "span_id": f"{i:016x}",
+            "op": "db",
+            "description": query,
+            "start_timestamp": 1707953018.0 + i,
+            "timestamp": 1707953019.0 + i,
+            "exclusive_time": 12.5,
+            "hash": "abcdef0123456789",
+            "data": {key: "V" * 10_000 for key in EVIDENCE_SPAN_DATA_KEYS},
+        }
+        for i in range(400)
+    }
+    span_ids = list(segment)
+
+    # Consecutive-DB/MN+1 shape: the cause list is a superset of the offenders, and the detector
+    # hangs a full description per span off `evidence_data`.
+    problem = PerformanceProblem(
+        fingerprint="a" * 32,
+        op="db",
+        desc=query,
+        type=PerformanceNPlusOneGroupType,
+        parent_span_ids=[],
+        cause_span_ids=span_ids,
+        offender_span_ids=span_ids[:200],
+        evidence_data={
+            "op": "db",
+            "transaction_name": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
+            "span_evidence_key_value": [
+                {"key": "Starting Span", "value": query},
+                {"key": "Parallelizable Spans", "value": [query] * 200, "is_multi_value": True},
+            ],
+            "repeating_spans": [query] * 200,
+            "repeating_spans_compact": [query] * 200,
+            "num_repeating_spans": "200",
+        },
+        evidence_display=[IssueEvidence("Offending Spans", f"db - {query}", True)],
+    )
+
+    evidence_data = _get_evidence_data_for_occurrence(problem, segment)
+    kept_ids = dict.fromkeys(
+        (
+            *evidence_data["parent_span_ids"],
+            *evidence_data["cause_span_ids"],
+            *evidence_data["offender_span_ids"],
+        )
+    )
+    # Everything the caps govern, sized the way the producer serializes it.
+    bounded = {
+        "subtitle": _truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
+        "evidence_data": evidence_data,
+        "evidence_display": [
+            IssueEvidence(
+                e.name,
+                _truncate_value_for_occurrence(e.value, MAX_EVIDENCE_VALUE_LENGTH),
+                e.important,
+            ).to_dict()
+            for e in problem.evidence_display
+        ],
+        "spans": [_get_evidence_span_for_occurrence(segment[span_id]) for span_id in kept_ids],
+    }
+
+    assert len(bounded["spans"]) <= OVERALL_MAX_EVIDENCE_SPANS
+    assert len(json.dumps(bounded).encode("utf-8")) < producer_message_limit
 
 
 @exclude_experimental_detectors
