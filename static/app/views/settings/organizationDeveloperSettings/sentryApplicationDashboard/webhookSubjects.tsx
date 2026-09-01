@@ -82,7 +82,9 @@ export function WebhookSubject({
   if (!disableLink && isInternal && spec?.getUrl) {
     return (
       <SubjectLink to={spec.getUrl(subjectId, organization)}>
-        <Text ellipsis>{content}</Text>
+        <Text ellipsis variant="inherit">
+          {content}
+        </Text>
       </SubjectLink>
     );
   }
