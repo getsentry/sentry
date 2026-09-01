@@ -185,7 +185,9 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         if request.query_params.get("all") == "1":
             saved_queries = list(queryset.all())
             return Response(
-                serialize(saved_queries, serializer=DiscoverSavedQueryModelSerializer()),
+                serialize(
+                    saved_queries, request.user, serializer=DiscoverSavedQueryModelSerializer()
+                ),
                 status=200,
             )
 
