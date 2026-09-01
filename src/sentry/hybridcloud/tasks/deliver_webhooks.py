@@ -368,6 +368,22 @@ class _MailboxClaim:
         logger.info("deliver_webhook.deadline_release", extra={**extra, "released": released})
         return released
 
+    def record_cap_headroom(self) -> None:
+        """
+        Record how long this claim could still have delivered for when it ran out
+        of records to deliver — the delivery time MAX_MAILBOX_DRAIN cost us.
+
+        Only meaningful for a claim that filled the cap: a claim that took fewer
+        records took every record the mailbox had due, so its leftover window
+        measures the mailbox's depth rather than the cap's.
+        """
+        headroom = (self.valid_until - RELEASE_MARGIN - timezone.now()).total_seconds()
+        metrics.incr(
+            "hybridcloud.deliver_webhooks.drain.cap_headroom_seconds",
+            amount=max(int(headroom), 0),
+            tags=self.delivery_tags,
+        )
+
     def records(self) -> list[WebhookPayload] | None:
         """
         The records this drain may deliver, or None when it must stand down: its
@@ -1101,6 +1117,8 @@ def _drain_mailbox(claim: _MailboxClaim) -> bool:
                 # A claim at the cap saw nothing but due records and stopped at
                 # the boundary, so the prefix likely continues past it.
                 chain = pool.failed == 0 and len(records) == MAX_MAILBOX_DRAIN
+                if chain:
+                    claim.record_cap_headroom()
                 break
             if not pool.wait_one():
                 # Every request in flight has outrun REQUEST_BOUND: the cell is

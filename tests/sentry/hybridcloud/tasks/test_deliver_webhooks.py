@@ -51,6 +51,7 @@ DELIVERY_METRIC = "hybridcloud.deliver_webhooks.delivery"
 DELIVERY_TIME_METRIC = "hybridcloud.deliver_webhooks.delivery_time_ms"
 DISPATCH_METRIC = "hybridcloud.deliver_webhooks.dispatch"
 DISPATCH_CLAIMED_METRIC = "hybridcloud.deliver_webhooks.dispatch.claimed"
+CAP_HEADROOM_METRIC = "hybridcloud.deliver_webhooks.drain.cap_headroom_seconds"
 PUSH_TRIGGER_ERROR_METRIC = "hybridcloud.deliver_webhooks.push_trigger.error"
 SCHEDULER_SKIPPED_METRIC = "hybridcloud.deliver_webhooks.scheduler.skipped"
 DUE_ROWS_METRIC = "hybridcloud.schedule_webhook_delivery.due_rows"
@@ -67,6 +68,14 @@ class MetricCallsMixin:
     def tags_for(self, mock_metrics: MagicMock, metric: str) -> list[dict[str, str]]:
         """Tags of each `metrics.incr` call for `metric`, in call order."""
         return [c[1].get("tags", {}) for c in mock_metrics.incr.call_args_list if c[0][0] == metric]
+
+    def incr_calls(self, mock_metrics: MagicMock, metric: str) -> list[tuple[int, dict[str, str]]]:
+        """`(amount, tags)` of each `metrics.incr` call for `metric`, in call order."""
+        return [
+            (c[1].get("amount", 1), c[1].get("tags", {}))
+            for c in mock_metrics.incr.call_args_list
+            if c[0][0] == metric
+        ]
 
     def distribution_calls(
         self, mock_metrics: MagicMock, metric: str
@@ -1008,7 +1017,7 @@ def assert_drain_skips_failed_message(provider: str) -> None:
 
 
 @control_silo_test
-class DrainMailboxTest(TestCase):
+class DrainMailboxTest(MetricCallsMixin, TestCase):
     @responses.activate
     def test_drain_missing_payload(self) -> None:
         drain_mailbox(99, claimed_count=MAX_MAILBOX_DRAIN)
@@ -1065,6 +1074,41 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 5
         remaining = set(WebhookPayload.objects.values_list("id", flat=True))
         assert remaining == {records[5].id, records[6].id, records[7].id}
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch.object(deliver_webhooks, "MAX_MAILBOX_DRAIN", 3)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_claim_at_the_cap_records_its_unused_window(self, mock_metrics: MagicMock) -> None:
+        # The cap ended this drain with a minute of delivery time unspent: rows
+        # the mailbox still holds could have gone out under this claim.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(4, "github:123", provider="github")
+        valid_until = timezone.now() + RELEASE_MARGIN + timedelta(seconds=60)
+
+        drain_mailbox(records[0].id, claimed_count=3, valid_until=valid_until.timestamp())
+
+        assert len(responses.calls) == 3
+        ((amount, tags),) = self.incr_calls(mock_metrics, CAP_HEADROOM_METRIC)
+        assert tags == {**UNATTRIBUTED, "provider": "github"}
+        # Mocked deliveries take milliseconds, leaving the window all but whole.
+        assert 55 <= amount <= 60
+
+    @responses.activate
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_claim_below_the_cap_records_no_unused_window(self, mock_metrics: MagicMock) -> None:
+        # A claim the cap never bound took every record that was due, so its
+        # leftover window measures the mailbox's depth rather than the cap's cost.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(4, "github:123", provider="github")
+
+        drain_mailbox(records[0].id, claimed_count=3, valid_until=fresh_deadline())
+
+        assert len(responses.calls) == 3
+        assert self.incr_calls(mock_metrics, CAP_HEADROOM_METRIC) == []
 
     @responses.activate
     @override_cells(cell_config)
