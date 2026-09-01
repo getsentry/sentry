@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from time import monotonic
 
 from django.db.models import F, Func, Value
@@ -17,6 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import debug_files_migration_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +33,24 @@ def enqueue_shard(
     num_shards: int,
     cursor: int,
 ) -> None:
-    delivery = migrate_shard.apply_async_with_future(
-        kwargs={
-            "shard_id": shard_id,
-            "num_shards": num_shards,
-            "cursor": cursor,
-        },
-        headers={"sentry-propagate-traces": False},
+    def enqueue() -> None:
+        delivery = migrate_shard.apply_async_with_future(
+            kwargs={
+                "shard_id": shard_id,
+                "num_shards": num_shards,
+                "cursor": cursor,
+            },
+            headers={"sentry-propagate-traces": False},
+        )
+        if delivery is not None:
+            delivery.result()
+
+    base_delay = exponential_delay(2)
+    policy = ConditionalRetryPolicy(
+        test_function=lambda attempt_number, _: attempt_number <= 2,
+        delay_function=lambda n: random.uniform(base_delay(n), base_delay(n) * 2),
     )
-    if delivery is not None:
-        delivery.result()
+    policy(enqueue)
 
 
 @instrumented_task(
