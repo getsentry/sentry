@@ -52,6 +52,16 @@ describe('getAttributeValue', () => {
     ).toBe('GET');
   });
 
+  it('prettifies explicit typed tag keys in attribute records', () => {
+    expect(
+      getAttributeValue(
+        {'tags[http.status_code,number]': 200},
+        'http.response.status_code',
+        'number'
+      )
+    ).toBe(200);
+  });
+
   it.each([['GET'], [200], [false], [['GET', 'POST']], [[200, 201]], [[true, false]]])(
     'returns a supported attribute value: %p',
     value => {

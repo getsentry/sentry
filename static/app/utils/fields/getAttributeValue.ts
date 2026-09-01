@@ -103,10 +103,15 @@ function getAttributeValueFromDeprecationChain(
       }
       value = attribute.value;
     } else {
-      if (!Object.hasOwn(attributes, candidateKey)) {
+      const attributeKey = Object.hasOwn(attributes, candidateKey)
+        ? candidateKey
+        : Object.keys(attributes).find(
+            key => prettifyAttributeName(key) === candidateKey
+          );
+      if (attributeKey === undefined) {
         continue;
       }
-      value = attributes[candidateKey];
+      value = attributes[attributeKey];
     }
 
     return isAttributeValue(value) &&
@@ -123,9 +128,9 @@ function getAttributeValueFromDeprecationChain(
  * metadata order. Attribute metadata lookups, including misses, are cached.
  *
  * Attributes may be a name-to-value record or an array of `{name, value}` entries.
- * For entry arrays, exact names take precedence over normalized typed or prefixed
- * names. The optional `kind` argument narrows the return type and validates the
- * value at runtime; a missing key or mismatched value returns `undefined`.
+ * Exact names take precedence over normalized typed or prefixed names. The optional
+ * `kind` argument narrows the return type and validates the value at runtime; a
+ * missing key or mismatched value returns `undefined`.
  *
  * @example Resolve a deprecated key from a record:
  * ```ts
