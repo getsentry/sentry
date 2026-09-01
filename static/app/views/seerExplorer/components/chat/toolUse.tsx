@@ -448,10 +448,14 @@ export function ToolCallList({block, blocks, getPageReferrer}: ToolCallListProps
           kind: 'note' as const,
           llm_description: message,
         }));
+        // Progress describes work in flight, so it is stale the moment the call reports back —
+        // seer clears it then, but an older seer or a failed clear must not leave narration
+        // rendering as settled rows, least of all when a finished session is replayed.
+        const inFlight = callsAreSettled ? [] : inFlightRows;
         const rowSource = finishedCalls.length
           ? finishedCalls
-          : inFlightRows.length
-            ? inFlightRows
+          : inFlight.length
+            ? inFlight
             : live;
         const callRows = visibleCallRecords(rowSource)
           .map(record => {

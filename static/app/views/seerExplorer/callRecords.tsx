@@ -27,7 +27,9 @@ export function callRecordLabel(record: CallRecord): string | null {
  * id reads worse. Reported rather than dropped: a vanishing record is how an endpoint disappears.
  */
 export function fallbackCallLabel(record: CallRecord): string {
-  return record.kind === 'api' ? t('Sentry API request') : t('Working…');
+  // A noun, not a progressive verb: the row may well have settled, and a lib method that reached
+  // here has no title at all — `Working…` would leave it reading as still running forever.
+  return record.kind === 'api' ? t('Sentry API request') : t('Sentry operation');
 }
 
 /**
