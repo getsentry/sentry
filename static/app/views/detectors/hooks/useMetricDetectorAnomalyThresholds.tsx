@@ -105,8 +105,10 @@ export function useMetricDetectorAnomalyThresholds({
       const anomalyPoint = anomalyMap.get(timestamp);
 
       if (anomalyPoint) {
-        upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
-        lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
+        // Keep fractional bounds (e.g. CLS ~0.004). Integer rounding collapses
+        // small values to 0 and makes the chart tooltip show "Upper Threshold: 0".
+        upperBoundData.push([timestamp, anomalyPoint.yhat_upper]);
+        lowerBoundData.push([timestamp, anomalyPoint.yhat_lower]);
       }
     });
 
