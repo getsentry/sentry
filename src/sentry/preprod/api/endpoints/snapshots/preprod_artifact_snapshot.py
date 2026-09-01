@@ -56,6 +56,7 @@ from sentry.preprod.api.models.snapshots.snapshot_status import (
     SnapshotStatusInput,
     derive_snapshot_status,
 )
+from sentry.preprod.api.renderers import OrjsonRenderer
 from sentry.preprod.api.schemas import VCS_ERROR_MESSAGES, VCS_SCHEMA_PROPERTIES
 from sentry.preprod.helpers.deletion import delete_artifacts_and_eap_data
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
@@ -197,6 +198,7 @@ def _format_pydantic_error(e: pydantic.ValidationError) -> str:
 @cell_silo_endpoint
 class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
+    renderer_classes = [OrjsonRenderer]
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
