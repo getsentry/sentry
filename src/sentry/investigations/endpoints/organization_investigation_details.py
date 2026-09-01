@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
     service_error,
+    user_id,
 )
 from sentry.investigations.endpoints.serializers import InvestigationDetailsSerializer
 from sentry.investigations.endpoints.validators import (
@@ -18,7 +19,10 @@ from sentry.investigations.endpoints.validators import (
     InvestigationUpdateValidator,
 )
 from sentry.investigations.models import Investigation, InvestigationStatus
-from sentry.investigations.services import archive_investigation, update_investigation
+from sentry.investigations.services import (
+    archive_investigation_with_orchestration,
+    update_investigation_with_orchestration,
+)
 from sentry.models.organization import Organization
 
 
@@ -76,8 +80,10 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             try:
-                archived = archive_investigation(
-                    investigation=investigation, expected_version=expected_version
+                archived = archive_investigation_with_orchestration(
+                    investigation=investigation,
+                    expected_version=expected_version,
+                    actor_id=user_id(request),
                 )
             except Exception as error:
                 response = service_error(error)
@@ -92,7 +98,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 )
             )
         try:
-            updated = update_investigation(
+            updated = update_investigation_with_orchestration(
                 investigation=investigation,
                 expected_version=expected_version,
                 fields=values,
@@ -118,9 +124,10 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
-            archive_investigation(
+            archive_investigation_with_orchestration(
                 investigation=investigation,
                 expected_version=validator.validated_data["investigation_version"],
+                actor_id=user_id(request),
             )
         except Exception as error:
             response = service_error(error)
