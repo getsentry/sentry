@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import uuid4
 
+import pytest
 from rest_framework import serializers
 
 from sentry.investigations.endpoints.validators import (
     InvestigationCreateValidator,
+    InvestigationOrchestrationCommandValidator,
     InvestigationUpdateValidator,
 )
 
@@ -229,3 +232,146 @@ class TestInvestigationUpdateValidator:
 
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
+
+
+class TestInvestigationOrchestrationCommandValidator:
+    @pytest.mark.parametrize(
+        "command",
+        [
+            {"type": "provide_input", "prompt": "Investigate latency"},
+            {"type": "add_hypothesis", "statement": "A release caused the regression"},
+            {
+                "type": "set_hypothesis_disposition",
+                "hypothesisId": "hypothesis-1",
+                "disposition": "accepted",
+            },
+            {
+                "type": "steer",
+                "target": "block",
+                "targetId": "block-1",
+                "instruction": "Focus on the latest release",
+            },
+            {"type": "retry", "target": "hypothesis", "targetId": "hypothesis-1"},
+            {"type": "cancel", "reason": "No longer needed"},
+        ],
+    )
+    def test_accepts_each_supported_command(self, command: dict[str, Any]) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": command,
+            }
+        )
+
+        assert validator.is_valid(), validator.errors
+
+    def test_normalizes_a_discriminated_command(self) -> None:
+        request_id = uuid4()
+        data = assert_valid(
+            InvestigationOrchestrationCommandValidator(
+                data={
+                    "requestId": str(request_id),
+                    "expectedWorkflowVersion": 3,
+                    "command": {
+                        "type": "set_hypothesis_disposition",
+                        "hypothesisId": "hypothesis-1",
+                        "disposition": None,
+                    },
+                }
+            )
+        )
+
+        assert data == {
+            "request_id": request_id,
+            "expected_workflow_version": 3,
+            # The command payload is a wire object bound for Seer, so its keys
+            # survive untouched while the envelope is snake_cased.
+            "command": {
+                "type": "set_hypothesis_disposition",
+                "hypothesisId": "hypothesis-1",
+                "disposition": None,
+            },
+        }
+
+    def test_rejects_unknown_nested_fields(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel", "unexpected": True},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
+
+    def test_provide_input_requires_at_least_one_value(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "provide_input"},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
+
+    def test_rejects_a_naive_provide_input_time_range(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {
+                    "type": "provide_input",
+                    "timeRange": {
+                        "start": "2025-01-01T00:00:00",
+                        "end": "2025-01-01T01:00:00",
+                    },
+                },
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
+
+    def test_targeted_commands_require_their_target_id(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {
+                    "type": "steer",
+                    "target": "hypothesis",
+                    "instruction": "Check the region split",
+                },
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
+
+    def test_rejects_an_invalid_target(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "retry", "target": "block"},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
+
+    def test_rejects_oversized_command_content(self) -> None:
+        validator = InvestigationOrchestrationCommandValidator(
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "add_hypothesis", "statement": "x" * 301},
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "command" in validator.errors
