@@ -34,7 +34,7 @@ from sentry.issue_detection.performance_detection import (
     get_detection_settings,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.environment import Environment
@@ -447,25 +447,50 @@ def _run_legacy_detectors(
     ):
         return detected_problems
 
-    # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
-    # by the consumer. Once issue detectors can run on standalone spans, we should directly
-    # build a minimal occurrence event payload here, instead.
-    event_data["spans"] = []
-    event_data["timestamp"] = event_data["datetime"]
-
+    # Produce an occurrence for each problem, first filtering and trimming data to stay within the
+    # occurrence consumer's limits
+    spans_by_id = {span["span_id"]: span for span in event_data["spans"]}
     for problem in detected_problems:
+        evidence_display = [
+            IssueEvidence(
+                evidence.name,
+                _truncate_value_for_occurrence(evidence.value, MAX_EVIDENCE_VALUE_LENGTH),
+                evidence.important,
+            )
+            for evidence in problem.evidence_display
+        ]
+        evidence_data = _get_evidence_data_for_occurrence(problem, spans_by_id)
+
+        occurrence_id = uuid.uuid4().hex
+        occurrence_spans = [
+            _get_evidence_span_for_occurrence(spans_by_id[id])
+            # We use `dict.fromkeys` here to preserve ordering
+            for id in dict.fromkeys(
+                (
+                    *evidence_data["parent_span_ids"],
+                    *evidence_data["cause_span_ids"],
+                    *evidence_data["offender_span_ids"],
+                )
+            )
+        ]
+        occurrence_event_data = {
+            **event_data,
+            "event_id": occurrence_id,
+            "spans": occurrence_spans,
+        }
+
         occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
+            id=occurrence_id,
             resource_id=None,
             project_id=project.id,
-            event_id=event_data["event_id"],
+            event_id=occurrence_id,
             fingerprint=[problem.fingerprint],
             type=problem.type,
             issue_title=problem.title,
-            subtitle=problem.desc,
+            subtitle=_truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
             culprit=event_data["transaction"],
-            evidence_data=problem.evidence_data or {},
-            evidence_display=problem.evidence_display,
+            evidence_data=evidence_data,
+            evidence_display=evidence_display,
             detection_time=to_datetime(segment_span["end_timestamp"]),
             level="info",
         )
@@ -473,7 +498,7 @@ def _run_legacy_detectors(
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
-            event_data=event_data,
+            event_data=occurrence_event_data,
         )
 
     return detected_problems
