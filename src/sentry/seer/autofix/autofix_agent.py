@@ -511,6 +511,7 @@ def trigger_autofix_agent(
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
     allow_free_cohort: bool = False,
+    skip_quota: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -522,14 +523,16 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by night shift to bypass
             quota for free cohort orgs. Not exposed via the API.
+        skip_quota: Do not record SEER_AUTOFIX usage after a new run starts.
+            The availability check still applies.
     """
     # check billing quota for triggering a new autofix run
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
-        skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
-        if not skip_quota:
+        skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
+        if not skip_quota_check:
             has_budget: bool = quotas.backend.check_seer_quota(
                 org_id=group.organization.id,
                 data_category=DataCategory.SEER_AUTOFIX,
@@ -669,10 +672,11 @@ def trigger_autofix_agent(
         )
         run_id = run.seer_run_state_id
 
-        # Make sure to log billing event for seer autofix whenever a new run is started
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
+        if not skip_quota:
+            # Make sure to log billing event for seer autofix whenever a new run is started
+            quotas.backend.record_seer_run(
+                group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+            )
     else:
         run = client.continue_run(
             run_id=run_id,
