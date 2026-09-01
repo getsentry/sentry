@@ -576,10 +576,12 @@ def test_deobfuscate_exception_value_without_type() -> None:
         pytest.param("aBc<xYz>", "CheckoutBloc<Foo>", id="generic"),
         pytest.param("aBc<xYz, qWe>", "CheckoutBloc<Foo, Bar>", id="multi argument generic"),
         pytest.param("aBc<aBc<xYz>>", "CheckoutBloc<CheckoutBloc<Foo>>", id="nested generic"),
-        pytest.param("a.er.aBc", "A.SemanticsAction.CheckoutBloc", id="dotted segments"),
+        pytest.param("a.er.aBc", "a.er.CheckoutBloc", id="dotted segments"),
         pytest.param("_aBc", "_CheckoutBloc", id="leading underscore"),
         pytest.param("_$aBcImpl", "_$CheckoutBlocImpl", id="generated identifier"),
-        pytest.param("a er area", "A SemanticsAction area", id="short whole tokens"),
+        pytest.param("a er area", "a er area", id="short tokens are left alone"),
+        pytest.param("Error in aBc", "Error in CheckoutBloc", id="short word not remapped"),
+        pytest.param("er", "SemanticsAction", id="short type still matches as a whole"),
         pytest.param("Error", "Error", id="no substring match inside longer token"),
         pytest.param("aBcaBc", "aBcaBc", id="no partial match"),
         pytest.param("nope", "nope", id="missing key"),
@@ -634,6 +636,7 @@ def test_deobfuscate_exception_type_compound() -> None:
                 {"type": "aBc", "value": "boom"},
                 {"type": "_NativeInteger", "value": "boom"},
                 {"type": "Bloc nope", "value": "boom"},
+                {"type": "Bloc er", "value": "Instance of 'er'"},
                 {"type": 12345, "value": "boom"},
             ]
         },
@@ -670,9 +673,14 @@ def test_deobfuscate_exception_type_compound() -> None:
     assert exceptions[3]["type"] == "Bloc nope"
     assert "raw_type" not in exceptions[3]
 
-    # Non-string types are ignored
-    assert exceptions[4]["type"] == 12345
+    # Short tokens are too ambiguous to remap, but the value pattern is still exact
+    assert exceptions[4]["type"] == "Bloc er"
     assert "raw_type" not in exceptions[4]
+    assert exceptions[4]["value"] == "Instance of 'SemanticsAction'"
+
+    # Non-string types are ignored
+    assert exceptions[5]["type"] == 12345
+    assert "raw_type" not in exceptions[5]
 
 
 def test_deobfuscate_exception_type_compound_killswitch() -> None:

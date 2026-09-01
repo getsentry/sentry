@@ -26,6 +26,13 @@ INSTANCE_OF_VALUE_RE = re.compile(r"Instance of '([^']+)'")
 # Everything else is a delimiter and is preserved byte-for-byte.
 IDENTIFIER_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
 
+# A symbol map covers the Flutter framework as well as the app, which is large enough
+# to exhaust the one and two character name space the obfuscator allocates from. Every
+# short word is therefore a key, and remapping one inside a compound type turns
+# "Error in aBc" into an unrelated framework class. Only the token fallback below is
+# affected: a short type on its own still deobfuscates through the complete-type lookup.
+MIN_REMAPPABLE_TOKEN_LENGTH = 3
+
 
 def remap_exception_type(exception_type: str, symbol_map: Mapping[str, str]) -> str:
     """
@@ -43,10 +50,13 @@ def remap_exception_type(exception_type: str, symbol_map: Mapping[str, str]) -> 
     if mapped_type:
         return mapped_type
 
-    return IDENTIFIER_RE.sub(
-        lambda match: symbol_map.get(match.group(0)) or match.group(0),
-        exception_type,
-    )
+    def remap_token(match: re.Match[str]) -> str:
+        token = match.group(0)
+        if len(token) < MIN_REMAPPABLE_TOKEN_LENGTH:
+            return token
+        return symbol_map.get(token) or token
+
+    return IDENTIFIER_RE.sub(remap_token, exception_type)
 
 
 def get_debug_meta_image_ids(event: dict[str, Any]) -> set[str]:
