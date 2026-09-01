@@ -103,7 +103,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
           </Text>
         }
       >
-        <Text size="sm" monospace variant="muted" ellipsis display="block">
+        <Text size="sm" monospace variant="muted" ellipsis>
           {isActive ? (
             <span key={baseTitle} ref={titleRef}>
               {baseTitle}
