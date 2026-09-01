@@ -150,6 +150,8 @@ describe('SeerExplorerSidebarLayout', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    // @ts-expect-error - cleaning up the PiP stub
+    delete window.documentPictureInPicture;
   });
 
   it('renders content untouched (no split panel) when the flag is off', async () => {
@@ -249,6 +251,7 @@ describe('SeerExplorerSidebarLayout', () => {
   });
 
   it('changes and persists the dock position via the dropdown', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     mockWideScreen(false); // auto → bottom
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
@@ -267,12 +270,21 @@ describe('SeerExplorerSidebarLayout', () => {
     await waitFor(() =>
       expect(localStorage.getItem(POSITION_KEY)).toBe(JSON.stringify('right'))
     );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'seer.explorer.sidebar.position_changed',
+      expect.objectContaining({
+        position: 'right',
+        browser_width: expect.any(Number),
+        browser_height: expect.any(Number),
+      })
+    );
   });
 
   it('persists Seer size from a divider resize', async () => {
     // Right dock, available width 1200, default Seer 420 → content seeds to 780.
     // Growing the content pane by one keyboard step (ArrowRight, +10 → 790)
     // shrinks Seer to 1200 − 790 = 410, which is what we persist.
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     mockWideScreen(true);
     renderSidebar(orgWithSidebar);
     await userEvent.click(screen.getByText('open-seer'));
@@ -288,6 +300,17 @@ describe('SeerExplorerSidebarLayout', () => {
 
     await waitFor(() =>
       expect(localStorage.getItem('seer-explorer-sidebar-seer-size:right')).toBe('410')
+    );
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'seer.explorer.sidebar.resized',
+      expect.objectContaining({
+        orientation: 'right',
+        // Exact persisted size is 410; analytics buckets to nearest 50px.
+        seer_size: 400,
+        seer_size_percent: 34,
+        browser_width: expect.any(Number),
+        browser_height: expect.any(Number),
+      })
     );
   });
 
@@ -400,6 +423,44 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'seer.explorer.global_panel.opened',
         expect.objectContaining({isDrawer: false})
+      )
+    );
+  });
+
+  it('tracks picture-in-picture open analytics when selecting Windowed', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const requestWindow = jest.fn().mockResolvedValue({
+      document: document.implementation.createHTMLDocument('pip'),
+      close: jest.fn(),
+      focus: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      closed: false,
+    });
+    Object.defineProperty(window, 'documentPictureInPicture', {
+      configurable: true,
+      writable: true,
+      value: {requestWindow, window: null},
+    });
+
+    mockWideScreen(true);
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    const input = await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(input).toHaveFocus());
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+
+    await waitFor(() => expect(requestWindow).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'seer.explorer.sidebar.position_changed',
+        expect.objectContaining({
+          position: 'pip',
+          browser_width: expect.any(Number),
+          browser_height: expect.any(Number),
+        })
       )
     );
   });

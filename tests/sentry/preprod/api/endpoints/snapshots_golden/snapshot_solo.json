@@ -1,0 +1,110 @@
+{
+  "added": [],
+  "added_count": 0,
+  "app_id": "com.example.app",
+  "approval_status": null,
+  "approvers": [],
+  "base_artifact_id": null,
+  "changed": [],
+  "changed_count": 0,
+  "comparison_error_message": null,
+  "comparison_state": null,
+  "comparison_type": "solo",
+  "diff_threshold": 0.2,
+  "errored": [],
+  "errored_count": 0,
+  "head_artifact_id": "<HEAD_ID>",
+  "image_count": 5,
+  "images": [
+    {
+      "canvas_theme": null,
+      "description": null,
+      "diff_threshold": 0.2,
+      "display_name": "Added",
+      "group": null,
+      "height": 20,
+      "image_file_name": "a_added.png",
+      "key": "h_added",
+      "tags": null,
+      "width": 10
+    },
+    {
+      "canvas_theme": "dark",
+      "description": "a description",
+      "diff_threshold": 0.5,
+      "display_name": "Changed",
+      "group": "grp",
+      "height": 40,
+      "image_file_name": "b_changed.png",
+      "key": "h_changed",
+      "tags": {
+        "env": "prod"
+      },
+      "width": 30
+    },
+    {
+      "canvas_theme": null,
+      "custom_extra": "xyz",
+      "description": null,
+      "diff_threshold": 0.2,
+      "display_name": null,
+      "group": null,
+      "height": 60,
+      "image_file_name": "c_unchanged.png",
+      "key": "h_unchanged",
+      "nested_extra": {
+        "k": 1
+      },
+      "tags": {
+        "one": "one",
+        "two": "two"
+      },
+      "width": 50
+    },
+    {
+      "canvas_theme": null,
+      "description": null,
+      "diff_threshold": 0.2,
+      "display_name": "Renamed",
+      "group": null,
+      "height": 80,
+      "image_file_name": "d_renamed.png",
+      "key": "h_renamed",
+      "tags": null,
+      "width": 70
+    },
+    {
+      "canvas_theme": null,
+      "description": null,
+      "diff_threshold": 0.2,
+      "display_name": null,
+      "group": null,
+      "height": 100,
+      "image_file_name": "e_errored.png",
+      "key": "h_errored",
+      "tags": null,
+      "width": 90
+    }
+  ],
+  "is_selective": false,
+  "project_id": "<PROJECT_ID>",
+  "removed": [],
+  "removed_count": 0,
+  "renamed": [],
+  "renamed_count": 0,
+  "skipped": [],
+  "skipped_count": 0,
+  "state": "UPLOADED",
+  "unchanged": [],
+  "unchanged_count": 0,
+  "vcs_info": {
+    "base_ref": null,
+    "base_repo_name": null,
+    "base_sha": null,
+    "head_ref": null,
+    "head_repo_name": null,
+    "head_sha": null,
+    "pr_number": null,
+    "provider": null
+  }
+}

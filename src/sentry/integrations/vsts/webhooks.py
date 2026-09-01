@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
@@ -78,6 +79,7 @@ class WorkItemWebhook(Endpoint):
                 provider=IntegrationProviderSlug.AZURE_DEVOPS.value,
                 external_id=external_id,
                 status=ObjectStatus.ACTIVE,
+                using_replica=options.get("integration_service.get_integration.using_replica"),
             )
             if integration is None:
                 logger.info(

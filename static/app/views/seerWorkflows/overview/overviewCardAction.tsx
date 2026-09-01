@@ -127,9 +127,11 @@ export function OverviewCardAction({
 
   if (isDispatched) {
     return (
-      <Button size="sm" variant="secondary" disabled icon={<ButtonSpinner size={14} />}>
-        {config.busyLabel}
-      </Button>
+      <ActionButtonBar>
+        <Button size="sm" variant="secondary" disabled icon={<ButtonSpinner size={14} />}>
+          {config.busyLabel}
+        </Button>
+      </ActionButtonBar>
     );
   }
 
@@ -154,7 +156,7 @@ export function OverviewCardAction({
   ) : null;
 
   return (
-    <ButtonBar>
+    <ActionButtonBar>
       {permissionsButton ?? (
         <Tooltip title={config.description} skipWrapper>
           <Button
@@ -193,10 +195,17 @@ export function OverviewCardAction({
           </DropdownMenuFooter>
         }
       />
-    </ButtonBar>
+    </ActionButtonBar>
   );
 }
 
 export const ButtonSpinner = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+export const ActionButtonBar = styled(ButtonBar)`
+  @container (width < ${p => p.theme.container.sm}) {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;

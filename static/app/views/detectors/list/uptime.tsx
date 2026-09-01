@@ -1,4 +1,5 @@
 import {useMemo, useRef} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -10,7 +11,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
 import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
@@ -33,7 +33,7 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 1000);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({

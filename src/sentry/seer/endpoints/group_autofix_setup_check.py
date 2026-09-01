@@ -5,7 +5,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -45,7 +45,9 @@ def get_autofix_integration_setup_problems(
     # Iterate through all organization integrations to find one with an active integration
     for organization_integration in organization_integrations:
         integration = integration_service.get_integration(
-            organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
+            organization_integration_id=organization_integration.id,
+            status=ObjectStatus.ACTIVE,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
         if integration:
             installation = integration.get_installation(organization_id=organization.id)

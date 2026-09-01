@@ -1,9 +1,4 @@
-from .base import (
-    FeatureHandlerStrategy,
-    OrganizationFeature,
-    ProjectFeature,
-    SystemFeature,
-)
+from .base import FeatureHandlerStrategy, OrganizationFeature, ProjectFeature, SystemFeature
 from .manager import FeatureManager
 
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
@@ -57,6 +52,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array query support for trace items (array attributes in querying/autocomplete)
     manager.add("organizations:trace-item-array-query-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the Auth V2 toggle
+    manager.add("organizations:authv2-enable-toggle", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Roll out Auth V2 to members of enabled organizations
+    manager.add("organizations:authv2-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Auto-link repos to projects by matching repo name suffix to project slug
     manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Expose the per-project toggle for auto-creating releases from ingested telemetry
@@ -82,8 +81,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-details-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Insights to Dashboards UI migration
     manager.add("organizations:insights-to-dashboards-ui-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable AI-powered dashboard editing via Seer
-    manager.add("organizations:dashboards-ai-generate-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables starred dashboards functionality
     manager.add("organizations:dashboards-starred", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables per-user "last visited" tracking and sorting for dashboards
@@ -190,8 +187,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:objectstore-debugfiles-exclusive-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Double-write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
-    # Compress Objectstore-backed debug files with zstd.
-    manager.add("organizations:objectstore-debugfiles-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Read debug files from Objectstore when an Objectstore copy is available.
     manager.add("organizations:objectstore-debugfiles-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Redirect debug file download requests to read directly from Objectstore, instead of proxying file contents through Sentry.
@@ -203,7 +198,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables setting the fetch all custom measurements request time range to match the user selected time range instead of 90 days
     manager.add("organizations:performance-discover-get-custom-measurements-reduced-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Detect performance issues in the new standalone spans pipeline instead of on transactions
-    manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False, api_expose=False)
+    manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable all registered prebuilt dashboards to be synced to the database
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Suggestions for Web Vitals Module
@@ -322,6 +317,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-run-id-in-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Gate infra telemetry provider connections (Datadog MCP, GCP MCP)
     manager.add("organizations:seer-infra-telemetry", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable user-level (personal identity) monitoring provider auth
+    manager.add("organizations:seer-infra-telemetry-user-level-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disables the enableSeerCoding setting, preventing orgs from changing code generation behavior
     manager.add("organizations:seer-disable-coding-setting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GitLab as a supported SCM provider for Seer
@@ -350,6 +347,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-search-merged-generic-query", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Enables the shared issue/event formatter module (markdown/xml output for LLMs)
     manager.add("organizations:issue-standardized-markdown-for-llm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Same formatter, rolled out separately for API clients (the MCP) -- they share the
+    # endpoints with the UI but not its content needs, so the two ramp independently
+    manager.add("organizations:issue-standardized-markdown-for-llm-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Batch latest-event attachment lookups in the issue stream
     manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
@@ -378,6 +378,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Roll out issue action log writes to organizations with Seer access
     manager.add("organizations:issue-action-log-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the redesigned issue priority and assignee controls
+    manager.add("organizations:issue-priority-assignee-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Specific flag for rolling out issue inbox UI to organization with Seer access
     manager.add("organizations:issue-inbox-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # General use issue inbox flag
@@ -401,8 +403,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=False)
     # Enables view hierarchy attachment scrubbing
     manager.add("organizations:view-hierarchy-scrubbing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable the redesigned page breadcrumbs (BreadcrumbList) on migrated pages
-    manager.add("organizations:ui-migration-breadcrumbs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-powered assertion suggestions for uptime monitors
     manager.add("organizations:uptime-ai-assertion-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable auto spam classification at User Feedback ingest time
@@ -439,11 +439,14 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:workflow-engine-metric-detector-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the UI/API access for the all projects detector
     manager.add("organizations:workflow-engine-all-projects-detector", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable rollout of the above to organizations with Seer access
+    manager.add("organizations:workflow-engine-all-projects-detector-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable our logs product (known internally as ourlogs) in UI and backend
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable alerting on trace metrics
+    # Enable table support for the trace metrics dataset in dashboards
+    manager.add("organizations:tracemetrics-dashboard-table", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
@@ -509,6 +512,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of minidumps to the objectstore.
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables reshaping Nintendo Switch crash events in Relay so issue titles fall back to the crashing function.
+    manager.add("projects:relay-nintendo-event-rewrite", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of playstation attachments to the objectstore.
     manager.add("projects:relay-playstation-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables uploading streams to objectstore via multipart uploads.

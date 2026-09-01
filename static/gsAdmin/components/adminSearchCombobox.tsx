@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useId, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import type {QueryKey, UseQueryOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
@@ -9,7 +10,6 @@ import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {fzf} from 'sentry/utils/search/fzf';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -60,7 +60,9 @@ export function AdminSearchCombobox<TQueryData, TResult, TQueryKey extends Query
   const [inputValue, setInputValue] = useState('');
   const normalizedInput = inputValue.trim();
   const hasInput = normalizedInput.length > 0;
-  const debouncedQuery = useDebouncedValue(normalizedInput, SEARCH_DEBOUNCE_MS);
+  const [debouncedQuery] = useDebouncedValue(normalizedInput, {
+    wait: SEARCH_DEBOUNCE_MS,
+  });
 
   const options = queryOptions(debouncedQuery);
   const query = useQuery({

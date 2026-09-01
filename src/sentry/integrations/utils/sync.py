@@ -30,7 +30,7 @@ from sentry.integrations.utils.assignee_sync import (
 )
 from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
-from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupassignee import GroupAssignee, GroupAssignmentState
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -173,6 +173,12 @@ def _handle_deassign(
     return groups_deassigned
 
 
+def _assignment_succeeded(assignment: GroupAssignmentState, group: Group, user: RpcUser) -> bool:
+    if assignment["new_assignment"] or assignment["updated_assignment"]:
+        return True
+    return GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
+
+
 def _handle_assign(
     affected_groups: Iterable[Group],
     integration: RpcIntegration | Integration,
@@ -200,12 +206,22 @@ def _handle_assign(
                 },
             )
             with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
-                GroupAssignee.objects.assign(
+                assignment = GroupAssignee.objects.assign(
                     group,
                     user,
                     assignment_source=AssignmentSource.from_integration(integration),
                 )
-            groups_assigned.append(group)
+
+            if _assignment_succeeded(assignment, group, user):
+                groups_assigned.append(group)
+            else:
+                logger.warning(
+                    "sync_group_assignee_inbound._handle_assign.assignment_rejected",
+                    extra={
+                        "group_id": group.id,
+                        "user_id": user.id,
+                    },
+                )
         else:
             logger.info(
                 "sync_group_assignee_inbound._handle_assign.user_not_found",
