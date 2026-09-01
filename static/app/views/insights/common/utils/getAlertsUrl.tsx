@@ -21,6 +21,7 @@ export function getAlertsUrl({
   pageFilters: PageFilters;
   dataset?: Dataset;
   eventTypes?: EventTypes[];
+  interval?: string;
   project?: Project;
   query?: string;
   referrer?: string;
