@@ -27,7 +27,7 @@ import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

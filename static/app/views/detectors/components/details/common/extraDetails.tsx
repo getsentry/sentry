@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';

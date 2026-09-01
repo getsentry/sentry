@@ -1,4 +1,4 @@
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
+import type {KeyValueDataContentProps} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 
 export enum OrderBy {

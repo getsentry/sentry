@@ -1,5 +1,5 @@
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/tables/keyValueTable';
 import type {KeyValueListData} from 'sentry/types/group';
 
 type Props = {

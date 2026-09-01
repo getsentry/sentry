@@ -4,9 +4,9 @@ import {Link} from '@sentry/scraps/link';
 
 import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
-import {Card} from 'sentry/components/keyValueData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
+import {Card} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import type {ReleaseMeta} from 'sentry/types/release';

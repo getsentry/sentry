@@ -1,5 +1,5 @@
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
+import {KeyValueList} from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';

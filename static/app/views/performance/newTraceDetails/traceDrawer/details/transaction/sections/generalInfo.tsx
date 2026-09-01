@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
-import {Content} from 'sentry/components/keyValueData';
+import {Content} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';

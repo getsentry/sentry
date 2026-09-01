@@ -8,14 +8,14 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+} from 'sentry/components/tables/keyValueTable';
 import {IconEdit, IconSentry, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('KeyValueData', story => {
   story('Usage', () => (
     <CodeBlock language="js">
-      import KeyValueData from 'sentry/components/keyValueData';
+      import KeyValueData from 'sentry/components/tables/keyValueTable';
     </CodeBlock>
   ));
   story('<KeyValueData.Content />', () => {

@@ -7,9 +7,9 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+import type {KeyValueDataContentProps} from 'sentry/components/tables/keyValueTable';
+import {KeyValueData} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';

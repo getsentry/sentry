@@ -2,9 +2,9 @@ import {Container} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {Card, KeyValueData} from 'sentry/components/keyValueData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
+import {Card, KeyValueData} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {useReleaseDeploys} from 'sentry/views/explore/releases/utils/useReleaseDeploys';
 

@@ -1,7 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';

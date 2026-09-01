@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {

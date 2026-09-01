@@ -9,15 +9,15 @@ import {Text} from '@sentry/scraps/text';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
+import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
-import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+  KeyValueList,
+} from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

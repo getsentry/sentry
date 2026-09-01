@@ -15,7 +15,7 @@ import {
 import {
   KeyValueData,
   type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+} from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
