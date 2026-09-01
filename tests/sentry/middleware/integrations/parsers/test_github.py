@@ -821,9 +821,10 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics")
     @override_options({SHED_INBOUND_KILLSWITCH: [{"integration_id": "12345"}]})
     def test_shed_condition_ignored_counted_once_per_webhook(self, mock_metrics: Mock) -> None:
-        """GitHub checks the shed twice per request: once ahead of its own counters and
-        again inside get_response_from_webhookpayload. An ignored condition is a property
-        of the config, so it must be counted per webhook, not per check."""
+        """GitHub consults the shed several times per request: provider-wide before the
+        routing lookups, integration-scoped after them, and again inside
+        get_response_from_webhookpayload. An ignored condition is a property of the
+        config, so it must be counted per webhook, not per check."""
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -1379,6 +1380,58 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "github"}]})
+    def test_provider_wide_shed_skips_the_routing_lookups(self) -> None:
+        """A condition naming no integration_id matches on the provider alone.
+
+        Shedding is break-glass for a flood, so the lookups it does not need are the
+        last thing it should be waiting on.
+        """
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert not [q for q in queries.captured_queries if 'FROM "sentry_integration"' in q["sql"]]
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_integration_scoped_shed_still_applies(self) -> None:
+        """The narrow half of the killswitch needs the id, so it stays after the lookup."""
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with override_options(
+            {
+                SHED_INBOUND_KILLSWITCH: [
+                    {"provider": "github", "integration_id": str(integration.id)}
+                ]
+            }
+        ):
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert_no_webhook_payloads()
 
 

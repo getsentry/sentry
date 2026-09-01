@@ -26,7 +26,7 @@ from sentry.integrations.middleware.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.killswitches import get_killswitch_value, value_matches
+from sentry.killswitches import KillswitchConfig, get_killswitch_value, value_matches
 from sentry.logging.handlers import SamplingFilter
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
@@ -84,6 +84,7 @@ class BaseRequestParser(ABC):
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
         self._shed_decisions: dict[int | None, bool] = {}
+        self._targeted_shed_conditions: KillswitchConfig | None = None
         self._integration: Integration | None = None
         self._integration_fetched = False
 
@@ -245,18 +246,29 @@ class BaseRequestParser(ABC):
             self._shed_decisions[integration_id] = self._evaluate_shed(integration_id)
         return self._shed_decisions[integration_id]
 
-    def _evaluate_shed(self, integration_id: int | None) -> bool:
-        conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
-        # A condition with no provider matches every provider. There are few enough
-        # providers to name them, so drop those rather than let one option typo shed
-        # all inbound traffic. Counted so an ignored condition is not a silent no-op.
-        targeted = [condition for condition in conditions if condition.get("provider") is not None]
-        if len(targeted) != len(conditions):
-            metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+    def _get_targeted_shed_conditions(self) -> KillswitchConfig:
+        """Shed conditions that name a provider, read once per request.
 
+        A condition with no provider matches every provider. There are few enough
+        providers to name them, so drop those rather than let one option typo shed all
+        inbound traffic. An ignored condition is counted so it is not a silent no-op —
+        counted here rather than per check, because it is a property of the config and
+        a parser may consult the killswitch several times for one webhook.
+        """
+        if self._targeted_shed_conditions is None:
+            conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
+            self._targeted_shed_conditions = [
+                condition for condition in conditions if condition.get("provider") is not None
+            ]
+            if len(self._targeted_shed_conditions) != len(conditions):
+                metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+
+        return self._targeted_shed_conditions
+
+    def _evaluate_shed(self, integration_id: int | None) -> bool:
         if not value_matches(
             SHED_INBOUND_KILLSWITCH,
-            targeted,
+            self._get_targeted_shed_conditions(),
             {"provider": self.provider, "integration_id": integration_id},
             emit_metrics=False,
         ):

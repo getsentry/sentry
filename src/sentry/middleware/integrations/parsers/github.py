@@ -223,6 +223,14 @@ class GithubRequestParser(BaseRequestParser):
         if drop_response is not None:
             return drop_response
 
+        # A shed condition that names no integration_id sheds the whole provider, which
+        # is decidable here. Shedding is break-glass for a flood, so the lookups below
+        # are the last thing it should be waiting on. Conditions that do name an
+        # integration_id cannot match a None context, and are still caught after it.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         try:
             integration = self.integration_for_request()
             if not integration:
@@ -235,8 +243,10 @@ class GithubRequestParser(BaseRequestParser):
         if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
-        # Ahead of the forwarded_event counter and the mailbox lookup, so a shed webhook
-        # is neither counted as forwarded nor charged for routing it will not use.
+        # The integration-scoped half of the check above, now that there is an id to
+        # match on. Ahead of the forwarded_event counter and the mailbox lookup, so a
+        # shed webhook is neither counted as forwarded nor charged for routing it will
+        # not use.
         shed_response = self.get_shed_response(integration_id=integration.id)
         if shed_response is not None:
             return shed_response
