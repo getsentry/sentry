@@ -198,11 +198,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
   }, []);
 
   const getSnapshot = useCallback((): LLMContextSnapshot => {
-    return serializeState(
-      stateRef.current,
-      nodeDataRef.current,
-      routeRef.current
-    );
+    return serializeState(stateRef.current, nodeDataRef.current, routeRef.current);
   }, []);
 
   const registerNode = useCallback(
