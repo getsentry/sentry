@@ -9,6 +9,7 @@ import {
   collectPatches,
   getOrderedAutofixSections,
   getPollInterval,
+  hideErroredPrIteration,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isLastStepPrIteration,
@@ -716,6 +717,91 @@ describe('isLastStepPrIteration', () => {
   it('is false when there are no blocks with a step or no run state', () => {
     expect(isLastStepPrIteration(state([block(undefined)]))).toBe(false);
     expect(isLastStepPrIteration(null)).toBe(false);
+  });
+});
+
+describe('hideErroredPrIteration', () => {
+  let blockId = 0;
+  function block(step?: string): Block {
+    return {
+      id: `hide-block-${blockId++}`,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {
+        content: 'hello',
+        role: 'assistant',
+        metadata: step ? {step} : undefined,
+      },
+    };
+  }
+  function state(
+    blocks: Block[],
+    status: ExplorerAutofixState['status']
+  ): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      status,
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks,
+    };
+  }
+
+  it('drops the errored pr_iteration and presents the run as completed', () => {
+    const blocks = [block('code_changes'), block('pr_iteration'), block(undefined)];
+    expect(hideErroredPrIteration(state(blocks, 'error'))).toEqual(
+      state([blocks[0]!], 'completed')
+    );
+  });
+
+  it('keeps an errored iteration whose pull request failed to push', () => {
+    const runState = {
+      ...state([block('code_changes'), block('pr_iteration')], 'error'),
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_number: 2,
+          pr_url: 'https://github.com/org/repo/pull/2',
+          pr_creation_status: 'error' as const,
+          pr_creation_error: 'remote rejected',
+        },
+      },
+    } as unknown as ExplorerAutofixState;
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('hides an errored iteration whose earlier pull request pushed fine', () => {
+    const blocks = [block('code_changes'), block('pr_iteration')];
+    const runState = {
+      ...state(blocks, 'error'),
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_number: 2,
+          pr_url: 'https://github.com/org/repo/pull/2',
+          pr_creation_status: 'completed' as const,
+          pr_creation_error: null,
+        },
+      },
+    } as unknown as ExplorerAutofixState;
+    const hidden = hideErroredPrIteration(runState)!;
+    expect(hidden.status).toBe('completed');
+    expect(hidden.blocks).toEqual([blocks[0]]);
+    expect(hidden.repo_pr_states).toEqual(runState.repo_pr_states);
+  });
+
+  it('leaves an errored code_changes run untouched', () => {
+    const runState = state([block('code_changes'), block(undefined)], 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('leaves a pr_iteration that did not error untouched', () => {
+    const runState = state([block('code_changes'), block('pr_iteration')], 'completed');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('keeps a run whose only step is a failed pr_iteration', () => {
+    const runState = state([block('pr_iteration')], 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+    expect(hideErroredPrIteration(null)).toBeNull();
   });
 });
 

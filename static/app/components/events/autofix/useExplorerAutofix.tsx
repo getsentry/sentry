@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
@@ -534,6 +534,37 @@ export function isLastStepPrIteration(runState: ExplorerAutofixState | null): bo
   return defined(lastBlock) && isPrIterationBlock(lastBlock);
 }
 
+export function hideErroredPrIteration(
+  runState: ExplorerAutofixState | null
+): ExplorerAutofixState | null {
+  if (!runState || runState.status !== 'error') {
+    return runState;
+  }
+
+  const pushFailed = Object.values(runState.repo_pr_states ?? {}).some(
+    prState => prState.pr_creation_status === 'error'
+  );
+  if (pushFailed) {
+    return runState;
+  }
+
+  const blocks = runState.blocks;
+  let start: number | null = null;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (!defined(blocks[i]!.message.metadata?.step)) {
+      continue;
+    }
+    start = isPrIterationBlock(blocks[i]!) ? i : null;
+    break;
+  }
+
+  if (start === null || start === 0) {
+    return runState;
+  }
+
+  return {...runState, status: 'completed', blocks: blocks.slice(0, start)};
+}
+
 export type AutofixArtifact =
   | Artifact<unknown>
   | ExplorerFilePatch[]
@@ -660,7 +691,10 @@ export function useExplorerAutofix(
     },
   });
 
-  const runState = apiData?.autofix ?? null;
+  const runState = useMemo(
+    () => hideErroredPrIteration(apiData?.autofix ?? null),
+    [apiData?.autofix]
+  );
 
   const startStep = useCallback(
     async (
