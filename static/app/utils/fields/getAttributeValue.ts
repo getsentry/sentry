@@ -97,15 +97,21 @@ function isAttributeEntry(attribute: unknown): attribute is AttributeEntry {
   );
 }
 
+function unwrapTypedTagName(name: string): string {
+  return name.match(TYPED_TAG_KEY_RE)?.[1] ?? name;
+}
+
 function prettifyAttributeName(name: string): string {
-  const prettifiedName = name.match(TYPED_TAG_KEY_RE)?.[1] ?? name;
-  return prettifiedName.replace(/^log\.|^sentry\./, '');
+  return unwrapTypedTagName(name).replace(/^log\.|^sentry\./, '');
 }
 
 function findAttributeEntry(
   attributes: AttributeEntry[],
   candidateKey: string
 ): AttributeEntry | undefined {
+  const unwrappedCandidateKey = unwrapTypedTagName(candidateKey);
+  const prettifiedCandidateKey = prettifyAttributeName(candidateKey);
+
   return (
     attributes.find(
       (attribute): attribute is AttributeEntry =>
@@ -114,7 +120,12 @@ function findAttributeEntry(
     attributes.find(
       (attribute): attribute is AttributeEntry =>
         isAttributeEntry(attribute) &&
-        prettifyAttributeName(attribute.name) === candidateKey
+        unwrapTypedTagName(attribute.name) === unwrappedCandidateKey
+    ) ??
+    attributes.find(
+      (attribute): attribute is AttributeEntry =>
+        isAttributeEntry(attribute) &&
+        prettifyAttributeName(attribute.name) === prettifiedCandidateKey
     )
   );
 }
@@ -134,11 +145,15 @@ function getAttributeValueFromDeprecationChain(
       }
       value = attribute.value;
     } else {
+      const attributeKeys = Object.keys(attributes);
+      const unwrappedCandidateKey = unwrapTypedTagName(candidateKey);
+      const prettifiedCandidateKey = prettifyAttributeName(candidateKey);
       const attributeKey = Object.hasOwn(attributes, candidateKey)
         ? candidateKey
-        : Object.keys(attributes).find(
-            key => prettifyAttributeName(key) === candidateKey
-          );
+        : (attributeKeys.find(key => unwrapTypedTagName(key) === unwrappedCandidateKey) ??
+          attributeKeys.find(
+            key => prettifyAttributeName(key) === prettifiedCandidateKey
+          ));
       if (attributeKey === undefined) {
         continue;
       }
@@ -220,27 +235,27 @@ export function getAttributeValue(
     return undefined;
   }
 
-  const prettifiedKey = key.match(TYPED_TAG_KEY_RE)?.[1] ?? key;
-  const deprecationChain = ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.get(prettifiedKey);
-  if (ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.has(prettifiedKey)) {
+  const unwrappedKey = unwrapTypedTagName(key);
+  const deprecationChain = ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.get(unwrappedKey);
+  if (ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.has(unwrappedKey)) {
     return getAttributeValueFromDeprecationChain(
       attributes,
-      deprecationChain ?? [prettifiedKey],
+      deprecationChain ?? [unwrappedKey],
       kind
     );
   }
 
   const metadata =
-    ATTRIBUTE_SEARCH_METADATA[prettifiedKey] ??
+    ATTRIBUTE_SEARCH_METADATA[unwrappedKey] ??
     Object.values(ATTRIBUTE_SEARCH_METADATA).find(({deprecationChain: chain}) =>
-      chain.includes(prettifiedKey)
+      chain.includes(unwrappedKey)
     );
 
-  ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(prettifiedKey, metadata?.deprecationChain);
+  ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(unwrappedKey, metadata?.deprecationChain);
 
   return getAttributeValueFromDeprecationChain(
     attributes,
-    metadata?.deprecationChain ?? [prettifiedKey],
+    metadata?.deprecationChain ?? [unwrappedKey],
     kind
   );
 }

@@ -62,6 +62,29 @@ describe('getAttributeValue', () => {
     ).toBe(200);
   });
 
+  it('preserves prefixes when matching explicit typed tag keys', () => {
+    expect(
+      getAttributeValue(
+        [
+          {name: 'tags[severity,string]', value: 'unprefixed'},
+          {name: 'tags[log.severity,string]', value: 'prefixed'},
+        ],
+        'log.severity',
+        'string'
+      )
+    ).toBe('prefixed');
+    expect(
+      getAttributeValue(
+        {
+          'tags[severity,string]': 'unprefixed',
+          'tags[log.severity,string]': 'prefixed',
+        },
+        'log.severity',
+        'string'
+      )
+    ).toBe('prefixed');
+  });
+
   it.each([['GET'], [200], [false], [['GET', 'POST']], [[200, 201]], [[true, false]]])(
     'returns a supported attribute value: %p',
     value => {
