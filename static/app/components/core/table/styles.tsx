@@ -59,8 +59,6 @@ export const TableRow = styled('tr', {
 `;
 
 export const TableHeadCell = styled('th', {
-  // A custom predicate replaces emotion's default, so `isPropValid` has to be
-  // restated or every consumer prop lands on the DOM node.
   shouldForwardProp: prop => prop !== 'justify' && isPropValid(prop),
 })<{justify?: HeaderCellJustify}>`
   position: relative;
