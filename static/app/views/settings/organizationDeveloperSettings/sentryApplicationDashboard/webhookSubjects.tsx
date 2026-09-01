@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -40,10 +42,19 @@ const SUBJECT_SPECS: Record<string, SubjectSpec> = {
   autofix_run: {label: t('Autofix Run')},
 };
 
+export function getWebhookSubjectLabel(subjectType?: string | null) {
+  if (!subjectType) {
+    return EMPTY_VALUE;
+  }
+
+  return SUBJECT_SPECS[subjectType]?.label ?? subjectType;
+}
+
 interface WebhookSubjectProps {
   isInternal: boolean; // We only want to render links for internal apps (i.e the same org)
   organization: Organization;
   disableLink?: boolean;
+  display?: 'full' | 'id';
   subjectId?: string | null;
   subjectType?: string | null;
 }
@@ -54,22 +65,32 @@ export function WebhookSubject({
   isInternal,
   organization,
   disableLink = false,
+  display = 'full',
 }: WebhookSubjectProps) {
-  if (!subjectType || !subjectId) {
+  if (!subjectId) {
     return <Text>{EMPTY_VALUE}</Text>;
   }
 
+  if (!subjectType) {
+    return <Text ellipsis>{display === 'id' ? subjectId : EMPTY_VALUE}</Text>;
+  }
+
   const spec = SUBJECT_SPECS[subjectType];
-  const label = spec?.label ?? subjectType;
-  const content = `${label} ${subjectId}`;
+  const label = getWebhookSubjectLabel(subjectType);
+  const content = display === 'id' ? subjectId : `${label} ${subjectId}`;
 
   if (!disableLink && isInternal && spec?.getUrl) {
     return (
-      <Link to={spec.getUrl(subjectId, organization)}>
+      <SubjectLink to={spec.getUrl(subjectId, organization)}>
         <Text ellipsis>{content}</Text>
-      </Link>
+      </SubjectLink>
     );
   }
 
   return <Text ellipsis>{content}</Text>;
 }
+
+const SubjectLink = styled(Link)`
+  position: relative;
+  z-index: 1;
+`;

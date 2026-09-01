@@ -27,14 +27,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 import {useRequestLogDetailsDrawer} from './requestLogDetails';
-import {WebhookSubject} from './webhookSubjects';
+import {getWebhookSubjectLabel, WebhookSubject} from './webhookSubjects';
 
 const REQUEST_COLUMNS: TableColumnConfig[] = [
   {key: 'time', width: '1fr'},
   {key: 'statusCode', width: '0.5fr'},
   {key: 'organization', width: '1fr'},
   {key: 'eventType', width: '1fr'},
-  {key: 'subject', width: '1fr'},
+  {key: 'subjectType', width: '0.75fr'},
+  {key: 'subjectId', width: '1fr'},
   {key: 'duration', width: '0.5fr'},
 ];
 
@@ -202,7 +203,8 @@ export function RequestLog({app}: RequestLogProps) {
                 <SimpleTable.HeaderCell>{t('Organization')}</SimpleTable.HeaderCell>
               )}
               <SimpleTable.HeaderCell>{t('Event Type')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Subject')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Subject Type')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Subject ID')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
             </SimpleTable.HeaderRow>
           }
@@ -244,12 +246,15 @@ export function RequestLog({app}: RequestLogProps) {
                   <Text ellipsis>{request.eventType}</Text>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
+                  <Text ellipsis>{getWebhookSubjectLabel(request.subjectType)}</Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
                   <WebhookSubject
                     subjectType={request.subjectType}
                     subjectId={request.subjectId}
                     isInternal={isInternal}
                     organization={organization}
-                    disableLink
+                    display="id"
                   />
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>

@@ -105,7 +105,9 @@ describe('Sentry Application Dashboard', () => {
       expect(requestLog.getByText('400')).toBeInTheDocument();
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
       expect(requestLog.getByText('Test Org')).toBeInTheDocument();
-      expect(requestLog.getByText('Issue 42')).toBeInTheDocument();
+      expect(requestLog.getByText('Issue')).toBeInTheDocument();
+      expect(requestLog.getByText('42')).toBeInTheDocument();
+      expect(requestLog.queryByRole('link', {name: '42'})).not.toBeInTheDocument();
       expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
       expect(
         requestLog.queryByText('https://example.com/webhook')
@@ -248,7 +250,11 @@ describe('Sentry Application Dashboard', () => {
       expect(requestLog.getByText('issue.assigned')).toBeInTheDocument();
       expect(webhookRequestMock).toHaveBeenCalledTimes(1);
       expect(screen.queryByTestId('org-permission-alert')).not.toBeInTheDocument();
-      expect(requestLog.getByText('Issue 42')).toBeInTheDocument();
+      expect(requestLog.getByText('Issue')).toBeInTheDocument();
+      expect(requestLog.getByRole('link', {name: '42'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/42/'
+      );
       expect(requestLog.getByText('150.00ms')).toBeInTheDocument();
 
       // Does not show the integration views
