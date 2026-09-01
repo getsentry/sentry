@@ -49,9 +49,7 @@ export function Accordion({
                 variant="transparent"
                 onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
               />
-              <LineItemWrapper
-                onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
-              >
+              <LineItemWrapper onClick={() => setExpandedIndex(isExpanded ? -1 : index)}>
                 {item.header}
               </LineItemWrapper>
             </AccordionHeader>
