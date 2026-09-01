@@ -9,6 +9,7 @@ resources:
 import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
+import {DashboardEmbedStory} from './__stories__/dashboardEmbedStory';
 import {EmbedStory} from './__stories__/embedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
 
@@ -48,7 +49,7 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### dashboard
 
-<EmbedStory name="dashboard" />
+<DashboardEmbedStory />
 
 ### dsn
 
