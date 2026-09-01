@@ -172,9 +172,14 @@ class TransactionCheckingRedisTest(SentryTestCase):
             "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
             "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
         )
+        existing_single_caller = (
+            "sentry.event_manager._get_severity_metadata_for_group",
+            "sentry.new_code.new_outer_caller",
+        )
 
         assert _matches_redis_transaction_ratchet(existing_callers)
         assert _matches_redis_transaction_ratchet(existing_webhook_callers)
+        assert _matches_redis_transaction_ratchet(existing_single_caller)
         assert not _matches_redis_transaction_ratchet(new_callers)
 
     def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
@@ -191,6 +196,18 @@ class TransactionCheckingRedisTest(SentryTestCase):
             f"{__name__}.{outer_caller.__qualname__}",
             f"{__name__}.TransactionCheckingRedisTest.test_transaction_callers_include_application_frames_until_test_harness",
         )
+
+    def test_transaction_callers_include_application_frames_outside_mock(self) -> None:
+        def outer_caller() -> tuple[str, ...]:
+            def shared_helper() -> tuple[str, ...]:
+                return _redis_transaction_callers()
+
+            return mock.Mock(wraps=shared_helper)()
+
+        callers = outer_caller()
+
+        assert callers[0] == f"{__name__}.{outer_caller.__qualname__}.<locals>.shared_helper"
+        assert f"{__name__}.{outer_caller.__qualname__}" in callers
 
 
 def test_get_cluster_from_options_cluster_provided() -> None:
