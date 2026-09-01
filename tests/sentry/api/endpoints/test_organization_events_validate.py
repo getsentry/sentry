@@ -400,10 +400,6 @@ class OrganizationEventsValidateEndpointTest(
         TRUNCATED_ATTRIBUTE_NAME_LIMIT,
     )
     @mock.patch(
-        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
-        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
-    )
-    @mock.patch(
         "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
         wraps=snuba_rpc.attribute_names_rpc,
     )

@@ -468,7 +468,7 @@ def _check_attribute_names_by_type(
         if found == requested_names or not more:
             return found
 
-    for page in range(1, MAX_ATTRIBUTE_NAME_PAGES + 1):
+    for page in range(1, MAX_ATTRIBUTE_NAME_PAGES):
         page_found, more = _attribute_names_page(
             meta, attr_type, filter_names, offset=page * ATTRIBUTE_NAME_LIMIT
         )

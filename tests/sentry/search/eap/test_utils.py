@@ -10,7 +10,11 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
 from sentry.search.eap import utils
 from sentry.search.eap.constants import SearchType
-from sentry.search.eap.utils import attribute_name_exists, serialize_search_type
+from sentry.search.eap.utils import (
+    attribute_name_exists,
+    check_attribute_names_exist,
+    serialize_search_type,
+)
 
 
 @pytest.mark.parametrize(
@@ -55,4 +59,33 @@ def test_attribute_name_exists_gives_up_past_the_page_bound() -> None:
         found = attribute_name_exists(RequestMeta(), AttributeKey.TYPE_STRING, "my_tag")
 
     assert not found
+    assert offsets == [0, page_limit, page_limit * 2]
+
+
+def test_check_attribute_names_exist_gives_up_past_the_page_bound() -> None:
+    page_limit = 5
+    # Every page comes back full of names nobody asked about, so paging never narrows
+    # and never runs out: only the page bound stops it.
+    decoys = [f"a_{index:03}" for index in range(100)]
+    offsets = []
+
+    def attribute_names_rpc(
+        request: TraceItemAttributeNamesRequest,
+    ) -> TraceItemAttributeNamesResponse:
+        offsets.append(request.page_token.offset)
+        page = decoys[request.page_token.offset :][: request.limit]
+        return TraceItemAttributeNamesResponse(
+            attributes=[
+                TraceItemAttributeNamesResponse.Attribute(name=name, type=request.type)
+                for name in page
+            ]
+        )
+
+    with (
+        mock.patch.object(utils, "ATTRIBUTE_NAME_LIMIT", page_limit),
+        mock.patch("sentry.search.eap.utils.snuba_rpc.attribute_names_rpc", attribute_names_rpc),
+    ):
+        found = check_attribute_names_exist(RequestMeta(), {AttributeKey.TYPE_STRING: ["my_tag"]})
+
+    assert found == set()
     assert offsets == [0, page_limit, page_limit * 2]
