@@ -31,6 +31,11 @@ from taskbroker_client.task import Task
 from sentry import options
 from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.deletions.models.watermark import (
+    BaseDeletionWatermark,
+    CellDeletionWatermark,
+    ControlDeletionWatermark,
+)
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -59,6 +64,21 @@ def get_watermark_key(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> st
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
+def _watermark_model(
+    field: HybridCloudForeignKey[Any, Any],
+) -> type[BaseDeletionWatermark]:
+    current_mode = SiloMode.get_current_mode()
+    if current_mode == SiloMode.CONTROL:
+        return ControlDeletionWatermark
+    if current_mode == SiloMode.CELL:
+        return CellDeletionWatermark
+
+    silo_limit = getattr(field.model._meta, "silo_limit", None)
+    if silo_limit is not None and silo_limit.modes == frozenset({SiloMode.CONTROL}):
+        return ControlDeletionWatermark
+    return CellDeletionWatermark
+
+
 def _write_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, transaction_id: str
 ) -> None:
@@ -74,6 +94,26 @@ def _write_watermark(
             watermark=prefix,
         ),
     )
+
+    # Dual-write deletion watermarks to Redis and Postgres
+    if options.get("hybrid_cloud.write_deletion_watermark_to_postgres"):
+        try:
+            _watermark_model(field).objects.update_or_create(
+                prefix=prefix,
+                table_name=field.model._meta.db_table,
+                field_name=field.name,
+                defaults={"low_bound": value, "transaction_id": transaction_id},
+            )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+            metrics.incr(
+                "deletion.hybrid_cloud.watermark_dual_write_error",
+                tags=dict(
+                    field_name=f"{field.model._meta.db_table}.{field.name}",
+                    watermark=prefix,
+                ),
+                sample_rate=1.0,
+            )
 
 
 def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
