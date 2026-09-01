@@ -1,5 +1,5 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {mobile} from 'sentry/data/platformCategories';
+import {replayMobilePlatforms} from 'sentry/data/platformCategories';
 import {useProjects} from 'sentry/utils/useProjects';
 
 export function useAllMobileProj() {
@@ -13,7 +13,9 @@ export function useAllMobileProj() {
   // if no projects selected, look through all projects
   const proj = projectsSelected.length ? projectsSelected : projects;
 
-  const allMobileProj = proj.every(p => mobile.includes(p.platform ?? 'other'));
+  const allMobileProj = proj.every(p =>
+    replayMobilePlatforms.includes(p.platform ?? 'other')
+  );
 
   return {allMobileProj};
 }
