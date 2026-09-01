@@ -1,6 +1,4 @@
-import type {ReactNode} from 'react';
-import {useRef} from 'react';
-
+import {QueryContainer, setContainerWidth} from 'sentry-test/containerQuery';
 import {dragHandle} from 'sentry-test/dragMove';
 import {
   render,
@@ -11,7 +9,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
-import {ContainerQueryProvider} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -52,24 +49,6 @@ function TestTable({
     </Table>
   );
 }
-
-/**
- * Responsive column values resolve against the nearest query container, so the
- * table has to sit inside one. `clientWidth` is an accessor on Element.prototype,
- * so spy there — jsdom reports every element as zero-sized otherwise.
- */
-function QueryContainer({children}: {children: ReactNode}) {
-  const ref = useRef<HTMLDivElement>(null);
-  return (
-    <ContainerQueryProvider elementRef={ref}>
-      <div ref={ref}>{children}</div>
-    </ContainerQueryProvider>
-  );
-}
-
-const setContainerWidth = (width: number) => {
-  jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
-};
 
 const gridTemplate = () => screen.getByRole('table').style.gridTemplateColumns;
 const resizers = () => screen.getAllByRole('separator');
