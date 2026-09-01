@@ -788,10 +788,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics")
     @override_options({SHED_INBOUND_KILLSWITCH: [{"integration_id": "12345"}]})
     def test_shed_condition_ignored_counted_once_per_webhook(self, mock_metrics: Mock) -> None:
-        """GitHub consults the shed several times per request: provider-wide before the
-        routing lookups, integration-scoped after them, and again inside
-        get_response_from_webhookpayload. An ignored condition is a property of the
-        config, so it must be counted per webhook, not per check."""
+        """GitHub consults the shed three times per request. An ignored condition is a
+        property of the config, so it is counted per webhook, not per check."""
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -1301,12 +1299,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     def test_drop_never_looks_up_the_integration(self) -> None:
-        """The drop decision reads the event header and body and nothing else.
-
-        Asserted as "the lookup never happens" rather than as a query count, because
-        not calling it is what keeps the dropped majority of inbound webhooks off the
-        integration and organization queries.
-        """
+        """Asserted as "never called" rather than as a query count: not calling it is
+        what keeps the dropped majority of inbound webhooks off the queries."""
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -1330,12 +1324,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     def test_drops_unprocessed_event_with_no_integration(self) -> None:
-        """A droppable event is dropped even when no integration matches it.
-
-        Returns 202 where the previous ordering returned 400. Neither path stored the
-        payload, so no delivery is lost; GitHub is simply no longer told that a webhook
-        we never process failed to deliver.
-        """
+        """202 where the previous ordering returned 400. Neither path stored the payload,
+        so GitHub is just no longer told that a webhook we never process failed."""
         request = self.factory.post(
             self.path,
             data={"installation": {"id": "does-not-exist"}, "repository": {"id": 123}},
@@ -1354,11 +1344,8 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
     @responses.activate
     @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "github"}]})
     def test_provider_wide_shed_skips_the_routing_lookups(self) -> None:
-        """A condition naming no integration_id matches on the provider alone.
-
-        Shedding is break-glass for a flood, so the lookups it does not need are the
-        last thing it should be waiting on.
-        """
+        """A condition naming no integration_id matches on the provider alone, so the
+        shed does not wait on lookups it has no use for."""
         self.get_integration()
         request = self.factory.post(
             self.path,

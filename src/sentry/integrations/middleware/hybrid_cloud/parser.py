@@ -214,11 +214,8 @@ class BaseRequestParser(ABC):
         `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
         and integrations are dropped. Returns None to handle the request normally.
 
-        Called without an ``integration_id`` this evaluates only the provider-wide
-        conditions, which is what lets a parser shed before resolving the integration.
-        Shedding is break-glass for a flood, so it should not be waiting on queries it
-        does not need. Conditions that name an ``integration_id`` cannot match that
-        context and are still evaluated once the id is known.
+        Called without an ``integration_id`` only provider-wide conditions can match,
+        which is what lets a parser shed before resolving the integration.
         """
         if not self._should_shed(integration_id):
             return None
@@ -240,11 +237,10 @@ class BaseRequestParser(ABC):
     def _get_targeted_shed_conditions(self) -> KillswitchConfig:
         """Shed conditions that name a provider, read once per request.
 
-        A condition with no provider matches every provider. There are few enough
-        providers to name them, so drop those rather than let one option typo shed all
-        inbound traffic. An ignored condition is counted so it is not a silent no-op —
-        counted here rather than per check, because it is a property of the config and
-        a parser may consult the killswitch several times for one webhook.
+        A condition with no provider would match every one of them, so it is dropped
+        rather than let one option typo shed all inbound traffic, and counted so it is
+        not a silent no-op. Counted here because it is a property of the config, not of
+        any one check, and a parser may consult the killswitch several times.
         """
         if self._targeted_shed_conditions is None:
             conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)

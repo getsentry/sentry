@@ -37,9 +37,8 @@ class JiraServerRequestParser(BaseRequestParser):
         except orjson.JSONDecodeError:
             data = {}
 
-        # We only process webhooks with changelogs. Ahead of the organization and cell
-        # lookups, which a payload we are about to discard never needs; kept below the
-        # token lookup so the log still names the integration that sent it.
+        # We only process webhooks with changelogs. Above the org and cell lookups a
+        # dropped payload never needs; below the token lookup so the log can name it.
         if not data.get("changelog"):
             logger.info("missing-changelog", extra={"integration_id": integration.id})
             return HttpResponse(status=status.HTTP_200_OK)

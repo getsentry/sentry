@@ -204,8 +204,8 @@ class JiraServerRequestParserTest(TestCase):
     @override_cells(cell_config)
     @responses.activate
     def test_changelog_drop_skips_the_organization_lookups(self) -> None:
-        """The changelog check reads only the body, so it settles before the
-        organization and cell lookups a dropped payload never needs."""
+        """The changelog check reads only the body, so it settles before the org and
+        cell lookups a dropped payload never needs."""
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
         request = self.factory.post(route, data=no_changelog, content_type="application/json")
         parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
