@@ -154,6 +154,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
     def __init__(self, detector: Detector):
         super().__init__(detector)
+
         if detector.workflow_condition_group_id is not None:
             try:
                 # Check if workflow_condition_group is already prefetched
@@ -202,66 +203,37 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         """
         A default, stateless evaluation using data condition groups
 
-        Extracts the value from the packet, evaluates the condition group, and creates an occurrence when
-        the conditions trigger
+        Extracts the values from the packet, then evaluates the condition group for each group key,
+        creating an occurrence for every group whose conditions trigger
 
-        Override "evaluate_conditions" and "get_issue_fingerprint", and "get_occurrence_id" to modify default this evaluation
+        Detectors that do not group are evaluated as a single group, keyed by `None`
+
+        Override "evaluate_conditions", "get_issue_fingerprint", and "get_occurrence_id" to modify this default evaluation
 
         Override "evaluate" itself to have a custom evaluation flow
         """
-        extracted_value = self.extract_value(data_packet)
+        grouped_values = self._extract_value_from_packet(data_packet)
 
-        if self._is_detector_group_value(extracted_value):
-            logger.warning(
-                "The default implementation of evaluate expects a single value, but a dictionary of values was returned. To support grouping, please override the evaluate method"
+        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
+
+        tainted = False
+
+        for group_key, value in grouped_values.items():
+            trigger_evaluation, priority = self.evaluate_conditions(value)
+
+            if trigger_evaluation is None:
+                continue
+
+            tainted = tainted or trigger_evaluation.is_tainted()
+
+            if priority == DetectorPriorityLevel.OK:
+                continue
+
+            results[group_key] = self._build_detector_evaluation(
+                group_key, priority, trigger_evaluation, data_packet
             )
 
-            return GroupedDetectorEvaluationResult(result={}, tainted=False)
-
-        value = cast(DataPacketEvaluationType, extracted_value)
-
-        trigger_evaluation, priority = self.evaluate_conditions(value)
-
-        if trigger_evaluation is None:
-            return GroupedDetectorEvaluationResult(result={}, tainted=False)
-
-        if priority == DetectorPriorityLevel.OK:
-            return GroupedDetectorEvaluationResult(
-                result={}, tainted=trigger_evaluation.is_tainted()
-            )
-
-        detector_occurrence, event_data = self.create_occurrence(
-            trigger_evaluation, data_packet, priority
-        )
-
-        occurrence_id = self.get_occurrence_id(event_data)
-
-        issue_fingerprint = self.get_issue_fingerprint()
-
-        issue_occurrence = detector_occurrence.to_issue_occurrence(
-            occurrence_id=occurrence_id,
-            project_id=self.detector.project_id,
-            status=priority,
-            additional_evidence_data={},
-            fingerprint=issue_fingerprint,
-        )
-
-        event_data = self._build_event_data(event_data, issue_occurrence)
-
-        detector_evaluation = DetectorEvaluation(
-            result=issue_occurrence,
-            data=DetectorEvaluationData(
-                group_key=None,
-                trigger_group_evaluation=trigger_evaluation,
-                event_data=event_data,
-            ),
-            triggered=True,
-            priority=priority,
-        )
-
-        return GroupedDetectorEvaluationResult(
-            result={None: detector_evaluation}, tainted=trigger_evaluation.is_tainted()
-        )
+        return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
 
     def evaluate_conditions(
         self, value: DataPacketEvaluationType
@@ -312,8 +284,67 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
         return str(uuid4())
 
-    def get_issue_fingerprint(self) -> list[str]:
-        return [f"detector:{self.detector.id}"]
+    def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
+        if group_key is None:
+            return [f"detector:{self.detector.id}"]
+
+        return [f"detector:{self.detector.id}:{group_key}"]
+
+    def _extract_value_from_packet(
+        self,
+        data_packet: DataPacket[DataPacketType],
+    ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
+        """
+        This method will normalize the extracted value to support grouping results.
+
+        If `extract_value` returns a `dict[DetectorGroupKey, DataPacketEvaluationType]`
+        it will cast it to the correct data type.
+
+        If `extract_value` returns a single value, it will be wrapped in a dict
+        with `None` as the key, to normalize the type as `dict[DetectorGroupKey, DataPacketEvaluationType]`.
+        """
+        data_values = self.extract_value(data_packet)
+
+        if self._is_detector_group_value(data_values):
+            return cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
+
+        return {None: cast(DataPacketEvaluationType, data_values)}
+
+    def _build_detector_evaluation(
+        self,
+        group_key: DetectorGroupKey,
+        priority: DetectorPriorityLevel,
+        trigger_evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[DataPacketType],
+    ) -> DetectorEvaluation:
+        detector_occurrence, event_data = self.create_occurrence(
+            trigger_evaluation, data_packet, priority
+        )
+
+        occurrence_id = self.get_occurrence_id(event_data)
+
+        issue_fingerprint = self.get_issue_fingerprint(group_key)
+
+        issue_occurrence = detector_occurrence.to_issue_occurrence(
+            occurrence_id=occurrence_id,
+            project_id=self.detector.project_id,
+            status=priority,
+            additional_evidence_data={},
+            fingerprint=issue_fingerprint,
+        )
+
+        event_data = self._build_event_data(event_data, issue_occurrence)
+
+        return DetectorEvaluation(
+            result=issue_occurrence,
+            data=DetectorEvaluationData(
+                group_key=group_key,
+                trigger_group_evaluation=trigger_evaluation,
+                event_data=event_data,
+            ),
+            triggered=True,
+            priority=priority,
+        )
 
     def _build_event_data(
         self, event_data: EventData, issue_occurrence: IssueOccurrence
@@ -337,12 +368,10 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
     def _is_detector_group_value(self, value: Any) -> bool:
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
+
+        An empty dict is a grouped value with no groups to evaluate.
         """
         if not isinstance(value, dict):
             return False
 
-        if not value:  # Empty dict case
-            return False
-
-        # Check if all keys are DetectorGroupKey instances
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
