@@ -191,6 +191,39 @@ class PrIterationDetailsTest(TestCase):
         assert self._trigger() is None
         assert first is not None
 
+    def test_a_second_open_resets_the_row_left_by_an_abandoned_iteration(self) -> None:
+        # A pause clears the queue, so the row it opened waits for feedback that never runs.
+        self._open()
+        (stale,) = self._open_rows()
+        stale.update(date_added=timezone.now() - timedelta(hours=2))
+
+        self._open()
+
+        (row,) = self._open_rows()
+        assert row.id == stale.id
+        assert row.date_added > stale.date_added
+
+    def test_the_reset_row_measures_only_the_iteration_that_claimed_it(self) -> None:
+        self._open()
+        (stale,) = self._open_rows()
+        stale.update(date_added=timezone.now() - timedelta(hours=2))
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id)
+
+        event = mock_record.call_args.args[0]
+        assert event.duration_ms < 60_000
+
+    def test_a_waiting_row_never_doubles_up(self) -> None:
+        self._open()
+        self._open()
+        self._open()
+
+        assert len(self._open_rows()) == 1
+
     def test_a_discarded_iteration_leaves_no_row(self) -> None:
         self._open()
 

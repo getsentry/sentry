@@ -128,6 +128,14 @@ class SeerRunPrIteration(DefaultFieldsModel):
             # table that carries a row per in-flight iteration.
             models.Index(fields=["date_updated"]),
         ]
+        constraints = [
+            # Only an enqueue onto an empty queue opens a row, so one waits at most.
+            models.UniqueConstraint(
+                fields=["seer_run"],
+                condition=models.Q(triggered=False),
+                name="uniq_seerrunpriteration_waiting",
+            ),
+        ]
 
     __repr__ = sane_repr("seer_run_id")
 

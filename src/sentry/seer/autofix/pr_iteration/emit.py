@@ -49,8 +49,7 @@ def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
 def _claim_untriggered(seer_run: SeerRun) -> SeerRunPrIteration | None:
     """The run's waiting iteration, claimed. None when another caller won it.
 
-    At most one waits, since only an enqueue onto an empty queue opens one and
-    a drain that returns without triggering closes the one it popped.
+    A unique constraint allows one waiting row for each run.
     """
     iteration = untriggered_iteration(seer_run)
     if iteration is None or not claim_iteration(iteration):

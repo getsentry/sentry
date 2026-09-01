@@ -55,6 +55,13 @@ class Migration(CheckedMigration):
                 "indexes": [
                     models.Index(fields=["date_updated"], name="seer_seerru_date_up_e3e73c_idx")
                 ],
+                "constraints": [
+                    models.UniqueConstraint(
+                        condition=models.Q(("triggered", False)),
+                        fields=("seer_run",),
+                        name="uniq_seerrunpriteration_waiting",
+                    )
+                ],
             },
         ),
     ]

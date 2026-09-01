@@ -12,15 +12,34 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
+from django.db import IntegrityError, router, transaction
+from django.utils import timezone
+
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
+from sentry.utils import metrics
 
 
-def add_iteration(seer_run: SeerRun, data: dict[str, Any]) -> SeerRunPrIteration:
-    """Open a row for an iteration.
+def add_iteration(seer_run: SeerRun, data: dict[str, Any]) -> SeerRunPrIteration | None:
+    """Open a row for an iteration, or reset the row left by an abandoned one.
 
-    The row's id is the iteration's id -- callers read it off the return value.
+    A unique constraint allows one waiting row for each run. A conflict means
+    the feedback of the waiting row will never run, so this feedback takes the
+    row over. The row's id is the iteration's id.
     """
-    return SeerRunPrIteration.objects.create(seer_run=seer_run, data=data)
+    try:
+        with transaction.atomic(using=router.db_for_write(SeerRunPrIteration)):
+            return SeerRunPrIteration.objects.create(seer_run=seer_run, data=data)
+    except IntegrityError:
+        pass
+
+    metrics.incr("autofix.pr_iteration.details.reset")
+    iteration = untriggered_iteration(seer_run)
+    if iteration is None:
+        # A drain claimed the row between the failed insert and this read.
+        return None
+
+    iteration.update(data=data, date_added=timezone.now())
+    return iteration
 
 
 def get_iteration(seer_run: SeerRun, iteration_id: int) -> SeerRunPrIteration | None:
