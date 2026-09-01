@@ -285,11 +285,7 @@ class BaseRequestParser(ABC):
         return self._build_bucketed_identifier(integration, data)
 
     def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
-        """Record which routing outcome a payload took.
-
-        `reason` is the complete breakdown; `bucketed` is kept for the dashboards
-        already built on it.
-        """
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
         metrics.incr(
             "hybridcloud.webhookpayload.mailbox_routing",
             tags={
