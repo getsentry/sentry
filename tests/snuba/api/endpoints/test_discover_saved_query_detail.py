@@ -631,7 +631,9 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
             discover_saved_query=self.query
         ).exists()
 
-        with self.feature("organizations:discover-query"):
+        with self.feature(
+            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
+        ):
             response = self.client.post(self.url(self.query.id))
 
         assert response.status_code == 204
@@ -649,7 +651,9 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
             last_visited=before_now(minutes=10),
         )
 
-        with self.feature("organizations:discover-query"):
+        with self.feature(
+            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
+        ):
             response = self.client.post(self.url(self.query.id))
 
         assert response.status_code == 204
@@ -663,12 +667,16 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
         other_user = self.create_user()
         self.create_member(organization=self.org, user=other_user)
 
-        with self.feature("organizations:discover-query"):
+        with self.feature(
+            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
+        ):
             response = self.client.post(self.url(self.query.id))
         assert response.status_code == 204
 
         self.login_as(user=other_user)
-        with self.feature("organizations:discover-query"):
+        with self.feature(
+            ["organizations:discover-query", "organizations:discover-queries-in-all-queries"]
+        ):
             response = self.client.post(self.url(self.query.id))
         assert response.status_code == 204
 
