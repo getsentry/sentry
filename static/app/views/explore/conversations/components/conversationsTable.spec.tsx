@@ -1,16 +1,23 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {dragHandle} from 'sentry-test/dragMove';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
+import {
+  COL_WIDTH_MINIMUM,
+  COL_WIDTH_UNDEFINED,
+} from 'sentry/components/tables/gridEditable';
 
 import {
   collapseToolsColumnWhenUnused,
   ConversationsTable,
   getUserDisplayName,
   getVisibleToolCount,
+  parseStoredColumnWidths,
 } from './conversationsTable';
+
+const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
@@ -53,6 +60,7 @@ function renderTable() {
 describe('ConversationsTable', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    localStorage.clear();
     act(() => {
       PageFiltersStore.reset();
       PageFiltersStore.init();
@@ -171,6 +179,54 @@ describe('ConversationsTable', () => {
     );
   });
 
+  it('restores a persisted column width', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    renderTable();
+
+    await screen.findByText('With tools');
+
+    const template = screen.getByTestId('grid-editable').style.gridTemplateColumns;
+    expect(template).toContain('400px');
+    expect(template).not.toContain('220px');
+  });
+
+  it('keeps a persisted tools width when no conversation has tools', async () => {
+    localStorage.setItem(COLUMN_WIDTHS_STORAGE_KEY, JSON.stringify({tools: 400}));
+    mockConversations([{...BASE_CONVERSATION, title: 'No tools', toolNames: []}]);
+
+    renderTable();
+
+    await screen.findByText('No tools');
+
+    // Only a tools column still at its default width collapses; a width the
+    // user chose is respected across reloads.
+    expect(screen.getByTestId('grid-editable').style.gridTemplateColumns).toContain(
+      '400px'
+    );
+  });
+
+  it('persists a column width when the user resizes it', async () => {
+    mockConversations([
+      {...BASE_CONVERSATION, title: 'With tools', toolNames: ['execute_query']},
+    ]);
+
+    renderTable();
+
+    await screen.findByText('With tools');
+
+    // Columns measure 0px in jsdom, so the committed width is the drag distance.
+    dragHandle(screen.getByRole('separator', {name: 'Tools'}), {from: 0, to: 300});
+
+    await waitFor(() => {
+      const stored = localStorage.getItem(COLUMN_WIDTHS_STORAGE_KEY);
+      expect(stored && JSON.parse(stored)).toEqual({tools: 300});
+    });
+  });
+
   it('navigates to the conversation detail on row click', async () => {
     mockConversations([{...BASE_CONVERSATION, title: 'Open me'}]);
 
@@ -227,6 +283,38 @@ describe('ConversationsTable', () => {
     expect(router.location.pathname).toBe(initialPath);
 
     openSpy.mockRestore();
+  });
+});
+
+describe('parseStoredColumnWidths', () => {
+  it('keeps widths for known columns', () => {
+    expect(parseStoredColumnWidths({tools: 400, age: 150})).toEqual({
+      tools: 400,
+      age: 150,
+    });
+  });
+
+  it('drops columns it does not know about', () => {
+    expect(parseStoredColumnWidths({tools: 400, retired: 400})).toEqual({tools: 400});
+  });
+
+  it('drops widths below the grid minimum', () => {
+    expect(
+      parseStoredColumnWidths({
+        tools: COL_WIDTH_MINIMUM - 1,
+        age: COL_WIDTH_UNDEFINED,
+      })
+    ).toEqual({});
+  });
+
+  it('drops values that are not finite numbers', () => {
+    expect(parseStoredColumnWidths({tools: '400', age: null, cost: NaN})).toEqual({});
+  });
+
+  it('returns no widths when nothing usable is stored', () => {
+    expect(parseStoredColumnWidths(undefined)).toEqual({});
+    expect(parseStoredColumnWidths(null)).toEqual({});
+    expect(parseStoredColumnWidths('garbage')).toEqual({});
   });
 });
 
