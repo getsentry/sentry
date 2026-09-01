@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 class GitlabRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITLAB]
     webhook_identifier = WebhookProviderIdentifier.GITLAB
-    _integration: Integration | None = None
     _METRIC_CONTROL_PATH_FAILURE_KEY = "integrations.gitlab.get_integration_from_request.failure"
 
     def _resolve_external_id(self) -> tuple[str, str] | HttpResponseBase:
@@ -38,8 +37,6 @@ class GitlabRequestParser(BaseRequestParser):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        if self._integration:
-            return self._integration
         if not self.is_json_request():
             return None
         try:
@@ -47,10 +44,9 @@ class GitlabRequestParser(BaseRequestParser):
             result = self._resolve_external_id()
             if isinstance(result, tuple):
                 (external_id, _secret) = result
-                self._integration = Integration.objects.filter(
+                return Integration.objects.filter(
                     external_id=external_id, provider=self.provider
                 ).first()
-                return self._integration
         except Exception as e:
             metrics.incr(
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,

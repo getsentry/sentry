@@ -85,8 +85,8 @@ class BaseRequestParser(ABC):
         self.response_handler = response_handler
         self._shed_decisions: dict[int | None, bool] = {}
         self._targeted_shed_conditions: KillswitchConfig | None = None
-        self._request_integration: Integration | None = None
-        self._request_integration_fetched = False
+        self._integration: Integration | None = None
+        self._integration_fetched = False
 
     # Common Helpers
 
@@ -112,14 +112,11 @@ class BaseRequestParser(ABC):
         A parser is built once per request, so its callers share one query and one
         decrypt of the integration's encrypted metadata. Subclasses override the
         uncached ``get_integration_from_request``; nothing else should call it.
-
-        The field is named apart from ``_integration``, which GitlabRequestParser
-        already owns.
         """
-        if not self._request_integration_fetched:
-            self._request_integration = self.get_integration_from_request()
-            self._request_integration_fetched = True
-        return self._request_integration
+        if not self._integration_fetched:
+            self._integration = self.get_integration_from_request()
+            self._integration_fetched = True
+        return self._integration
 
     def is_json_request(self) -> bool:
         if not self.request.headers:
