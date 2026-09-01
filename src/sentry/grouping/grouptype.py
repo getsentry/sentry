@@ -31,15 +31,15 @@ class ErrorDetectorHandler(BaseDetectorHandler[object, object, DataConditionGrou
         return {}
 
     def evaluate(self, data_packet: DataPacket[object]) -> GroupedDetectorEvaluationResult:
-        return GroupedDetectorEvaluationResult(result={}, tainted=False)
+        raise NotImplementedError
 
     def extract_value(self, data_packet: DataPacket[object]) -> object:
-        return None
+        raise NotImplementedError
 
-    def evaluate_extracted_value(self, extracted_value: object) -> DataConditionGroupEvaluation:
-        return DataConditionGroupEvaluation(
-            result=False, data={"condition_evaluations": [], "logic_type": "and"}, triggered=False
-        )
+    def evaluate_extracted_value(
+        self, extracted_value: object
+    ) -> tuple[DataConditionGroupEvaluation | None, DetectorPriorityLevel]:
+        raise NotImplementedError
 
     def create_occurrence(
         self,
