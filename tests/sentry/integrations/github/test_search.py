@@ -176,6 +176,20 @@ class GithubSearchTest(APITestCase):
         ]
 
     @responses.activate
+    def test_prefetch_repo_rate_limit(self) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories",
+            status=429,
+            json={"message": "API rate limit exceeded"},
+        )
+
+        resp = self.client.get(self.url, data={"field": "repo", "query": ""})
+
+        assert resp.status_code == 429
+        assert resp.data == {"detail": "Rate limit exceeded"}
+
+    @responses.activate
     def test_prefetches_assignee_results(self) -> None:
         responses.add(
             responses.GET,

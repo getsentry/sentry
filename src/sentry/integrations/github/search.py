@@ -66,27 +66,27 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
             SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES,
             organization_id=installation.organization_id,
             integration_id=integration.id,
-        ).capture() as lifecyle:
+        ).capture() as lifecycle:
             assert isinstance(installation, self.installation_class)
 
-            if not query:
-                repositories = installation.get_repositories(page_number_limit=PAGE_LIMIT)
-                return Response(
-                    [
-                        {"label": repository["name"], "value": repository["identifier"]}
-                        for repository in repositories
-                    ]
-                )
-
-            full_query = build_repository_query(integration.metadata, integration.name, query)
             try:
+                if not query:
+                    repositories = installation.get_repositories(page_number_limit=PAGE_LIMIT)
+                    return Response(
+                        [
+                            {"label": repository["name"], "value": repository["identifier"]}
+                            for repository in repositories
+                        ]
+                    )
+
+                full_query = build_repository_query(integration.metadata, integration.name, query)
                 response = installation.get_client().search_repositories(full_query)
             except ApiError as err:
-                if err.code == 403:
-                    lifecyle.record_halt(str(SourceCodeSearchEndpointHaltReason.RATE_LIMITED))
+                if err.code in {403, 429}:
+                    lifecycle.record_halt(str(SourceCodeSearchEndpointHaltReason.RATE_LIMITED))
                     return Response({"detail": "Rate limit exceeded"}, status=429)
                 if err.code == 422:
-                    lifecyle.record_halt(
+                    lifecycle.record_halt(
                         str(SourceCodeSearchEndpointHaltReason.MISSING_REPOSITORY_OR_NO_ACCESS)
                     )
                     return Response(
