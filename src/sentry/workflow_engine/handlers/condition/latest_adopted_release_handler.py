@@ -13,16 +13,21 @@ from sentry.workflow_engine.handlers.condition.latest_release_handler import (
     get_latest_adopted_release_for_env,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
 
 
 @condition_handler_registry.register(Condition.LATEST_ADOPTED_RELEASE)
-class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class LatestAdoptedReleaseConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Release comparisons require event data")
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     label_template = "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}"
 

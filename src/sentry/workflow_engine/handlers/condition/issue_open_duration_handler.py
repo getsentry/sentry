@@ -8,11 +8,16 @@ from sentry.workflow_engine.handlers.condition.utils.age import (
     AgeComparisonType,
     age_comparison_map,
 )
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 
 
-class IssueOpenDurationConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class IssueOpenDurationConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Open duration is not supported in previews")
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     comparison_json_schema = {

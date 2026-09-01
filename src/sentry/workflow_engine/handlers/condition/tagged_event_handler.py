@@ -5,16 +5,21 @@ from sentry.rules import MATCH_CHOICES, MatchType, match_values
 from sentry.services.eventstore.models import GroupEvent
 from sentry.tagstore.base import TAG_KEY_RE
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
 
 
 @condition_handler_registry.register(Condition.TAGGED_EVENT)
-class TaggedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class TaggedEventConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Event tags require event data")
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     label_template = "The event's tags match {key} {match} {value}"
 
