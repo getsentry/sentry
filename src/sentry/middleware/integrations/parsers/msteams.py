@@ -85,7 +85,7 @@ class MsTeamsRequestParser(BaseRequestParser):
 
         cells: Sequence[Cell] = []
         try:
-            integration = self.get_integration_from_request()
+            integration = self.integration_for_request()
             if not integration:
                 logger.info(
                     "Could not get integration from request",

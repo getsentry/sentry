@@ -3,9 +3,10 @@ from unittest.mock import Mock, patch
 import pytest
 import responses
 from django.core.handlers.wsgi import WSGIRequest
-from django.db import router, transaction
+from django.db import connections, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 
@@ -61,6 +62,39 @@ class GithubRequestParserTest(TestCase):
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_forwarding_reads_each_routing_table_once(self) -> None:
+        """Routing a webhook queries each table it needs exactly once.
+
+        get_response and the base class's organization lookup both need the
+        integration, and the cells were previously re-read from the mappings the
+        organization lookup had already fetched. Counting the queries is the only way
+        to catch a caller quietly reintroducing one of those round trips, since
+        nothing about the response changes when it does.
+        """
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+
+        def reads_of(table: str) -> int:
+            return len([q for q in queries.captured_queries if f'FROM "{table}"' in q["sql"]])
+
+        assert reads_of("sentry_integration") == 1
+        assert reads_of("sentry_organizationintegration") == 1
+        assert reads_of("sentry_organizationmapping") == 1
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

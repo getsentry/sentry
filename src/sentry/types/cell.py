@@ -16,6 +16,9 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
+    from sentry.hybridcloud.services.organization_mapping.model import (
+        RpcOrganizationMapping,
+    )
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
@@ -457,6 +460,20 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
                 "cell_name", flat=True
             )
         )
+
+
+def find_cells_for_org_mappings(organizations: Iterable[RpcOrganizationMapping]) -> set[str]:
+    """The cells for organizations whose mappings the caller already holds.
+
+    Same result as ``find_cells_for_orgs`` over the same organizations, without the
+    query: ``cell_name`` is already on the mapping. The monolith short-circuit has to
+    be repeated rather than reading the field, because ``SENTRY_FALLBACK_CELL`` is a
+    synthetic name that appears in no mapping row.
+    """
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {settings.SENTRY_FALLBACK_CELL}
+
+    return {org.cell_name for org in organizations}
 
 
 @control_silo_function
