@@ -455,7 +455,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
     const queryParams: Record<string, any> = {
       ...this.props.defaultParams,
-      ...(this.props.useQueryString ? (this.props.location?.query ?? {}) : {}),
+      ...(this.props.useQueryString
+        ? (this.props.location?.query ?? {})
+        : this.state.query
+          ? {query: this.state.query}
+          : {}),
       sortBy: this.state.sortBy,
       cursor: this.state.cursor,
     };

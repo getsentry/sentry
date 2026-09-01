@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CustomerProjects} from 'admin/components/customers/customerProjects';
 
@@ -47,5 +47,25 @@ describe('CustomerProjects', () => {
     );
     expect(requestData).not.toHaveProperty('start');
     expect(requestData).not.toHaveProperty('end');
+  });
+
+  it('sends the search term with the stats period', async () => {
+    const projectsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    render(<CustomerProjects orgId={org.slug} />, {
+      initialRouterConfig: {location: {pathname: `/_admin/customers/${org.slug}/`}},
+    });
+
+    await waitFor(() => expect(projectsMock).toHaveBeenCalledTimes(1));
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'backend');
+    await userEvent.click(screen.getByRole('button', {name: 'Search'}));
+
+    await waitFor(() => expect(projectsMock).toHaveBeenCalledTimes(2));
+    expect(projectsMock.mock.calls[1][1].data).toEqual(
+      expect.objectContaining({query: 'backend', statsPeriod: '30d', per_page: 10})
+    );
   });
 });
