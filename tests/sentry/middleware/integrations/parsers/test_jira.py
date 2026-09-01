@@ -165,7 +165,7 @@ class JiraRequestParserTest(TestCase):
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
-            # Mailbox name should have an extra segment: 10425 % 10
+            # 10425 % 10
             mailbox_name=f"jira:{integration.id}:5",
             cell_names=[cell.name],
             request=request,

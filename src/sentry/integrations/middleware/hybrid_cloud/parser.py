@@ -80,9 +80,8 @@ class BaseRequestParser(ABC):
     mailbox_bucket_count: ClassVar[int] = 100
     """How many sub-mailboxes `mailbox_bucket_id` is spread over.
 
-    Bucketing starts at 3,000/hr, so this many buckets means ~3000/count per hour
-    each. Every mailbox costs a scheduler row and has to win a dispatch slot, so
-    splitting past what the volume needs buys queue rows rather than parallelism.
+    Every mailbox costs a scheduler row and a dispatch slot, so splitting past what
+    the volume needs buys queue rows rather than parallelism.
     """
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
@@ -268,11 +267,8 @@ class BaseRequestParser(ABC):
         return True
 
     def get_request_body(self) -> dict[str, Any]:
-        """
-        The request's JSON body as a mapping, empty when it is not a JSON object.
-
-        A payload that does not parse still has to be queued, so callers fall back to
-        the integration-level mailbox rather than raise.
+        """Empty when the body is not a JSON object. A payload that does not parse
+        still has to be queued, so callers fall back to the integration-level mailbox.
         """
         try:
             body = orjson.loads(self.request.body)

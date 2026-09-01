@@ -22,9 +22,8 @@ class VstsRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.AZURE_DEVOPS.value
     webhook_identifier = WebhookProviderIdentifier.VSTS
 
-    # These providers have one webhook each and far lower volume than GitHub, so a
-    # smaller spread is enough to unserialize a burst without thinning the mailboxes
-    # out into scheduler rows that each carry a handful of payloads.
+    # Far lower volume than GitHub: enough to unserialize a burst without thinning
+    # mailboxes into scheduler rows that each carry a handful of payloads.
     mailbox_bucket_count = 10
 
     cell_view_classes = [WorkItemWebhook]
@@ -62,10 +61,8 @@ class VstsRequestParser(BaseRequestParser):
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """
-        Used by get_mailbox_identifier to find the work item a payload is for.
-        The subscription is created for `workitem.updated` only, so the work item is
-        the only axis a VSTS mailbox can be split on.
+        """The subscription is created for `workitem.updated` only, so the work item
+        is the only axis a VSTS mailbox can be split on.
         """
         resource = data.get("resource")
         if not isinstance(resource, dict):
