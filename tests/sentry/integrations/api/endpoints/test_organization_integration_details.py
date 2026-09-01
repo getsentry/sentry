@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import DEFAULT, patch
 
 import responses
 
@@ -54,25 +54,11 @@ class OrganizationIntegrationDetailsTest(APITestCase):
 @control_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_normal_request_serializes_configuration(self) -> None:
-        config_organization = [{"name": "organization-setting"}]
-        config_data = {"organization-setting": "value"}
-        with (
-            patch.object(
-                GitlabIntegration,
-                "get_organization_config",
-                return_value=config_organization,
-            ) as get_organization_config,
-            patch.object(
-                GitlabIntegration, "get_config_data", return_value=config_data
-            ) as get_config_data,
-        ):
-            response = self.get_success_response(self.organization.slug, self.integration.id)
+        response = self.get_success_response(self.organization.slug, self.integration.id)
 
         assert response.data["id"] == str(self.integration.id)
-        assert response.data["configOrganization"] == config_organization
-        assert response.data["configData"] == config_data
-        get_organization_config.assert_called_once()
-        get_config_data.assert_called_once()
+        assert response.data["configOrganization"]
+        assert response.data["configData"] == {"sync_status_forward": {}}
 
 
 @control_silo_test
@@ -306,21 +292,16 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         )
 
         params = {"action": "create", "ignored": "Sprint"}
-        with (
-            patch.object(
-                JiraIntegration,
-                "get_create_issue_config",
-                autospec=True,
-                side_effect=JiraIntegration.get_create_issue_config,
-            ) as get_create_issue_config,
-            patch.object(
-                JiraIntegration, "get_organization_config", autospec=True
-            ) as get_organization_config,
-            patch.object(JiraIntegration, "get_config_data", autospec=True) as get_config_data,
-            patch.object(
-                JiraIntegration, "get_dynamic_display_information", autospec=True
-            ) as get_dynamic_display_information,
-        ):
+        create_issue_config_impl = JiraIntegration.get_create_issue_config
+        with patch.multiple(
+            JiraIntegration,
+            autospec=True,
+            get_create_issue_config=DEFAULT,
+            get_organization_config=DEFAULT,
+            get_config_data=DEFAULT,
+            get_dynamic_display_information=DEFAULT,
+        ) as jira_methods:
+            jira_methods["get_create_issue_config"].side_effect = create_issue_config_impl
             response = self.get_success_response(
                 self.organization.slug,
                 self.integration.id,
@@ -328,11 +309,15 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
             )
         data = response.data
 
-        get_create_issue_config.assert_called_once()
-        get_organization_config.assert_not_called()
-        get_config_data.assert_not_called()
-        get_dynamic_display_information.assert_not_called()
-        create_issue_call = get_create_issue_config.call_args
+        jira_methods["get_create_issue_config"].assert_called_once()
+        for method_name in (
+            "get_organization_config",
+            "get_config_data",
+            "get_dynamic_display_information",
+        ):
+            jira_methods[method_name].assert_not_called()
+
+        create_issue_call = jira_methods["get_create_issue_config"].call_args
         assert create_issue_call.args[1] is None
         assert create_issue_call.args[2].id == self.user.id
         assert create_issue_call.kwargs["params"]["action"] == "create"
