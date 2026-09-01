@@ -702,7 +702,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
                 "height": 1920,
             },
         }
-        artifact, snapshot_metrics, _, _, _ = self._create_artifact_with_manifest(images)
+        artifact, snapshot_metrics, manifest_key, _, _ = self._create_artifact_with_manifest(images)
         head_key = f"{self.org.id}/{self.project.id}/{artifact.id}/snapshot_head_images.json"
         snapshot_metrics.extras["head_images_key"] = head_key
         snapshot_metrics.save()
@@ -724,6 +724,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 200
         assert [img["key"] for img in response.data["images"]] == ["img1", "img2"]
+        mock_session.head.assert_called_once_with(manifest_key)
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
     def test_get_snapshot_details_returns_canvas_theme(self, mock_get_session):

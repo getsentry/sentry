@@ -36,6 +36,15 @@ def build_head_images_payload(
     }
 
 
+def refresh_manifest_expiration(session: Session, manifest_key: str | None) -> None:
+    if not manifest_key:
+        return
+    try:
+        session.head(manifest_key)
+    except Exception:
+        logger.exception("Failed to refresh manifest expiration", extra={"key": manifest_key})
+
+
 def load_precomputed_head_images(
     session: Session, key: str | None
 ) -> tuple[list[SnapshotImageResponseDict], float | None] | None:

@@ -8,6 +8,7 @@ from sentry.preprod.snapshots.precompute import (
     build_head_images_payload,
     head_images_key,
     load_precomputed_head_images,
+    refresh_manifest_expiration,
 )
 
 _IMAGES = {
@@ -38,6 +39,28 @@ class TestBuildHeadImagesPayload:
         payload = build_head_images_payload(_IMAGES, 0.1)
 
         assert all(cast(dict[str, Any], img)["diff_threshold"] == 0.1 for img in payload["images"])
+
+
+class TestRefreshManifestExpiration:
+    def test_heads_the_manifest_key(self) -> None:
+        session = MagicMock()
+
+        refresh_manifest_expiration(session, "mk")
+
+        session.head.assert_called_once_with("mk")
+
+    def test_noop_when_key_missing(self) -> None:
+        session = MagicMock()
+
+        refresh_manifest_expiration(session, None)
+
+        session.head.assert_not_called()
+
+    def test_swallows_errors(self) -> None:
+        session = MagicMock()
+        session.head.side_effect = OSError("boom")
+
+        refresh_manifest_expiration(session, "mk")
 
 
 def _mock_session(raw: bytes | None) -> MagicMock:

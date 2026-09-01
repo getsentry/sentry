@@ -77,6 +77,7 @@ from sentry.preprod.snapshots.precompute import (
     build_head_images_payload,
     head_images_key,
     load_precomputed_head_images,
+    refresh_manifest_expiration,
 )
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
@@ -360,6 +361,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
         if precomputed is not None:
             image_list, head_diff_threshold = precomputed
+            refresh_manifest_expiration(session, extras.get("manifest_key"))
         else:
             manifest_key = extras.get("manifest_key")
             if not manifest_key:
