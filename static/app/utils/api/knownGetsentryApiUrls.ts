@@ -57,6 +57,7 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/subscription/preview/'
   | '/customers/$organizationIdOrSlug/subscription/usage-logs/'
   | '/customers/$organizationIdOrSlug/usage/'
+  | '/customers/$organizationIdOrSlug/users/$userId/members/'
   | '/internal-stats/$organizationIdOrSlug/integrations/'
   | '/internal-stats/$organizationIdOrSlug/onboarding-tasks/'
   | '/internal-stats/$organizationIdOrSlug/platforms/'

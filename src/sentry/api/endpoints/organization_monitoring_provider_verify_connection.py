@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping
+from typing import Any
+
+from django.utils import timezone
 from rest_framework.fields import CharField, ListField
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,10 +23,15 @@ from sentry.api.serializers.rest_framework.base import (
     convert_dict_key_case,
     snake_to_camel_case,
 )
+from sentry.constants import ObjectStatus
 from sentry.integrations.gcp.client import verify_gcp_connection
+from sentry.integrations.gcp.utils import resolve_project_error_detail
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import IntegrationError
+
+logger = logging.getLogger(__name__)
 
 
 class GcpVerifyConnectionSerializer(CamelSnakeSerializer["GcpVerifyConnectionSerializer"]):
@@ -48,6 +58,51 @@ class GcpVerifyConnectionResponseSerializer(Serializer[dict[str, object]]):
     connection_status = CharField()
     projects = GcpVerifyConnectionProjectResultSerializer(many=True)
     error_detail = CharField(required=False, allow_null=True)
+
+
+def _record_verification_result(
+    organization: Organization,
+    verified: dict[str, Any],
+    result: Mapping[str, Any],
+) -> None:
+    ctx = integration_service.organization_context(
+        organization_id=organization.id,
+        provider=IntegrationProviderSlug.GCP.value,
+    )
+    integration = ctx.integration
+    org_integration = ctx.organization_integration
+    if (
+        integration is None
+        or org_integration is None
+        or integration.status != ObjectStatus.ACTIVE
+        or org_integration.status != ObjectStatus.ACTIVE
+    ):
+        return
+
+    # Only record a result that describes what is currently stored, so a stale caller
+    # cannot overwrite the status with results for settings that have since changed.
+    config = org_integration.config or {}
+    if config.get("customer_sa_email") != verified["customer_sa_email"]:
+        return
+    if set(config.get("projects", [])) != set(verified["gcp_project_ids"]):
+        return
+
+    integration_service.update_organization_integration(
+        org_integration_id=org_integration.id,
+        config={
+            **config,
+            "connection_status": result["connection_status"],
+            "project_statuses": [
+                {
+                    "gcp_project_id": project["gcp_project_id"],
+                    "connection_status": project["connection_status"],
+                    "error_detail": project.get("error_detail"),
+                }
+                for project in result["projects"]
+            ],
+            "last_verified_at": timezone.now().isoformat(),
+        },
+    )
 
 
 @cell_silo_endpoint
@@ -93,6 +148,16 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
                 status=502,
             )
 
-        return Response(
-            convert_dict_key_case(response_serializer.validated_data, snake_to_camel_case)
-        )
+        verified_result = response_serializer.validated_data
+        for project in verified_result["projects"]:
+            project["error_detail"] = resolve_project_error_detail(project)
+
+        try:
+            _record_verification_result(organization, data, verified_result)
+        except Exception:
+            logger.exception(
+                "gcp.verify_connection_record_failed",
+                extra={"organization_id": organization.id},
+            )
+
+        return Response(convert_dict_key_case(verified_result, snake_to_camel_case))

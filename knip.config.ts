@@ -75,6 +75,7 @@ const config: KnipConfig = {
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
+        'zrender', // used in echarts
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
