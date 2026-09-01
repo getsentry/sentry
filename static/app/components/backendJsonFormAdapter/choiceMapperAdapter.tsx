@@ -1,4 +1,5 @@
 import {useState, type ReactNode} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
 
@@ -17,7 +18,6 @@ import {Client} from 'sentry/api';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 
@@ -61,7 +61,7 @@ function AsyncSearchCompactSelect({
   searchField?: string;
 } & DistributedPick<SelectProps<string>, 'trigger'>) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
   const [apiClient] = useState(() => new Client({baseUrl: ''}));
   const api = useApi({api: apiClient});
 

@@ -679,6 +679,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'circleDashed',
+        groups: ['status'],
+        keywords: ['shape', 'round', 'indicator', 'progress', 'pending', 'not started'],
+        name: 'CircleDashed',
+        defaultProps: {},
+      },
+      {
         id: 'circleFill',
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],

@@ -68,30 +68,28 @@ function csrfSafeMethod(method?: string): boolean {
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
 }
 
-// TODO: Need better way of identifying anonymous pages that don't trigger redirect
-const ALLOWED_ANON_PAGES = [
-  /^\/accept\//,
-  /^\/share\//,
-  /^\/auth\/login\//,
-  /^\/join-request\//,
-  /^\/unsubscribe\//,
-];
-
 /**
  * Return true if we should skip calling the normal error handler
  */
-const globalErrorHandlers: Array<
-  (resp: ResponseMeta, options: RequestOptions) => boolean
-> = [];
+export type ApiErrorHandler = (
+  response: ResponseMeta,
+  options: Readonly<RequestOptions>
+) => boolean;
+
+const globalErrorHandlers = new Set<ApiErrorHandler>();
+
+export function registerApiErrorHandler(handler: ApiErrorHandler) {
+  globalErrorHandlers.add(handler);
+
+  return () => {
+    globalErrorHandlers.delete(handler);
+  };
+}
 
 export const initApiClientErrorHandling = () =>
-  globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
-    const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
-      regex.test(window.location.pathname)
-    );
-
+  registerApiErrorHandler((resp: ResponseMeta, options: RequestOptions) => {
     // Ignore error unless it is a 401
-    if (resp?.status !== 401 || pageAllowsAnon) {
+    if (resp?.status !== 401) {
       return false;
     }
     if (resp && options.allowAuthError && resp.status === 401) {
@@ -586,9 +584,9 @@ export class Client {
               });
             }
 
-            const shouldSkipErrorHandler = globalErrorHandlers
-              .map(handler => handler(responseMeta, options))
-              .some(Boolean);
+            const shouldSkipErrorHandler = Array.from(globalErrorHandlers, handler =>
+              handler(responseMeta, options)
+            ).some(Boolean);
 
             if (!shouldSkipErrorHandler) {
               errorHandler(responseMeta, statusText, errorReason);

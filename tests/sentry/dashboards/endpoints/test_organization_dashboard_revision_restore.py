@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboard_revision_restore import (
     _prepare_restore_data,
 )
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.dashboard_permissions import DashboardPermissions
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
 
 
 class TestPrepareRestoreData:
@@ -118,13 +121,20 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         self.dashboard.title = "New Title"
         self.dashboard.save()
 
-        response = self.client.post(self._url(revision.id))
+        with outbox_runner():
+            response = self.client.post(self._url(revision.id))
 
         assert response.status_code == 200
         assert response.data["title"] == "Old Title"
 
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "Old Title"
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("DASHBOARD_RESTORE"),
+            target_object=self.dashboard.id,
+            data=self.dashboard.get_audit_log_data(),
+        )
 
     def test_creates_pre_restore_snapshot(self) -> None:
         revision = self._create_revision(snapshot={"title": "Old Title", "widgets": []})
@@ -155,6 +165,38 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         assert "title" in response.data
         assert "widgets" in response.data
 
+    def test_restores_legacy_widget_height_below_minimum(self) -> None:
+        layout = {"x": 0, "y": 0, "w": 3, "h": 1, "minH": 2}
+        revision = self._create_revision(
+            snapshot={
+                "title": "Dashboard 1",
+                "widgets": [
+                    {
+                        "title": "Legacy widget",
+                        "displayType": "line",
+                        "interval": "5m",
+                        "queries": [
+                            {
+                                "name": "",
+                                "fields": ["count()"],
+                                "columns": [],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "orderby": "",
+                            }
+                        ],
+                        "widgetType": "error-events",
+                        "layout": layout,
+                    }
+                ],
+            }
+        )
+
+        response = self.client.post(self._url(revision.id))
+
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["layout"] == layout
+
     def test_returns_400_for_unsupported_schema_version(self) -> None:
         revision = DashboardRevision.objects.create(
             dashboard=self.dashboard,
@@ -182,6 +224,75 @@ class PostOrganizationDashboardRevisionRestoreTest(OrganizationDashboardRevision
         self.login_as(other_user)
 
         response = self.client.post(self._url(revision.id))
+
+        assert response.status_code == 403
+
+    def test_restores_saved_project_for_open_membership_user(self) -> None:
+        organization = self.create_organization(owner=self.user, flags=1)
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=organization, user=member, role="member", teams=[])
+        dashboard = Dashboard.objects.create(
+            title="Duplicated Dashboard",
+            created_by_id=member.id,
+            organization=organization,
+        )
+        dashboard.projects.add(project)
+        revision = DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=member.id,
+            title=dashboard.title,
+            source="edit",
+            snapshot={"title": dashboard.title, "widgets": [], "projects": [project.id]},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        self.login_as(member)
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-dashboard-revision-restore",
+                kwargs={
+                    "organization_id_or_slug": organization.slug,
+                    "dashboard_id": dashboard.id,
+                    "revision_id": revision.id,
+                },
+            )
+        )
+
+        assert response.status_code == 200, response.data
+
+    def test_returns_403_when_snapshot_project_is_not_accessible(self) -> None:
+        organization = self.create_organization(owner=self.user, flags=0)
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, teams=[team])
+        member = self.create_user()
+        self.create_member(organization=organization, user=member, role="member", teams=[])
+        dashboard = Dashboard.objects.create(
+            title="Restricted Dashboard",
+            created_by_id=member.id,
+            organization=organization,
+        )
+        revision = DashboardRevision.objects.create(
+            dashboard=dashboard,
+            created_by_id=member.id,
+            title=dashboard.title,
+            source="edit",
+            snapshot={"title": dashboard.title, "widgets": [], "projects": [project.id]},
+            snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+        )
+        self.login_as(member)
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-dashboard-revision-restore",
+                kwargs={
+                    "organization_id_or_slug": organization.slug,
+                    "dashboard_id": dashboard.id,
+                    "revision_id": revision.id,
+                },
+            )
+        )
 
         assert response.status_code == 403
 

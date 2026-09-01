@@ -1,8 +1,8 @@
-import {useQueryClient} from '@tanstack/react-query';
-import {useMutation} from '@tanstack/react-query';
+import {useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
@@ -29,7 +29,10 @@ export const useUpdateGroupSearchView = (
   return useMutation({
     mutationFn: ({id, ...groupSearchView}: UpdateGroupSearchViewVariables) =>
       fetchMutation<GroupSearchView>({
-        url: `/organizations/${organization.slug}/group-search-views/${id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
+          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
+        ),
         method: 'PUT',
         data: groupSearchView,
       }),

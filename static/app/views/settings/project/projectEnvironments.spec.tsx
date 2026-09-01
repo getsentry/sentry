@@ -4,7 +4,13 @@ import {
 } from 'sentry-fixture/environments';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectEnvironments from 'sentry/views/settings/project/projectEnvironments';
 
@@ -98,6 +104,32 @@ describe('ProjectEnvironments', () => {
     expect(await screen.findByText('12K')).toBeInTheDocument();
     expect(screen.getByText('678')).toBeInTheDocument();
     expect(screen.getByText('13K')).toBeInTheDocument();
+  });
+
+  it('filters environments and persists the search query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/environments/',
+      body: EnvironmentsFixture(),
+    });
+
+    const {router} = renderComponent(false);
+
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Search environments',
+    });
+    await userEvent.type(searchInput, 'pdct');
+
+    await waitFor(() => {
+      expect(router.location.query.query).toBe('pdct');
+      expect(screen.queryByText('staging')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('production')).toBeInTheDocument();
+    expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+
+    expect(await screen.findByText('staging')).toBeInTheDocument();
+    expect(router.location.query.query).toBeUndefined();
   });
 
   it.each([

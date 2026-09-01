@@ -113,7 +113,7 @@ class WebhookBacklogMetricsTest(TestCase):
         create_payloads(1, "github:123", provider="github")
 
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics._statement_timeout",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_webhook_backlog_metrics()
@@ -134,7 +134,7 @@ class WebhookBacklogMetricsTest(TestCase):
         # average down) -- and must not take out the unrelated age gauge below it,
         # which comes from an independent query. Only the first cursor (the raw
         # pg_class lookup) is faked; everything after -- including the age
-        # lookup's own cursor use inside `_statement_timeout` -- runs for real, so
+        # lookup's own cursor use inside `statement_timeout` -- runs for real, so
         # a regression that coupled the two would fail this test rather than the
         # `db_table`-patching approach this replaced, which broke the age query
         # too and couldn't tell the difference.
@@ -380,7 +380,7 @@ class MailboxDepthMetricsTest(TestCase):
         # A backlog deep enough to blow the statement timeout must cost us the
         # breakdown, not the task — record_webhook_backlog_metrics still reports.
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics.transaction.atomic",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_mailbox_depth_metrics()

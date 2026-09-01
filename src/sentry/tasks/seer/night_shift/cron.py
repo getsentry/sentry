@@ -41,6 +41,7 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunShard,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -272,15 +273,36 @@ def run_night_shift_for_org(
     Now", admin endpoint) pass `{"source": "manual", ...}` and may scope the
     run to specific projects.
 
-    When execute_in_task is True, the heavy execution phase (quota check,
-    eligibility, triage, autofix) is dispatched to a separate task so the
-    caller doesn't block on it. The run record is always created synchronously
-    so callers have a stable handle to the run."""
+    When execute_in_task is True, the heavy execution phase (eligibility,
+    triage, autofix) is dispatched to a separate task so the caller doesn't
+    block on it. The run record is created synchronously, except scheduled
+    invocations without quota are skipped before creation."""
     organization = Organization.objects.filter(
         id=organization_id, status=OrganizationStatus.ACTIVE
     ).first()
     if organization is None:
         return None
+
+    sentry_sdk.set_tags(
+        {"organization_id": organization.id, "organization_slug": organization.slug}
+    )
+
+    # Free-cohort orgs receive Night Shift without a subscription.
+    has_seer_quota = is_free_cohort_org(organization) or quotas.backend.check_seer_quota(
+        org_id=organization.id,
+        data_category=DataCategory.SEER_AUTOFIX,
+    )
+    if not has_seer_quota and schedule_id is not None:
+        existing_run = SeerNightShiftRun.objects.filter(
+            organization=organization,
+            workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            schedule_id=schedule_id,
+        ).first()
+        if existing_run is None or (
+            existing_run.date_completed is None and not existing_run.shards.exists()
+        ):
+            logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
+            return None
 
     # Manual project runs scope to a single project, whose tweaks feed the run
     # options; cron and org-wide manual runs have no single project.
@@ -290,10 +312,6 @@ def run_night_shift_for_org(
         manual_overrides=options,
         project_id=single_project_id,
     )
-    sentry_sdk.set_tags(
-        {"organization_id": organization.id, "organization_slug": organization.slug}
-    )
-
     workflow_config = SeerWorkflowConfig.get_or_create_for_strategy(
         organization_id=organization.id,
         strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
@@ -343,6 +361,15 @@ def run_night_shift_for_org(
         )
         sentry_sdk.metrics.count("night_shift.incomplete_run_resumed", 1)
 
+    if not has_seer_quota and schedule_id is None:
+        logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
+        _record_run_error(
+            run,
+            SeerNightShiftRunErrorType.NO_QUOTA,
+            "No Seer quota available",
+        )
+        return run.id
+
     task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
     if project_ids is not None:
         task_kwargs["project_ids"] = project_ids
@@ -366,9 +393,9 @@ def run_night_shift_execution(
     project_ids: list[int] | None = None,
     **kwargs: Any,
 ) -> None:
-    """Heavy phase of a night shift run: quota check, eligibility, triage, and
-    optional autofix dispatch. Single code path used by both sync invocation
-    (from run_night_shift_for_org) and async dispatch (apply_async)."""
+    """Heavy phase of a night shift run: eligibility, triage, and optional
+    autofix dispatch. Single code path used by both sync invocation (from
+    run_night_shift_for_org) and async dispatch (apply_async)."""
     run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
         logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
@@ -409,16 +436,6 @@ def run_night_shift_execution(
         _complete_run(run)
         return None
 
-    # Free cohort orgs have no Subscription so check_seer_quota returns False.
-    # Bypass the check for them — they get night shift without billing.
-    if not is_free_cohort_org(organization) and not quotas.backend.check_seer_quota(
-        org_id=organization.id,
-        data_category=DataCategory.SEER_AUTOFIX,
-    ):
-        logger.info("night_shift.no_seer_quota", extra=log_extra)
-        _record_run_error(run, "No Seer quota available")
-        return None
-
     try:
         eligible = _get_eligible_projects(
             organization, resolved_options["source"], project_ids=project_ids
@@ -426,6 +443,7 @@ def run_night_shift_execution(
     except Exception:
         _fail_run(
             run,
+            error_type=SeerNightShiftRunErrorType.ELIGIBLE_PROJECTS_FAILED,
             message="Failed to get eligible projects",
             event="night_shift.failed_to_get_eligible_projects",
             extra=log_extra,
@@ -609,23 +627,27 @@ def _complete_run(run: SeerNightShiftRun) -> None:
 
         extras = dict(locked_run.extras or {})
         extras.pop("error_message", None)
+        extras.pop("error_type", None)
         locked_run.update(extras=extras, date_completed=timezone.now())
 
 
-def _record_run_error(run: SeerNightShiftRun, message: str) -> None:
-    _update_run_extras(run, {"error_message": message})
+def _record_run_error(
+    run: SeerNightShiftRun, error_type: SeerNightShiftRunErrorType, message: str
+) -> None:
+    _update_run_extras(run, {"error_type": error_type.value, "error_message": message})
 
 
 def _fail_run(
     run: SeerNightShiftRun,
     *,
+    error_type: SeerNightShiftRunErrorType,
     message: str,
     event: str,
     extra: dict[str, object],
 ) -> None:
     """Log an exception and record an error message on the run."""
     logger.exception(event, extra=extra)
-    _record_run_error(run, message)
+    _record_run_error(run, error_type, message)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -809,7 +831,11 @@ def _dispatch_pending_shards(
         client = SeerAgentClient(organization)
     except SeerPermissionError:
         logger.info("night_shift.no_seer_access", extra=log_extra)
-        _record_run_error(run, "Organization does not have Seer access")
+        _record_run_error(
+            run,
+            SeerNightShiftRunErrorType.NO_SEER_ACCESS,
+            "Organization does not have Seer access",
+        )
         return ShardDispatchStatus.NO_SEER_ACCESS
 
     using = router.db_for_write(SeerNightShiftRunShard)
@@ -828,7 +854,11 @@ def _dispatch_pending_shards(
                     "night_shift.invalid_shard_plan",
                     extra={**log_extra, "shard_index": shard_index},
                 )
-                _record_run_error(run, "Invalid Night Shift shard plan")
+                _record_run_error(
+                    run,
+                    SeerNightShiftRunErrorType.INVALID_SHARD_PLAN,
+                    "Invalid Night Shift shard plan",
+                )
                 return ShardDispatchStatus.INVALID_SHARD_PLAN
 
             def _link_shard(created: SeerRun) -> None:
@@ -860,7 +890,9 @@ def _dispatch_pending_shards(
         failed_shards = len(planned_shards) - dispatched
         sentry_sdk.metrics.count("night_shift.shard_dispatch_failure", failed_shards)
         _record_run_error(
-            run, f"Failed to dispatch {failed_shards} of {len(planned_shards)} triage shards"
+            run,
+            SeerNightShiftRunErrorType.SHARD_DISPATCH_FAILED,
+            f"Failed to dispatch {failed_shards} of {len(planned_shards)} triage shards",
         )
         logger.warning(
             "night_shift.partial_dispatch_failure",

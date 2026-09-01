@@ -235,6 +235,11 @@ class ProjectOption(Model):
         unique_together = (("project", "key"),)
         indexes = [
             models.Index(fields=["key"]),
+            models.Index(
+                fields=["value", "id"],
+                condition=models.Q(key="sentry:group_action_log_backfill_completed"),
+                name="sentry_proj_gal_val_id_idx",
+            ),
         ]
 
     __repr__ = sane_repr("project_id", "key", "value")

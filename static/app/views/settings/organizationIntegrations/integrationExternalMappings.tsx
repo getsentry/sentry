@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -26,6 +27,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+
+const MAPPING_COLUMNS: TableColumnConfig[] = [
+  {key: 'externalName', width: '1fr'},
+  {key: 'arrow', width: 'max-content'},
+  {key: 'sentryName', width: '1fr'},
+  {key: 'actions', width: '66px'},
+];
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -179,6 +187,7 @@ export function IntegrationExternalMappings(props: Props) {
   return (
     <Fragment>
       <MappingTable
+        columns={MAPPING_COLUMNS}
         data-test-id="mapping-table"
         header={
           <SimpleTable.HeaderRow>
@@ -231,7 +240,6 @@ export function IntegrationExternalMappings(props: Props) {
 
 const MappingTable = styled(SimpleTable)`
   overflow: visible;
-  grid-template-columns: 1fr max-content 1fr 66px;
 
   [role='columnheader'] {
     padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

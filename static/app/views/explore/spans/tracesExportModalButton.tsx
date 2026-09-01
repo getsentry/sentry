@@ -16,6 +16,7 @@ import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -65,6 +66,7 @@ export function TracesExportModalButton({
     field: payload.field,
     project: decodeList(payload.project).map(Number),
     query: payload.query,
+    sampling: SAMPLING_MODE.HIGH_ACCURACY,
     sort: decodeList(payload.sort),
     environment: payload.environment,
     start: decodeScalar(payload.start),

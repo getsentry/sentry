@@ -11,13 +11,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import InvestigationsView from 'sentry/views/investigations';
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
-import type {
-  InvestigationDetail,
-  InvestigationListItem,
-} from 'sentry/views/investigations/types';
+import {
+  investigationCandidatesQueryOptions,
+  getInvestigationDetailQueryOptions,
+  investigationListQueryOptions,
+} from 'sentry/views/investigations/api';
+import {InvestigationListItemFixture as InvestigationFixture} from 'sentry/views/investigations/fixtures';
+import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const organization = OrganizationFixture({
@@ -47,28 +50,11 @@ function renderView({
   return {...result, queryClient};
 }
 
-function InvestigationFixture(
-  overrides: Partial<InvestigationListItem> = {}
-): InvestigationListItem {
-  return {
-    id: '1',
-    title: 'Database latency investigation',
-    status: 'active',
-    sourceType: 'manual',
-    createdBy: '1',
-    dateCreated: '2026-08-13T20:00:00Z',
-    dateUpdated: '2026-08-13T21:00:00Z',
-    version: 3,
-    blockCount: 4,
-    isFavorited: false,
-    ...overrides,
-  };
-}
-
 describe('Explore Investigations', () => {
   beforeEach(() => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    ConfigStore.set('customerDomain', null);
   });
 
   it('shows the standard feature-disabled state without the feature', () => {
@@ -103,6 +89,11 @@ describe('Explore Investigations', () => {
   });
 
   it('renders loading and populated table states without unsupported controls', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     MockApiClient.addMockResponse({
       url: listUrl,
       body: [InvestigationFixture()],
@@ -113,7 +104,7 @@ describe('Explore Investigations', () => {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       await screen.findByRole('link', {name: 'Database latency investigation'})
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/investigation/1/');
+    ).toHaveAttribute('href', '/explore/investigations/1/');
     expect(screen.getByText('4')).toBeInTheDocument();
     expect(screen.getByText('Status')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -245,12 +236,53 @@ describe('Explore Investigations', () => {
     );
     expect(await screen.findByText('Untitled investigation')).toBeInTheDocument();
     expect(router.location.pathname).toBe(
-      '/organizations/org-slug/seer/investigation/1/'
+      '/organizations/org-slug/explore/investigations/1/'
     );
     expect(queryClient.getQueryData(unrelatedOptions.queryKey)?.json).toBe(
       unrelatedDetail
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Investigation created.');
+  });
+
+  it('refreshes running title and summary generation in the list', async () => {
+    MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          title: 'Untitled investigation',
+          titleGeneration: {status: 'running'},
+        }),
+      ],
+    });
+
+    const {queryClient} = renderView();
+    await screen.findByText('Untitled investigation');
+    const completedRequest = MockApiClient.addMockResponse({
+      url: listUrl,
+      body: [
+        InvestigationFixture({
+          title: 'Checkout errors across releases',
+          summary: 'Errors rose across releases',
+          summaryDescription: 'All active releases increased together.',
+          titleGeneration: {status: 'completed'},
+        }),
+      ],
+    });
+
+    expect(
+      await screen.findByText('Checkout errors across releases', {}, {timeout: 3000})
+    ).toBeInTheDocument();
+    expect(completedRequest).toHaveBeenCalled();
+    expect(
+      queryClient.getQueryData(
+        investigationListQueryOptions({organizationSlug: 'org-slug'}).queryKey
+      )?.json[0]
+    ).toEqual(
+      expect.objectContaining({
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+      })
+    );
   });
 
   it('toggles an investigation favorite and refreshes the list', async () => {
@@ -386,7 +418,7 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/investigation/1/`
+        `${window.location.origin}/organizations/org-slug/explore/investigations/1/`
       )
     );
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
@@ -449,6 +481,42 @@ describe('Explore Investigations', () => {
 
     await waitFor(() =>
       expect(queryClient.getQueryData(detailOptions.queryKey)).toBeUndefined()
+    );
+  });
+
+  it('invalidates breached-metric entry points after deletion', async () => {
+    const investigation = InvestigationFixture();
+    MockApiClient.addMockResponse({url: listUrl, body: [investigation]});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/1/',
+      method: 'DELETE',
+    });
+
+    const {queryClient} = renderView();
+    const candidateOptions = investigationCandidatesQueryOptions({
+      organizationSlug: 'org-slug',
+      sources: [
+        {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+        },
+      ],
+    });
+    queryClient.setQueryData(candidateOptions.queryKey, {
+      json: {items: [{status: 'view', investigationId: '1'}]},
+      headers: {},
+    });
+    await userEvent.click(
+      await screen.findByLabelText('More options for Database latency investigation')
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(candidateOptions.queryKey)?.isInvalidated).toBe(
+        true
+      )
     );
   });
 

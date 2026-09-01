@@ -1,5 +1,6 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
@@ -13,7 +14,9 @@ export function useReorderStarredDashboards() {
   const {mutate} = useMutation({
     mutationFn: (dashboards: DashboardListItem[]) =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/dashboards/starred/order/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/starred/order/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
         data: {
           dashboard_ids: dashboards.map(dashboard => dashboard.id),

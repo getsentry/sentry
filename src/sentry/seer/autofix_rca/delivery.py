@@ -8,7 +8,6 @@ import sentry_sdk
 from django.db import router, transaction
 
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix_rca.models import FEATURE_ID, LEGACY_FEATURE_ID
 from sentry.seer.models.run import SeerAgentRun
 
@@ -83,13 +82,10 @@ def deliver_autofix_rca_result(
         )
 
         group_id = agent_run.group_id
-        organization = agent_run.run.organization
 
     if group_id is None or run_state_id is None:
         logger.warning("autofix_rca.delivery.cannot_surface", extra=log_extra)
         return
-
-    AutofixOnCompletionHook.execute(organization, run_state_id)
 
     sentry_sdk.metrics.count("autofix_rca.delivery_completed", 1)
     logger.info("autofix_rca.delivery.completed", extra=log_extra)

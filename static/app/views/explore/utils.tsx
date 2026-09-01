@@ -50,12 +50,20 @@ import type {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
-import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {
+  getFieldsForConstructedQuery,
+  normalizeCompareQueryParts,
+  type ReadableExploreQueryParts,
+} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  parseConditionalAggregate,
+  withReadableConditionalFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -159,14 +167,25 @@ function getExploreUrlFromSavedQueryUrl({
           ? visualize.chartType
           : undefined;
 
-        return {
-          ...q,
+        const normalized = normalizeCompareQueryParts({
           chartType,
           yAxes: (visualize?.yAxes ?? []).slice(),
           groupBys: groupBys ?? [],
+          query: q.query ?? '',
           sortBys: decodeSorts(q.orderby),
           caseInsensitive: q.caseInsensitive ? '1' : null,
-        };
+        });
+        const yAxes = normalized.yAxes ?? [];
+
+        return {
+          chartType: normalized.chartType,
+          yAxes,
+          groupBys: [...(normalized.groupBys ?? groupBys ?? [])],
+          query: normalized.query ?? '',
+          sortBys: [...(normalized.sortBys ?? decodeSorts(q.orderby))],
+          fields: getFieldsForConstructedQuery(yAxes),
+          caseInsensitive: normalized.caseInsensitive,
+        } satisfies ReadableExploreQueryParts;
       }),
       title: savedQuery.name,
       selection: {
@@ -345,7 +364,9 @@ export function generateTargetQuery({
 
   // add all the arguments of the visualizations as columns
   for (const yAxis of yAxes) {
-    const parsedFunction = parseFunction(yAxis);
+    // Parse conditionally so an `_if` filter query is not mistaken for an attribute and
+    // added as a samples column.
+    const parsedFunction = parseConditionalAggregate(yAxis);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -372,7 +393,7 @@ export function generateTargetQuery({
 
   // find the first valid sort and sort on that
   for (const sort of sorts) {
-    const parsedFunction = parseFunction(sort.field);
+    const parsedFunction = parseConditionalAggregate(sort.field);
     if (!parsedFunction?.arguments[0]) {
       continue;
     }
@@ -633,7 +654,7 @@ export function prettifyAggregation(aggregation: string): string | null {
     return expression.tokens
       .map(token => {
         if (isTokenFunction(token)) {
-          const func = parseFunction(token.text);
+          const func = parseFunction(withReadableConditionalFilter(token.text));
           if (func) {
             return prettifyParsedFunction(func);
           }
@@ -643,7 +664,7 @@ export function prettifyAggregation(aggregation: string): string | null {
       .join(' ');
   }
 
-  const func = parseFunction(aggregation);
+  const func = parseFunction(withReadableConditionalFilter(aggregation));
   if (func) {
     return prettifyParsedFunction(func);
   }
@@ -891,7 +912,8 @@ export function shouldWarnSamplingSensitive(
 }
 
 export function isSamplingSensitiveAggregate(yAxis: string): boolean {
-  const parsed = parseFunction(yAxis);
+  // Parse conditionally so `count_unique_if` is recognised as `count_unique`.
+  const parsed = parseConditionalAggregate(yAxis);
   if (!parsed) {
     return false;
   }

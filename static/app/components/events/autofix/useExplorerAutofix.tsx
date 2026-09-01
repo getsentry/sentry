@@ -29,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -212,6 +211,7 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
@@ -243,13 +243,13 @@ const ACTIVE_POLL_INTERVAL = 1000;
  */
 const PR_POLL_INTERVAL = 10000;
 
-function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   return apiOptions.as<ExplorerAutofixResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
     {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
       query: {mode: 'explorer', llmFormat: 'markdown'},
-      staleTime: 0,
+      staleTime: 30_000,
     }
   );
 }
@@ -520,6 +520,10 @@ export function isRunValidForPrIteration(organization: Organization): boolean {
   return organization.features.includes('autofix-pr-iteration-manual');
 }
 
+export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
+  return runState?.pr_iteration_paused === true;
+}
+
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
   // pr_iteration is always the last work to run, so if the most recent block
   // with a step came from one, the run is in the pr_iteration phase (whether it
@@ -663,6 +667,10 @@ export function useExplorerAutofix(
       step: AutofixExplorerStep,
       startStepOptions?: {
         /**
+         * Whether to enable bash mode for the autofix run. Defaults to false.
+         */
+        enableBashTools?: boolean;
+        /**
          * The index of the block to start the step. If specified, existing blocks from this index onwards is reset.
          */
         insertIndex?: number;
@@ -691,6 +699,10 @@ export function useExplorerAutofix(
 
         if (startStepOptions?.userContext) {
           data.user_context = startStepOptions.userContext;
+        }
+
+        if (defined(startStepOptions?.enableBashTools)) {
+          data.enable_bash_tools = startStepOptions.enableBashTools;
         }
 
         const response = await api.requestPromise(
@@ -870,7 +882,7 @@ export function useExplorerAutofix(
             error_message: string;
             repo_name: string;
             failure_type?: string;
-            github_installation_id?: string;
+            github_installation_url?: string;
           }>;
           successes: unknown[];
         } = await api.requestPromise(
@@ -903,10 +915,7 @@ export function useExplorerAutofix(
           );
 
           if (permissionFailures.length > 0) {
-            const installationId = permissionFailures[0]?.github_installation_id;
-            const installationUrl = installationId
-              ? getGithubPermissionsUpdateUrl(installationId)
-              : undefined;
+            const installationUrl = permissionFailures[0]?.github_installation_url;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
                 {...deps}

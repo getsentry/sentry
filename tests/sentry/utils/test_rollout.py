@@ -28,6 +28,27 @@ TEST_CALLSITE_USE_EXPERIMENTAL_DATA_ALLOWLIST_OPTION = (
 )
 
 
+class SafeRolloutComparatorMetricsTestCase(TestCase):
+    @patch("sentry.utils.rollout.metrics.incr")
+    def test_record_error(self, mock_metrics_incr: MagicMock) -> None:
+        TestRolloutComparator.record_error(
+            error=ValueError("experimental failure"),
+            callsite="dogs_are_great",
+            branch="experimental",
+        )
+
+        mock_metrics_incr.assert_called_once_with(
+            "SafeRolloutComparator.error",
+            sample_rate=1.0,
+            tags={
+                "rollout_name": "test_rollout",
+                "callsite": "dogs_are_great",
+                "branch": "experimental",
+                "error_type": "ValueError",
+            },
+        )
+
+
 @django_db_all
 class SafeRolloutComparatorTestCase(TestCase):
     def setUp(self) -> None:

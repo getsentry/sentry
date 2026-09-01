@@ -18,6 +18,7 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -31,6 +32,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
+  investigationListQueryOptions,
+  investigationTitleGenerationQueryOptions,
   useAddInvestigationBlockMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -38,14 +41,18 @@ import {
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import type {
   InvestigationBlockKind,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
+
+const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
 function FeatureDisabledPage() {
   return (
@@ -70,7 +77,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
+export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
@@ -114,12 +121,54 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const [draftTitle, setDraftTitle] = useState(investigation.title);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
+  const titleGenerationSettledFor = useRef<string | null>(null);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const titleGenerationQuery = useQuery({
+    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
+    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
+    refetchInterval: query =>
+      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
+  });
+  const generatedTitlePreview =
+    draftTitle === null &&
+    investigation.title === DEFAULT_INVESTIGATION_TITLE &&
+    isTitleGenerationActive(titleGenerationQuery.data?.status)
+      ? titleGenerationQuery.data?.preview
+      : null;
+  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+
+  useEffect(() => {
+    const status = titleGenerationQuery.data?.status;
+    if (isTitleGenerationActive(status)) {
+      if (titleGenerationSettledFor.current === investigation.id) {
+        titleGenerationSettledFor.current = null;
+      }
+      return;
+    }
+    if (
+      (status === 'completed' || status === 'failed') &&
+      titleGenerationSettledFor.current !== investigation.id
+    ) {
+      titleGenerationSettledFor.current = investigation.id;
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      void queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({
+          organizationSlug: organization.slug,
+        }).queryKey,
+      });
+    }
+  }, [
+    detailOptions.queryKey,
+    investigation.id,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.status,
+  ]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -142,14 +191,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   useEffect(() => {
-    if (
-      draftTitle === persistedTitle.current &&
-      investigation.title !== persistedTitle.current
-    ) {
+    if (draftTitle === null) {
       persistedTitle.current = investigation.title;
-      // Keep an in-progress user edit, but adopt a generated title while the draft is clean.
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setDraftTitle(investigation.title);
     }
   }, [draftTitle, investigation.title]);
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
@@ -190,6 +233,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 
   function handleTitleBlur() {
     renameDebouncer.cancel();
+    if (draftTitle === null) {
+      return;
+    }
     const title = draftTitle.trim();
     if (title) {
       if (title !== draftTitle) {
@@ -206,12 +252,25 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       }
       return;
     }
-    handleTitleChange(persistedTitle.current);
+    setDraftTitle(null);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: persistedTitle.current})
+    );
   }
 
   const blocks = investigation.blocks ?? [];
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
+  const visibleSummaryBlock =
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+      ? summaryBlock
+      : undefined;
+  const visibleNotebookCells = notebookCells.filter(block =>
+    shouldDisplayInvestigationBlock(block, blocks)
+  );
 
   async function handleAddBlock({
     kind,
@@ -226,7 +285,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   }
 
   return (
-    <SentryDocumentTitle title={draftTitle} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
         <Layout.Title>
           <HeaderBreadcrumbs
@@ -243,7 +302,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {t('Investigations')}
             </HeaderBreadcrumbLink>
             <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{draftTitle}</HeaderInvestigationTitle>
+            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
             <DropdownMenu
               items={[
                 {
@@ -288,7 +347,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <Container as="header" width="100%" padding="xl" borderBottom="primary">
+        <InvestigationHeader as="header" width="100%" padding="xl">
           <Grid
             columns="minmax(0, 1fr) auto"
             align="start"
@@ -300,7 +359,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
-                value={draftTitle}
+                value={displayedTitle}
                 onChange={event => handleTitleChange(event.target.value)}
                 onBlur={handleTitleBlur}
                 maxLength={200}
@@ -317,40 +376,64 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               </Flex>
             </Stack>
             <Flex align="center" gap="sm">
+              <FeedbackButton
+                feedbackOptions={{
+                  formTitle: t('Give feedback on this investigation'),
+                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                  tags: {
+                    'feedback.source': 'investigation',
+                    'feedback.owner': 'ml-ai',
+                    'investigation.id': investigation.id,
+                    'investigation.source_type': investigation.sourceType,
+                    ...(investigation.template
+                      ? {'investigation.template': investigation.template.key}
+                      : {}),
+                  },
+                }}
+              >
+                {t('Give feedback')}
+              </FeedbackButton>
               <Badge variant={getStatusVariant(investigation.status)}>
                 {formatStatus(investigation.status)}
               </Badge>
               <IconSeer size="sm" />
             </Flex>
           </Grid>
-        </Container>
+        </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
-              {summaryBlock ? (
-                <InvestigationCell
-                  block={summaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                />
-              ) : null}
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
 
-              <Stack gap="xl">
-                {notebookCells.map(block => (
+              <Stack width="min(100%, 884px)" margin="0 auto">
+                {visibleSummaryBlock ? (
                   <InvestigationCell
-                    key={block.id}
-                    block={block}
+                    block={visibleSummaryBlock}
                     canRun={investigation.status === 'active'}
                     investigation={investigation}
                   />
-                ))}
+                ) : null}
+
+                <Stack gap="xl">
+                  {visibleNotebookCells.map(block => (
+                    <InvestigationCell
+                      key={block.id}
+                      block={block}
+                      canRun={investigation.status === 'active'}
+                      investigation={investigation}
+                    />
+                  ))}
+                </Stack>
+                {investigation.status === 'active' ? (
+                  <AddCellComposer
+                    isAdding={addBlockMutation.isPending}
+                    onAdd={handleAddBlock}
+                  />
+                ) : null}
               </Stack>
-              {investigation.status === 'active' ? (
-                <AddCellComposer
-                  isAdding={addBlockMutation.isPending}
-                  onAdd={handleAddBlock}
-                />
-              ) : null}
             </InvestigationCanvas>
           </Layout.Main>
         </Layout.Body>
@@ -396,10 +479,10 @@ function AddCellComposer({
     return (
       <AddCellActions align="center" justify="center" gap="sm">
         <Button size="sm" icon={<IconAdd />} onClick={() => setKind('text')}>
-          {t('Text cell')}
+          {t('Add text cell (debug only)')}
         </Button>
         <Button size="sm" icon={<IconAdd />} onClick={() => setKind('query')}>
-          {t('Query cell')}
+          {t('Add query cell (debug only)')}
         </Button>
       </AddCellActions>
     );
@@ -409,7 +492,9 @@ function AddCellComposer({
     <CellComposer>
       <Stack gap="md">
         <Heading as="h2" size="md">
-          {kind === 'text' ? t('Add text cell') : t('Add query cell')}
+          {kind === 'text'
+            ? t('Add text cell (debug only)')
+            : t('Add query cell (debug only)')}
         </Heading>
         <Input
           aria-label={t('Cell title')}
@@ -455,7 +540,7 @@ function isTitleGenerationActive(status: string | null | undefined) {
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
-    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
 }
 
@@ -470,6 +555,9 @@ function formatSourceType(sourceType: string) {
 }
 
 function formatStatus(status: string) {
+  if (status === 'active') {
+    return t('Active');
+  }
   return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
 }
 
@@ -488,8 +576,27 @@ function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
 }
 
 const InvestigationCanvas = styled(Stack)`
-  width: min(100%, 884px);
+  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
   margin: 0 auto;
+`;
+
+const InvestigationHeader = styled(Container)`
+  position: relative;
+
+  &::after {
+    /* The specified divider is intentionally as subtle as the secondary surface. */
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  width: 100%;
+  margin-bottom: ${p => p.theme.space.xl};
+  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`

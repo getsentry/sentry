@@ -7,7 +7,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.investigations.agent import start_execution_run
+from sentry.investigations.agent import (
+    cancel_investigation_executions_after_failure,
+    start_execution_run,
+)
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationBlockEndpoint,
     require_authenticated_user,
@@ -92,7 +95,8 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
                     tags={"executor": execution.executor},
                 )
             except Exception:
-                mark_block_execution_dispatch_failed(execution)
+                if mark_block_execution_dispatch_failed(execution):
+                    cancel_investigation_executions_after_failure(execution)
                 metrics.incr(f"{metric_namespace}.dispatch_failed")
                 raise
 

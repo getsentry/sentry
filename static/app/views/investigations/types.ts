@@ -9,8 +9,13 @@ export type InvestigationListItem = {
   isFavorited: boolean;
   sourceType: string;
   status: string;
+  summary: string | null;
+  summaryDescription: string | null;
   title: string;
   version: number;
+  titleGeneration?: {
+    status: 'pending' | 'running' | 'completed' | 'failed' | null;
+  };
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -130,7 +135,11 @@ export type InvestigationDetail = InvestigationListItem & {
   projectIds?: number[];
   source?: Record<string, unknown>;
   template?: {key: string; version: number} | null;
-  titleGeneration?: {status: string | null};
+};
+
+export type InvestigationTitleGeneration = {
+  preview: string | null;
+  status: 'pending' | 'running' | 'completed' | 'failed' | null;
 };
 
 export type MetricOpenPeriodInvestigationSource = {

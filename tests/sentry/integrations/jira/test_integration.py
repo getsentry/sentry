@@ -2036,6 +2036,201 @@ class JiraIntegrationTest(APITestCase):
         assert config[0]["disabled"] is True
         assert "Unable to communicate" in config[0]["disabledReason"]
 
+    def _create_paginated_jira_integration(self) -> Integration:
+        integration = self.create_provider_integration(
+            provider="jira",
+            name="Example Jira",
+            metadata={
+                "oauth_client_id": "oauth-client-id",
+                "shared_secret": "a-super-secret-key-from-atlassian",
+                "base_url": "https://example.atlassian.net",
+                "domain_name": "example.atlassian.net",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        return integration
+
+    @responses.activate
+    def test_get_organization_config_includes_configured_project_beyond_first_page(self) -> None:
+        integration = self._create_paginated_jira_integration()
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="99999",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"values": [{"id": "99999", "name": "Configured Project"}]},
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+            {"value": "99999", "label": "Configured Project"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 2
+        assert "maxResults=50" in project_search_calls[0].request.url
+        assert "id=99999" not in project_search_calls[0].request.url
+        assert "id=99999" in project_search_calls[1].request.url
+
+    @responses.activate
+    def test_get_organization_config_no_configured_projects_skips_supplemental_fetch(self) -> None:
+        integration = self._create_paginated_jira_integration()
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 1
+        assert "id=" not in project_search_calls[0].request.url
+
+    @responses.activate
+    def test_get_organization_config_configured_project_in_first_page_not_duplicated(self) -> None:
+        integration = self._create_paginated_jira_integration()
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="10000",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 1
+        assert "id=" not in project_search_calls[0].request.url
+
+    @responses.activate
+    def test_get_organization_config_supplemental_fetch_failure_degrades_gracefully(self) -> None:
+        integration = self._create_paginated_jira_integration()
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            external_id="99999",
+            unresolved_status="in_progress",
+            resolved_status="done",
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={
+                "values": [
+                    {"id": "10000", "name": "Project A"},
+                    {"id": "10001", "name": "Project B"},
+                ],
+                "maxResults": 50,
+                "total": 2,
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/project/search",
+            json={"errorMessages": ["Something went wrong"]},
+            status=500,
+        )
+        responses.add(
+            responses.GET,
+            "https://example.atlassian.net/rest/api/2/statuses/search",
+            json={"values": []},
+        )
+
+        installation = integration.get_installation(self.organization.id)
+        with self.feature("organizations:jira-paginated-project-config"):
+            config = installation.get_organization_config()
+
+        # The supplemental (name-resolving) fetch failing should not disable the whole config.
+        assert config[0].get("disabled") is not True
+        assert config[0]["addDropdown"]["items"] == [
+            {"value": "10000", "label": "Project A"},
+            {"value": "10001", "label": "Project B"},
+        ]
+        project_search_calls = [
+            call for call in responses.calls if "project/search" in call.request.url
+        ]
+        assert len(project_search_calls) == 2
+        assert "id=99999" in project_search_calls[1].request.url
+
     def _setup_jira_with_status_responses(
         self,
         projects: list[dict[str, str]] | None = None,

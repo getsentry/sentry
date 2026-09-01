@@ -14,7 +14,7 @@ from sentry.sentry_apps.api.utils.webhook_requests import BufferedRequest
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
+from sentry.utils.sentry_apps.webhooks import NO_RESPONSE_STATUS_CODES
 
 
 class _BufferedRequestAttrs(TypedDict):
@@ -39,6 +39,10 @@ class SentryAppWebhookRequestSerializerResponse(TypedDict):
     request_body: NotRequired[str | None]
     request_headers: NotRequired[Mapping[str, str] | None]
     response_body: NotRequired[str | None]
+    requestId: NotRequired[str | None]
+    subjectId: NotRequired[str | None]
+    subjectType: NotRequired[str | None]
+    durationMs: NotRequired[int | None]
 
 
 class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerializerResponse]):
@@ -82,9 +86,13 @@ class SentryAppWebhookRequestSerializer(Serializer[SentryAppWebhookRequestSerial
             "eventType": obj.data.event_type,
             "date": obj.data.date,
             "responseCode": response_code,
+            "requestId": obj.data.request_id,
+            "subjectId": obj.data.subject_id,
+            "subjectType": obj.data.subject_type,
+            "durationMs": obj.data.duration_ms,
         }
 
-        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
+        if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
             # add error data to display in Sentry app dashboard
             data.update(
                 {

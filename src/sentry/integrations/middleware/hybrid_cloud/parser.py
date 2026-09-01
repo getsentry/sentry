@@ -26,6 +26,8 @@ from sentry.integrations.middleware.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.killswitches import get_killswitch_value, value_matches
+from sentry.logging.handlers import SamplingFilter
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
@@ -36,6 +38,13 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
+
+SHED_INBOUND_KILLSWITCH = "hybridcloud.webhookpayload.shed-inbound"
+SHED_RETRY_AFTER_SECONDS = 60
+# Its own logger so the sampling stays on the shed line, rather than quietly
+# applying to every info log a future caller adds to this module.
+shed_logger = logging.getLogger("sentry.integrations.webhooks.shed")
+shed_logger.addFilter(SamplingFilter(0.1))
 
 
 def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
@@ -74,6 +83,7 @@ class BaseRequestParser(ABC):
         if hasattr(self.match.func, "view_class"):
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
+        self._shed_decisions: dict[int | None, bool] = {}
 
     # Common Helpers
 
@@ -170,12 +180,15 @@ class BaseRequestParser(ABC):
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
+        shed_response = self.get_shed_response(integration_id=integration_id)
+        if shed_response is not None:
+            return shed_response
+
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        # mailbox_name is provider:identifier, which is constant for all cells in
-        # this loop. Create all payloads first, then trigger a single drain.
+        # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,
@@ -187,10 +200,63 @@ class BaseRequestParser(ABC):
             )
             for cell in cells
         ]
-        if payloads:
-            maybe_trigger_drain(payloads[0].mailbox_name)
+        for mailbox_name in {payload.mailbox_name for payload in payloads}:
+            maybe_trigger_drain(mailbox_name)
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
+
+    def get_shed_response(self, integration_id: int | None = None) -> HttpResponse | None:
+        """
+        Get an optional response when inbound webhooks have been shed with a killswitch.
+        Drops the webhook with a 429 before the WebhookPayload INSERT and the push
+        trigger, the writes that make a flood expensive. Use the
+        `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
+        and integrations are dropped. Returns None to handle the request normally.
+        """
+        if not self._should_shed(integration_id):
+            return None
+
+        response = HttpResponse(status=status.HTTP_429_TOO_MANY_REQUESTS)
+        response["Retry-After"] = str(SHED_RETRY_AFTER_SECONDS)
+        return response
+
+    def _should_shed(self, integration_id: int | None) -> bool:
+        """
+        Decide once per parser, which is once per request. A parser that checks the shed
+        early still reaches the base class check in get_response_from_webhookpayload, and
+        the config read and the counters below are not free to repeat.
+        """
+        if integration_id not in self._shed_decisions:
+            self._shed_decisions[integration_id] = self._evaluate_shed(integration_id)
+        return self._shed_decisions[integration_id]
+
+    def _evaluate_shed(self, integration_id: int | None) -> bool:
+        conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
+        # A condition with no provider matches every provider. There are few enough
+        # providers to name them, so drop those rather than let one option typo shed
+        # all inbound traffic. Counted so an ignored condition is not a silent no-op.
+        targeted = [condition for condition in conditions if condition.get("provider") is not None]
+        if len(targeted) != len(conditions):
+            metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+
+        if not value_matches(
+            SHED_INBOUND_KILLSWITCH,
+            targeted,
+            {"provider": self.provider, "integration_id": integration_id},
+            emit_metrics=False,
+        ):
+            return False
+
+        metrics.incr(
+            "hybridcloud.webhookpayload.shed",
+            tags={"provider": self.provider},
+            sample_rate=1.0,
+        )
+        shed_logger.info(
+            "hybridcloud.webhookpayload.shed",
+            extra={"provider": self.provider, "integration_id": integration_id},
+        )
+        return True
 
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
@@ -213,13 +279,21 @@ class BaseRequestParser(ABC):
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
         if not use_buckets:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
+            self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
             return str(integration.id)
 
         return self._build_bucketed_identifier(integration, data)
+
+    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={
+                "provider": self.provider,
+                "bucketed": "true" if bucketed else "false",
+                "reason": reason,
+            },
+        )
 
     def _build_bucketed_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
@@ -228,19 +302,13 @@ class BaseRequestParser(ABC):
         the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
+            self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
-        metrics.incr(
-            "hybridcloud.webhookpayload.mailbox_routing",
-            tags={"provider": self.provider, "bucketed": "true"},
-        )
+        self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
         return f"{integration.id}:{bucket_number}"
 

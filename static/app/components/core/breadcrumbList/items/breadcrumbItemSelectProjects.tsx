@@ -2,8 +2,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 export interface BreadcrumbItemSelectProjectsProps<Value extends SelectKey = string> {
   onChange: (value: SelectOption<Value>) => void;
@@ -16,6 +15,8 @@ export function BreadcrumbItemSelectProjects<Value extends SelectKey = string>({
   value,
   onChange,
 }: BreadcrumbItemSelectProjectsProps<Value>) {
+  const {t} = useTranslation();
+
   // Prefer the selected option's human-readable label; fall back to the raw value
   // when the label isn't a plain string (it may be a React node).
   const selected = options.find(option => option.value === value);

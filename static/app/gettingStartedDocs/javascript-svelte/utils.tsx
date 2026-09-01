@@ -58,12 +58,6 @@ const getDynamicParts = (params: DocsParams): string[] => {
         profileSessionSampleRate: 1.0`);
   }
 
-  if (params.isLogsSelected) {
-    dynamicParts.push(`
-      // Logs
-      enableLogs: true`);
-  }
-
   return dynamicParts;
 };
 

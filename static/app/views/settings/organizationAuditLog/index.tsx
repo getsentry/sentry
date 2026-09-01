@@ -8,6 +8,7 @@ import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import type {DateString} from 'sentry/types/core';
 import type {AuditLog} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDateWithTimezoneInUtc, getUserTimezone} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -106,7 +107,9 @@ function OrganizationAuditLog() {
       });
 
       const [data, _, response] = await api.requestPromise(
-        `/organizations/${organization.slug}/audit-logs/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/audit-logs/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
           includeAllArgs: true,

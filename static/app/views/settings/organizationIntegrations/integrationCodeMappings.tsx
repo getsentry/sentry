@@ -1,7 +1,11 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
-import {useInfiniteQuery, useMutation} from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+  useMutation,
+} from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -23,6 +27,7 @@ import type {Integration, RepositoryProjectPathConfig} from 'sentry/types/integr
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -94,7 +99,9 @@ function useDeletePathConfig({
   >({
     mutationFn: pathConfig => {
       return api.requestPromise(
-        `/organizations/${organization.slug}/code-mappings/${pathConfig.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+          path: {organizationIdOrSlug: organization.slug, configId: pathConfig.id},
+        }),
         {
           method: 'DELETE',
         }

@@ -15,7 +15,6 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
-import type {Category} from 'sentry/components/platformPicker';
 import {ModalStore} from 'sentry/stores/modalStore';
 import type {
   CustomRepo,
@@ -367,13 +366,6 @@ export async function openNavigateToExternalLinkModal(
     await import('sentry/components/modals/navigateToExternalLinkModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
-}
-
-export async function openProjectCreationModal(options: {defaultCategory: Category}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/projectCreationModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openConsoleModal(

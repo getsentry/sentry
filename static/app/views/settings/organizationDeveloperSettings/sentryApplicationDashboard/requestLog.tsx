@@ -6,21 +6,35 @@ import memoize from 'lodash/memoize';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Switch} from '@sentry/scraps/switch';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppWebhookRequestsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppSchemaIssueLink} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {useRequestLogDetailsDrawer} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLogDetails';
+
+const REQUEST_COLUMNS: TableColumnConfig[] = [
+  {key: 'time', width: '1fr'},
+  {key: 'statusCode', width: '0.5fr'},
+  {key: 'organization', width: '1fr'},
+  {key: 'eventType', width: '1fr'},
+  {key: 'webhookUrl', width: '1fr'},
+];
+
+const INTERNAL_REQUEST_COLUMNS = REQUEST_COLUMNS.filter(
+  column => column.key !== 'organization'
+);
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
@@ -77,7 +91,7 @@ const getEventTypes = memoize((app: SentryApp) => {
   return events;
 });
 
-function ResponseCode({code}: {code: number}) {
+export function ResponseCode({code}: {code: number}) {
   let variant: TagProps['variant'] = 'danger';
   if (code <= 399 && code >= 300) {
     variant = 'warning';
@@ -99,6 +113,7 @@ export function RequestLog({app}: RequestLogProps) {
 
   const {slug, status} = app;
   const isInternal = status === 'internal';
+  const openDetails = useRequestLogDetailsDrawer();
 
   const {
     data: requests = [],
@@ -164,8 +179,8 @@ export function RequestLog({app}: RequestLogProps) {
       {isError ? (
         <LoadingError />
       ) : (
-        <RequestLogTable
-          isInternal={isInternal}
+        <SimpleTable
+          columns={isInternal ? INTERNAL_REQUEST_COLUMNS : REQUEST_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Time')}</SimpleTable.HeaderCell>
@@ -178,11 +193,7 @@ export function RequestLog({app}: RequestLogProps) {
             </SimpleTable.HeaderRow>
           }
         >
-          {isPending && (
-            <SimpleTable.Empty>
-              <LoadingIndicator />
-            </SimpleTable.Empty>
-          )}
+          {isPending && <SimpleTable.Loading />}
 
           {!isPending && currentRequests.length === 0 && (
             <SimpleTable.Empty>
@@ -194,12 +205,18 @@ export function RequestLog({app}: RequestLogProps) {
             currentRequests.map((request, idx) => (
               <SimpleTable.Row key={idx} data-test-id="request-item">
                 <SimpleTable.RowCell>
-                  <Text>
-                    <DateTime
-                      date={request.date}
-                      format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'}
-                    />
-                  </Text>
+                  <RowButton
+                    aria-label={t('View request details')}
+                    onClick={() => openDetails(request)}
+                  >
+                    <InteractionStateLayer />
+                    <Text>
+                      <DateTime
+                        date={request.date}
+                        format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'}
+                      />
+                    </Text>
+                  </RowButton>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
                   <ResponseCode code={request.responseCode} />
@@ -217,7 +234,7 @@ export function RequestLog({app}: RequestLogProps) {
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             ))}
-        </RequestLogTable>
+        </SimpleTable>
       )}
 
       <Flex justify="end">
@@ -240,9 +257,13 @@ export function RequestLog({app}: RequestLogProps) {
   );
 }
 
-const RequestLogTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'isInternal',
-})<{isInternal: boolean}>`
-  grid-template-columns: ${p =>
-    p.isInternal ? '1fr 0.5fr 1fr 1fr' : '1fr 0.5fr 1fr 1fr 1fr'};
+const RowButton = styled('button')`
+  ${SimpleTable.rowLinkStyle}
+
+  background: none;
+  border: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  flex-grow: 1;
 `;

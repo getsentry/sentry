@@ -462,6 +462,8 @@ interface CommonIntegration {
 }
 
 export interface Integration extends CommonIntegration {
+  /** OAuth scopes from provider metadata. Always sent; null when unused (e.g. GitHub). */
+  scopes: string[] | null;
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -472,7 +474,6 @@ export interface Integration extends CommonIntegration {
   };
   // Present on OrganizationIntegration; for GitHub this is the App installation id.
   externalId?: string;
-  scopes?: string[];
 }
 
 type ConfigData = Record<string, unknown> & {
@@ -481,9 +482,10 @@ type ConfigData = Record<string, unknown> & {
 
 export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
-  configOrganization: JsonFormAdapterFieldConfig[];
   externalId: string;
-  organizationId: string;
+  organizationId: number;
+  /** Omitted when the list endpoint is fetched with includeConfig=0. */
+  configOrganization?: JsonFormAdapterFieldConfig[];
 }
 
 // we include the configOrganization when we need it
