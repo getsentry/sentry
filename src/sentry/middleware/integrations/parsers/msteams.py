@@ -90,6 +90,11 @@ class MsTeamsRequestParser(BaseRequestParser):
             )
             return self.get_response_from_control_silo()
 
+        # Shed before the lookups: provider-wide conditions do not need the integration.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         cells: Sequence[Cell] = []
         try:
             integration = self.get_integration_from_request()
