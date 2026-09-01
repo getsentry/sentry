@@ -327,13 +327,10 @@ class BaseRequestParser(ABC):
         )
 
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
-        """The validated event-type suffix for this payload, or None for no suffix.
-
-        Validation lives here, not in the subclass, because the discriminator comes
-        out of a body control has not verified — gitlab and bitbucket resolve their
-        handlers on the cell. An unvalidated one would put an attacker-chosen string
-        into `mailbox_name`: unbounded mailboxes and scheduler entries, not just a
-        noisy tag.
+        """Validation lives here, not in the subclass: the discriminator comes out of
+        a body control has not verified — gitlab and bitbucket resolve their handlers
+        on the cell — so an unvalidated one would put an attacker-chosen string into
+        `mailbox_name`, and with it unbounded mailboxes and scheduler entries.
         """
         if self.provider not in options.get(EVENT_TYPED_MAILBOX_PROVIDERS_OPTION):
             return None
@@ -344,11 +341,8 @@ class BaseRequestParser(ABC):
         return event_type if event_type in known_event_types else None
 
     def mailbox_event_type(self, data: dict[str, Any]) -> str | None:
-        """The event type this payload carries, for providers that mailbox by one.
-
-        Returned unvalidated; `_mailbox_event_type` checks it against the registry.
-        The body is `{}` when it did not parse, so return None when there is nothing
-        to read.
+        """Returned unvalidated; `_mailbox_event_type` checks it against the
+        registry.
         """
         return None
 

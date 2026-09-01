@@ -205,8 +205,8 @@ class GitlabRequestParserTest(TestCase):
         assert parser.mailbox_event_type({"object_kind": 4}) is None
 
     def test_handled_events_all_have_a_mailbox_event_type(self) -> None:
-        # Drift guard: a handler added without its object_kind would silently keep
-        # queuing that event under the integration-level mailbox.
+        # A handler added without its object_kind would silently keep queuing that
+        # event under the integration-level mailbox.
         assert set(GitlabWebhookEndpoint._handlers) == set(GITLAB_EVENT_KINDS)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)

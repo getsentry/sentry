@@ -98,10 +98,8 @@ class GithubRequestParser(BaseRequestParser):
     def _bucketed_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
     ) -> str:
-        """Distribute webhooks across sub-mailboxes by repository ID.
-
-        Bypasses the rate-limit auto-switch used by the base class so GitHub webhooks
-        are always bucketed. The event-type suffix is appended by the base class.
+        """Bypasses the base class's rate-limit auto-switch so GitHub webhooks are
+        always bucketed.
         """
         return self._build_bucketed_identifier(integration, data)
 

@@ -100,10 +100,8 @@ class GitlabRequestParser(BaseRequestParser):
         return project_id
 
     def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
-        """
-        Used by get_mailbox_identifier to keep one event type's backlog from holding
-        up another. Reads the body's `object_kind`, not the `X-Gitlab-Event` header
-        the endpoint dispatches on, whose values contain spaces.
+        """Reads the body's `object_kind`, not the `X-Gitlab-Event` header the
+        endpoint dispatches on, whose values contain spaces.
         """
         object_kind = data.get("object_kind")
         return object_kind if isinstance(object_kind, str) else None

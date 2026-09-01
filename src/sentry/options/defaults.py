@@ -2612,9 +2612,9 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose payloads mailbox by event type, so one event type's backlog cannot
-# hold up another. A provider also needs an entry in MAILBOX_EVENT_TYPES, which bounds
-# the suffix to its known event types. Adding one gives up ordering between that
-# provider's event types, so it is a behaviour change to ramp, not a tuning knob.
+# hold up another. A provider also needs an entry in MAILBOX_EVENT_TYPES. Adding one
+# gives up ordering between that provider's event types, so ramp it as a behaviour
+# change rather than tuning it.
 register(
     "hybridcloud.webhookpayload.event_typed_mailbox_providers",
     type=Sequence,

@@ -17,11 +17,9 @@ MAILBOX_EVENT_TYPES: Mapping[str, frozenset[str]] = {
     IntegrationProviderSlug.GITHUB_ENTERPRISE.value: CELL_PROCESSED_GITHUB_EVENTS,
     IntegrationProviderSlug.GITLAB.value: CELL_PROCESSED_GITLAB_EVENTS,
 }
-"""Every event type a provider's mailbox names may carry.
-
-Both sides of the round trip read it: the parser validates a payload's discriminator
-against it before the suffix reaches a mailbox name, and `event_type_from_mailbox`
-recovers the value afterwards. A provider absent here does not mailbox by event type.
+"""Every event type a provider's mailbox names may carry; absent means it does not
+mailbox by event type. The parser validates against this on the way in,
+`event_type_from_mailbox` reads it back out.
 """
 
 NO_EVENT_TYPE = "none"
@@ -35,9 +33,8 @@ def event_type_from_mailbox(provider: str, mailbox_name: str) -> str:
     """
     Recover the event type a mailbox holds, for the providers that encode one.
 
-    A delivery whose event type the provider does not mailbox by lands without the
-    suffix, leaving a bucket number where this reads, so only known event names are
-    trusted.
+    A delivery the provider does not mailbox by lands without the suffix, leaving a
+    bucket number where this reads, so only known event names are trusted.
 
     Takes the provider the caller already resolved for its own `provider` tag rather
     than re-deriving it from the mailbox prefix, so the two tags cannot disagree about
