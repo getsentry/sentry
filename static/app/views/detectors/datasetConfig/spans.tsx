@@ -1,7 +1,9 @@
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, getFieldDefinition} from 'sentry/utils/fields';
@@ -34,9 +36,11 @@ type SpansSeriesResponse = EventsStats;
 const DEFAULT_EVENT_TYPES = [EventTypes.TRACE_ITEM_SPAN];
 
 function getAggregateOptions(
-  organization: Organization
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: CustomMeasurementCollection
 ): Record<string, SelectValue<FieldValue>> {
-  const base = SpansConfig.getTableFieldOptions(organization);
+  const base = SpansConfig.getTableFieldOptions(organization, tags, customMeasurements);
 
   const apdexDefinition = getFieldDefinition(AggregationKey.APDEX, 'span');
 
