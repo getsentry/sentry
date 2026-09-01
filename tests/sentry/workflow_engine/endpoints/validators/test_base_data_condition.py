@@ -141,6 +141,23 @@ class TestAssignedToScopeValidator(TestCase):
     def test_team__in_org(self) -> None:
         validator = self._validator({"targetType": "Team", "targetIdentifier": self.team.id})
         assert validator.is_valid() is True
+        assert validator.validated_data["comparison"]["target_identifier"] == self.team.id
+
+    def test_team__string_identifier_normalized_to_int(self) -> None:
+        validator = self._validator(
+            {"targetType": "Team", "targetIdentifier": str(self.team.id)}
+        )
+        assert validator.is_valid() is True
+        assert validator.validated_data["comparison"]["target_identifier"] == self.team.id
+        assert isinstance(validator.validated_data["comparison"]["target_identifier"], int)
+
+    def test_member__string_identifier_normalized_to_int(self) -> None:
+        validator = self._validator(
+            {"targetType": "Member", "targetIdentifier": str(self.user.id)}
+        )
+        assert validator.is_valid() is True
+        assert validator.validated_data["comparison"]["target_identifier"] == self.user.id
+        assert isinstance(validator.validated_data["comparison"]["target_identifier"], int)
 
     def test_team__foreign_org(self) -> None:
         validator = self._validator({"targetType": "Team", "targetIdentifier": self.other_team.id})

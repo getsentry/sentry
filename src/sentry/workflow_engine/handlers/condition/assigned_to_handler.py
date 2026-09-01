@@ -39,6 +39,22 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         ],
     }
 
+    @staticmethod
+    def _coerce_target_identifier(target_identifier: Any) -> int | None:
+        """Normalize target_identifier to int.
+
+        The comparison schema accepts both integers and digit strings (e.g. from
+        Terraform / OpenAPI string unions). Evaluation compares against integer
+        assignee FK ids, so we must coerce before storage and at evaluate time.
+        """
+        # bool is a subclass of int; reject it explicitly.
+        if target_identifier is None or isinstance(target_identifier, bool):
+            return None
+        try:
+            return int(target_identifier)
+        except (TypeError, ValueError):
+            return None
+
     @classmethod
     def validate_comparison(
         cls, comparison: dict[str, Any], organization: Organization
@@ -48,21 +64,21 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         if target_type == AssigneeTargetType.UNASSIGNED.value or not target_identifier:
             return comparison
 
-        try:
-            target_identifier = int(target_identifier)
-        except (TypeError, ValueError):
+        coerced = cls._coerce_target_identifier(target_identifier)
+        if coerced is None:
             raise serializers.ValidationError("target_identifier must be an integer")
 
         if target_type == AssigneeTargetType.TEAM.value:
-            if not Team.objects.filter(id=target_identifier, organization=organization).exists():
+            if not Team.objects.filter(id=coerced, organization=organization).exists():
                 raise serializers.ValidationError("This team is not part of the organization.")
         elif target_type == AssigneeTargetType.MEMBER.value:
             if not OrganizationMember.objects.filter(
-                user_id=target_identifier, organization=organization
+                user_id=coerced, organization=organization
             ).exists():
                 raise serializers.ValidationError("This user is not part of the organization.")
 
-        return comparison
+        # Persist the integer form so evaluate_value can compare against int FKs.
+        return {**comparison, "target_identifier": coerced}
 
     @staticmethod
     def get_assignees(group: Group) -> Sequence[GroupAssignee]:
@@ -86,12 +102,18 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         if target_type == AssigneeTargetType.UNASSIGNED:
             return len(assignees) == 0
 
-        target_id = comparison.get("target_identifier")
+        target_id = AssignedToConditionHandler._coerce_target_identifier(
+            comparison.get("target_identifier")
+        )
+        if target_id is None:
+            return False
 
         if target_type == AssigneeTargetType.TEAM:
             return any(assignee.team_id and assignee.team_id == target_id for assignee in assignees)
         elif target_type == AssigneeTargetType.MEMBER:
             return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
+
+        return False
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
