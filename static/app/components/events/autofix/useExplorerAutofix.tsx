@@ -211,6 +211,7 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
@@ -517,6 +518,10 @@ export function isCodingAgentsSection(section: AutofixSection): boolean {
 
 export function isRunValidForPrIteration(organization: Organization): boolean {
   return organization.features.includes('autofix-pr-iteration-manual');
+}
+
+export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
+  return runState?.pr_iteration_paused === true;
 }
 
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
