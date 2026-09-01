@@ -327,6 +327,7 @@ function InternalInput(props: FunctionArgumentInputProps) {
 function FunctionArgumentInput(props: FunctionArgumentInputProps) {
   const {argument, argumentIndex, functionToken, onArgumentsChange} = props;
   const {
+    clearSkipBlurFlush,
     commitFunctionToken,
     dataTestId,
     flushArgumentsIfLeavingGrid,
@@ -538,6 +539,7 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
       // We're stopping propagation because `useGridListItem` in the parent component
       // always steals and sets focus to the first child and we don't want that happening.
       evt.stopPropagation();
+      clearSkipBlurFlush();
       // Explicitly focus target on this item because we're calling evt.stopPropagation().
       // If this isn't called, the argument collection doesn't shift focus to current arg
       // causing bugs. Test for this behaviour can be found in
@@ -546,7 +548,7 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
       setIsCurrentlyEditing(true);
       resetInputValue();
     },
-    [focusArgument, resetInputValue]
+    [clearSkipBlurFlush, focusArgument, resetInputValue]
   );
 
   // Free-text value args should keep their current text on focus so the user can edit it.
@@ -554,11 +556,12 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
   const onTextInputFocus = useCallback(
     (evt: FocusEvent<HTMLInputElement>) => {
       evt.stopPropagation();
+      clearSkipBlurFlush();
       focusArgument();
       setIsCurrentlyEditing(true);
       setInputValue(currentValue);
     },
-    [currentValue, focusArgument]
+    [clearSkipBlurFlush, currentValue, focusArgument]
   );
 
   const onOptionSelected = useCallback(

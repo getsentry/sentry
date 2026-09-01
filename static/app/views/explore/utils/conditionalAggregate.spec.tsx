@@ -1,4 +1,8 @@
 import {
+  ensureSearchFilterArgument,
+  escapeConditionalFilter,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter';
+import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -7,8 +11,6 @@ import {
   areAllVisualizesInvalidConditionalFilters,
   areConditionalAggregateFiltersInExpressionValid,
   buildConditionalAggregate,
-  ensureSearchFilterArgument,
-  escapeConditionalFilter,
   getConditionalFilterInvalidSeriesMessage,
   getConditionalFilterInvalidSeriesMessageForYAxis,
   isConditionalAggregateFilterValid,

@@ -72,10 +72,14 @@ export function useFunctionArgumentInput({
     [argumentIndex, functionArguments]
   );
 
+  const clearSkipBlurFlush = useCallback(() => {
+    skipBlurFlushRef.current = false;
+  }, []);
+
   const flushArgumentsIfLeavingGrid = useCallback(
     (evt?: FocusEvent<HTMLInputElement>) => {
-      // Leave the flag set: a later interact-outside `onInputBlur()` schedules a
-      // timeout that would otherwise restore the token after DELETE/REPLACE.
+      // Stay skipped until the next focus: a later interact-outside `onInputBlur()`
+      // timeout would otherwise restore the token after DELETE/REPLACE.
       if (skipBlurFlushRef.current) {
         return;
       }
@@ -164,15 +168,14 @@ export function useFunctionArgumentInput({
       const selectionStart = evt.currentTarget.selectionStart ?? 0;
       const selectionEnd = evt.currentTarget.selectionEnd ?? 0;
       const valueLength = evt.currentTarget.value.length;
-      const isAtStart = selectionStart === 0 && selectionEnd === 0;
-      const isAtEnd = selectionStart === valueLength && selectionEnd === valueLength;
-      const isAllSelected =
-        valueLength > 0 && selectionStart === 0 && selectionEnd === valueLength;
+      const isCollapsedAtStart = selectionStart === 0 && selectionEnd === 0;
+      const isCollapsedAtEnd =
+        selectionStart === valueLength && selectionEnd === valueLength;
 
-      // At start / fully selected and pressing backspace, delete this token.
-      // Navigating in from the previous token leaves the caret at 0 while the
-      // combobox still shows the committed argument, so "at start" must count.
-      if (evt.key === 'Backspace' && (isAtStart || isAllSelected)) {
+      // Collapsed caret at start + Backspace deletes the function. A full
+      // selection must not — filter/value args keep their text on focus, so
+      // select-all then Backspace should edit the argument.
+      if (evt.key === 'Backspace' && isCollapsedAtStart) {
         evt.preventDefault();
         skipBlurFlushRef.current = true;
         const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
@@ -184,8 +187,8 @@ export function useFunctionArgumentInput({
         return;
       }
 
-      // At either end / fully selected and pressing delete, delete this token.
-      if (evt.key === 'Delete' && (isAtEnd || isAtStart || isAllSelected)) {
+      // Collapsed caret at end + Delete deletes the function.
+      if (evt.key === 'Delete' && isCollapsedAtEnd) {
         evt.preventDefault();
         skipBlurFlushRef.current = true;
         const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
@@ -235,6 +238,7 @@ export function useFunctionArgumentInput({
   );
 
   return {
+    clearSkipBlurFlush,
     commitFunctionToken,
     dataTestId,
     flushArgumentsIfLeavingGrid,

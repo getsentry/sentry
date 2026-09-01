@@ -83,11 +83,6 @@ const VISUALIZE_AGGREGATE_KEY_PATTERN = new RegExp(
 
 export type ConditionalAggregate = ParsedFunction;
 
-export {
-  ensureSearchFilterArgument,
-  escapeConditionalFilter,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter';
-
 /**
  * Split a visualize yAxis into its base aggregate and its `_if` filter.
  *

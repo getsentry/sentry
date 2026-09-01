@@ -1357,6 +1357,32 @@ describe('token', () => {
       });
     });
 
+    it('does not delete the function when Backspace clears a selected filter', async () => {
+      const dispatch = jest.fn();
+      render(
+        <Tokens expression="avg_if(`span.op:db`,span.duration)" dispatch={dispatch} />
+      );
+
+      const filterArg = within(
+        await screen.findByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await waitFor(() => {
+        expect(filterArg).toHaveValue('span.op:db');
+      });
+      const filterInput = filterArg as HTMLInputElement;
+      filterInput.setSelectionRange(0, filterInput.value.length);
+      await userEvent.keyboard('{Backspace}');
+
+      expect(
+        screen.getByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
+      ).toBeInTheDocument();
+      expect(dispatch).not.toHaveBeenCalledWith(
+        expect.objectContaining({type: 'DELETE_TOKEN'})
+      );
+    });
+
     it('does not rewrite the function when moving from filter to another argument', async () => {
       const dispatch = jest.fn();
       render(<Tokens expression="avg_if(``,span.duration)" dispatch={dispatch} />);

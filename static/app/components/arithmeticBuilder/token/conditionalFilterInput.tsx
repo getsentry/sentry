@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps) {
   const {argument, argumentIndex, onArgumentsChange} = props;
   const {
+    clearSkipBlurFlush,
     commitFunctionToken,
     dataTestId,
     flushArgumentsIfLeavingGrid,
@@ -120,12 +121,13 @@ export function ConditionalFilterArgumentInput(props: FunctionArgumentInputProps
   const onInputFocus = useCallback(
     (evt: FocusEvent<HTMLInputElement>) => {
       evt.stopPropagation();
+      clearSkipBlurFlush();
       focusArgument();
       setIsCurrentlyEditing(true);
       setInputValue(currentValue);
       updateSelectionIndex(evt.currentTarget);
     },
-    [currentValue, focusArgument, updateSelectionIndex]
+    [clearSkipBlurFlush, currentValue, focusArgument, updateSelectionIndex]
   );
 
   // Persist free-text filter edits on blur. Empty input becomes `` so clearing the filter

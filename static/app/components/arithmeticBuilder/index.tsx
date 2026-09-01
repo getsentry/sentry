@@ -18,7 +18,10 @@ interface ArithmeticBuilderProps {
   aggregations: string[];
   expression: string;
   functionArguments: FunctionArgument[];
-  getFieldDefinition: (key: string) => FieldDefinition | null;
+  getFieldDefinition: (
+    key: string,
+    attributeTexts?: readonly string[]
+  ) => FieldDefinition | null;
   className?: string;
   'data-test-id'?: string;
   disabled?: boolean;

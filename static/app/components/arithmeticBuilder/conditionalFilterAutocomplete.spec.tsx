@@ -83,14 +83,14 @@ describe('useConditionalFilterAutocomplete', () => {
 
   it('does not show previous key values while debounce catches up to a new key', async () => {
     jest.useFakeTimers();
-    const getFilterTagValues = jest.fn(async ({tag}) => {
+    const getFilterTagValues = jest.fn(({tag}) => {
       if (tag.key === 'span.op') {
-        return [{value: 'db'}];
+        return Promise.resolve([{value: 'db'}]);
       }
       if (tag.key === 'span.description') {
-        return [{value: 'SELECT 1'}];
+        return Promise.resolve([{value: 'SELECT 1'}]);
       }
-      return [];
+      return Promise.resolve([]);
     });
 
     try {

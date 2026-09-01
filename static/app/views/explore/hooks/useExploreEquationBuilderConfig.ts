@@ -48,7 +48,10 @@ interface UseExploreEquationBuilderConfigOptions {
 interface ExploreEquationBuilderConfig {
   aggregations: string[];
   functionArguments: FunctionArgument[];
-  getFieldDefinition: (key: string) => FieldDefinition | null;
+  getFieldDefinition: (
+    key: string,
+    attributeTexts?: readonly string[]
+  ) => FieldDefinition | null;
   getFilterTagValues: GetTagValues;
   getSuggestedKey: (key: string) => string | null;
 }
