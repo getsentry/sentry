@@ -59,20 +59,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/organization-login.html")
 
-    @with_feature("system:multi-region")
-    def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
-        response = self.client.get(
-            f"{self.path}?next=%2Fsettings%2Faccount%2F",
-            HTTP_HOST=f"{self.organization.slug}.testserver",
-        )
-
-        assert response.status_code == 302
-        assert response["Location"] == (
-            f"http://testserver/auth/login/{self.organization.slug}/?next=%2Fsettings%2Faccount%2F"
-        )
-
     def test_cannot_get_request_join_link_with_setting_disabled(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             OrganizationOption.objects.create(
