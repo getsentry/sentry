@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, cast, override
 from uuid import uuid4
 
 from django.conf import settings
@@ -420,6 +420,7 @@ class StatefulDetectorHandler(
 
         return base
 
+    @override
     def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
@@ -605,19 +606,6 @@ class StatefulDetectorHandler(
             triggered=new_priority != DetectorPriorityLevel.OK,
             priority=new_priority,
         )
-
-    def _is_detector_group_value(self, value: Any) -> bool:
-        """
-        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-        """
-        if not isinstance(value, dict):
-            return False
-
-        if not value:  # Empty dict case
-            return False
-
-        # Check if all keys are DetectorGroupKey instances
-        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
