@@ -13,6 +13,8 @@ from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_re
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
+from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
@@ -148,6 +150,13 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         if isinstance(assigned_to, (UserModel, RpcUser)) and assigned_to.is_active is False:
             return {"new_assignment": False, "updated_assignment": False}
 
+        is_first_assignment = (
+            GroupDerivedData.objects.filter(group_id=group.id)
+            .values_list(f"data__{FIRST_ASSIGNMENT_ACTION_ID.name}", flat=True)
+            .first()
+            is None
+        )
+
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
@@ -177,7 +186,11 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         if affected:
             transaction.on_commit(
                 lambda: issue_assigned.send_robust(
-                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                    project=group.project,
+                    group=group,
+                    user=acting_user,
+                    is_first_assignment=is_first_assignment,
+                    sender=self.__class__,
                 ),
                 router.db_for_write(GroupAssignee),
             )

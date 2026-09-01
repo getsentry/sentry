@@ -1,6 +1,7 @@
 import enum
 
 CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
+FIRST_ASSIGNMENT_SUMMARY_FEATURE = "organizations:issue-summary-on-first-assignment"
 
 # ``Repository.provider`` values for the GitHub integrations Seer PR iteration
 # supports. Use with ``provider__in=`` when filtering repositories; for a Seer
@@ -73,6 +74,7 @@ class SeerAutomationSource(enum.Enum):
     POST_PROCESS = "post_process"
     AGENTIC_TRIAGE = "night_shift"
     NIGHT_SHIFT = AGENTIC_TRIAGE
+    FIRST_ASSIGNMENT = "first_assignment"
 
 
 class CodingAgentStatus(enum.StrEnum):
