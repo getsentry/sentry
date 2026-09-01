@@ -4,6 +4,7 @@ import contextlib
 import logging
 import re
 from collections.abc import Callable, Generator, Mapping
+from datetime import timedelta
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
 from urllib.parse import urlparse
@@ -39,6 +40,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.webhook_subjects import extract_webhook_subject
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.taskworker.timeout import InnerTimeoutError, timeout_alarm
@@ -56,6 +58,8 @@ if TYPE_CHECKING:
 
 
 TIMEOUT_STATUS_CODE = 0
+CONNECTION_ERROR_STATUS_CODE = -1
+NO_RESPONSE_STATUS_CODES = frozenset({TIMEOUT_STATUS_CODE, CONNECTION_ERROR_STATUS_CODE})
 
 CLAUDE_ROUTINE_URL_RE = re.compile(
     r"https://api\.anthropic\.com/v1/claude_code/routines/[^/?#]+/fire/?"
@@ -249,6 +253,16 @@ def _webhook_timeout(
             yield timeout_override
 
 
+def _get_webhook_timeout(org_id: int) -> float:
+    timeout_seconds = options.get("sentry-apps.webhook.timeout.sec")
+    overrides = options.get("sentry-apps.override.organization_ids.webhook.timeouts.sec").get(
+        str(org_id)
+    )
+    if overrides:
+        return overrides.get("webhook_timeout_override", timeout_seconds)
+    return timeout_seconds
+
+
 def _send_webhook_request(
     url: str,
     app_platform_event: AppPlatformEvent[T],
@@ -307,6 +321,11 @@ def send_and_save_webhook_request(
         )
 
         assert url is not None
+
+        subject_id, subject_type = extract_webhook_subject(
+            app_platform_event.resource, event, app_platform_event.data
+        )
+
         try:
             owner_context = organization_service.get_organization_by_id(
                 id=sentry_app.owner_id,
@@ -324,6 +343,10 @@ def send_and_save_webhook_request(
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):
                 return Response()
 
+            # Read the Request-ID only after include_text_summary is set above.
+            # sentry_headers is a cached_property that signs the body on first access,
+            # so an earlier read would sign the pre-summary body.
+            request_id = app_platform_event.sentry_headers["Request-ID"]
             with circuit_breaker_tracking(circuit_breaker):
                 response = _send_webhook_request(url, app_platform_event)
 
@@ -341,27 +364,34 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
             )
             raise
-        except (Timeout, ConnectionError) as e:
-            error_type = e.__class__.__name__.lower()
-            lifecycle.add_extras(
-                {
-                    "reason": "send_and_save_webhook_request.timeout",
-                    "error_type": error_type,
-                    "organization_id": org_id,
-                    "integration_slug": sentry_app.slug,
-                    "url": url,
-                },
-            )
-            track_response_code(error_type, slug, event)
+        except Timeout as e:
             buffer.add_request(
                 response_code=TIMEOUT_STATUS_CODE,
                 org_id=org_id,
                 event=event,
                 url=url,
                 headers=app_platform_event.loggable_headers,
+                request_id=request_id,
+                subject_id=subject_id,
+                subject_type=subject_type,
+                duration_ms=int(_get_webhook_timeout(org_id) * 1000),
             )
             lifecycle.record_halt(e)
             # Re-raise the exception because some of these tasks might retry on the exception
+            raise
+        except ConnectionError as e:
+            buffer.add_request(
+                response_code=CONNECTION_ERROR_STATUS_CODE,
+                org_id=org_id,
+                event=event,
+                url=url,
+                headers=app_platform_event.loggable_headers,
+                request_id=request_id,
+                subject_id=subject_id,
+                subject_type=subject_type,
+                duration_ms=None,
+            )
+            lifecycle.record_halt(e)
             raise
         except ChunkedEncodingError:
             lifecycle.record_halt(
@@ -386,6 +416,10 @@ def send_and_save_webhook_request(
             if (p_id := response.headers.get("Sentry-Hook-Project")) and p_id.isdigit()
             else None
         )
+        elapsed = getattr(response, "elapsed", None)
+        duration_ms = (
+            int(elapsed.total_seconds() * 1000) if isinstance(elapsed, timedelta) else None
+        )
         buffer.add_request(
             response_code=response.status_code,
             org_id=org_id,
@@ -395,6 +429,10 @@ def send_and_save_webhook_request(
             project_id=project_id,
             response=response,
             headers=app_platform_event.loggable_headers,
+            request_id=request_id,
+            subject_id=subject_id,
+            subject_type=subject_type,
+            duration_ms=duration_ms,
         )
 
         debug_logging_enabled = (

@@ -178,7 +178,6 @@ export type FieldObject = Field | (() => React.ReactNode);
 
 export type JsonFormObject = {
   fields: FieldObject[];
-  initiallyCollapsed?: boolean;
   title?: React.ReactNode;
 };
 

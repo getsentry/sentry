@@ -412,8 +412,11 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
     @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.endpoints.group_details.metrics")
     @mock.patch("sentry.issues.endpoints.group_details.logger")
-    def test_diverged_closed_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
+    def test_diverged_closed_logs_and_skips_action(
+        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    ) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         self.create_group_derived_data(group=group, data={"status": "open"})
 
@@ -430,10 +433,22 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
                 "actual_status": "closed",
             },
         )
+        mock_metrics.incr.assert_any_call(
+            "issues.status_reconciliation.checked",
+            sample_rate=1.0,
+            tags={
+                "result": "diverged",
+                "derived_status": "open",
+                "actual_status": "closed",
+            },
+        )
 
     @with_feature("projects:issue-status-reconciliation")
+    @mock.patch("sentry.issues.endpoints.group_details.metrics")
     @mock.patch("sentry.issues.endpoints.group_details.logger")
-    def test_diverged_open_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
+    def test_diverged_open_logs_and_skips_action(
+        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    ) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         self.create_group_derived_data(group=group, data={"status": "closed"})
 
@@ -450,9 +465,19 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
                 "actual_status": "open",
             },
         )
+        mock_metrics.incr.assert_any_call(
+            "issues.status_reconciliation.checked",
+            sample_rate=1.0,
+            tags={
+                "result": "diverged",
+                "derived_status": "closed",
+                "actual_status": "open",
+            },
+        )
 
     @with_feature("projects:issue-status-reconciliation")
-    def test_aligned_status_skips(self) -> None:
+    @mock.patch("sentry.issues.endpoints.group_details.metrics")
+    def test_aligned_status_skips(self, mock_metrics: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
         self.create_group_derived_data(group=group, data={"status": "closed"})
 
@@ -460,6 +485,11 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_metrics.incr.assert_any_call(
+            "issues.status_reconciliation.checked",
+            sample_rate=1.0,
+            tags={"result": "aligned"},
+        )
 
     @with_feature("projects:issue-status-reconciliation")
     def test_no_derived_data_skips(self) -> None:

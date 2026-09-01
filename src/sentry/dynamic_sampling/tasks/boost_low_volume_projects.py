@@ -22,7 +22,7 @@ from snuba_sdk import (
 )
 from taskbroker_client.retry import Retry
 
-from sentry import options, quotas
+from sentry import quotas
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
 from sentry.dynamic_sampling.models.projects_rebalancing import (
@@ -81,33 +81,16 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 
-@metrics.wraps("dynamic_sampling.partition_by_measure")
-def _partition_orgs_by_measure(
-    org_ids: list[int],
-) -> dict[SamplingMeasure, list[int]]:
+@metrics.wraps("dynamic_sampling.filter_project_mode_orgs")
+def _without_project_mode_orgs(org_ids: list[int]) -> list[int]:
     """
-    Partition organizations by their sampling measure.
-    Project-mode orgs are filtered out. SPANS orgs (AM3/project-mode) are
-    split off when the check_span_feature_flag option is enabled.
-    All remaining orgs use SEGMENTS.
+    Drop the organizations that sample per project. Their rates come from
+    project options, so the rebalancing task must not overwrite them.
     """
     modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
-    filtered_org_ids = {
+    return sorted(
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
-    }
-
-    if not options.get("dynamic-sampling.check_span_feature_flag"):
-        return {
-            SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
-        }
-
-    span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
-    filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
-    remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
-    return {
-        SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
-        SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
-    }
+    )
 
 
 @instrumented_task(
@@ -127,11 +110,7 @@ def boost_low_volume_projects() -> None:
         granularity=Granularity(60),
         measure=SamplingMeasure.SEGMENTS,
     ):
-        orgs_by_measure = _partition_orgs_by_measure(orgs)
-
-        for measure, org_ids in orgs_by_measure.items():
-            _record_partitioning_metrics({measure: org_ids})
-            _process_orgs_for_boost(org_ids, measure)
+        _process_orgs_for_boost(_without_project_mode_orgs(orgs), SamplingMeasure.SEGMENTS)
 
 
 def _process_orgs_for_boost(
@@ -164,16 +143,6 @@ def _process_orgs_for_boost(
         )
 
 
-def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int]]) -> None:
-    for measure, org_ids in orgs_by_measure.items():
-        metrics.incr(
-            "dynamic_sampling.partition_by_measure.measure",
-            amount=len(org_ids),
-            tags={"measure": measure.value},
-            sample_rate=1,
-        )
-
-
 @instrumented_task(
     name="sentry.dynamic_sampling.boost_low_volume_projects_of_org_with_query",
     namespace=telemetry_experience_tasks,
@@ -196,16 +165,9 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     if is_project_mode_sampling(org):
         return
 
-    orgs_by_measure = _partition_orgs_by_measure([org_id])
-    measures: dict[int, SamplingMeasure] = {}
-    for m, org_ids in orgs_by_measure.items():
-        for oid in org_ids:
-            measures[oid] = m
-    measure = measures.get(org_id, SamplingMeasure.SEGMENTS)
-
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
-        measure=measure,
+        measure=SamplingMeasure.SEGMENTS,
     )[org_id]
     rebalanced_projects = calculate_sample_rates_of_projects(
         org_id, projects_with_tx_count_and_rates

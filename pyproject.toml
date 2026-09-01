@@ -49,7 +49,6 @@ dependencies = [
   "grpcio>=1.71.2",
   # not directly used, but provides a speedup for redis
   "hiredis>=2.3.2",
-  "httpx>=0.28.1",
   "jsonschema>=4.20.0",
   "lxml>=6.1.0",
   "maxminddb>=2.3.0",
@@ -69,6 +68,7 @@ dependencies = [
   "protobuf>=5.29.6",
   "psutil>=5.9.7",
   "psycopg2-binary>=2.9.10",
+  "punkreq>=0.2.0",
   "pydantic>=1.10.26,<2",
   "pymemcache>=4.0.0",
   "pyjwt>=2.13.0",
@@ -2156,7 +2156,6 @@ module = [
     "tests.sentry.test_http",
     "tests.sentry.test_killswitches",
     "tests.sentry.test_mypy_stronglist",
-    "tests.sentry.test_no_create_or_update_usage",
     "tests.sentry.test_sdk_updates",
     "tests.sentry.test_stacktraces",
     "tests.sentry.test_unmerge",

@@ -147,7 +147,7 @@ export function WebAuthn2FAMethod({
 
   return (
     <Text as="p" align="center">
-      {t('Waiting for passkey, biometric, or hardware key authentication...')}
+      {t('Waiting for passkey, biometric, or hardware key')}
     </Text>
   );
 }

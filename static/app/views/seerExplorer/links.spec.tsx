@@ -451,6 +451,24 @@ describe('project links', () => {
     });
   });
 
+  it('leads a navigable row with the agent line, not the generated title', () => {
+    // Without this the agent's own words are dropped on exactly the rows this is meant to
+    // elevate: any record a link rule matched.
+    expect(
+      resolveLink(
+        subjectFromCallRecord({
+          ...record({project_id_or_slug: 'python'}),
+          llm_description: 'Checking whether the python project still ingests',
+        }),
+        ctx
+      )
+    ).toEqual({
+      id: 'get_project_details',
+      label: 'Checking whether the python project still ingests',
+      url: {pathname: '/organizations/org-slug/insights/projects/python/'},
+    });
+  });
+
   it('resolves a numeric id to its slug, since project pages route on slug', () => {
     expect(
       resolveLink(subjectFromCallRecord(record({project_id_or_slug: '2'})), ctx)

@@ -122,7 +122,7 @@ def _to_response_dict(resp: SnapshotImageDetailResponse) -> SnapshotImageDetailR
 
 
 # Intentionally uses a flat response format (nullable fields, no conditional shapes)
-# rather than matching the details endpoint's SnapshotDiffPair/SnapshotImageResponse split.
+# rather than the details endpoint's categorized diff-pair/image split.
 # This endpoint is designed for LLM/MCP consumers that benefit from a single uniform shape.
 @extend_schema(tags=["Snapshots"])
 @cell_silo_endpoint
