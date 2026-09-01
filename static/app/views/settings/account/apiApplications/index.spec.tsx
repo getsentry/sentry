@@ -18,9 +18,6 @@ jest.mock('sentry/utils/demoMode');
 
 describe('ApiApplications', () => {
   beforeEach(() => {
-    // The page gets its query container from the app shell, and the table only
-    // shows its "Age" column once that container is wide. jsdom reports a 0px
-    // container, so fake a desktop width.
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
     MockApiClient.clearMockResponses();
   });

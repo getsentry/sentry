@@ -1,4 +1,4 @@
-import {dragHandle} from 'sentry-test/dragMove';
+import {dragHandle, dragMove} from 'sentry-test/dragMove';
 import {
   render,
   screen,
@@ -223,6 +223,22 @@ describe('Table', () => {
     expect(onColumnResize).not.toHaveBeenCalled();
   });
 
+  it('sizes the other columns from the latest widths when a re-render lands mid-drag', async () => {
+    const {rerender} = render(<TestTable />);
+
+    dragHandle(resizers()[0]!, {from: 100, to: 400, release: false});
+    await waitFor(() => expect(gridTemplate()).toBe('300px 150px minmax(90px, auto)'));
+
+    rerender(
+      <TestTable
+        columns={[{key: 'name', width: 200}, {key: 'count', width: 400}, {key: 'age'}]}
+      />
+    );
+    dragMove({to: 450});
+
+    await waitFor(() => expect(gridTemplate()).toBe('350px 400px minmax(90px, auto)'));
+  });
+
   it('keeps the in-progress width when an unrelated re-render lands mid-drag', async () => {
     const {rerender} = render(<TestTable aria-label="before" />);
 
@@ -236,8 +252,7 @@ describe('Table', () => {
   });
 
   describe('responsive columns', () => {
-    // jsdom reports a 0px container, so fake a width for the breakpoints to resolve
-    // against. `clientWidth` is an accessor on Element.prototype, so spy there.
+    // `clientWidth` is an accessor on Element.prototype, not HTMLElement.
     const setClientWidth = (width: number) => {
       jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
     };
