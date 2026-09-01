@@ -59,6 +59,20 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/organization-login.html")
 
+    @with_feature("system:multi-region")
+    def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        response = self.client.get(
+            f"{self.path}?next=%2Fsettings%2Faccount%2F",
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+        )
+
+        assert response.status_code == 302
+        assert response["Location"] == (
+            f"http://testserver/auth/login/{self.organization.slug}/?next=%2Fsettings%2Faccount%2F"
+        )
+
     def test_cannot_get_request_join_link_with_setting_disabled(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             OrganizationOption.objects.create(
@@ -229,10 +243,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
 
     def test_org_redirects_to_relative_next_url(self) -> None:
         user = self.create_user("bar@example.com")
@@ -293,10 +304,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
 
     def test_flow_as_unauthenticated_existing_matched_user_no_merge(self) -> None:
         auth_provider = AuthProvider.objects.create(
@@ -795,10 +803,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             path, {"email": "foo@new-domain.com", "legacy_email": "foo@example.com"}, follow=True
         )
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
-        ]
+        assert resp.redirect_chain == [("/organizations/foo/issues/", 302)]
 
         # Ensure the ident was migrated from the legacy identity
         updated_ident = AuthIdentity.objects.get(id=user_ident.id)
@@ -933,10 +938,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         path = reverse("sentry-auth-sso")
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{org1.slug}/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(f"/organizations/{org1.slug}/issues/", 302)]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
