@@ -114,6 +114,22 @@ describe('getAttributeValue', () => {
     ).toBeUndefined();
   });
 
+  it('returns numeric attributes without losing integer precision', () => {
+    expect(getAttributeValue({'code.lineno': '42'}, 'code.lineno', 'number')).toBe(42);
+    expect(getAttributeValue({'code.lineno': '42.5'}, 'code.lineno', 'number')).toBe(
+      42.5
+    );
+    expect(
+      getAttributeValue({'code.lineno': '9007199254740993'}, 'code.lineno', 'number')
+    ).toBe(9007199254740993n);
+    expect(
+      getAttributeValue({'code.lineno': 9007199254740993n}, 'code.lineno', 'number')
+    ).toBe(9007199254740993n);
+    expect(
+      getAttributeValue({'code.lineno': 'not a number'}, 'code.lineno', 'number')
+    ).toBeUndefined();
+  });
+
   it('returns a falsy value when its key is present', () => {
     expect(
       getAttributeValue(

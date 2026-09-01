@@ -9,7 +9,7 @@ const ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY = new Map<
 type AttributeValueByKind = {
   boolean: boolean;
   'boolean[]': boolean[];
-  number: number;
+  number: number | bigint;
   'number[]': number[];
   string: string;
   'string[]': string[];
@@ -36,23 +36,53 @@ function isAttributeValue(value: unknown): value is AttributeValue {
   );
 }
 
-function isAttributeValueOfKind<K extends AttributeValueKind>(
+function getNumericAttributeValue(value: unknown): number | bigint | undefined {
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return value;
+  }
+
+  if (typeof value !== 'string' || value.trim() === '') {
+    return undefined;
+  }
+
+  const normalizedValue = value.trim();
+  if (/^[+-]?\d+$/.test(normalizedValue)) {
+    const integerValue = BigInt(normalizedValue);
+    return integerValue >= BigInt(Number.MIN_SAFE_INTEGER) &&
+      integerValue <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(integerValue)
+      : integerValue;
+  }
+
+  const numberValue = Number(normalizedValue);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
+function getAttributeValueOfKind(
   value: unknown,
-  kind: K
-): value is AttributeValueByKind[K] {
+  kind: AttributeValueKind
+): AttributeValue | bigint | undefined {
   switch (kind) {
-    case 'string':
     case 'number':
+      return getNumericAttributeValue(value);
+    case 'string':
+      return typeof value === 'string' ? value : undefined;
     case 'boolean':
-      return typeof value === kind;
+      return typeof value === 'boolean' ? value : undefined;
     case 'string[]':
-      return Array.isArray(value) && value.every(item => typeof item === 'string');
+      return Array.isArray(value) && value.every(item => typeof item === 'string')
+        ? value
+        : undefined;
     case 'number[]':
-      return Array.isArray(value) && value.every(item => typeof item === 'number');
+      return Array.isArray(value) && value.every(item => typeof item === 'number')
+        ? value
+        : undefined;
     case 'boolean[]':
-      return Array.isArray(value) && value.every(item => typeof item === 'boolean');
+      return Array.isArray(value) && value.every(item => typeof item === 'boolean')
+        ? value
+        : undefined;
     default:
-      return false;
+      return undefined;
   }
 }
 
@@ -92,7 +122,7 @@ function getAttributeValueFromDeprecationChain(
   attributes: AttributeSource,
   deprecationChain: readonly string[],
   kind?: AttributeValueKind
-): AttributeValue | undefined {
+): AttributeValue | bigint | undefined {
   for (const candidateKey of deprecationChain) {
     let value: unknown;
 
@@ -114,10 +144,11 @@ function getAttributeValueFromDeprecationChain(
       value = attributes[attributeKey];
     }
 
-    return isAttributeValue(value) &&
-      (kind === undefined || isAttributeValueOfKind(value, kind))
-      ? value
-      : undefined;
+    return kind === undefined
+      ? isAttributeValue(value)
+        ? value
+        : undefined
+      : getAttributeValueOfKind(value, kind);
   }
 
   return undefined;
@@ -129,8 +160,10 @@ function getAttributeValueFromDeprecationChain(
  *
  * Attributes may be a name-to-value record or an array of `{name, value}` entries.
  * Exact names take precedence over normalized typed or prefixed names. The optional
- * `kind` argument narrows the return type and validates the value at runtime; a
- * missing key or mismatched value returns `undefined`.
+ * `kind` argument narrows the return type and validates the value at runtime. The
+ * `number` kind also converts numeric strings, returning a `bigint` when an integer
+ * exceeds JavaScript's safe integer range. A missing key or mismatched value returns
+ * `undefined`.
  *
  * @example Resolve a deprecated key from a record:
  * ```ts
@@ -158,6 +191,15 @@ function getAttributeValueFromDeprecationChain(
  *   'string[]'
  * ); // string[] | undefined
  * ```
+ *
+ * @example Read a numeric attribute without losing integer precision:
+ * ```ts
+ * const count = getAttributeValue(
+ *   {'code.lineno': '9007199254740993'},
+ *   'code.lineno',
+ *   'number'
+ * ); // number | bigint | undefined
+ * ```
  */
 export function getAttributeValue<K extends AttributeValueKind>(
   attributes: unknown,
@@ -172,7 +214,7 @@ export function getAttributeValue(
   attributes: unknown,
   key: string,
   kind?: AttributeValueKind
-): AttributeValue | undefined {
+): AttributeValue | bigint | undefined {
   if (typeof attributes !== 'object' || attributes === null) {
     return undefined;
   }
