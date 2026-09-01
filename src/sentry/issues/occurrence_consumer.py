@@ -110,51 +110,6 @@ def lookup_event(project_id: int, event_id: str) -> Event:
 
 
 @trace
-def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
-    return Event(
-        event_id=event_id,
-        project_id=project_id,
-        # `snuba_data` only backs the `Event` property accessors. The eventstream serializes
-        # `event.data`, where the `generic-events` schema requires `received`.
-        data={"received": event_data["received"]},
-        snuba_data={
-            "event_id": event_data["event_id"],
-            "project_id": event_data["project_id"],
-            "timestamp": event_data["timestamp"],
-            "release": event_data.get("release"),
-            "environment": event_data.get("environment"),
-            "platform": event_data.get("platform"),
-            "tags.key": [tag[0] for tag in event_data.get("tags") or []],
-            "tags.value": [tag[1] for tag in event_data.get("tags") or []],
-        },
-    )
-
-
-@trace
-def create_event_and_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
-) -> tuple[IssueOccurrence, GroupInfo | None]:
-    """With standalone span ingestion, we won't be storing events in
-    nodestore, so instead we create a light-weight event with a small
-    set of fields that lets us create occurrences.
-    """
-    project_id = occurrence_data["project_id"]
-    event_id = occurrence_data["event_id"]
-    if occurrence_data["event_id"] != event_data["event_id"]:
-        raise ValueError(
-            f"event_id in occurrence({occurrence_data['event_id']}) is different from event_id in event_data({event_data['event_id']})"
-        )
-
-    event = create_event(project_id, event_id, event_data)
-
-    with metrics.timer(
-        "occurrence_consumer._process_message.save_issue_occurrence",
-        tags={"method": "create_event_and_issue_occurrence"},
-    ):
-        return save_issue_occurrence(occurrence_data, event)
-
-
-@trace
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
