@@ -177,7 +177,7 @@ class TransactionCheckingRedisTest(SentryTestCase):
         assert _matches_redis_transaction_ratchet(existing_webhook_callers)
         assert not _matches_redis_transaction_ratchet(new_callers)
 
-    def test_transaction_callers_include_nested_application_frames(self) -> None:
+    def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
         def outer_caller() -> tuple[str, ...]:
             def shared_helper() -> tuple[str, ...]:
                 return _redis_transaction_callers()
@@ -186,9 +186,10 @@ class TransactionCheckingRedisTest(SentryTestCase):
 
         callers = outer_caller()
 
-        assert callers[:2] == (
+        assert callers == (
             f"{__name__}.{outer_caller.__qualname__}.<locals>.shared_helper",
             f"{__name__}.{outer_caller.__qualname__}",
+            f"{__name__}.TransactionCheckingRedisTest.test_transaction_callers_include_application_frames_until_test_harness",
         )
 
 

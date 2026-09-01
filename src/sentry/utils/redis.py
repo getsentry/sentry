@@ -352,6 +352,10 @@ def _redis_transaction_callers() -> tuple[str, ...]:
     frame = inspect.currentframe()
     while frame is not None:
         module = frame.f_globals.get("__name__", "")
+        if module in ("_pytest", "pytest", "unittest") or module.startswith(
+            ("_pytest.", "pytest.", "unittest.")
+        ):
+            break
         is_redis_internal = module == __name__ or any(
             module == prefix or module.startswith(f"{prefix}.")
             for prefix in ("django.utils.functional", "redis", "rediscluster", "sentry_redis_tools")
