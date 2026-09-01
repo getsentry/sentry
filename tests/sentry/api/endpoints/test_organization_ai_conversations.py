@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_ai_conversations import (
+from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     _get_first_input_message,
     _get_last_output,
 )
@@ -123,26 +123,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
         )
 
-    def do_request(self, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:gen-ai-conversations"]
-
+    def do_request(self, query=None, **kwargs):
         query = query or {}
 
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404
+        return self.client.get(
+            reverse(
+                self.view,
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            ),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self) -> None:
         response = self.do_request()
@@ -1648,7 +1640,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.data[0]["title"] == "Higher project id title"
 
     @patch(
-        "sentry.api.endpoints.organization_ai_conversations.fetch_conversation_titles",
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.fetch_conversation_titles",
         side_effect=Exception("metadata unavailable"),
     )
     def test_title_lookup_failure_does_not_break_list(

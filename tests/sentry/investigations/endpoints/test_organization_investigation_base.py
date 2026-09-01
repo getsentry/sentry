@@ -93,6 +93,10 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             self.collection_url, data={"title": "Output"}, format="json"
         )
         investigation = Investigation.objects.get(id=create_response.data["id"])
+        investigation.update(
+            summary="Errors crossed alert threshold",
+            summary_description="Restricted evidence.\nRestricted remediation.",
+        )
         block = self.create_investigation_block(
             investigation=investigation,
             position=0,
@@ -138,7 +142,9 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
         list_response = self.client.get(self.collection_url)
         assert list_response.status_code == 200
-        assert str(investigation.id) in {item["id"] for item in list_response.data}
+        listed = next(item for item in list_response.data if item["id"] == str(investigation.id))
+        assert listed["summary"] is None
+        assert listed["summaryDescription"] is None
 
     def test_project_query_param_cannot_widen_the_access_check(self) -> None:
         team = self.create_team(organization=self.organization)

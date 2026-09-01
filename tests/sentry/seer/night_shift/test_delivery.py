@@ -9,6 +9,7 @@ from sentry.models.project import Project
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
+    SeerNightShiftRunErrorType,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
@@ -80,6 +81,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         shard = run.shards.get()
         assert shard.extras["error_message"] == "Seer exploded"
+        assert shard.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
     def test_sibling_shard_success_keeps_other_shard_error(self) -> None:
@@ -119,6 +121,10 @@ class TestDeliverNightShiftResult(TestCase):
 
         failed_shard.refresh_from_db()
         assert failed_shard.extras["error_message"] == "shard failed"
+        assert (
+            failed_shard.extras["error_type"]
+            == SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
+        )
 
     def test_invalid_result_logs_exception(self) -> None:
         """When result can't be parsed as TriageResponse, log and return."""
@@ -659,7 +665,12 @@ class TestDeliverNightShiftResult(TestCase):
         group = self.create_group(project=project)
         run = self._create_night_shift_run(organization=org)
         shard = run.shards.get()
-        shard.update(extras={"error_message": "Night shift run failed"})
+        shard.update(
+            extras={
+                "error_type": SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value,
+                "error_message": "Night shift run failed",
+            }
+        )
 
         result = {
             "verdicts": [
@@ -681,6 +692,7 @@ class TestDeliverNightShiftResult(TestCase):
 
         shard.refresh_from_db()
         assert "error_message" not in shard.extras
+        assert "error_type" not in shard.extras
 
     def test_redelivery_is_idempotent(self) -> None:
         """Redelivering the same shard result must not re-trigger autofix or

@@ -1,5 +1,4 @@
 import time
-from concurrent.futures import Future
 from time import sleep
 from types import SimpleNamespace
 from typing import Any
@@ -7,14 +6,11 @@ from unittest import mock
 
 import orjson
 import pytest
-from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.noop import Noop
-from django.test import override_settings
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import Span
-from sentry.spans.consumers.process.flusher import MultiProducer, SpanFlusher
+from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
@@ -108,52 +104,7 @@ def test_flusher_logs_flushed_segments() -> None:
     assert not buffer.client.keys(f"*{project_id}:{trace_id}*")
 
 
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.process-segments-task-rollout-rate": 0.0})
-def test_flusher_produces_flushed_segments_to_buffered_segments_topic() -> None:
-    span_id = "b" * 16
-    buffer = _buffer_with_segment(span_id=span_id)
-    stopped = SimpleNamespace(value=0)
-    current_drift = SimpleNamespace(value=0)
-    backpressure_since = SimpleNamespace(value=0)
-    healthy_since = SimpleNamespace(value=0)
-    produced_payloads: list[KafkaPayload] = []
-    producer_future: Future[None] = Future()
-    producer_future.set_result(None)
-    producer_manager = mock.Mock()
-
-    def produce(payload: KafkaPayload) -> Future[None]:
-        produced_payloads.append(payload)
-        stopped.value = 1
-        return producer_future
-
-    producer_manager.produce.side_effect = produce
-
-    with (
-        mock.patch(
-            "sentry.spans.consumers.process.flusher.MultiProducer",
-            return_value=producer_manager,
-        ) as mock_multi_producer,
-        mock.patch(
-            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future"
-        ) as mock_apply_async_with_future,
-    ):
-        SpanFlusher.main(
-            buffer,
-            shards=[0],
-            stopped=stopped,
-            current_drift=current_drift,
-            backpressure_since=backpressure_since,
-            healthy_since=healthy_since,
-            produce_to_pipe=None,
-        )
-
-    mock_multi_producer.assert_called_once_with(Topic.BUFFERED_SEGMENTS)
-    mock_apply_async_with_future.assert_not_called()
-    assert len(produced_payloads) == 1
-    assert orjson.loads(produced_payloads[0].value)["spans"][0]["span_id"] == span_id
-
-
-@override_options({**DEFAULT_OPTIONS, "spans.buffer.process-segments-task-rollout-rate": 1.0})
+@override_options(DEFAULT_OPTIONS)
 def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
     project_id = 999_002
     trace_id = "9" * 32
@@ -168,7 +119,6 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
     current_drift = SimpleNamespace(value=0)
     backpressure_since = SimpleNamespace(value=0)
     healthy_since = SimpleNamespace(value=0)
-    producer_manager = mock.Mock()
     task_future = mock.Mock()
 
     def wait_for_task_delivery() -> None:
@@ -180,16 +130,10 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
         stopped.value = 1
         return task_future
 
-    with (
-        mock.patch(
-            "sentry.spans.consumers.process.flusher.MultiProducer",
-            return_value=producer_manager,
-        ) as mock_multi_producer,
-        mock.patch(
-            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future",
-            side_effect=apply_async_with_future,
-        ) as mock_apply_async_with_future,
-    ):
+    with mock.patch(
+        "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future",
+        side_effect=apply_async_with_future,
+    ) as mock_apply_async_with_future:
         SpanFlusher.main(
             buffer,
             shards=[0],
@@ -200,8 +144,6 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
             produce_to_pipe=None,
         )
 
-    mock_multi_producer.assert_called_once_with(Topic.BUFFERED_SEGMENTS)
-    producer_manager.produce.assert_not_called()
     mock_apply_async_with_future.assert_called_once()
     task_args = mock_apply_async_with_future.call_args.kwargs["args"]
     task_headers = mock_apply_async_with_future.call_args.kwargs["headers"]
@@ -287,73 +229,6 @@ def test_backpressure() -> None:
             assert any(x.value for x in flusher.process_backpressure_since.values())
         finally:
             flusher.join()
-
-
-def create_memory_producer_factory():
-    """Create a factory that returns in-memory LocalProducers from Arroyo."""
-    from arroyo.backends.local.backend import LocalBroker
-    from arroyo.backends.local.storages.memory import MemoryMessageStorage
-
-    # Create shared storage so we can inspect messages across producers
-    storage = MemoryMessageStorage[Any]()
-    broker = LocalBroker(storage)
-
-    def producer_factory(producer_config):
-        return broker.get_producer()
-
-    # Return both factory and storage for inspection
-    return broker, producer_factory, storage
-
-
-@override_settings(
-    SLICED_KAFKA_TOPICS={
-        ("buffered-segments", 0): {"cluster": "default", "topic": "buffered-segments-1"},
-        ("buffered-segments", 1): {"cluster": "default", "topic": "buffered-segments-2"},
-    }
-)
-def test_multi_producer_sliced_integration_with_arroyo_local_producer() -> None:
-    from arroyo import Topic as ArroyoTopic
-    from arroyo.backends.kafka import KafkaPayload
-
-    broker, producer_factory, storage = create_memory_producer_factory()
-    broker.create_topic(ArroyoTopic("buffered-segments-1"), partitions=1)
-    broker.create_topic(ArroyoTopic("buffered-segments-2"), partitions=1)
-
-    manager = MultiProducer(Topic.BUFFERED_SEGMENTS, producer_factory=producer_factory)
-
-    assert len(manager.producers) == 2
-    assert len(manager.topics) == 2
-
-    topic_names = [topic.name for topic in manager.topics]
-    assert "buffered-segments-1" in topic_names
-    assert "buffered-segments-2" in topic_names
-
-    payload1 = KafkaPayload(None, b"test-message-1", [])
-    payload2 = KafkaPayload(None, b"test-message-2", [])
-    payload3 = KafkaPayload(None, b"test-message-3", [])
-
-    manager.produce(payload1)
-    manager.produce(payload2)
-    manager.produce(payload3)
-
-    from arroyo import Partition
-
-    topic1_partition = Partition(ArroyoTopic("buffered-segments-1"), 0)
-    topic2_partition = Partition(ArroyoTopic("buffered-segments-2"), 0)
-
-    message1 = broker.consume(topic1_partition, 0)
-    message2 = broker.consume(topic2_partition, 0)
-    message3 = broker.consume(topic1_partition, 1)
-
-    assert message1 is not None
-    assert message2 is not None
-    assert message3 is not None
-
-    assert message1.payload.value == b"test-message-1"
-    assert message2.payload.value == b"test-message-2"
-    assert message3.payload.value == b"test-message-3"
-
-    manager.close()
 
 
 def test_flusher_waits_for_exited_processes_during_startup() -> None:

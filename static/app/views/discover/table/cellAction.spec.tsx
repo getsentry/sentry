@@ -329,7 +329,7 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for string cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 0});
+      renderComponent({eventView: view, handleCellAction});
       await openMenu();
 
       expect(

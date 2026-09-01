@@ -8,6 +8,7 @@ from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.markdown_utils import format_commit_sha_markdown
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
     COMPARISON_TABLE_HEADER,
     PROCESSING_STATUS,
@@ -222,15 +223,23 @@ def format_missing_base_snapshot_status_check_messages(
     artifacts: list[PreprodArtifact],
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     project: Project,
+    *,
+    base_sha: str,
+    base_repo_url: str | None = None,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
 
     title = _SNAPSHOT_TITLE_BASE
-    subtitle = str(_("No base snapshots found"))
+    # Check-run output.title is plain text; keep the SHA unlinked here.
+    subtitle = str(_("No base snapshot found for %(base_sha)s")) % {"base_sha": base_sha}
 
+    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
-    summary += "\n\nNo base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
+    summary += (
+        f"\n\nNo base snapshot found for {base_sha_markdown}. "
+        "Make sure snapshots are uploaded from your main branch."
+    )
 
     settings_url = _get_settings_url(project)
     summary += "\n\n" + _format_configure_link(project, settings_url)

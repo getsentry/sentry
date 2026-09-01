@@ -146,7 +146,7 @@ def _record_pr_attribution(
     ``attribute_seer_created_pull_requests``; ``record_attribution_signal`` merges
     the two writes rather than one clobbering the other.
     """
-    if not features.has("organizations:pr-metrics-attribution", org):
+    if not features.has("organizations:pr-metrics", org):
         return
 
     number = pull_request.get("number")

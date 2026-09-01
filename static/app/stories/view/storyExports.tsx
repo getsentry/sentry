@@ -321,6 +321,7 @@ const StoryContainer = styled('div')`
   flex-direction: column;
   gap: ${p => p.theme.space['3xl']};
   padding-inline: ${p => p.theme.space.xl};
+  container-type: inline-size;
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     max-width: 832px;

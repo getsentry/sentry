@@ -148,7 +148,7 @@ export function SmsEnrollForm({
 
         <Flex justify="end" align="center" gap="md">
           {isCodeSent && (
-            <Button type="button" onClick={resetEnrollment} disabled={isSubmitting}>
+            <Button onClick={resetEnrollment} disabled={isSubmitting}>
               {t('Start Over')}
             </Button>
           )}

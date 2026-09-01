@@ -9,8 +9,7 @@ import {
 } from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -23,11 +22,11 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconSearch} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -253,6 +252,7 @@ export function Control<Value extends SelectKey>({
   menuRef?: React.Ref<HTMLDivElement>;
   value?: Value | Value[] | undefined;
 }) {
+  const {t} = useTranslation();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const normalizedSearch = getSearchConfig(searchConfig);
@@ -509,7 +509,7 @@ export function Control<Value extends SelectKey>({
         )}
       </Fragment>
     );
-  }, [value, items]);
+  }, [items, t, value]);
 
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {

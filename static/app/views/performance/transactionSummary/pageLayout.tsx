@@ -338,12 +338,6 @@ const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}
       display: flex;
       flex-direction: column;
       gap: ${p.theme.space['2xl']};
-
-      @media (min-width: ${p.theme.breakpoints.lg}) {
-        display: flex;
-        flex-direction: column;
-        gap: ${p.theme.space['2xl']};
-      }
     `}
 `;
 
@@ -355,7 +349,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   navigate(
     normalizeUrl({
-      pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
+      pathname: getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

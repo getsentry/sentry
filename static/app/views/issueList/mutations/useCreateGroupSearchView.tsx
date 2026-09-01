@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query';
 import type {Simplify} from 'type-fest';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
@@ -28,7 +29,9 @@ export function useCreateGroupSearchView(
   return useMutation({
     mutationFn: (data: Simplify<CreateGroupSearchViewData>) =>
       fetchMutation<GroupSearchView>({
-        url: `/organizations/${organization.slug}/group-search-views/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data,
       }),

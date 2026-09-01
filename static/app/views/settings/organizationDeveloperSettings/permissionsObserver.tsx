@@ -32,7 +32,7 @@ type Props = {
   newApp: boolean;
   scopes: Scope[];
   appPublished?: boolean;
-  collapsePermissions?: boolean;
+  collapsePanels?: boolean;
   continuousIntegrationError?: string;
   onEventsChange?: (events: WebhookSubscription[]) => void;
   onScopesChange?: (scopes: Scope[]) => void;
@@ -44,7 +44,7 @@ export function PermissionsObserver({
   events: initialEvents,
   newApp,
   scopes,
-  collapsePermissions = false,
+  collapsePanels = false,
   continuousIntegrationError,
   onEventsChange,
   onScopesChange,
@@ -126,7 +126,7 @@ export function PermissionsObserver({
     </Fragment>
   );
 
-  const permissionsPanel = collapsePermissions ? (
+  const permissionsPanel = collapsePanels ? (
     <CollapsiblePanel title={t('Permissions')} forceExpanded={forcePermissionsExpanded}>
       {permissionsContent}
     </CollapsiblePanel>
@@ -137,19 +137,27 @@ export function PermissionsObserver({
     </Panel>
   );
 
+  const webhooksContent = (
+    <Subscriptions
+      permissions={permissions}
+      events={events}
+      onChange={handleEventChange}
+    />
+  );
+
+  const webhooksPanel = collapsePanels ? (
+    <CollapsiblePanel title={t('Webhooks')}>{webhooksContent}</CollapsiblePanel>
+  ) : (
+    <Panel>
+      <PanelHeader>{t('Webhooks')}</PanelHeader>
+      <PanelBody>{webhooksContent}</PanelBody>
+    </Panel>
+  );
+
   return (
     <Fragment>
       {permissionsPanel}
-      <Panel>
-        <PanelHeader>{t('Webhooks')}</PanelHeader>
-        <PanelBody>
-          <Subscriptions
-            permissions={permissions}
-            events={events}
-            onChange={handleEventChange}
-          />
-        </PanelBody>
-      </Panel>
+      {webhooksPanel}
     </Fragment>
   );
 }

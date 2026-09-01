@@ -12,7 +12,9 @@ import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image as ScrapsImage} from '@sentry/scraps/image';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {UnsupportedAlert} from 'sentry/components/alerts/unsupportedAlert';
@@ -39,7 +41,6 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {OnboardingPanel as LegacyOnboardingPanel} from 'sentry/components/onboardingPanel';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -212,73 +213,67 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
   }
 
   return (
-    <PerformanceOnboardingContainer>
+    <Container column="1 / -1">
       {noPerformanceSupport && (
         <UnsupportedAlert projectSlug={project.slug} featureName="Performance" />
       )}
-      <LegacyOnboardingPanel image={<PerfImage src={emptyStateImg} />}>
-        <h3>{t('Pinpoint problems')}</h3>
-        <p>
-          {t(
+      <Panel>
+        <EmptyState
+          padding="3xl"
+          align="center"
+          justify="center"
+          illustration={
+            <ScrapsImage
+              width={{zero: '150px', '3xl': '480px', '4xl': '600px'}}
+              loading="eager"
+              src={emptyStateImg}
+              alt={t(
+                'Stylized line chart with purple and orange lines trending upward against a pink background'
+              )}
+              style={{maxWidth: '100%', userSelect: 'none'}}
+            />
+          }
+          title={t('Pinpoint problems')}
+          description={t(
             'Something seem slow? Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           )}
-        </p>
-        <ButtonList>{setupButton}</ButtonList>
-        <FeatureTourModal
-          steps={PERFORMANCE_TOUR_STEPS}
-          onAdvance={handleAdvance}
-          onCloseModal={handleClose}
-          doneUrl={performanceSetupUrl}
-          doneText={t('Start Setup')}
-        >
-          {({showModal}) => (
-            <Button
-              variant="link"
-              onClick={() => {
-                trackAnalytics('performance_views.tour.start', {organization});
-                showModal();
-              }}
-            >
-              {t('Take a Tour')}
-            </Button>
-          )}
-        </FeatureTourModal>
-      </LegacyOnboardingPanel>
-    </PerformanceOnboardingContainer>
+          action={
+            <Stack gap="md">
+              <ButtonList>{setupButton}</ButtonList>
+              <FeatureTourModal
+                steps={PERFORMANCE_TOUR_STEPS}
+                onAdvance={handleAdvance}
+                onCloseModal={handleClose}
+                doneUrl={performanceSetupUrl}
+                doneText={t('Start Setup')}
+              >
+                {({showModal}) => (
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      trackAnalytics('performance_views.tour.start', {organization});
+                      showModal();
+                    }}
+                  >
+                    {t('Take a Tour')}
+                  </Button>
+                )}
+              </FeatureTourModal>
+            </Stack>
+          }
+        />
+      </Panel>
+    </Container>
   );
 }
 
-const PerformanceOnboardingContainer = styled('div')`
-  grid-column: 1/-1;
-`;
-
-const PerfImage = styled('img')`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    max-width: unset;
-    user-select: none;
-    position: absolute;
-    top: 75px;
-    bottom: 0;
-    width: 450px;
-    margin-top: auto;
-    margin-bottom: auto;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    width: 480px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 600px;
-  }
-`;
-
-const ButtonList = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
-  margin-bottom: 16px;
-`;
+function ButtonList({children}: {children: React.ReactNode}) {
+  return (
+    <Flex direction={{zero: 'column', sm: 'row'}} align="center" gap="md">
+      {children}
+    </Flex>
+  );
+}
 
 function OnboardingPanel({
   project,
@@ -308,8 +303,14 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
-                <HeaderText>
+              <Flex
+                containerType="inline-size"
+                justify="between"
+                gap="2xl"
+                radius="md"
+                padding="3xl"
+              >
+                <Container flex={{zero: 1, xl: 0.65}}>
                   <Title>{t('Tracing in Sentry')}</Title>
                   <SubTitle>
                     {tct(
@@ -330,9 +331,23 @@ function OnboardingPanel({
                     </li>
                     <li>{t('Inspect model calls and tool calls in AI agents')}</li>
                   </BulletList>
-                </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                </Container>
+                <Container
+                  display={{zero: 'none', xl: 'block'}}
+                  pointerEvents="none"
+                  overflow="hidden"
+                  flexShrink={0}
+                >
+                  <ScrapsImage
+                    height="120px"
+                    width="auto"
+                    src={emptyTraceImg}
+                    alt={t(
+                      'A winged insect flying above a tilted browser window with abstract interface elements'
+                    )}
+                  />
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 {noPerformanceSupport ? null : (
@@ -674,22 +689,6 @@ const BulletList = styled('ul')`
   }
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
-const HeaderText = styled('div')`
-  flex: 0.65;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-  }
-`;
-
 const AiSetup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
@@ -729,17 +728,6 @@ const Body = styled('div')`
 
   h4 {
     margin-bottom: 0;
-  }
-`;
-
-const Image = styled('img')`
-  display: block;
-  pointer-events: none;
-  height: 120px;
-  overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
   }
 `;
 

@@ -90,7 +90,6 @@ function AccordionWidget({
       ) : (
         <Stack flex="1 1 auto" justify="start">
           <Accordion
-            collapsible
             collapsedChevronDirection="right"
             expandedIndex={selectedListIndex}
             expandedChevronDirection="down"

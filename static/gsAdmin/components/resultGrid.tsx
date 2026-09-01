@@ -677,11 +677,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       return null;
     }
 
-    if (this.state.probingRegions) {
-      return <RegionHintNote>Checking other regions…</RegionHintNote>;
-    }
-
-    if (this.state.regionMatches.length === 0) {
+    if (this.state.probingRegions || this.state.regionMatches.length === 0) {
       return null;
     }
 
@@ -829,6 +825,12 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const cells = getCells();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
 
+    // The note shares the row of the selectors and stays at the right end. It
+    // never renders above the results, so nothing moves while the probe runs.
+    const probeNote = this.state.probingRegions ? (
+      <RegionHintNote>Checking other regions…</RegionHintNote>
+    ) : null;
+
     return (
       <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
@@ -861,6 +863,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
               location={location}
             />
           )}
+          {probeNote}
           {hasSearch && (
             <Flex align="center" gap="xs" width="100%">
               <SearchInput
@@ -969,9 +972,12 @@ const RegionHintAlert = styled(Alert)`
 `;
 
 const RegionHintNote = styled('div')`
-  margin-bottom: ${p => p.theme.space.md};
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: auto;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
+  white-space: nowrap;
 `;
 
 type ResultGridWrapperProps = Omit<ResultGridProps, 'api' | 'location' | 'navigate'> & {

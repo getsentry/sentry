@@ -1,5 +1,4 @@
 import {defined} from 'sentry/utils/defined';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -9,6 +8,7 @@ import {
   type BaseVisualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 
 type DerivedUpdatedManagedFields = {
   updatedFields?: string[];
@@ -173,7 +173,9 @@ function findAllFieldRefs(
 
 function getVisualizeFields(visualize: Visualize): string[] {
   if (isVisualizeFunction(visualize)) {
-    const field = parseFunction(visualize.yAxis)?.arguments?.[0];
+    // Parse conditionally so an `_if` filter query, which is the first argument, is not
+    // mistaken for a visualize field.
+    const field = parseConditionalAggregate(visualize.yAxis)?.arguments?.[0];
     return defined(field) ? [field] : [];
   }
 

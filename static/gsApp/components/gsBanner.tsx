@@ -19,6 +19,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {showIntercom} from 'sentry/utils/intercom';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
@@ -268,7 +269,9 @@ class GSBanner extends Component<Props, State> {
     }
     try {
       const data = await this.props.api.requestPromise(
-        `/organizations/${organization.slug}/pendo-details/`
+        getApiUrl('/organizations/$organizationIdOrSlug/pendo-details/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
       );
 
       const user = ConfigStore.get('user');

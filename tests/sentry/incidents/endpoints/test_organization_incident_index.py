@@ -25,7 +25,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@with_feature(["organizations:incidents", "organizations:performance-view"])
+@with_feature("organizations:performance-view")
 class WorkflowEngineIncidentListTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-index"
 

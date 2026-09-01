@@ -15,6 +15,7 @@ from sentry.analytics.events.signup_email_verification import (
     SignupEmailVerificationClickedEvent,
 )
 from sentry.auth.email_verification import SignupLinkExpired, hash_email, verify_signup_link
+from sentry.utils import metrics
 from sentry.web.frontend.base import BaseView
 
 PENDING_VERIFICATION_SESSION_KEY = "pending_signup_verification_email"
@@ -37,18 +38,41 @@ class BaseSignupVerificationView(BaseView):
     method-specific completion logic.
     """
 
-    auth_required = False
+    auth_required: bool = False
+    record_analytics: bool = True
 
-    @staticmethod
-    def _record_clicked(request: HttpRequest, outcome: str, email: str | None = None) -> None:
+    @property
+    def signup_method(self) -> str:
+        resolver_match = self.request.resolver_match
+        assert resolver_match is not None and resolver_match.url_name is not None
+        return resolver_match.url_name
+
+    def _record_clicked(self, request: HttpRequest, outcome: str, email: str | None = None) -> None:
         if email is None:
             email = request.session.get(PENDING_VERIFICATION_SESSION_KEY, "")
         email_hash = hash_email(email) if email else ""
-        analytics.record(
-            SignupEmailVerificationClickedEvent(
-                email_hash=email_hash,
-                outcome=outcome,
+        logger.info(
+            "signup_verification.clicked",
+            extra={
+                "email_hash": email_hash,
+                "outcome": outcome,
+                "signup_method": self.signup_method,
+            },
+        )
+        if self.record_analytics:
+            analytics.record(
+                SignupEmailVerificationClickedEvent(
+                    email_hash=email_hash,
+                    outcome=outcome,
+                    signup_method=self.signup_method,
+                )
             )
+
+    def _record_failure_metric(self, reason: str) -> None:
+        metrics.incr(
+            "signup_verification.failure",
+            tags={"reason": reason, "signup_method": self.signup_method},
+            skip_internal=False,
         )
 
     def _render_error(self, title: str, message: str) -> HttpResponseBase:
@@ -103,7 +127,7 @@ class BaseSignupVerificationView(BaseView):
 
         logger.info(
             "signup_verification.verified",
-            extra={"email_hash": hash_email(email)},
+            extra={"email_hash": hash_email(email), "signup_method": self.signup_method},
         )
         self._record_clicked(request, "success", email=email)
 

@@ -12,6 +12,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -38,7 +39,7 @@ export function LaunchpadAdminPage() {
         .map(id => id.trim())
         .filter(Boolean);
       return fetchMutation({
-        url: '/internal/preprod-artifact/batch-rerun-analysis/',
+        url: getApiUrl('/internal/preprod-artifact/batch-rerun-analysis/'),
         method: 'POST',
         data: {artifact_ids: ids},
         options: {host: locality?.url},
@@ -68,7 +69,7 @@ export function LaunchpadAdminPage() {
   const {mutate: deleteArtifactData} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: '/internal/preprod-artifact/batch-delete/',
+        url: getApiUrl('/internal/preprod-artifact/batch-delete/'),
         method: 'DELETE',
         data: {
           preprod_artifact_ids: [deleteArtifactId],
@@ -118,7 +119,7 @@ export function LaunchpadAdminPage() {
   const {mutate: batchDeleteArtifacts} = useMutation({
     mutationFn: () => {
       return fetchMutation({
-        url: '/internal/preprod-artifact/batch-delete/',
+        url: getApiUrl('/internal/preprod-artifact/batch-delete/'),
         method: 'DELETE',
         data: {
           preprod_artifact_ids: batchDeleteArtifactIds

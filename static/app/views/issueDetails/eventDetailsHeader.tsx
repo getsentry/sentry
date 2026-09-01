@@ -59,7 +59,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const environments = useEnvironmentsFromUrl();
   const searchQuery = useEventQuery();
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const {dispatch} = useIssueDetails();
+  const {dispatch, isSidebarOpen} = useIssueDetails();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const hasSetStatsPeriod =
@@ -107,6 +107,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
         role="group"
         aria-description={t('Event filtering controls')}
         hasFilterBar={issueTypeConfig.header.filterBar.enabled}
+        isSidebarOpen={isSidebarOpen}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -289,7 +290,10 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   return <EnvironmentPageFilter triggerProps={{style}} />;
 }
 
-const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`
+const DetailsContainer = styled('div')<{
+  hasFilterBar: boolean;
+  isSidebarOpen: boolean;
+}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -300,7 +304,8 @@ const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`
   padding-top: ${p => p.theme.space.lg};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
+    border-right: ${p =>
+      p.isSidebarOpen ? `1px solid ${p.theme.tokens.border.primary}` : 'none'};
   }
 `;
 

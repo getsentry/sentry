@@ -30,6 +30,13 @@ import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataConte
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 
+function getCommentEditor(name = 'Add a comment') {
+  const editor = screen.getByRole('combobox', {name});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
+
 describe('ActivitySection', () => {
   const project = ProjectFixture();
   const user = UserFixture();
@@ -87,7 +94,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    const commentInput = screen.getByPlaceholderText('Add a comment…');
+    const commentInput = getCommentEditor();
     expect(commentInput).toBeInTheDocument();
 
     expect(
@@ -127,7 +134,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    const commentInput = screen.getByPlaceholderText('Add a comment…');
+    const commentInput = getCommentEditor();
     await userEvent.type(commentInput, comment);
     await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
     expect(postMock).toHaveBeenCalled();
@@ -157,8 +164,8 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>
     );
 
-    await userEvent.type(screen.getByPlaceholderText('Add a comment…'), '@jane');
-    await userEvent.click(await screen.findByRole('option', {name: 'Jane Doe'}));
+    await userEvent.type(getCommentEditor(), '@jane');
+    await userEvent.click(await screen.findByRole('option', {name: /Jane Doe/}));
     await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(postMock).toHaveBeenCalledWith(
@@ -690,8 +697,6 @@ describe('ActivitySection', () => {
     expect(screen.getByText(/after 2 days of inactivity/)).toBeInTheDocument();
   });
 
-  const statusFlappingRollupFeature = 'issue-activity-status-flapping-rollup';
-
   function makeFlappingGroup(id: string) {
     return GroupFixture({
       id,
@@ -725,16 +730,13 @@ describe('ActivitySection', () => {
     });
   }
 
-  it('expands and collapses a status-flapping rollup when enabled', async () => {
+  it('expands and collapses a status-flapping rollup', async () => {
     const flappingGroup = makeFlappingGroup('1348');
 
     render(
       <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
         <ActivitySection group={flappingGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getAllByText('Regressed')).toHaveLength(1);
@@ -760,10 +762,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
         <ActivitySection group={flappingGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: [statusFlappingRollupFeature]}),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(screen.getByRole('button', {name: 'Show 2 more'})).toBeInTheDocument();
@@ -808,7 +807,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
+    await userEvent.type(getCommentEditor('Edit comment'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(editMock).not.toHaveBeenCalled();
@@ -818,7 +817,7 @@ describe('ActivitySection', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
-    await userEvent.type(screen.getByDisplayValue('Group Test'), ' Updated');
+    await userEvent.type(getCommentEditor('Edit comment'), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
@@ -1280,10 +1279,7 @@ describe('ActivitySection', () => {
       </GroupDataContextProvider>,
       {
         organization: OrganizationFixture({
-          features: [
-            'display-seer-actions-as-issue-activities',
-            ...(expectedMarker ? ['issue-activity-progress'] : []),
-          ],
+          features: expectedMarker ? ['issue-activity-progress'] : [],
         }),
       }
     );
@@ -1802,12 +1798,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
         <ActivitySection group={activityGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Referenced in pull request')).toBeInTheDocument();
@@ -1946,7 +1937,7 @@ describe('ActivitySection', () => {
     expect(screen.getByText('in a commit')).toBeInTheDocument();
   });
 
-  it('renders Seer activity when feature flag is enabled', async () => {
+  it('renders Seer activity', async () => {
     const seerGroup = GroupFixture({
       id: '1342',
       activity: [
@@ -1968,15 +1959,10 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
-    });
-
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>,
-      {organization: org}
+      </GroupDataContextProvider>
     );
     expect(await screen.findByText('Root cause found')).toBeInTheDocument();
     expect(screen.getByText('Autofix triggered from Slack')).toBeInTheDocument();
@@ -2042,12 +2028,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
@@ -2092,12 +2073,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
         <ActivitySection group={seerGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['display-seer-actions-as-issue-activities'],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     expect(await screen.findByText('Root cause found')).toBeInTheDocument();
@@ -2105,74 +2081,7 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Plan started')).toBeInTheDocument();
   });
 
-  it('hides Seer activity when feature flag is disabled', () => {
-    const seerGroup = GroupFixture({
-      id: '1343',
-      activity: [
-        {
-          type: GroupActivityType.SEER_RCA_COMPLETED,
-          id: 'seer-rca-2',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {run_id: 123},
-          user: null,
-        },
-        {
-          type: GroupActivityType.TRIGGER_AUTOFIX,
-          id: 'autofix-trigger-2',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>
-    );
-    expect(screen.queryByText('Root Cause Analysis')).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Seer completed root cause analysis')
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Autofix')).not.toBeInTheDocument();
-    expect(screen.queryByText('Autofix was triggered')).not.toBeInTheDocument();
-  });
-
-  it('does not collapse hidden Seer activities', () => {
-    const seerGroup = GroupFixture({
-      id: '1343',
-      activity: [
-        {
-          type: GroupActivityType.SEER_RCA_COMPLETED,
-          id: 'hidden-seer-rca-completed',
-          dateCreated: '2020-01-01T00:00:15Z',
-          data: {run_id: 123},
-          user: null,
-        },
-        {
-          type: GroupActivityType.SEER_RCA_STARTED,
-          id: 'hidden-seer-rca-started',
-          dateCreated: '2020-01-01T00:00:00Z',
-          data: {run_id: 123},
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} />
-      </GroupDataContextProvider>
-    );
-
-    expect(screen.queryByText('Root cause found')).not.toBeInTheDocument();
-    expect(screen.queryByText('Root cause analysis started')).not.toBeInTheDocument();
-  });
-
-  it('collapses Seer PR iteration activity when feature flag is enabled', async () => {
+  it('collapses Seer PR iteration activity', async () => {
     const seerIterationGroup = GroupFixture({
       id: '1346',
       activity: [
@@ -2211,18 +2120,13 @@ describe('ActivitySection', () => {
       project,
     });
 
-    const org = OrganizationFixture({
-      features: ['display-seer-actions-as-issue-activities'],
-    });
-
     render(
       <GroupDataContextProvider
         group={seerIterationGroup}
         project={seerIterationGroup.project}
       >
         <ActivitySection group={seerIterationGroup} />
-      </GroupDataContextProvider>,
-      {organization: org}
+      </GroupDataContextProvider>
     );
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
       'Pull request #42 updated after CI failed'

@@ -54,9 +54,9 @@ class GitlabRequestParser(BaseRequestParser):
         except Exception as e:
             metrics.incr(
                 self._METRIC_CONTROL_PATH_FAILURE_KEY,
-                tags={"integration": self.provider, "error": str(e)},
+                tags={"integration": self.provider, "error": type(e).__name__},
             )
-            logger.warning("Failed to get integration from request")
+            logger.exception("Failed to get integration from request")
 
         return None
 
@@ -98,6 +98,13 @@ class GitlabRequestParser(BaseRequestParser):
         if not project_id:
             return None
         return project_id
+
+    def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
+        """Reads the body's `object_kind`, not the `X-Gitlab-Event` header the
+        endpoint dispatches on, whose values contain spaces.
+        """
+        object_kind = data.get("object_kind")
+        return object_kind if isinstance(object_kind, str) else None
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:

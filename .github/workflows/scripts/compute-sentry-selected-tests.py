@@ -157,6 +157,14 @@ ALWAYS_RUN_TESTS: set[str] = {
     "tests/sentry/backup/test_validate.py",
 }
 
+# Seer public-API matrix discovers PUBLIC mutations at collection time, so
+# endpoint module edits (including publish_status flips) need an explicit include.
+PUBLIC_API_MATRIX_TEST = "tests/sentry/seer/endpoints/test_organization_agent_token.py"
+PUBLIC_API_MATRIX_PATH_TRIGGERS: list[re.Pattern[str]] = [
+    # Endpoint modules live under */endpoints/ across product areas.
+    re.compile(r"^src/sentry/.*/endpoints/.*\.py$"),
+]
+
 
 def _is_test(path: str) -> bool:
     return any(path.startswith(d) for d in TEST_DIRS)
@@ -166,6 +174,14 @@ def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     if isinstance(trigger, re.Pattern):
         return trigger.search(file_path) is not None
     return file_path == trigger
+
+
+def _changed_files_match_public_api_matrix_paths(changed_files: list[str]) -> list[str]:
+    return [
+        f
+        for f in changed_files
+        if any(_matches_trigger(f, t) for t in PUBLIC_API_MATRIX_PATH_TRIGGERS)
+    ]
 
 
 def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]:
@@ -312,6 +328,14 @@ def main() -> int:
 
             # Always run these tests
             affected_test_files.update(ALWAYS_RUN_TESTS)
+
+            endpoint_sources = _changed_files_match_public_api_matrix_paths(changed)
+            if endpoint_sources:
+                print(
+                    "Including public API matrix test due to endpoint path(s): "
+                    + ", ".join(endpoint_sources)
+                )
+                affected_test_files.add(PUBLIC_API_MATRIX_TEST)
 
     # Filter to sentry tests only (drop any getsentry tests from coverage)
     affected_test_files = {f for f in affected_test_files if _is_test(f)}

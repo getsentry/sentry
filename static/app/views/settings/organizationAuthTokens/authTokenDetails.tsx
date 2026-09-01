@@ -67,7 +67,9 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
   const mutation = useMutation<unknown, RequestError, z.infer<typeof schema>>({
     mutationFn: data =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+          path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
+        }),
         method: 'PUT',
         data,
       }),

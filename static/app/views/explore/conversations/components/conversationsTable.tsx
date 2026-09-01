@@ -20,7 +20,6 @@ import {
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -106,6 +105,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.email) ||
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
+    normalizeUserField(user.id) ||
     null
   );
 }
@@ -157,16 +157,22 @@ export function ConversationsTable() {
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize<
-    GridColumnOrder<ColumnKey>
-  >({
-    columns: () =>
-      COLUMN_ORDER.map(key => ({
-        key,
-        name: COLUMN_DEFAULTS[key].name,
-        width: COLUMN_DEFAULTS[key].width,
-      })),
-  });
+  const [columnOrder, setColumnOrder] = useState<Array<GridColumnOrder<ColumnKey>>>(() =>
+    COLUMN_ORDER.map(key => ({
+      key,
+      name: COLUMN_DEFAULTS[key].name,
+      width: COLUMN_DEFAULTS[key].width,
+    }))
+  );
+
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      setColumnOrder(current =>
+        current.map((column, index) => (index === columnIndex ? nextColumn : column))
+      );
+    },
+    []
+  );
 
   const hasNoTools = useMemo(
     () =>
@@ -242,7 +248,6 @@ export function ConversationsTable() {
           error={error}
           data={data}
           columnOrder={displayedColumns}
-          columnSortBy={[]}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.

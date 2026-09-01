@@ -34,6 +34,18 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             args=[self.org.slug, self.project.slug],
         )
 
+    def _get_update_for_current_ios_artifact(self):
+        response = self.client.get(
+            self._get_url()
+            + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=current-identifier",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+        assert response.status_code == 200
+        update = response.json()["update"]
+        assert update is not None
+        return update
+
     def _create_android_artifact(self, **kwargs):
         """Helper to create an Android artifact with default values"""
         defaults = {
@@ -60,7 +72,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         )
         return self.preprod_artifact
 
-    def _create_ios_artifact(self, **kwargs):
+    def _create_ios_artifact(self, build_number_raw=None, **kwargs):
         """Helper to create an iOS artifact with default values"""
         defaults = {
             "project": self.project,
@@ -87,6 +99,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
             build_number=defaults["build_number"],
             app_name=defaults.get("app_name"),
             app_icon_id=defaults.get("app_icon_id"),
+            extras={"build_number_raw": build_number_raw} if build_number_raw else None,
         )
         return self.preprod_artifact
 
@@ -208,7 +221,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert data["update"]["build_version"] == "1.1.0"
         assert data["update"]["build_number"] == 1
 
-    def test_dotted_build_number_matches_packed_current(self) -> None:
+    def test_dotted_build_number_matches_encoded_current(self) -> None:
         """A dotted build code (e.g. "1.2.3") is expanded to the sortable int
         launchpad stored so it matches the current artifact."""
         self._create_android_artifact(
@@ -358,6 +371,129 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert data["update"] is not None
         assert data["update"]["build_version"] == "1.1.0"
         assert data["update"]["build_number"] == 60
+
+    def test_highest_raw_build_number_selection_uses_arbitrary_trailing_components(
+        self,
+    ) -> None:
+        self._create_ios_artifact(
+            main_binary_identifier="current-identifier",
+            build_version="1.0.0",
+            build_number=1_000_000_004_191,
+            build_number_raw="1.0.4191.8",
+        )
+        self._create_ios_artifact(
+            main_binary_identifier="lower-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.10.2.9",
+        )
+        higher_artifact = self._create_ios_artifact(
+            main_binary_identifier="higher-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.10.2.10",
+        )
+
+        update = self._get_update_for_current_ios_artifact()
+        assert update["id"] == str(higher_artifact.id)
+
+    def test_equal_raw_build_number_suffixes_use_date_tiebreaker(self) -> None:
+        self._create_ios_artifact(
+            main_binary_identifier="current-identifier",
+            build_version="1.0.0",
+            build_number=1_000_000_004_191,
+            build_number_raw="1.0.4191.8",
+        )
+        self._create_ios_artifact(
+            main_binary_identifier="older-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.10",
+        )
+        newer_artifact = self._create_ios_artifact(
+            main_binary_identifier="newer-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.10",
+        )
+
+        update = self._get_update_for_current_ios_artifact()
+        assert update["id"] == str(newer_artifact.id)
+
+    def test_encoded_three_component_prefix_precedes_raw_suffix(self) -> None:
+        self._create_ios_artifact(
+            main_binary_identifier="current-identifier",
+            build_version="1.0.0",
+            build_number=1_000_000_004_191,
+            build_number_raw="1.0.4191.8",
+        )
+        higher_artifact = self._create_ios_artifact(
+            main_binary_identifier="higher-prefix-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.1",
+        )
+        self._create_ios_artifact(
+            main_binary_identifier="lower-prefix-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_190,
+            build_number_raw="152.0.4190.999999",
+        )
+
+        update = self._get_update_for_current_ios_artifact()
+        assert update["id"] == str(higher_artifact.id)
+
+    def test_valid_raw_suffix_precedes_missing_or_invalid_for_same_encoded_prefix(
+        self,
+    ) -> None:
+        self._create_ios_artifact(
+            main_binary_identifier="current-identifier",
+            build_version="1.0.0",
+            build_number=1_000_000_004_191,
+            build_number_raw="1.0.4191.8",
+        )
+        artifact_with_valid_raw_suffix = self._create_ios_artifact(
+            main_binary_identifier="valid-raw-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.10",
+        )
+        self._create_ios_artifact(
+            main_binary_identifier="missing-raw-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+        )
+        self._create_ios_artifact(
+            main_binary_identifier="invalid-raw-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="not.numeric",
+        )
+
+        update = self._get_update_for_current_ios_artifact()
+        assert update["id"] == str(artifact_with_valid_raw_suffix.id)
+
+    def test_raw_build_number_without_suffix_preserves_date_tiebreaker(self) -> None:
+        self._create_ios_artifact(
+            main_binary_identifier="current-identifier",
+            build_version="1.0.0",
+            build_number=1_000_000_004_191,
+            build_number_raw="1.0.4191.8",
+        )
+        self._create_ios_artifact(
+            main_binary_identifier="raw-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191",
+        )
+        newer_artifact_without_raw = self._create_ios_artifact(
+            main_binary_identifier="missing-raw-identifier",
+            build_version="1.1.0",
+            build_number=152_000_000_004_191,
+        )
+
+        update = self._get_update_for_current_ios_artifact()
+        assert update["id"] == str(newer_artifact_without_raw.id)
 
     def test_no_update_available(self) -> None:
         """Test when no higher version is available"""

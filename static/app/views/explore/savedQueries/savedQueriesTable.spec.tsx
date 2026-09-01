@@ -163,7 +163,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(await screen.findByText('Query Name')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22groupBys%22%3A%5B%5D%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+      '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
     );
   });
 

@@ -2,13 +2,13 @@ import React, {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {useTimezone} from '@sentry/scraps/datetime';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';

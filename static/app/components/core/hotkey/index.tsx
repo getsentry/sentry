@@ -1,4 +1,4 @@
 /** @public */
 export {Kbd} from './kbd';
 export {Hotkey} from './hotkey';
-export {useHotkeys} from './useHotkeys';
+export {matchesHotkey, useHotkeys} from './useHotkeys';

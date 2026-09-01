@@ -8,7 +8,6 @@ from typing import Literal, TypedDict, TypeVar
 from django.conf import settings
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.process_update_helpers import (
@@ -222,13 +221,6 @@ class SubscriptionProcessor:
                 tags={"dataset": dataset},
             )
             return False
-
-        if not features.has("organizations:incidents", organization):
-            metrics.incr(
-                "incidents.alert_rules.no_incidents_not_downgraded",
-                sample_rate=1.0,
-                tags={"dataset": dataset},
-            )
 
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")

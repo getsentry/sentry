@@ -10,6 +10,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {ApiResult} from 'sentry/types/api';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {
   addOrganizationFeaturesHandler,
@@ -110,7 +111,9 @@ export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
 
           const uncancelableApi = new Client();
           const [org] = await uncancelableApi.requestPromise(
-            `/organizations/${orgSlug}/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/', {
+              path: {organizationIdOrSlug: orgSlug},
+            }),
             {
               includeAllArgs: true,
               query: {detailed: 0, include_feature_flags: 1},
@@ -163,7 +166,9 @@ export function getBoostrapTeamsQueryOptions(orgSlug: string | null) {
 
           const uncancelableApi = new Client();
           const teamsApiResponse = await uncancelableApi.requestPromise(
-            `/organizations/${orgSlug}/teams/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+              path: {organizationIdOrSlug: orgSlug},
+            }),
             {
               includeAllArgs: true,
             }
@@ -195,7 +200,9 @@ export function getBootstrapProjectsQueryOptions(orgSlug: string | null) {
 
           const uncancelableApi = new Client();
           const [projects] = await uncancelableApi.requestPromise(
-            `/organizations/${orgSlug}/projects/`,
+            getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+              path: {organizationIdOrSlug: orgSlug},
+            }),
             {
               includeAllArgs: true,
               query: {

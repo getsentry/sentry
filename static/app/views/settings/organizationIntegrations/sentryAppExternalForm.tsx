@@ -18,6 +18,7 @@ import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/ba
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
 import type {Choices, Choice} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -1017,7 +1018,9 @@ export function SentryAppExternalForm({
   >({
     mutationFn: values =>
       fetchMutation({
-        url: `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`,
+        url: getApiUrl('/sentry-app-installations/$uuid/external-issue-actions/', {
+          path: {uuid: sentryAppInstallationUuid},
+        }),
         method: 'POST',
         data: {
           ...normalizedExtraFields,

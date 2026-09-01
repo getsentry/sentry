@@ -106,11 +106,9 @@ function JsonForm({
     fields,
     formPanelProps,
     title: formTitle,
-    initiallyCollapsed: formInitiallyCollapsed,
   }: {
     fields: FieldObject[];
     formPanelProps: ChildFormPanelProps;
-    initiallyCollapsed?: boolean;
     title?: React.ReactNode;
   }) => {
     const displayForm = shouldDisplayForm(fields);
@@ -124,7 +122,7 @@ function JsonForm({
         title={formTitle}
         fields={fields}
         {...formPanelProps}
-        initiallyCollapsed={formInitiallyCollapsed ?? formPanelProps.initiallyCollapsed}
+        initiallyCollapsed={formPanelProps.initiallyCollapsed}
       />
     );
   };

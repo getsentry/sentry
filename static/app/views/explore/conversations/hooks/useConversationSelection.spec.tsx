@@ -23,7 +23,7 @@ function createToolNode(id: string, startTimestamp = 1000): AITraceSpanNode {
 }
 
 describe('useConversationSelection', () => {
-  const nodes = [createToolNode('span-a', 1000), createToolNode('span-b', 2000)];
+  const nodes = [createToolNode('span-a'), createToolNode('span-b', 2000)];
 
   it('auto-selects the default node when enabled and nothing is selected', () => {
     const onSelectSpan = jest.fn();
@@ -34,7 +34,6 @@ describe('useConversationSelection', () => {
         selectedSpanId: null,
         onSelectSpan,
         isLoading: false,
-        autoSelectDefaultNode: true,
       })
     );
 

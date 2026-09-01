@@ -8,7 +8,7 @@ import {
   useRef,
 } from 'react';
 import type {Client, Span} from '@sentry/core';
-import {spanToStreamedSpanJSON, timestampInSeconds} from '@sentry/core';
+import {spanToJSON, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -302,18 +302,18 @@ export const setGroupedEntityTag = (
 export function addUIElementTagToSegmentSpan(client: Client) {
   client.on('spanStart', span => {
     const segmentSpan = Sentry.getRootSpan(span);
-    const segmentSpanJson = spanToStreamedSpanJSON(segmentSpan);
+    const segmentSpanJson = spanToJSON(segmentSpan);
 
-    if (segmentSpanJson.attributes?.['sentry.op'] !== 'ui.action.click') {
+    if (segmentSpanJson.attributes['sentry.op'] !== 'ui.action.click') {
       return;
     }
 
-    const spanJson = spanToStreamedSpanJSON(span);
-    const spanOp = spanJson.attributes?.['sentry.op'];
+    const spanJson = spanToJSON(span);
+    const spanOp = spanJson.attributes['sentry.op'];
 
     if (
       spanOp === 'ui.interaction.click' &&
-      !segmentSpanJson.attributes?.interactionElement
+      !segmentSpanJson.attributes.interactionElement
     ) {
       segmentSpan.setAttribute('interactionElement', spanJson.name);
     }

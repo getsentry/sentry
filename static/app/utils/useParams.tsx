@@ -43,6 +43,7 @@ type ParamKeys =
   | 'memberId'
   | 'notificationSource'
   | 'orgId'
+  | 'orgSlug'
   | 'policySlug'
   | 'projectId'
   | 'projectSlug'

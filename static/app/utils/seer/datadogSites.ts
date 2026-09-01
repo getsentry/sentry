@@ -1,4 +1,4 @@
-// Keep in sync with DATADOG_VALID_SITES in src/sentry/identity/datadog/provider.py.
+// Keep in sync with DATADOG_VALID_SITES in src/sentry/integrations/datadog/client.py.
 export const DATADOG_SITES = [
   {value: 'datadoghq.com', label: 'datadoghq.com (US1)'},
   {value: 'us3.datadoghq.com', label: 'us3.datadoghq.com (US3)'},

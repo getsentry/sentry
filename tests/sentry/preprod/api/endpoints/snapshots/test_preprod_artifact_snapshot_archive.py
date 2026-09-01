@@ -21,7 +21,7 @@ ENQUEUE_TARGET = (
     "preprod_artifact_snapshot_archive.build_snapshot_images_zip"
 )
 SESSION_TARGET = (
-    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive.get_preprod_session"
+    "sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_archive.get_session"
 )
 
 
