@@ -11,11 +11,12 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
+import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire, IconUser} from 'sentry/icons';
+import {IconCalendar, IconFire, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -131,6 +132,10 @@ export function ConversationSummary({
         <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
           {isLoading ? (
             <Fragment>
+              <Flex align="center" gap="xs">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="140px" height="14px" />
+              </Flex>
               {project && (
                 <Flex align="center" gap="xs">
                   <Placeholder width="16px" height="16px" />
@@ -152,6 +157,23 @@ export function ConversationSummary({
             </Fragment>
           ) : (
             <Fragment>
+              {aggregates.startTimestamp !== null && (
+                <Flex align="center" gap="xs">
+                  <IconCalendar size="md" />
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    title={
+                      <TimeSince
+                        date={aggregates.startTimestamp}
+                        disabledAbsoluteTooltip
+                      />
+                    }
+                  >
+                    <DateTime date={aggregates.startTimestamp} year timeZone />
+                  </InfoText>
+                </Flex>
+              )}
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
@@ -311,6 +333,8 @@ interface ConversationAggregates {
   errorCount: number;
   erroredToolNames: Set<string>;
   llmCalls: number;
+  /** When the conversation began, or null when no span carries a start time. */
+  startTimestamp: number | null;
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
@@ -327,12 +351,19 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let errorCount = 0;
   let totalTokens = 0;
   let totalCost = 0;
+  let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
     const nodeHasError = hasError(node);
+
+    // Nodes without a timestamp leave space at its [0, 0] default.
+    const [nodeStart] = node.space;
+    if (nodeStart > 0 && (startTimestamp === null || nodeStart < startTimestamp)) {
+      startTimestamp = nodeStart;
+    }
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
@@ -358,6 +389,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     llmCalls,
     toolCalls,
     errorCount,
+    startTimestamp,
     erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,

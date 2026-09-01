@@ -222,6 +222,14 @@ describe('ConversationDetailPage summary errors', () => {
     expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
   });
 
+  it('renders the earliest span start as the conversation start time', async () => {
+    mockApis();
+    renderPage();
+
+    // The conversation opens with the 1000s span, not the 2000s one that follows.
+    expect(await screen.findByText('Jan 1, 1970 12:16 AM UTC')).toBeInTheDocument();
+  });
+
   it('omits the fire icon in the summary when there are no errors', async () => {
     mockApis();
     renderPage();
