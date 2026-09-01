@@ -96,16 +96,12 @@ class TestAssignedToCondition(ConditionTestCase):
         # Already-stored string IDs (e.g. from Terraform / OpenAPI string unions)
         # must still match integer assignee FKs at evaluate time.
         GroupAssignee.objects.create(team=self.team, group=self.group, project=self.project)
-        self.dc.update(
-            comparison={"target_type": "Team", "target_identifier": str(self.team.id)}
-        )
+        self.dc.update(comparison={"target_type": "Team", "target_identifier": str(self.team.id)})
         self.assert_passes(self.dc, self.event_data)
 
     def test_assigned_to_member_passes_with_string_identifier(self) -> None:
         GroupAssignee.objects.create(user_id=self.user.id, group=self.group, project=self.project)
-        self.dc.update(
-            comparison={"target_type": "Member", "target_identifier": str(self.user.id)}
-        )
+        self.dc.update(comparison={"target_type": "Member", "target_identifier": str(self.user.id)})
         self.assert_passes(self.dc, self.event_data)
 
     def test_assigned_to_team_fails(self) -> None:
