@@ -32,22 +32,28 @@ class JiraServerRequestParser(BaseRequestParser):
             logger.info("%s.no_integration", self.provider, extra={"error": str(e)})
             return HttpResponse(status=status.HTTP_200_OK)
 
+        try:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
+            data = {}
+
+        # We only process webhooks with changelogs. Ahead of the organization and cell
+        # lookups, which a payload we are about to discard never needs; kept below the
+        # token lookup so the log still names the integration that sent it.
+        if not data.get("changelog"):
+            logger.info("missing-changelog", extra={"integration_id": integration.id})
+            return HttpResponse(status=status.HTTP_200_OK)
+
+        shed_response = self.get_shed_response(integration_id=integration.id)
+        if shed_response is not None:
+            return shed_response
+
         organizations = self.get_organizations_from_integration(integration=integration)
 
         if len(organizations) == 0:
             return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
         cells = self.get_cells_from_organizations(organizations=organizations)
-
-        try:
-            data = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            data = {}
-
-        # We only process webhooks with changelogs
-        if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": integration.id})
-            return HttpResponse(status=status.HTTP_200_OK)
 
         return self.get_response_from_webhookpayload(
             cells=cells,

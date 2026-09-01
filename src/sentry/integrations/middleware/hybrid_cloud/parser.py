@@ -228,6 +228,12 @@ class BaseRequestParser(ABC):
         trigger, the writes that make a flood expensive. Use the
         `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
         and integrations are dropped. Returns None to handle the request normally.
+
+        Called without an ``integration_id`` this evaluates only the provider-wide
+        conditions, which is what lets a parser shed before resolving the integration.
+        Shedding is break-glass for a flood, so it should not be waiting on queries it
+        does not need. Conditions that name an ``integration_id`` cannot match that
+        context and are still evaluated once the id is known.
         """
         if not self._should_shed(integration_id):
             return None
