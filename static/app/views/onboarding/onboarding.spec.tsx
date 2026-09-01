@@ -545,9 +545,14 @@ describe('Onboarding', () => {
 
     expect(deleteProjectMock).toHaveBeenCalled();
 
-    // Legacy flow should clear all context
-    const stored = sessionStorage.getItem('onboarding');
-    expect(stored).toBeNull();
+    // Back to welcome wipes setup state. Agentic progress IDs are re-seeded
+    // on the welcome step, same as the SCM welcome-return case.
+    await waitFor(() => {
+      expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual({
+        agenticProgressClientRunId: expect.any(String),
+        agenticProgressOnboardingCode: expect.any(String),
+      });
+    });
   });
 
   describe('SCM onboarding flow', () => {
