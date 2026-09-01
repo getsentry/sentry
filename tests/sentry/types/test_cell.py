@@ -259,11 +259,15 @@ class CellDirectoryTest(TestCase):
             # The whole point of the function: the same answer as the query it saves.
             assert find_cells_for_org_mappings(mappings) == find_cells_for_orgs([organization.id])
 
-            with override_settings(SILO_MODE=SiloMode.MONOLITH):
-                # The fallback cell is synthetic and matches no mapping row, so monolith
-                # cannot be served by reading cell_name off the mapping.
+            # The fallback cell is synthetic and matches no mapping row, so monolith
+            # cannot be served by reading cell_name off the mapping. Pinned explicitly
+            # rather than read from settings, which the directory state above may set to
+            # a real cell and hide the difference this asserts.
+            with override_settings(
+                SILO_MODE=SiloMode.MONOLITH, SENTRY_FALLBACK_CELL="--monolith--"
+            ):
                 assert mappings[0].cell_name != settings.SENTRY_FALLBACK_CELL
-                assert find_cells_for_org_mappings(mappings) == {settings.SENTRY_FALLBACK_CELL}
+                assert find_cells_for_org_mappings(mappings) == {"--monolith--"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_sentry_app(self) -> None:
