@@ -528,6 +528,14 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Maximum number of bytes a single recording segment may decompress to at ingest. Segments
+# which inflate past this limit are dropped instead of stored.
+register(
+    "replay.consumer.max-segment-decompressed-size",
+    type=Int,
+    default=100 * 1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Enable new database query caching.
 register(
     "replay.consumer.enable_new_query_caching_system",
