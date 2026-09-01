@@ -131,10 +131,7 @@ const fieldToSort = (
   };
 };
 
-function getSortKeyFromField(
-  field: Field,
-  tableMeta?: MetaType
-): string | null {
+function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null {
   const fieldString = getAggregateAlias(field.field);
   return getSortField(fieldString, tableMeta);
 }
