@@ -179,6 +179,14 @@ class TestAssignedToScopeValidator(TestCase):
         validator = self._validator({"targetType": "Team", "targetIdentifier": "not-an-int"})
         assert validator.is_valid() is False
 
+    def test_empty_string_identifier(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": ""})
+        assert validator.is_valid() is False
+
+    def test_zero_identifier(self) -> None:
+        validator = self._validator({"targetType": "Team", "targetIdentifier": 0})
+        assert validator.is_valid() is False
+
     def test_no_organization_context(self) -> None:
         # Without org context the scope check is skipped (schema-only validation).
         validator = BaseDataConditionValidator(

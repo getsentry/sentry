@@ -61,11 +61,14 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
     ) -> dict[str, Any]:
         target_type = comparison.get("target_type")
         target_identifier = comparison.get("target_identifier")
-        if target_type == AssigneeTargetType.UNASSIGNED.value or not target_identifier:
+        if target_type == AssigneeTargetType.UNASSIGNED.value:
             return comparison
 
+        # TEAM/MEMBER require a real positive integer id. Do not treat falsy values
+        # like "" or 0 as "missing" and skip validation — that would store conditions
+        # that can never match an assignee.
         coerced = cls._coerce_target_identifier(target_identifier)
-        if coerced is None:
+        if coerced is None or coerced <= 0:
             raise serializers.ValidationError("target_identifier must be an integer")
 
         if target_type == AssigneeTargetType.TEAM.value:
