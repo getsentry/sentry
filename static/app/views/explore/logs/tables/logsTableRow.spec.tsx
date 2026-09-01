@@ -112,6 +112,16 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.RELEASE]: release.version, // Needed otherwise stacktrace link will also not load
   });
 
+  const truncatedMessage = `${'a'.repeat(128)}...`;
+  const fullMessage = 'a'.repeat(300);
+
+  const rowDataWithTruncatedMessage = LogFixture({
+    [OurLogKnownFieldKey.ID]: '9',
+    [OurLogKnownFieldKey.PROJECT_ID]: project.id,
+    [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
+    [OurLogKnownFieldKey.MESSAGE]: truncatedMessage,
+  });
+
   const rowDataWithScrubbedFields = LogFixture({
     [OurLogKnownFieldKey.ID]: '3',
     [OurLogKnownFieldKey.PROJECT_ID]: project.id,
@@ -212,6 +222,28 @@ describe('logsTableRow', () => {
         meta: {},
         timestamp: rowDataWithCodeFilePath[OurLogKnownFieldKey.TIMESTAMP],
         attributes: Object.entries(rowDataWithCodeFilePath).map(
+          ([k, v]) =>
+            ({
+              name: k,
+              value: v,
+              type: typeof v === 'string' ? 'str' : 'float',
+            }) as TraceItemResponseAttribute
+        ),
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      body: {
+        itemId: rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: {},
+        timestamp: rowDataWithTruncatedMessage[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: Object.entries({
+          ...rowDataWithTruncatedMessage,
+          [OurLogKnownFieldKey.MESSAGE]: fullMessage,
+        }).map(
           ([k, v]) =>
             ({
               name: k,
@@ -1032,6 +1064,44 @@ describe('logsTableRow', () => {
 
     // Row should still be expanded - the cell action should not toggle visibility
     expect(screen.getByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+  });
+
+  it('copies the untruncated value when the table value was truncated', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowDataWithTruncatedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow, {delay: null});
+
+    await userEvent.click(
+      within(screen.getByTestId('log-table-cell-message')).getByRole('button', {
+        name: 'Actions',
+      })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+    );
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledWith(fullMessage);
+    });
   });
 
   it('renders fields with data scrubbing meta information', async () => {

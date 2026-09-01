@@ -358,6 +358,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
     ? getLogRowTimestampMillis(dataRow) / 1000
     : null;
   const {
+    fetchTraceItemDetails,
     hoverProps,
     prefetch,
     isProjectReady,
@@ -380,6 +381,26 @@ export const LogRowContent = memo(function LogRowContentImpl({
     isProjectReady,
   });
   const [caseInsensitivity] = useCaseInsensitivity();
+
+  // The table asks the API to truncate long strings for display, so the rendered
+  // cell value can be cut short. Trace item details come back untruncated.
+  async function copyFullCellValue(field: string, cellValue: string | number) {
+    if (typeof cellValue !== 'string') {
+      copyToClipboard(cellValue);
+      return;
+    }
+
+    let fullValue: TraceItemResponseAttribute['value'] | undefined;
+    try {
+      const attributes =
+        traceItemAttributes ?? (await fetchTraceItemDetails())?.attributes;
+      fullValue = attributes?.find(attribute => attribute.name === field)?.value;
+    } catch {
+      // Falling back to the truncated value beats copying nothing.
+    }
+
+    copyToClipboard(typeof fullValue === 'string' ? fullValue : cellValue);
+  }
 
   const observedTimestamp = traceItemAttributes?.find(
     a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS
@@ -629,7 +650,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                           });
                           break;
                         case Actions.COPY_TO_CLIPBOARD:
-                          copyToClipboard(cellValue);
+                          copyFullCellValue(field, cellValue);
                           break;
                         case Actions.COPY_LINK: {
                           const logId = String(dataRow[OurLogKnownFieldKey.ID]);
