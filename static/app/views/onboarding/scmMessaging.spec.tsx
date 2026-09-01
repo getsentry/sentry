@@ -450,8 +450,13 @@ describe('ScmMessaging', () => {
       );
     }
 
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({messagingSetup: selectedMessagingSetup})
+    );
+
     render(
-      <OnboardingContextProvider initialValue={{messagingSetup: selectedMessagingSetup}}>
+      <OnboardingContextProvider>
         <Harness />
       </OnboardingContextProvider>
     );
