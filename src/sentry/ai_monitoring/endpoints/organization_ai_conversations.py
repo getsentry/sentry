@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -23,6 +24,15 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
@@ -50,7 +60,7 @@ class UserResponse(TypedDict):
 class AIConversationResponse(TypedDict):
     conversationId: str
     title: str | None
-    projectId: int | None
+    projectId: str | None
     flow: list[str]
     errors: int
     llmCalls: int
@@ -74,6 +84,35 @@ class AIConversationResponse(TypedDict):
 # Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
 # `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
 _CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|\S+)$')
+
+AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "Sentry search syntax matched against spans. A conversation is returned when any "
+        "span in it matches. Summary fields include all spans in selected projects and time "
+        "range, not only matching spans."
+    ),
+)
+
+AI_CONVERSATIONS_SAMPLING_MODE_PARAM = OpenApiParameter(
+    name="samplingMode",
+    location="query",
+    required=False,
+    type=str,
+    enum=["NORMAL", "HIGHEST_ACCURACY", "HIGHEST_ACCURACY_FLEX_TIME"],
+    description="Sampling mode for finding conversation IDs. Defaults to `HIGHEST_ACCURACY`.",
+)
+
+AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
+    name="per_page",
+    location="query",
+    required=False,
+    type=int,
+    description="Number of conversations to return per page. Defaults to 10; maximum is 100.",
+)
 
 
 def _is_conversation_id_lookup(user_query: str) -> bool:
@@ -205,7 +244,7 @@ def _build_conversation_response(
     tool_errors: int = 0,
     title: str | None = None,
     generation_duration: float = 0,
-    project_id: int | None = None,
+    project_id: str | None = None,
 ) -> AIConversationResponse:
     return {
         "conversationId": conv_id,
@@ -232,14 +271,52 @@ def _build_conversation_response(
     }
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationAIConversations",
+        summary="List an Organization's AI Conversations",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            AI_CONVERSATIONS_QUERY_PARAM,
+            AI_CONVERSATIONS_SAMPLING_MODE_PARAM,
+            CursorQueryParam,
+            AI_CONVERSATIONS_PER_PAGE_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationAIConversationsResponse", list[AIConversationResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[AIConversationResponse]] | Response[ValidationErrorResponse] | Response[None]
+    ):
+        """Return AI conversations ordered by latest span time.
+
+        **Experimental:** This API is under active development and may change.
+
+        `query` uses Sentry search syntax against spans. A conversation matches when
+        any span matches. Summary values then include all conversation spans inside
+        selected project, environment, and time filters.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -247,7 +324,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         serializer = OrganizationAIConversationsSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         validated_data = serializer.validated_data
 
@@ -561,7 +638,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["user"] = user_by_conversation.get(conv_id)
                 conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
                 conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
-                conversation["projectId"] = first_project_by_conversation.get(conv_id)
+                project_id = first_project_by_conversation.get(conv_id)
+                conversation["projectId"] = str(project_id) if project_id is not None else None
 
             return project_ids_by_conversation
 
