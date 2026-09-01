@@ -92,6 +92,7 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.issues.regression import advance_latest_regression_at
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models.activity import Activity
@@ -1704,24 +1705,27 @@ def _handle_regression(
     # we now think its a regression, rely on the database to validate that
     # no one beat us to this
     date = max(event.datetime, group.last_seen)
-    is_regression = bool(
-        Group.objects.filter(
-            id=group.id,
-            # ensure we can't update things if the status has been set to
-            # ignored
-            status=GroupStatus.RESOLVED,
+    with transaction.atomic(router.db_for_write(Group)):
+        is_regression = bool(
+            Group.objects.filter(
+                id=group.id,
+                # ensure we can't update things if the status has been set to
+                # ignored
+                status=GroupStatus.RESOLVED,
+            )
+            .exclude(
+                # add to the regression window to account for races here
+                active_at__gte=date - timedelta(seconds=5)
+            )
+            .update(
+                active_at=date,
+                last_seen=date,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.REGRESSED,
+            )
         )
-        .exclude(
-            # add to the regression window to account for races here
-            active_at__gte=date - timedelta(seconds=5)
-        )
-        .update(
-            active_at=date,
-            last_seen=date,
-            status=GroupStatus.UNRESOLVED,
-            substatus=GroupSubStatus.REGRESSED,
-        )
-    )
+        if is_regression:
+            advance_latest_regression_at((group.id,), datetime.now(timezone.utc))
 
     group.active_at = date
     group.status = GroupStatus.UNRESOLVED

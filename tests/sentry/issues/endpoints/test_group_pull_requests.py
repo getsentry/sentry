@@ -14,6 +14,7 @@ from sentry.integrations.source_code_management.status_check import (
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
+from sentry.issues.regression import advance_latest_regression_at
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistoryStatus
@@ -28,6 +29,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
@@ -158,29 +160,48 @@ class GroupPullRequestsEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"latestRegressionAt": None, "pullRequests": []}
 
-    def test_returns_latest_regression_at(self) -> None:
-        now = timezone.now()
-        self.create_group_history(
-            group=self.group,
-            status=GroupHistoryStatus.REGRESSED,
-            date_added=now - timedelta(days=2),
+    def test_returns_latest_manual_regression_and_ignores_unarchive(self) -> None:
+        issue_update_path = (
+            f"/api/0/organizations/{self.organization.slug}/issues/?id={self.group.id}"
         )
-        latest_regression = self.create_group_history(
-            group=self.group,
-            status=GroupHistoryStatus.REGRESSED,
-            date_added=now - timedelta(days=1),
-        )
-        self.create_group_history(
-            group=self.group,
-            status=GroupHistoryStatus.RESOLVED,
-            date_added=now,
-        )
+        initial_time = timezone.now()
+        with freeze_time(initial_time):
+            self.create_group_history(
+                group=self.group,
+                status=GroupHistoryStatus.REGRESSED,
+            )
+        with freeze_time(initial_time + timedelta(days=1)):
+            response = self.client.put(issue_update_path, data={"status": "resolved"})
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=2)):
+            latest_regression_at = timezone.now()
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "unresolved", "substatus": "ongoing"},
+            )
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=3)):
+            response = self.client.put(issue_update_path, data={"status": "resolved"})
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=4)):
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "ignored", "substatus": "archived_forever"},
+            )
+            assert response.status_code == 200
+        with freeze_time(initial_time + timedelta(days=5)):
+            response = self.client.put(
+                issue_update_path,
+                data={"status": "unresolved", "substatus": "ongoing"},
+            )
+            assert response.status_code == 200
 
-        response = self.client.get(self.path)
+        with freeze_time(initial_time + timedelta(days=6)):
+            response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data == {
-            "latestRegressionAt": latest_regression.date_added,
+            "latestRegressionAt": latest_regression_at,
             "pullRequests": [],
         }
 
@@ -360,24 +381,35 @@ class GroupPullRequestsEndpointTest(APITestCase):
             "agent": None,
         }
 
-    def test_returns_pull_request_after_issues_are_merged(self) -> None:
+    def test_returns_pull_request_and_regression_after_issues_are_merged(self) -> None:
         surviving_group = self.create_group(project=self.group.project)
+        final_group = self.create_group(project=self.group.project)
         self.create_linked_pull_request(key="1")
+        latest_regression = self.create_group_history(
+            group=self.group,
+            status=GroupHistoryStatus.REGRESSED,
+            date_added=timezone.now() - timedelta(days=1),
+        )
+        advance_latest_regression_at(
+            (final_group.id,), latest_regression.date_added - timedelta(days=1)
+        )
 
         response = self.client.get(self.path)
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
+        assert response.data["latestRegressionAt"] == latest_regression.date_added
 
         with self.tasks():
             merge_groups([self.group.id], surviving_group.id)
+            merge_groups([surviving_group.id], final_group.id)
 
         response = self.client.get(
-            f"/api/0/organizations/{self.organization.slug}/issues/"
-            f"{surviving_group.id}/pull-requests/"
+            f"/api/0/organizations/{self.organization.slug}/issues/{final_group.id}/pull-requests/"
         )
 
         assert response.status_code == 200
         assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
+        assert response.data["latestRegressionAt"] == latest_regression.date_added
 
     def test_ignores_invalid_display_pull_request_attribution(self) -> None:
         pull_request, _ = self.create_linked_pull_request(key="1")

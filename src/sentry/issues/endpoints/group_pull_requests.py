@@ -28,8 +28,8 @@ from sentry.integrations.source_code_management.pull_request_status_batch import
 )
 from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.regression import get_latest_regression_at
 from sentry.models.group import Group
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -71,18 +71,6 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         )
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
-    )
-
-
-def _get_latest_regression_at(group: Group) -> datetime | None:
-    return (
-        GroupHistory.objects.filter(
-            group_id=group.id,
-            status=GroupHistoryStatus.REGRESSED,
-        )
-        .order_by("-date_added")
-        .values_list("date_added", flat=True)
-        .first()
     )
 
 
@@ -166,7 +154,7 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
         organization_id = group.project.organization_id
-        latest_regression_at = _get_latest_regression_at(group)
+        latest_regression_at = get_latest_regression_at((group.id,))
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
             return Response({"latestRegressionAt": latest_regression_at, "pullRequests": []})

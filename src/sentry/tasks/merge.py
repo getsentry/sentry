@@ -13,6 +13,10 @@ from sentry import eventstream, similarity, tsdb
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.regression import (
+    LATEST_REGRESSION_AT_META_KEY,
+    preserve_latest_regression_at,
+)
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
@@ -236,9 +240,20 @@ def merge_groups(
             fetch_buffered_group_stats(group)
 
             previous_group_id = group.id
-            with transaction.atomic(router.db_for_write(GroupRedirect)):
-                GroupRedirect.create_for_group(group, new_group)
-                group.delete()
+            with transaction.atomic(router.db_for_write(Group)):
+                locked_groups = {
+                    locked_group.id: locked_group
+                    for locked_group in Group.objects.select_for_update()
+                    .filter(id__in=(group.id, new_group.id))
+                    .order_by("id")
+                }
+                locked_group = locked_groups[group.id]
+                locked_new_group = locked_groups[new_group.id]
+
+                # Status writers persist their cutoff while holding this same row lock.
+                preserve_latest_regression_at(locked_group.id, locked_new_group.id)
+                GroupRedirect.create_for_group(locked_group, locked_new_group)
+                locked_group.delete()
             delete_logger.info(
                 "object.delete.executed",
                 extra={
@@ -296,6 +311,8 @@ def merge_objects(
     logger: logging.Logger | None = None,
     transaction_id: str | None = None,
 ) -> bool:
+    from sentry.models.groupmeta import GroupMeta
+
     has_more = False
     for model in models:
         all_fields = [f.name for f in model._meta.get_fields()]
@@ -319,6 +336,12 @@ def merge_objects(
         else:
             queryset = project_qs.filter(group_id=group.id)  # type: ignore[misc]
             update_kwargs["group_id"] = new_group.id
+
+        if model is GroupMeta:
+            # This marker is folded into the target while both Group rows are locked.
+            # Moving it here could discard a concurrent source status transition on a
+            # uniqueness conflict before the final locked snapshot.
+            queryset = queryset.exclude(key=LATEST_REGRESSION_AT_META_KEY)  # type: ignore[misc]
 
         if "original_group_id" in all_fields:
             # Only set original_group_id if not already set.
