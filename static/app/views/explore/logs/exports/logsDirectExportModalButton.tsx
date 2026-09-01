@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
+import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
 import {
-  formatExportSort,
   LogsExportModalButton,
   useLogsQueryInfo,
 } from 'sentry/views/explore/logs/exports/logsExportModalButton';

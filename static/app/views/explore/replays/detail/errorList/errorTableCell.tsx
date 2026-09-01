@@ -176,7 +176,6 @@ export function ErrorTableCell({
       <Cell {...columnProps} numeric>
         <ButtonWrapper>
           <TimestampButton
-            precision="sec"
             onClick={event => {
               event.stopPropagation();
               onClickTimestamp(frame);

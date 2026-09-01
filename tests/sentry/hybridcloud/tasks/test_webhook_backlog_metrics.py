@@ -23,6 +23,7 @@ MAILBOX_PENDING_METRIC = "hybridcloud.webhookpayload.mailbox.pending_count"
 MAILBOX_ACTIVE_METRIC = "hybridcloud.webhookpayload.mailbox.active_count"
 MAILBOX_MAX_DEPTH_METRIC = "hybridcloud.webhookpayload.mailbox.max_depth"
 MAILBOX_AGE_METRIC = "hybridcloud.webhookpayload.mailbox.oldest_pending_age_seconds"
+MAILBOX_DEPTH_QUANTILE_METRIC = "hybridcloud.webhookpayload.mailbox.depth_quantile"
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> None:
@@ -37,6 +38,15 @@ def gauge_calls(mock_metrics: MagicMock, key: str) -> list[tuple[float, dict[str
         for call in mock_metrics.gauge.call_args_list
         if call[0][0] == key
     ]
+
+
+def depth_quantiles(mock_metrics: MagicMock, provider: str) -> dict[str, float]:
+    """{quantile: depth} reported for `provider`."""
+    return {
+        tags["quantile"]: value
+        for value, tags in gauge_calls(mock_metrics, MAILBOX_DEPTH_QUANTILE_METRIC)
+        if tags["provider"] == provider
+    }
 
 
 @control_silo_test
@@ -103,7 +113,7 @@ class WebhookBacklogMetricsTest(TestCase):
         create_payloads(1, "github:123", provider="github")
 
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics._statement_timeout",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_webhook_backlog_metrics()
@@ -124,7 +134,7 @@ class WebhookBacklogMetricsTest(TestCase):
         # average down) -- and must not take out the unrelated age gauge below it,
         # which comes from an independent query. Only the first cursor (the raw
         # pg_class lookup) is faked; everything after -- including the age
-        # lookup's own cursor use inside `_statement_timeout` -- runs for real, so
+        # lookup's own cursor use inside `statement_timeout` -- runs for real, so
         # a regression that coupled the two would fail this test rather than the
         # `db_table`-patching approach this replaced, which broke the age query
         # too and couldn't tell the difference.
@@ -312,6 +322,40 @@ class MailboxDepthMetricsTest(TestCase):
             assert [tags for _, tags in gauge_calls(mock_metrics, metric)] == [
                 {"provider": "github"}
             ], metric
+        assert all(
+            "event_type" not in tags
+            for _, tags in gauge_calls(mock_metrics, MAILBOX_DEPTH_QUANTILE_METRIC)
+        )
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_depth_quantiles_describe_the_distribution(self, mock_metrics: MagicMock) -> None:
+        for depth, mailbox in enumerate(("a", "b", "c", "d"), start=1):
+            create_payloads(depth, f"github:{mailbox}:push", provider="github")
+
+        # Nearest-rank over [1, 2, 3, 4].
+        record_mailbox_depth_metrics()
+
+        assert depth_quantiles(mock_metrics, "github") == {"p50": 2, "p90": 4, "p99": 4}
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_depth_quantiles_hold_for_a_single_mailbox(self, mock_metrics: MagicMock) -> None:
+        create_payloads(5, "github:123:push", provider="github")
+
+        record_mailbox_depth_metrics()
+
+        # Covers the index clamp; a wrap to -1 is only visible in the test above.
+        assert depth_quantiles(mock_metrics, "github") == {"p50": 5, "p90": 5, "p99": 5}
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_depth_quantiles_are_per_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(1, "github:1:push", provider="github")
+        create_payloads(9, "github:2:push", provider="github")
+        create_payloads(4, "gitlab:3", provider="gitlab")
+
+        record_mailbox_depth_metrics()
+
+        assert depth_quantiles(mock_metrics, "github") == {"p50": 1, "p90": 9, "p99": 9}
+        assert depth_quantiles(mock_metrics, "gitlab") == {"p50": 4, "p90": 4, "p99": 4}
 
     def test_aggregate_runs_under_a_statement_timeout(self) -> None:
         create_payloads(1, "github:123", provider="github")
@@ -336,7 +380,7 @@ class MailboxDepthMetricsTest(TestCase):
         # A backlog deep enough to blow the statement timeout must cost us the
         # breakdown, not the task — record_webhook_backlog_metrics still reports.
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics.transaction.atomic",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_mailbox_depth_metrics()

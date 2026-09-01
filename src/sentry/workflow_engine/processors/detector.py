@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass, field
 
 from sentry import features, options
+from sentry.db.models.utils import is_model_attr_cached
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -21,7 +22,8 @@ from sentry.workflow_engine.defaults.detectors import (
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.processors import DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
+from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -271,6 +273,16 @@ def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str
     )
 
 
+def _get_detector_organization_id(detector: Detector) -> int | None:
+    if detector.project_id is not None:
+        if is_model_attr_cached(detector, "project"):
+            project = detector.project
+            return project.organization_id if project is not None else None
+        return None
+
+    return detector.config.get("organization_id", None)
+
+
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
@@ -293,32 +305,27 @@ def process_detectors[T](
         ):
             detector_results = handler.evaluate(data_packet)
 
+        emit_detector_evaluation_logs(
+            logger,
+            organization_id=_get_detector_organization_id(detector),
+            result=ProcessDetectorsResult(
+                detector_id=detector.id,
+                detector_type=detector.type,
+                project_id=detector.project_id,
+                evaluations=detector_results,
+            ),
+        )
+
         for result in detector_results.values():
-            logger_extra = {
-                "detector": detector.id,
-                "detector_type": detector.type,
-                "evaluation_data": data_packet.packet,
-                "result": result,
-            }
             if result.result is not None:
-                if isinstance(result.result, IssueOccurrence):
-                    metrics.incr(
-                        "workflow_engine.process_detector.triggered",
-                        tags={"detector_type": detector.type},
-                    )
-                    logger.info(
-                        "detector_triggered",
-                        extra=logger_extra,
-                    )
-                else:
-                    metrics.incr(
-                        "workflow_engine.process_detector.resolved",
-                        tags={"detector_type": detector.type},
-                    )
-                    logger.info(
-                        "detector_resolved",
-                        extra=logger_extra,
-                    )
+                metric_label = (
+                    "triggered" if isinstance(result.result, IssueOccurrence) else "resolved"
+                )
+                metrics.incr(
+                    f"workflow_engine.process_detector.{metric_label}",
+                    tags={"detector_type": detector.type},
+                )
+
                 create_issue_platform_payload(result, detector.type)
 
         if detector_results:

@@ -38,15 +38,6 @@ interface PreprodBuildsSearchControlsProps {
    */
   projects: number[];
   /**
-   * Overrides the display-specific list of attribute keys shown in the search bar.
-   */
-  allowedKeys?: string[];
-  /**
-   * Overrides the display-specific list of attributes whose values are entered
-   * as free text.
-   */
-  freeformKeys?: string[];
-  /**
    * Hide the display mode toggle
    */
   hideDisplayToggle?: boolean;
@@ -72,8 +63,6 @@ export function PreprodBuildsSearchControls({
   initialQuery,
   display,
   projects,
-  allowedKeys,
-  freeformKeys,
   hideDisplayToggle,
   onChange,
   onSearch,
@@ -101,8 +90,8 @@ export function PreprodBuildsSearchControls({
       <Container flex="1" minWidth="0" width="100%">
         <PreprodSearchBar
           initialQuery={initialQuery}
-          allowedKeys={allowedKeys ?? displayAllowedKeys}
-          freeformKeys={freeformKeys ?? displayFreeformKeys}
+          allowedKeys={displayAllowedKeys}
+          freeformKeys={displayFreeformKeys}
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}

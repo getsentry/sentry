@@ -10,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
+    FailedCheck,
     PullRequestFileSummary,
     PullRequestStatusClient,
     PullRequestStatusRequest,
@@ -56,9 +57,12 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
         }
 
 
-def _root_cause_state(description):
+def _root_cause_state(description, headline=None):
     from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 
+    data = {"one_line_description": description}
+    if headline is not None:
+        data["headline"] = headline
     return SeerRunState(
         run_id=1,
         blocks=[
@@ -66,11 +70,7 @@ def _root_cause_state(description):
                 id="b",
                 message=Message(role="assistant", content="c"),
                 timestamp="2026-02-10T00:00:00Z",
-                artifacts=[
-                    Artifact(
-                        key="root_cause", data={"one_line_description": description}, reason="r"
-                    )
-                ],
+                artifacts=[Artifact(key="root_cause", data=data, reason="r")],
             )
         ],
         status="completed",
@@ -85,10 +85,10 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _run_for_group(self, group, description):
+    def _run_for_group(self, group, description, headline=None):
         run = self.create_seer_run(organization=self.organization)
         self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
-        reconcile_milestones(run, _root_cause_state(description))
+        reconcile_milestones(run, _root_cause_state(description, headline))
         return run
 
     def _group_with_events(self, fingerprint, *, events, users=1, minutes_ago=1):
@@ -114,7 +114,15 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert len(runs) == 1
         assert runs[0]["shortId"] == group.qualified_short_id
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
+        assert runs[0]["rootCause"]["headline"] is None
         assert runs[0]["proposedFix"] is None
+
+    def test_root_cause_exposes_headline(self):
+        group = self.create_group()
+        self._run_for_group(group, "the boom", headline="Checkout crashes on empty cart")
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        assert runs[0]["rootCause"]["headline"] == "Checkout crashes on empty cart"
 
     def _root_cause_short_ids(self, resp):
         return [r["shortId"] for r in resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]]
@@ -196,6 +204,72 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
 
         assert self._root_cause_short_ids(resp) == [high.qualified_short_id]
+
+    def test_sort_recommended_orders_by_fixability_boost(self):
+        plain = self._group_with_events("plain", events=1)
+        fixable = self._group_with_events("fixable", events=1)
+        fixable.update(seer_fixability_score=1.0)
+        self._run_for_group(plain, "plain")
+        self._run_for_group(fixable, "fixable")
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"sort": "recommended"}
+            )
+
+        assert self._root_cause_short_ids(resp) == [
+            fixable.qualified_short_id,
+            plain.qualified_short_id,
+        ]
+
+    def test_sort_recommended_keeps_candidates_without_window_events_sorted_last(self):
+        # `stale` has no events inside the requested window, so it is absent from
+        # the scored search results and must be appended last rather than dropped.
+        stale = self._group_with_events("stale", events=1, minutes_ago=120)
+        active = self._group_with_events("active", events=1)
+        self._run_for_group(stale, "stale")
+        self._run_for_group(active, "active")
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            resp = self.get_success_response(
+                self.organization.slug,
+                qs_params={"sort": "recommended", "statsPeriod": "1h"},
+            )
+
+        assert self._root_cause_short_ids(resp) == [
+            active.qualified_short_id,
+            stale.qualified_short_id,
+        ]
+
+    def test_sort_recommended_uses_v2_scorer_and_viewer_actor(self):
+        group = self._group_with_events("boom", events=1)
+        self._run_for_group(group, "boom")
+
+        with (
+            self.feature("organizations:issue-stream-recommended-sort-experimental"),
+            mock.patch(
+                "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+                wraps=search.backend.query,
+            ) as mock_query,
+        ):
+            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended_v2"
+        assert mock_query.call_args.kwargs["actor"].id == self.user.id
+
+    def test_sort_recommended_without_experimental_flag_uses_v1_scorer(self):
+        group = self._group_with_events("boom", events=1)
+        self._run_for_group(group, "boom")
+
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+            wraps=search.backend.query,
+        ) as mock_query:
+            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended"
 
     def test_issue_sort_raises_paginator_cap_to_candidate_count(self):
         # Without the max_limit override the paginator silently caps at 100 and
@@ -604,6 +678,116 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
         assert len(repo_queries) == 1
 
+    def _project_config_by_id(self, resp):
+        return {entry["id"]: entry for entry in resp.data["projectConfig"]}
+
+    def test_project_config_absent_without_expand(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+
+        resp = self.get_success_response(self.organization.slug)
+
+        assert "projectConfig" not in resp.data
+
+    def test_project_config_returned_with_expand(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        config = self._project_config_by_id(resp)
+        assert config[str(self.project.id)] == {
+            "id": str(self.project.id),
+            "slug": self.project.slug,
+            "hasReposConnected": False,
+            "hasNonGithubRepo": False,
+        }
+
+    def test_project_config_includes_project_without_runs(self):
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        assert resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE] == []
+        config = self._project_config_by_id(resp)
+        assert config[str(self.project.id)]["hasReposConnected"] is True
+
+    def test_project_config_reflects_repo_connection_per_project(self):
+        connected = self.create_project(organization=self.organization)
+        repo = self.create_repo(connected, provider="integrations:github")
+        self.create_seer_project_repository(project=connected, repository=repo)
+        unconnected = self.create_project(organization=self.organization)
+
+        resp = self.get_success_response(
+            self.organization.slug, qs_params={"expand": "projectConfig"}
+        )
+
+        config = self._project_config_by_id(resp)
+        assert config[str(connected.id)]["hasReposConnected"] is True
+        assert config[str(unconnected.id)]["hasReposConnected"] is False
+
+    def test_project_config_respects_project_filter(self):
+        selected = self.create_project(organization=self.organization)
+        other = self.create_project(organization=self.organization)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            qs_params={"expand": "projectConfig", "project": selected.id},
+        )
+
+        config = self._project_config_by_id(resp)
+        assert set(config) == {str(selected.id)}
+        assert str(other.id) not in config
+
+    def test_project_config_scopes_to_member_projects_by_default(self):
+        org = self.create_organization(owner=self.create_user())
+        member = self.create_user()
+        my_team = self.create_team(organization=org)
+        self.create_member(user=member, organization=org, teams=[my_team])
+        mine = self.create_project(organization=org, teams=[my_team])
+        other_team = self.create_team(organization=org)
+        theirs = self.create_project(organization=org, teams=[other_team])
+        self.login_as(member)
+
+        resp = self.get_success_response(org.slug, qs_params={"expand": "projectConfig"})
+
+        config = self._project_config_by_id(resp)
+        assert str(mine.id) in config
+        assert str(theirs.id) not in config
+
+    def test_project_config_eligibility_is_one_query(self):
+        for _ in range(3):
+            project = self.create_project(organization=self.organization)
+            repo = self.create_repo(project, provider="integrations:github")
+            self.create_seer_project_repository(project=project, repository=repo)
+
+        with CaptureQueriesContext(connections["default"]) as ctx:
+            self.get_success_response(self.organization.slug, qs_params={"expand": "projectConfig"})
+
+        repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
+        assert len(repo_queries) == 1
+
+    def test_scm_info_and_project_config_share_one_eligibility_query(self):
+        group = self.create_group()
+        self._run_for_group(group, "boom")
+        repo = self.create_repo(self.project, provider="integrations:github")
+        self.create_seer_project_repository(project=self.project, repository=repo)
+
+        with CaptureQueriesContext(connections["default"]) as ctx:
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"expand": ["scmInfo", "projectConfig"]}
+            )
+
+        repo_queries = [q for q in ctx.captured_queries if "seer_projectrepository" in q["sql"]]
+        assert len(repo_queries) == 1
+        assert self._issue_project(resp)["hasReposConnected"] is True
+        assert self._project_config_by_id(resp)[str(self.project.id)]["hasReposConnected"] is True
+
     @mock.patch(_INTEGRATION_SERVICE)
     def test_run_includes_pull_requests(self, mock_get_integration):
         group = self.create_group()
@@ -631,7 +815,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 "reviewStatus": None,
                 "repoName": "getsentry/sentry",
                 "files": [],
-                "failedChecks": [],
+                "failedCheckDetails": [],
             }
         ]
 
@@ -698,7 +882,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
 
         assert pull_requests[0]["checksStatus"] == "success"
         assert pull_requests[0]["reviewStatus"] == "approved"
-        assert pull_requests[0]["failedChecks"] == []
+        assert pull_requests[0]["failedCheckDetails"] == []
         assert client.requested_keys == ["123"]
 
     @mock.patch(_INTEGRATION_SERVICE)
@@ -712,7 +896,13 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 {
                     "123": PullRequestStatusResult(
                         checks=AggregateChecksStatus.FAILURE,
-                        failed_checks=("build (3.12)", "mypy"),
+                        failed_checks=(
+                            FailedCheck(
+                                name="build (3.12)",
+                                url="https://github.com/getsentry/sentry/runs/1",
+                            ),
+                            FailedCheck(name="mypy", url=None),
+                        ),
                     )
                 }
             ),
@@ -721,7 +911,11 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         pull_requests = self._pull_requests(expand="scmInfo")
 
         assert pull_requests[0]["checksStatus"] == "failure"
-        assert pull_requests[0]["failedChecks"] == ["build (3.12)", "mypy"]
+        assert "failedChecks" not in pull_requests[0]
+        assert pull_requests[0]["failedCheckDetails"] == [
+            {"name": "build (3.12)", "url": "https://github.com/getsentry/sentry/runs/1"},
+            {"name": "mypy", "url": None},
+        ]
 
     @mock.patch(_INTEGRATION_SERVICE)
     def test_merged_pull_request_skips_provider_fetch(self, mock_get_integration):

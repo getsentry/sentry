@@ -3,6 +3,19 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlparse
+
+
+def http_url_or_none(value: object) -> str | None:
+    """The value only if it is an http(s) URL, else None. Guards attacker-set
+    check URLs (e.g. javascript:) from reaching a rendered anchor href."""
+    if not isinstance(value, str):
+        return None
+    try:
+        scheme = urlparse(value).scheme
+    except ValueError:
+        return None
+    return value if scheme in ("http", "https") else None
 
 
 class StatusCheckStatus(str, enum.Enum):
@@ -65,13 +78,23 @@ class PullRequestFileSummary:
 
 
 @dataclass(frozen=True)
+class FailedCheck:
+    """A failing check on a pull request, with a link to its run when the provider gives one.
+
+    url must be sanitized with http_url_or_none by the caller before construction."""
+
+    name: str
+    url: str | None = None
+
+
+@dataclass(frozen=True)
 class PullRequestStatusResult:
     """A pull request's checks and review state, as far as the provider reports it."""
 
     checks: AggregateChecksStatus | None = None
     review: AggregateReviewStatus | None = None
     files: tuple[PullRequestFileSummary, ...] = ()
-    failed_checks: tuple[str, ...] = ()
+    failed_checks: tuple[FailedCheck, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -31,11 +31,40 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
+type ChannelIdentityField = 'channelId' | 'channelName';
+
+interface MessagingProviderDetail {
+  action: IssueAlertActionType;
+  channelSelectedBy: ChannelIdentityField;
+  channelTargetedBy: ChannelIdentityField;
+  channelValidatedBy: ChannelIdentityField;
+  makeSentence: (args: any) => ReactNode;
+  name: string;
+  placeholder: string;
+}
+
+/**
+ * Maps a stored destination field onto its counterpart in the raw `/channels/`
+ * response, so a stored value can be matched back to a channel.
+ */
+export const RAW_CHANNEL_FIELD = {
+  channelName: 'display',
+  channelId: 'id',
+} as const satisfies Record<ChannelIdentityField, 'display' | 'id'>;
+
+/**
+ * Providers disagree on what identifies a channel. MS Teams is the only row
+ * that is not uniform: it validates by name but is addressed by id, because
+ * Sentry built a name-to-id resolver for it while all three send by id.
+ */
 export const providerDetails = {
   slack: {
     name: t('Slack'),
     action: IssueAlertActionType.SLACK,
     placeholder: t('channel, e.g. #critical'),
+    channelSelectedBy: 'channelName',
+    channelValidatedBy: 'channelName',
+    channelTargetedBy: 'channelName',
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] workspace to [target]',
@@ -50,6 +79,9 @@ export const providerDetails = {
     name: t('Discord'),
     action: IssueAlertActionType.DISCORD,
     placeholder: t('channel ID or URL'),
+    channelSelectedBy: 'channelId',
+    channelValidatedBy: 'channelId',
+    channelTargetedBy: 'channelId',
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct(
         'Send [providerName] notification to the [integrationName] server in the channel [target]',
@@ -64,6 +96,9 @@ export const providerDetails = {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
     placeholder: t('channel ID'),
+    channelSelectedBy: 'channelId',
+    channelValidatedBy: 'channelName',
+    channelTargetedBy: 'channelId',
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct('Send [providerName] notification to the [integrationName] team to [target]', {
         providerName,
@@ -71,7 +106,20 @@ export const providerDetails = {
         target,
       }),
   },
-};
+} satisfies Record<string, MessagingProviderDetail>;
+
+type MessagingProviderKey = keyof typeof providerDetails;
+
+/**
+ * Defaults to `channelId` for an unrecognized provider, preserving the prior
+ * inline conditional that singled out Slack and treated everything else as
+ * id-keyed.
+ */
+export function getChannelSelectedBy(provider: string | undefined): ChannelIdentityField {
+  return (
+    providerDetails[provider as MessagingProviderKey]?.channelSelectedBy ?? 'channelId'
+  );
+}
 
 export const enum MultipleCheckboxOptions {
   EMAIL = 'email',

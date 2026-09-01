@@ -1,4 +1,3 @@
-import {connect} from 'echarts';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -547,10 +546,6 @@ export function dashboardFiltersToString(
   }
 
   return dashboardFilterConditions;
-}
-
-export function connectDashboardCharts(groupName: string) {
-  connect?.(groupName);
 }
 
 export function hasDatasetSelector(_organization: Organization): boolean {

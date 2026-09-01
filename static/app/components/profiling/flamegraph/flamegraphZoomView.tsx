@@ -100,8 +100,6 @@ interface FlamegraphZoomViewProps {
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
   disableGrid?: boolean;
-  disablePanX?: boolean;
-  disableZoom?: boolean;
 }
 
 function FlamegraphZoomView({
@@ -118,8 +116,6 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
   contextMenu,
   scheduler,
-  disablePanX = false,
-  disableZoom = false,
   disableGrid = false,
   disableCallOrderSort = false,
   disableColorCoding = false,
@@ -633,14 +629,12 @@ function FlamegraphZoomView({
   const onWheelCenterZoom = useWheelCenterZoom(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager,
-    disableZoom
+    canvasPoolManager
   );
   const onCanvasScroll = useCanvasScroll(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager,
-    disablePanX
+    canvasPoolManager
   );
 
   useCanvasZoomOrScroll({

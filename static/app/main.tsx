@@ -15,6 +15,7 @@ import {preload} from 'sentry/router/preload';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
 import {ServiceWorkerProvider} from 'sentry/serviceWorker/client/serviceWorkerContext';
+import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {createReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 // Keep the production check at the import site so DefinePlugin can remove the
@@ -38,6 +39,7 @@ function buildRouter() {
 
 export function Main() {
   const [router] = useState(buildRouter);
+  useColorscheme();
 
   useEffect(() => {
     preload(router.routes, window.location.pathname);

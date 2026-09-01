@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  type ReactNode,
-} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -38,20 +31,6 @@ import {GroupListHeader} from './groupListHeader';
 export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
   'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search';
 
-export type TimePeriodType = {
-  display: ReactNode;
-  end: string;
-  label: string;
-  period: string;
-  start: string;
-  /**
-   * The start/end were chosen from the period and not the user
-   */
-  usingPeriod: boolean;
-  custom?: boolean;
-  utc?: boolean;
-};
-
 export type GroupListColumn =
   | 'graph'
   | 'event'
@@ -70,7 +49,6 @@ type Props = {
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -133,7 +111,6 @@ export function GroupList({
   onFetchSuccess,
   renderEmptyMessage,
   renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
   staleTime = 0,
@@ -391,7 +368,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

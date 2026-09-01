@@ -1,9 +1,17 @@
-import {type ComponentProps, Fragment, useMemo} from 'react';
+import {
+  type ComponentProps,
+  Fragment,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -16,7 +24,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -24,34 +31,104 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {Sticky} from 'sentry/components/sticky';
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
+import {
+  indexMembersByProject,
+  type IndexedMembersByProject,
+} from 'sentry/utils/members/shared';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
+import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {useUser} from 'sentry/utils/useUser';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
 import {useMilestoneAdvanceToasts} from './milestoneToast';
-import {STATUS_GROUP_META, type StatusGroupKey, StatusGroupTooltip} from './statusGroups';
-import {OVERVIEW_SECTIONS, type OverviewRun, type OverviewSort} from './types';
+import {OverviewSkeleton, ProjectFilterSkeleton} from './overviewSkeleton';
+import {ProjectSetupWarning} from './projectSetupWarning';
+import {
+  GroupHeader,
+  STATUS_GROUP_META,
+  StatusGroup,
+  type StatusGroupKey,
+  StatusGroupTooltip,
+} from './statusGroups';
+import {
+  OVERVIEW_SECTIONS,
+  type OverviewRun,
+  type OverviewSort,
+  type ProjectConfig,
+  SCM_WINDOW_SIZE,
+} from './types';
 import {useAutofixOverview} from './useAutofixOverview';
+import {useOverviewAnalytics} from './useOverviewAnalytics';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 const SeerTrialCTA = OverrideOrDefault({
   overrideName: 'component:seer-trial-cta',
 });
 
+const FilterBar = styled(Flex)`
+  @container (width < ${p => p.theme.container.sm}) {
+    > * {
+      flex: 1 1 calc(50% - ${p => p.theme.space.md});
+      min-width: 0;
+    }
+
+    > * > button {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+`;
+
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
+  {value: 'recommended', label: t('Recommended')},
   {value: 'seer', label: t('Recent Seer Activity')},
   {value: 'issue', label: t('Recent Issue Activity')},
   {value: 'events', label: t('Most events')},
   {value: 'users', label: t('Most users')},
 ];
+
+const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
+
+const EMPTY_MEMBER_LIST: User[] = [];
+
+const activityRelativeOptions = ({
+  arbitraryOptions,
+}: {
+  arbitraryOptions: Record<string, ReactNode>;
+}) => ({...ACTIVITY_RELATIVE_PERIODS, ...arbitraryOptions});
+
+// Buckets the assignee filter value (a raw `type:id` actor string) for
+// analytics, avoiding actor-id PII/cardinality. Null means the filter was
+// cleared back to all assignees.
+function bucketAssignee(value: string | null, currentUserId: string): string {
+  if (!value) {
+    return 'all';
+  }
+  if (value === 'unassigned') {
+    return 'unassigned';
+  }
+  const [type, id] = value.split(':');
+  if (type === 'team') {
+    return 'team';
+  }
+  return id === currentUserId ? 'me' : 'user';
+}
 
 export default function AutofixOverview() {
   const organization = useOrganization();
@@ -63,8 +140,9 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        skipInitializeUrlParams
-        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
+        defaultSelection={{
+          datetime: {period: '7d', start: null, end: null, utc: null},
+        }}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Layout.Title>{t('Autofix Overview')}</Layout.Title>
@@ -84,8 +162,11 @@ export default function AutofixOverview() {
 // Owns every request so a feature-disabled org mounts no query at all.
 function AutofixOverviewContent({organization}: {organization: Organization}) {
   const {selection, isReady: pageFiltersReady} = usePageFilters();
+  const {initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
   const navigate = useNavigate();
+  const user = useUser();
+  const breakpoints = useBreakpoints();
   useOverviewSeerDrawer();
   const [collapsedGroups, setCollapsedGroups] = useLocalStorageState<StatusGroupKey[]>(
     'seer-autofix-overview:collapsed-groups',
@@ -94,36 +175,111 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const sort: OverviewSort =
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
-      ?.value ?? 'seer';
+      ?.value ?? 'recommended';
   const assignee = decodeScalar(location.query.assignee) ?? null;
   const view =
     decodeScalar(location.query.view) === 'in_progress' ? 'in_progress' : 'all';
 
   const setQueryParam = (key: string, value: string | undefined) =>
     navigate(
-      {pathname: location.pathname, query: {...location.query, [key]: value}},
+      {
+        pathname: location.pathname,
+        query: {...location.query, [key]: value},
+      },
       {replace: true}
     );
 
+  const trackFilterChanged = (
+    filterType: 'sort' | 'assignee' | 'activity' | 'view_tab',
+    value: string
+  ) =>
+    trackAnalytics('autofix.overview.filter_changed', {
+      organization,
+      filter_type: filterType,
+      value,
+    });
+
   const {
     data,
+    projectConfig,
+    projectConfigPending,
+    issueStatsPending,
     isPending,
     isError,
-    enrichmentPending,
-    isRefetching,
+    dataSettled,
+    requestScmWindow,
+    isScmSettled,
+    isVitalsPending,
     refetch,
-    enrichedSettled,
   } = useAutofixOverview({
     organization,
     selection,
     sort,
     enabled: pageFiltersReady,
   });
-  useMilestoneAdvanceToasts(data, enrichedSettled);
+  useMilestoneAdvanceToasts(data, dataSettled);
+  const projectConfigById = useMemo(
+    () => new Map((projectConfig ?? []).map(config => [config.id, config])),
+    [projectConfig]
+  );
+  const unconfiguredProjects =
+    projectConfig?.filter(project => !project.hasReposConnected) ?? [];
+  useOverviewAnalytics({
+    data,
+    isPending,
+    numProjectsSelected: selection.projects.length,
+    numUnconfiguredProjects: unconfiguredProjects.length,
+    projectConfigPending,
+    statsPeriod: selection.datetime.period,
+  });
+  const allUnconfigured =
+    unconfiguredProjects.length > 0 &&
+    unconfiguredProjects.length === projectConfig?.length;
+  const someUnconfigured = unconfiguredProjects.length > 0 && !allUnconfigured;
   const allRuns = useMemo(
     () => Object.values(data?.runsByMilestone ?? {}).flat(),
     [data]
   );
+  const memberProjectIds = useMemo(
+    () => Array.from(new Set(allRuns.map(run => run.issue.project.id))),
+    [allRuns]
+  );
+  const {data: members = []} = useQuery({
+    ...useProjectMembersQueryOptions(memberProjectIds),
+    enabled: memberProjectIds.length > 0,
+  });
+  const membersByProject = useMemo(() => indexMembersByProject(members), [members]);
+  // Sorted so a given id set yields a stable key regardless of run ordering.
+  const assigneeTeamIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allRuns
+            .map(run => run.issue.assignedTo)
+            .filter((actor): actor is Actor => actor?.type === 'team')
+            .map(actor => actor.id)
+        )
+      ).sort(),
+    [allRuns]
+  );
+  const {teams: prefetchedTeams, isLoading: teamsLoading} = useTeamsById({
+    ids: assigneeTeamIds,
+  });
+  const resolvedTeamIds = useMemo(
+    () => new Set(prefetchedTeams.map(team => team.id)),
+    [prefetchedTeams]
+  );
+  // Effect-deferred so it lands no earlier than the team-store prime: releasing
+  // this gate during render would beat the prime by a frame and refire the N+1.
+  const teamIdsKey = assigneeTeamIds.join(',');
+  const [settledTeamIdsKey, setSettledTeamIdsKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!teamsLoading) {
+      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+      setSettledTeamIdsKey(teamIdsKey);
+    }
+  }, [teamsLoading, teamIdsKey]);
+  const teamsSettled = teamIdsKey !== '' && settledTeamIdsKey === teamIdsKey;
   const passesAssignee = (run: OverviewRun) =>
     assignee === null || matchesAssignee(run, assignee);
   const assigneeRuns = allRuns.filter(passesAssignee);
@@ -137,6 +293,29 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     ),
   })).filter(section => section.runs.length > 0);
 
+  const orderedPrRunIds = populatedSections
+    .filter(section => section.key === 'review_pr')
+    .flatMap(section => section.runs)
+    .filter(run => run.pullRequests.length > 0)
+    .map(run => run.seerRunId);
+  const orderedPrRunIdsKey = orderedPrRunIds.join(',');
+  const scmWindowsByRunId = useMemo(() => {
+    const ids = orderedPrRunIdsKey ? orderedPrRunIdsKey.split(',') : [];
+    const windows: string[][] = [];
+    for (let start = 0; start < ids.length; start += SCM_WINDOW_SIZE) {
+      windows.push(ids.slice(start, start + SCM_WINDOW_SIZE));
+    }
+    const map = new Map<string, string[][]>();
+    windows.forEach((window, index) => {
+      const nextWindow = windows[index + 1];
+      const toRequest = nextWindow ? [window, nextWindow] : [window];
+      for (const id of window) {
+        map.set(id, toRequest);
+      }
+    });
+    return map;
+  }, [orderedPrRunIdsKey]);
+
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
     setCollapsedGroups(previous =>
       expanded
@@ -145,11 +324,11 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
+  const resultsPending = isPending || projectConfigPending || issueStatsPending;
   const populatedKeys = populatedSections.map(section => section.key);
   const allCollapsed =
-    populatedKeys.length > 0
-      ? populatedKeys.every(key => collapsedGroups.includes(key))
-      : collapsedGroups.length > 0;
+    populatedKeys.length > 0 && populatedKeys.every(key => collapsedGroups.includes(key));
+  const toggleAllLabel = allCollapsed ? t('Expand All') : t('Collapse All');
 
   const toggleAllGroups = () => {
     setCollapsedGroups(previous =>
@@ -159,13 +338,41 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     );
   };
 
+  let noRunsContent: React.ReactNode;
+  if (allUnconfigured) {
+    noRunsContent = (
+      <EmptyState
+        padding="3xl"
+        title={t('Set up Seer to start fixing issues')}
+        description={t(
+          'None of your selected projects have a repository connected. Connect one so Seer can start working on your issues.'
+        )}
+        action={
+          <LinkButton variant="primary" to={`/settings/${organization.slug}/seer/`}>
+            {t('Set up Seer')}
+          </LinkButton>
+        }
+      />
+    );
+  } else {
+    noRunsContent = <EmptyState padding="3xl" title={t('No Autofix runs')} />;
+  }
+
   return (
-    <Stack gap="lg" padding="lg xl">
-      <Flex gap="md" align="center" wrap="wrap">
-        <PageFilterBar condensed>
-          <ProjectPageFilter />
-        </PageFilterBar>
+    <Stack gap="lg" padding={{xs: 'lg md', sm: 'lg xl'}}>
+      <FilterBar gap="md" align="center" wrap="wrap">
+        {pageFiltersReady && projectsLoaded ? (
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+          </PageFilterBar>
+        ) : (
+          <ProjectFilterSkeleton />
+        )}
         <DatePageFilter
+          relativeOptions={activityRelativeOptions}
+          onChange={update =>
+            trackFilterChanged('activity', update.relative ?? 'absolute')
+          }
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
           )}
@@ -173,72 +380,100 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         <AssigneeFilter
           runs={allRuns}
           value={assignee}
-          onChange={next => setQueryParam('assignee', next ?? undefined)}
+          onChange={next => {
+            trackFilterChanged('assignee', bucketAssignee(next, user.id));
+            setQueryParam('assignee', next ?? undefined);
+          }}
+          loading={isPending}
+          truncated={(data?.truncatedMilestones?.length ?? 0) > 0}
         />
         <CompactSelect
           value={sort}
           options={SORT_OPTIONS}
-          onChange={selected =>
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value)
-          }
+          onChange={selected => {
+            trackFilterChanged('sort', selected.value);
+            setQueryParam(
+              'sort',
+              selected.value === 'recommended' ? undefined : selected.value
+            );
+          }}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-        {isRefetching && <LoadingIndicator mini />}
-        {(data?.truncatedMilestones?.length ?? 0) > 0 && (
-          <Text size="sm" variant="muted">
-            {t(
-              'Some sections show only their most recent runs, so assignee options and counts may be incomplete.'
-            )}
-          </Text>
+        {someUnconfigured && (
+          <ProjectSetupWarning
+            unconfiguredProjects={unconfiguredProjects}
+            orgSlug={organization.slug}
+          />
         )}
-        <Flex marginLeft="auto">
-          <Button onClick={toggleAllGroups} disabled={populatedSections.length === 0}>
-            {allCollapsed ? t('Expand All') : t('Collapse All')}
-          </Button>
-        </Flex>
-      </Flex>
+      </FilterBar>
       {isError ? (
         <LoadingError onRetry={refetch} />
-      ) : isPending ? (
-        <LoadingIndicator />
-      ) : allRuns.length === 0 ? (
-        <EmptyState padding="3xl" title={t('You don’t have any Autofix runs...yet.')} />
-      ) : assigneeRuns.length === 0 ? (
-        <EmptyState
-          padding="3xl"
-          title={t('No Autofix runs match the selected assignee.')}
-        />
+      ) : resultsPending ? (
+        <OverviewSkeleton />
       ) : (
         <Fragment>
-          <Tabs
-            value={view}
-            onChange={next => setQueryParam('view', next === 'all' ? undefined : next)}
-          >
-            <TabList>
-              <TabList.Item key="all">
-                {t('All Runs (%s)', assigneeRuns.length)}
-              </TabList.Item>
-              <TabList.Item key="in_progress">
-                {t('In Progress (%s)', inProgressCount)}
-              </TabList.Item>
-            </TabList>
-          </Tabs>
-          {populatedSections.length === 0 ? (
+          {allRuns.length === 0 ? (
+            noRunsContent
+          ) : assigneeRuns.length === 0 ? (
             <EmptyState
               padding="3xl"
-              title={t('No Autofix runs are currently in progress.')}
+              title={t('No Autofix runs match the selected assignee.')}
             />
           ) : (
-            <OverviewSectionList
-              sections={populatedSections}
-              collapsedGroups={collapsedGroups}
-              onToggle={toggleGroup}
-              orgSlug={organization.slug}
-              statsPeriod={selection.datetime.period}
-              enrichmentPending={enrichmentPending}
-            />
+            <Fragment>
+              <Flex justify="between" align="center" gap="md">
+                <Tabs
+                  value={view}
+                  onChange={next => {
+                    trackFilterChanged('view_tab', next);
+                    setQueryParam('view', next === 'all' ? undefined : next);
+                  }}
+                >
+                  <TabList>
+                    <TabList.Item key="all">
+                      {t('All Runs (%s)', assigneeRuns.length)}
+                    </TabList.Item>
+                    <TabList.Item key="in_progress">
+                      {t('In Progress (%s)', inProgressCount)}
+                    </TabList.Item>
+                  </TabList>
+                </Tabs>
+                <Button
+                  size="sm"
+                  variant="link"
+                  onClick={toggleAllGroups}
+                  disabled={!resultsPending && populatedSections.length === 0}
+                  aria-label={toggleAllLabel}
+                  icon={<IconChevron isDouble direction={allCollapsed ? 'down' : 'up'} />}
+                >
+                  {breakpoints.xs ? toggleAllLabel : null}
+                </Button>
+              </Flex>
+              {populatedSections.length === 0 ? (
+                <EmptyState
+                  padding="3xl"
+                  title={t('No Autofix runs are currently in progress.')}
+                />
+              ) : (
+                <OverviewSectionList
+                  sections={populatedSections}
+                  collapsedGroups={collapsedGroups}
+                  onToggle={toggleGroup}
+                  orgSlug={organization.slug}
+                  statsPeriod={selection.datetime.period}
+                  requestScmWindow={requestScmWindow}
+                  scmWindowsByRunId={scmWindowsByRunId}
+                  isScmSettled={isScmSettled}
+                  isVitalsPending={isVitalsPending}
+                  projectConfigById={projectConfigById}
+                  membersByProject={membersByProject}
+                  resolvedTeamIds={resolvedTeamIds}
+                  teamsSettled={teamsSettled}
+                />
+              )}
+            </Fragment>
           )}
         </Fragment>
       )}
@@ -252,14 +487,28 @@ function OverviewSectionList({
   onToggle,
   orgSlug,
   statsPeriod,
-  enrichmentPending,
+  requestScmWindow,
+  scmWindowsByRunId,
+  isScmSettled,
+  isVitalsPending,
+  projectConfigById,
+  membersByProject,
+  resolvedTeamIds,
+  teamsSettled,
 }: {
   collapsedGroups: StatusGroupKey[];
-  enrichmentPending: boolean;
+  isScmSettled: (seerRunId: string) => boolean;
+  isVitalsPending: (seerRunId: string) => boolean;
+  membersByProject: IndexedMembersByProject;
   onToggle: (groupKey: StatusGroupKey, expanded: boolean) => void;
   orgSlug: string;
+  projectConfigById: Map<string, ProjectConfig>;
+  requestScmWindow: (runIds: string[]) => void;
+  resolvedTeamIds: Set<string>;
+  scmWindowsByRunId: Map<string, string[][]>;
   sections: Array<(typeof OVERVIEW_SECTIONS)[number] & {runs: OverviewRun[]}>;
   statsPeriod: ComponentProps<typeof OverviewCard>['statsPeriod'];
+  teamsSettled: boolean;
 }) {
   return (
     <Stack gap="lg">
@@ -287,16 +536,31 @@ function OverviewSectionList({
             </GroupHeader>
             <Disclosure.Content>
               <Stack gap="md" paddingTop="sm">
-                {runs.map(run => (
-                  <OverviewCard
-                    key={run.seerRunId}
-                    run={run}
-                    orgSlug={orgSlug}
-                    sectionKey={key}
-                    statsPeriod={statsPeriod}
-                    enrichmentPending={enrichmentPending}
-                  />
-                ))}
+                {runs.map(run => {
+                  const assignee = run.issue.assignedTo;
+                  const assigneeReady =
+                    assignee?.type !== 'team' ||
+                    resolvedTeamIds.has(assignee.id) ||
+                    teamsSettled;
+                  return (
+                    <OverviewCard
+                      key={run.seerRunId}
+                      run={run}
+                      orgSlug={orgSlug}
+                      sectionKey={key}
+                      statsPeriod={statsPeriod}
+                      scmSettled={isScmSettled(run.seerRunId)}
+                      vitalsPending={isVitalsPending(run.seerRunId)}
+                      requestScmWindow={requestScmWindow}
+                      scmWindows={scmWindowsByRunId.get(run.seerRunId)}
+                      projectConfig={projectConfigById.get(run.issue.project.id)}
+                      memberList={
+                        membersByProject.get(run.issue.project.slug) ?? EMPTY_MEMBER_LIST
+                      }
+                      assigneeReady={assigneeReady}
+                    />
+                  );
+                })}
               </Stack>
             </Disclosure.Content>
           </StatusGroup>
@@ -317,24 +581,3 @@ function NoAccess() {
     </Stack>
   );
 }
-
-// Disclosure.Content adds its own horizontal panel padding; cards align to the
-// section edge instead.
-const StatusGroup = styled(Disclosure)`
-  && > * + * {
-    padding-left: 0;
-    padding-right: 0;
-  }
-`;
-
-const GroupHeader = styled(Sticky)`
-  z-index: ${p => p.theme.zIndex.initial + 1};
-  align-self: stretch;
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-
-  &[data-stuck] {
-    border-radius: 0;
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;

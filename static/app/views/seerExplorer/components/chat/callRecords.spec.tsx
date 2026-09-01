@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   callRecordDetail,
@@ -98,14 +98,14 @@ describe('call record rendering', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByRole('link', {name: /Retrieve an Issue/})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View issue'})).toHaveAttribute(
       'href',
       expect.stringContaining('/issues/139458447/')
     );
   });
 
-  describe('a row that both expands and navigates', () => {
-    /** An api call with a destination *and* a request to show — both affordances on one row. */
+  describe('a row with a link and visible request detail', () => {
+    /** An api call with a destination *and* a request to show — both present on one row. */
     function linkable(): CallRecord {
       return apiRecord({
         path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
@@ -115,20 +115,15 @@ describe('call record rendering', () => {
       });
     }
 
-    it('keeps the link out of the disclosure button', () => {
+    it('renders the link chip separately from the title', () => {
       render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
 
-      // An anchor inside a button is invalid HTML, and it leaves expand and navigate sharing one
-      // click target and one tab stop.
-      const link = screen.getByRole('link', {name: /Retrieve an Issue/});
-      const expander = screen.getByRole('button', {name: /Retrieve an Issue/});
-      expect(expander).not.toContainElement(link);
+      expect(screen.getByRole('button', {name: 'View issue'})).toBeInTheDocument();
+      expect(screen.getByText('Retrieve an Issue')).toBeInTheDocument();
     });
 
-    it('still expands to the request it made', async () => {
+    it('shows the request detail without needing to expand', () => {
       render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
-
-      await userEvent.click(screen.getByRole('button', {name: /Retrieve an Issue/}));
 
       expect(
         screen.getByText('GET /api/0/organizations/acme/issues/139458447/')

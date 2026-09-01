@@ -191,7 +191,7 @@ export function InstallDetailsContent({
                   {tn('%s download', '%s downloads', installDetails.download_count)}
                 </Text>
               )}
-            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+            <Container display={{sm: 'none', xl: 'block'}}>
               <QuietZoneQRCode
                 aria-label={t('Install QR Code')}
                 value={
@@ -203,7 +203,7 @@ export function InstallDetailsContent({
               />
             </Container>
             {details}
-            <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+            <Container display={{sm: 'none', xl: 'block'}}>
               <Stack maxWidth="300px" gap="xl" paddingTop="xl">
                 <Text align="center" size="lg">
                   {t(
@@ -213,7 +213,7 @@ export function InstallDetailsContent({
               </Stack>
             </Container>
           </Stack>
-          <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}} width="100%">
+          <Container display={{sm: 'none', xl: 'block'}} width="100%">
             <Flex align="center" gap="md" width="100%">
               <Separator
                 orientation="horizontal"
@@ -234,11 +234,11 @@ export function InstallDetailsContent({
             <Flex
               gap="md"
               width="100%"
-              direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+              direction={{zero: 'column', sm: 'row'}}
               justify="center"
-              align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
+              align={{zero: 'stretch', sm: 'center'}}
             >
-              <Flex width={{'screen:xs': '100%', 'screen:sm': 'auto'}}>
+              <Flex width={{sm: '100%', xl: 'auto'}}>
                 <Button
                   onClick={() => window.open(installDetails.install_url, '_blank')}
                   variant="primary"
@@ -250,13 +250,10 @@ export function InstallDetailsContent({
               </Flex>
               {installDetails.install_url && (
                 <Flex
-                  alignSelf={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
-                  width={{'screen:xs': '100%', 'screen:sm': 'auto'}}
+                  alignSelf={{sm: 'stretch', xl: 'center'}}
+                  width={{sm: '100%', xl: 'auto'}}
                 >
-                  <Container
-                    display={{'screen:xs': 'block', 'screen:sm': 'none'}}
-                    width="100%"
-                  >
+                  <Container display={{zero: 'block', sm: 'none'}} width="100%">
                     <Button
                       onClick={() =>
                         copy(installDetails.install_url!, {
@@ -270,7 +267,7 @@ export function InstallDetailsContent({
                       {t('Copy Download Link')}
                     </Button>
                   </Container>
-                  <Container display={{'screen:xs': 'none', 'screen:sm': 'block'}}>
+                  <Container display={{zero: 'none', sm: 'block'}}>
                     <Tooltip title={t('Copy Download Link')}>
                       <Button
                         aria-label={t('Copy Download Link')}

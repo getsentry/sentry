@@ -23,7 +23,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {
+  getColumnSort,
+  renderHeadCell,
+} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
@@ -155,12 +158,9 @@ export function SegmentSpansTable({
         error={error}
         data={consolidatedData}
         columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
-        columnSortBy={[]}
         grid={{
-          renderHeadCell: column =>
-            renderHeadCell({
-              column,
-            }),
+          getColumnSort: column => getColumnSort({column}),
+          renderHeadCell: column => renderHeadCell({column}),
           renderBodyCell: (column, row) =>
             renderBodyCell(
               column,

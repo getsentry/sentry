@@ -6,7 +6,6 @@ from sentry.incidents.models.incident import IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
@@ -36,17 +35,10 @@ class BaseIncidentDetailsTest(APITestCase):
     def test_no_perms(self) -> None:
         incident = self.create_incident()
         self.login_as(self.create_user())
-        with self.feature("organizations:incidents"):
-            resp = self.get_response(incident.organization.slug, incident.id)
+        resp = self.get_response(incident.organization.slug, incident.id)
         assert resp.status_code == 403
 
-    def test_no_feature(self) -> None:
-        incident = self.create_incident()
-        resp = self.get_response(incident.organization.slug, incident.id)
-        assert resp.status_code == 404
 
-
-@with_feature(["organizations:incidents"])
 class WorkflowEngineIncidentDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-incident-details"
 

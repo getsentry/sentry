@@ -118,6 +118,22 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_rejects_non_object_actions(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [None],
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)

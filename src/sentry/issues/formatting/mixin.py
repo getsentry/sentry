@@ -31,9 +31,19 @@ else:
 logger = logging.getLogger(__name__)
 
 FORMATTER_FEATURE = "organizations:issue-standardized-markdown-for-llm"
+# API clients (just the MCP today) ramp separately from the UI
+FORMATTER_FEATURE_API = "organizations:issue-standardized-markdown-for-llm-api"
 # not "format": DRF reserves that query param for renderer content-negotiation
 QUERY_PARAM = "llmFormat"
 VALID_FORMATS: tuple[Format, ...] = get_args(Format)
+
+
+def formatter_feature_for(request: Request) -> str:
+    """Session and viewer-context callers are the UI; a token or key is an API client.
+
+    An unrecognised caller lands on the API feature deliberately: it is the narrower rollout.
+    """
+    return FORMATTER_FEATURE if request.auth is None else FORMATTER_FEATURE_API
 
 
 class FormattableResponseMixin(_Base):
@@ -52,7 +62,7 @@ class FormattableResponseMixin(_Base):
             adapter is None
             or fmt not in VALID_FORMATS
             or organization is None
-            or not features.has(FORMATTER_FEATURE, organization, actor=request.user)
+            or not features.has(formatter_feature_for(request), organization, actor=request.user)
         ):
             return response
         if response.status_code != 200 or not isinstance(response.data, dict):

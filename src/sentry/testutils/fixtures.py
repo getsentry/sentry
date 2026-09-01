@@ -185,6 +185,9 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_organization_avatar(self, *args, **kwargs):
+        return Factories.create_organization_avatar(*args, **kwargs)
+
     def create_investigation(self, *args, **kwargs):
         return Factories.create_investigation(*args, **kwargs)
 
@@ -832,6 +835,9 @@ class Fixtures:
             project = self.create_project(organization=self.organization)
 
         return Factories.create_detector(project=project, type=type, *args, **kwargs)
+
+    def create_all_projects_detector(self, organization: Organization, **kwargs):
+        return Factories.create_all_projects_detector(organization_id=organization.id, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)

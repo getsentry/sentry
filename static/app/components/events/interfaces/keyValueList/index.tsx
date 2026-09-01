@@ -15,7 +15,6 @@ import {Value} from './value';
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   className?: string;
   data?: KeyValueListData;
-  longKeys?: boolean;
   shouldSort?: boolean;
 }
 
@@ -24,7 +23,6 @@ export function KeyValueList({
   isContextData = false,
   shouldSort = true,
   raw = false,
-  longKeys = false,
   className,
   ...props
 }: Props) {
@@ -76,9 +74,7 @@ export function KeyValueList({
 
             return (
               <tr key={`${key}-${idx}`}>
-                <TableSubject className="key" wide={longKeys}>
-                  {subject}
-                </TableSubject>
+                <td className="key">{subject}</td>
                 <td className="val" data-test-id={subjectDataTestId}>
                   <Tablevalue>
                     {actionButton ? (
@@ -111,12 +107,6 @@ function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
     </Fragment>
   );
 }
-
-const TableSubject = styled('td')<{wide?: boolean}>`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    max-width: ${p => (p.wide ? '620px !important' : 'none')};
-  }
-`;
 
 const Tablevalue = styled('div')`
   pre {

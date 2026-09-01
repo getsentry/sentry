@@ -327,9 +327,7 @@ export interface UsageStatsOrganizationProps {
     usageChart: React.ReactNode;
   }) => React.ReactNode;
   clientDiscard?: boolean;
-  clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;
-  projectDetails?: React.ReactNode[];
 }
 
 type CardMetadata = Record<

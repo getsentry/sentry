@@ -44,7 +44,6 @@ export interface SpanProfileDetailsProps {
     start_timestamp: number;
     thread_id?: string;
   }>;
-  onNoProfileFound?: () => void;
 }
 
 export function useSpanProfileDetails(
@@ -206,11 +205,7 @@ export function useSpanProfileDetails(
   };
 }
 
-export function SpanProfileDetails({
-  event,
-  span,
-  onNoProfileFound,
-}: SpanProfileDetailsProps) {
+export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
@@ -232,9 +227,6 @@ export function SpanProfileDetails({
   }
 
   if (!frames.length) {
-    if (onNoProfileFound) {
-      onNoProfileFound();
-    }
     return null;
   }
 

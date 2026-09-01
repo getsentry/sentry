@@ -4,10 +4,27 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function MonitorsSecondaryNavigation() {
+function MonitorsSecondaryNavigationImpl() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/monitors`;
+  const hasUptime = organization.features.includes('uptime');
+  const hasMobileBuilds = organization.features.includes(
+    'preprod-size-monitors-frontend'
+  );
+
+  useLLMContext({
+    contextHint: 'The Monitors secondary nav panel.',
+    monitorTypes: [
+      'Error',
+      'Metric',
+      'Cron',
+      ...(hasUptime ? ['Uptime'] : []),
+      ...(hasMobileBuilds ? ['Mobile Build'] : []),
+    ],
+  });
 
   return (
     <Fragment>
@@ -103,3 +120,8 @@ export function MonitorsSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const MonitorsSecondaryNavigation = registerLLMContext(
+  'navigation',
+  MonitorsSecondaryNavigationImpl
+);

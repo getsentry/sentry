@@ -51,7 +51,7 @@ while investigating issues — shared across everyone in your organization.
 FEATURES = [
     FeatureDescription(
         "Give Seer access to your Datadog telemetry (logs, metrics, traces) while investigating issues.",
-        IntegrationFeatures.MONITORING,
+        IntegrationFeatures.SEER_CONTEXT,
     ),
 ]
 
@@ -173,7 +173,7 @@ class DatadogIntegrationProvider(IntegrationProvider):
     name = "Datadog (Seer)"
     metadata = metadata
     integration_cls = DatadogIntegration
-    features = frozenset([IntegrationFeatures.MONITORING])
+    features = frozenset([IntegrationFeatures.SEER_CONTEXT])
     requires_feature_flag = True
     allow_multiple = False
 

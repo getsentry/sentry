@@ -98,7 +98,6 @@ function TaskCard({
 }
 
 interface TaskStatusIconProps {
-  progress?: number;
   status?: 'complete' | 'skipped';
   tooltipText?: string;
 }
@@ -172,7 +171,6 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
 interface TaskProps {
   hidePanel: () => void;
   task: OnboardingTask;
-  completed?: boolean;
 }
 
 function Task({task, hidePanel}: TaskProps) {

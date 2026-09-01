@@ -16,6 +16,7 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -26,7 +27,6 @@ import {
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
@@ -52,6 +52,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -182,7 +183,10 @@ function ProjectSlugForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -276,7 +280,10 @@ function AutoResolveForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -372,7 +379,10 @@ function SecurityTokenForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -433,7 +443,10 @@ function SecurityTokenHeaderForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });

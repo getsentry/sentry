@@ -140,10 +140,7 @@ function ReleasesBody({
     <ReleasesTable>
       {releases.map(release => (
         <Fragment key={release.version}>
-          <DateTime
-            date={release.lastDeploy?.dateFinished || release.dateCreated}
-            seconds={false}
-          />
+          <DateTime date={release.lastDeploy?.dateFinished || release.dateCreated} />
           <TextOverflow>
             <StyledVersion
               version={release.version}

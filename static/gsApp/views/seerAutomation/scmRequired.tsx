@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 
 import SeerConfigBug1 from 'sentry-images/spot/seer-config-bug-1.svg';
@@ -10,6 +10,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text, Heading} from '@sentry/scraps/text';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -26,6 +27,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 export default function SeerAutomationSCMRequired() {
   const organization = useOrganization();
+  const {hasFreeAutofixAccess, isLoading: isSetupLoading} = useOrganizationSeerSetup();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
@@ -54,6 +56,19 @@ export default function SeerAutomationSCMRequired() {
         })
       ) ?? [],
   });
+
+  const isAutofixRoute = useMatches().some(
+    match =>
+      (match.handle as {seerSection?: string} | undefined)?.seerSection === 'autofix'
+  );
+  if (isAutofixRoute) {
+    if (isSetupLoading) {
+      return <LoadingIndicator />;
+    }
+    if (hasFreeAutofixAccess) {
+      return <Outlet />;
+    }
+  }
 
   if (!showNewSeer(organization) && !hasCodeReviewBeta) {
     return <Redirect to={normalizeUrl(`/settings/${organization.slug}/seer/`)} />;

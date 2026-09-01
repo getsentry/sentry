@@ -139,7 +139,7 @@ const restrictedImportPaths = [
   },
   {
     name: 'react-select',
-    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+    message: "Use '@sentry/scraps/select' instead.",
   },
   {
     name: 'qs',
@@ -412,6 +412,7 @@ export default typescript.config([
       'no-script-url': 'error',
       'no-self-compare': 'error',
       'no-sequences': 'error',
+      'no-useless-computed-key': 'error',
       'object-shorthand': ['error', 'properties'],
       'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
       quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
@@ -482,6 +483,7 @@ export default typescript.config([
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-query-data-type-parameters': 'error',
+      '@sentry/no-redundant-default-argument': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
@@ -997,7 +999,6 @@ export default typescript.config([
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      'import/no-duplicates': 'off',
     },
   },
   {
@@ -1519,6 +1520,23 @@ export default typescript.config([
             {
               from: {element: {type: 'scraps'}},
               allow: [{to: {element: {type: 'sentry*'}}}],
+            },
+            // Keep the temporary Sentry allowance above, but do not allow
+            // scraps to import the legacy locale module. Use useTranslation()
+            // from the scraps translation context instead.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {categories: 'sentry-locale'}}},
+              message:
+                'Scraps components must use useTranslation() instead of importing from sentry/locale',
+            },
+            // Track Scraps interactions through the injected tracking context
+            // instead of coupling components to Sentry's analytics module.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {path: 'static/app/utils/analytics.tsx'}}},
+              message:
+                'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
             },
           ],
         },

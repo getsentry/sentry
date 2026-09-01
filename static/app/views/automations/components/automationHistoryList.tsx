@@ -5,10 +5,10 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -19,12 +19,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationFireHistoryApiOptions} from 'sentry/views/automations/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
+const HISTORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'lastTriggered', width: '2fr'},
+  {key: 'monitor', width: '2.5fr'},
+  {key: 'issue', width: '3.5fr'},
+  {key: 'alerts', width: '1fr'},
+];
+
 const DEFAULT_HISTORY_PER_PAGE = 10;
 
 type Props = {
   automationId: string;
-  emptyMessage?: string;
-  limit?: number;
   query?: Record<string, any>;
 };
 
@@ -51,15 +56,12 @@ function Skeletons() {
   );
 }
 
-export function AutomationHistoryList({
-  automationId,
-  limit = DEFAULT_HISTORY_PER_PAGE,
-  query,
-  emptyMessage = t('No history found'),
-}: Props) {
+export function AutomationHistoryList({automationId, query}: Props) {
+  const limit = DEFAULT_HISTORY_PER_PAGE;
   const org = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const getPaginationCaption = useGetPaginationCaption();
 
   const cursor =
     typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
@@ -91,21 +93,21 @@ export function AutomationHistoryList({
 
   return (
     <Fragment>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
-        </SimpleTable.Header>
+      <SimpleTable
+        columns={HISTORY_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Last Triggered')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Monitor')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Alerts')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && <Skeletons />}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {!isLoading && !isError && fireHistory.length === 0 && (
-          <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
+          <SimpleTable.Empty>{t('No history found')}</SimpleTable.Empty>
         )}
         {fireHistory.map((row, index) => (
           <SimpleTable.Row key={index}>
@@ -143,7 +145,7 @@ export function AutomationHistoryList({
             <SimpleTable.RowCell>{row.count}</SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
-      </SimpleTableWithColumns>
+      </SimpleTable>
       <StyledPagination
         onCursor={newCursor => {
           navigate({
@@ -160,10 +162,6 @@ export function AutomationHistoryList({
     </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 2fr 2.5fr 3.5fr 1fr;
-`;
 
 const StyledLink = styled(Link)`
   overflow: hidden;

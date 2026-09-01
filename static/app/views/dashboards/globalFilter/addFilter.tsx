@@ -128,7 +128,6 @@ export function AddFilter({
         setSelectedFilterKey(null);
         setIsSelectingFilterKey(true);
       }}
-      size="md"
       menuWidth="300px"
       menuTitle={
         <MenuTitleWrapper>

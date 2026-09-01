@@ -78,7 +78,7 @@ def track_response_code(status, integration_slug, webhook_event):
 
 
 class SentryAppManager(ParanoidManager["SentryApp"]):
-    def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
+    def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet["SentryApp"]:
         return self.filter(
             installations__organization_id=organization_id,
             is_alertable=True,
@@ -162,23 +162,23 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         db_table = "sentry_sentryapp"
 
     @property
-    def is_published(self):
+    def is_published(self) -> bool:
         return self.status == SentryAppStatus.PUBLISHED
 
     @property
-    def is_unpublished(self):
+    def is_unpublished(self) -> bool:
         return self.status == SentryAppStatus.UNPUBLISHED
 
     @property
-    def is_internal(self):
+    def is_internal(self) -> bool:
         return self.status == SentryAppStatus.INTERNAL
 
     @property
-    def is_publish_request_inprogress(self):
+    def is_publish_request_inprogress(self) -> bool:
         return self.status == SentryAppStatus.PUBLISH_REQUEST_INPROGRESS
 
     @property
-    def slug_for_metrics(self):
+    def slug_for_metrics(self) -> str:
         if self.is_internal:
             return "internal"
         if self.is_unpublished:
@@ -200,7 +200,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 outbox.save()
             return result
 
-    def is_installed_on(self, organization):
+    def is_installed_on(self, organization) -> bool:
         from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
@@ -208,7 +208,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             sentry_app=self,
         ).exists()
 
-    def build_signature(self, body):
+    def build_signature(self, body) -> str:
         assert self.application is not None
         secret = self.application.client_secret
         # SentryApps always have a client_secret (they are confidential clients)
@@ -217,7 +217,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
             key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
-    def show_auth_info(self, access):
+    def show_auth_info(self, access) -> bool:
         from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})

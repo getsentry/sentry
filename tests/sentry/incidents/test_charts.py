@@ -20,7 +20,6 @@ from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenP
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Detector, DetectorGroup
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -197,7 +196,6 @@ class BuildMetricAlertChartTest(TestCase):
 
 class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
     def test_get_open_periods_from_detector(self) -> None:
         group = self.create_group(
             project=self.project, type=MetricIssue.type_id, priority=PriorityLevel.HIGH
@@ -241,7 +239,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert closed_activity_resp["dateCreated"] == closed_gopa.date_added
 
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
     def test_pending_deletion_detector_not_resolved_to_alert_rule(self) -> None:
         self.create_detector()  # dummy so detector ID != alert rule ID
         detector = self.create_detector(project=self.project)
@@ -272,7 +269,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert len(chart_data) == 0
 
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
     def test_use_open_period_serializer(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
@@ -304,7 +300,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert activities[0]["value"] == PriorityLevel(group.priority).to_str()
 
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
     def test_use_open_period_serializer_with_offset(self) -> None:
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
 

@@ -80,7 +80,10 @@ import {
   MetricKitHangProfileSection,
 } from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
-import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
+import {
+  MetricDetectorTriggeredSection,
+  MetricIssueSeerInvestigationSection,
+} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
 import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -166,6 +169,11 @@ export function EventDetailsContent({
       <EventEvidence event={event} group={group} project={project} />
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
+      )}
+      {group.issueType === IssueType.METRIC_ISSUE && (
+        <Feature features="organizations:investigations">
+          <MetricIssueSeerInvestigationSection group={group} event={event} />
+        </Feature>
       )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>

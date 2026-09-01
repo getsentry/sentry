@@ -103,6 +103,7 @@ def get_installation_metadata(event, host):
         external_id=external_id,
         provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")

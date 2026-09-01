@@ -13,6 +13,7 @@ import {
   IconEllipsis,
   IconGithub,
   IconGroup,
+  IconLab,
   IconMegaphone,
   IconOpen,
   IconQuestion,
@@ -26,6 +27,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
+import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
@@ -47,6 +49,7 @@ export function PrimaryNavigationHelpMenu({
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
+  const {isAuthV2Enabled, setAuthV2CookieState} = useEnableAuthV2();
 
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
@@ -185,6 +188,26 @@ export function PrimaryNavigationHelpMenu({
       ],
     },
     {
+      key: 'auth-v2',
+      hidden: !organization.features.includes('authv2-enable-toggle'),
+      children: [
+        {
+          key: 'toggle-auth-v2',
+          label: isAuthV2Enabled ? t('Disable new login') : t('Enable new login'),
+          leadingItems: (
+            <MenuIcon>
+              <IconLab isSolid />
+            </MenuIcon>
+          ),
+          onAction() {
+            setAuthV2CookieState(
+              isAuthV2Enabled ? AuthV2CookieState.DISABLED : AuthV2CookieState.ENABLED
+            );
+          },
+        },
+      ],
+    },
+    {
       key: 'actions',
       hidden: !openForm,
       children: [
@@ -199,7 +222,7 @@ export function PrimaryNavigationHelpMenu({
           onAction() {
             openForm?.({
               tags: {
-                ['feedback.source']: 'navigation_sidebar',
+                'feedback.source': 'navigation_sidebar',
               },
             });
           },

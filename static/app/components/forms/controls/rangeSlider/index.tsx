@@ -1,9 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Input} from '@sentry/scraps/input';
 import {Slider} from '@sentry/scraps/slider';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -33,9 +31,6 @@ type SliderProps = {
 
   className?: string;
 
-  disabled?: boolean;
-
-  disabledReason?: React.ReactNode;
   /**
    * Render prop for slider's label
    * Is passed the value as an argument
@@ -60,43 +55,22 @@ type SliderProps = {
     value: SliderProps['value'],
     event: React.ChangeEvent<HTMLInputElement>
   ) => void;
-
-  /**
-   * This is called when *any* MouseUp or KeyUp event happens.
-   * Used for "smart" Fields to trigger a "blur" event. `onChange` can
-   * be triggered quite frequently
-   */
-  onChangeEnd?: (value: number) => void;
-  /**
-   * Placeholder for custom input
-   */
-  placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * Show input control for custom values
-   */
-  showCustomInput?: boolean;
   /**
    * Show label with current value
    */
   showLabel?: boolean;
-  step?: number;
 };
 
 export function RangeSlider({
   id,
   value,
   allowedValues,
-  showCustomInput,
   name,
-  disabled,
-  placeholder,
   formatLabel,
   className,
   onChange,
-  onChangeEnd,
   ref,
-  disabledReason,
   showLabel = true,
   ...props
 }: SliderProps) {
@@ -134,12 +108,6 @@ export function RangeSlider({
     return allowedValues[newSliderValue]!;
   }
 
-  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = e.currentTarget.valueAsNumber;
-    setSliderValue(newSliderValue);
-    onChange?.(getActualValue(newSliderValue), e);
-  }
-
   function handleSliderChange(newSliderValue: number) {
     setSliderValue(newSliderValue);
     // Legacy onChange takes (value, event) but the new Slider no longer provides an event.
@@ -149,17 +117,12 @@ export function RangeSlider({
     } as React.ChangeEvent<HTMLInputElement>);
   }
 
-  function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSliderValue(parseFloat(e.target.value) || 0);
-  }
-
   function getSliderData() {
     if (!allowedValues) {
-      const {min, max, step} = props;
+      const {min, max} = props;
       return {
         min,
         max,
-        step,
         actualValue: sliderValue,
         displayValue: sliderValue,
       };
@@ -169,7 +132,6 @@ export function RangeSlider({
     const actualValue = allowedValues[sliderValue];
 
     return {
-      step: 1,
       min: 0,
       max: allowedValues.length - 1,
       actualValue,
@@ -177,49 +139,29 @@ export function RangeSlider({
     };
   }
 
-  const {min, max, step, actualValue, displayValue} = getSliderData();
+  const {min, max, actualValue, displayValue} = getSliderData();
   const labelText = formatLabel?.(actualValue) ?? displayValue;
 
   return (
     <div className={className} ref={ref}>
-      {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
-      <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
-        <SliderAndInputWrapper showCustomInput={showCustomInput}>
-          <StyledSlider
-            name={name}
-            id={id}
-            min={min}
-            max={max}
-            step={step}
-            disabled={disabled}
-            onChange={handleSliderChange}
-            onChangeEnd={onChangeEnd}
-            value={sliderValue}
-            aria-valuetext={labelText}
-            aria-label={props['aria-label']}
-            formatOptions={showLabel ? undefined : 'hidden'}
-          />
-          {showCustomInput && (
-            <StyledInput
-              hasLabel={!showCustomInput}
-              placeholder={placeholder}
-              value={sliderValue}
-              onChange={handleCustomInputChange}
-              onBlur={handleInput}
-              // Do not forward required to avoid default browser behavior
-              required={undefined}
-            />
-          )}
-        </SliderAndInputWrapper>
-      </Tooltip>
+      {showLabel && <SliderLabel>{labelText}</SliderLabel>}
+      <SliderAndInputWrapper>
+        <StyledSlider
+          name={name}
+          id={id}
+          min={min}
+          max={max}
+          onChange={handleSliderChange}
+          value={sliderValue}
+          aria-valuetext={labelText}
+          aria-label={props['aria-label']}
+          formatOptions={showLabel ? undefined : 'hidden'}
+        />
+      </SliderAndInputWrapper>
     </div>
   );
 }
 
 const StyledSlider = styled(Slider)`
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const StyledInput = styled(Input)<{hasLabel: boolean}>`
-  margin-top: ${p => (p.hasLabel ? p.theme.space.xl : p.theme.space.md)};
 `;

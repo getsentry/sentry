@@ -201,7 +201,7 @@ def send_alert_webhook_v2(
     additional_payload_key: str | None = None,
     additional_payload: Mapping[str, Any] | None = None,
     **kwargs: Any,
-):
+) -> None:
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
@@ -734,7 +734,7 @@ def send_resource_change_webhook(
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
 
-def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
+def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     for f in futures:
         if not f.kwargs.get("sentry_app"):
             logger.info(

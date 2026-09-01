@@ -72,6 +72,7 @@ export function AddWidget({onAddWidget}: Props) {
           <DropdownMenu
             items={addWidgetDropdownItems}
             data-test-id="widget-add"
+            position="auto-start"
             triggerProps={{
               'aria-label': t('Add Widget'),
               size: 'md',

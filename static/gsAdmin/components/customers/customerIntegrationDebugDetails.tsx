@@ -10,7 +10,7 @@ import {IconChevron} from 'sentry/icons';
 
 import {ResultGrid} from 'admin/components/resultGrid';
 
-type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
+type Props = {
   orgId: string;
 };
 
@@ -40,7 +40,7 @@ function getStatusLabel(status: number): string {
   return STATUS_LABELS[status] ?? `Unknown (${status})`;
 }
 
-export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
+export function CustomerIntegrationDebugDetails({orgId}: Props) {
   const [expandedRows, setExpandedRows] = useState(new Set());
 
   const toggleRow = (id: number) => {
@@ -150,7 +150,6 @@ export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
           </td>,
         ];
       }}
-      {...props}
     />
   );
 }

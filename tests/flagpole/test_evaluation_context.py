@@ -37,6 +37,19 @@ class TestEvaluationContext:
         assert eval_context.id == expected_id
         assert eval_context.id % 100 == 1, "bucket should be correct"
 
+    def test_identity_fields_are_filtered_and_read_only(self) -> None:
+        eval_context = EvaluationContext(
+            {"foo": "bar", "baz": "barfoo"},
+            {"foo", "missing"},
+        )
+        assert eval_context.identity_fields == frozenset({"foo"})
+
+        fallback_context = EvaluationContext(
+            {"foo": "bar", "baz": "barfoo"},
+            {"missing"},
+        )
+        assert fallback_context.identity_fields == frozenset({"foo", "baz"})
+
     def test_no_identity_fields_included(self) -> None:
         eval_context = EvaluationContext({})
         assert eval_context.id == 1245845410931227995499360226027473197403882391305

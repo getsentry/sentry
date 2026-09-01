@@ -78,12 +78,19 @@ UTC ISO8601 or epoch seconds. Use along with `start` instead of `statsPeriod`.
         child=serializers.CharField(),
         help_text=("A list of project slugs to filter your results by."),
     )
-    environment = serializers.CharField(help_text="The environment to filter by.", required=False)
+    environment = serializers.ListField(
+        help_text="The environments to filter by.",
+        required=False,
+        child=serializers.CharField(),
+    )
     sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
     sortBy = serializers.CharField(help_text="The field to sort the output by.", required=False)
     orderBy = serializers.CharField(help_text="The field to sort the output by.", required=False)
     query = serializers.CharField(
         help_text="A structured query string to filter the output by.", required=False
+    )
+    queryReferrer = serializers.CharField(
+        help_text="Internal referrer identifier used for query tracing.", required=False
     )
     per_page = serializers.IntegerField(
         help_text="Limit the number of rows to return in the result.", required=False

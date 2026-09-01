@@ -198,10 +198,10 @@ export function ScmIntegrationConnect({
         </Text>
       )}
       <Flex
-        direction={{'screen:sm': 'column-reverse', 'screen:md': 'row'}}
+        direction={{zero: 'column-reverse', '3xl': 'row'}}
         width="100%"
         gap="md"
-        align={{'screen:sm': 'start', 'screen:md': 'center'}}
+        align={{zero: 'start', '3xl': 'center'}}
       >
         <ScmRepoSelector
           analyticsFlow={analyticsFlow}

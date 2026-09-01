@@ -68,8 +68,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       feedbackOptions={{
         messagePlaceholder: t('How can we make feature flags work better for you?'),
         tags: {
-          ['feedback.source']: 'issue_details_feature_flags',
-          ['feedback.owner']: 'replay',
+          'feedback.source': 'issue_details_feature_flags',
+          'feedback.owner': 'replay',
         },
       }}
     />
