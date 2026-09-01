@@ -10,11 +10,12 @@ import {unreachable} from 'sentry/utils/unreachable';
  */
 const GCP_STATUS_VARIANTS = {
   connected: 'success',
+  unverified: 'muted',
   permission_denied: 'danger',
   api_disabled: 'warning',
   project_not_found: 'danger',
   error: 'danger',
-} as const satisfies Record<string, 'success' | 'warning' | 'danger'>;
+} as const satisfies Record<string, 'success' | 'muted' | 'warning' | 'danger'>;
 
 type GcpConnectionStatus = keyof typeof GCP_STATUS_VARIANTS;
 
@@ -70,6 +71,8 @@ export function getStatusLabel(status: string): string {
   switch (status) {
     case 'connected':
       return t('Connected');
+    case 'unverified':
+      return t('Not verified');
     case 'permission_denied':
       return t('Permission denied');
     case 'api_disabled':
@@ -106,13 +109,13 @@ export function describeService(service: GcpServiceResult): string {
   }`;
 }
 
-export function getProjectErrorDetail(project: GcpProjectResult): string | null {
-  if (project.errorDetail) {
-    return project.errorDetail;
-  }
-  const failed = getFailedServices(project);
-  if (failed.length === 0) {
-    return null;
-  }
-  return failed.map(describeService).join('; ');
+export function parseGcpProjectIds(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .split(',')
+        .map(id => id.trim())
+        .filter(Boolean)
+    ),
+  ];
 }

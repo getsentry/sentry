@@ -8,6 +8,7 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_cache
 from sentry.dynamic_sampling.per_org.serving import (
+    get_previous_recalibration_factor,
     get_project_sample_rate,
     get_recalibration_factor,
     get_transaction_sample_rates,
@@ -264,14 +265,66 @@ class TestGetRecalibrationFactor:
         assert emitted_sources == [("recalibration_factor", "legacy")]
 
     @override_options(SERVING_ON)
-    def test_a_missing_per_org_factor_is_the_identity_factor(
+    def test_a_missing_factor_on_both_sides_is_the_identity_factor(
         self, emitted_sources: list[tuple[str, str]]
     ) -> None:
-        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
         switch_org_to_per_org()
 
         assert get_recalibration_factor(ORG_ID) == 1.0
         assert emitted_sources == [("recalibration_factor", "per_org")]
+
+
+@pytest.mark.django_db
+class TestRecalibrationFactorCarryOver:
+    """The pipeline that takes over serving continues from the factor it was handed.
+
+    Both caches expire after the same short TTL, and each pipeline stops writing as soon as
+    the other one serves. So a factor is only ever in both caches right after a switch.
+    """
+
+    @override_options(SERVING_ON)
+    def test_the_per_org_pipeline_carries_the_legacy_factor_over(self) -> None:
+        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
+        switch_org_to_per_org()
+
+        assert get_recalibration_factor(ORG_ID) == 2.0
+        assert get_previous_recalibration_factor(ORG_ID) == 2.0
+
+    @override_options(SERVING_OFF)
+    def test_the_legacy_pipeline_carries_the_per_org_factor_over(self) -> None:
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
+
+        assert get_recalibration_factor(ORG_ID) == 3.0
+        assert get_previous_recalibration_factor(ORG_ID) == 3.0
+
+    @override_options(SERVING_ON)
+    def test_the_per_org_factor_wins_once_it_is_written(self) -> None:
+        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
+        switch_org_to_per_org()
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
+
+        assert get_previous_recalibration_factor(ORG_ID) == 3.0
+
+    @override_options(SERVING_OFF)
+    def test_the_legacy_factor_wins_once_it_is_written(self) -> None:
+        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
+
+        assert get_previous_recalibration_factor(ORG_ID) == 2.0
+
+    @override_options(SERVING_ON)
+    def test_an_org_without_per_org_project_rates_reads_the_legacy_factor(self) -> None:
+        legacy_recalibration_cache.set_guarded_adjusted_factor(ORG_ID, 2.0)
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
+
+        assert get_previous_recalibration_factor(ORG_ID) == 2.0
+
+    @override_options({**SERVING_ON, "dynamic-sampling.per_org.killswitch": True})
+    def test_the_killswitch_carries_the_per_org_factor_over(self) -> None:
+        switch_org_to_per_org()
+        per_org_cache.set_adjusted_factor(ORG_ID, 3.0)
+
+        assert get_recalibration_factor(ORG_ID) == 3.0
 
 
 @pytest.mark.django_db
