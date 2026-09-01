@@ -73,7 +73,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         mock_collect_context.assert_called_once_with(
             None,
             self.group.organization,
-            project_ids=[self.group.project_id],
+            project_id=self.group.project_id,
         )
 
         # A new run consumes Seer autofix budget.

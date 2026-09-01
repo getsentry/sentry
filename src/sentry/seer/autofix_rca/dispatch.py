@@ -86,7 +86,7 @@ def trigger_autofix_rca_feature(
         user_org_context=collect_user_org_context(
             user,
             group.organization,
-            project_ids=[group.project_id],
+            project_id=group.project_id,
         ),
         agent_run_options=AgentRunOptions(
             is_context_engine_enabled=False,

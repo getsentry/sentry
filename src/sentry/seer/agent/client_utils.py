@@ -400,16 +400,17 @@ def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
-    project_ids: Sequence[int] | None = None,
+    project_id: int | None = None,
 ) -> UserOrgContext:
-    """Collect user and organization context, optionally scoped to specific projects."""
-    all_projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-    if project_ids is not None:
-        all_projects = all_projects.filter(id__in=project_ids)
-    project_values = list(all_projects.values("id", "slug"))
+    """Collect user and organization context, optionally scoped to a project."""
+    all_projects = Project.objects.filter(
+        organization=organization, status=ObjectStatus.ACTIVE
+    ).values("id", "slug")
+    if project_id is not None:
+        all_projects = all_projects.filter(id=project_id)
 
     prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id, [p["id"] for p in project_values]
+        organization.id, [p["id"] for p in all_projects]
     )
     repos_by_pid = {
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
@@ -417,7 +418,7 @@ def collect_user_org_context(
 
     all_org_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
-        for p in project_values
+        for p in all_projects
     ]
 
     if user is None or isinstance(user, AnonymousUser):
@@ -454,8 +455,8 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    if project_ids is not None:
-        my_projects = my_projects.filter(id__in=project_ids)
+    if project_id is not None:
+        my_projects = my_projects.filter(id=project_id)
     user_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects

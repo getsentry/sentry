@@ -226,7 +226,7 @@ class CollectUserOrgContextTest(TestCase):
         context = collect_user_org_context(
             self.user,
             self.organization,
-            project_ids=[self.project1.id],
+            project_id=self.project1.id,
         )
 
         assert [project["id"] for project in context["all_org_projects"]] == [self.project1.id]
@@ -236,7 +236,7 @@ class CollectUserOrgContextTest(TestCase):
         context_without_user = collect_user_org_context(
             None,
             self.organization,
-            project_ids=[self.project1.id],
+            project_id=self.project1.id,
         )
         assert [project["id"] for project in context_without_user["all_org_projects"]] == [
             self.project1.id
