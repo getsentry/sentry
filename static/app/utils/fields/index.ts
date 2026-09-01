@@ -1,4 +1,4 @@
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_METADATA, ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
 import {
@@ -3895,4 +3895,28 @@ export function attributeTypeFromKind(
 export function prettifyTagKey(key: string): string {
   const result = key.match(TYPED_TAG_KEY_RE);
   return result?.[1] ?? key;
+}
+
+export function getAttributeValue(attributes: unknown, key: string): unknown {
+  if (typeof attributes !== 'object' || attributes === null) {
+    return undefined;
+  }
+
+  const metadata =
+    ATTRIBUTE_SEARCH_METADATA[key] ??
+    Object.values(ATTRIBUTE_SEARCH_METADATA).find(({deprecationChain: chain}) =>
+      chain.includes(key)
+    );
+
+  if (!metadata) {
+    return undefined;
+  }
+
+  for (const candidateKey of metadata.deprecationChain) {
+    if (Object.hasOwn(attributes, candidateKey)) {
+      return (attributes as Record<string, unknown>)[candidateKey];
+    }
+  }
+
+  return undefined;
 }
