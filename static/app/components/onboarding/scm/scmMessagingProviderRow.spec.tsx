@@ -14,6 +14,7 @@ import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
+import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
 import {ScmMessagingProviderRow} from './scmMessagingProviderRow';
 import type {ScmMessagingResolvedProvider} from './useScmMessagingProviders';
 
@@ -532,9 +533,8 @@ describe('ScmMessagingProviderRow', () => {
     });
 
     it('shows the picker when the parent sets activeRow to configuring', () => {
-
       renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        initialActiveRow: {providerKey: 'slack', mode: 'configuring'}
+        initialActiveRow: {providerKey: 'slack', mode: 'configuring'},
       });
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
@@ -684,7 +684,7 @@ describe('ScmMessagingProviderRow', () => {
       const onMessagingSetupChange = jest.fn();
 
       const {rerender} = renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        onMessagingSetupChange
+        onMessagingSetupChange,
       });
 
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
