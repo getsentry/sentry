@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,6 +13,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -47,8 +48,6 @@ const formSchema = z.object({
     .refine(value => value !== null, 'Please select a data category.'),
 });
 
-const defaultValues: z.input<typeof formSchema> = {dataCategory: null};
-
 function DeleteBillingMetricHistoryModal({
   onSuccess,
   organization,
@@ -60,7 +59,7 @@ function DeleteBillingMetricHistoryModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} = useQuery(
-    apiOptions.as<BillingConfig>()('/billing-config/', {
+    apiOptions.as<BillingConfig>()(getApiUrl('/billing-config/'), {
       staleTime: Infinity,
     })
   );
@@ -88,7 +87,7 @@ function DeleteBillingMetricHistoryModal({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues,
+    defaultValues: {dataCategory: null as number | null},
     validators: {onDynamic: formSchema},
     onSubmit: ({value}) => {
       const data = formSchema.parse(value);
@@ -141,12 +140,10 @@ function DeleteBillingMetricHistoryModal({
         </Stack>
       </Body>
       <Footer>
-        <Button onClick={closeModal}>Cancel</Button>
-        <form.Subscribe selector={state => state.values.dataCategory === null}>
-          {isDataCategoryEmpty => (
-            <form.SubmitButton disabled={isDataCategoryEmpty}>Delete</form.SubmitButton>
-          )}
-        </form.Subscribe>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Delete</form.SubmitButton>
+        </Flex>
       </Footer>
     </form.AppForm>
   );
