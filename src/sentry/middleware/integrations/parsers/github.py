@@ -24,7 +24,6 @@ from sentry.integrations.github.webhook_types import (
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
@@ -77,6 +76,7 @@ class GithubRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.GITHUB
     webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
+    always_bucket = True
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
@@ -94,14 +94,6 @@ class GithubRequestParser(BaseRequestParser):
             if isinstance(repo_id, int):
                 return repo_id
         return None
-
-    def _bucketed_mailbox_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """Bypasses the base class's rate-limit auto-switch so GitHub webhooks are
-        always bucketed.
-        """
-        return self._build_bucketed_identifier(integration, data)
 
     def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
         return self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)

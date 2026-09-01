@@ -77,6 +77,10 @@ class BaseRequestParser(ABC):
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
 
+    always_bucket: ClassVar[bool] = False
+    """Split every integration's mailbox by `mailbox_bucket_id` instead of waiting
+    for it to exceed the hourly rate limit first."""
+
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
@@ -274,33 +278,17 @@ class BaseRequestParser(ABC):
     def _bucketed_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
     ) -> str:
-        """The mailbox identifier up to the bucket, before any event-type suffix."""
-        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
-        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
-        use_buckets_key = f"{ratelimit_key}:use_buckets"
+        """The mailbox identifier up to the bucket, before any event-type suffix.
 
-        use_buckets = cache.get(use_buckets_key)
-        if not use_buckets and ratelimiter.is_limited(
-            key=ratelimit_key, window=60 * 60, limit=3000
-        ):
-            # Once we have gone over the rate limit in a day, we use smaller
-            # buckets for the next day.
-            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
-            use_buckets = True
-        if not use_buckets:
+        Falls back to the integration-level mailbox when the integration is below
+        the volume that warrants buckets, or when no bucket ID is available."""
+        if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
             metrics.incr(
                 "hybridcloud.webhookpayload.mailbox_routing",
                 tags={"provider": self.provider, "bucketed": "false"},
             )
             return str(integration.id)
 
-        return self._build_bucketed_identifier(integration, data)
-
-    def _build_bucketed_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """Compute a sub-mailbox identifier from mailbox_bucket_id, falling back to
-        the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             metrics.incr(
@@ -318,6 +306,20 @@ class BaseRequestParser(ABC):
         )
 
         return f"{integration.id}:{bucket_number}"
+
+    def _exceeds_bucketing_volume(self, integration: RpcIntegration | Integration) -> bool:
+        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
+        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
+        use_buckets_key = f"{ratelimit_key}:use_buckets"
+
+        if cache.get(use_buckets_key):
+            return True
+        if ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
+            # Once we have gone over the rate limit in a day, we use smaller
+            # buckets for the next day.
+            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
+            return True
+        return False
 
     def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
         raise NotImplementedError(
