@@ -1,6 +1,7 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {render, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
@@ -166,11 +167,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       organization,
     });
 
-    expect(result.current.getFilterTokenWarning?.('ai.completion_tokens.used')).toBe(
-      'Deprecated. Use gen_ai.usage.output_tokens instead.'
+    render(
+      <Fragment>
+        {result.current.getFilterTokenWarning?.('ai.completion_tokens.used')}
+        {result.current.getFilterTokenWarning?.('sentry.segment.name')}
+      </Fragment>
     );
-    expect(result.current.getFilterTokenWarning?.('sentry.segment.name')).toBe(
-      'Deprecated. Use transaction instead.'
+
+    expect(document.body).toHaveTextContent(
+      'ai.completion_tokens.used is deprecated. Use gen_ai.usage.output_tokens instead.'
+    );
+    expect(document.body).toHaveTextContent(
+      'sentry.segment.name is deprecated. Use transaction instead.'
     );
     expect(
       result.current.getFilterTokenWarning?.('gen_ai.usage.output_tokens')
