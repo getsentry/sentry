@@ -89,12 +89,30 @@ class OutboxBase(Model):
         return outbox_model
 
     @classmethod
-    def next_object_identifier(cls) -> int:
+    def reserve_object_identifiers_for_bulk_create(cls, count: int) -> list[int]:
+        """Reserve IDs for one bounded ``bulk_create`` operation.
+
+        WARNING: PostgreSQL sequence values are a global, non-transactional resource. Every
+        value reserved here is consumed permanently, even if the transaction rolls back or the
+        caller does not use it. Use with caution and prefer ``next_object_identifier`` where
+        possible.
+        """
+        if not 0 <= count <= 10_000:
+            raise ValueError("bulk identifier reservation count must be between 0 and 10,000")
+        if count == 0:
+            return []
+
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using):
-            with connections[using].cursor() as cursor:
-                cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
-                return cursor.fetchone()[0]
+        with connections[using].cursor() as cursor:
+            cursor.execute(
+                "SELECT nextval(%s) FROM generate_series(1,%s);",
+                [f"{cls._meta.db_table}_id_seq", count],
+            )
+            return [identifier for (identifier,) in cursor.fetchall()]
+
+    @classmethod
+    def next_object_identifier(cls) -> int:
+        return cls.reserve_object_identifiers_for_bulk_create(1)[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
@@ -194,14 +212,17 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
+    def schedule_drain_on_commit(self) -> None:
+        if _outbox_context.flushing_enabled:
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not OutboxScope.scope_has_category(self.shard_scope, self.category):
             raise InvalidOutboxError(
                 f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
             )
 
-        if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+        self.schedule_drain_on_commit()
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
