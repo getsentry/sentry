@@ -439,15 +439,13 @@ function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): 
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
-  referrer,
   staleTime: staleTimeOverride,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
-  referrer?: string;
   staleTime?: number;
 } = {}) {
-  const _referrer = referrer ?? 'api.explore.logs-table';
+  const _referrer = 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
 
