@@ -51,11 +51,13 @@ function AttributesHighlights({
         const nameKey = isOtelRuntime ? 'process.runtime.name' : 'runtime.name';
         const versionKey = isOtelRuntime ? 'process.runtime.version' : 'runtime.version';
         const name = getAttributeValue(attributes, nameKey, 'string');
-        const version = attributes.some(
-          attribute => prettifyAttributeName(attribute.name) === versionKey
-        )
-          ? getAttributeValue(attributes, versionKey, 'string')
-          : undefined;
+        const version = getAttributeValue(
+          attributes.filter(
+            attribute => prettifyAttributeName(attribute.name) === versionKey
+          ),
+          versionKey,
+          'string'
+        );
 
         if (!name) {
           return null;
