@@ -165,7 +165,9 @@ describe('AutomationsList', () => {
     render(<AutomationsList />, {organization});
 
     const row = await screen.findByTestId('automation-list-row');
-    expect(await within(projectsCell(row)).findByText('All Projects')).toBeInTheDocument();
+    expect(
+      await within(projectsCell(row)).findByText('All Projects')
+    ).toBeInTheDocument();
   });
 
   it('can filter by project', async () => {

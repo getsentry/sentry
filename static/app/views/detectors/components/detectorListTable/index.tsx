@@ -211,12 +211,19 @@ export function DetectorListTable({
                 <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
               ))}
               {hasVisualization && detectors.length > 0 && (
-                <VisualizationHeaderCell columnKey="visualization" ref={elementRef} scope="col">
+                <VisualizationHeaderCell
+                  columnKey="visualization"
+                  ref={elementRef}
+                  scope="col"
+                >
                   <GridLineLabels timeWindowConfig={timeWindowConfig} />
                 </VisualizationHeaderCell>
               )}
               {hasVisualization && (
-                <VisualizationExpandButtonCell columnKey="visualization-expand" scope="col">
+                <VisualizationExpandButtonCell
+                  columnKey="visualization-expand"
+                  scope="col"
+                >
                   <Button
                     size="xs"
                     variant="transparent"

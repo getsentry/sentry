@@ -1,13 +1,14 @@
 import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {QueryContainer, setContainerWidth} from 'sentry-test/containerQuery';
 import {
   act,
   render,
   renderHookWithProviders,
   screen,
 } from 'sentry-test/reactTestingLibrary';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
@@ -542,6 +543,12 @@ describe('useContainerBreakpoint', () => {
     jest.restoreAllMocks();
   });
 
+  // `clientWidth` is an accessor on Element.prototype (not HTMLElement); spy
+  // there so the fake is actually hit and restoreAllMocks cleans it up.
+  const setClientWidth = (width: number) => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
+  };
+
   function BreakpointProbe() {
     const breakpoint = useContainerBreakpoint();
     return <div>breakpoint:{breakpoint}</div>;
@@ -549,21 +556,21 @@ describe('useContainerBreakpoint', () => {
 
   it('resolves the largest breakpoint the container width satisfies', () => {
     // Container scale: xl = 768px, 2xl = 896px -> 800px resolves to xl.
-    setContainerWidth(800);
+    setClientWidth(800);
     render(
-      <QueryContainer>
+      <Container containerType="inline-size">
         <BreakpointProbe />
-      </QueryContainer>
+      </Container>
     );
     expect(screen.getByText('breakpoint:xl')).toBeInTheDocument();
   });
 
   it('falls back to zero when the container is narrower than the smallest breakpoint', () => {
-    setContainerWidth(0);
+    setClientWidth(0);
     render(
-      <QueryContainer>
+      <Container containerType="inline-size">
         <BreakpointProbe />
-      </QueryContainer>
+      </Container>
     );
     expect(screen.getByText('breakpoint:zero')).toBeInTheDocument();
   });

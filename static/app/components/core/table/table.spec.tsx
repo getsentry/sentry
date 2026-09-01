@@ -1,4 +1,3 @@
-import {QueryContainer, setContainerWidth} from 'sentry-test/containerQuery';
 import {dragHandle} from 'sentry-test/dragMove';
 import {
   render,
@@ -7,6 +6,8 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+
+import {Container} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 const COLUMNS: TableColumnConfig[] = [
@@ -235,6 +236,12 @@ describe('Table', () => {
   });
 
   describe('responsive columns', () => {
+    // jsdom reports a 0px container, so fake a width for the breakpoints to resolve
+    // against. `clientWidth` is an accessor on Element.prototype, so spy there.
+    const setClientWidth = (width: number) => {
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
+    };
+
     afterEach(() => {
       jest.restoreAllMocks();
     });
@@ -247,33 +254,33 @@ describe('Table', () => {
 
     it('sizes a column by the width its container width resolves to', () => {
       // Container scale: xl = 768px, 2xl = 896px -> 800px resolves to xl.
-      setContainerWidth(800);
+      setClientWidth(800);
       render(
-        <QueryContainer>
+        <Container containerType="inline-size">
           <TestTable columns={RESPONSIVE_COLUMNS} />
-        </QueryContainer>
+        </Container>
       );
 
       expect(gridTemplate()).toBe('200px 150px minmax(90px, auto)');
     });
 
     it('drops the track of a column hidden at the container width', () => {
-      setContainerWidth(400);
+      setClientWidth(400);
       render(
-        <QueryContainer>
+        <Container containerType="inline-size">
           <TestTable columns={RESPONSIVE_COLUMNS} />
-        </QueryContainer>
+        </Container>
       );
 
       expect(gridTemplate()).toBe('120px minmax(90px, auto)');
     });
 
     it('hides the cells of a column hidden at the container width', () => {
-      setContainerWidth(400);
+      setClientWidth(400);
       render(
-        <QueryContainer>
+        <Container containerType="inline-size">
           <TestTable columns={RESPONSIVE_COLUMNS} />
-        </QueryContainer>
+        </Container>
       );
 
       expect(screen.getByText('age-value')).not.toBeVisible();
@@ -281,27 +288,27 @@ describe('Table', () => {
     });
 
     it('leaves the last visible column flexible when a later column is hidden', () => {
-      setContainerWidth(400);
+      setClientWidth(400);
       render(
-        <QueryContainer>
+        <Container containerType="inline-size">
           <TestTable
             columns={[
               {key: 'name', width: 120},
               {key: 'age', visible: {zero: false, xl: true}, width: 150},
             ]}
           />
-        </QueryContainer>
+        </Container>
       );
 
       expect(gridTemplate()).toBe('minmax(120px, auto)');
     });
 
     it('omits the resize handle of a column hidden at the container width', () => {
-      setContainerWidth(400);
+      setClientWidth(400);
       render(
-        <QueryContainer>
+        <Container containerType="inline-size">
           <TestTable columns={RESPONSIVE_COLUMNS} />
-        </QueryContainer>
+        </Container>
       );
 
       expect(resizers()).toHaveLength(1);
@@ -310,9 +317,9 @@ describe('Table', () => {
 
     it('reports the visible index of a resized column to onColumnResize', () => {
       const onColumnResize = jest.fn();
-      setContainerWidth(400);
+      setClientWidth(400);
       render(
-        <QueryContainer>
+        <Container containerType="inline-size">
           <TestTable
             columns={[
               {key: 'name', visible: {zero: false, xl: true}, width: 200},
@@ -321,7 +328,7 @@ describe('Table', () => {
             ]}
             onColumnResize={onColumnResize}
           />
-        </QueryContainer>
+        </Container>
       );
 
       dragHandle(resizers()[0]!, {from: 100, to: 350});

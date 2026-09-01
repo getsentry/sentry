@@ -165,11 +165,7 @@ export function AutomationListTable({
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
-            <HeaderCell
-              columnKey="last-triggered"
-              sort={sort}
-              sortKey="lastTriggered"
-            >
+            <HeaderCell columnKey="last-triggered" sort={sort} sortKey="lastTriggered">
               {t('Last Triggered')}
             </HeaderCell>
             <HeaderCell columnKey="action" sort={sort} sortKey="actions">

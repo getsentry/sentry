@@ -142,9 +142,7 @@ export function ConnectedMonitorsList({
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell columnKey="type">
-              {t('Type')}
-            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="type">{t('Type')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell columnKey="last-issue">
               {t('Last Issue')}
             </SimpleTable.HeaderCell>

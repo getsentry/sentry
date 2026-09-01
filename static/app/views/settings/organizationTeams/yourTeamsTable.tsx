@@ -91,9 +91,7 @@ export function YourTeamsTable({
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell columnKey="role">
-            {t('Role')}
-          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell columnKey="role">{t('Role')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell columnKey="projects">
             {t('Projects')}
           </SimpleTable.HeaderCell>
@@ -182,9 +180,7 @@ function YourTeamRow({
           badge
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="role">
-        {teamRoleName ?? null}
-      </SimpleTable.RowCell>
+      <SimpleTable.RowCell columnKey="role">{teamRoleName ?? null}</SimpleTable.RowCell>
       <SimpleTable.RowCell columnKey="projects">
         <TeamProjectsCell
           projects={teamProjects}

@@ -234,9 +234,7 @@ export default Storybook.story('SimpleTable', story => {
               <SimpleTable.Row key={row.name}>
                 <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-                <SimpleTable.RowCell columnKey="action">
-                  {row.action}
-                </SimpleTable.RowCell>
+                <SimpleTable.RowCell columnKey="action">{row.action}</SimpleTable.RowCell>
                 <SimpleTable.RowCell columnKey="lastTriggered">
                   <TimeAgoCell date={row.lastTriggered} />
                 </SimpleTable.RowCell>

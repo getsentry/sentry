@@ -1,6 +1,5 @@
 import {ApiApplicationFixture} from 'sentry-fixture/apiApplication';
 
-import {QueryContainer, setContainerWidth} from 'sentry-test/containerQuery';
 import {
   render,
   renderGlobalModal,
@@ -10,6 +9,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
@@ -18,8 +19,9 @@ jest.mock('sentry/utils/demoMode');
 describe('ApiApplications', () => {
   beforeEach(() => {
     // The page gets its query container from the app shell, and the table only
-    // shows its "Age" column once that container is wide.
-    setContainerWidth(1600);
+    // shows its "Age" column once that container is wide. jsdom reports a 0px
+    // container, so fake a desktop width.
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
     MockApiClient.clearMockResponses();
   });
 
@@ -29,7 +31,11 @@ describe('ApiApplications', () => {
       body: [],
     });
 
-    render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
@@ -44,7 +50,11 @@ describe('ApiApplications', () => {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(requestMock).toHaveBeenCalled();
@@ -66,7 +76,11 @@ describe('ApiApplications', () => {
       body: [apiApp],
     });
 
-    render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('Adjusted Shrimp')).toBeInTheDocument();
@@ -82,7 +96,11 @@ describe('ApiApplications', () => {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
 
     expect(
       await screen.findByText("You haven't created any applications yet.")
@@ -105,7 +123,11 @@ describe('ApiApplications', () => {
       method: 'POST',
     });
 
-    const {router} = render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    const {router} = render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -154,7 +176,11 @@ describe('ApiApplications', () => {
       method: 'POST',
     });
 
-    const {router} = render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    const {router} = render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -198,7 +224,11 @@ describe('ApiApplications', () => {
       method: 'DELETE',
     });
 
-    render(<ApiApplications />, {additionalWrapper: QueryContainer});
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
