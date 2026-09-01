@@ -377,7 +377,6 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
     def test_includes_context_when_requested(self) -> None:
         TraceItemAttributeValueContext.objects.create(
             organization=self.organization,
-            project=None,
             attribute_name="metric.name",
             attribute_value="http.request.duration",
             attribute_type=TraceMetricTypes.DISTRIBUTION,

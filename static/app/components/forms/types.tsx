@@ -1,11 +1,9 @@
 import type {AlertProps} from '@sentry/scraps/alert';
-import type {SelectValue} from '@sentry/scraps/select';
+import type {SelectValue, createFilter} from '@sentry/scraps/select';
 
-import type {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {SliderProps} from 'sentry/components/slider';
-import type {AvatarProject} from 'sentry/types/project';
 
 type FieldType =
   | 'array'
@@ -25,8 +23,7 @@ type FieldType =
   | 'string'
   | 'text'
   | 'url'
-  | 'table'
-  | 'project_mapper';
+  | 'table';
 
 export type FieldValue = any;
 
@@ -158,23 +155,6 @@ export interface TableType {
   // TODO(TS): Should we have addButtonText and allowEmpty here as well?
 }
 
-// maps a sentry project to another field
-export type ProjectMapperType = {
-  iconType: string;
-  mappedDropdown: {
-    items: Array<{label: string; url: string; value: string | number}>;
-    placeholder: string;
-  };
-  nextButton: {
-    allowedDomain: string;
-    text: string;
-    // url comes from the `next` parameter in the QS
-    description?: string;
-  };
-  sentryProjects: Array<AvatarProject & {id: number; name: string}>;
-  type: 'project_mapper';
-};
-
 type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
@@ -187,7 +167,6 @@ export type Field = (
   | NumberType
   | RangeType
   | TableType
-  | ProjectMapperType
   | ChoiceMapperType
   | {type: FieldType}
   | FileType

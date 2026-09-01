@@ -53,6 +53,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -1219,6 +1220,68 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_pull_request_statuses_chunks_cache_misses(self, get_jwt) -> None:
+        # A batch larger than the chunk size is fetched over several sequential
+        # queries so no single query exceeds GitHub's ~10s server-side timeout.
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        first = PullRequestStatusRequest(repo=self.repo.name, pull_number="41")
+        second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
+
+        with override_options({"github-app.pull-request-status.chunk-size": 1}):
+            results = self.github_client.get_pull_request_statuses([first, second])
+
+        assert results == {
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
+        }
+        # One GraphQL POST per chunk, each carrying only its own PR's variables.
+        assert len(responses.calls) == 2
+        assert orjson.loads(responses.calls[0].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 41,
+        }
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_pull_request_status_caches_the_response(self, get_jwt) -> None:
         # One provider request per pull request per window: the endpoint fetches for
         # every linked pull request, so a repeat view must not re-query GitHub.
@@ -1259,9 +1322,21 @@ class GitHubApiClientTest(TestCase):
 
         status_only_key = self.github_client._get_pull_request_status_cache_key(status_only)
         assert status_only_key == self.github_client.get_cache_key(
-            "/graphql/pull-request-status", "", previous_cache_data
+            "/graphql/pull-request-status/v2", "", previous_cache_data
         )
         assert status_only_key != self.github_client._get_pull_request_status_cache_key(with_files)
+
+    def test_pull_request_status_cache_key_versions_the_result_shape(self) -> None:
+        # failed_checks changed shape (str -> FailedCheck), so the key must not
+        # collide with entries cached under the previous shape; otherwise the
+        # overview serializer reads stale bare strings and 500s just after deploy.
+        request = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        pre_version_key = self.github_client.get_cache_key(
+            "/graphql/pull-request-status",
+            "",
+            orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode(),
+        )
+        assert self.github_client._get_pull_request_status_cache_key(request) != pre_version_key
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

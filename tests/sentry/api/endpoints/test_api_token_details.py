@@ -48,7 +48,15 @@ class ApiTokenGetTest(APITestCase):
 
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
-        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+        self.get_error_response(token.id, status_code=status.HTTP_403_FORBIDDEN)
+
+    def test_deny_token_access(self) -> None:
+        token = self.create_user_auth_token(user=self.user, name="token 1")
+        self.get_error_response(
+            token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
@@ -141,7 +149,18 @@ class ApiTokenPutTest(APITestCase):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
-        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED, **payload)
+        self.get_error_response(token.id, status_code=status.HTTP_403_FORBIDDEN, **payload)
+
+    def test_deny_token_access(self) -> None:
+        token = self.create_user_auth_token(user=self.user, name="token 1")
+        self.get_error_response(
+            token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="new token",
+        )
+        token.refresh_from_db()
+        assert token.name == "token 1"
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
@@ -185,7 +204,16 @@ class ApiTokenDeleteTest(APITestCase):
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
-        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+        self.get_error_response(token.id, status_code=status.HTTP_403_FORBIDDEN)
+
+    def test_deny_token_access(self) -> None:
+        token = self.create_user_auth_token(user=self.user, name="token 1")
+        self.get_error_response(
+            token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+        assert ApiToken.objects.filter(id=token.id).exists()
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")

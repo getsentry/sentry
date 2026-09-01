@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
+import {SentryTrackingProvider} from 'sentry/scrapsProviders/tracking';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
@@ -9,6 +9,7 @@ import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextP
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {SeerXRayOverlayProvider} from 'sentry/views/seerExplorer/xray/seerXRayOverlayProvider';
 
 interface AppProvidersProps {
   children: NonNullable<React.ReactNode>;
@@ -29,14 +30,18 @@ export function AppProviders({preloadData, children}: AppProvidersProps) {
 
   const providers: Array<React.ComponentType<{children: NonNullable<React.ReactNode>}>> =
     [
-      UserTimezoneProvider,
       LastKnownRouteContextProvider,
       RouteAnalyticsContextProvider,
       OrganizationProvider,
+      // Reads the organization to build the button/link click tracker, so must
+      // render inside OrganizationProvider.
+      SentryTrackingProvider,
       AsyncSDKIntegrationContextProvider,
       GlobalFeedbackForm,
       DemoToursProvider,
       LLMContextProvider,
+      // Reads the tree LLMContextProvider maintains, so must render inside it.
+      SeerXRayOverlayProvider,
       GlobalAlertProvider,
     ];
 

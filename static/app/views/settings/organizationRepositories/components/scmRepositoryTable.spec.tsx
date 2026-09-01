@@ -114,7 +114,7 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      expect(screen.getByText('Manage repositories').closest('a')).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Manage repositories'})).toHaveAttribute(
         'href',
         'https://github.com/apps/sentry-io'
       );

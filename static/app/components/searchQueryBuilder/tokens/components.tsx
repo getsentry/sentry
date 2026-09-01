@@ -3,10 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {FocusableElement} from '@react-types/shared';
 
-import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
-import type {
-  ContainerProps,
-  ContainerPropsWithRenderFunction,
+import {
+  Container,
+  Flex,
+  type FlexProps,
+  type ContainerProps,
+  type ContainerPropsWithRenderFunction,
 } from '@sentry/scraps/layout';
 
 type BaseGridCellProps = FlexProps & DOMAttributes<FocusableElement>;

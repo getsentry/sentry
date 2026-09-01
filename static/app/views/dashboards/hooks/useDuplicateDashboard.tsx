@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {createDashboard, fetchDashboard} from 'sentry/actionCreators/dashboards';
@@ -10,6 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {cloneDashboard} from 'sentry/views/dashboards/utils';
+import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
 import {
   PREBUILT_DASHBOARDS,
   type PrebuiltDashboardId,
@@ -52,6 +53,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
           }
         } else {
           dashboardDetail = await fetchDashboard(api, organization.slug, dashboard.id);
+          dashboardDetail.widgets = enforceLayoutMinHeight(dashboardDetail.widgets);
         }
 
         const newDashboard = cloneDashboard(dashboardDetail);
@@ -77,59 +79,6 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
   );
 
   return duplicateDashboard;
-}
-
-export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboardProps) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const organization = useOrganization();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const duplicatePrebuiltDashboard = useCallback(
-    async (dashboardId?: string) => {
-      if (!dashboardId) {
-        throw new Error('Dashboard ID is required to duplicate a prebuilt dashboard');
-      }
-      try {
-        setIsLoading(true);
-
-        // Fetch the saved dashboard to get the prebuilt ID and saved filters.
-        // Widgets are not stored for prebuilt dashboards, so we pull those
-        // from the static config and resolve any linked dashboard placeholders.
-        const savedDashboard = await fetchDashboard(api, organization.slug, dashboardId);
-
-        if (!savedDashboard.prebuiltId) {
-          throw new Error('Saved dashboard is missing its prebuilt ID');
-        }
-
-        const dashboardDetail = await resolveLinkedDashboardIds({
-          queryClient,
-          orgSlug: organization.slug,
-          dashboard: toPrebuiltDashboardDetails(savedDashboard.prebuiltId),
-        });
-
-        const newDashboard = cloneDashboard(dashboardDetail);
-        delete newDashboard.prebuiltId;
-        newDashboard.title = `${newDashboard.title} copy`;
-        newDashboard.widgets.map(widget => (widget.id = undefined));
-        copySavedFilters(newDashboard, savedDashboard);
-        const copiedDashboard = await createDashboard(
-          api,
-          organization.slug,
-          newDashboard
-        );
-        onSuccess?.(copiedDashboard);
-        addSuccessMessage(t('Dashboard duplicated'));
-      } catch (e) {
-        addErrorMessage(t('Error duplicating Dashboard'));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [api, queryClient, organization, onSuccess]
-  );
-
-  return {duplicatePrebuiltDashboard, isLoading};
 }
 
 /**

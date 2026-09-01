@@ -4,8 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerHeader} from '@sentry/scraps/drawer';
+import {useDrawer, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';

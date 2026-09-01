@@ -1,6 +1,17 @@
 from __future__ import annotations
 
+from typing import NamedTuple
+
 from pydantic import BaseModel, ConfigDict
+
+
+class ImageSize(NamedTuple):
+    width: int
+    height: int
+
+    @property
+    def pixel_count(self) -> int:
+        return self.width * self.height
 
 
 class DiffResult(BaseModel):

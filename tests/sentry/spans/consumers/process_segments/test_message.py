@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry import nodestore
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import run_span_first_detectors
 from sentry.issue_detection.detectors.span_first.span_first_utils import (
@@ -17,25 +18,103 @@ from sentry.issue_detection.performance_detection import (
     detect_performance_problems,
     get_detection_settings,
 )
+from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.services.eventstore.models import Event
 from sentry.spans.consumers.process_segments import message as message_module
 from sentry.spans.consumers.process_segments.message import (
+    EVIDENCE_SPAN_DATA_KEYS,
+    MAX_EVIDENCE_LIST_ITEMS,
+    MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_SPAN_DATA_VALUE_LENGTH,
+    MAX_SPAN_DESCRIPTION_LENGTH,
+    OVERALL_MAX_EVIDENCE_SPANS,
     _bump_release_last_seen,
+    _get_evidence_data_for_occurrence,
+    _get_evidence_span_for_occurrence,
+    _truncate_value_for_occurrence,
     _verify_compatibility,
     process_segment,
 )
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.experiments import exclude_experimental_detectors
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 from tests.sentry.spans.consumers.process import build_mock_span
 
 DETECTORS_ENABLED_OPTION = "spans.process-segments.detect-performance-problems.detectors-enabled"
+PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG = "organizations:performance-issues-spans"
+DISCARD_TRANSACTIONS_PROJECT_FEATURE_FLAG = "projects:discard-transaction"
+
+
+def generate_n_plus_one_spans(
+    project: Project,
+    *,
+    has_performance_issues_spans_relay_flag: bool = False,
+    event_id: str | None = None,
+):
+    """
+    Build a set of spans containing an N+1 problem.
+
+    `has_performance_issues_spans_relay_flag` controls Relay's `_performance_issues_spans` marker.
+    Relay omits the marker entirely rather than serializing it as `False`, so it's only set here
+    if the parameter is True.
+    """
+    segment_span_kwargs: dict[str, Any] = {}
+    if has_performance_issues_spans_relay_flag:
+        segment_span_kwargs["_performance_issues_spans"] = True
+    if event_id is not None:
+        segment_span_kwargs["event_id"] = event_id
+
+    segment_span = build_mock_span(
+        project_id=project.id,
+        is_segment=True,
+        **segment_span_kwargs,
+    )
+    child_span = build_mock_span(
+        project_id=project.id,
+        description="OrganizationNPlusOne.get",
+        parent_span_id=segment_span["span_id"],
+        span_id="940ce942561548b5",
+        start_timestamp_ms=1707953018867,
+        start_timestamp=1707953018.867,
+    )
+    cause_span = build_mock_span(
+        project_id=project.id,
+        span_op="db",
+        description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
+        parent_span_id="940ce942561548b5",
+        span_id="a974da4671bc3857",
+        start_timestamp_ms=1707953018867,
+        start_timestamp=1707953018.867,
+    )
+    repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
+
+    def repeating_span():
+        return build_mock_span(
+            project_id=project.id,
+            span_op="db",
+            description=repeating_span_description,
+            parent_span_id="940ce942561548b5",
+            span_id=uuid.uuid4().hex[:16],
+            start_timestamp_ms=1707953018869,
+            start_timestamp=1707953018.869,
+        )
+
+    repeating_spans = [repeating_span() for _ in range(7)]
+    spans = [segment_span, child_span, cause_span] + repeating_spans
+
+    return spans
 
 
 @exclude_experimental_detectors
@@ -71,47 +150,6 @@ class TestSpansTask(TestCase):
         )
 
         return [child_span, segment_span]
-
-    def generate_n_plus_one_spans(self):
-        segment_span = build_mock_span(
-            project_id=self.project.id,
-            is_segment=True,
-            _performance_issues_spans=True,
-        )
-        child_span = build_mock_span(
-            project_id=self.project.id,
-            description="OrganizationNPlusOne.get",
-            parent_span_id=segment_span["span_id"],
-            span_id="940ce942561548b5",
-            start_timestamp_ms=1707953018867,
-            start_timestamp=1707953018.867,
-        )
-        cause_span = build_mock_span(
-            project_id=self.project.id,
-            span_op="db",
-            description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
-            parent_span_id="940ce942561548b5",
-            span_id="a974da4671bc3857",
-            start_timestamp_ms=1707953018867,
-            start_timestamp=1707953018.867,
-        )
-        repeating_span_description = 'SELECT "sentry_organization"."id", "sentry_organization"."name", "sentry_organization"."slug", "sentry_organization"."status", "sentry_organization"."date_added", "sentry_organization"."default_role", "sentry_organization"."is_test", "sentry_organization"."flags" FROM "sentry_organization" WHERE "sentry_organization"."id" = %s LIMIT 21'
-
-        def repeating_span():
-            return build_mock_span(
-                project_id=self.project.id,
-                span_op="db",
-                description=repeating_span_description,
-                parent_span_id="940ce942561548b5",
-                span_id=uuid.uuid4().hex[:16],
-                start_timestamp_ms=1707953018869,
-                start_timestamp=1707953018.869,
-            )
-
-        repeating_spans = [repeating_span() for _ in range(7)]
-        spans = [segment_span, child_span, cause_span] + repeating_spans
-
-        return spans
 
     def test_enrich_spans(self) -> None:
         spans = self.generate_basic_spans()
@@ -221,9 +259,15 @@ class TestSpansTask(TestCase):
         assert not Release.objects.filter(organization_id=self.organization.id).exists()
 
     @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
+    @with_feature(PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG)
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(
+            self.project,
+            # Force segment to create an occurrence so we can examine it
+            has_performance_issues_spans_relay_flag=True,
+        )
+
         with mock.patch("sentry.issues.ingest.should_create_group", return_value=True):
             process_segment(spans)
 
@@ -236,6 +280,23 @@ class TestSpansTask(TestCase):
             ).hexdigest()
         ]
         assert performance_problem.type == PerformanceNPlusOneGroupType
+
+        # Ensure the spans are present so the issue can render evidence.
+        event = mock_eventstream.call_args[0][0]
+        assert event.get_event_type() == "generic"
+
+        stored = nodestore.backend.get(Event.generate_node_id(self.project.id, event.event_id))
+        assert stored is not None
+
+        evidence = performance_problem.evidence_data
+        referenced = {
+            *evidence["parent_span_ids"],
+            *evidence["cause_span_ids"],
+            *evidence["offender_span_ids"],
+        }
+        assert {span["span_id"] for span in stored["spans"]} == referenced
+        assert len(referenced) < len(spans)
+        assert "attributes" not in stored["spans"][0]
 
     @override_options({DETECTORS_ENABLED_OPTION: ["*"]})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
@@ -331,7 +392,7 @@ class TestSpansTask(TestCase):
         An empty option value is the killswitch for all segment-based issue detection, so nothing
         downstream of it should run -- not even the settings fetch.
         """
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: []}),
@@ -348,7 +409,7 @@ class TestSpansTask(TestCase):
             legacy_detectors_mock.assert_not_called()
 
     def test_blanket_detector_enablement(self) -> None:
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
@@ -362,7 +423,7 @@ class TestSpansTask(TestCase):
             assert legacy_detectors_spy.call_args.kwargs["detector_classes"] == DETECTOR_CLASSES
 
     def test_selective_detector_enablement(self) -> None:
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db"]}),
@@ -383,7 +444,7 @@ class TestSpansTask(TestCase):
         it lets the valid entries keep working, but it needs to be noisy about it, because
         otherwise a typo is indistinguishable from having deliberately switched that detector off.
         """
-        spans = self.generate_n_plus_one_spans()
+        spans = generate_n_plus_one_spans(self.project)
 
         with (
             override_options({DETECTORS_ENABLED_OPTION: ["n_plus_one_db", "dogs_are_great"]}),
@@ -405,24 +466,6 @@ class TestSpansTask(TestCase):
                 "issue_detection.span_processor.invalid_enablement_option",
                 extra={"option_value": ["n_plus_one_db", "dogs_are_great"]},
             )
-
-    @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
-    @pytest.mark.skip("temporarily disabled")
-    def test_skip_produce_does_not_track_outcomes(self, mock_track_outcome: mock.MagicMock) -> None:
-        """Test that outcomes are not tracked when skip_produce=True"""
-        spans = self.generate_basic_spans()
-
-        # Process with skip_produce=True
-        process_segment(spans, skip_produce=True)
-
-        # Verify track_outcome was not called
-        mock_track_outcome.assert_not_called()
-
-        # Process with skip_produce=False (default)
-        process_segment(spans, skip_produce=False)
-
-        # Verify track_outcome was called once
-        mock_track_outcome.assert_called_once()
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
     def test_record_signals(self, mock_track):
@@ -460,6 +503,23 @@ class TestSpansTask(TestCase):
 
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert "has_insights_vitals" in signals
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
+    def test_record_signals_does_not_set_screen_load_from_navigation_segment(self, mock_track):
+        span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            span_op="navigation",
+            attributes={
+                "sentry.op": {"value": "navigation"},
+            },
+        )
+
+        spans = process_segment([span])
+        assert len(spans) == 1
+
+        signals = [args[0][1] for args in mock_track.call_args_list]
+        assert "has_insights_screen_load" not in signals
 
     @mock.patch("sentry.spans.consumers.process_segments.message.set_project_flag_and_signal")
     def test_record_signals_agents_via_gen_ai_op_name(self, mock_track):
@@ -531,6 +591,135 @@ def test_verify_compatibility() -> None:
     result = _verify_compatibility(spans)
     assert len(result) == len(spans)
     assert [v is None for v in result] == [True, True, False, False, False, False, False]
+
+
+def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
+    span = _get_evidence_span_for_occurrence(
+        {
+            "span_id": "a" * 16,
+            "trace_id": "t" * 32,
+            "op": "db",
+            "hash": "abcdef0123456789",
+            "description": "S" * (MAX_SPAN_DESCRIPTION_LENGTH * 2),
+            "data": {
+                "code.filepath": "F" * (MAX_SPAN_DATA_VALUE_LENGTH * 2),
+                "code.lineno": 42,  # non-strings pass through untouched
+                "db.system": "postgresql",  # not in the allowlist
+                # The span schema allows any attribute to be an array or an object, so an
+                # allowlisted key is not guaranteed to hold a scalar.
+                "url": ["U" * (MAX_SPAN_DATA_VALUE_LENGTH * 2)] * (MAX_EVIDENCE_LIST_ITEMS * 2),
+            },
+            "attributes": {"sentry.description": {"value": "S" * 10000}},
+        }
+    )
+
+    assert len(span["description"]) == MAX_SPAN_DESCRIPTION_LENGTH
+    assert len(span["data"]["code.filepath"]) == MAX_SPAN_DATA_VALUE_LENGTH
+    assert span["data"]["code.lineno"] == 42
+    assert "db.system" not in span["data"]
+    assert len(span["data"]["url"]) == MAX_EVIDENCE_LIST_ITEMS
+    assert {len(v) for v in span["data"]["url"]} == {MAX_SPAN_DATA_VALUE_LENGTH}
+    assert span["trace_id"] == "t" * 32
+    # Raw `attributes` forms the bulk of a span's size and must not reach the occurrence
+    assert "attributes" not in span
+
+
+def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> None:
+    bounded = _truncate_value_for_occurrence(
+        {
+            "repeating_spans": ["x" * 5000] * 500,
+            "span_evidence_key_value": [
+                {"key": "Parallelizable Spans", "value": ["y" * 5000] * 500},
+            ],
+            "transaction_name": "z" * 5000,
+            "num_repeating_spans": "500",
+            "pattern_size": 3,
+            "detector_id": None,
+        },
+        MAX_EVIDENCE_VALUE_LENGTH,
+    )
+
+    assert len(bounded["repeating_spans"]) == MAX_EVIDENCE_LIST_ITEMS
+    assert {len(v) for v in bounded["repeating_spans"]} == {MAX_EVIDENCE_VALUE_LENGTH}
+    nested = bounded["span_evidence_key_value"][0]["value"]
+    assert len(nested) == MAX_EVIDENCE_LIST_ITEMS
+    assert {len(v) for v in nested} == {MAX_EVIDENCE_VALUE_LENGTH}
+    assert len(bounded["transaction_name"]) == MAX_EVIDENCE_VALUE_LENGTH
+    # Counts, sizes and ids are not display strings and must survive intact.
+    assert bounded["num_repeating_spans"] == "500"
+    assert bounded["pattern_size"] == 3
+    assert bounded["detector_id"] is None
+
+
+def test_evidence_stays_under_the_producer_message_limit() -> None:
+    producer_message_limit = 1_000_000
+    query = "SELECT " + "x" * 10_000  # a pathological ORM query
+
+    # A segment where every span is huge, and evidence pointing at far more spans than the cap.
+    segment = {
+        f"{i:016x}": {
+            "span_id": f"{i:016x}",
+            "op": "db",
+            "description": query,
+            "start_timestamp": 1707953018.0 + i,
+            "timestamp": 1707953019.0 + i,
+            "exclusive_time": 12.5,
+            "hash": "abcdef0123456789",
+            "data": {key: "V" * 10_000 for key in EVIDENCE_SPAN_DATA_KEYS},
+        }
+        for i in range(400)
+    }
+    span_ids = list(segment)
+
+    # Consecutive-DB/MN+1 shape: the cause list is a superset of the offenders, and the detector
+    # hangs a full description per span off `evidence_data`.
+    problem = PerformanceProblem(
+        fingerprint="a" * 32,
+        op="db",
+        desc=query,
+        type=PerformanceNPlusOneGroupType,
+        parent_span_ids=[],
+        cause_span_ids=span_ids,
+        offender_span_ids=span_ids[:200],
+        evidence_data={
+            "op": "db",
+            "transaction_name": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
+            "span_evidence_key_value": [
+                {"key": "Starting Span", "value": query},
+                {"key": "Parallelizable Spans", "value": [query] * 200, "is_multi_value": True},
+            ],
+            "repeating_spans": [query] * 200,
+            "repeating_spans_compact": [query] * 200,
+            "num_repeating_spans": "200",
+        },
+        evidence_display=[IssueEvidence("Offending Spans", f"db - {query}", True)],
+    )
+
+    evidence_data = _get_evidence_data_for_occurrence(problem, segment)
+    kept_ids = dict.fromkeys(
+        (
+            *evidence_data["parent_span_ids"],
+            *evidence_data["cause_span_ids"],
+            *evidence_data["offender_span_ids"],
+        )
+    )
+    # Everything the caps govern, sized the way the producer serializes it.
+    bounded = {
+        "subtitle": _truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
+        "evidence_data": evidence_data,
+        "evidence_display": [
+            IssueEvidence(
+                e.name,
+                _truncate_value_for_occurrence(e.value, MAX_EVIDENCE_VALUE_LENGTH),
+                e.important,
+            ).to_dict()
+            for e in problem.evidence_display
+        ],
+        "spans": [_get_evidence_span_for_occurrence(segment[span_id]) for span_id in kept_ids],
+    }
+
+    assert len(bounded["spans"]) <= OVERALL_MAX_EVIDENCE_SPANS
+    assert len(json.dumps(bounded).encode("utf-8")) < producer_message_limit
 
 
 @exclude_experimental_detectors
@@ -815,3 +1004,69 @@ class TestProcessSegmentCaching(TestCase):
 
         mock_create.assert_not_called()
         mock_bump.assert_not_called()
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    [
+        "incoming_data_is_transaction",
+        "discard_transactions_feature_flag",
+        "performance_issues_spans_relay_flag",
+        "performance_issues_spans_feature_flag",
+        "create_occurrence_calls_expected",
+    ],
+    [
+        # Data received as standalone spans, feature flag on -> segment creates occurrence
+        (False, True, True, True, 1),
+        (False, True, False, True, 1),
+        (False, False, True, True, 1),
+        (False, False, False, True, 1),
+        # Transaction discarded, feature flag on -> segment creates occurrence
+        (True, True, True, True, 1),
+        (True, True, False, True, 1),
+        # Transaction kept, relay flag set, feature flag on -> segment creates occurrence
+        (True, False, True, True, 1),
+        # Transaction kept, relay flag not set -> no segment-based occurrence
+        (True, False, False, True, 0),
+        # Feature flag off -> no segment-based occurrence regardless of other values
+        (True, True, True, False, 0),
+        (True, True, False, False, 0),
+        (True, False, True, False, 0),
+        (True, False, False, False, 0),
+        (False, True, True, False, 0),
+        (False, True, False, False, 0),
+        (False, False, True, False, 0),
+        (False, False, False, False, 0),
+    ],
+)
+def test_issue_detector_occurrence_creation(
+    incoming_data_is_transaction: bool,
+    discard_transactions_feature_flag: bool,
+    performance_issues_spans_relay_flag: bool,
+    performance_issues_spans_feature_flag: bool,
+    create_occurrence_calls_expected: int,
+    default_project: Project,
+) -> None:
+    # Segments only have an event id if it's copied over from a transaction
+    event_id = uuid.uuid4().hex if incoming_data_is_transaction else None
+
+    spans = generate_n_plus_one_spans(
+        default_project,
+        has_performance_issues_spans_relay_flag=performance_issues_spans_relay_flag,
+        event_id=event_id,
+    )
+
+    with (
+        with_feature(
+            {
+                PERFORMANCE_ISSUES_SPANS_ORG_FEATURE_FLAG: performance_issues_spans_feature_flag,
+                DISCARD_TRANSACTIONS_PROJECT_FEATURE_FLAG: discard_transactions_feature_flag,
+            }
+        ),
+        override_options({DETECTORS_ENABLED_OPTION: ["*"]}),
+        mock.patch(
+            "sentry.spans.consumers.process_segments.message.produce_occurrence_to_kafka"
+        ) as mock_produce_occurrence,
+    ):
+        process_segment(spans)
+        assert mock_produce_occurrence.call_count == create_occurrence_calls_expected

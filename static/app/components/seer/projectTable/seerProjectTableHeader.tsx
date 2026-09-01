@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,6 +11,7 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -109,7 +110,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
   );
 
   return (
-    <Fragment>
+    <InfiniteTable.Head sticky>
       <ListItemSelectedState selected="none">
         <InfiniteTable.Header>
           <InfiniteTable.HeaderCell>
@@ -122,18 +123,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
             <InfiniteTable.HeaderCell
               key={key}
               handleSortClick={
-                sortKey
-                  ? () =>
-                      onSortClick({
-                        field: sortKey,
-                        kind:
-                          sortKey === sort.field
-                            ? sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc'
-                            : 'desc',
-                      })
-                  : undefined
+                sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
               }
               sort={sort?.field === sortKey ? sort.kind : undefined}
             >
@@ -145,13 +135,13 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
 
       <ListItemSelectedState selected="indeterminate-or-all">
         <InfiniteTable.Header>
-          <InfiniteTable.HeaderCellFirst>
+          <InfiniteTable.HeaderCell variant="first">
             <ListSelectAllCheckbox
               data={settings}
               listItemCheckboxState={listItemCheckboxState}
             />
-          </InfiniteTable.HeaderCellFirst>
-          <InfiniteTable.HeaderCellRemaining align="center" gap="md">
+          </InfiniteTable.HeaderCell>
+          <InfiniteTable.HeaderCellRemaining>
             <PreferredAgentDropdownMenu
               isDisabled={!canWrite}
               onChange={value => {
@@ -217,33 +207,37 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="indeterminate">
-        <Alert variant="info" system>
-          <Flex justify="start" width="100%" wrap="wrap" gap="md">
-            {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
-            <a onClick={selectAll}>
-              {queryString
-                ? tct('Select all [count] projects that match: [queryString].', {
-                    count: listItemCheckboxState.hits,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : t('Select all %s projects.', listItemCheckboxState.hits)}
-            </a>
-          </Flex>
-        </Alert>
+        <InfiniteTable.HeaderBanner>
+          <Alert variant="info" system>
+            <Flex justify="start" width="100%" wrap="wrap" gap="md">
+              {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
+              <a onClick={selectAll}>
+                {queryString
+                  ? tct('Select all [count] projects that match: [queryString].', {
+                      count: listItemCheckboxState.hits,
+                      queryString: <var>{queryString}</var>,
+                    })
+                  : t('Select all %s projects.', listItemCheckboxState.hits)}
+              </a>
+            </Flex>
+          </Alert>
+        </InfiniteTable.HeaderBanner>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <Alert variant="info" system>
-          {queryString
-            ? tct('Selected all [count] projects matching: [queryString].', {
-                count: countSelected,
-                queryString: <var>{queryString}</var>,
-              })
-            : countSelected > settings.length
-              ? t('Selected all %s+ projects.', settings.length)
-              : tn('Selected %s project.', 'Selected all %s projects.', countSelected)}
-        </Alert>
+        <InfiniteTable.HeaderBanner>
+          <Alert variant="info" system>
+            {queryString
+              ? tct('Selected all [count] projects matching: [queryString].', {
+                  count: countSelected,
+                  queryString: <var>{queryString}</var>,
+                })
+              : countSelected > settings.length
+                ? t('Selected all %s+ projects.', settings.length)
+                : tn('Selected %s project.', 'Selected all %s projects.', countSelected)}
+          </Alert>
+        </InfiniteTable.HeaderBanner>
       </ListItemSelectedState>
-    </Fragment>
+    </InfiniteTable.Head>
   );
 }

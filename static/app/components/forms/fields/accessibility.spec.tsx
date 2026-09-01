@@ -29,7 +29,6 @@ describe('Field accessibility', () => {
     // check tests:
     //
     // - ChoiceMapper
-    // - ProjectMapperField
     // - SentryProjectSelectorField
     // - TableField
     // - DatePickerField

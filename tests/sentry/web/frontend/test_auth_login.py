@@ -50,6 +50,47 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
 
+    def test_renders_react_template_with_cookie(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
+        self.assertTemplateNotUsed(resp, "sentry/login.html")
+
+    @with_feature("system:multi-region")
+    def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
+        organization = self.create_organization(slug="customer-domain-org")
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        response = self.client.get(
+            f"{self.path}?next=%2Fsettings%2Faccount%2F",
+            HTTP_HOST=f"{organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            (
+                f"http://testserver/auth/login/{organization.slug}/?next=%2Fsettings%2Faccount%2F",
+                302,
+            )
+        ]
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    def test_customer_domain_login_does_not_redirect_without_multi_region(self) -> None:
+        organization = self.create_organization(slug="customer-domain-org")
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        response = self.client.get(
+            self.path,
+            HTTP_HOST=f"{organization.slug}.testserver",
+        )
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
     def test_cannot_request_access(self) -> None:
         resp = self.client.get(self.path)
 
@@ -232,9 +273,10 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         redirect_url = getattr(resp, "url", None)
         assert redirect_url == reverse("sentry-auth-organization", args=[org.slug])
 
-        # get redirect
+        # Canonicalize the customer-domain login URL onto the primary domain.
         resp = self.client.get(redirect_url, HTTP_HOST=f"{org.slug}.testserver")
-        assert resp.status_code == 200
+        assert resp.status_code == 302
+        assert resp["Location"] == f"http://testserver/auth/login/{org.slug}/"
 
     def test_registration_disabled(self) -> None:
         with self.feature({"auth:register": False}), self.allow_registration():
@@ -349,6 +391,17 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert resp.context["op"] == "register"
             self.assertTemplateUsed("sentry/login.html")
+
+    def test_register_renders_django_template_with_react_auth_cookie(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        with self.allow_registration():
+            resp = self.client.get(reverse("sentry-register"))
+
+        assert resp.status_code == 200
+        assert resp.context["op"] == "register"
+        self.assertTemplateUsed(resp, "sentry/login.html")
+        self.assertTemplateNotUsed(resp, "sentry/base-react.html")
 
     def test_register_prefills_invite_email(self) -> None:
         self.session["invite_email"] = "foo@example.com"

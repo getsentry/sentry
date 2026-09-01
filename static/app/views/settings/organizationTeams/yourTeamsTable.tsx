@@ -1,6 +1,4 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -11,11 +9,13 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useLeaveTeam} from 'sentry/views/settings/organizationTeams/hooks/useLeaveTeam';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {
+  hasOrgRoleOverwrite,
+  RoleOverwritePanelAlert,
+} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {TeamProjectsCell} from 'sentry/views/settings/organizationTeams/teamProjectsCell';
 import {
   TeamLink,
@@ -87,25 +87,30 @@ export function YourTeamsTable({
   };
 
   return (
-    <TeamsTable>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="role">
-          {t('Role')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="projects">
-          {t('Projects')}
-        </SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="actions" />
-      </SimpleTable.Header>
-      <FullWidthAlert>
-        <RoleOverwritePanelAlert
-          orgRole={orgRole}
-          orgRoleList={orgRoleList}
-          teamRoleList={teamRoleList}
-          isSelf
-        />
-      </FullWidthAlert>
+    <TeamsTable
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="role">
+            {t('Role')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="projects">
+            {t('Projects')}
+          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="actions" />
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {hasOrgRoleOverwrite({orgRole, orgRoleList, teamRoleList}) && (
+        <SimpleTable.FullWidthRow>
+          <RoleOverwritePanelAlert
+            orgRole={orgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+            isSelf
+          />
+        </SimpleTable.FullWidthRow>
+      )}
       {isLoading
         ? Array.from({length: 3}).map((_, i) => (
             <SimpleTable.Row key={i}>
@@ -140,9 +145,6 @@ function YourTeamRow({
   team: Team;
 }) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-
   const {mutate: leaveTeam, isPending} = useLeaveTeam({organization, team});
 
   const teamRoleName = useMemo(() => {
@@ -167,7 +169,7 @@ function YourTeamRow({
 
   return (
     <SimpleTable.Row>
-      {canViewTeam && <InteractionStateLayer />}
+      {canViewTeam && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell>
         {canViewTeam ? (
           <TeamLink
@@ -191,13 +193,13 @@ function YourTeamRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" data-column-name="actions">
         {isPending ? (
-          <Button size={isMobile ? 'xs' : 'sm'} disabled>
+          <Button size={{zero: 'xs', xl: 'sm'}} disabled>
             {'\u2026'}
           </Button>
         ) : (
           <Button
             aria-label={t('Leave Team')}
-            size={isMobile ? 'xs' : 'sm'}
+            size={{zero: 'xs', xl: 'sm'}}
             onClick={() => leaveTeam()}
             disabled={isIdpProvisioned}
             tooltipProps={{title: buttonHelpText}}
@@ -209,7 +211,3 @@ function YourTeamRow({
     </SimpleTable.Row>
   );
 }
-
-const FullWidthAlert = styled('div')`
-  grid-column: 1 / -1;
-`;

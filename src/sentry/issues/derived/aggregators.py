@@ -73,6 +73,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # A merge preserves the destination group's status. Ignore actions migrated
+    # from source groups so their history cannot overwrite that status.
+    if entry.original_group_id is not None:
+        return None
+
     current = state[STATUS]
 
     match entry.action:
@@ -197,9 +202,15 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     if state[STATUS] != IssueStatus.OPEN:
         new_progress = None
-    elif (
+    elif entry.type == PullRequestMergedAction.get_type() or (
         current_progress == IssueProgressState.FIX_APPLIED
-        or entry.type == PullRequestMergedAction.get_type()
+        and entry.type
+        # Usually an issue will first close before it regresses, but there are cases where a regression action
+        #  is seen without a resolution action. This handles that case and clears the FIX_APPLIED progress.
+        not in (
+            UnresolveAction.get_type(),
+            SetRegressedAction.get_type(),
+        )
     ):
         new_progress = IssueProgressState.FIX_APPLIED
     elif state[HAS_OPEN_FIX_PR]:
