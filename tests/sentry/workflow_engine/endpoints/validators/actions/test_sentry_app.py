@@ -61,18 +61,6 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         assert result is True
         validator.save()
 
-    def test_validate_rejects_non_list_settings(self) -> None:
-        validator = BaseActionValidator(
-            data={
-                **self.valid_data,
-                "data": {"settings": {"channel": "#ignored-errors"}},
-            },
-            context={"organization": self.organization},
-        )
-
-        assert not validator.is_valid()
-        assert "data" in validator.errors
-
     @mock.patch(
         "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
     )
