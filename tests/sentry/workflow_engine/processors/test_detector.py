@@ -133,7 +133,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "event_id": None,
                 "group_key": None,
                 "priority": DetectorPriorityLevel.HIGH.value,
-                "trigger_group_evaluation": {
+                "trigger_evaluation": {
                     "logic_type": "any",
                     "result": True,
                     "condition_evaluations": [],

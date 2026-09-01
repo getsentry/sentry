@@ -23,6 +23,7 @@ from sentry.seer.autofix.on_completion_hook import (
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
@@ -433,7 +434,6 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
             referrer=AutofixReferrer.ON_COMPLETION_HOOK,
             state=state,
             verify_content=False,
-            author=None,
         )
 
     @patch(
@@ -451,6 +451,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
                 "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
             },
         )
+        state.repo_pr_states = {"test-repo": RepoPRState(repo_name="test-repo")}
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_called_once()
         mock_consume.assert_not_called()
@@ -463,6 +464,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         """An iteration's push is attributed to the author stored on its opening block."""
         block = pr_iteration_memory_block()
         state = run_state(blocks=[block], metadata={"group_id": self.group.id})
+        state.repo_pr_states = {"test-repo": RepoPRState(repo_name="test-repo")}
         author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
 
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
@@ -494,7 +496,8 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         }
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_not_called()
-        mock_consume.assert_called_once_with(self.organization, 123)
+        mock_consume.assert_called_once()
+        assert mock_consume.call_args.args[1:] == (self.organization, 123)
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):
@@ -560,6 +563,196 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         pushed = AutofixOnCompletionHook._push_changes(self.group, 123, state)
         assert pushed is True
         mock_push_changes.assert_called_once()
+
+
+HOOK_PATH = "sentry.seer.autofix.on_completion_hook"
+
+
+class TestPrIterationCompletionHook(TestCase):
+    """Push vs webhook behavior across the two hook passes of one iteration."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.group = self.create_group(project=self.project)
+
+    def _pr_state(self, commit_sha: str | None, **kwargs) -> dict[str, RepoPRState]:
+        return {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                provider="github",
+                pr_id=77,
+                pr_number=7,
+                pr_url="https://example.com/pull/7",
+                pr_creation_status="completed",
+                commit_sha=commit_sha,
+                **kwargs,
+            )
+        }
+
+    def _unsynced(self) -> SeerRunState:
+        """The agent has finished, but its changes are not on the PR yet."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="iteration-sha")],
+            metadata={"group_id": self.group.id},
+        )
+        state.repo_pr_states = self._pr_state("stale-sha")
+        return state
+
+    def _synced(self) -> SeerRunState:
+        """The push landed: this is the pass that hands back to the queue."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="synced-sha")],
+            metadata={"group_id": self.group.id},
+        )
+        state.repo_pr_states = self._pr_state("synced-sha")
+        return state
+
+    def _push(self, state: SeerRunState) -> bool:
+        return AutofixOnCompletionHook._push_iteration_changes(
+            AutofixOnCompletionHook._iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+        )
+
+    def _webhook(self, state: SeerRunState) -> None:
+        AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_pass_that_is_still_owed_a_push_does_not_emit_webhook(self, mock_broadcast):
+        self._webhook(self._unsynced())
+
+        mock_broadcast.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_the_pass_where_the_changes_landed_emits_iteration_completed(self, mock_broadcast):
+        self._webhook(self._synced())
+
+        assert (
+            mock_broadcast.call_args.kwargs["event_name"]
+            == SeerActionType.ITERATION_COMPLETED.value
+        )
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_terminally_errored_repo_still_emits_the_webhook(self, mock_broadcast):
+        """We stop waiting for a sync a failed PR creation will never deliver."""
+        state = self._unsynced()
+        state.repo_pr_states = self._pr_state("stale-sha")
+        state.repo_pr_states["test-repo"].pr_creation_status = "error"
+
+        self._webhook(state)
+
+        mock_broadcast.assert_called_once()
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_an_iteration_without_pr_states_does_not_take_down_the_hook(self, mock_broadcast):
+        """Was an assert, which took the rest of the hook -- push included -- with it."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block()], metadata={"group_id": self.group.id}
+        )
+
+        self._webhook(state)
+
+        mock_broadcast.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_no_pr_states_does_not_open_a_new_pr(self, mock_push, mock_consume):
+        """Webhook return is not enough: execute() still reaches the pipeline."""
+        state = run_state(
+            blocks=[pr_iteration_memory_block()], metadata={"group_id": self.group.id}
+        )
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push.assert_not_called()
+        mock_consume.assert_called_once()
+
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_pass_that_pushes(self, mock_push):
+        state = self._unsynced()
+
+        pushed = self._push(state)
+
+        assert pushed is True
+        mock_push.assert_called_once()
+
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_the_hand_back_pass_does_not_push_again(self, mock_push):
+        """Already synced is the previous push landing, not the agent idling."""
+        state = self._synced()
+
+        pushed = self._push(state)
+
+        assert pushed is False
+        mock_push.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_iteration_that_changed_nothing_does_not_push(self, mock_push):
+        state = run_state(
+            blocks=[
+                MemoryBlock(
+                    id="block-pr-iteration",
+                    message=Message(
+                        role="assistant", content="nothing to do", metadata={"step": "pr_iteration"}
+                    ),
+                    timestamp="2026-02-10T00:00:00Z",
+                )
+            ],
+            metadata={"group_id": self.group.id},
+        )
+        state.repo_pr_states = self._pr_state("synced-sha")
+
+        pushed = self._push(state)
+
+        assert pushed is False
+        mock_push.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_a_repo_whose_pr_creation_errored_stops_the_push(self, mock_push):
+        """Re-pushing into it would re-fire this hook in a loop."""
+        state = self._unsynced()
+        state.repo_pr_states["test-repo"].pr_creation_status = "error"
+
+        pushed = self._push(state)
+
+        assert pushed is False
+        mock_push.assert_not_called()
+
+    @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
+    def test_a_failed_push_is_swallowed(self, mock_push):
+        state = self._unsynced()
+
+        pushed = self._push(state)
+
+        assert pushed is False
+
+    @patch(
+        f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback",
+    )
+    @patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
+    def test_a_failed_push_still_hands_back_to_the_queue(self, mock_push, mock_consume):
+        """Feedback already waiting should not be stranded by a push that broke."""
+        AutofixOnCompletionHook._maybe_continue_pipeline(
+            self.organization, 123, self._unsynced(), self.group
+        )
+
+        mock_consume.assert_called_once()
+        assert mock_consume.call_args.args[1:] == (self.organization, 123)
+
+    @patch(f"{HOOK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_the_hand_back_to_the_queue_schedules_the_drain(self, mock_apply):
+        state = self._synced()
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        task_kwargs = mock_apply.call_args.kwargs["kwargs"]
+        assert task_kwargs["run_id"] == 123
+        assert task_kwargs["organization_id"] == self.organization.id
+        assert task_kwargs["trigger_id"]
+        assert task_kwargs["trigger_source"] == ConsumeTriggerSource.FEEDBACK
 
 
 class TestPipelineConstants(TestCase):

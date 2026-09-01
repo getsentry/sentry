@@ -169,6 +169,7 @@ describe('GcpVerificationStep', () => {
       {
         gcpProjectId: 'my-project-prod',
         connectionStatus: 'permission_denied',
+        errorDetail: 'Cloud Trace: IAM roles not granted',
         services: [
           {service: 'logging', status: 'connected'},
           {
@@ -301,7 +302,6 @@ describe('GcpVerificationStep', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
 
-    // Seer reports the actionable message per service, not per project.
     expect(advance).toHaveBeenCalledWith({
       connectionStatus: 'permission_denied',
       projects: [
@@ -314,49 +314,7 @@ describe('GcpVerificationStep', () => {
     });
   });
 
-  it('rolls several failing services into one detail', async () => {
-    MockApiClient.addMockResponse({
-      url: VERIFY_URL,
-      method: 'POST',
-      body: {
-        connectionStatus: 'error',
-        projects: [
-          {
-            gcpProjectId: 'my-project-prod',
-            connectionStatus: 'error',
-            services: [
-              {service: 'logging', status: 'connected'},
-              {
-                service: 'monitoring',
-                status: 'api_disabled',
-                errorDetail: 'Cloud Monitoring API is disabled',
-              },
-              {service: 'cloudtrace', status: 'project_not_found'},
-            ],
-          },
-        ],
-      },
-    });
-    const advance = jest.fn();
-
-    render(<GcpVerificationStep {...makeVerificationStepProps({stepData, advance})} />);
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Continue Anyway'}));
-
-    expect(advance).toHaveBeenCalledWith({
-      connectionStatus: 'error',
-      projects: [
-        {
-          gcpProjectId: 'my-project-prod',
-          connectionStatus: 'error',
-          errorDetail:
-            'Cloud Monitoring: Cloud Monitoring API is disabled; Cloud Trace: Project not found',
-        },
-      ],
-    });
-  });
-
-  it('keeps the project-level detail when the impersonation chain fails', async () => {
+  it('forwards a project detail with no failing services of its own', async () => {
     MockApiClient.addMockResponse({
       url: VERIFY_URL,
       method: 'POST',

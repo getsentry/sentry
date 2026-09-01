@@ -244,14 +244,28 @@ interface TooltipGridProps {
 /**
  * The padded region a tooltip's rows are laid out in, and the grid those rows
  * share.
+ *
+ * Text reads from the left here, undoing the centring the overlay applies for
+ * the sentence case. A cell that wants otherwise, a value pinned to the right
+ * edge say, sets that on itself.
  */
 function TooltipGrid({children, columns = '1fr', gap = '2xs sm'}: TooltipGridProps) {
   return (
-    <Grid columns={columns} gap={gap} align="center" padding="md lg" data-tooltip-section>
+    <GridSection
+      columns={columns}
+      gap={gap}
+      align="center"
+      padding="md lg"
+      data-tooltip-section
+    >
       {children}
-    </Grid>
+    </GridSection>
   );
 }
+
+const GridSection = styled(Grid)`
+  text-align: left;
+`;
 
 interface TooltipRowProps {
   /**

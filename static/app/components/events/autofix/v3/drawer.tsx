@@ -3,11 +3,11 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
+import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
@@ -17,6 +17,7 @@ import {
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
+import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -24,11 +25,9 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
@@ -47,10 +46,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
       organization.features.includes('autofix-pr-iteration') ||
       organization.features.includes('autofix-pr-iteration-manual'),
   });
-  const [enableBashTools, setEnableBashTools] = useLocalStorageState(
-    'autofix-force-bash-mode',
-    false
-  );
+  const [enableBashTools, setEnableBashTools] = useForceBashMode();
 
   const autofix = useMemo(
     () => ({
@@ -152,7 +148,7 @@ function useHandleOpenSeerAgent({
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
 }): (() => void) | undefined {
   const {openSeerExplorerDrawer} = useSeerExplorerDrawer();
-  const runId = aiAutofix.runState?.run_id;
+  const runId = getAutofixRunId(aiAutofix.runState);
 
   return useMemo(() => {
     if (!defined(runId)) {
@@ -165,13 +161,12 @@ function useHandleOpenSeerAgent({
 type AutofixWarning = {
   warning_type: string;
   installation_id?: string;
+  installation_url?: string;
   repo_name?: string;
 };
 
-function InstallationPermissionsButton({installationId}: {installationId: string}) {
+function InstallationPermissionsButton({installationUrl}: {installationUrl?: string}) {
   const {openModal} = useModal();
-  const installationUrl = getGithubPermissionsUpdateUrl(installationId);
-
   return (
     <Button
       variant="primary"
@@ -181,10 +176,7 @@ function InstallationPermissionsButton({installationId}: {installationId: string
           <AutofixGithubAppPermissionsModal
             {...deps}
             installationUrl={installationUrl}
-            description={tct(
-              'Seer had trouble talking to GitHub while running Autofix. Please update your [link:GitHub App installation settings] to grant the required permissions.',
-              {link: <ExternalLink href={installationUrl} />}
-            )}
+            description={t('Seer had trouble talking to GitHub while running Autofix.')}
           />
         ))
       }
@@ -237,7 +229,12 @@ export function AutofixWarnings({
 
   const comp =
     installationIds.length === 1 && defined(installationId) ? (
-      <InstallationPermissionsButton installationId={installationId} />
+      <InstallationPermissionsButton
+        installationUrl={
+          permissionWarnings.find(w => w.installation_id === installationId)
+            ?.installation_url
+        }
+      />
     ) : (
       <ConfigurationPermissionsButton />
     );

@@ -8,12 +8,15 @@ import {LeadWrap} from '@sentry/scraps/compactSelect';
 import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 import {IconCheckmark} from 'sentry/icons';
-import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
+import {
+  isMetricSelectorOption,
+  type MetricSelectorItem,
+} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 
 interface MetricListBoxOptionProps {
   dataIndex: number;
-  item: Node<MetricSelectorOption>;
-  listState: ComboBoxState<MetricSelectorOption>;
+  item: Node<MetricSelectorItem>;
+  listState: ComboBoxState<MetricSelectorItem>;
   size: MenuListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
   updateSidePanelAnchorOffset?: (activeOptionElement?: HTMLElement | null) => void;
@@ -32,7 +35,7 @@ export function MetricListBoxOption({
   const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
     {
       key: item.key,
-      'aria-label': option.metricName,
+      'aria-label': isMetricSelectorOption(option) ? option.metricName : option.textValue,
       shouldUseVirtualFocus: true,
       shouldSelectOnPressUp: true,
     },

@@ -123,7 +123,9 @@ def get_available_monitoring_providers(
     Omits any provider that the user has permanently dismissed ("don't ask again").
     Does not mark which providers are already connected.
     """
-    if not features.has("organizations:seer-infra-telemetry", organization):
+    if not features.has("organizations:seer-infra-telemetry", organization) or not features.has(
+        "organizations:seer-infra-telemetry-user-level-auth", organization
+    ):
         return []
 
     feature_to_provider_map = {

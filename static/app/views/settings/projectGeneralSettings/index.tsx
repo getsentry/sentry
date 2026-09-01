@@ -16,6 +16,7 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -26,7 +27,6 @@ import {
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';

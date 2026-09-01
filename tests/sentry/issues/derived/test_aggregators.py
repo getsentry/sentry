@@ -65,6 +65,7 @@ class FakeEntry:
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
+    original_group_id: int | None = None
 
     @property
     def action(self) -> GroupAction:
@@ -84,11 +85,12 @@ def _resolved_pr_data(pr_id: int) -> dict[str, object]:
     return {"pull_request": pr_id}
 
 
-def _reconcile_entry(status: IssueStatus) -> FakeEntry:
+def _reconcile_entry(status: IssueStatus, *, original_group_id: int | None = None) -> FakeEntry:
     action = ReconcileStatusAction(status=status.value)
     return FakeEntry(
         type=GroupActionType.RECONCILE_STATUS,
         data=action.dict(),
+        original_group_id=original_group_id,
     )
 
 
@@ -168,6 +170,26 @@ def test_close_actions(action_type: GroupActionType) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.RESOLVE,
+        GroupActionType.SET_RESOLVED_IN_RELEASE,
+        GroupActionType.SET_RESOLVED_BY_AGE,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+        GroupActionType.ARCHIVE,
+    ],
+)
+def test_close_actions_from_merged_groups_are_ignored(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [FakeEntry(type=action_type, original_group_id=123)],
+        )
+        == IssueStatus.OPEN
+    )
+
+
 def test_unresolve_reopens() -> None:
     assert (
         _run_for_feature(
@@ -178,6 +200,27 @@ def test_unresolve_reopens() -> None:
             ],
         )
         == IssueStatus.OPEN
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.UNRESOLVE,
+        GroupActionType.SET_REGRESSED,
+        GroupActionType.SET_ESCALATING,
+    ],
+)
+def test_reopen_actions_from_merged_groups_are_ignored(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=action_type, original_group_id=123),
+            ],
+        )
+        == IssueStatus.CLOSED
     )
 
 
@@ -308,6 +351,18 @@ class TestReconcileStatus:
                 ],
             )
             == IssueStatus.OPEN
+        )
+
+    def test_from_merged_group_is_ignored(self) -> None:
+        assert (
+            _run_for_feature(
+                STATUS,
+                [
+                    FakeEntry(type=GroupActionType.RESOLVE),
+                    _reconcile_entry(IssueStatus.OPEN, original_group_id=123),
+                ],
+            )
+            == IssueStatus.CLOSED
         )
 
     def test_same_value_is_noop(self) -> None:

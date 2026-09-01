@@ -1749,6 +1749,7 @@ class TestSeerAgentClientLatestRun(TestCase):
 
 
 @with_feature("organizations:seer-infra-telemetry")
+@with_feature("organizations:seer-infra-telemetry-user-level-auth")
 class TestGetAvailableMonitoringProviders(TestCase):
     def setUp(self) -> None:
         super().setUp()

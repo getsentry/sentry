@@ -3,12 +3,12 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {RowVisualState} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import {UNCONFIGURED_SCM_MESSAGING_SETUP} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 
 import {RowSubtitle} from './subtitle';
+import type {RowVisualState} from './types';
 
 const slackProvider = GitHubIntegrationProviderFixture({key: 'slack', name: 'Slack'});
 const msteamsProvider = GitHubIntegrationProviderFixture({

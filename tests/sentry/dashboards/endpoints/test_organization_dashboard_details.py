@@ -128,6 +128,19 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert len(widgets[1]["queries"]) == 1
         self.assert_serialized_widget_query(widgets[1]["queries"][0], self.widget_2_data_1)
 
+    def test_get_created_by_is_none_when_creator_deleted(self) -> None:
+        # Simulate a dashboard whose creator has been deleted: user_service returns
+        # an empty list for that user ID, which should yield createdBy=None instead
+        # of raising IndexError.
+        with mock.patch(
+            "sentry.api.serializers.models.dashboard.user_service.serialize_many",
+            return_value=[],
+        ):
+            response = self.do_request("get", self.url(self.dashboard.id))
+
+        assert response.status_code == 200, response.content
+        assert response.data["createdBy"] is None
+
     def test_dashboard_does_not_exist(self) -> None:
         response = self.do_request("get", self.url(1234567890))
         assert response.status_code == 404

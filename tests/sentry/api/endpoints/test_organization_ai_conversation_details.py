@@ -1,20 +1,283 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
 
 from django.urls import reverse
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
+    PARENT_SPAN_ATTRIBUTES,
+    OrganizationAIConversationDetailsEndpoint,
+)
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
+
+
+def test_parent_repair_stops_after_five_hops() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root_id = "root"
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge-1",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+    root = {
+        "trace": trace_id,
+        "span_id": root_id,
+        "parent_span": None,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    parent_rows = {
+        (trace_id, f"bridge-{depth}"): {
+            "trace": trace_id,
+            "span_id": f"bridge-{depth}",
+            "parent_span": f"bridge-{depth + 1}" if depth < 5 else root_id,
+            "span.op": "http.client",
+        }
+        for depth in range(1, 6)
+    }
+
+    with (
+        patch.object(
+            endpoint,
+            "_fetch_parent_spans",
+            side_effect=lambda _params, keys: {key: parent_rows[key] for key in keys},
+        ) as mock_fetch_parent_spans,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ) as mock_distribution,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.incr"
+        ) as mock_incr,
+    ):
+        endpoint._repair_parent_links([root, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "bridge-1"
+    assert mock_fetch_parent_spans.call_count == 5
+    mock_distribution.assert_not_called()
+    mock_incr.assert_called_once_with("ai_monitoring.conversation_details.parent_repair_max_depth")
+
+
+def test_parent_repair_is_best_effort() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    child = {
+        "trace": uuid4().hex,
+        "span_id": "child",
+        "parent_span": "missing-parent",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+
+    with patch.object(endpoint, "_fetch_parent_spans", side_effect=Exception("unavailable")):
+        endpoint._repair_parent_links([child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "missing-parent"
+
+
+def test_parent_repair_skips_gen_ai_ancestors_from_other_conversations() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "span.name": "gen_ai.invoke_agent",
+    }
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": conversation_id,
+        "span.op": "gen_ai.chat",
+    }
+    parent_rows = {
+        (trace_id, "bridge"): {
+            "trace": trace_id,
+            "span_id": "bridge",
+            "parent_span": "nested",
+            "span.op": "http.client",
+        },
+        (trace_id, "nested"): {
+            "trace": trace_id,
+            "span_id": "nested",
+            "parent_span": "root",
+            "gen_ai.conversation.id": "nested-conversation",
+            "span.name": "gen_ai.invoke_agent",
+        },
+    }
+
+    with (
+        patch.object(
+            endpoint,
+            "_fetch_parent_spans",
+            side_effect=lambda _params, keys: {
+                key: parent_rows[key] for key in keys if key in parent_rows
+            },
+        ),
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ) as mock_distribution,
+    ):
+        endpoint._repair_parent_links([root, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    mock_distribution.assert_called_once_with(
+        "ai_monitoring.conversation_details.parent_repair_depth", 3
+    )
+
+
+def test_parent_repair_fetches_shared_parent_once() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    children = [
+        {
+            "trace": trace_id,
+            "span_id": f"child-{index}",
+            "parent_span": "bridge",
+            "gen_ai.conversation.id": conversation_id,
+            "gen_ai.operation.type": "ai_client",
+        }
+        for index in range(2)
+    ]
+    bridge_key = (trace_id, "bridge")
+    bridge = {
+        "trace": trace_id,
+        "span_id": "bridge",
+        "parent_span": "root",
+        "span.op": "http.client",
+    }
+
+    snuba_params = MagicMock()
+    with (
+        patch.object(endpoint, "_fetch_parent_spans", return_value={bridge_key: bridge}) as fetch,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ),
+    ):
+        endpoint._repair_parent_links([root, *children], snuba_params, conversation_id)
+
+    fetch.assert_called_once_with(snuba_params, {bridge_key})
+    assert [child["parent_span"] for child in children] == ["root", "root"]
+
+
+def test_parent_repair_repairs_at_depth_five() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge-1",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    parent_rows = {
+        (trace_id, f"bridge-{depth}"): {
+            "trace": trace_id,
+            "span_id": f"bridge-{depth}",
+            "parent_span": f"bridge-{depth + 1}" if depth < 4 else "root",
+            "span.op": "http.client",
+        }
+        for depth in range(1, 5)
+    }
+
+    with (
+        patch.object(
+            endpoint,
+            "_fetch_parent_spans",
+            side_effect=lambda _params, keys: {key: parent_rows[key] for key in keys},
+        ) as fetch,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ) as mock_distribution,
+    ):
+        endpoint._repair_parent_links([root, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    assert fetch.call_count == 4
+    mock_distribution.assert_called_once_with(
+        "ai_monitoring.conversation_details.parent_repair_depth", 5
+    )
+
+
+def test_parent_repair_stops_on_missing_parents_and_cycles() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    missing_child = {
+        "trace": trace_id,
+        "span_id": "missing-child",
+        "parent_span": "missing",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+    cycle_child = {
+        "trace": trace_id,
+        "span_id": "cycle-child",
+        "parent_span": "cycle-a",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+    parent_rows = {
+        (trace_id, "cycle-a"): {
+            "trace": trace_id,
+            "span_id": "cycle-a",
+            "parent_span": "cycle-b",
+        },
+        (trace_id, "cycle-b"): {
+            "trace": trace_id,
+            "span_id": "cycle-b",
+            "parent_span": "cycle-a",
+        },
+    }
+
+    with (
+        patch.object(
+            endpoint,
+            "_fetch_parent_spans",
+            side_effect=lambda _params, keys: {
+                key: parent_rows[key] for key in keys if key in parent_rows
+            },
+        ) as fetch,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ) as mock_distribution,
+    ):
+        endpoint._repair_parent_links([missing_child, cycle_child], MagicMock(), conversation_id)
+
+    assert missing_child["parent_span"] == "missing"
+    assert cycle_child["parent_span"] == "cycle-a"
+    assert fetch.call_count == 2
+    mock_distribution.assert_not_called()
 
 
 class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase):
@@ -143,6 +406,105 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
+
+    def test_repairs_parent_links_with_bulk_fetch(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        root = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=5),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            trace_id=trace_id,
+            store=False,
+        )
+        root["parent_span_id"] = None
+        bridge_a = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": root["span_id"],
+                "sentry_tags": {"op": "http.client"},
+            },
+            start_ts=now - timedelta(seconds=4),
+        )
+        bridge_b = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": root["span_id"],
+                "sentry_tags": {"op": "db"},
+            },
+            start_ts=now - timedelta(seconds=3),
+        )
+        child_a = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            store=False,
+        )
+        child_a["parent_span_id"] = bridge_a["span_id"]
+        child_b = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            trace_id=trace_id,
+            store=False,
+        )
+        child_b["parent_span_id"] = bridge_b["span_id"]
+        self.store_spans([root, bridge_a, bridge_b, child_a, child_b])
+
+        query = {
+            "project": [self.project.id],
+            "per_page": 3,
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        run_table_query = Spans.run_table_query
+
+        with (
+            patch(
+                "sentry.snuba.spans_rpc.Spans.run_table_query",
+                side_effect=run_table_query,
+            ) as mock_run_table_query,
+            patch(
+                "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+            ) as mock_distribution,
+        ):
+            response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert {span["span_id"] for span in response.data["spans"]} == {
+            root["span_id"],
+            child_a["span_id"],
+            child_b["span_id"],
+        }
+        spans_by_id = {span["span_id"]: span for span in response.data["spans"]}
+        assert spans_by_id[child_a["span_id"]]["parent_span"] == root["span_id"]
+        assert spans_by_id[child_b["span_id"]]["parent_span"] == root["span_id"]
+        links = parse_link_header(response.headers["Link"])
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        assert next_link["results"] == "false"
+
+        parent_queries = [
+            query_call
+            for query_call in mock_run_table_query.call_args_list
+            if query_call.kwargs.get("selected_columns") == PARENT_SPAN_ATTRIBUTES
+        ]
+        assert len(parent_queries) == 1
+        assert parent_queries[0].kwargs["limit"] == 2
+        repair_metric_calls = [
+            metric_call
+            for metric_call in mock_distribution.call_args_list
+            if metric_call.args[0] == "ai_monitoring.conversation_details.parent_repair_depth"
+        ]
+        assert repair_metric_calls == [
+            call("ai_monitoring.conversation_details.parent_repair_depth", 2),
+            call("ai_monitoring.conversation_details.parent_repair_depth", 2),
+        ]
 
     def test_multi_trace_conversation(self) -> None:
         now = before_now(days=10).replace(microsecond=0)

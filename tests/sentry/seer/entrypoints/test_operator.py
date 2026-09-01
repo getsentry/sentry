@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Any, TypedDict, cast
 from unittest.mock import Mock, patch
 
+import pytest
+
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.action_log.types import (
@@ -19,6 +21,7 @@ from sentry.seer.agent.client_models import (
     CodingAgentState,
     MemoryBlock,
     Message,
+    PendingUserInput,
     RepoPRState,
     SeerRunState,
 )
@@ -43,6 +46,7 @@ from sentry.seer.entrypoints.types import (
     SeerOperatorCacheResult,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
@@ -922,7 +926,12 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         return {"thread_id": self.thread_id}
 
     @staticmethod
-    def on_agent_update(cache_payload: MockCachePayload, summary: str | None, run_id: int) -> None:
+    def on_agent_update(
+        cache_payload: MockCachePayload,
+        summary: str | None,
+        run_id: int,
+        pending_user_input: PendingUserInput | None = None,
+    ) -> None:
         return None
 
 
@@ -967,12 +976,18 @@ class TestSeerAgentOperatorAccess(TestCase):
 
 
 class TestSeerOperatorCompletionHook(TestCase):
-    def _make_state(self, blocks: list[MemoryBlock], status: str = "completed") -> SeerRunState:
+    def _make_state(
+        self,
+        blocks: list[MemoryBlock],
+        status: str = "completed",
+        pending_user_input: PendingUserInput | None = None,
+    ) -> SeerRunState:
         return SeerRunState(
             run_id=MOCK_RUN_ID,
             blocks=blocks,
             status=status,
             updated_at="2024-01-01T00:00:00Z",
+            pending_user_input=pending_user_input,
         )
 
     _SENTINEL = object()
@@ -1045,6 +1060,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary="last assistant",
             run_id=MOCK_RUN_ID,
+            pending_user_input=None,
         )
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
@@ -1069,6 +1085,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary=None,
             run_id=MOCK_RUN_ID,
+            pending_user_input=None,
         )
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
@@ -1126,6 +1143,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             cache_payload=cache_payload,
             summary="summary",
             run_id=MOCK_RUN_ID,
+            pending_user_input=None,
         )
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
@@ -1176,7 +1194,51 @@ class TestSeerOperatorCompletionHook(TestCase):
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary=None,
             run_id=MOCK_RUN_ID,
+            pending_user_input=None,
         )
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_execute_passes_pending_user_input(self, mock_fetch):
+        pending_user_input = PendingUserInput(
+            id="approval-1",
+            input_type="agent_write_approval",
+            data={"required_scopes": ["org:write"], "session_id": str(MOCK_RUN_ID)},
+        )
+        state = self._make_state(
+            blocks=[],
+            status="awaiting_user_input",
+            pending_user_input=pending_user_input,
+        )
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
+            summary=None,
+            run_id=MOCK_RUN_ID,
+            pending_user_input=pending_user_input,
+        )
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_execute_propagates_retryable_entrypoint_failure(self, mock_fetch, _mock_access):
+        mock_fetch.return_value = self._make_state(blocks=[])
+        mock_entrypoint_cls = Mock(spec=SeerAgentEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
+        mock_entrypoint_cls.on_agent_update.side_effect = IntegrationError("Slack unavailable")
+
+        with (
+            patch.dict(
+                "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
+                {MockAgentEntrypoint.key: mock_entrypoint_cls},
+                clear=True,
+            ),
+            patch(
+                "sentry.seer.entrypoints.operator.SeerOperatorAgentCache.get",
+                return_value={"thread_id": "abc", "organization_id": self.organization.id},
+            ),
+            pytest.raises(IntegrationError),
+        ):
+            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
 
 
 class TestSeerAgentOperatorCodeMode(TestCase):

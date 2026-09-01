@@ -185,6 +185,9 @@ class Fixtures:
     def create_organization(self, *args, **kwargs):
         return Factories.create_organization(*args, **kwargs)
 
+    def create_organization_avatar(self, *args, **kwargs):
+        return Factories.create_organization_avatar(*args, **kwargs)
+
     def create_investigation(self, *args, **kwargs):
         return Factories.create_investigation(*args, **kwargs)
 

@@ -7,14 +7,8 @@ from django.db import IntegrityError, router, transaction
 from django.db.models.query import QuerySet
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.tasks import (
-    CONVERSATION_TITLE_ROLLOUT_RATE_OPTION,
-    generate_ai_conversation_title,
-    spawn_conversation_title_generation,
-)
-from sentry.ai_monitoring.utils import (
-    CONVERSATION_TITLE_ONESHOT_ROLLOUT_RATE_OPTION,
+from sentry.ai_monitoring.conversation_titles import (
+    LEGACY_GEN_AI_REQUEST_MESSAGES,
     MAX_USER_MESSAGE_CHARS,
     clamp_conversation_id_for_storage,
     clamp_user_message,
@@ -25,6 +19,12 @@ from sentry.ai_monitoring.utils import (
     generate_conversation_title,
     generate_title_with_seer,
     span_source_timestamp,
+)
+from sentry.ai_monitoring.models import AIConversationMetadata
+from sentry.ai_monitoring.tasks import (
+    CONVERSATION_TITLE_ROLLOUT_RATE_OPTION,
+    generate_ai_conversation_title,
+    spawn_conversation_title_generation,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -56,7 +56,7 @@ def make_gen_ai_span(
         attributes[ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID] = _attr(conversation_id)
     if not omit_messages:
         key = (
-            ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES
+            LEGACY_GEN_AI_REQUEST_MESSAGES
             if use_request_messages
             else ATTRIBUTE_NAMES.GEN_AI_INPUT_MESSAGES
         )
@@ -73,12 +73,6 @@ def make_gen_ai_span(
         "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
         "attributes": attributes,
     }
-
-
-def _mock_seer_success(title: str = "Reset Password Help") -> MagicMock:
-    mock_response = MagicMock(status=200)
-    mock_response.json.return_value = {"content": json.dumps({"title": title})}
-    return mock_response
 
 
 def _ts(offset_seconds: float = 0.0) -> datetime:
@@ -131,7 +125,7 @@ class TitleHelpersTest(TestCase):
                 ]
             ),
         )
-        span["attributes"][ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES] = _attr(
+        span["attributes"][LEGACY_GEN_AI_REQUEST_MESSAGES] = _attr(
             json.dumps([{"role": "user", "content": "from request"}])
         )
         assert first_user_message_from_span(span) == "from input"
@@ -185,63 +179,11 @@ class TitleHelpersTest(TestCase):
         assert clamp_user_message("short") == "short"
         assert len(clamp_user_message("a" * 9000)) == 8 * 1024
 
-    @patch("sentry.ai_monitoring.utils.run_oneshot")
-    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
-    def test_generate_title_with_seer_uses_legacy_by_default(
-        self, mock_request: MagicMock, mock_run: MagicMock
-    ) -> None:
-        mock_request.return_value = _mock_seer_success('  "Help me login"  ')
-
-        assert generate_title_with_seer("I cannot log in", self.organization) == "Help me login"
-        mock_run.assert_not_called()
-        body = mock_request.call_args.args[0]
-        assert body["provider"] == "gemini"
-        assert body["model"] == "flash-lite"
-        assert body["referrer"] == "ai_monitoring.conversation_title"
-        assert body["reasoning"] == "off"
-        assert body["response_schema"] == {
-            "type": "object",
-            "properties": {"title": {"type": "string"}},
-            "required": ["title"],
-        }
-        assert mock_request.call_args.kwargs["viewer_context"] == {
-            "organization_id": self.organization.id
-        }
-
-    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
-    def test_generate_title_with_seer_legacy_plain_string_content(
-        self, mock_request: MagicMock
-    ) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": "Plain text title"}
-        mock_request.return_value = mock_response
-        assert generate_title_with_seer("msg", self.organization) == "Plain text title"
-
-    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
-    def test_generate_title_with_seer_legacy_invalid_structured_content(
-        self, mock_request: MagicMock
-    ) -> None:
-        mock_response = MagicMock(status=200)
-        mock_response.json.return_value = {"content": json.dumps({"not_title": "x"})}
-        mock_request.return_value = mock_response
-        assert generate_title_with_seer("msg", self.organization) is None
-
-    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
-    def test_generate_title_with_seer_legacy_http_error(self, mock_request: MagicMock) -> None:
-        mock_request.return_value = MagicMock(status=500)
-        assert generate_title_with_seer("msg", self.organization) is None
-
-    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
-    @patch("sentry.ai_monitoring.utils.run_oneshot")
-    def test_generate_title_with_seer_uses_oneshot_in_rollout(
-        self, mock_run: MagicMock, mock_request: MagicMock
-    ) -> None:
+    @patch("sentry.ai_monitoring.conversation_titles.run_oneshot")
+    def test_generate_title_with_seer_uses_oneshot(self, mock_run: MagicMock) -> None:
         mock_run.return_value = {"title": '  "Help me login"  '}
 
-        with override_options({CONVERSATION_TITLE_ONESHOT_ROLLOUT_RATE_OPTION: 1.0}):
-            assert generate_title_with_seer("I cannot log in", self.organization) == "Help me login"
-
-        mock_request.assert_not_called()
+        assert generate_title_with_seer("I cannot log in", self.organization) == "Help me login"
         mock_run.assert_called_once_with(
             "conversation_title",
             {"first_user_message": "I cannot log in"},
@@ -249,14 +191,13 @@ class TitleHelpersTest(TestCase):
             timeout=20,
         )
 
-    @patch("sentry.ai_monitoring.utils.run_oneshot", return_value={})
-    def test_generate_title_with_seer_empty_oneshot_result(self, mock_run: MagicMock) -> None:
-        with override_options({CONVERSATION_TITLE_ONESHOT_ROLLOUT_RATE_OPTION: 1.0}):
-            assert generate_title_with_seer("msg", self.organization) is None
+    @patch("sentry.ai_monitoring.conversation_titles.run_oneshot", return_value={})
+    def test_generate_title_with_seer_empty_result(self, mock_run: MagicMock) -> None:
+        assert generate_title_with_seer("msg", self.organization) is None
 
-    @patch("sentry.ai_monitoring.utils.make_llm_generate_request")
-    def test_generate_conversation_title_falls_back(self, mock_request: MagicMock) -> None:
-        mock_request.side_effect = Exception("boom")
+    @patch("sentry.ai_monitoring.conversation_titles.run_oneshot")
+    def test_generate_conversation_title_falls_back(self, mock_run: MagicMock) -> None:
+        mock_run.side_effect = Exception("boom")
         assert (
             generate_conversation_title("How do I reset my password today?", self.organization)
             == "How do I reset my password today?"
@@ -267,14 +208,7 @@ class TitleHelpersTest(TestCase):
 class GenerateAIConversationTitleTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(
-            override_options(
-                {
-                    CONVERSATION_TITLE_ROLLOUT_RATE_OPTION: 1.0,
-                    CONVERSATION_TITLE_ONESHOT_ROLLOUT_RATE_OPTION: 1.0,
-                }
-            )
-        )
+        self.enterContext(override_options({CONVERSATION_TITLE_ROLLOUT_RATE_OPTION: 1.0}))
         self.project = self.create_project()
 
     def _task_kwargs(self, **kwargs: Any) -> dict[str, Any]:
@@ -440,7 +374,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert AIConversationMetadata.objects.count() == 0
         mock_generate.assert_not_called()
 
-    @patch("sentry.ai_monitoring.utils.run_oneshot")
+    @patch("sentry.ai_monitoring.conversation_titles.run_oneshot")
     def test_end_to_end_with_mocked_seer(self, mock_run: MagicMock) -> None:
         mock_run.return_value = {"title": "Password Reset Guidance"}
         generate_ai_conversation_title(
@@ -455,7 +389,7 @@ class GenerateAIConversationTitleTaskTest(TestCase):
         assert row.title == "Password Reset Guidance"
         mock_run.assert_called_once()
 
-    @patch("sentry.ai_monitoring.utils.run_oneshot")
+    @patch("sentry.ai_monitoring.conversation_titles.run_oneshot")
     def test_end_to_end_seer_failure_uses_fallback(self, mock_run: MagicMock) -> None:
         mock_run.side_effect = Exception("network down")
         generate_ai_conversation_title(**self._task_kwargs(first_user_message="Short question"))

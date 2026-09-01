@@ -54,6 +54,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.locks import locks
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -248,7 +249,9 @@ class AuthIdentityHandler:
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            return HttpResponseRedirect(self._get_login_redirect(subdomain))
+            return HttpResponseRedirect(
+                self._get_login_redirect(subdomain, default_to_organization=False)
+            )
 
         state.clear()
 
@@ -257,10 +260,20 @@ class AuthIdentityHandler:
             auth.set_active_org(self.request, self.organization.slug)
         return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
-    def _get_login_redirect(self, subdomain: str | None) -> str:
+    def _get_login_redirect(
+        self, subdomain: str | None, *, default_to_organization: bool = True
+    ) -> str:
         # TODO(domains) Passing this method the organization should let us consolidate and simplify subdomain
         # state tracking.
-        login_redirect_url = auth.get_login_redirect(self.request)
+        if default_to_organization:
+            default_redirect_url = (
+                reverse("issues")
+                if subdomain is not None
+                else Organization.get_url(self.organization.slug)
+            )
+            login_redirect_url = auth.get_login_redirect(self.request, default=default_redirect_url)
+        else:
+            login_redirect_url = auth.get_login_redirect(self.request)
         if subdomain is not None:
             url_prefix = generate_organization_url(subdomain)
             login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)

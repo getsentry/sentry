@@ -2,10 +2,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SCM_MESSAGING_PROVIDER_DESCRIPTIONS} from 'sentry/components/onboarding/scm/messagingProviders';
-import type {RowVisualState} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {t} from 'sentry/locale';
+
+import type {RowVisualState} from './types';
 
 export function RowSubtitle({
   visualState,

@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DateTimeProvider} from '@sentry/scraps/datetime';
 
-import {TimeSince} from 'sentry/components/timeSince';
+import {getRelativeDate, TimeSince} from 'sentry/components/timeSince';
 
 describe('TimeSince', () => {
   const now = new Date();
@@ -59,6 +59,13 @@ describe('TimeSince', () => {
     expect(screen.getByText('10m atrás')).toBeInTheDocument();
   });
 
+  it('omits the affix that does not apply rather than printing it', () => {
+    // Only one of prefix/suffix is ever used, so a caller that supplies just
+    // one must not leak `undefined` when the other direction is taken.
+    expect(getRelativeDate(futureTenMin, 'ago')).toBe('10 minutes');
+    expect(getRelativeDate(pastTenMin, undefined, 'in')).toBe('10 minutes');
+  });
+
   it('respects timezone in tooltip', async () => {
     const date = new Date('2024-01-15T12:00:00Z');
     render(
@@ -69,5 +76,76 @@ describe('TimeSince', () => {
     const timeElement = screen.getByRole('time');
     await userEvent.hover(timeElement);
     expect(await screen.findByText(/E[SD]T/)).toBeInTheDocument();
+  });
+
+  describe('tooltip', () => {
+    const date = new Date('2024-01-15T12:00:00Z');
+
+    function renderInNewYork(element: React.ReactElement) {
+      return render(
+        <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+          {element}
+        </DateTimeProvider>
+      );
+    }
+
+    it('resolves every timestamp against UTC, labelled or not', async () => {
+      // The card is what every TimeSince opens now, so the UTC row is there
+      // whether or not the call site named the timestamp.
+      renderInNewYork(<TimeSince date={date} />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('UTC')).toBeInTheDocument();
+      expect(screen.getByText('7:00 AM')).toBeInTheDocument();
+      expect(screen.getByText('12:00 PM')).toBeInTheDocument();
+    });
+
+    it('uses tooltipPrefix as the card header', async () => {
+      renderInNewYork(<TimeSince date={date} tooltipPrefix="Last Seen" suffix="ago" />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('Last Seen')).toBeInTheDocument();
+    });
+
+    it('drops tooltipPrefix when a tooltipBody replaces the card', async () => {
+      // The prefix heads the card, so a body that replaces the card leaves it
+      // nothing to head. Asserted rather than left implicit, because it reads
+      // as a prop quietly doing nothing.
+      renderInNewYork(
+        <TimeSince date={date} tooltipPrefix="Last Seen" tooltipBody={<p>Replaced</p>} />
+      );
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('Replaced')).toBeInTheDocument();
+      expect(screen.queryByText('Last Seen')).not.toBeInTheDocument();
+    });
+
+    it('shows seconds when the call site asks for them', async () => {
+      renderInNewYork(<TimeSince date={date} tooltipShowSeconds />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('7:00:00 AM')).toBeInTheDocument();
+    });
+
+    it('lets a tooltipBody replace the card', async () => {
+      renderInNewYork(<TimeSince date={date} tooltipBody={<span>Custom body</span>} />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(await screen.findByText('Custom body')).toBeInTheDocument();
+      expect(screen.queryByText('UTC')).not.toBeInTheDocument();
+    });
+
+    it('renders no tooltip when the absolute one is disabled', async () => {
+      renderInNewYork(<TimeSince date={date} disabledAbsoluteTooltip />);
+
+      await userEvent.hover(screen.getByRole('time'));
+
+      expect(screen.queryByText('UTC')).not.toBeInTheDocument();
+    });
   });
 });

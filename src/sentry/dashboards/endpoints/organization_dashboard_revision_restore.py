@@ -77,7 +77,11 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
 
         restore_data = _prepare_restore_data(revision.snapshot)
 
-        projects = self.get_projects(request, organization)
+        projects = self.get_projects(
+            request,
+            organization,
+            project_ids=set(restore_data.get("projects", [])),
+        )
         serializer = DashboardDetailsSerializer(
             data=restore_data,
             instance=dashboard,

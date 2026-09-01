@@ -30,7 +30,6 @@ import type {
 import {
   describeService,
   getFailedServices,
-  getProjectErrorDetail,
   getStatusLabel,
   getStatusVariant,
 } from 'sentry/utils/seer/gcpConnection';
@@ -285,7 +284,7 @@ function GcpVerificationStep({
         projects: result.projects.map(project => ({
           gcpProjectId: project.gcpProjectId,
           connectionStatus: project.connectionStatus,
-          errorDetail: getProjectErrorDetail(project),
+          errorDetail: project.errorDetail ?? null,
         })),
       });
       return;

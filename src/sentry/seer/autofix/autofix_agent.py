@@ -36,7 +36,11 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import (
+    ITERATION_FLAG,
+    MANUAL_FLAG,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
@@ -540,7 +544,10 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    if step == AutofixStep.ROOT_CAUSE and run_id is None:
+    use_seer_rca_feature = features.has(
+        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    )
+    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
         # Local import avoids a circular import (dispatch imports this module).
         from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 
@@ -582,9 +589,9 @@ def trigger_autofix_agent(
     # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
     # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
     # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(
-        "organizations:autofix-pr-iteration", group.organization
-    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
+    pr_iteration_enabled = features.has(ITERATION_FLAG, group.organization) or features.has(
+        MANUAL_FLAG, group.organization
+    )
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -1008,9 +1015,12 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration-manual", group.organization):
+    if features.has(MANUAL_FLAG, group.organization):
         lines.append(
-            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+            # One command per line, and one `<sub>` tag per line: a blank line
+            # would close the tag and leave the next line full size.
+            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
         )
 
     seer_run = SeerRun.objects.filter(
