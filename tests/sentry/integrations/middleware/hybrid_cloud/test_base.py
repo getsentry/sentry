@@ -1,7 +1,9 @@
 from collections.abc import Iterable
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from pytest import raises
@@ -33,6 +35,14 @@ def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResp
 class ExampleRequestParser(BaseRequestParser):
     provider = "test_provider"
     webhook_identifier = WebhookProviderIdentifier.SLACK
+
+
+class BucketingRequestParser(BaseRequestParser):
+    provider = "test_provider"
+    webhook_identifier = WebhookProviderIdentifier.SLACK
+
+    def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
+        return data.get("bucket_id")
 
 
 class BaseRequestParserTest(TestCase):
@@ -337,3 +347,52 @@ class BaseRequestParserTest(TestCase):
 
         assert mock_record.call_count == 2
         assert_halt_metric(mock_record, MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    def test_mailbox_identifier_under_volume_gate(self, mock_incr: MagicMock) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="test_provider", external_id="test_external_id"
+        )
+        parser = BucketingRequestParser(self.request, self.response_handler)
+
+        assert parser.get_mailbox_identifier(integration, {"bucket_id": 101}) == str(integration.id)
+
+        mock_incr.assert_any_call(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={"provider": "test_provider", "bucketed": "false", "reason": "under_volume_gate"},
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    def test_mailbox_identifier_without_a_bucket_key(self, mock_incr: MagicMock) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="test_provider", external_id="test_external_id"
+        )
+        cache.set(f"webhookpayload:test_provider:{integration.id}:use_buckets", 1)
+        parser = BucketingRequestParser(self.request, self.response_handler)
+
+        assert parser.get_mailbox_identifier(integration, {}) == str(integration.id)
+
+        mock_incr.assert_any_call(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={"provider": "test_provider", "bucketed": "false", "reason": "no_bucket_key"},
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
+    def test_mailbox_identifier_bucketed(self, mock_incr: MagicMock) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="test_provider", external_id="test_external_id"
+        )
+        cache.set(f"webhookpayload:test_provider:{integration.id}:use_buckets", 1)
+        parser = BucketingRequestParser(self.request, self.response_handler)
+
+        assert (
+            parser.get_mailbox_identifier(integration, {"bucket_id": 101}) == f"{integration.id}:1"
+        )
+
+        mock_incr.assert_any_call(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={"provider": "test_provider", "bucketed": "true", "reason": "bucketed"},
+        )
