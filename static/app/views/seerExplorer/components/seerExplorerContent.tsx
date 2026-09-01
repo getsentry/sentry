@@ -300,7 +300,7 @@ export function SeerExplorerContent({
   const postMessage = useCallback(
     (query: string, options?: SendMessageOptions) => {
       if (options?.newChat) {
-        sendMessage(query, 0);
+        sendMessage(query, 0, null);
         return;
       }
       sendMessage(query);
