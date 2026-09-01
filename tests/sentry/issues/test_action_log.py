@@ -657,7 +657,8 @@ class TestPublishActionWrite(TestCase):
         assert entry.data == {}
         assert entry.date_added is not None
 
-    def test_shared_outbox_is_default(self) -> None:
+    @patch("sentry.utils.metrics.timer")
+    def test_shared_outbox_is_default(self, mock_timer: MagicMock) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
             publish_action(
                 ViewAction(),
@@ -670,11 +671,24 @@ class TestPublishActionWrite(TestCase):
             CellOutbox.objects.filter(category=OutboxCategory.GROUP_ACTION_LOG_EVENT).count() == 1
         )
         assert not GroupActionLogOutbox.objects.exists()
+        mock_timer.assert_any_call(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": "view",
+                "source": "api",
+                "route": "shared",
+                "derived_strategy": "inline",
+            },
+        )
 
     @patch("sentry.options.rollout.in_rollout_group", return_value=True)
     @patch("sentry.utils.metrics.incr")
+    @patch("sentry.utils.metrics.timer")
     def test_dedicated_outbox_rollout_routes_one_write(
-        self, mock_incr: MagicMock, mock_in_rollout_group: MagicMock
+        self,
+        mock_timer: MagicMock,
+        mock_incr: MagicMock,
+        mock_in_rollout_group: MagicMock,
     ) -> None:
         with (
             self.feature("projects:issue-action-log-write-to-db"),
@@ -685,6 +699,7 @@ class TestPublishActionWrite(TestCase):
                 source=ActionSource.API,
                 group_id=self.group.id,
                 project=self.group.project,
+                force_async_derived=True,
             )
 
         assert not CellOutbox.objects.filter(
@@ -695,6 +710,15 @@ class TestPublishActionWrite(TestCase):
             "issues.action_log.dedicated_outbox_rollout_rate", self.group.id
         )
         mock_incr.assert_any_call("issues.action_log.outbox_write", tags={"route": "dedicated"})
+        mock_timer.assert_called_once_with(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": "view",
+                "source": "api",
+                "route": "dedicated",
+                "derived_strategy": "async",
+            },
+        )
 
     def test_dedicated_outbox_flushes_on_commit(self) -> None:
         with (
