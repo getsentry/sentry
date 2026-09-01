@@ -8,6 +8,7 @@ import {
   getIssueTitleFromType,
   ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
+  IssueType,
   PriorityLevel,
   VALID_ISSUE_CATEGORIES,
   AI_DETECTED_ISSUE_TYPES,
@@ -246,6 +247,13 @@ function builtInIssuesFields({
   currentTags: TagCollection;
   organization: Organization;
 }): TagCollection {
+  // The type is hidden by default, and this is the flag that unhides it: search
+  // drops the category and the type for anyone without it, so gating on
+  // anything else would offer a filter that returns nothing and says why.
+  const hasLLMCacheUsageIssues = organization.features.includes(
+    'issue-llm-cache-usage-visible'
+  );
+
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
       return {
@@ -314,7 +322,10 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_CATEGORY]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_CATEGORY]!,
       name: 'Issue Category',
-      values: SEARCHABLE_ISSUE_CATEGORIES.map(value => ({
+      values: [
+        ...SEARCHABLE_ISSUE_CATEGORIES,
+        ...(hasLLMCacheUsageIssues ? [IssueCategory.GEN_AI] : []),
+      ].map(value => ({
         icon: null,
         title: value,
         name: value,
@@ -334,6 +345,7 @@ function builtInIssuesFields({
         !organization.hideAiFeatures
           ? [...AI_DETECTED_ISSUE_TYPES]
           : []),
+        ...(hasLLMCacheUsageIssues ? [IssueType.LLM_CACHE_USAGE] : []),
       ].map(value => ({
         icon: null,
         title: value,

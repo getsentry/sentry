@@ -74,6 +74,7 @@ import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssu
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {LlmCacheUsageSections} from 'sentry/views/issueDetails/genAiIssues/llmCacheUsage';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {
   getHangProfileData,
@@ -167,6 +168,11 @@ export function EventDetailsContent({
         </FoldSection>
       )}
       <EventEvidence event={event} group={group} project={project} />
+      {group.issueType === IssueType.LLM_CACHE_USAGE && (
+        <ErrorBoundary customComponent={() => null}>
+          <LlmCacheUsageSections event={event} />
+        </ErrorBoundary>
+      )}
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
         <UptimeAssertionsSection event={event} />
       )}
