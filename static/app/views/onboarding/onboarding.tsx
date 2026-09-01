@@ -139,7 +139,7 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
   return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
 }
 
-function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
+function ScmMessagingAdapter({genBackButton}: StepProps) {
   const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
@@ -155,7 +155,6 @@ function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
       onMessagingSetupChange={setMessagingSetup}
       selectedPlatform={selectedPlatform}
       genBackButton={genBackButton}
-      onComplete={onComplete}
     />
   );
 }
