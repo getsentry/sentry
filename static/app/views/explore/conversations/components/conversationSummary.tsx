@@ -385,6 +385,13 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     }
   }
 
+  // Errored tools lead, so they survive the row's truncation.
+  const sortedToolNames = Array.from(toolNameSet).sort();
+  const toolNames = [
+    ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
+    ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
+  ];
+
   return {
     llmCalls,
     toolCalls,
@@ -393,7 +400,7 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     erroredToolNames: erroredToolNameSet,
     totalTokens,
     totalCost,
-    toolNames: Array.from(toolNameSet).sort(),
+    toolNames,
   };
 }
 
