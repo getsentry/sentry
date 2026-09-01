@@ -279,13 +279,21 @@ class BaseRequestParser(ABC):
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
         if not use_buckets:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
+            self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
             return str(integration.id)
 
         return self._build_bucketed_identifier(integration, data)
+
+    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={
+                "provider": self.provider,
+                "bucketed": "true" if bucketed else "false",
+                "reason": reason,
+            },
+        )
 
     def _build_bucketed_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
@@ -294,19 +302,13 @@ class BaseRequestParser(ABC):
         the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
+            self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.
         # 100 is arbitrary but we can't leave it unbounded.
         bucket_number = mailbox_bucket_id % 100
-        metrics.incr(
-            "hybridcloud.webhookpayload.mailbox_routing",
-            tags={"provider": self.provider, "bucketed": "true"},
-        )
+        self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
         return f"{integration.id}:{bucket_number}"
 
