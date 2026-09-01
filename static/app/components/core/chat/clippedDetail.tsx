@@ -1,31 +1,31 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {ClippedBox} from 'sentry/components/clippedBox';
 
 // Chat detail content — a tool call's input/output, an agent's thinking trace — can be a
 // one-line chip or several hundred lines of text/JSON. Capping it keeps a single verbose block
 // from pushing every later message off screen, while the reveal stays one click away.
-export const DETAIL_CLIP_HEIGHT = 180;
+const DETAIL_CLIP_HEIGHT = 180;
 
-// `ClippedBox` defaults to a vertical `padding` (and a `Show More` fade sized for full-page
-// content); both fight the compact chat surfaces this is used in, so they are zeroed and the
-// fade swapped for a plain-text link sized to match.
+// `ClippedBox` defaults to a vertical `padding`; it fights the compact chat surfaces this is
+// used in, so it is zeroed here.
 const DetailClippedBox = styled(ClippedBox)`
   min-width: 0;
   max-width: 100%;
   padding: 0;
 `;
 
-function DetailClipFade({showMoreButton}: {showMoreButton: ReactNode}) {
-  return (
-    <Flex justify="start" paddingTop="xs">
-      {showMoreButton}
-    </Flex>
-  );
-}
+// The default `ClipFade` fades to a hardcoded background token, which would mismatch these
+// surfaces (a `background="secondary"` box, a transparent `Disclosure.Content`). Rather than
+// guess at a matching fade, this stays a plain absolutely-positioned button pinned to the
+// bottom-left corner — same placement as the default, no gradient.
+const DetailClipFade = styled('div')`
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding-top: ${p => p.theme.space.xs};
+`;
 
 /**
  * Caps chat detail content at {@link DETAIL_CLIP_HEIGHT} with a click-to-expand affordance,
@@ -37,8 +37,8 @@ export function ClippedDetail({children}: {children: ReactNode}) {
   return (
     <DetailClippedBox
       clipHeight={DETAIL_CLIP_HEIGHT}
-      buttonProps={{size: 'xs', variant: 'transparent'}}
-      clipFade={DetailClipFade}
+      buttonProps={{size: 'xs'}}
+      clipFade={({showMoreButton}) => <DetailClipFade>{showMoreButton}</DetailClipFade>}
     >
       {children}
     </DetailClippedBox>
