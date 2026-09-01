@@ -275,8 +275,7 @@ interface HeadCellProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'al
    */
   columnIndex?: number;
   /**
-   * Aligns the cell's content, in `Flex`'s `justify` vocabulary, so a column's
-   * header can be given the same alignment as its row cells.
+   * Aligns the cell's content, in `Flex`'s `justify` vocabulary.
    */
   justify?: HeaderCellJustify;
   onSort?: (event: React.MouseEvent) => void;

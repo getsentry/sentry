@@ -28,10 +28,7 @@ export function getAriaSort(
 export type ColumnAlign = 'left' | 'right';
 
 /**
- * How a header cell lays its label out, in `Flex`'s `justify` vocabulary so a
- * column's header can take the same value as its row cells. The distribution
- * values are excluded: they spread several children apart, and a header holds
- * one label plus an optional sort arrow.
+ * How a header cell lays its label out, in `Flex`'s `justify` vocabulary.
  */
 export type HeaderCellJustify = Exclude<FlexJustify, 'around' | 'between' | 'evenly'>;
 

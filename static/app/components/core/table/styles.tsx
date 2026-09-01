@@ -66,7 +66,6 @@ export const TableHeadCell = styled('th', {
   position: relative;
   min-width: 0;
 
-  /* Only bites when a consumer lays the cell out as a flex container. */
   ${p =>
     p.justify &&
     css`
