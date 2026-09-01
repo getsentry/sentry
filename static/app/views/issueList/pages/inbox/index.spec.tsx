@@ -238,6 +238,16 @@ describe('InboxPage', () => {
   } = {}) {
     let previewHasSeen = group.hasSeen;
     MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'Test summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
     });
