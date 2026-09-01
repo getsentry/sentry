@@ -68,8 +68,31 @@ describe('ThinkingBlock', () => {
 
     expect(screen.getByText('inner content')).not.toBeVisible();
 
-    await userEvent.click(screen.getByText('Done'));
+    await userEvent.click(screen.getByText('See thinking and tool calls'));
     expect(screen.getByText('inner content')).toBeVisible();
+  });
+
+  it('shows summary title when completed instead of the last streamed title', () => {
+    jest.useRealTimers();
+    const start = new Date();
+
+    const {rerender} = render(
+      <ThinkingBlock title="Querying spans..." startTime={start}>
+        <div>content</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('Querying spans')).toBeInTheDocument();
+    expect(screen.queryByText('See thinking and tool calls')).not.toBeInTheDocument();
+
+    rerender(
+      <ThinkingBlock title="Querying spans..." startTime={start} endTime={new Date()}>
+        <div>content</div>
+      </ThinkingBlock>
+    );
+
+    expect(screen.getByText('See thinking and tool calls')).toBeInTheDocument();
+    expect(screen.queryByText('Querying spans')).not.toBeInTheDocument();
   });
 
   it('formats minutes for long durations', () => {
