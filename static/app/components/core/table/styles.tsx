@@ -21,9 +21,6 @@ export const TableGrid = styled('table')<TableGridProps>`
   border-collapse: collapse;
   margin: 0;
 
-  /* Cells are matched to columns by position, so only a number ever reaches the
-     stylesheet. Status rows hold a single cell spanning every column, which no
-     column position describes. */
   ${p =>
     p.hiddenColumnIndexes?.map(
       index => css`
