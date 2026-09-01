@@ -174,12 +174,7 @@ interface ChipRootProps extends React.HTMLAttributes<HTMLDivElement> {
  * The chonky-embossed container. Owns `size`, `readonly`, and focus management
  * for the sections composed inside it.
  */
-function ChipRoot({
-  size = 'md',
-  readonly = false,
-  children,
-  ...rest
-}: ChipRootProps) {
+function ChipRoot({size = 'md', readonly = false, children, ...rest}: ChipRootProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const roving = useRovingController(!readonly, rootRef);
 
