@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -34,6 +35,7 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {parseGcpProjectIds} from 'sentry/utils/seer/gcpConnection';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -170,7 +172,7 @@ function ConfigureIntegration() {
               ...cachedIntegration,
               configData: null,
               configOrganization: [],
-              organizationId: organization.id,
+              organizationId: Number(organization.id),
               externalId: cachedIntegration.externalId ?? '',
             },
             headers: {},
@@ -241,7 +243,7 @@ function ConfigureIntegration() {
   const settingsInstructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
   const hasSettingsTabContent =
-    integration.configOrganization.length > 0 ||
+    (integration.configOrganization?.length ?? 0) > 0 ||
     (settingsInstructions?.length ?? 0) > 0 ||
     provider.features.includes('alert-rule') ||
     provider.features.includes('serverless');
@@ -354,6 +356,36 @@ function ConfigureIntegration() {
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
     );
+
+    const integrationQueryOptions = organizationIntegrationApiOptions({
+      organizationSlug: organization.slug,
+      integrationId,
+    });
+
+    const verifyGcpConnection = async () => {
+      const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
+        .configData;
+      const customerSaEmail = savedConfig?.customer_sa_email;
+      const projectIds = savedConfig?.projects;
+      if (typeof customerSaEmail !== 'string' || typeof projectIds !== 'string') {
+        return;
+      }
+
+      const gcpProjectIds = parseGcpProjectIds(projectIds);
+      if (!customerSaEmail || !gcpProjectIds.length) {
+        return;
+      }
+
+      await fetchMutation({
+        method: 'POST',
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
+        data: {customerSaEmail, gcpProjectIds},
+      });
+    };
+
     const integrationMutationOptions = mutationOptions({
       mutationFn: (data: Record<string, unknown>) => {
         let requestData = data;
@@ -370,29 +402,34 @@ function ConfigureIntegration() {
           data: requestData,
         });
       },
-      onSuccess: () => {
-        // it's important that we keep the mutation pending while the refetch is happening by returning it.
+      onSuccess: async () => {
+        // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
         // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
         // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-        return queryClient.invalidateQueries(
-          organizationIntegrationApiOptions({
-            organizationSlug: organization.slug,
-            integrationId,
-          })
-        );
+        await queryClient.invalidateQueries(integrationQueryOptions);
+
+        if (provider.key === 'gcp') {
+          try {
+            await verifyGcpConnection();
+          } catch (error) {
+            // The save itself succeeded; the connection stays recorded as unverified
+            // and the customer can re-test, so don't report this as a failed save.
+            Sentry.captureException(error);
+          }
+        }
       },
     });
 
     return (
       <Fragment>
-        {integration.configOrganization.length > 0 && (
+        {(integration.configOrganization?.length ?? 0) > 0 && (
           <FieldGroup
             title={
               integration.provider.aspects.configure_integration?.title ||
               t('Organization Integration Settings')
             }
           >
-            {integration.configOrganization.map(fieldConfig => (
+            {integration.configOrganization?.map(fieldConfig => (
               <BackendJsonAutoSaveForm
                 key={fieldConfig.name}
                 field={fieldConfig}

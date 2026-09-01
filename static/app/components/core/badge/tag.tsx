@@ -34,7 +34,7 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
       )}
 
       {/* @TODO(jonasbadalic): Can, and should we make children required? */}
-      {children && <Text>{children}</Text>}
+      {children && <TagText>{children}</TagText>}
 
       {onDismiss && (
         <DismissButton
@@ -64,6 +64,7 @@ const TagPill = styled('div')<{
   align-items: center;
   border-radius: ${p => p.theme.radius.xs};
   padding: 0 ${p => p.theme.space.md};
+  max-width: 100%;
 
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
   button,
@@ -113,16 +114,17 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
   }
 }
 
-const Text = styled('div')`
+const TagText = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
 
-  /* @TODO(jonasbadalic): Some occurrences pass other things than strings into the children prop. */
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  &:has(> *) {
+    display: flex;
+    align-items: center;
+    gap: ${p => p.theme.space.xs};
+  }
 `;
 
 const IconWrapper = styled('span')`

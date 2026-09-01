@@ -562,6 +562,64 @@ describe('VirtualizedViewManger', () => {
   });
 
   describe('horizontal scrolling', () => {
+    it('zooms to a fake span from the trace start to the vital timestamp', () => {
+      const scheduler = new TraceScheduler();
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        scheduler,
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([10_000, 0, 20_000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      scheduler.on('set trace view', view => manager.view.setTraceView(view));
+      const animationFrameSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          callback(performance.now() + 1000);
+          return 0;
+        });
+
+      manager.onZoomToVital(26_000, 'lcp');
+      animationFrameSpy.mockRestore();
+
+      expect(manager.view.trace_view.x).toBe(0);
+      expect(manager.view.trace_view.width).toBe(16_800);
+    });
+
+    it('does not zoom again when already at the vital target', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([10_000, 0, 20_000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      const animationFrameSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          callback(performance.now() + 1000);
+          return 0;
+        });
+      const zoomSpy = jest.spyOn(manager, 'onZoomIntoSpace');
+
+      manager.onZoomToVital(26_000, 'lcp');
+      manager.onZoomToVital(26_000, 'lcp');
+      animationFrameSpy.mockRestore();
+
+      expect(zoomSpy).toHaveBeenCalledTimes(1);
+      expect(zoomSpy).toHaveBeenCalledWith([10_000, 16_800], {padding: false});
+    });
+
     it('uses compressed viewport width when the real viewport is at max zoom', () => {
       const manager = new VirtualizedViewManager(
         {

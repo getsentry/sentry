@@ -4,8 +4,8 @@ import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import {
-  type ButtonSize,
   type ButtonVariant,
+  type ButtonSize,
   type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
 } from './types';
 

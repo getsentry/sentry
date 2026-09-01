@@ -290,8 +290,10 @@ export function WebVitalsDetailPanel({
               data={dataByOpportunity}
               isLoading={isPending}
               columnOrder={columnOrder}
-              columnSortBy={[sort]}
               grid={{
+                getColumnSort: column => ({
+                  direction: column.key === sort.key ? sort.order : undefined,
+                }),
                 renderHeadCell,
                 renderBodyCell,
               }}

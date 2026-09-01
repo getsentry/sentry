@@ -2,6 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
+import type {DistributedOmit} from 'type-fest';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -19,6 +20,10 @@ import type {ButtonSize, DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
+
+type ResolvedLinkButtonProps = DistributedOmit<LinkButtonProps, 'size'> & {
+  size: ButtonSize;
+};
 
 export function LinkButton({
   disabled,
@@ -94,7 +99,7 @@ const StyledLinkButton = styled(
     size: _size,
     shapeVariant: _shapeVariant,
     ...props
-  }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
+  }: ResolvedLinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
     const {handleClick} = useClickTracking(props, 'link');
 
     if ('to' in props && props.to) {
@@ -157,15 +162,12 @@ const StyledLinkButton = styled(
       prop === 'variant' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Omit<LinkButtonProps, 'size'> & {size: ButtonSize}>`
+)<ResolvedLinkButtonProps>`
   ${p => getLinkButtonStyles(p, p.theme)}
 `;
 
 const getLinkButtonStyles = (
-  p: Omit<LinkButtonProps, 'size'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: ButtonSize;
-  },
+  p: ResolvedLinkButtonProps & {shapeVariant: 'rectangular' | 'square'},
   theme: Theme
 ) => {
   const buttonStyles = getButtonStyles({...p, theme, shapeVariant: p.shapeVariant});

@@ -15,12 +15,14 @@ from sentry import options
 from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
+    BATCH_SCHEDULE_OFFSET,
     DRAIN_LOCK_TTL,
     MAX_MAILBOX_DRAIN,
     PARALLEL_DRAIN_THRESHOLD,
     SLOW_DELIVERY_THRESHOLD,
     Dispatcher,
     _claim_and_dispatch,
+    _due_mailbox_heads,
     drain_mailbox,
     drain_mailbox_parallel,
     maybe_trigger_drain,
@@ -45,6 +47,12 @@ DISPATCH_METRIC = "hybridcloud.deliver_webhooks.dispatch"
 DISPATCH_CLAIMED_METRIC = "hybridcloud.deliver_webhooks.dispatch.claimed"
 PUSH_TRIGGER_ERROR_METRIC = "hybridcloud.deliver_webhooks.push_trigger.error"
 SCHEDULER_SKIPPED_METRIC = "hybridcloud.deliver_webhooks.scheduler.skipped"
+DUE_ROWS_METRIC = "hybridcloud.schedule_webhook_delivery.due_rows"
+IN_FLIGHT_ROWS_METRIC = "hybridcloud.schedule_webhook_delivery.in_flight_rows"
+CYCLE_METRIC = "hybridcloud.schedule_webhook_delivery.cycle"
+CARRYOVER_METRIC = "hybridcloud.schedule_webhook_delivery.carryover"
+CARRYOVER_ERROR_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.error"
+CARRYOVER_DROPPED_METRIC = "hybridcloud.schedule_webhook_delivery.carryover.dropped"
 
 
 class MetricCallsMixin:
@@ -579,6 +587,315 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         assert self.scheduler_skips(mock_metrics) == [
             {"provider": "github", "reason": "claim_lost"}
         ]
+
+
+class CarryoverTestBase(MetricCallsMixin, TestCase):
+    """Mailbox setup and cache reads shared by the carryover suites."""
+
+    def create_mailboxes(self, count: int) -> list[WebhookPayload]:
+        return [
+            self.create_webhook_payload(mailbox_name=f"github:{index}", cell_name="us")
+            for index in range(count)
+        ]
+
+    def failing_cache(self, method: str) -> MagicMock:
+        """A cache whose `method` raises; every other call reaches the real one."""
+        double = MagicMock(wraps=cache)
+        getattr(double, method).side_effect = Exception("cache unavailable")
+        return double
+
+    def carryover(self) -> list[dict[str, Any]] | None:
+        return cache.get(deliver_webhooks.CARRYOVER_CACHE_KEY)
+
+    def dispatched_ids(self, mock_drain: MagicMock) -> list[int]:
+        return [call[0][0] for call in mock_drain.delay.call_args_list]
+
+    def carried(self, webhooks: list[WebhookPayload]) -> list[dict[str, Any]]:
+        return [{"id": w.id, "mailbox_name": w.mailbox_name} for w in webhooks]
+
+
+@control_silo_test
+@patch.object(deliver_webhooks, "BATCH_SIZE", 2)
+@patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 4)
+class ScheduleCarryoverTest(CarryoverTestBase):
+    """
+    Cycles dispatch two mailboxes apiece here, so a third mailbox is the surplus a
+    cycle discovers but has no budget to dispatch. A one-head surplus sits exactly
+    on the `BATCH_SIZE // 2` floor here, so it is kept.
+    """
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_surplus_heads_are_stored(self, mock_drain: MagicMock, mock_metrics: MagicMock) -> None:
+        webhooks = self.create_mailboxes(3)
+        double = MagicMock(wraps=cache)
+
+        with patch.object(deliver_webhooks, "cache", double):
+            schedule_webhook_delivery()
+
+        assert self.dispatched_ids(mock_drain) == [webhooks[0].id, webhooks[1].id]
+        double.set.assert_called_once_with(
+            deliver_webhooks.CARRYOVER_CACHE_KEY,
+            [{"id": webhooks[2].id, "mailbox_name": webhooks[2].mailbox_name}],
+            timeout=deliver_webhooks.CARRYOVER_TTL,
+        )
+        assert self.distribution_calls(mock_metrics, CARRYOVER_METRIC) == [(1, {})]
+
+    @override_options(DUE_HEAD_OPTIONS)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_due_head_discovery_carries_its_surplus_too(self, mock_drain: MagicMock) -> None:
+        webhooks = self.create_mailboxes(3)
+
+        schedule_webhook_delivery()
+
+        assert self.dispatched_ids(mock_drain) == [webhooks[0].id, webhooks[1].id]
+        assert self.carryover() == [
+            {"id": webhooks[2].id, "mailbox_name": webhooks[2].mailbox_name}
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_carried_heads_dispatch_without_discovery(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(3)
+        schedule_webhook_delivery()
+        mock_drain.delay.reset_mock()
+
+        with (
+            patch.object(deliver_webhooks, "_gated_mailbox_heads") as mock_gated,
+            patch.object(deliver_webhooks, "_due_mailbox_heads") as mock_due,
+        ):
+            schedule_webhook_delivery()
+
+        mock_gated.assert_not_called()
+        mock_due.assert_not_called()
+        assert self.dispatched_ids(mock_drain) == [webhooks[2].id]
+        assert self.tags_for(mock_metrics, CYCLE_METRIC) == [
+            {"source": "discovery"},
+            {"source": "carryover"},
+        ]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_discovery_resumes_once_the_surplus_is_spent(self, mock_drain: MagicMock) -> None:
+        self.create_mailboxes(3)
+        schedule_webhook_delivery()
+        schedule_webhook_delivery()
+        assert self.carryover() is None
+
+        with patch.object(deliver_webhooks, "_gated_mailbox_heads", return_value=[]) as mock_gated:
+            schedule_webhook_delivery()
+
+        mock_gated.assert_called_once()
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_stale_carried_head_claims_nothing(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(3)
+        schedule_webhook_delivery()
+        mock_drain.delay.reset_mock()
+        # Another dispatcher claimed the carried head between the two cycles. The
+        # claim's due-gate is what makes carrying a head safe, so the cycle must
+        # spend one claim attempt on it and move on.
+        WebhookPayload.objects.filter(id=webhooks[2].id).update(
+            schedule_for=timezone.now() + timedelta(hours=1)
+        )
+
+        schedule_webhook_delivery()
+
+        mock_drain.delay.assert_not_called()
+        assert self.tags_for(mock_metrics, SCHEDULER_SKIPPED_METRIC) == [
+            {"provider": "github", "reason": "claim_lost"}
+        ]
+        assert self.carryover() is None
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_cache_read_failure_falls_back_to_discovery(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_mailboxes(3)
+        schedule_webhook_delivery()
+
+        with patch.object(deliver_webhooks, "cache", self.failing_cache("get")):
+            schedule_webhook_delivery()
+
+        assert self.tags_for(mock_metrics, CYCLE_METRIC) == [
+            {"source": "discovery"},
+            {"source": "discovery"},
+        ]
+        assert self.tags_for(mock_metrics, CARRYOVER_ERROR_METRIC) == [{"operation": "get"}]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_cache_write_failure_leaves_the_cycle_intact(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(3)
+
+        with patch.object(deliver_webhooks, "cache", self.failing_cache("set")):
+            schedule_webhook_delivery()
+
+        assert self.dispatched_ids(mock_drain) == [webhooks[0].id, webhooks[1].id]
+        assert self.tags_for(mock_metrics, CARRYOVER_ERROR_METRIC) == [{"operation": "set"}]
+        assert self.carryover() is None
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_cache_delete_failure_leaves_the_cycle_intact(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(3)
+        schedule_webhook_delivery()
+        mock_drain.delay.reset_mock()
+
+        with patch.object(deliver_webhooks, "cache", self.failing_cache("delete")):
+            schedule_webhook_delivery()
+
+        assert self.dispatched_ids(mock_drain) == [webhooks[2].id]
+        assert self.tags_for(mock_metrics, CARRYOVER_ERROR_METRIC) == [{"operation": "delete"}]
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_cycle_within_budget_carries_nothing(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_mailboxes(2)
+
+        schedule_webhook_delivery()
+
+        assert self.carryover() is None
+        assert self.distribution_calls(mock_metrics, CARRYOVER_METRIC) == []
+        assert self.tags_for(mock_metrics, CYCLE_METRIC) == [{"source": "discovery"}]
+
+
+@control_silo_test
+@patch.object(deliver_webhooks, "BATCH_SIZE", 4)
+@patch.object(deliver_webhooks, "BATCH_SELECT_LIMIT", 12)
+class ScheduleCarryoverFloorTest(CarryoverTestBase):
+    """A surplus under `BATCH_SIZE // 2` is dropped rather than carried."""
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_surplus_below_the_floor_is_dropped(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.create_mailboxes(5)
+
+        schedule_webhook_delivery()
+
+        assert self.carryover() is None
+        assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == [{}]
+        assert self.distribution_calls(mock_metrics, CARRYOVER_METRIC) == []
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_surplus_at_the_floor_is_carried(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(6)
+
+        schedule_webhook_delivery()
+
+        assert self.carryover() == self.carried(webhooks[4:])
+        assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == []
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
+    def test_carryover_spent_below_the_floor_is_cleared(
+        self, mock_drain: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        webhooks = self.create_mailboxes(9)
+        schedule_webhook_delivery()
+        assert self.carryover() == self.carried(webhooks[4:])
+
+        # A stale carryover would displace the next cycle's discovery.
+        schedule_webhook_delivery()
+
+        assert self.carryover() is None
+        assert self.tags_for(mock_metrics, CARRYOVER_DROPPED_METRIC) == [{}]
+
+
+@control_silo_test
+class DueHeadDepthTest(MetricCallsMixin, TestCase):
+    """
+    Discovery reports what sits in each mailbox, not just which are due: a mailbox
+    count cannot tell one record per mailbox from a thousand.
+    """
+
+    def rows_by_provider(self, mock_metrics: MagicMock, metric: str) -> dict[str, float]:
+        """The value recorded per provider, keyed so emission order doesn't matter."""
+        return {
+            tags["provider"]: value for value, tags in self.distribution_calls(mock_metrics, metric)
+        }
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_claimed_and_backing_off_rows_are_both_in_flight(self, mock_metrics: MagicMock) -> None:
+        due = create_payloads(2, "github:123", provider="github")
+        claimed = create_payloads(3, "github:123", provider="github")
+        WebhookPayload.objects.filter(id__in=[record.id for record in claimed]).update(
+            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+        )
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+
+        heads = _due_mailbox_heads()
+
+        # The head is the oldest due record, not the mailbox's true head.
+        assert heads == [{"id": due[0].id, "mailbox_name": "github:123"}]
+        # Claimed rows and the backing-off row are both in flight: neither is
+        # available to this cycle's dispatch.
+        assert self.rows_by_provider(mock_metrics, DUE_ROWS_METRIC) == {"github": 2}
+        assert self.rows_by_provider(mock_metrics, IN_FLIGHT_ROWS_METRIC) == {"github": 4}
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_depth_summed_per_provider(self, mock_metrics: MagicMock) -> None:
+        create_payloads(2, "github:123", provider="github")
+        create_payloads(1, "github:456", provider="github")
+        jira = create_payloads(3, "jira:123", provider="jira")
+        WebhookPayload.objects.filter(id=jira[-1].id).update(
+            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET
+        )
+
+        _due_mailbox_heads()
+
+        assert self.rows_by_provider(mock_metrics, DUE_ROWS_METRIC) == {"github": 3, "jira": 2}
+        assert self.rows_by_provider(mock_metrics, IN_FLIGHT_ROWS_METRIC) == {
+            "github": 0,
+            "jira": 1,
+        }
+
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_depth_counts_mailboxes_that_cannot_dispatch(self, mock_metrics: MagicMock) -> None:
+        # An undispatchable mailbox is still backlog worth seeing.
+        self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            schedule_for=timezone.now() + timedelta(minutes=1),
+        )
+        # jira is strict-ordering: a claimed head gates the due rows behind it.
+        self.create_webhook_payload(
+            mailbox_name="jira:123",
+            cell_name="us",
+            provider="jira",
+            schedule_for=timezone.now() + BATCH_SCHEDULE_OFFSET,
+        )
+        create_payloads(2, "jira:123", provider="jira")
+
+        assert _due_mailbox_heads() == []
+
+        assert self.rows_by_provider(mock_metrics, DUE_ROWS_METRIC) == {"github": 0, "jira": 2}
+        assert self.rows_by_provider(mock_metrics, IN_FLIGHT_ROWS_METRIC) == {
+            "github": 1,
+            "jira": 1,
+        }
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:

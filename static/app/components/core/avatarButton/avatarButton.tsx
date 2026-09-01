@@ -7,11 +7,11 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
-import {Button, type ButtonProps, type ButtonSize} from '@sentry/scraps/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
-type AvatarButtonSize = Exclude<ButtonSize, 'zero'>;
+type AvatarButtonSize = 'xs' | 'sm' | 'md';
 
 interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'variant'> {
   'aria-label': string;

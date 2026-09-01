@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
@@ -157,8 +158,19 @@ def create_preprod_snapshot_pr_comment_task(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
+                assert commit_comparison.base_sha is not None
+                base_repo_name = commit_comparison.base_repo_name or head_repo_name
+                base_repository = Repository.objects.filter(
+                    organization_id=organization.id,
+                    name=base_repo_name,
+                    provider=f"integrations:{provider}",
+                ).first()
                 comment_body = format_missing_base_snapshot_pr_comment(
-                    all_artifacts, snapshot_metrics_map, project=artifact.project
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=base_repository.url if base_repository else None,
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)

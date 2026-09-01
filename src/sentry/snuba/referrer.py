@@ -25,6 +25,7 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+    API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
 
     # ** Dashboards **
 
@@ -439,6 +440,7 @@ class Referrer(StrEnum):
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES = "api.metrics.series"
     API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
 
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
@@ -964,8 +966,6 @@ class Referrer(StrEnum):
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
-
-    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
 
 
 VALUES = {referrer.value for referrer in Referrer}

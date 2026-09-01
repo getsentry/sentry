@@ -66,6 +66,7 @@ EXPOSABLE_FEATURES = [
     "projects:trace-attachment-processing",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
+    "projects:relay-nintendo-event-rewrite",
     "projects:relay-upload-multipart",
 ]
 

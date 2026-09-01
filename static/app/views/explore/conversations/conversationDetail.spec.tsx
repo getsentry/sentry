@@ -222,6 +222,45 @@ describe('ConversationDetailPage summary errors', () => {
     expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
   });
 
+  it('renders the earliest span start as the conversation start time', async () => {
+    mockApis();
+    renderPage();
+
+    // The conversation opens with the 1000s span, not the 2000s one that follows.
+    expect(await screen.findByText('Jan 1, 1970 12:16 AM UTC')).toBeInTheDocument();
+  });
+
+  it('leads the tool tags with the ones that errored', async () => {
+    mockApis(null, [
+      ...CONVERSATION_BODY,
+      spanFixture({
+        span_id: 'span-tool-ok',
+        'span.name': 'alpha call',
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'alpha_tool',
+        'precise.start_ts': 3000,
+        'precise.finish_ts': 3000.5,
+      }),
+      spanFixture({
+        span_id: 'span-tool-failed',
+        'span.name': 'zeta call',
+        'span.status': 'internal_error',
+        'gen_ai.operation.type': 'tool',
+        'gen_ai.tool.name': 'zeta_tool',
+        'precise.start_ts': 4000,
+        'precise.finish_ts': 4000.5,
+      }),
+    ]);
+    renderPage();
+
+    expect(await screen.findByText('Tools:')).toBeInTheDocument();
+
+    // Alphabetically alpha_tool would lead, but the errored zeta_tool outranks it.
+    const tags = screen.getAllByText(/^(alpha|zeta)_tool$/);
+    const names = tags.map(tag => tag.textContent);
+    expect(names.indexOf('zeta_tool')).toBeLessThan(names.indexOf('alpha_tool'));
+  });
+
   it('omits the fire icon in the summary when there are no errors', async () => {
     mockApis();
     renderPage();

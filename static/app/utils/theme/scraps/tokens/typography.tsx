@@ -7,85 +7,85 @@ export const typography = {
       /**
        * A named fontSize value evaluating to “11px”
        */
-      xs: '11px',
+      xs: '11px' as const,
       /**
        * A named fontSize value evaluating to “12px”
        */
-      sm: '12px',
+      sm: '12px' as const,
       /**
        * A named fontSize value evaluating to “14px”
        */
-      md: '14px',
+      md: '14px' as const,
       /**
        * A named fontSize value evaluating to “16px”
        */
-      lg: '16px',
+      lg: '16px' as const,
       /**
        * A named fontSize value evaluating to “20px”
        */
-      xl: '20px',
+      xl: '20px' as const,
       /**
        * A named fontSize value evaluating to “24px”
        */
-      '2xl': '24px',
+      '2xl': '24px' as const,
       /**
        * A named fontSize value evaluating to “32px”
        */
-      '3xl': '32px',
+      '3xl': '32px' as const,
       /**
        * A named fontSize value evaluating to “40px”
        */
-      '4xl': '40px',
+      '4xl': '40px' as const,
     },
     weight: {
       sans: {
         /**
          * The regular font weight for text using the sans font family.
          */
-        regular: 400,
+        regular: 400 as const,
         /**
          * The medium font weight for text using the sans font family.
          */
-        medium: 500,
+        medium: 500 as const,
       },
       mono: {
         /**
          * The regular font weight for text using the mono font family.
          */
-        regular: 425,
+        regular: 425 as const,
         /**
          * The medium font weight for text using the mono font family.
          */
-        medium: 500,
+        medium: 500 as const,
       },
     },
     family: {
       /**
        * Sans-serif font family for headings and body copy
        */
-      sans: "Rubik, 'Avenir Next', sans-serif",
+      sans: "Rubik, 'Avenir Next', sans-serif" as const,
       /**
        * Monospace font family for code samples
        */
-      mono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
+      mono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace" as const,
     },
     lineHeight: {
       /**
        * A named lineHeight value evaluating to “1”
        */
-      compressed: 1,
+      compressed: 1 as const,
       /**
        * A named lineHeight value evaluating to “1.2”
        */
-      default: 1.2,
+      default: 1.2 as const,
       /**
        * A named lineHeight value evaluating to “1.4”
        */
-      comfortable: 1.4,
+      comfortable: 1.4 as const,
       /**
        * A named lineHeight value evaluating to “1rem”
        */
-      fixed: '1rem',
+      fixed: '1rem' as const,
     },
   },
 };
