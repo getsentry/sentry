@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Literal, Union
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.utils.locking.manager import LockManager
 
 SeerAutomationIneligibilityReason = Literal[
     "not_eligible.issue_category_ineligible",
@@ -15,11 +14,7 @@ SeerAutomationIneligibilityReason = Literal[
 ]
 
 SeerAutomationSkipReason = Union[
-    Literal[
-        "already_has_fixability_score",
-        "lock_already_held",
-        "rate_limited",
-    ],
+    Literal["rate_limited"],
     SeerAutomationIneligibilityReason,
 ]
 
@@ -64,29 +59,15 @@ def is_issue_eligible_for_seer_automation(group: Group) -> bool:
     return get_seer_automation_ineligibility_reason(group) is None
 
 
-def get_default_seer_automation_skip_reason(
-    group: Group,
-    locks: LockManager,
-) -> SeerAutomationSkipReason | None:
+def get_default_seer_automation_skip_reason(group: Group) -> SeerAutomationSkipReason | None:
     """Return skip reason for the default (non-seat-based) automation path, or None if eligible."""
-    from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
     from sentry.seer.autofix.utils import (
         is_seer_scanner_rate_limited,
     )
 
-    # Only run on issues with no existing scan
-    if group.seer_fixability_score is not None:
-        return "already_has_fixability_score"
-
     ineligibility_reason = get_seer_automation_ineligibility_reason(group)
     if ineligibility_reason is not None:
         return ineligibility_reason
-
-    # Don't run if there's already a task in progress for this issue
-    lock_key, lock_name = get_issue_summary_lock_key(group.id)
-    lock = locks.get(lock_key, duration=1, name=lock_name)
-    if lock.locked():
-        return "lock_already_held"
 
     if is_seer_scanner_rate_limited(group.project, group.organization):
         return "rate_limited"

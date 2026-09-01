@@ -27,6 +27,7 @@ from sentry.killswitches import (
 )
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
+from sentry.seer.autofix.constants import IssueSummaryTriggerPath
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -1614,14 +1615,10 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     if not job["group_state"]["is_new"]:
         return
 
-    from sentry.seer.autofix.issue_summary import (
-        get_issue_summary_cache_key,
-        get_issue_summary_lock_key,
-    )
     from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
     from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
     from sentry.tasks.seer.autofix import (
-        generate_issue_summary_only,
+        generate_issue_summary_and_score,
         generate_summary_and_run_automation,
     )
 
@@ -1635,22 +1632,19 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
         # We don't want to backfill old issues since that will overwhelm Seer.
         if (timezone.now() - group.first_seen).total_seconds() > 300:
             return
-        # Generate issue summary and fixability score if not cached.
         # Agentic Triage handles automations for seat-based orgs but still needs these.
-        cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is None:
-            lock_key, lock_name = get_issue_summary_lock_key(group.id)
-            lock = locks.get(lock_key, duration=1, name=lock_name)
-            if not lock.locked():
-                generate_issue_summary_only.delay(group.id)
+        generate_issue_summary_and_score.delay(group.id)
         return
 
-    skip_reason = get_default_seer_automation_skip_reason(group, locks)
+    skip_reason = get_default_seer_automation_skip_reason(group)
     if skip_reason is not None:
         metrics.incr("seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"})
         return
 
-    generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
+    generate_summary_and_run_automation.delay(
+        group.id,
+        trigger_path=IssueSummaryTriggerPath.POST_PROCESS,
+    )
 
 
 def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:

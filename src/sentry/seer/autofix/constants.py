@@ -75,6 +75,11 @@ class SeerAutomationSource(enum.Enum):
     NIGHT_SHIFT = AGENTIC_TRIAGE
 
 
+class IssueSummaryTriggerPath(enum.StrEnum):
+    POST_PROCESS = "old_seer_automation"
+    UNKNOWN = "unknown"
+
+
 class CodingAgentStatus(enum.StrEnum):
     PENDING = "pending"
     RUNNING = "running"

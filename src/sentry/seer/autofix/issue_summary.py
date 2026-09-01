@@ -391,7 +391,7 @@ def _is_issue_fixable(group: Group, fixability_score: float) -> bool:
 def run_automation(
     group: Group,
     user: User | RpcUser | AnonymousUser,
-    event: GroupEvent,
+    event: Event | GroupEvent,
     source: SeerAutomationSource,
 ) -> None:
     if source == SeerAutomationSource.ISSUE_DETAILS:
@@ -490,9 +490,7 @@ def _generate_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser,
     force_event_id: str | None,
-    source: SeerAutomationSource,
     cache_key: str,
-    should_run_automation: bool = True,
 ) -> IssueSummary:
     """Core logic to generate and cache the issue summary."""
     serialized_event, event = _get_event(group, user, provided_event_id=force_event_id)
@@ -540,14 +538,6 @@ def _generate_summary(
     summary = IssueSummary(**issue_summary.dict(), event_id=event.event_id)
     cache.set(cache_key, summary.dict(), timeout=int(timedelta(days=7).total_seconds()))
 
-    if should_run_automation:
-        try:
-            run_automation(group, user, event, source)
-        except Exception:
-            logger.exception(
-                "Error auto-triggering autofix from issue summary", extra={"group_id": group.id}
-            )
-
     return summary
 
 
@@ -568,47 +558,49 @@ def get_issue_summary_lock_key(group_id: int) -> tuple[str, str]:
     return (f"ai-group-summary-v2-lock:{group_id}", "get_issue_summary")
 
 
-def get_issue_summary(
-    group: Group,
-    user: User | RpcUser | AnonymousUser | None = None,
-    force_event_id: str | None = None,
-    source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
-    should_run_automation: bool = True,
-) -> IssueSummary:
-    """
-    Get a cached AI issue summary or generate one.
-    """
-    if user is None:
-        user = AnonymousUser()
+def _check_issue_summary_availability(group: Group) -> None:
     if is_self_hosted():
         raise IssueSummarySelfHosted("Seer is not available on this installation.")
 
     if group.organization.get_option("sentry:hide_ai_features"):
         raise IssueSummaryHidden("AI features are disabled for this organization.")
 
-    cache_key = get_issue_summary_cache_key(group.id)
+
+def get_issue_summary(group: Group) -> IssueSummary | None:
+    _check_issue_summary_availability(group)
+    if cached_summary := cache.get(get_issue_summary_cache_key(group.id)):
+        return IssueSummary.validate(cached_summary)
+    return None
+
+
+def generate_issue_summary(
+    group: Group,
+    user: User | RpcUser | AnonymousUser | None = None,
+    force_event_id: str | None = None,
+    source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
+) -> IssueSummary:
+    if user is None:
+        user = AnonymousUser()
+    _check_issue_summary_availability(group)
+
+    summary = _generate_summary(group, user, force_event_id, get_issue_summary_cache_key(group.id))
+    _log_seer_scanner_billing_event(group, source)
+    return summary
+
+
+def get_or_generate_issue_summary(
+    group: Group,
+    user: User | RpcUser | AnonymousUser | None = None,
+    source: SeerAutomationSource = SeerAutomationSource.ISSUE_DETAILS,
+) -> IssueSummary:
+    summary = get_issue_summary(group)
+    if summary is not None:
+        return summary
+
     lock_key, lock_name = get_issue_summary_lock_key(group.id)
     lock_duration = 40  # How long the lock is held if acquired (seconds). request timeout is 30 sec
     wait_timeout = 4.5  # How long to wait for the lock (seconds)
 
-    # if force_event_id is set, we always generate a new summary
-    if force_event_id:
-        summary = _generate_summary(
-            group,
-            user,
-            force_event_id,
-            source,
-            cache_key,
-            should_run_automation,
-        )
-        _log_seer_scanner_billing_event(group, source)
-        return summary
-
-    # 1. Check cache first
-    if cached_summary := cache.get(cache_key):
-        return IssueSummary.validate(cached_summary)
-
-    # 2. Try to acquire lock
     try:
         # Acquire lock context manager. This will poll and wait.
         with locks.get(key=lock_key, duration=lock_duration, name=lock_name).blocking_acquire(
@@ -616,23 +608,16 @@ def get_issue_summary(
         ):
             # Re-check cache after acquiring lock, in case another process finished
             # while we were waiting for the lock.
-            if cached_summary := cache.get(cache_key):
-                return IssueSummary.validate(cached_summary)
+            summary = get_issue_summary(group)
+            if summary is not None:
+                return summary
 
             # Lock acquired and cache is still empty, proceed with generation
-            summary = _generate_summary(
-                group,
-                user,
-                force_event_id,
-                source,
-                cache_key,
-                should_run_automation,
-            )
-            _log_seer_scanner_billing_event(group, source)
-            return summary
+            return generate_issue_summary(group, user=user, source=source)
 
     except UnableToAcquireLock:
         # Failed to acquire lock within timeout. Check cache one last time.
-        if cached_summary := cache.get(cache_key):
-            return IssueSummary.validate(cached_summary)
+        summary = get_issue_summary(group)
+        if summary is not None:
+            return summary
         raise

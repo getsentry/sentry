@@ -52,6 +52,7 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
+from sentry.seer.autofix.constants import IssueSummaryTriggerPath
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
@@ -3069,7 +3070,8 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
 
         mock_generate_summary_and_run_automation.assert_called_once_with(
-            event.group.id, trigger_path="old_seer_automation"
+            event.group.id,
+            trigger_path=IssueSummaryTriggerPath.POST_PROCESS,
         )
 
     @override_settings(SENTRY_SELF_HOSTED=True)
@@ -3114,7 +3116,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_kick_off_seer_automation_skips_existing_fixability_score(
+    def test_kick_off_seer_automation_runs_with_existing_fixability_score(
         self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3135,7 +3137,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_not_called()
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event.group.id,
+            trigger_path=IssueSummaryTriggerPath.POST_PROCESS,
+        )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
@@ -3163,7 +3168,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_kick_off_seer_automation_skips_with_existing_fixability_score(
+    def test_kick_off_seer_automation_runs_without_cached_summary(
         self, mock_generate_summary_and_run_automation
     ):
         from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
@@ -3190,7 +3195,10 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_not_called()
+        mock_generate_summary_and_run_automation.assert_called_once_with(
+            event.group.id,
+            trigger_path=IssueSummaryTriggerPath.POST_PROCESS,
+        )
 
     @patch("sentry.seer.autofix.utils.is_seer_scanner_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
@@ -3221,7 +3229,8 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
         mock_is_rate_limited.assert_called_once_with(event.project, event.group.organization)
         mock_generate_summary_and_run_automation.assert_called_once_with(
-            event.group.id, trigger_path="old_seer_automation"
+            event.group.id,
+            trigger_path=IssueSummaryTriggerPath.POST_PROCESS,
         )
 
         mock_is_rate_limited.reset_mock()
@@ -3267,10 +3276,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_kick_off_seer_automation_skips_when_lock_held(
+    def test_kick_off_seer_automation_enqueues_when_summary_lock_held(
         self, mock_generate_summary_and_run_automation
     ):
-        """Test that seer automation is skipped when another task is already processing the same issue"""
         from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
         from sentry.tasks.post_process import locks
 
@@ -3293,25 +3301,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
                 event=event,
             )
 
-        # Verify that seer automation was NOT started due to the lock
-        mock_generate_summary_and_run_automation.assert_not_called()
-
-        # Test that it works normally when lock is not held
-        event2 = self.create_event(
-            data={"message": "testing 2"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event2,
-        )
-
-        # Now it should be called since no lock is held
         mock_generate_summary_and_run_automation.assert_called_once_with(
-            event2.group.id, trigger_path="old_seer_automation"
+            event.group.id,
+            trigger_path=IssueSummaryTriggerPath.POST_PROCESS,
         )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
@@ -3402,7 +3394,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         )
         return event
 
-    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_and_score.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_old_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
@@ -3410,7 +3402,7 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
         self._seat_based_post_process(first_seen=timezone.now() - timedelta(minutes=10))
         mock_generate_summary_only.assert_not_called()
 
-    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_and_score.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_skips_when_fixability_exists(
         self, mock_generate_summary_only, mock_seat_based_tier
@@ -3626,7 +3618,7 @@ class PostProcessGroupErrorTest(
         mock_run_job.assert_not_called()
 
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
-    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_and_score.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_seat_based_org_generates_summary_for_new_issues(
         self, mock_generate_summary_only, mock_seat_based_tier
@@ -3635,6 +3627,24 @@ class PostProcessGroupErrorTest(
         self.call_post_process_group(
             is_new=True, is_regression=False, is_new_group_environment=True, event=event
         )
+        mock_generate_summary_only.assert_called_once_with(event.group.id)
+
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_and_score.delay")
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_seat_based_org_with_cached_summary_still_enqueues_scoring(
+        self, mock_generate_summary_only, mock_seat_based_tier
+    ):
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache.set(
+            f"ai-group-summary-v2:{event.group.id}",
+            {"headline": "Cached headline", "event_id": event.event_id},
+        )
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
         mock_generate_summary_only.assert_called_once_with(event.group.id)
 
     def setUp(self) -> None:
