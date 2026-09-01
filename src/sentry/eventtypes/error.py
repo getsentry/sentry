@@ -55,11 +55,13 @@ class ErrorEvent(BaseEvent):
         if not exception:
             return {}
         rv = {"value": trim(get_path(exception, "value", default=""), 1024)}
+        rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
 
-        # If the exception mechanism indicates a synthetic exception we do not
-        # want to record the type and value into the metadata.
-        if not get_path(exception, "mechanism", "synthetic"):
-            rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
+        # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`) rather than the
+        # identity of what went wrong, so grouping ignores it. Record it anyway: it is all that is
+        # left to show when an event has no usable crash location.
+        if get_path(exception, "mechanism", "synthetic"):
+            rv["synthetic"] = True
 
         # Attach crash location if available
         loc = get_crash_location(data)
@@ -72,12 +74,17 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def compute_title(self, metadata: Mapping[str, str | None]) -> str:
+    def compute_title(self, metadata: Mapping[str, Any]) -> str:
         title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 256)}"
+
+        # The type says little about what went wrong, so the crash location makes the better
+        # title. Falling back to it keeps unsymbolicated events from being titled `<unknown>`.
+        if metadata.get("synthetic"):
+            return metadata.get("function") or title or "<unknown>"
 
         return title or metadata.get("function") or "<unknown>"
 
