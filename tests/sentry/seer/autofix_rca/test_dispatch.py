@@ -24,7 +24,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         with (
             patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
             patch(
-                "sentry.seer.autofix_rca.dispatch.collect_project_org_context",
+                "sentry.seer.autofix_rca.dispatch.collect_user_org_context",
                 return_value=expected_context,
             ) as mock_collect_context,
             patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
@@ -70,11 +70,7 @@ class TestTriggerAutofixRCAFeature(TestCase):
         }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
         assert run_kwargs["user_org_context"] == expected_context
-        mock_collect_context.assert_called_once_with(
-            None,
-            self.group.organization,
-            self.group.project,
-        )
+        mock_collect_context.assert_called_once_with(None, self.group.organization)
 
         # A new run consumes Seer autofix budget.
         mock_quotas.backend.record_seer_run.assert_called_once()

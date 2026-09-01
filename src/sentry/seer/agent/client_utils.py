@@ -482,49 +482,6 @@ def collect_user_org_context(
     }
 
 
-def collect_project_org_context(
-    user: SentryUser | RpcUser | AnonymousUser | None,
-    organization: Organization,
-    project: Project,
-) -> UserOrgContext:
-    preferences = bulk_read_preferences_from_sentry_db(organization.id, [project.id])
-    preference = preferences.get(project.id)
-    project_context = UserOrgContextProject(
-        id=project.id,
-        slug=project.slug,
-        repos=[repo.dict() for repo in preference.repositories] if preference else [],
-    )
-    context = UserOrgContext(
-        org_slug=organization.slug,
-        all_org_projects=[project_context],
-    )
-
-    if user is None or isinstance(user, AnonymousUser):
-        return context
-
-    try:
-        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
-    except OrganizationMember.DoesNotExist:
-        return context
-
-    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
-    context["user_id"] = user.id
-    context["user_name"] = user.name
-    context["user_email"] = user.email
-    context["user_timezone"] = get_option_from_list(user_options, key="timezone")
-    context["user_teams"] = [{"id": team.id, "slug": team.slug} for team in member.get_teams()]
-    context["user_projects"] = (
-        [project_context]
-        if Project.objects.filter(
-            id=project.id,
-            organization=organization,
-            teams__organizationmember__user_id=user.id,
-        ).exists()
-        else []
-    )
-    return context
-
-
 def get_proxy_headers() -> dict[str, str] | None:
     """Build auth headers for Seer to echo back to Sentry on callbacks.
 

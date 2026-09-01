@@ -11,7 +11,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.agent.client_utils import (
     _normalize_wildcard_operators,
     _sanitize_json_strings,
-    collect_project_org_context,
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_statuses,
@@ -213,42 +212,6 @@ class CollectUserOrgContextTest(TestCase):
         user_by_id = {p["id"]: p for p in context["user_projects"]}
         assert [r["external_id"] for r in user_by_id[self.project1.id]["repos"]] == ["ext-1"]
         assert [r["external_id"] for r in user_by_id[self.project2.id]["repos"]] == ["ext-2"]
-
-
-class CollectProjectOrgContextTest(TestCase):
-    def test_collects_only_requested_project(self) -> None:
-        other_project = self.create_project(organization=self.organization)
-        repo = self.create_repo(
-            project=self.project,
-            name="acme/project-repo",
-            provider="integrations:github",
-            integration_id=999,
-            external_id="ext-1",
-        )
-        self.create_seer_project_repository(project=self.project, repository=repo)
-
-        context = collect_project_org_context(
-            self.user,
-            self.organization,
-            self.project,
-        )
-
-        assert [project["id"] for project in context["all_org_projects"]] == [self.project.id]
-        assert [project["id"] for project in context["user_projects"]] == [self.project.id]
-        assert context["all_org_projects"][0]["repos"][0]["external_id"] == "ext-1"
-        assert other_project.id not in {project["id"] for project in context["all_org_projects"]}
-
-    def test_collects_project_without_user(self) -> None:
-        context = collect_project_org_context(
-            None,
-            self.organization,
-            self.project,
-        )
-
-        assert context == {
-            "org_slug": self.organization.slug,
-            "all_org_projects": [{"id": self.project.id, "slug": self.project.slug, "repos": []}],
-        }
 
 
 class SnapshotToMarkdownTest(TestCase):
