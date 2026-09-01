@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,8 +14,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
@@ -32,11 +31,10 @@ const schema = z.object({
 });
 
 export function DataRequests() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const orgSlug = (location.query.orgSlug as string | undefined) || '';
-  const email = (location.query.email as string | undefined) || '';
+  const [{orgSlug, email}, setSearchParams] = useQueryStates({
+    orgSlug: parseAsString.withDefault(''),
+    email: parseAsString.withDefault(''),
+  });
   const hasQuery = Boolean(orgSlug || email);
   const isEventSearch = Boolean(orgSlug);
 
@@ -69,10 +67,7 @@ export function DataRequests() {
     defaultValues: {orgSlug, email},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      navigate({
-        pathname: location.pathname,
-        query: schema.parse(value),
-      });
+      setSearchParams(schema.parse(value), {history: 'push'});
     },
   });
 

@@ -1,10 +1,33 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataRequests} from 'admin/views/dataRequests';
 
 describe('DataRequests', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('updates the search parameters on submit', async () => {
+    MockApiClient.addMockResponse({
+      url: '/users/',
+      body: [],
+    });
+
+    const {router} = render(<DataRequests />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/data-requests/'},
+      },
+    });
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Email Address'}),
+      'jane@example.com'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Search'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({email: 'jane@example.com'});
+    });
   });
 
   it('renders user results when searching globally (no orgSlug)', async () => {
