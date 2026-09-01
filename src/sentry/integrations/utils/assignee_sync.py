@@ -31,19 +31,21 @@ def parse_provider_event_time(raw: str | None) -> datetime | None:
     return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
-def lock_and_get_stale_organization_ids(
+def get_stale_organization_ids(
     integration: RpcIntegration | Integration,
     external_issue_key: str | None,
     organization_ids: Collection[int],
     event_updated_at: datetime | None,
+    *,
+    lock: bool,
 ) -> set[int]:
     """
-    Lock this issue's rows and return the organizations already past ``event_updated_at``.
+    Return the organizations whose issue is already past ``event_updated_at``.
 
-    Must be called inside a transaction; the lock is held until commit so a concurrent
-    delivery for the same issue cannot interleave between this check and the caller's
-    assignment write. All candidate rows are locked (in ``id`` order, to avoid deadlocks),
-    since the rows that pass the check are the ones about to be written.
+    With ``lock`` this must be called inside a transaction, and the lock is held until
+    commit so a concurrent delivery for the same issue cannot interleave between this check
+    and the caller's assignment write. All candidate rows are locked (in ``id`` order, to
+    avoid deadlocks), since the rows that pass the check are the ones about to be written.
 
     Only strictly older events are stale: payloads carry the full assignee snapshot, so
     re-applying an equal-timestamp event is safe. Missing key or timestamp yields an empty
@@ -52,20 +54,19 @@ def lock_and_get_stale_organization_ids(
     if external_issue_key is None or event_updated_at is None or not organization_ids:
         return set()
 
-    rows = (
-        ExternalIssue.objects.filter(
-            organization_id__in=organization_ids,
-            integration_id=integration.id,
-            key=external_issue_key,
-        )
-        .order_by("id")
-        .select_for_update()
-        .values_list("organization_id", "provider_assignee_updated_at")
-    )
+    rows = ExternalIssue.objects.filter(
+        organization_id__in=organization_ids,
+        integration_id=integration.id,
+        key=external_issue_key,
+    ).order_by("id")
+    if lock:
+        rows = rows.select_for_update()
 
     return {
         organization_id
-        for organization_id, provider_assignee_updated_at in rows
+        for organization_id, provider_assignee_updated_at in rows.values_list(
+            "organization_id", "provider_assignee_updated_at"
+        )
         if provider_assignee_updated_at is not None
         and provider_assignee_updated_at > event_updated_at
     }

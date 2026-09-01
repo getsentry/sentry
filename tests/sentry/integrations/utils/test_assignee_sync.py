@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
 
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+
 from sentry.integrations.utils.assignee_sync import (
-    lock_and_get_stale_organization_ids,
+    get_stale_organization_ids,
     parse_provider_event_time,
     record_provider_assignee_updated_at,
 )
@@ -55,11 +58,12 @@ class TestAssigneeWatermark(TestCase):
     def test_no_watermark_is_not_stale(self) -> None:
         assert self.external_issue.provider_assignee_updated_at is None
         assert (
-            lock_and_get_stale_organization_ids(
+            get_stale_organization_ids(
                 self.integration,
                 "foo-123",
                 [self.organization.id],
                 datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
+                lock=True,
             )
             == set()
         )
@@ -73,8 +77,8 @@ class TestAssigneeWatermark(TestCase):
         )
 
         assert (
-            lock_and_get_stale_organization_ids(
-                self.integration, "foo-123", [self.organization.id], None
+            get_stale_organization_ids(
+                self.integration, "foo-123", [self.organization.id], None, lock=True
             )
             == set()
         )
@@ -87,11 +91,12 @@ class TestAssigneeWatermark(TestCase):
             datetime(2023, 1, 1, 0, 0, 5, tzinfo=UTC),
         )
 
-        assert lock_and_get_stale_organization_ids(
+        assert get_stale_organization_ids(
             self.integration,
             "foo-123",
             [self.organization.id],
             datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
+            lock=True,
         ) == {self.organization.id}
 
     def test_equal_event_is_not_stale(self) -> None:
@@ -106,11 +111,12 @@ class TestAssigneeWatermark(TestCase):
         )
 
         assert (
-            lock_and_get_stale_organization_ids(
+            get_stale_organization_ids(
                 self.integration,
                 "foo-123",
                 [self.organization.id],
                 datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
+                lock=True,
             )
             == set()
         )
@@ -124,11 +130,12 @@ class TestAssigneeWatermark(TestCase):
         )
 
         assert (
-            lock_and_get_stale_organization_ids(
+            get_stale_organization_ids(
                 self.integration,
                 "foo-123",
                 [self.organization.id],
                 datetime(2023, 1, 1, 0, 0, 5, tzinfo=UTC),
+                lock=True,
             )
             == set()
         )
@@ -170,9 +177,33 @@ class TestAssigneeWatermark(TestCase):
         other_issue.refresh_from_db()
         assert other_issue.provider_assignee_updated_at is None
         # The untouched organization is still free to apply the older event.
-        assert lock_and_get_stale_organization_ids(
+        assert get_stale_organization_ids(
             self.integration,
             "foo-123",
             [self.organization.id, other_org.id],
             datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
+            lock=True,
         ) == {self.organization.id}
+
+    def test_unlocked_read_finds_the_same_stale_organizations(self) -> None:
+        # The killswitch only drops the lock; which events count as stale is unchanged.
+        record_provider_assignee_updated_at(
+            self.integration,
+            "foo-123",
+            [self.organization.id],
+            datetime(2023, 1, 1, 0, 0, 5, tzinfo=UTC),
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            stale = get_stale_organization_ids(
+                self.integration,
+                "foo-123",
+                [self.organization.id],
+                datetime(2023, 1, 1, 0, 0, 0, tzinfo=UTC),
+                lock=False,
+            )
+
+        assert stale == {self.organization.id}
+        assert not [
+            query["sql"] for query in queries.captured_queries if "FOR UPDATE" in query["sql"]
+        ]

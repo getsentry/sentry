@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 from django.db import router, transaction
 from django.db.models.query import QuerySet
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.mixins.issues import where_should_sync
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -24,7 +24,7 @@ from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
 from sentry.integrations.utils.assignee_sync import (
-    lock_and_get_stale_organization_ids,
+    get_stale_organization_ids,
     parse_provider_event_time,
     record_provider_assignee_updated_at,
 )
@@ -89,21 +89,33 @@ def _ordered_assignment(
     event_updated_at: datetime | None,
 ) -> Iterator[list[Group]]:
     """
-    Yield the groups this event still wins, with their issue rows locked, then watermark it.
+    Yield the groups this event still wins, then advance the watermark to it.
+
+    Under `integrations.assignee-sync.lock-external-issue` the check and the body are one
+    critical section, holding a row lock on the issue, so a concurrent delivery cannot land
+    its assignment between them. With the option off the watermark still orders sequential
+    deliveries, but two concurrent ones can both pass the check and the older one's
+    assignment can land last.
 
     The body must be cell-local: a hybrid cloud RPC inside a transaction is a banned
     pattern, so cross-silo lookups have to be resolved before entering. The watermark is
     advanced only after the body returns, so a body that raises leaves both the assignment
     and the watermark untouched and the delivery retryable.
 
-    Without a provider timestamp the guard is inert and no transaction is opened.
+    Without a provider timestamp the guard is inert.
     """
     if event_updated_at is None:
         yield groups
         return
 
-    with transaction.atomic(router.db_for_write(ExternalIssue)):
-        fresh_groups = _drop_stale_groups(integration, external_issue_key, groups, event_updated_at)
+    lock = options.get("integrations.assignee-sync.lock-external-issue")
+    critical_section = (
+        transaction.atomic(router.db_for_write(ExternalIssue)) if lock else nullcontext()
+    )
+    with critical_section:
+        fresh_groups = _drop_stale_groups(
+            integration, external_issue_key, groups, event_updated_at, lock=lock
+        )
 
         yield fresh_groups
 
@@ -122,18 +134,21 @@ def _drop_stale_groups(
     external_issue_key: str | None,
     groups: list[Group],
     event_updated_at: datetime | None,
+    *,
+    lock: bool,
 ) -> list[Group]:
     """
-    Lock this issue's rows and drop the groups a newer assignment change already covers.
+    Drop the groups a newer assignment change already covers, locking their issue rows.
 
     Webhook delivery is not ordered, and payloads carry the full assignee snapshot, so
     applying a late delivery would quietly restore a stale assignee.
     """
-    stale_organization_ids = lock_and_get_stale_organization_ids(
+    stale_organization_ids = get_stale_organization_ids(
         integration,
         external_issue_key,
         {group.project.organization_id for group in groups},
         event_updated_at,
+        lock=lock,
     )
     if not stale_organization_ids:
         return groups

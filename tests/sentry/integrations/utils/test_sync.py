@@ -14,6 +14,7 @@ from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.users.models import User, UserEmail
 from sentry.users.services.user import RpcUser
@@ -226,6 +227,7 @@ class TestSyncAssigneeInbound(TestCase):
         assert isinstance(exception_param, Exception)
         assert exception_param.args[0] == "oops, something went wrong"
 
+    @override_options({"integrations.assignee-sync.lock-external-issue": True})
     def test_replayed_older_event_does_not_reassign(self) -> None:
         other_user = self.create_user("other@example.com")
         self.create_member(organization=self.organization, user=other_user, teams=[self.team])
@@ -257,6 +259,7 @@ class TestSyncAssigneeInbound(TestCase):
         assert assignee is not None
         assert assignee.id == other_user.id
 
+    @override_options({"integrations.assignee-sync.lock-external-issue": True})
     def test_event_with_matching_timestamp_still_applies(self) -> None:
         # Provider timestamps are coarse, so two distinct changes can share one. Assignment
         # payloads are snapshots, so applying the later delivery is right either way.
@@ -283,6 +286,7 @@ class TestSyncAssigneeInbound(TestCase):
 
         assert self.group.get_assignee() is None
 
+    @override_options({"integrations.assignee-sync.lock-external-issue": True})
     def test_assignment_is_bracketed_by_a_lock_on_the_issue_row(self) -> None:
         # Reading the watermark, assigning, and advancing the watermark have to be one
         # critical section. Two deliveries that both read the watermark before either
@@ -333,6 +337,46 @@ class TestSyncAssigneeInbound(TestCase):
         assert watermark_writes
         assert locking_reads[0] < assignment_writes[0]
         assert assignment_writes[-1] < watermark_writes[0]
+
+    @override_options({"integrations.assignee-sync.lock-external-issue": False})
+    def test_lock_killswitch_keeps_ordering_without_locking(self) -> None:
+        # With the lock off the watermark still orders sequential deliveries -- the
+        # concurrent case is what regresses, and it is what the option trades away.
+        other_user = self.create_user("other@example.com")
+        self.create_member(organization=self.organization, user=other_user, teams=[self.team])
+        with assume_test_silo_mode_of(UserEmail):
+            UserEmail.objects.filter(user=other_user).update(is_verified=True)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="foo-123",
+            integration=self.example_integration,
+        )
+
+        with CaptureQueriesContext(connection) as queries:
+            sync_group_assignee_inbound(
+                integration=self.example_integration,
+                email="other@example.com",
+                external_issue_key=external_issue.key,
+                assign=True,
+                provider_event_updated_at="2023-01-01T00:00:05.000+0000",
+            )
+            sync_group_assignee_inbound(
+                integration=self.example_integration,
+                email="test@example.com",
+                external_issue_key=external_issue.key,
+                assign=True,
+                provider_event_updated_at="2023-01-01T00:00:00.000+0000",
+            )
+
+        assert not [
+            query["sql"]
+            for query in queries.captured_queries
+            if "sentry_externalissue" in query["sql"] and "FOR UPDATE" in query["sql"]
+        ]
+        assignee = self.group.get_assignee()
+        assert assignee is not None
+        assert assignee.id == other_user.id
 
     def test_watermark_advances_when_no_user_is_resolved(self) -> None:
         # The event was processed even though Sentry knows no such user, so an older
