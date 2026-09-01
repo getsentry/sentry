@@ -76,10 +76,11 @@ class PrIterationDetailsTest(TestCase):
 
     def _trigger(self) -> int | None:
         iteration_id = trigger_pr_iteration_details(
-            run_id=RUN_ID, organization_id=self.organization.id
+            log_ctx=self.log_ctx, run_id=RUN_ID, organization_id=self.organization.id
         )
         if iteration_id is not None:
             record_pr_iteration_counts(
+                log_ctx=self.log_ctx,
                 run_id=RUN_ID,
                 organization_id=self.organization.id,
                 iteration_id=iteration_id,
@@ -237,7 +238,10 @@ class PrIterationDetailsTest(TestCase):
         assert iteration_id is not None
 
         discard_pr_iteration_details(
-            run_id=RUN_ID, organization_id=self.organization.id, iteration_id=iteration_id
+            log_ctx=self.log_ctx,
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            iteration_id=iteration_id,
         )
 
         assert self._open_rows() == []
