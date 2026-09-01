@@ -2612,13 +2612,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose payloads mailbox by event type, so one event type's backlog cannot
-# hold up another. A provider also needs an entry in MAILBOX_EVENT_TYPES. Adding one
-# gives up ordering between that provider's event types, so ramp it as a behaviour
-# change rather than tuning it.
+# hold up another. A provider also needs an entry in MAILBOX_EVENT_TYPES. Splitting
+# gives up ordering between a provider's event types; dropping a provider from this
+# list puts its mailboxes back together without a deploy.
 register(
     "hybridcloud.webhookpayload.event_typed_mailbox_providers",
     type=Sequence,
-    default=["github", "github_enterprise"],
+    default=["github", "github_enterprise", "gitlab"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Dispatch skip-on-failure providers' mailboxes from their oldest due record

@@ -137,15 +137,15 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}",
+            mailbox_name=f"gitlab:{integration.id}:push",
             cell_names=[cell.name],
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
-    @override_options({EVENT_TYPED_MAILBOX_PROVIDERS_OPTION: ["gitlab"]})
+    @override_options({EVENT_TYPED_MAILBOX_PROVIDERS_OPTION: []})
     @responses.activate
-    def test_routing_webhook_mailboxes_by_event_type(self) -> None:
+    def test_routing_webhook_without_event_typed_mailboxes(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -161,13 +161,12 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
+            mailbox_name=f"gitlab:{integration.id}",
             cell_names=[cell.name],
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
-    @override_options({EVENT_TYPED_MAILBOX_PROVIDERS_OPTION: ["gitlab"]})
     @responses.activate
     def test_routing_webhook_ignores_an_unhandled_event_type(self) -> None:
         integration = self.get_integration()
@@ -233,7 +232,7 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}",
+            mailbox_name=f"gitlab:{integration.id}:push",
             cell_names=[cell.name],
         )
 
@@ -262,7 +261,7 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:15",
+            mailbox_name=f"gitlab:{integration.id}:15:push",
             cell_names=[cell.name],
         )
 
@@ -326,6 +325,6 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}",
+            mailbox_name=f"gitlab:{integration.id}:push",
             cell_names=[cell.name],
         )
