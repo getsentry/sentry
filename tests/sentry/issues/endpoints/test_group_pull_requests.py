@@ -153,13 +153,16 @@ class GroupPullRequestsEndpointTest(APITestCase):
             (item["checksStatus"], item["reviewStatus"]) for item in response.data["pullRequests"]
         ]
 
-    def test_empty_response(self) -> None:
+    @patch("sentry.issues.endpoints.group_pull_requests._get_latest_regression_at")
+    def test_empty_response(self, mock_get_latest_regression_at: Mock) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data == {"latestRegressionAt": None, "pullRequests": []}
+        mock_get_latest_regression_at.assert_not_called()
 
     def test_returns_latest_manual_regression_and_ignores_unarchive(self) -> None:
+        self.create_linked_pull_request(key="1", state=PullRequestLifecycleState.OPEN, draft=False)
         issue_update_path = (
             f"/api/0/organizations/{self.organization.slug}/issues/?id={self.group.id}"
         )
@@ -199,10 +202,8 @@ class GroupPullRequestsEndpointTest(APITestCase):
             response = self.client.get(self.path)
 
         assert response.status_code == 200
-        assert response.data == {
-            "latestRegressionAt": latest_regression_at,
-            "pullRequests": [],
-        }
+        assert response.data["latestRegressionAt"] == latest_regression_at
+        assert [item["id"] for item in response.data["pullRequests"]] == ["1"]
 
     def test_returns_resolving_pull_requests(self) -> None:
         newer_pr, newer_link = self.create_linked_pull_request(

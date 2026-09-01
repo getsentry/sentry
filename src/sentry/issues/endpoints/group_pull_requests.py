@@ -196,10 +196,11 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group) -> Response[GroupPullRequestsResponse]:
         organization_id = group.project.organization_id
-        latest_regression_at = _get_latest_regression_at(group)
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
-            return Response({"latestRegressionAt": latest_regression_at, "pullRequests": []})
+            return Response({"latestRegressionAt": None, "pullRequests": []})
+
+        latest_regression_at = _get_latest_regression_at(group)
 
         pull_request_ids = [link.linked_id for link in group_links]
         pull_requests_by_id = PullRequest.objects.filter(
