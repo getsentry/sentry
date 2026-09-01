@@ -115,7 +115,7 @@ class MockDefaultDetectorHandler(DetectorHandler[dict[str, Any], int]):
 class MockFingerprintedDetectorHandler(MockDefaultDetectorHandler):
     """Replaces the fingerprint the default `evaluate` would build."""
 
-    def get_issue_fingerprint(self) -> list[str]:
+    def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         return ["mock-fingerprint"]
 
 
@@ -147,10 +147,10 @@ class MockOccurrenceIdDetectorHandler(MockDefaultDetectorHandler):
 
 
 class MockGroupedDetectorHandler(DetectorHandler[dict[str, Any], int]):
-    """Returns grouped values, which the default `evaluate` does not support."""
+    """Returns a value per group key, which the default `evaluate` evaluates group by group."""
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> dict[DetectorGroupKey, int]:
-        return {"group-one": data_packet.packet["value"]}
+        return data_packet.packet["values"]
 
     def create_occurrence(
         self,
@@ -158,7 +158,8 @@ class MockGroupedDetectorHandler(DetectorHandler[dict[str, Any], int]):
         data_packet: DataPacket[dict[str, Any]],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
-        raise AssertionError("grouped values must bail before create_occurrence")
+        values = self.extract_value(data_packet)
+        return build_mock_occurrence_and_event(self, values, PriorityLevel(priority))
 
 
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
@@ -608,18 +609,6 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert occurrence.event_id == MockOccurrenceIdDetectorHandler.occurrence_id
         assert event_data["event_id"] == MockOccurrenceIdDetectorHandler.occurrence_id
 
-    def test_evaluate__warns_when_extract_value_returns_grouped_values(self) -> None:
-        handler = MockGroupedDetectorHandler(self.detector)
-
-        with mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger:
-            result = handler.evaluate(self.packet(10))
-
-        assert result.result == {}
-        assert result.tainted is False
-
-        assert mock_logger.warning.call_count == 1
-        assert "override the evaluate method" in mock_logger.warning.call_args[0][0]
-
     def test_evaluate__warns_when_slow_conditions_remain(self) -> None:
         self.create_data_condition(
             type=Condition.EVENT_FREQUENCY_COUNT,
@@ -646,3 +635,167 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert list(result.keys()) == [None]
         assert isinstance(result[None].result, IssueOccurrence)
+
+
+class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
+    """
+    Covers the default `evaluate` when `extract_value` returns a value per group key.
+
+    Every group is evaluated against the same condition group, and each group that
+    triggers contributes its own entry to the returned evaluation map.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        class GroupedConditionGroupType(GroupType):
+            type_id = 6
+            slug = "grouped_condition_handler"
+            description = "grouped condition handler"
+            category = GroupCategory.METRIC.value
+            detector_settings = DetectorSettings(handler=MockGroupedDetectorHandler)
+
+        self.group_type = GroupedConditionGroupType
+
+        self.detector = self.create_detector(
+            project=self.project,
+            workflow_condition_group=self.create_data_condition_group(),
+            type=self.group_type.slug,
+        )
+
+        self.create_data_condition(
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.detector.workflow_condition_group,
+        )
+
+        self.handler = MockGroupedDetectorHandler(self.detector)
+
+    def packet(self, values: dict[DetectorGroupKey, int]) -> DataPacket[dict[str, Any]]:
+        return DataPacket(source_id=str(self.detector.id), packet={"values": values})
+
+    def build_condition_group_evaluation(
+        self, *, triggered: bool, error: ConditionError | None = None
+    ) -> DataConditionGroupEvaluation:
+        condition = self.detector.get_conditions()[0]
+
+        return DataConditionGroupEvaluation(
+            result=triggered,
+            triggered=triggered,
+            error=error,
+            data={
+                "condition_evaluations": [
+                    DataConditionEvaluation(
+                        result=DetectorPriorityLevel.HIGH,
+                        data=10,
+                        triggered=triggered,
+                        condition=condition,
+                    )
+                ],
+                "logic_type": DataConditionGroup.Type.ANY,
+            },
+        )
+
+    def test_evaluate__creates_an_occurrence_for_each_triggered_group(self) -> None:
+        result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        assert set(result.result.keys()) == {"group-one", "group-two"}
+        assert result.tainted is False
+
+        first = result.result["group-one"]
+        second = result.result["group-two"]
+
+        assert isinstance(first.result, IssueOccurrence)
+        assert first.triggered is True
+        assert first.priority == DetectorPriorityLevel.HIGH
+
+        assert isinstance(second.result, IssueOccurrence)
+        assert second.triggered is True
+        assert second.priority == DetectorPriorityLevel.HIGH
+
+    def test_evaluate__carries_the_group_key_into_each_evaluation(self) -> None:
+        result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        assert result.result["group-one"].data["group_key"] == "group-one"
+        assert result.result["group-two"].data["group_key"] == "group-two"
+
+    def test_evaluate__only_returns_the_groups_that_triggered(self) -> None:
+        result = self.handler.evaluate(self.packet({"loud": 10, "quiet": 1}))
+
+        assert set(result.result.keys()) == {"loud"}
+
+    def test_evaluate__no_result_when_no_group_triggers(self) -> None:
+        result = self.handler.evaluate(self.packet({"group-one": 1, "group-two": 2}))
+
+        assert result.result == {}
+        assert result.tainted is False
+
+    def test_evaluate__no_result_without_values(self) -> None:
+        result = self.handler.evaluate(self.packet({}))
+
+        assert result.result == {}
+        assert result.tainted is False
+
+    def test_evaluate__fingerprints_each_group_separately(self) -> None:
+        result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        first = result.result["group-one"].result
+        second = result.result["group-two"].result
+
+        assert isinstance(first, IssueOccurrence)
+        assert isinstance(second, IssueOccurrence)
+
+        assert first.fingerprint == [f"detector:{self.detector.id}:group-one"]
+        assert second.fingerprint == [f"detector:{self.detector.id}:group-two"]
+
+    def test_evaluate__each_group_gets_its_own_occurrence(self) -> None:
+        result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        first = result.result["group-one"].result
+        second = result.result["group-two"].result
+
+        assert isinstance(first, IssueOccurrence)
+        assert isinstance(second, IssueOccurrence)
+
+        assert UUID(first.event_id) != UUID(second.event_id)
+
+    def test_evaluate__event_data_matches_each_groups_occurrence(self) -> None:
+        result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        occurrence = result.result["group-two"].result
+        event_data = result.result["group-two"].data["event_data"]
+
+        assert isinstance(occurrence, IssueOccurrence)
+        assert event_data is not None
+
+        assert event_data["event_id"] == occurrence.event_id
+        assert event_data["project_id"] == self.detector.project_id
+        assert event_data["timestamp"] == occurrence.detection_time
+        assert event_data["received"] == occurrence.detection_time
+        assert event_data["environment"] is None
+        assert event_data["platform"] == "python"
+        assert event_data["tags"] == {}
+
+    def test_evaluate__taints_the_result_when_any_group_is_tainted(self) -> None:
+        clean_evaluation = self.build_condition_group_evaluation(triggered=False)
+
+        tainted_evaluation = self.build_condition_group_evaluation(
+            triggered=True, error=ConditionError(msg="condition blew up")
+        )
+
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector.base.process_data_condition_group",
+            side_effect=[(clean_evaluation, []), (tainted_evaluation, [])],
+        ):
+            result = self.handler.evaluate(self.packet({"quiet": 1, "loud": 10}))
+
+        assert result.tainted is True
+        assert set(result.result.keys()) == {"loud"}
+
+    def test__evaluate__returns_the_evaluation_map_for_every_group(self) -> None:
+        result = self.handler._evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        assert set(result.keys()) == {"group-one", "group-two"}
+        assert isinstance(result["group-one"].result, IssueOccurrence)
+        assert isinstance(result["group-two"].result, IssueOccurrence)
