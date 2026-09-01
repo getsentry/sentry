@@ -22,6 +22,7 @@ from sentry.preprod.eap.constants import get_preprod_trace_id
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.snapshots.manifest import ComparisonManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.precompute import comparison_response_key
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -111,7 +112,7 @@ def _collect_snapshot_objectstore_keys(
 ) -> list[tuple[int, int, str]]:
     # Collects three types of objectstore keys for the given artifacts:
     # 1. Snapshot manifest and precomputed head-images keys (from PreprodSnapshotMetrics)
-    # 2. Comparison manifest keys (diff manifests from PreprodSnapshotComparison)
+    # 2. Comparison manifest and precomputed comparison-response keys (from PreprodSnapshotComparison)
     # 3. Diff mask image keys (per-image diff masks referenced within comparison manifests)
     # Note: shared content-addressed image keys are NOT collected — they expire via X-day TTL.
     artifact_ids = [a.id for a in preprod_artifacts]
@@ -140,9 +141,22 @@ def _collect_snapshot_objectstore_keys(
 
     for comp in PreprodSnapshotComparison.objects.filter(
         Q(head_snapshot_metrics_id__in=metrics_ids) | Q(base_snapshot_metrics_id__in=metrics_ids)
-    ).select_related("head_snapshot_metrics__preprod_artifact__project"):
+    ).select_related("head_snapshot_metrics__preprod_artifact__project", "base_snapshot_metrics"):
         org_id = comp.head_snapshot_metrics.preprod_artifact.project.organization_id
         project_id = comp.head_snapshot_metrics.preprod_artifact.project_id
+
+        keys.append(
+            (
+                org_id,
+                project_id,
+                comparison_response_key(
+                    org_id,
+                    project_id,
+                    comp.head_snapshot_metrics.preprod_artifact_id,
+                    comp.base_snapshot_metrics.preprod_artifact_id,
+                ),
+            )
+        )
 
         comparison_key = (comp.extras or {}).get("comparison_key")
         if not comparison_key:

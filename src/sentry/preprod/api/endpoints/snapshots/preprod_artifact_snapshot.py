@@ -74,9 +74,13 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.precompute import (
+    build_comparison_payload,
     build_head_images_payload,
+    comparison_response_key,
     head_images_key,
+    load_precomputed_comparison,
     load_precomputed_head_images,
+    refresh_expiration,
     refresh_manifest_expiration,
 )
 from sentry.preprod.snapshots.tasks import compare_snapshots
@@ -356,48 +360,215 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         extras = snapshot_metrics.extras or {}
         session = get_session(UsecaseId.PREPROD, artifact.project)
-
-        image_list: list[SnapshotImageResponseDict]
-        precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
-        if precomputed is not None:
-            image_list, head_diff_threshold = precomputed
-            refresh_manifest_expiration(session, extras.get("manifest_key"))
-        else:
-            manifest_key = extras.get("manifest_key")
-            if not manifest_key:
-                return Response({"detail": "Manifest key not found"}, status=404)
-
-            try:
-                get_response = session.get(manifest_key)
-                if get_response is None:
-                    raise FileNotFoundError("Manifest does not exist in objectstore")
-                with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
-                    raw_manifest = get_response.payload.read()
-                with start_span(
-                    op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
-                ) as span:
-                    head_manifest = orjson.loads(raw_manifest)
-                    head_images: dict[str, Any] = head_manifest.get("images", {})
-                    head_diff_threshold = head_manifest.get("diff_threshold")
-                    set_span_data(span, "image_count", len(head_images))
-            except Exception:
-                logger.exception(
-                    "Failed to retrieve snapshot manifest",
-                    extra={
-                        "preprod_artifact_id": artifact.id,
-                        "manifest_key": manifest_key,
-                    },
-                )
-                return Response({"detail": "Internal server error"}, status=500)
-
-            with start_span(
-                op="preprod.snapshot.serialize_images", name="serialize_head_images"
-            ) as span:
-                set_span_data(span, "image_count", len(head_images))
-                image_list = build_head_image_list(head_images, head_diff_threshold)
-
-        # Build VCS info from commit_comparison
         commit_comparison = artifact.commit_comparison
+
+        all_comparisons = list(
+            PreprodSnapshotComparison.objects.select_related("base_snapshot_metrics")
+            .filter(head_snapshot_metrics=snapshot_metrics)
+            .order_by("-id")
+        )
+        latest_comparison = all_comparisons[0] if all_comparisons else None
+        comparison = next(
+            (c for c in all_comparisons if c.state == PreprodSnapshotComparison.State.SUCCESS),
+            None,
+        )
+
+        image_list: list[SnapshotImageResponseDict] = []
+        head_diff_threshold: float | None = None
+        base_artifact_id: str | None = None
+        comparison_manifest: dict[str, Any] | None = None
+        base_manifest: dict[str, Any] | None = None
+        comparison_type: str
+
+        comparison_response_key_value: str | None = None
+        if comparison is not None:
+            comparison_response_key_value = comparison_response_key(
+                organization.id,
+                artifact.project_id,
+                artifact.id,
+                comparison.base_snapshot_metrics.preprod_artifact_id,
+            )
+        cached_comparison = load_precomputed_comparison(session, comparison_response_key_value)
+
+        if cached_comparison is not None and comparison is not None:
+            comparison_type = "diff"
+            base_artifact_id = cached_comparison["base_artifact_id"]
+            head_diff_threshold = cached_comparison["diff_threshold"]
+            categorized = CategorizedComparison(
+                added=cached_comparison["added"],
+                removed=cached_comparison["removed"],
+                renamed=cached_comparison["renamed"],
+                changed=cached_comparison["changed"],
+                unchanged=cached_comparison["unchanged"],
+                errored=cached_comparison["errored"],
+                skipped=cached_comparison["skipped"],
+            )
+            # Bump the idle expiry of the objects a live recompute would need, so the
+            # fallback stays viable across schema-version bumps.
+            refresh_expiration(
+                session,
+                (
+                    extras.get("head_images_key"),
+                    extras.get("manifest_key"),
+                    (comparison.extras or {}).get("comparison_key"),
+                    (comparison.base_snapshot_metrics.extras or {}).get("manifest_key"),
+                ),
+            )
+        else:
+            precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
+            if precomputed is not None:
+                image_list, head_diff_threshold = precomputed
+                refresh_manifest_expiration(session, extras.get("manifest_key"))
+            else:
+                manifest_key = extras.get("manifest_key")
+                if not manifest_key:
+                    return Response({"detail": "Manifest key not found"}, status=404)
+
+                try:
+                    get_response = session.get(manifest_key)
+                    if get_response is None:
+                        raise FileNotFoundError("Manifest does not exist in objectstore")
+                    with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
+                        raw_manifest = get_response.payload.read()
+                    with start_span(
+                        op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
+                    ) as span:
+                        head_manifest = orjson.loads(raw_manifest)
+                        head_images: dict[str, Any] = head_manifest.get("images", {})
+                        head_diff_threshold = head_manifest.get("diff_threshold")
+                        set_span_data(span, "image_count", len(head_images))
+                except Exception:
+                    logger.exception(
+                        "Failed to retrieve snapshot manifest",
+                        extra={
+                            "preprod_artifact_id": artifact.id,
+                            "manifest_key": manifest_key,
+                        },
+                    )
+                    return Response({"detail": "Internal server error"}, status=500)
+
+                with start_span(
+                    op="preprod.snapshot.serialize_images", name="serialize_head_images"
+                ) as span:
+                    set_span_data(span, "image_count", len(head_images))
+                    image_list = build_head_image_list(head_images, head_diff_threshold)
+
+            if comparison:
+                comparison_key = (comparison.extras or {}).get("comparison_key")
+                if comparison_key:
+                    try:
+                        response = session.get(comparison_key)
+                        if response is None:
+                            raise FileNotFoundError(
+                                "Comparison manifest does not exist in objectstore"
+                            )
+                        with start_span(
+                            op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
+                        ):
+                            raw_comparison_manifest = response.payload.read()
+                        with start_span(
+                            op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
+                        ) as span:
+                            comparison_manifest = orjson.loads(raw_comparison_manifest)
+                            if "base_artifact_id" not in comparison_manifest:
+                                raise ValueError("comparison manifest missing base_artifact_id")
+                            set_span_data(
+                                span, "image_count", len(comparison_manifest.get("images", {}))
+                            )
+                    except Exception:
+                        comparison_manifest = None
+                        logger.exception(
+                            "Failed to fetch comparison manifest",
+                            extra={
+                                "preprod_artifact_id": artifact.id,
+                            },
+                        )
+
+            if comparison_manifest is not None and comparison is not None:
+                base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get(
+                    "manifest_key"
+                )
+                if base_manifest_key:
+                    try:
+                        response = session.get(base_manifest_key)
+                        if response is None:
+                            raise FileNotFoundError("Base manifest does not exist in objectstore")
+                        with start_span(
+                            op="preprod.snapshot.read_manifest", name="read_base_manifest"
+                        ):
+                            raw_base_manifest = response.payload.read()
+                        with start_span(
+                            op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
+                        ) as span:
+                            base_manifest = orjson.loads(raw_base_manifest)
+                            set_span_data(span, "image_count", len(base_manifest.get("images", {})))
+                    except Exception:
+                        logger.exception(
+                            "Failed to fetch base manifest",
+                            extra={"preprod_artifact_id": artifact.id},
+                        )
+
+            images_by_file_name: dict[str, SnapshotImageResponseDict] = {
+                img["image_file_name"]: img for img in image_list
+            }
+
+            if comparison_manifest is not None:
+                base_artifact_id = str(comparison_manifest["base_artifact_id"])
+                comparison_images = comparison_manifest.get("images", {})
+                with start_span(
+                    op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
+                ) as span:
+                    set_span_data(span, "image_count", len(comparison_images))
+                    categorized = categorize_comparison_images(
+                        comparison_images,
+                        images_by_file_name,
+                        base_manifest.get("images", {}) if base_manifest else None,
+                    )
+                    set_span_data(span, "changed_count", len(categorized.changed))
+                    set_span_data(span, "unchanged_count", len(categorized.unchanged))
+            else:
+                if comparison is not None:
+                    base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
+                categorized = CategorizedComparison()
+                pending_or_failed_state = next(
+                    (
+                        c.state
+                        for c in all_comparisons
+                        if c.state
+                        in (
+                            PreprodSnapshotComparison.State.PENDING,
+                            PreprodSnapshotComparison.State.PROCESSING,
+                            PreprodSnapshotComparison.State.FAILED,
+                        )
+                    ),
+                    None,
+                )
+
+            if comparison_manifest is not None:
+                comparison_type = "diff"
+            elif (
+                commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None
+            ):
+                comparison_type = "waiting_for_base"
+            else:
+                comparison_type = "solo"
+
+            if comparison_manifest is not None and comparison_response_key_value is not None:
+                try:
+                    session.put(
+                        orjson.dumps(
+                            build_comparison_payload(
+                                categorized, comparison_type, base_artifact_id, head_diff_threshold
+                            )
+                        ),
+                        key=comparison_response_key_value,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to write precomputed comparison",
+                        extra={"preprod_artifact_id": artifact.id},
+                    )
+
         if commit_comparison:
             vcs_info = BuildDetailsVcsInfo(
                 head_sha=commit_comparison.head_sha,
@@ -411,67 +582,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         else:
             vcs_info = BuildDetailsVcsInfo()
-
-        comparison_manifest: dict[str, Any] | None = None
-        base_manifest: dict[str, Any] | None = None
-        all_comparisons = list(
-            PreprodSnapshotComparison.objects.select_related("base_snapshot_metrics")
-            .filter(head_snapshot_metrics=snapshot_metrics)
-            .order_by("-id")
-        )
-        latest_comparison = all_comparisons[0] if all_comparisons else None
-        comparison = next(
-            (c for c in all_comparisons if c.state == PreprodSnapshotComparison.State.SUCCESS),
-            None,
-        )
-        if comparison:
-            comparison_key = (comparison.extras or {}).get("comparison_key")
-            if comparison_key:
-                try:
-                    response = session.get(comparison_key)
-                    if response is None:
-                        raise FileNotFoundError("Comparison manifest does not exist in objectstore")
-                    with start_span(
-                        op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
-                    ):
-                        raw_comparison_manifest = response.payload.read()
-                    with start_span(
-                        op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
-                    ) as span:
-                        comparison_manifest = orjson.loads(raw_comparison_manifest)
-                        if "base_artifact_id" not in comparison_manifest:
-                            raise ValueError("comparison manifest missing base_artifact_id")
-                        set_span_data(
-                            span, "image_count", len(comparison_manifest.get("images", {}))
-                        )
-                except Exception:
-                    comparison_manifest = None
-                    logger.exception(
-                        "Failed to fetch comparison manifest",
-                        extra={
-                            "preprod_artifact_id": artifact.id,
-                        },
-                    )
-
-        if comparison_manifest is not None and comparison is not None:
-            base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
-            if base_manifest_key:
-                try:
-                    response = session.get(base_manifest_key)
-                    if response is None:
-                        raise FileNotFoundError("Base manifest does not exist in objectstore")
-                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
-                        raw_base_manifest = response.payload.read()
-                    with start_span(
-                        op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
-                    ) as span:
-                        base_manifest = orjson.loads(raw_base_manifest)
-                        set_span_data(span, "image_count", len(base_manifest.get("images", {})))
-                except Exception:
-                    logger.exception(
-                        "Failed to fetch base manifest",
-                        extra={"preprod_artifact_id": artifact.id},
-                    )
 
         analytics.record(
             PreprodArtifactApiGetSnapshotDetailsEvent(
@@ -504,48 +614,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     )
                     is not None
                 )
-
-        images_by_file_name: dict[str, SnapshotImageResponseDict] = {
-            img["image_file_name"]: img for img in image_list
-        }
-
-        base_artifact_id: str | None = None
-
-        if comparison_manifest is not None:
-            base_artifact_id = str(comparison_manifest["base_artifact_id"])
-            comparison_images = comparison_manifest.get("images", {})
-            with start_span(
-                op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
-            ) as span:
-                set_span_data(span, "image_count", len(comparison_images))
-                categorized = categorize_comparison_images(
-                    comparison_images,
-                    images_by_file_name,
-                    base_manifest.get("images", {}) if base_manifest else None,
-                )
-        else:
-            if comparison is not None:
-                base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
-            categorized = CategorizedComparison()
-            pending_or_failed_state = next(
-                (
-                    c.state
-                    for c in all_comparisons
-                    if c.state
-                    in (
-                        PreprodSnapshotComparison.State.PENDING,
-                        PreprodSnapshotComparison.State.PROCESSING,
-                        PreprodSnapshotComparison.State.FAILED,
-                    )
-                ),
-                None,
-            )
-        if comparison_manifest is not None:
-            comparison_type = "diff"
-        elif commit_comparison and commit_comparison.base_sha and pending_or_failed_state is None:
-            comparison_type = "waiting_for_base"
-        else:
-            comparison_type = "solo"
 
         all_approvals = list(
             PreprodComparisonApproval.objects.filter(
