@@ -24,10 +24,12 @@ interface GcpConnectionStatusProps {
   configData: OrganizationIntegration['configData'];
   onRetested: () => void | Promise<void>;
   organization: Organization;
+  isVerifying?: boolean;
 }
 
 export function GcpConnectionStatus({
   configData,
+  isVerifying = false,
   onRetested,
   organization,
 }: GcpConnectionStatusProps) {
@@ -43,7 +45,7 @@ export function GcpConnectionStatus({
 
   const payload = buildGcpVerifyPayload(configData);
 
-  const {mutate: retest, isPending} = useMutation({
+  const {mutate: retest, isPending: isRetesting} = useMutation({
     mutationFn: () =>
       fetchMutation({
         method: 'POST',
@@ -56,6 +58,8 @@ export function GcpConnectionStatus({
     onSuccess: () => onRetested(),
     onError: () => onRetested(),
   });
+
+  const isPending = isRetesting || isVerifying;
 
   return (
     <FieldGroup title={t('Connection Status')}>
