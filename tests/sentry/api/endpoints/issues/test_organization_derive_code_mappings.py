@@ -80,6 +80,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 400, response.content
         assert response.data == {"text": "Unsupported frame info"}
 
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
         config_data = {
             "absPath": "Billing.kt",
