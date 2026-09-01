@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
@@ -242,9 +242,7 @@ export default function AuthLogin() {
 
                 {!focusedOrgAuth && (
                   <Fragment>
-                    <Text as="div" align="center" variant="muted" size="lg">
-                      {t('or')}
-                    </Text>
+                    <AuthDivider />
 
                     <EmailAuth
                       organizationSlug={orgSlug}
@@ -267,6 +265,18 @@ export default function AuthLogin() {
         )}
       </Stack>
     </Fragment>
+  );
+}
+
+function AuthDivider() {
+  return (
+    <Grid columns="1fr max-content 1fr" align="center" gap="lg">
+      <Container borderTop="secondary" />
+      <Text as="div" align="center" variant="muted" size="xs" uppercase>
+        {t('or')}
+      </Text>
+      <Container borderTop="secondary" />
+    </Grid>
   );
 }
 

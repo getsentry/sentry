@@ -8,20 +8,36 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useAuthV2Rollout} from 'sentry/utils/useAuthV2Rollout';
 import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 
+const AUTH_V2_ROLLOUT_ORGANIZATION = 'sentry_react_auth_rollout_organization';
+
+function getRolloutOrganization(): string | null {
+  return JSON.parse(localStorage.getItem(AUTH_V2_ROLLOUT_ORGANIZATION) ?? 'null') as
+    | string
+    | null;
+}
+
+function setRolloutOrganization(organizationSlug: string) {
+  localStorage.setItem(AUTH_V2_ROLLOUT_ORGANIZATION, JSON.stringify(organizationSlug));
+}
+
 describe('useAuthV2Rollout', () => {
   beforeEach(() => {
     OrganizationStore.init();
     Cookies.remove('sentry_react_auth', {path: '/'});
+    localStorage.removeItem(AUTH_V2_ROLLOUT_ORGANIZATION);
   });
 
   it('enables Auth V2 when a member organization has the rollout feature', async () => {
     renderHook(useAuthV2Rollout);
 
     act(() => {
-      OrganizationStore.onUpdate(OrganizationFixture({features: ['authv2-rollout']}));
+      OrganizationStore.onUpdate(
+        OrganizationFixture({slug: 'rollout-org', features: ['authv2-rollout']})
+      );
     });
 
     await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBe('1'));
+    expect(getRolloutOrganization()).toBe('rollout-org');
   });
 
   it('preserves an explicit opt-out while the organization has the rollout feature', async () => {
@@ -67,6 +83,7 @@ describe('useAuthV2Rollout', () => {
       OrganizationStore.onUpdate(OrganizationFixture({features: ['authv2-rollout']}));
     });
     await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBe('1'));
+    expect(getRolloutOrganization()).not.toBeNull();
 
     act(() => {
       override.current.setAuthV2CookieState(AuthV2CookieState.DISABLED);
@@ -74,16 +91,31 @@ describe('useAuthV2Rollout', () => {
     });
 
     await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBe('0'));
+    expect(getRolloutOrganization()).toBeNull();
   });
 
-  it('clears an enabled cookie outside the rollout', async () => {
+  it('preserves rollout state in a different organization', async () => {
     Cookies.set('sentry_react_auth', '1', {path: '/'});
+    setRolloutOrganization('rollout-org');
     renderHook(useAuthV2Rollout);
 
     act(() => {
-      OrganizationStore.onUpdate(OrganizationFixture());
+      OrganizationStore.onUpdate(OrganizationFixture({slug: 'other-org'}));
+    });
+
+    await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBe('1'));
+  });
+
+  it('clears rollout state when disabled for the enrolling organization', async () => {
+    Cookies.set('sentry_react_auth', '1', {path: '/'});
+    setRolloutOrganization('rollout-org');
+    renderHook(useAuthV2Rollout);
+
+    act(() => {
+      OrganizationStore.onUpdate(OrganizationFixture({slug: 'rollout-org'}));
     });
 
     await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBeUndefined());
+    expect(getRolloutOrganization()).toBeNull();
   });
 });

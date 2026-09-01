@@ -1,9 +1,5 @@
 import * as Sentry from '@sentry/react';
-import {
-  useQueryClient,
-  useMutation,
-  type UseMutationOptions,
-} from '@tanstack/react-query';
+import {useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -58,16 +54,10 @@ function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
   }
 }
 
-export function useAssignIssueMutation(
-  options: Omit<
-    UseMutationOptions<Group, RequestError, AssignIssueVariables, AssignIssueContext>,
-    'mutationFn'
-  > = {}
-) {
+export function useAssignIssueMutation() {
   const queryClient = useQueryClient();
 
   return useMutation<Group, RequestError, AssignIssueVariables, AssignIssueContext>({
-    ...options,
     mutationFn: variables => {
       const actorId = variables.actor ? makeActorId(variables.actor) : '';
       return fetchMutation<Group>({
@@ -84,14 +74,13 @@ export function useAssignIssueMutation(
         },
       });
     },
-    onMutate: async (variables, context) => {
+    onMutate: variables => {
       const changeId = uniqueId();
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignTo(changeId, variables.groupId, {email: ''});
-      await options.onMutate?.(variables, context);
       return {changeId};
     },
-    onSuccess: (response, variables, onMutateResult, context) => {
+    onSuccess: (response, variables, onMutateResult) => {
       const queryKey = groupQueryKey({
         organizationSlug: variables.orgSlug,
         groupId: variables.groupId,
@@ -106,15 +95,13 @@ export function useAssignIssueMutation(
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
       queryClient.invalidateQueries({queryKey});
       addSuccessMessage(getAssignIssueSuccessMessage(response.assignedTo));
-      options.onSuccess?.(response, variables, onMutateResult, context);
     },
-    onError: (error, variables, onMutateResult, context) => {
+    onError: (error, variables, onMutateResult) => {
       // TODO: Remove this when we no longer rely on GroupStore for updates
       // This will show an alert to the user, remember to replace that functionality
       if (onMutateResult) {
         GroupStore.onAssignToError(onMutateResult.changeId, variables.groupId, error);
       }
-      options.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

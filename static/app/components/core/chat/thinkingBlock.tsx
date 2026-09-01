@@ -4,6 +4,7 @@ import {Global} from '@emotion/react';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -72,22 +73,29 @@ interface ThinkingBlockProps {
 }
 
 export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlockProps) {
+  const {t} = useTranslation();
   const elapsed = useElapsedTime(startTime, endTime);
   const isActive = !endTime;
-  const [userExpanded, setUserExpanded] = useState(false);
+  // ponytail: null = no user interaction, falls through to isActive default
+  const [override, setOverride] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isActive) {
+      setOverride(null);
+    }
+  }, [isActive]);
 
   const titleRef = useRef<HTMLSpanElement>(null);
-  // Strip trailing punctuation/whitespace so the animated ellipsis isn't
-  // doubled up when the title already ends in "." or "…".
   const baseTitle = title.replace(/[.…\s]+$/u, '');
   useTextDecodeAnimation(titleRef, baseTitle);
 
-  const isExpanded = isActive || userExpanded;
+  const isExpanded = override ?? isActive;
+  const summaryTitle = t('See thinking and tool calls');
 
   return (
     <Disclosure
       expanded={isExpanded}
-      onExpandedChange={setUserExpanded}
+      onExpandedChange={setOverride}
       size="sm"
       variant="outline"
       flex={1}
@@ -102,10 +110,14 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
           </Text>
         }
       >
-        <Text size="sm" monospace variant="muted">
-          <span key={baseTitle} ref={titleRef}>
-            {baseTitle}
-          </span>
+        <Text size="sm" monospace variant="muted" ellipsis>
+          {isActive ? (
+            <span key={baseTitle} ref={titleRef}>
+              {baseTitle}
+            </span>
+          ) : (
+            summaryTitle
+          )}
           {isActive ? <AnimatedEllipsis /> : null}
         </Text>
       </Disclosure.Title>

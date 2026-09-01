@@ -33,7 +33,11 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
+from sentry.integrations.types import (
+    ExternalProviders,
+    IntegrationIssueConfigField,
+    IntegrationProviderSlug,
+)
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -824,7 +828,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         client = self.get_client()
 
-        project_field = {
+        project_field: IntegrationIssueConfigField = {
             "name": "project",
             "label": "Jira Project",
             "choices": [(p["id"], p["key"]) for p in jira_projects],

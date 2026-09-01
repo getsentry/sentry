@@ -1,0 +1,137 @@
+{
+  "added": [
+    {
+      "description": null,
+      "display_name": "Added",
+      "group": null,
+      "image_file_name": "a_added.png"
+    }
+  ],
+  "added_count": 1,
+  "app_id": "com.example.app",
+  "approval_status": null,
+  "approvers": [],
+  "base_artifact_id": "<BASE_ID>",
+  "changed": [
+    {
+      "base_image": {
+        "description": null,
+        "display_name": "Changed Base",
+        "group": null,
+        "image_file_name": "b_changed.png"
+      },
+      "diff": 0.25,
+      "diff_image_key": "mask-1",
+      "head_image": {
+        "description": "a description",
+        "display_name": "Changed",
+        "group": "grp",
+        "image_file_name": "b_changed.png"
+      }
+    }
+  ],
+  "changed_count": 1,
+  "comparison_error_message": null,
+  "comparison_state": "success",
+  "comparison_type": "diff",
+  "diff_threshold": 0.2,
+  "errored": [
+    {
+      "base_image": {
+        "display_name": "e_errored.png",
+        "group": null,
+        "image_file_name": "e_errored.png"
+      },
+      "diff": null,
+      "diff_image_key": null,
+      "head_image": {
+        "description": null,
+        "display_name": null,
+        "group": null,
+        "image_file_name": "e_errored.png"
+      }
+    },
+    {
+      "base_image": {
+        "display_name": "i_errored_nohead.png",
+        "group": null,
+        "image_file_name": "i_errored_nohead.png"
+      },
+      "diff": null,
+      "diff_image_key": null,
+      "head_image": {
+        "display_name": "i_errored_nohead.png",
+        "group": null,
+        "image_file_name": "i_errored_nohead.png"
+      }
+    }
+  ],
+  "errored_count": 2,
+  "head_artifact_id": "<HEAD_ID>",
+  "image_count": 5,
+  "images": [],
+  "is_selective": false,
+  "project_id": "<PROJECT_ID>",
+  "removed": [
+    {
+      "description": null,
+      "display_name": "Removed",
+      "group": null,
+      "image_file_name": "f_removed.png"
+    },
+    {
+      "display_name": "h_removed_nobase.png",
+      "group": null,
+      "image_file_name": "h_removed_nobase.png"
+    }
+  ],
+  "removed_count": 2,
+  "renamed": [
+    {
+      "base_image": {
+        "description": null,
+        "display_name": "Old Name",
+        "group": null,
+        "image_file_name": "old_name.png"
+      },
+      "diff": null,
+      "diff_image_key": null,
+      "head_image": {
+        "description": null,
+        "display_name": "Renamed",
+        "group": null,
+        "image_file_name": "d_renamed.png"
+      }
+    }
+  ],
+  "renamed_count": 1,
+  "skipped": [
+    {
+      "description": null,
+      "display_name": "Skipped",
+      "group": null,
+      "image_file_name": "g_skipped.png"
+    }
+  ],
+  "skipped_count": 1,
+  "state": "UPLOADED",
+  "unchanged": [
+    {
+      "description": null,
+      "display_name": null,
+      "group": null,
+      "image_file_name": "c_unchanged.png"
+    }
+  ],
+  "unchanged_count": 1,
+  "vcs_info": {
+    "base_ref": null,
+    "base_repo_name": null,
+    "base_sha": null,
+    "head_ref": null,
+    "head_repo_name": null,
+    "head_sha": null,
+    "pr_number": null,
+    "provider": null
+  }
+}

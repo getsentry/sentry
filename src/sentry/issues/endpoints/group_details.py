@@ -138,12 +138,18 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
         inconsistency = check_status_consistency(group, derived)
         if inconsistency is None:
+            metrics.incr(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned"},
+            )
             return
 
         metrics.incr(
-            "issues.status_reconciliation.diverged",
+            "issues.status_reconciliation.checked",
             sample_rate=1.0,
             tags={
+                "result": "diverged",
                 "derived_status": inconsistency.derived.value,
                 "actual_status": inconsistency.actual.value,
             },

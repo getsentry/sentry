@@ -376,7 +376,10 @@ function IssueListOverviewInner({
         // Other transactions include stacktrace preview request
         const currentSpan = Sentry.getActiveSpan();
         const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
-        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+        if (
+          rootSpan &&
+          Sentry.spanToJSON(rootSpan).attributes['sentry.op'] === 'navigation'
+        ) {
           rootSpan.end();
         }
       }

@@ -442,6 +442,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 }
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
         ):
             heal_stale_derived_data()
 
@@ -451,6 +452,45 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             (c.kwargs["group_id_start"], c.kwargs["group_id_end"])
             for c in mock_delay.call_args_list
         ] == [(group_ids[0], group_ids[1]), (group_ids[1], group_ids[2])]
+        # Budget fully consumed by heal work, so no consistency checks fire.
+        mock_check.assert_not_called()
+
+    def test_schedules_checks_with_leftover_heal_budget(self) -> None:
+        groups = self.create_unprocessed_groups(4)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._pick_stale_hash()
+        # One stale row leaves heal budget free for checks on the fresh rows.
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-batch-size": 1,
+                    "issues.derived.heal-max-tasks": 3,
+                    "issues.derived.check-task-count": 5,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_regenerate,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
+        ):
+            heal_stale_derived_data()
+
+        mock_regenerate.assert_called_once_with(
+            stale_pipeline_hashes=[stale],
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[0] + 1,
+        )
+        # Remaining budget is 2, so checks are capped there even though
+        # check-task-count is higher.
+        assert mock_check.call_args_list == [
+            call(group_id_start=group_ids[1], group_id_end=group_ids[1] + 1),
+            call(group_id_start=group_ids[2], group_id_end=group_ids[2] + 1),
+        ]
 
 
 @with_feature("projects:issue-action-log-write-to-db")
