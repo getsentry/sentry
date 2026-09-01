@@ -17,9 +17,9 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
-    ConditionDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
@@ -312,7 +312,7 @@ DetectorThresholds = dict[DetectorPriorityLevel, int]
 
 
 class StatefulDetectorHandler(
-    ConditionDetectorHandler[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     """
