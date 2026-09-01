@@ -76,6 +76,8 @@ export function ConversationTraceLink({
     ...traces.slice(0, VISIBLE_TRACE_COUNT).map(({traceId, spanId}) => ({
       key: traceId,
       label: getShortTraceId(traceId),
+      // Accents the id and its icon, so each trace reads as a link.
+      priority: 'primary' as const,
       leadingItems: <IconSpan size="xs" />,
       to: getTraceUrl(organization.slug, traceId, spanId),
       onAction: trackClick,
@@ -97,6 +99,7 @@ export function ConversationTraceLink({
   return (
     <DropdownMenu
       items={items}
+      size="sm"
       trigger={(triggerProps, isOpen) => (
         <TraceTrigger
           {...triggerProps}
