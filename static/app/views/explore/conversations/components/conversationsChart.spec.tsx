@@ -40,12 +40,46 @@ describe('ConversationsChart', () => {
           query: expect.objectContaining({
             yAxis: ['count_unique(gen_ai.conversation.id)'],
             query: 'has:gen_ai.conversation.id',
+            groupBy: ['gen_ai.agent.name'],
+            topEvents: 10,
+            sort: '-count_unique(gen_ai.conversation.id)',
           }),
         })
       );
     });
 
     expect(screen.getByRole('button', {name: 'Conversation Count'})).toBeInTheDocument();
+  });
+
+  it('renders all agent groups returned by the API', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count_unique(gen_ai.conversation.id)',
+            groupBy: [{key: 'gen_ai.agent.name', value: 'Agent A'}],
+            meta: {valueType: 'number', valueUnit: null, interval: 1_800_000},
+          }),
+          TimeSeriesFixture({
+            yAxis: 'count_unique(gen_ai.conversation.id)',
+            groupBy: [{key: 'gen_ai.agent.name', value: 'Agent B'}],
+            meta: {valueType: 'number', valueUnit: null, interval: 1_800_000},
+          }),
+        ],
+      },
+    });
+
+    render(<ConversationsChart />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {query: 'agent-test'}},
+      },
+    });
+
+    expect(await screen.findByText('Agent A')).toBeInTheDocument();
+    expect(screen.getByText('Agent B')).toBeInTheDocument();
   });
 
   it('switches the visualization via the title dropdown', async () => {
@@ -67,6 +101,9 @@ describe('ConversationsChart', () => {
           query: expect.objectContaining({
             yAxis: ['sum(gen_ai.cost.total_tokens)'],
             query: 'has:gen_ai.conversation.id gen_ai.operation.type:ai_client',
+            groupBy: ['gen_ai.agent.name'],
+            topEvents: 10,
+            sort: '-sum(gen_ai.cost.total_tokens)',
           }),
         })
       );
@@ -240,6 +277,7 @@ describe('ConversationsChart', () => {
             queries: [
               expect.objectContaining({
                 aggregates: ['count_unique(gen_ai.conversation.id)'],
+                columns: ['gen_ai.agent.name'],
                 conditions: 'has:gen_ai.conversation.id',
               }),
             ],
