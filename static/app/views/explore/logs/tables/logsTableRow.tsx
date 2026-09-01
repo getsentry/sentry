@@ -384,10 +384,9 @@ export const LogRowContent = memo(function LogRowContentImpl({
 
   // The table asks the API to truncate long strings for display, so the rendered
   // cell value can be cut short. Trace item details come back untruncated.
-  async function copyFullCellValue(field: string, cellValue: string | number) {
+  async function resolveFullCellValue(field: string, cellValue: string | number) {
     if (typeof cellValue !== 'string') {
-      copyToClipboard(cellValue);
-      return;
+      return cellValue;
     }
 
     let fullValue: TraceItemResponseAttribute['value'] | undefined;
@@ -396,10 +395,27 @@ export const LogRowContent = memo(function LogRowContentImpl({
         traceItemAttributes ?? (await fetchTraceItemDetails())?.attributes;
       fullValue = attributes?.find(attribute => attribute.name === field)?.value;
     } catch {
-      // Falling back to the truncated value beats copying nothing.
+      // Falling back to the truncated value beats doing nothing.
     }
 
-    copyToClipboard(typeof fullValue === 'string' ? fullValue : cellValue);
+    return typeof fullValue === 'string' ? fullValue : cellValue;
+  }
+
+  async function copyFullCellValue(field: string, cellValue: string | number) {
+    copyToClipboard(await resolveFullCellValue(field, cellValue));
+  }
+
+  async function addFullCellValueFilter(
+    field: string,
+    cellValue: string | number,
+    negated: boolean
+  ) {
+    const filter = getMessageFilter(
+      field,
+      dataRow,
+      await resolveFullCellValue(field, cellValue)
+    );
+    addSearchFilter({key: filter.key, value: filter.value, negated});
   }
 
   const observedTimestamp = traceItemAttributes?.find(
@@ -634,20 +650,12 @@ export const LogRowContent = memo(function LogRowContentImpl({
                     column={discoverColumn}
                     dataRow={dataRow}
                     handleCellAction={(actions, cellValue) => {
-                      const filter = getMessageFilter(field, dataRow, cellValue);
                       switch (actions) {
                         case Actions.ADD:
-                          addSearchFilter({
-                            key: filter.key,
-                            value: filter.value,
-                          });
+                          addFullCellValueFilter(field, cellValue, false);
                           break;
                         case Actions.EXCLUDE:
-                          addSearchFilter({
-                            key: filter.key,
-                            value: filter.value,
-                            negated: true,
-                          });
+                          addFullCellValueFilter(field, cellValue, true);
                           break;
                         case Actions.COPY_TO_CLIPBOARD:
                           copyFullCellValue(field, cellValue);
