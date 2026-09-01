@@ -16,18 +16,18 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconFire, IconUser} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getUserDisplayName,
   normalizeUserField,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
+import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -102,18 +102,6 @@ export function ConversationSummary({
     return Array.from(seen, ([traceId, spanId]) => ({traceId, spanId}));
   }, [nodeTraceMap]);
 
-  // A single trace deep-links to the trace view; multiple traces open the
-  // traces explorer filtered to this conversation.
-  const singleTrace = traces.length === 1 ? traces[0] : undefined;
-  const tracesUrl = singleTrace
-    ? getTraceUrl(organization.slug, singleTrace.traceId, singleTrace.spanId)
-    : getExploreUrl({
-        organization,
-        selection,
-        query: `gen_ai.conversation.id:"${escapeDoubleQuotes(conversationId)}"`,
-        table: 'trace',
-      });
-
   return (
     <Flex
       direction={{'screen:xs': 'column', 'screen:md': 'row'}}
@@ -186,20 +174,7 @@ export function ConversationSummary({
                   </InfoText>
                 )}
               </Flex>
-              {traces.length > 0 && (
-                <Link
-                  to={tracesUrl}
-                  onClick={() =>
-                    trackAnalytics('conversations.detail.click-trace-link', {
-                      organization,
-                    })
-                  }
-                >
-                  <Text size="sm" variant="inherit" wrap="nowrap">
-                    {tn('Trace', 'Traces', traces.length)}
-                  </Text>
-                </Link>
-              )}
+              <ConversationTraceLink conversationId={conversationId} traces={traces} />
               {aggregates.toolNames.length > 0 && (
                 <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
                   {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
@@ -329,12 +304,6 @@ function Stat({
         valueContent
       )}
     </Stack>
-  );
-}
-
-function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
-  return normalizeUrl(
-    `/organizations/${orgSlug}/explore/traces/trace/${traceId}/?node=span-${spanId}`
   );
 }
 
