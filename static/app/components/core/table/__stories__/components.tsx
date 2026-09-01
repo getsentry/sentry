@@ -25,9 +25,7 @@ export function OverviewDemo() {
       <Table.Head>
         <Table.Row>
           {columns.map(column => (
-            <Table.HeadCell columnKey={column.key} key={column.key}>
-              {column.key}
-            </Table.HeadCell>
+            <Table.HeadCell key={column.key}>{column.key}</Table.HeadCell>
           ))}
         </Table.Row>
       </Table.Head>

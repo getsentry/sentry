@@ -54,16 +54,17 @@ export interface TableColumnConfig {
   /**
    * Whether the column takes part in the layout, defaulting to `true`. A
    * responsive value drops the column's track from the grid template and hides
-   * its cells as the container crosses a breakpoint.
+   * the cells in that position as the container crosses a breakpoint.
    *
-   * Cells name their column with `columnKey`, which is how they are hidden
-   * along with their track.
+   * Cells are matched to columns by position, so every column a row renders a
+   * cell for needs an entry here, in the order the cells are rendered.
    */
   visible?: Responsive<boolean>;
   width?: Responsive<number | string>;
 }
 
 interface ResolvedColumn extends Omit<TableColumnConfig, 'visible' | 'width'> {
+  hidden: boolean;
   width?: number | string;
 }
 
@@ -89,8 +90,6 @@ function getDefaultColumnTrack(
 }
 
 interface TableContextValue {
-  columnIndexByKey: Map<string, number>;
-  hiddenColumnKeys: Set<string>;
   lastColumnIndex: number;
   minimumColumnWidth: number;
   onResetColumnSize: (event: React.MouseEvent, index: number) => void;
@@ -111,17 +110,6 @@ const DETACHED_TABLE_REF: RefObject<HTMLTableElement | null> = {current: null};
 
 export function useTableElement() {
   return useTableContext()?.tableRef ?? DETACHED_TABLE_REF;
-}
-
-/**
- * Whether the named column is currently dropped from the table. Cells are hidden
- * rather than unrendered so that a table measured at zero width — every table
- * under jsdom — still holds its content.
- */
-export function useIsColumnHidden(columnKey: string | undefined) {
-  const context = useTableContext();
-
-  return columnKey !== undefined && context?.hiddenColumnKeys.has(columnKey) === true;
 }
 
 const EMPTY_COLUMNS: TableColumnConfig[] = [];
@@ -159,27 +147,34 @@ export function Table({
 
   // Responsive `width` and `visible` are resolved here rather than emitted as
   // `@container` rules because the grid template is an inline style, which any
-  // stylesheet rule would lose to. Hidden columns are dropped entirely so that
-  // every index downstream — resize handles, the template, the context — counts
-  // only the columns currently on screen.
-  const visibleColumns: ResolvedColumn[] = [];
-  const hiddenColumnKeys = new Set<string>();
+  // stylesheet rule would lose to.
+  const resolvedColumns: ResolvedColumn[] = columns.map(
+    ({visible, width, ...column}) => ({
+      ...column,
+      hidden: !resolveResponsiveProp(visible ?? true),
+      width: resolveResponsiveProp(width),
+    })
+  );
 
-  for (const {visible, width, ...column} of columns) {
-    if (resolveResponsiveProp(visible ?? true)) {
-      visibleColumns.push({...column, width: resolveResponsiveProp(width)});
-    } else {
-      hiddenColumnKeys.add(column.key);
-    }
-  }
+  const visibleColumns = resolvedColumns.filter(column => !column.hidden);
+  const lastVisibleIndex = resolvedColumns.findLastIndex(column => !column.hidden);
+
+  // A hidden column keeps its place in `columns` — a cell is still rendered for
+  // it — so a column's own index is not the index of the track it sits in.
+  const trackIndexes = resolvedColumns.map(
+    (_, index) => resolvedColumns.slice(0, index).filter(column => !column.hidden).length
+  );
 
   const resolveWidth = (column: ResolvedColumn): ResolvedWidth =>
     isControlled ? column.width : (internalWidths[column.key] ?? column.width);
 
   const buildTemplate = (overrideIndex?: number, overrideWidth?: number) => {
+    const overrideTrack =
+      overrideIndex === undefined ? undefined : trackIndexes[overrideIndex];
+
     const tracks = visibleColumns.map((column, index) =>
       getDefaultColumnTrack(
-        index === overrideIndex ? overrideWidth : resolveWidth(column),
+        index === overrideTrack ? overrideWidth : resolveWidth(column),
         {
           flexible: flexibleLastColumn && index === visibleColumns.length - 1,
           minimumColumnWidth,
@@ -195,7 +190,7 @@ export function Table({
   };
 
   const commitWidth = (index: number, width: number) => {
-    const key = visibleColumns[index]?.key;
+    const key = resolvedColumns[index]?.key;
 
     if (onColumnResize) {
       onColumnResize(index, width);
@@ -230,9 +225,7 @@ export function Table({
   }, [redraw]);
 
   const contextValue: TableContextValue = {
-    columnIndexByKey: new Map(visibleColumns.map((column, index) => [column.key, index])),
-    hiddenColumnKeys,
-    lastColumnIndex: visibleColumns.length - 1,
+    lastColumnIndex: lastVisibleIndex,
     minimumColumnWidth,
     onResetColumnSize: (event, index) => {
       event.stopPropagation();
@@ -243,7 +236,9 @@ export function Table({
     onResizeEnd,
     onResizeMove,
     onResizeStart,
-    resizableByIndex: visibleColumns.map(column => column.resizable !== false),
+    resizableByIndex: resolvedColumns.map(
+      column => !column.hidden && column.resizable !== false
+    ),
     tableRef: gridRef,
   };
 
@@ -251,6 +246,10 @@ export function Table({
     <TableContext value={contextValue}>
       <TableGrid
         {...props}
+        hiddenColumnIndexes={resolvedColumns.flatMap((column, index) =>
+          column.hidden ? [index] : []
+        )}
+        prependedColumnCount={prependColumnWidths?.length ?? 0}
         ref={gridRef}
         role="table"
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
@@ -273,21 +272,16 @@ function Row(props: ComponentProps<typeof TableRow>) {
   return <TableRow role="row" {...props} />;
 }
 
-interface CellProps extends ComponentProps<typeof TableCell> {
-  columnKey?: string;
-}
-
-function Cell({columnKey, ...props}: CellProps) {
-  return <TableCell hidden={useIsColumnHidden(columnKey)} role="cell" {...props} />;
+function Cell(props: ComponentProps<typeof TableCell>) {
+  return <TableCell role="cell" {...props} />;
 }
 
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
   /**
-   * Identifies the column by position, for callers that render their head cells
-   * from an ordered list rather than from a keyed column config.
+   * The head cell's position in `columns`, which a resizable table passes so the
+   * handle knows which column it drags.
    */
   columnIndex?: number;
-  columnKey?: string;
   onSort?: (event: React.MouseEvent) => void;
   overlays?: ReactNode;
   ref?: Ref<HTMLTableCellElement>;
@@ -305,7 +299,6 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
 function HeadCell({
   children,
   columnIndex,
-  columnKey,
   onSort,
   overlays,
   ref,
@@ -315,9 +308,7 @@ function HeadCell({
   ...props
 }: HeadCellProps) {
   const context = useTableContext();
-  const index =
-    columnIndex ??
-    (columnKey === undefined ? undefined : context?.columnIndexByKey.get(columnKey));
+  const index = columnIndex;
 
   const showResizer =
     context !== null &&
@@ -336,7 +327,6 @@ function HeadCell({
   return (
     <TableHeadCell
       aria-sort={getAriaSort(sort)}
-      hidden={useIsColumnHidden(columnKey)}
       {...props}
       id={cellId}
       ref={getMergedRef(ref)}

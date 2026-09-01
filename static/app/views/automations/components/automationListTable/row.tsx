@@ -49,16 +49,16 @@ export function AutomationListRow({
           <AutomationTitleCell automation={automation} />
         </Flex>
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="last-triggered">
+      <SimpleTable.RowCell>
         <TimeAgoCell date={lastTriggered} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="action">
+      <SimpleTable.RowCell>
         <ActionCell actions={actions} disabled={!enabled} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="projects">
+      <SimpleTable.RowCell>
         <ProjectsCell automation={automation} />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="connected-monitors">
+      <SimpleTable.RowCell>
         <AutomationListConnectedDetectors detectorIds={detectorIds} />
       </SimpleTable.RowCell>
     </AutomationSimpleTableRow>
@@ -71,16 +71,16 @@ export function AutomationListRowSkeleton() {
       <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="last-triggered">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="action">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="projects">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell columnKey="connected-monitors">
+      <SimpleTable.RowCell>
         <Placeholder height="20px" />
       </SimpleTable.RowCell>
     </AutomationSimpleTableRow>

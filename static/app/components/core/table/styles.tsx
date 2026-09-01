@@ -8,7 +8,12 @@ const Z_INDEX_RESIZER = 1;
 
 const Z_INDEX_STICKY_HEAD = 2;
 
-export const TableGrid = styled('table')`
+interface TableGridProps {
+  hiddenColumnIndexes?: number[];
+  prependedColumnCount?: number;
+}
+
+export const TableGrid = styled('table')<TableGridProps>`
   position: inherit;
   display: grid;
 
@@ -16,9 +21,17 @@ export const TableGrid = styled('table')`
   border-collapse: collapse;
   margin: 0;
 
-  [hidden] {
-    display: none;
-  }
+  /* Cells are matched to columns by position, so only a number ever reaches the
+     stylesheet. Status rows hold a single cell spanning every column, which no
+     column position describes. */
+  ${p =>
+    p.hiddenColumnIndexes?.map(
+      index => css`
+        tr > *:nth-child(${(p.prependedColumnCount ?? 0) + index + 1}):not(${TableStatusCell}) {
+          display: none;
+        }
+      `
+    )}
 `;
 
 const subgrid = css`

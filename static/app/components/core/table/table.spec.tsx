@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Container} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED, Table, type TableColumnConfig} from '@sentry/scraps/table';
@@ -24,8 +25,8 @@ function TestTable({
     <Table columns={columns} {...props}>
       <Table.Head>
         <Table.Row>
-          {columns.map(column => (
-            <Table.HeadCell columnKey={column.key} key={column.key}>
+          {columns.map((column, index) => (
+            <Table.HeadCell columnIndex={index} key={column.key}>
               {column.key}
             </Table.HeadCell>
           ))}
@@ -34,10 +35,7 @@ function TestTable({
       <Table.Body>
         <Table.Row>
           {columns.map(column => (
-            <Table.Cell
-              columnKey={column.key}
-              key={column.key}
-            >{`${column.key}-value`}</Table.Cell>
+            <Table.Cell key={column.key}>{`${column.key}-value`}</Table.Cell>
           ))}
         </Table.Row>
       </Table.Body>
@@ -290,7 +288,7 @@ describe('Table', () => {
       expect(gridTemplate()).toBe('120px minmax(90px, auto)');
     });
 
-    it('hides the cells of a column hidden at the container width', () => {
+    it('hides the cells sitting in the position of a hidden column', () => {
       setClientWidth(400);
       render(
         <Container containerType="inline-size">
@@ -298,8 +296,11 @@ describe('Table', () => {
         </Container>
       );
 
-      expect(screen.getByText('age-value')).not.toBeVisible();
-      expect(screen.getByText('name-value')).toBeVisible();
+      // jsdom does not resolve descendant rules through getComputedStyle, so the
+      // hiding rule is read off the emitted stylesheet rather than the cell.
+      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
+        'nth-child(2)'
+      );
     });
 
     it('leaves the last visible column flexible when a later column is hidden', () => {
@@ -330,7 +331,7 @@ describe('Table', () => {
       expect(resizers()[0]).toHaveAccessibleName('name');
     });
 
-    it('reports the visible index of a resized column to onColumnResize', () => {
+    it('reports the config index of a resized column to onColumnResize', () => {
       const onColumnResize = jest.fn();
       setClientWidth(400);
       render(
@@ -348,7 +349,9 @@ describe('Table', () => {
 
       dragHandle(resizers()[0]!, {from: 100, to: 350});
 
-      expect(onColumnResize).toHaveBeenCalledWith(0, 250);
+      // The first column is hidden, so the first handle belongs to the second
+      // entry in `columns` — indexes stay stable against the array passed in.
+      expect(onColumnResize).toHaveBeenCalledWith(1, 250);
     });
   });
 

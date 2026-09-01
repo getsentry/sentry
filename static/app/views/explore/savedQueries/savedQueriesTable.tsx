@@ -177,31 +177,19 @@ export function SavedQueriesTable({
         isLoading={isLoading}
         header={
           <SavedEntityTable.Header>
-            <SavedEntityTable.HeaderCell columnKey="star" />
-            <SavedEntityTable.HeaderCell columnKey="name" divider={false}>
+            <SavedEntityTable.HeaderCell />
+            <SavedEntityTable.HeaderCell divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.HeaderCell columnKey="dataset">
-                {t('Type')}
-              </SavedEntityTable.HeaderCell>
+              <SavedEntityTable.HeaderCell>{t('Type')}</SavedEntityTable.HeaderCell>
             )}
-            <SavedEntityTable.HeaderCell columnKey="project">
-              {t('Project')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="envs">
-              {t('Envs')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="query">
-              {t('Query')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="created-by">
-              {t('Creator')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="last-visited">
-              {t('Last Viewed')}
-            </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell columnKey="actions" />
+            <SavedEntityTable.HeaderCell>{t('Project')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Envs')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Query')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell>{t('Last Viewed')}</SavedEntityTable.HeaderCell>
+            <SavedEntityTable.HeaderCell />
           </SavedEntityTable.Header>
         }
         isEmpty={filteredData.length === 0}
@@ -214,7 +202,7 @@ export function SavedQueriesTable({
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
-            <SavedEntityTable.Cell hasButton columnKey="star">
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellStar
                 isStarred={starredIds.includes(query.id)}
                 onClick={() =>
@@ -226,7 +214,7 @@ export function SavedQueriesTable({
                 }
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="name">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellName
                 to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
               >
@@ -234,17 +222,17 @@ export function SavedQueriesTable({
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.Cell columnKey="dataset">
+              <SavedEntityTable.Cell>
                 {getSavedQueryDatasetLabel(query.dataset)}
               </SavedEntityTable.Cell>
             )}
-            <SavedEntityTable.Cell columnKey="project">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="envs">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="query">
+            <SavedEntityTable.Cell>
               <StyledExploreParams
                 query={query.query[0].query}
                 visualizes={query.query[0].visualize}
@@ -252,7 +240,7 @@ export function SavedQueriesTable({
                 agent={query.agent}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="created-by">
+            <SavedEntityTable.Cell>
               {query.isPrebuilt ? (
                 <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
@@ -261,10 +249,10 @@ export function SavedQueriesTable({
                 <UserAvatar user={query.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="last-visited">
+            <SavedEntityTable.Cell>
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="actions" hasButton>
+            <SavedEntityTable.Cell hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   ...(query.isPrebuilt
@@ -358,11 +346,15 @@ function savedQueryColumns(hasLogsEnabled: boolean): TableColumnConfig[] {
   return [
     {key: 'star', width: '40px'},
     {key: 'name', width: {zero: '30%', xl: '20%'}},
-    {
-      key: 'dataset',
-      visible: hasLogsEnabled && {zero: false, xl: true},
-      width: 'min-content',
-    },
+    ...(hasLogsEnabled
+      ? [
+          {
+            key: 'dataset',
+            visible: {zero: false, xl: true},
+            width: 'min-content',
+          } satisfies TableColumnConfig,
+        ]
+      : []),
     {
       key: 'project',
       visible: {zero: false, xl: true},
