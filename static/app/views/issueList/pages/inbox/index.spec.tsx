@@ -215,11 +215,7 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
-    autofixSetup = AutofixSetupFixture({
-      billing: {hasAutofixQuota: false},
-      integration: {ok: false, reason: null},
-      seerReposLinked: false,
-    }),
+    autofixSetup = AutofixSetupFixture({}),
     autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
@@ -251,6 +247,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: autofixSetup,
       ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {hasSupportedScmIntegration: true},
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
