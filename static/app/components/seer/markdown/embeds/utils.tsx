@@ -18,6 +18,30 @@ export type EmbedOutput<N extends SeerEmbedName> = z.output<
  */
 const reportedInvalidEmbeds = new Set<string>();
 
+/**
+ * An embed whose reference resolved to nothing renders nothing, which is indistinguishable from
+ * working — so it is reported rather than skipped silently.
+ */
+export function reportUnresolvedEmbed(name: string, ref: string) {
+  if (NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[SeerEmbed] ${name}: unresolved reference`, ref);
+    return;
+  }
+
+  if (reportedInvalidEmbeds.has(`unresolved:${name}`)) {
+    return;
+  }
+  reportedInvalidEmbeds.add(`unresolved:${name}`);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('seer_embed.name', name);
+    scope.setFingerprint(['seer-embed-unresolved-reference', name]);
+    Sentry.captureException(new Error(`[SeerEmbed] ${name}: unresolved reference`));
+  });
+}
+
 function reportInvalidEmbed(name: string, issues: readonly z.core.$ZodIssue[]) {
   if (NODE_ENV === 'development') {
     // eslint-disable-next-line no-console

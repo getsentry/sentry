@@ -680,3 +680,27 @@ export function seerEmbedsToJsonSchemas(): Array<{
     };
   });
 }
+
+/**
+ * Embed names that can carry a lane. Excludes the structured-only embeds, which already own their
+ * `structuredContent` key as a single value and so cannot also hold a list.
+ */
+export type SeerLaneEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
+
+export function isLaneEmbedName(value: string): value is SeerLaneEmbedName {
+  return value in SEER_EMBED_SCHEMAS;
+}
+
+/**
+ * The embed lanes a Code Mode tool result may carry on `structuredContent`.
+ *
+ * A lane is keyed by embed name — the same key that resolves the schema above and the component in
+ * the registry — so adding a schema yields a typed lane with no other change. List-valued, because
+ * one execute can render several of a type and each needs its own address.
+ */
+export type SeerEmbedLanes = {
+  [N in SeerLaneEmbedName]?: Array<{
+    data: z.input<(typeof SEER_EMBED_SCHEMAS)[N]['schema']>;
+    key: string;
+  }>;
+};
