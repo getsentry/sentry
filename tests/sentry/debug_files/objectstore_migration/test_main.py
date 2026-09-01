@@ -14,7 +14,7 @@ class DebugFileObjectstoreMigrationMainTest(TestCase):
         start_cursor = ProjectDebugFile.objects.aggregate(max_id=Max("id"))["max_id"] or 0
 
         with patch(
-            "sentry.debug_files.objectstore_migration.tasks.migrate_shard.apply_async"
+            "sentry.debug_files.objectstore_migration.tasks.migrate_shard.apply_async_with_future"
         ) as enqueue:
             start_migration(num_shards=3)
             start_migration(

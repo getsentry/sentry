@@ -1,4 +1,4 @@
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
 import {
@@ -2295,7 +2295,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[FieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3325,12 +3325,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[ReplayFieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[ReplayFieldKey.BROWSER_VERSION]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3639,7 +3639,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[FeedbackFieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

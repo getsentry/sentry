@@ -1,0 +1,212 @@
+{
+  "added": [
+    {
+      "canvas_theme": null,
+      "description": null,
+      "diff_threshold": 0.2,
+      "display_name": "Added",
+      "group": null,
+      "height": 20,
+      "image_file_name": "a_added.png",
+      "key": "h_added",
+      "tags": null,
+      "width": 10
+    }
+  ],
+  "added_count": 1,
+  "app_id": "com.example.app",
+  "approval_status": null,
+  "approvers": [],
+  "base_artifact_id": "<BASE_ID>",
+  "changed": [
+    {
+      "base_image": {
+        "canvas_theme": null,
+        "description": null,
+        "display_name": "Changed Base",
+        "group": null,
+        "height": 40,
+        "image_file_name": "b_changed.png",
+        "key": "b_changed_hash",
+        "tags": null,
+        "width": 30
+      },
+      "diff": 0.25,
+      "diff_image_key": "mask-1",
+      "head_image": {
+        "canvas_theme": "dark",
+        "description": "a description",
+        "diff_threshold": 0.5,
+        "display_name": "Changed",
+        "group": "grp",
+        "height": 40,
+        "image_file_name": "b_changed.png",
+        "key": "h_changed",
+        "tags": {
+          "env": "prod"
+        },
+        "width": 30
+      }
+    }
+  ],
+  "changed_count": 1,
+  "comparison_error_message": null,
+  "comparison_state": "success",
+  "comparison_type": "diff",
+  "diff_threshold": 0.2,
+  "errored": [
+    {
+      "base_image": {
+        "canvas_theme": null,
+        "display_name": "e_errored.png",
+        "group": null,
+        "height": 0,
+        "image_file_name": "e_errored.png",
+        "key": "",
+        "width": 0
+      },
+      "diff": null,
+      "diff_image_key": null,
+      "head_image": {
+        "canvas_theme": null,
+        "description": null,
+        "diff_threshold": 0.2,
+        "display_name": null,
+        "group": null,
+        "height": 100,
+        "image_file_name": "e_errored.png",
+        "key": "h_errored",
+        "tags": null,
+        "width": 90
+      }
+    },
+    {
+      "base_image": {
+        "canvas_theme": null,
+        "display_name": "i_errored_nohead.png",
+        "group": null,
+        "height": 8,
+        "image_file_name": "i_errored_nohead.png",
+        "key": "",
+        "width": 7
+      },
+      "diff": null,
+      "diff_image_key": null,
+      "head_image": {
+        "canvas_theme": null,
+        "display_name": "i_errored_nohead.png",
+        "group": null,
+        "height": 12,
+        "image_file_name": "i_errored_nohead.png",
+        "key": "eh",
+        "width": 9
+      }
+    }
+  ],
+  "errored_count": 2,
+  "head_artifact_id": "<HEAD_ID>",
+  "image_count": 5,
+  "images": [],
+  "is_selective": false,
+  "project_id": "<PROJECT_ID>",
+  "removed": [
+    {
+      "canvas_theme": null,
+      "description": null,
+      "display_name": "Removed",
+      "group": null,
+      "height": 22,
+      "image_file_name": "f_removed.png",
+      "key": "b_removed_hash",
+      "tags": null,
+      "width": 11
+    },
+    {
+      "canvas_theme": null,
+      "display_name": "h_removed_nobase.png",
+      "group": null,
+      "height": 6,
+      "image_file_name": "h_removed_nobase.png",
+      "key": "x_nobase",
+      "width": 5
+    }
+  ],
+  "removed_count": 2,
+  "renamed": [
+    {
+      "base_image": {
+        "canvas_theme": null,
+        "description": null,
+        "display_name": "Old Name",
+        "group": null,
+        "height": 80,
+        "image_file_name": "old_name.png",
+        "key": "b_renamed_hash",
+        "tags": null,
+        "width": 70
+      },
+      "diff": null,
+      "diff_image_key": null,
+      "head_image": {
+        "canvas_theme": null,
+        "description": null,
+        "diff_threshold": 0.2,
+        "display_name": "Renamed",
+        "group": null,
+        "height": 80,
+        "image_file_name": "d_renamed.png",
+        "key": "h_renamed",
+        "tags": null,
+        "width": 70
+      }
+    }
+  ],
+  "renamed_count": 1,
+  "skipped": [
+    {
+      "canvas_theme": null,
+      "description": null,
+      "display_name": "Skipped",
+      "group": null,
+      "height": 44,
+      "image_file_name": "g_skipped.png",
+      "key": "b_skipped_hash",
+      "tags": null,
+      "width": 33
+    }
+  ],
+  "skipped_count": 1,
+  "state": "UPLOADED",
+  "unchanged": [
+    {
+      "canvas_theme": null,
+      "custom_extra": "xyz",
+      "description": null,
+      "diff_threshold": 0.2,
+      "display_name": null,
+      "group": null,
+      "height": 60,
+      "image_file_name": "c_unchanged.png",
+      "key": "h_unchanged",
+      "nested_extra": {
+        "k": 1
+      },
+      "tags": {
+        "one": "one",
+        "two": "two"
+      },
+      "width": 50
+    }
+  ],
+  "unchanged_count": 1,
+  "vcs_info": {
+    "base_ref": null,
+    "base_repo_name": null,
+    "base_sha": null,
+    "head_ref": null,
+    "head_repo_name": null,
+    "head_sha": null,
+    "pr_number": null,
+    "provider": null
+  }
+}
