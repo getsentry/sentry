@@ -3,10 +3,7 @@ import {useEffect, useState} from 'react';
 /**
  * Hook to detect when a specific key is being pressed
  */
-export const useKeyPress = (
-  targetKey: string,
-  target?: HTMLElement | null
-) => {
+export const useKeyPress = (targetKey: string, target?: HTMLElement | null) => {
   const [keyPressed, setKeyPressed] = useState(false);
   const current = target ?? document.body;
 

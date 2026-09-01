@@ -266,11 +266,7 @@ export function VisuallyCompleteWithData({
  * @param max - The approximate maximum value for the tag, A bucket between max and Infinity is also captured so it's fine if it's not precise, the data won't be entirely lost.
  * @param n - The value to be grouped, should represent `n` entities.
  */
-export const setGroupedEntityTag = (
-  tagName: string,
-  max: number,
-  n: number
-) => {
+export const setGroupedEntityTag = (tagName: string, max: number, n: number) => {
   Sentry.setExtra(tagName, n);
   let groups = [0];
   loop: for (let m = 1, mag = 0; m <= max; m *= 10, mag++) {
