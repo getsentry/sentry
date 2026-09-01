@@ -123,26 +123,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
         )
 
-    def do_request(self, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:gen-ai-conversations"]
-
+    def do_request(self, query=None, **kwargs):
         query = query or {}
 
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404
+        return self.client.get(
+            reverse(
+                self.view,
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            ),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self) -> None:
         response = self.do_request()
