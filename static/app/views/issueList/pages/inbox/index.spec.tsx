@@ -133,6 +133,7 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
+    Element.prototype.scrollIntoView = jest.fn();
     jest.mocked(useMedia).mockReturnValue(false);
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -723,7 +724,7 @@ describe('InboxPage', () => {
     expect(fixAppliedEmptyMessage).toBeVisible();
   });
 
-  it('filters sections by the selected assignee', async () => {
+  it('filters sections without scrolling the selected issue into view', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
     const myTeamsRequests = [
@@ -763,6 +764,11 @@ describe('InboxPage', () => {
     expect(myTeamsFilter).not.toBeChecked();
     expect(allFilter).not.toBeChecked();
     expect(await screen.findByText('Fix proposed issue')).toBeInTheDocument();
+    await userEvent.click(
+      within(screen.getByRole('region', {name: 'Fix Proposed'})).getByRole('link', {
+        name: /Fix proposed issue/,
+      })
+    );
 
     await userEvent.click(myTeamsFilter);
 
@@ -779,6 +785,13 @@ describe('InboxPage', () => {
     for (const request of allRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
+    expect(
+      await within(screen.getByRole('region', {name: 'Fix Proposed'})).findByRole(
+        'link',
+        {name: /Fix proposed issue/}
+      )
+    ).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('marks an issue as seen and clears its unread indicator when previewed', async () => {
@@ -984,6 +997,7 @@ describe('InboxPage', () => {
 
     expect(router.location.query.preview).toBe(fixProposedGroup.id);
     expect(issueLink).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     expect(
       await within(preview).findByRole('heading', {
         name: 'Fix proposed issue',
@@ -1011,6 +1025,31 @@ describe('InboxPage', () => {
     expect(
       within(preview).queryByRole('heading', {name: 'Fix proposed issue'})
     ).not.toBeInTheDocument();
+  });
+
+  it('scrolls an initially selected issue into view', async () => {
+    mockSuccessfulSections();
+    mockIssuePreview();
+
+    render(<InboxPage />, {
+      organization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            preview: fixProposedGroup.id,
+          },
+        },
+      },
+    });
+
+    const issueLink = await within(
+      screen.getByRole('region', {name: 'Fix Proposed'})
+    ).findByRole('link', {name: /Fix proposed issue/});
+    expect(issueLink).toHaveAttribute('aria-current', 'true');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({block: 'center'});
   });
 
   it('starts finding the root cause in Autofix when there is no Autofix state', async () => {
