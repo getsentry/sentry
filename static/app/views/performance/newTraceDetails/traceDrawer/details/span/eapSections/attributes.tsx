@@ -11,6 +11,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {UnixTimestamp} from 'sentry/components/unixTimestamp';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -36,7 +37,6 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {
   findSpanAttributeValue,
   getTraceAttributesTreeActions,
-  renderPreciseTimestamp,
   sortAttributes,
   tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -62,8 +62,9 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   return ellipsize(props.item.value, 100);
 };
 
-const preciseTimestampRenderer = (props: CustomRenderersProps) =>
-  renderPreciseTimestamp(props.item.value, props.basicRendered);
+const preciseTimestampRenderer = (props: CustomRenderersProps) => (
+  <UnixTimestamp value={props.item.value} fallback={props.basicRendered} />
+);
 
 interface AttributesProps {
   attributes: TraceItemResponseAttribute[];

@@ -41,14 +41,13 @@ describe('AttributesContent', () => {
   }
 
   it.each(['precise.start_ts', 'precise.finish_ts'])(
-    'renders %s as a human-readable UTC datetime',
+    'keeps the raw %s value visible with a human-readable card on hover',
     name => {
       // 2025-03-01T00:00:00.123Z as a Unix timestamp in seconds (float)
       renderAttributes([{name, type: 'float', value: 1740787200.123}]);
 
-      const rendered = screen.getByText(/UTC/);
-      expect(rendered).toHaveTextContent('Mar 1, 2025');
-      expect(screen.queryByText('1740787200.123')).not.toBeInTheDocument();
+      expect(screen.getByText('1740787200.123')).toBeInTheDocument();
+      expect(screen.queryByText(/UTC/)).not.toBeInTheDocument();
     }
   );
 

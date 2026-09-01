@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -21,17 +20,6 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
-
-export function renderPreciseTimestamp(
-  value: unknown,
-  fallback: React.ReactNode
-): React.ReactNode {
-  const seconds = Number(value);
-  if (!Number.isFinite(seconds)) {
-    return fallback;
-  }
-  return <DateTime utc year seconds milliseconds date={seconds * 1000} />;
-}
 
 export function getProfileMeta(event: EventTransaction | null) {
   const profileId = event?.contexts?.profile?.profile_id;
