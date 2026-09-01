@@ -237,82 +237,79 @@ def build_and_promote_derived_data(
 
         result = promote_to_live(derived)
         metrics.incr("issues.derived.promote_to_live", tags={"result": result.value})
-        if result is PromotionResult.PROMOTED:
-            logger.info(
-                "issues.derived.promoted",
-                extra={
-                    "group_id": group_id,
-                    "cursor_date": str(derived.cursor_date),
-                    "cursor_id": derived.cursor_id,
-                    "attempts": attempt + 1,
-                },
-            )
-            _generation_cache.delete(current_gen_id)
-            return
-
-        if result is PromotionResult.SUPERSEDED:
-            # A newer generation already won — not an error.
-            _generation_cache.delete(current_gen_id)
-            return
-
-        if result is PromotionResult.GROUP_MISSING:
-            _generation_cache.delete(current_gen_id)
-            raise Group.DoesNotExist(f"Group {group_id} does not exist")
-
-        if result is PromotionResult.RACE_LOST:
-            # Concurrent same-or-older-generation writer beat us to the
-            # create. Their cursor position is not necessarily ahead of
-            # ours, so we must not apply the "give up if no new entries"
-            # heuristic — just retry. The next attempt will normally
-            # promote via the UPDATE path (cursor guard permitting).
-            continue
-
-        # CURSOR_BEHIND: the live row's cursor is ahead of ours.
-        # If new entries exist past our cursor, the next drain will pick
-        # them up. If not, the log was modified (e.g. merge deleted
-        # entries) and our replay is incomplete — give up.
-        if not _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
-            # We're up-to-date with the log, but the live row is ahead.
-            # If the live row's cursor references an entry that no longer
-            # exists, the log was mutated (e.g. merge/unmerge deleted the
-            # referenced entry). Note that in the log so filtering on
-            # PromotionFailed can distinguish this cause.
-            #
-            # TODO: when we detect an orphaned live cursor, the safer
-            # response is probably to retry promotion without the cursor
-            # guard — our replay is complete against the current log, so
-            # forcing our state over the live row (still gated on
-            # generated_at) would leave the group in a consistent state
-            # instead of stuck at PromotionFailed until the next regen.
-            live_cursor = (
-                GroupDerivedData.objects.filter(group_id=group_id)
-                .values_list("cursor_date", "cursor_id")
-                .first()
-            )
-            if live_cursor is not None:
-                live_cursor_date, live_cursor_id = live_cursor
-                if (
-                    # Should be unreachable: a live cursor at cursor_id=0
-                    # is at EPOCH and can't be ahead of any candidate.
-                    live_cursor_id != 0
-                    and not GroupActionLogEntry.objects.filter(
-                        group_id=group_id, id=live_cursor_id
-                    ).exists()
-                ):
-                    logger.info(
-                        "issues.derived.promote.live_cursor_orphaned",
-                        extra={
-                            "group_id": group_id,
-                            "live_cursor_date": str(live_cursor_date),
-                            "live_cursor_id": live_cursor_id,
-                            "candidate_cursor_date": str(derived.cursor_date),
-                            "candidate_cursor_id": derived.cursor_id,
-                        },
-                    )
-            break
+        match result:
+            case PromotionResult.PROMOTED:
+                logger.info(
+                    "issues.derived.promoted",
+                    extra={
+                        "group_id": group_id,
+                        "cursor_date": str(derived.cursor_date),
+                        "cursor_id": derived.cursor_id,
+                        "attempts": attempt + 1,
+                    },
+                )
+                _generation_cache.delete(current_gen_id)
+                return
+            case PromotionResult.SUPERSEDED:
+                # A newer generation already won — not an error.
+                _generation_cache.delete(current_gen_id)
+                return
+            case PromotionResult.GROUP_MISSING:
+                _generation_cache.delete(current_gen_id)
+                raise Group.DoesNotExist(f"Group {group_id} does not exist")
+            case PromotionResult.RACE_LOST:
+                # Didn't fail, but didn't succeed due to a race.
+                # Assuming there's not ongoing messy contention, the next attempt
+                # should succeed or fail cleanly, so we retry.
+                continue
+            case PromotionResult.CURSOR_BEHIND:
+                # The live row's cursor is ahead of ours. If new entries
+                # exist past our cursor, the next drain will pick them up.
+                if _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
+                    continue
+                # If not, the log was modified (e.g. merge deleted entries)
+                # and our replay is incomplete — give up.
+                _log_if_live_cursor_orphaned(group_id, derived)
+                break
 
     _generation_cache.delete(current_gen_id)
     raise PromotionFailed(group_id, result, attempt + 1)
+
+
+def _log_if_live_cursor_orphaned(group_id: int, derived: GroupDerivedData) -> None:
+    """Log if the live row's cursor points at a deleted log entry.
+
+    Called on the terminal CURSOR_BEHIND give-up path so operators can
+    distinguish log-mutation causes (merge/unmerge deleted the referenced
+    entry) from lost races.
+
+    TODO: when we detect an orphaned live cursor, the safer response is
+    probably to retry promotion without the cursor guard.
+    """
+    live_cursor = (
+        GroupDerivedData.objects.filter(group_id=group_id)
+        .values_list("cursor_date", "cursor_id")
+        .first()
+    )
+    if live_cursor is None:
+        return
+    live_cursor_date, live_cursor_id = live_cursor
+    if live_cursor_id == 0:
+        # 0 is the "no actions yet" state; unexpected in this context, but doesn't suggest an
+        # orphaned cursor.
+        return
+    if GroupActionLogEntry.objects.filter(group_id=group_id, id=live_cursor_id).exists():
+        return
+    logger.info(
+        "issues.derived.promote.live_cursor_orphaned",
+        extra={
+            "group_id": group_id,
+            "live_cursor_date": str(live_cursor_date),
+            "live_cursor_id": live_cursor_id,
+            "candidate_cursor_date": str(derived.cursor_date),
+            "candidate_cursor_id": derived.cursor_id,
+        },
+    )
 
 
 class BatchRunResult(NamedTuple):
