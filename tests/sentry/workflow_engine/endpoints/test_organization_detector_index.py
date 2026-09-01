@@ -300,45 +300,43 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             project=self.project, name="Detector 4 No Groups", type=MetricIssue.slug
         )
 
-        group_1 = self.create_group(project=self.project)
-        group_2 = self.create_group(project=self.project)
-        group_3 = self.create_group(project=self.project)
+        group_1 = self.create_group(project=self.project, last_seen=before_now(hours=1))
+        group_2 = self.create_group(project=self.project, last_seen=before_now(hours=3))
+        group_3 = self.create_group(project=self.project, last_seen=before_now(hours=2))
 
-        # detector_1 has the oldest group
+        # The issue creation order is intentionally the opposite of the occurrence order.
         detector_group_1 = DetectorGroup.objects.create(detector=detector_1, group=group_1)
         detector_group_1.date_added = before_now(hours=3)
         detector_group_1.save()
 
-        # detector_2 has the newest group
         detector_group_2 = DetectorGroup.objects.create(detector=detector_2, group=group_2)
-        detector_group_2.date_added = before_now(hours=1)  # Most recent
+        detector_group_2.date_added = before_now(hours=1)
         detector_group_2.save()
 
-        # detector_3 has one in the middle
         detector_group_3 = DetectorGroup.objects.create(detector=detector_3, group=group_3)
         detector_group_3.date_added = before_now(hours=2)
         detector_group_3.save()
 
-        # Test descending sort (newest groups first)
+        # Test descending sort (latest occurrences first)
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "-latestGroup"}
         )
         assert [d["name"] for d in response.data] == [
-            detector_2.name,
-            detector_3.name,
             detector_1.name,
+            detector_3.name,
+            detector_2.name,
             detector_4.name,  # No groups, should be last
         ]
 
-        # Test ascending sort (oldest groups first)
+        # Test ascending sort (oldest occurrences first)
         response2 = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "sortBy": "latestGroup"}
         )
         assert [d["name"] for d in response2.data] == [
             detector_4.name,  # No groups, should be first
-            detector_1.name,
-            detector_3.name,
             detector_2.name,
+            detector_3.name,
+            detector_1.name,
         ]
 
     def test_sort_by_open_issues(self) -> None:
