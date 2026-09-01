@@ -574,13 +574,12 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
-      expect(ScmMessagingChannelPicker).toHaveBeenCalledWith(
+      expect(jest.mocked(ScmMessagingChannelPicker).mock.calls.at(-1)?.[0]).toEqual(
         expect.objectContaining({
           eligibleIntegrations: [slackIntegration],
           onCancel: expect.any(Function),
           onConfigured: expect.any(Function),
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -591,7 +590,7 @@ describe('ScmMessagingProviderRow', () => {
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
 
       const pickerProps = jest.mocked(ScmMessagingChannelPicker).mock.calls.at(-1)![0];
-      act(() => pickerProps.onCancel());
+      act(() => pickerProps.onCancel?.());
 
       await waitFor(() =>
         expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
@@ -628,11 +627,10 @@ describe('ScmMessagingProviderRow', () => {
 
       await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
 
-      expect(ScmMessagingChannelPicker).toHaveBeenCalledWith(
+      expect(jest.mocked(ScmMessagingChannelPicker).mock.calls.at(-1)?.[0]).toEqual(
         expect.objectContaining({
           eligibleIntegrations: [msteamsTeamIntegration],
-        }),
-        expect.anything()
+        })
       );
     });
 
@@ -735,11 +733,10 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Edit/}));
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
-      expect(ScmMessagingChannelPicker).toHaveBeenCalledWith(
+      expect(jest.mocked(ScmMessagingChannelPicker).mock.calls.at(-1)?.[0]).toEqual(
         expect.objectContaining({
           onCancel: expect.any(Function),
-        }),
-        expect.anything()
+        })
       );
     });
   });
