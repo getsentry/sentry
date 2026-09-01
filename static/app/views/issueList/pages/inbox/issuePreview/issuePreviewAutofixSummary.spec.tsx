@@ -252,6 +252,82 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
   });
 
+  it('renders progress messages only from the current PR iteration', () => {
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture({
+                id: 'code-changes-start',
+                artifacts: undefined,
+                message: {
+                  content: 'Generate the initial code changes',
+                  metadata: {step: 'code_changes'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'initial-progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Editing the initial implementation...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'first-iteration-start',
+                artifacts: undefined,
+                message: {
+                  content: 'Address the first review',
+                  metadata: {step: 'pr_iteration', iteration_index: '0'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'first-iteration-progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Applying the first review...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'second-iteration-start',
+                artifacts: undefined,
+                message: {
+                  content: 'Address the second review',
+                  metadata: {step: 'pr_iteration', iteration_index: '1'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'second-iteration-progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Thinking...',
+                  role: 'assistant',
+                  thinking_content: 'Applying the second review...',
+                },
+              }),
+            ],
+            status: 'processing',
+          }),
+        })}
+        groupId="preview-group"
+      />
+    );
+
+    const proposal = screen.getByRole('region', {name: 'Code Changes'});
+    expect(within(proposal).getByText('Applying the second review...')).toBeVisible();
+    expect(
+      within(proposal).queryByText('Editing the initial implementation...')
+    ).not.toBeInTheDocument();
+    expect(
+      within(proposal).queryByText('Applying the first review...')
+    ).not.toBeInTheDocument();
+  });
+
   it.each([
     [
       'errored step',

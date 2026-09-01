@@ -16,6 +16,10 @@ export function WorkingIndicator({
   children: React.ReactNode;
 }) {
   const {containerRef, onScrollHandler} = useAutoScroll({key: blocks});
+  const currentStepStart = blocks.findLastIndex(
+    block => block.message.metadata?.step !== undefined
+  );
+  const currentStepBlocks = blocks.slice(Math.max(0, currentStepStart));
 
   return (
     <Stack
@@ -25,7 +29,7 @@ export function WorkingIndicator({
       overflowY="auto"
       onScroll={onScrollHandler}
     >
-      {blocks.map(block => {
+      {currentStepBlocks.map(block => {
         if (block.message.role === 'user') {
           return null;
         }
