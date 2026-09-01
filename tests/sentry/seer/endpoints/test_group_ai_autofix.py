@@ -21,6 +21,7 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
@@ -78,6 +79,48 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["run_id"] == 888
         assert response.data["autofix"]["sentry_run_id"] == str(run.uuid)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reports_pr_iteration_paused(self, mock_get_explorer_state):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["pr_iteration_paused"] is False
+
+        pause_pr_iteration(run_id=888, organization_id=self.organization.id)
+        run.refresh_from_db()
+        assert run.extras is not None and PAUSED_EXTRA in run.extras
+
+        response = self.client.get(self._get_url(group.id), format="json")
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["pr_iteration_paused"] is True
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reports_pr_iteration_not_paused_without_mirror_row(self, mock_get_explorer_state):
+        """Legacy runs predating SeerRun mirroring have no row to hold the marker."""
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["sentry_run_id"] is None
+        assert response.data["autofix"]["pr_iteration_paused"] is False
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_iteration_flags_independently(self, mock_get_explorer_state):

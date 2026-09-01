@@ -120,7 +120,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the dashboard ID exactly as returned by the dashboard API. ' +
       'Include the API-provided title when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders a standalone dashboard reference. ' +
+      'Block: renders a live preview of the dashboard widgets. Do not duplicate ' +
+      'the widget titles, queries, visualizations, or values as text. ' +
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({

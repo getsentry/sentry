@@ -5,6 +5,7 @@ from django.contrib.sessions.backends.signed_cookies import SessionStore
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 from sentry.users.models.user import User
 
@@ -345,6 +346,7 @@ class ReactAuthTest(AcceptanceTestCase):
         # Password authentication establishes the account session, but the protected
         # destination takes precedence over the password-capable fallback organization.
         self.submit_visible_credentials(user.email, PASSWORD)
+        self.browser.wait_until_not('[aria-label="Email"]')
         self.browser.wait_until_script_execution(
             f"return window.location.pathname === '/auth/login/{sso_organization.slug}/'"
         )
@@ -357,6 +359,7 @@ class ReactAuthTest(AcceptanceTestCase):
         self.complete_dummy_sso(user.email)
         self.wait_for_authenticated_organization(sso_organization.slug)
 
+    @with_feature("organizations:authv2-rollout")
     def test_switch_to_sso_required_organization(self) -> None:
         user = self.create_login_user("org-a")
         password_organization = self.organization

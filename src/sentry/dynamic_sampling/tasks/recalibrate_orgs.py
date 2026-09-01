@@ -7,7 +7,10 @@ from taskbroker_client.retry import Retry
 
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
-from sentry.dynamic_sampling.per_org.serving import is_recalibration_factor_served_per_org
+from sentry.dynamic_sampling.per_org.serving import (
+    get_previous_recalibration_factor,
+    is_recalibration_factor_served_per_org,
+)
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -18,7 +21,6 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
     delete_adjusted_factor,
     delete_adjusted_project_factor,
-    get_adjusted_factor,
     get_adjusted_project_factor,
     set_guarded_adjusted_factor,
     set_guarded_adjusted_project_factor,
@@ -127,7 +129,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_factor(org_id, source="task")
+    previous_factor = get_previous_recalibration_factor(org_id)
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
