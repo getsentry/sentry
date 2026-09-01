@@ -78,21 +78,15 @@ export function ConversationTraceLink({
       label: getShortTraceId(traceId),
       // Accents the id and its icon, so each trace reads as a link.
       priority: 'primary' as const,
-      leadingItems: <IconSpan size="xs" />,
+      leadingItems: <MenuTraceIcon size="xs" />,
       to: getTraceUrl(organization.slug, traceId, spanId),
       onAction: trackClick,
     })),
     {
-      // Its own section so the menu separates it from the trace ids above.
-      key: 'view-all-section',
-      children: [
-        {
-          key: 'view-all',
-          label: t('View all'),
-          to: viewAllUrl,
-          onAction: trackClick,
-        },
-      ],
+      key: 'view-all',
+      label: t('View all'),
+      to: viewAllUrl,
+      onAction: trackClick,
     },
   ];
 
@@ -120,6 +114,11 @@ export function ConversationTraceLink({
     />
   );
 }
+
+/** The menu pins leading items to the top, so centre the icon on the label. */
+const MenuTraceIcon = styled(IconSpan)`
+  align-self: center;
+`;
 
 const TraceTrigger = styled(DropdownButton)`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
