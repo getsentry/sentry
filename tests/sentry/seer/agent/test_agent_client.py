@@ -20,6 +20,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.agent.client_utils import UserOrgContext
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -1455,7 +1456,7 @@ class TestStartFeatureRun(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_flush_false_enqueues_without_dispatch(self, mock_request, _mock_access) -> None:
-        context = {
+        context: UserOrgContext = {
             "org_slug": self.organization.slug,
             "all_org_projects": [{"id": 1, "slug": "project", "repos": []}],
         }
