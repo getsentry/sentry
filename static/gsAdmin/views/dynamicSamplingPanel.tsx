@@ -18,6 +18,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SearchInput} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconArrow, IconOpen} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
@@ -25,8 +26,6 @@ import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
-
-import {SearchInput} from 'admin/components/resultGrid';
 
 type Props = {
   organization?: Organization;

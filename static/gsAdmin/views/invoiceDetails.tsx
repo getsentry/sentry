@@ -8,6 +8,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ResultTable} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
@@ -20,7 +21,6 @@ import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
-import {ResultTable} from 'admin/components/resultTable';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
 import type {Invoice, InvoiceItem} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';

@@ -6,9 +6,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconMail} from 'sentry/icons';
-
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   orgId: string;
@@ -55,7 +54,6 @@ export function CustomerMembers({orgId}: Props) {
       panelTitle="Members"
       path={`/_admin/customers/${orgId}/`}
       endpoint={`/organizations/${orgId}/members/`}
-      method="GET"
       defaultParams={{per_page: 10}}
       hasSearch
       columns={[

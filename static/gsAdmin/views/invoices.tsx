@@ -4,10 +4,10 @@ import {Link} from '@sentry/scraps/link';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {ResultGrid, type State as ResultGridState} from 'sentry/components/resultGrid';
 import {IconDownload} from 'sentry/icons';
 
 import {PageHeader} from 'admin/components/pageHeader';
-import {ResultGrid, type State as ResultGridState} from 'admin/components/resultGrid';
 import {prettyDate} from 'admin/utils';
 
 const getRow = (row: any, _rows: any[], state: ResultGridState) => [
@@ -120,7 +120,6 @@ export function Invoices() {
         isCellScoped
         path="/_admin/invoices/"
         endpoint="/invoices/"
-        method="GET"
         columns={[
           <th key="org">Invoice</th>,
           <th key="customer" style={{width: 150, textAlign: 'center'}}>
