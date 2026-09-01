@@ -85,7 +85,9 @@ export function AvatarButton({
           size={size}
           round={round}
           padded={false}
-          borderColor={avatarChonk ?? theme.tokens.border.neutral.vibrant}
+          borderColor={
+            avatarChonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+          }
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
           <StyledLetterAvatar
@@ -105,7 +107,9 @@ export function AvatarButton({
         size={size}
         round={round}
         padded={!isSuggested && imageResult?.style === 'padded'}
-        borderColor={chonk ?? theme.tokens.border.neutral.vibrant}
+        borderColor={
+          chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+        }
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
         <StyledImageAvatar
