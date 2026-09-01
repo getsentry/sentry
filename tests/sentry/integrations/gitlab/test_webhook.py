@@ -19,6 +19,7 @@ from fixtures.gitlab import (
 from sentry.integrations.gitlab.webhooks import MergeEventWebhook
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group, GroupStatus
@@ -751,6 +752,83 @@ class WebhookTest(GitLabTestCase):
             call_args[1]["external_issue_key"] == "example.gitlab.com/group-x:cool-group/sentry#23"
         )
         assert call_args[1]["assign"] is False
+
+    ASSIGNEE_SYNC_FEATURES = [
+        "organizations:integrations-issue-sync",
+        "organizations:integrations-gitlab-project-management",
+    ]
+
+    def _post_issue_event(self, event: dict) -> None:
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(event),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Issue Hook",
+        )
+        assert response.status_code == 204
+
+    def _linked_group_for_assignee_sync(self) -> Group:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(config={"sync_reverse_assignment": True})
+
+        group = self.create_group(project=self.project)
+        self.create_integration_external_issue(
+            group=group,
+            integration=self.integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#23",
+        )
+        return group
+
+    def _create_gitlab_member(self, username: str, external_id: int):
+        member = self.create_user(email=f"{username}@example.com")
+        self.create_member(organization=self.organization, user=member, teams=[self.team])
+        self.create_external_user(
+            user=member,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.GITLAB.value,
+            external_name=f"@{username}",
+            external_id=str(external_id),
+        )
+        return member
+
+    def _assigned_event(self, username: str, external_id: int, updated_at: str) -> dict:
+        event = orjson.loads(ISSUE_ASSIGNED_EVENT)
+        event["object_attributes"]["updated_at"] = updated_at
+        event["assignees"] = [{"id": external_id, "username": username}]
+        return event
+
+    def test_assignment_delivered_out_of_order_keeps_newer_assignee(self) -> None:
+        # The reassignment to bob happened after the one to alice, so it wins even though
+        # it was delivered first.
+        group = self._linked_group_for_assignee_sync()
+        self._create_gitlab_member("alice", 11)
+        bob = self._create_gitlab_member("bob", 12)
+
+        with self.feature(self.ASSIGNEE_SYNC_FEATURES):
+            self._post_issue_event(self._assigned_event("bob", 12, "2023-01-01 00:00:03 UTC"))
+            self._post_issue_event(self._assigned_event("alice", 11, "2023-01-01 00:00:00 UTC"))
+
+        assignee = group.get_assignee()
+        assert assignee is not None
+        assert assignee.id == bob.id
+
+    def test_unassignment_delivered_out_of_order_stays_unassigned(self) -> None:
+        # GitLab unassigns via an empty `assignees` snapshot, on the same code path.
+        group = self._linked_group_for_assignee_sync()
+        self._create_gitlab_member("alice", 11)
+
+        unassigned = orjson.loads(ISSUE_UNASSIGNED_EVENT)
+        unassigned["object_attributes"]["updated_at"] = "2023-01-01 00:00:03 UTC"
+
+        with self.feature(self.ASSIGNEE_SYNC_FEATURES):
+            self._post_issue_event(unassigned)
+            self._post_issue_event(self._assigned_event("alice", 11, "2023-01-01 00:00:00 UTC"))
+
+        assert group.get_assignee() is None
 
 
 class TestIssuesEventWebhookStatusSync(GitLabTestCase):

@@ -4161,6 +4161,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Serializes inbound assignee sync per external issue with a row lock. Off degrades to the
+# watermark's conditional update, which orders sequential deliveries but not concurrent ones.
+register(
+    "integrations.assignee-sync.lock-external-issue",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Allows the recording of Seer actions as issue activities
 # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
 register(
