@@ -437,7 +437,12 @@ def _begin_drain(
             )
             return None
         mailbox = mailbox if mailbox is not None else head[0]
-        deadline = deadline if deadline is not None else head[1]
+        if deadline is None:
+            # The head's schedule_for is normally the claim's own deadline, but
+            # a failed attempt rewrites it to a retry backoff that passes the
+            # deadline (the first backoff already does). Cap what a redelivered
+            # drain adopts at the widest horizon its claim could have written.
+            deadline = min(head[1], timezone.now() + BATCH_SCHEDULE_OFFSET)
     _set_webhook_delivery_sentry_context(mailbox, _provider_from_mailbox(mailbox))
     claim = _MailboxClaim(
         claimed=claimed_count,

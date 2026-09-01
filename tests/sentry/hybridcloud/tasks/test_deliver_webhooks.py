@@ -2230,6 +2230,29 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    def test_undated_claim_caps_a_backoff_rewritten_deadline(self) -> None:
+        # A failed attempt rewrote the head's schedule_for to its retry backoff,
+        # so it no longer carries the claim's deadline. A zero offset makes the
+        # cap immediate: a delivery here could only come from adopting the
+        # backoff as the deadline, which would outlive the claim.
+        responses.add(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
+        )
+        webhook = self.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="us",
+            provider="github",
+            schedule_for=timezone.now() + timedelta(minutes=30),
+        )
+
+        with patch.object(deliver_webhooks, "BATCH_SCHEDULE_OFFSET", timedelta(minutes=0)):
+            drain_mailbox(webhook.id, claimed_count=1)
+
+        assert len(responses.calls) == 0
+        assert WebhookPayload.objects.count() == 1
+
+    @responses.activate
+    @override_cells(cell_config)
     def test_undated_claim_with_lapsed_rows_stands_down(self) -> None:
         # An undated drain whose rows are already claimable belongs to whoever
         # claims them next, exactly like a dated drain past its deadline.
