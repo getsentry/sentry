@@ -2,9 +2,18 @@ from datetime import timedelta
 from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
-from sentry.seer.autofix.constants import SeerAutomationSource
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.derived.processing import PIPELINE, process_group_log
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.models.group import Group
+from sentry.seer.autofix.constants import (
+    FIRST_ASSIGNMENT_SUMMARY_FEATURE,
+    SeerAutomationSource,
+)
 from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
 from sentry.seer.models import (
     SummarizeIssueResponse,
@@ -17,8 +26,11 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.autofix import (
+    FirstAssignmentSummaryRetry,
     configure_seer_for_existing_org,
+    generate_first_assignment_summary,
     generate_issue_summary_only,
+    generate_summary_and_run_automation,
 )
 from sentry.tasks.seer.autofix_issue_data import (
     FEATURE_FLAG,
@@ -29,6 +41,7 @@ from sentry.tasks.seer.autofix_issue_data import (
     schedule_judging_for_org,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -70,6 +83,113 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
+
+
+@with_feature(
+    {
+        FIRST_ASSIGNMENT_SUMMARY_FEATURE: True,
+        "organizations:gen-ai-features": True,
+    }
+)
+class TestGenerateFirstAssignmentSummary(SentryTestCase):
+    def _create_assignment(self, group: Group) -> GroupActionLogEntry:
+        assignment = self.create_group_action_log_entry(group=group, type=GroupActionType.ASSIGN)
+        assignment.idempotency_key = f"activity:{assignment.id}"
+        assignment.save(update_fields=["idempotency_key"])
+        return assignment
+
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_generates_summary_and_score_for_first_assignment(
+        self, mock_get_summary: MagicMock, mock_get_score: MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project)
+        assignment = self._create_assignment(group)
+        process_group_log(group.id)
+        mock_get_summary.return_value = ({"headline": "Summary"}, 200)
+
+        generate_first_assignment_summary(group.id, assignment_activity_id=assignment.id)
+
+        mock_get_summary.assert_called_once_with(
+            group=group,
+            source=SeerAutomationSource.FIRST_ASSIGNMENT,
+            should_run_automation=False,
+        )
+        mock_get_score.assert_called_once_with(group, force_generate=False)
+
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    def test_skips_reassignment(self, mock_get_summary: MagicMock) -> None:
+        group = self.create_group(project=self.project)
+        self._create_assignment(group)
+        self.create_group_action_log_entry(group=group, type=GroupActionType.UNASSIGN)
+        reassignment = self._create_assignment(group)
+        process_group_log(group.id)
+
+        generate_first_assignment_summary(group.id, assignment_activity_id=reassignment.id)
+
+        mock_get_summary.assert_not_called()
+
+    @patch("sentry.issues.derived.tasks.generate_group_derived_data.delay")
+    def test_stale_derived_data_schedules_healing(self, mock_generate: MagicMock) -> None:
+        group = self.create_group(project=self.project)
+        assignment = self._create_assignment(group)
+        process_group_log(group.id)
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="stale")
+
+        with pytest.raises(FirstAssignmentSummaryRetry):
+            generate_first_assignment_summary(group.id, assignment_activity_id=assignment.id)
+
+        mock_generate.assert_called_once_with(group.id)
+
+    @patch("sentry.issues.derived.tasks.process_group_log_task.delay")
+    def test_derived_data_behind_assignment_schedules_processing(
+        self, mock_process: MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project)
+        assignment = self._create_assignment(group)
+        self.create_group_derived_data(
+            group,
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+
+        with pytest.raises(FirstAssignmentSummaryRetry):
+            generate_first_assignment_summary(group.id, assignment_activity_id=assignment.id)
+
+        mock_process.assert_called_once_with(group.id, incremental=True)
+
+    def test_retries_until_live_assignment_reaches_action_log(self) -> None:
+        group = self.create_group(project=self.project)
+
+        with pytest.raises(FirstAssignmentSummaryRetry):
+            generate_first_assignment_summary(group.id, assignment_activity_id=123)
+
+class TestGenerateSummaryAndRunAutomation(SentryTestCase):
+    @patch("sentry.seer.autofix.issue_summary.run_automation")
+    @patch("sentry.seer.autofix.issue_summary.get_issue_summary", return_value=({}, 200))
+    @patch.object(Group, "get_latest_event")
+    def test_cached_summary_still_runs_automation(
+        self,
+        mock_latest_event: MagicMock,
+        mock_get_summary: MagicMock,
+        mock_run_automation: MagicMock,
+    ) -> None:
+        event = Mock()
+        mock_latest_event.return_value = event
+        group = self.create_group(project=self.project)
+
+        generate_summary_and_run_automation(group.id)
+
+        mock_get_summary.assert_called_once_with(
+            group=group,
+            source=SeerAutomationSource.POST_PROCESS,
+            should_run_automation=False,
+        )
+        mock_run_automation.assert_called_once()
+        call_kwargs = mock_run_automation.call_args.kwargs
+        assert call_kwargs["group"] == group
+        assert isinstance(call_kwargs["user"], AnonymousUser)
+        assert call_kwargs["event"] == event
+        assert call_kwargs["source"] == SeerAutomationSource.POST_PROCESS
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):

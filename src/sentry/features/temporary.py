@@ -379,6 +379,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-annotations-skip-integration-fetch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Generate an issue summary and fixability score when an issue is first assigned
+    manager.add("organizations:issue-summary-on-first-assignment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show the "recommended" sort as an option in the issue stream sort dropdown
     manager.add("organizations:issue-stream-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Make the "recommended" sort the default sort in the issue stream

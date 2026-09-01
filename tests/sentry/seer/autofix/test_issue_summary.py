@@ -18,6 +18,7 @@ from sentry.seer.autofix.issue_summary import (
     _call_seer,
     _get_event,
     _get_stopping_point_from_fixability,
+    _log_seer_scanner_billing_event,
     _trigger_autofix_task,
     get_and_update_group_fixability_score,
     get_automation_stopping_point,
@@ -81,6 +82,17 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         super().tearDown()
         # Clear the cache after each test
         cache.delete(f"ai-group-summary-v2:{self.group.id}")
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    def test_first_assignment_does_not_record_scanner_usage(
+        self, mock_record_seer_run: MagicMock
+    ) -> None:
+        _log_seer_scanner_billing_event(
+            self.group,
+            SeerAutomationSource.FIRST_ASSIGNMENT,
+        )
+
+        mock_record_seer_run.assert_not_called()
 
     @patch("sentry.seer.autofix.issue_summary._call_seer")
     def test_get_issue_summary_with_existing_summary(self, mock_call_seer):

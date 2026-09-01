@@ -175,19 +175,23 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             affected = True
 
         if affected:
-            transaction.on_commit(
-                lambda: issue_assigned.send_robust(
-                    project=group.project, group=group, user=acting_user, sender=self.__class__
-                ),
-                router.db_for_write(GroupAssignee),
-            )
             data = self.get_assigned_to_data(assigned_to, assignee_type, extra)
 
-            Activity.objects.create_group_activity(
+            activity = Activity.objects.create_group_activity(
                 group,
                 ActivityType.ASSIGNED,
                 user=acting_user,
                 data=data,
+            )
+            transaction.on_commit(
+                lambda: issue_assigned.send_robust(
+                    project=group.project,
+                    group=group,
+                    user=acting_user,
+                    activity_id=activity.id,
+                    sender=self.__class__,
+                ),
+                router.db_for_write(GroupAssignee),
             )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 

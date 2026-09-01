@@ -546,8 +546,11 @@ def _generate_summary(
     return summary_dict, 200
 
 
-def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
-    if source == SeerAutomationSource.ISSUE_DETAILS:
+def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource) -> None:
+    if source not in {
+        SeerAutomationSource.POST_PROCESS,
+        SeerAutomationSource.NIGHT_SHIFT,
+    }:
         return
 
     quotas.backend.record_seer_run(

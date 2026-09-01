@@ -144,7 +144,7 @@ deploy_created = BetterSignal()  # ["deploy"]
 ownership_rule_created = BetterSignal()  # ["project"]
 
 # issues
-issue_assigned = BetterSignal()  # ["project", "group", "user"]
+issue_assigned = BetterSignal()  # ["project", "group", "user", "activity_id"]
 issue_unassigned = BetterSignal()  # ["project", "group", "user"]
 issue_deleted = BetterSignal()  # ["group", "user", "delete_type"]
 # ["organization_id", "project", "group", "user", "resolution_type", "provider", "commit_id"]
