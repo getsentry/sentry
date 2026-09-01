@@ -88,6 +88,14 @@ export interface SearchQueryBuilderProps {
    * and submit the full query. Requires AI search to be enabled.
    */
   defaultToAskSeerOnFreeTextSearch?: boolean;
+  /**
+   * When true, disables the wide two-pane filter key menu.
+   *
+   * That menu measures and positions itself against the search bar, so it does not
+   * honor `portalTarget`. Set this when menus must portal (for example to escape a
+   * clipping or stacking ancestor).
+   */
+  disableFullWidthFilterKeyMenu?: boolean;
   disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.
@@ -225,6 +233,11 @@ export interface SearchQueryBuilderProps {
    */
   replaceRawSearchKeys?: string[];
   /**
+   * When false, hides the leading magnifying glass icon and the padding reserved for it.
+   * Defaults to true.
+   */
+  showSearchIcon?: boolean;
+  /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */
@@ -288,6 +301,7 @@ function SearchQueryBuilderUI({
   initialQuery,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  showSearchIcon = true,
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
@@ -324,11 +338,15 @@ function SearchQueryBuilderUI({
       ref={setWrapperRef}
       aria-disabled={disabled}
       data-test-id="search-query-builder"
+      // Styling hook only; the icon itself is what tests should look for.
+      data-hide-search-icon={showSearchIcon ? undefined : true}
     >
       <PanelProvider>
-        <PositionedSearchIconContainer>
-          <SearchIcon size="sm" />
-        </PositionedSearchIconContainer>
+        {showSearchIcon ? (
+          <PositionedSearchIconContainer data-test-id="search-query-builder-icon">
+            <SearchIcon size="sm" />
+          </PositionedSearchIconContainer>
+        ) : null}
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
@@ -368,6 +386,11 @@ const Wrapper = styled(Input.withComponent('div'))`
   contain: inline-size;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;
+
+  /* Reclaim the space the search icon would have occupied. */
+  &[data-hide-search-icon='true'] [role='grid'] {
+    padding-left: ${p => p.theme.space.sm};
+  }
 `;
 
 const ButtonsWrapper = styled('div')`

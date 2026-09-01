@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {useInfiniteQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -39,6 +38,7 @@ import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {
   organizationRepositoriesInfiniteOptions,
@@ -480,13 +480,21 @@ function AutoTriggerFixesButton({
         const batch = projectsWithRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {
-                autofixAutomationTuning: selectedThreshold,
-                seerScannerAutomation: true,
-              },
-            })
+            api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: {
+                  autofixAutomationTuning: selectedThreshold,
+                  seerScannerAutomation: true,
+                },
+              }
+            )
           )
         );
       }
@@ -560,10 +568,18 @@ function EnableIssueScansButton({
         const batch = projectsWithoutRepos.slice(i, i + batchSize);
         await Promise.all(
           batch.map(project =>
-            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {seerScannerAutomation: true},
-            })
+            api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: {seerScannerAutomation: true},
+              }
+            )
           )
         );
       }

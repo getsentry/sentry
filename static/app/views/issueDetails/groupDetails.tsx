@@ -25,6 +25,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -41,6 +42,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
@@ -219,7 +221,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-            expandDerivedData: organization.features.includes('issue-inbox'),
+            expandDerivedData: orgHasIssueInbox(organization),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
@@ -790,7 +792,16 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   useEffect(() => {
     const fetchLatestEvent = async () => {
       const event = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/${props.group?.id}/events/latest/`
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              issueId: String(props.group?.id),
+              eventId: 'latest',
+            },
+          }
+        )
       );
       setInjectedEvent(event);
     };

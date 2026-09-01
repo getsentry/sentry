@@ -676,6 +676,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
             DATASET_QUERY_PARAM,
             ITEM_TYPE_QUERY_PARAM,
             ATTRIBUTE_TYPE_QUERY_PARAM,
@@ -1096,6 +1098,11 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
+        supports_arrays = features.has(
+            "organizations:trace-item-array-query-support",
+            organization,
+            actor=request.user,
+        )
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
         # Dataset is going to replace item_type
@@ -1116,6 +1123,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
                 limit=limit,
                 offset=offset,
                 definitions=definitions,
+                supports_arrays=supports_arrays,
             )
 
             with handle_query_errors():
@@ -1150,15 +1158,19 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         limit: int,
         offset: int,
         definitions: ColumnDefinitions,
+        supports_arrays: bool = False,
     ):
         self.organization = organization
         self.snuba_params = snuba_params
+        self.supports_arrays = supports_arrays
         self.key = key
         self.query = query or ""
         self.limit = limit
         self.offset = offset
         self.resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=definitions
+            params=snuba_params,
+            config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
+            definitions=definitions,
         )
         self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
             key
@@ -1198,6 +1210,13 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         if self.search_type == "string":
             return self.string_autocomplete_function()
+
+        # Autocomplete values for array attributes (string-typed arrays)
+        if self.search_type == "array" and self.supports_arrays:
+            array_key = AttributeKey(
+                name=self.attribute_key.name, type=AttributeKey.Type.TYPE_ARRAY_STRING
+            )
+            return self.string_autocomplete_function(key=array_key)
 
         return []
 
@@ -1390,7 +1409,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             ),
         ]
 
-    def string_autocomplete_function(self) -> list[TagValue]:
+    def string_autocomplete_function(self, key: AttributeKey | None = None) -> list[TagValue]:
         adjusted_start_date, adjusted_end_date = adjust_start_end_window(
             self.snuba_params.start_date, self.snuba_params.end_date
         )
@@ -1405,7 +1424,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         meta = self.resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value)
         rpc_request = TraceItemAttributeValuesRequest(
             meta=meta,
-            key=self.attribute_key,
+            key=key if key is not None else self.attribute_key,
             value_substring_match=query,
             limit=self.limit,
             page_token=PageToken(offset=self.offset),

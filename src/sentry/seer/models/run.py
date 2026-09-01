@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -136,6 +136,7 @@ class SeerRunPullRequest(DefaultFieldsModel):
 
 class RootCauseArtifactExtras(TypedDict):
     one_line_description: str
+    headline: NotRequired[str]
 
 
 class SolutionArtifactExtras(TypedDict):

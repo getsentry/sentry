@@ -1,9 +1,14 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {Select, type GeneralSelectValue, type StylesConfig} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
+import {
+  Select,
+  type GeneralSelectValue,
+  type StylesConfig,
+  type SelectValue,
+} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -15,7 +20,6 @@ import {
   memberUsersQueryOptions,
   selectUsersFromMembers,
 } from 'sentry/utils/members/shared';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 const getSearchKeyForUser = (user: User) =>
   `${user.email?.toLowerCase()} ${user.name?.toLowerCase()}`;
@@ -70,7 +74,7 @@ function SelectMembers({
   value,
 }: Props) {
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 250});
   const {data: users = [], isPending: memberListLoading} = useQuery({
     ...useProjectMembersQueryOptions(projectIds),
     select: resp => selectUsersFromMembers(resp.json),

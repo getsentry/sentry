@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path, {resolve} from 'node:path'; // Added for module check
 import {fileURLToPath} from 'node:url';
 
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 import {po} from 'gettext-parser';
 import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
 import {glob} from 'tinyglobby';
@@ -209,7 +209,7 @@ function extractBriefsFromAttributeMetadata(
 ): void {
   const context = gettextData.translations[''] ?? {};
 
-  for (const [attributeName, metadata] of Object.entries(ATTRIBUTE_METADATA)) {
+  for (const [attributeName, metadata] of Object.entries(ATTRIBUTE_SEARCH_METADATA)) {
     const brief = metadata.brief;
 
     if (!brief || typeof brief !== 'string') {

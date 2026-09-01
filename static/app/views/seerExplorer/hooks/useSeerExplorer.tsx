@@ -3,11 +3,13 @@ import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {useTimezone} from '@sentry/scraps/datetime';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -50,7 +52,9 @@ type SeerExplorerUpdateResponse = {
  * prevent path traversal in the resulting same-origin POST.
  */
 const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
-  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
+  getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+    path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
+  });
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([
@@ -213,6 +217,7 @@ export const useSeerExplorer = () => {
                 ...prev,
                 session: {
                   ...prev.session,
+                  failure_reason: null,
                   status: 'processing',
                   updated_at: new Date().toISOString(),
                 },
@@ -292,6 +297,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -354,6 +360,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },

@@ -4,31 +4,25 @@ import multiprocessing.context
 import multiprocessing.process
 import threading
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from concurrent.futures import Future
 from functools import partial
 from typing import Any
 
 import orjson
 import sentry_sdk
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.abstract import Producer
-from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import FilteredPayload, Message
-from django.conf import settings
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.options.rollout import in_random_rollout
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.consumers.process_segments.tasks import process_segment_task
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.outcomes import Outcome, track_outcome
 
 MAX_PROCESS_RESTARTS = 10
@@ -39,101 +33,18 @@ logger = logging.getLogger(__name__)
 type ProduceToPipe = Callable[[int, KafkaPayload, int], None]
 
 
-class MultiProducer:
-    """
-    Manages multiple Kafka producers for load balancing across brokers/topics.
-
-    Configure multiple producers using SLICED_KAFKA_TOPICS in settings.py:
-
-    SLICED_KAFKA_TOPICS = {
-        ("buffered-segments", 0): {"cluster": "default", "topic": "buffered-segments-1"},
-        ("buffered-segments", 1): {"cluster": "secondary", "topic": "buffered-segments-2"}
-    }
-    """
-
-    def __init__(
-        self,
-        topic: Topic,
-        producer_factory: Callable[[Mapping[str, object]], Producer[KafkaPayload]] | None = None,
-    ):
-        self.topic = topic
-        self.producers: list[Producer[KafkaPayload]] = []
-        self.topics: list[ArroyoTopic] = []
-        self.current_index = 0
-        self.producer_factory = producer_factory or self._default_producer_factory
-        self._setup_producers()
-
-    def _default_producer_factory(self, producer_config: Mapping[str, object]) -> KafkaProducer:
-        """Default factory that creates real KafkaProducers."""
-        producer_config = dict(producer_config)
-        producer_config["client.id"] = "sentry.spans.consumers.process.flusher"
-        return KafkaProducer(build_kafka_producer_configuration(default_config=producer_config))
-
-    def _setup_producers(self):
-        """Setup producers based on SLICED_KAFKA_TOPICS configuration."""
-        # Get sliced Kafka topics configuration
-        sliced_configs = []
-        for (topic_name, slice_id), config in settings.SLICED_KAFKA_TOPICS.items():
-            if topic_name == self.topic.value:
-                sliced_configs.append(config)
-
-        if sliced_configs:
-            # Multiple producers configured via SLICED_KAFKA_TOPICS
-            # TODO(markus): Everything should go through get_arroyo_producer
-            for config in sliced_configs:
-                cluster_name = config["cluster"]
-                topic_name = config["topic"]
-
-                producer_config = get_kafka_producer_cluster_options(cluster_name)
-                producer = self.producer_factory(producer_config)
-                topic = ArroyoTopic(topic_name)
-
-                self.producers.append(producer)
-                self.topics.append(topic)
-        else:
-            # Single producer (backward compatibility)
-            cluster_name = get_topic_definition(self.topic)["cluster"]
-            producer_config = get_kafka_producer_cluster_options(cluster_name)
-            producer = self.producer_factory(producer_config)
-            topic = ArroyoTopic(get_topic_definition(self.topic)["real_topic_name"])
-
-            self.producers.append(producer)
-            self.topics.append(topic)
-
-        # Validate that we have at least one producer
-        if not self.producers:
-            raise ValueError(f"No producers configured for topic {self.topic.value}")
-
-    def produce(self, payload: KafkaPayload):
-        """Produce message with load balancing."""
-        if len(self.producers) == 1:
-            # Single producer - no load balancing needed
-            return self.producers[0].produce(self.topics[0], payload)
-
-        # Round-robin load balancing
-        producer_index = self.current_index % len(self.producers)
-        self.current_index += 1
-
-        return self.producers[producer_index].produce(self.topics[producer_index], payload)
-
-    def close(self):
-        """Close all producers."""
-        for producer in self.producers:
-            producer.close()
-
-
 class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     """
-    A background multiprocessing manager that polls Redis for new segments to flush and to produce to Kafka.
-    Creates one process per shard for parallel processing.
+    A background multiprocessing manager that polls Redis for new segments to
+    flush and to spawn `process_segment_task` for. Creates one process per shard
+    for parallel processing.
 
     This is a processing step to be embedded into the consumer that writes to
     Redis. It takes and fowards integer messages that represent recently
     processed timestamps (from the producer timestamp of the incoming span
     message), which are then used as a clock to determine whether segments have expired.
 
-    :param topic: The topic to send segments to.
-    :param produce_to_pipe: For unit-testing, produce to this multiprocessing Pipe instead of creating a kafka consumer.
+    :param produce_to_pipe: For unit-testing, produce to this multiprocessing Pipe instead of spawning tasks.
     """
 
     def __init__(
@@ -285,28 +196,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         try:
             producer_futures: list[tuple[int, Any, int]] = []
 
-            if produce_to_pipe is not None:
-
-                def produce(project_id: int, payload: KafkaPayload, dropped: int) -> None:
-                    future: Future[None] = Future[None]()
-                    try:
-                        produce_to_pipe(project_id, payload, dropped)
-                        future.set_result(None)
-                    except Exception as e:
-                        future.set_exception(e)
-                    producer_futures.append((project_id, future, dropped))
-
-                producer_manager = None
-            else:
-                logger.info("Flusher creating Kafka producer for shards %s", shard_tag)
-                producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
-                logger.info("Flusher Kafka producer created for shards %s", shard_tag)
-
-                def produce(project_id: int, payload: KafkaPayload, dropped: int) -> None:
-                    producer_futures.append(
-                        (project_id, producer_manager.produce(payload), dropped)
-                    )
-
             first_iteration = True
             while not stopped.value:
                 system_now = int(time.time())
@@ -354,11 +243,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 },
                             )
 
-                        produce_to_process_segment_task = (
-                            produce_to_pipe is None
-                            and in_random_rollout("spans.buffer.process-segments-task-rollout-rate")
-                        )
-
                         for message in flushed_segment.to_messages():
                             kafka_payload = KafkaPayload(None, orjson.dumps(message), [])
                             metrics.timing(
@@ -366,24 +250,38 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                                 len(kafka_payload.value),
                                 tags={"shard": shard_tag},
                             )
-                            if produce_to_process_segment_task:
-                                task_produce_future = process_segment_task.apply_async_with_future(
-                                    args=[kafka_payload.value],
-                                    headers={"sentry-propagate-traces": False},
-                                )
-                                if task_produce_future is not None:
-                                    producer_futures.append(
-                                        (
-                                            flushed_segment.project_id,
-                                            task_produce_future,
-                                            len(message["spans"]),
-                                        )
+
+                            if produce_to_pipe is not None:
+                                pipe_future: Future[None] = Future[None]()
+                                try:
+                                    produce_to_pipe(
+                                        flushed_segment.project_id,
+                                        kafka_payload,
+                                        len(message["spans"]),
                                     )
-                            else:
-                                produce(
-                                    flushed_segment.project_id,
-                                    kafka_payload,
-                                    len(message["spans"]),
+                                    pipe_future.set_result(None)
+                                except Exception as e:
+                                    pipe_future.set_exception(e)
+                                producer_futures.append(
+                                    (
+                                        flushed_segment.project_id,
+                                        pipe_future,
+                                        len(message["spans"]),
+                                    )
+                                )
+                                continue
+
+                            task_produce_future = process_segment_task.apply_async_with_future(
+                                args=[kafka_payload.value],
+                                headers={"sentry-propagate-traces": False},
+                            )
+                            if task_produce_future is not None:
+                                producer_futures.append(
+                                    (
+                                        flushed_segment.project_id,
+                                        task_produce_future,
+                                        len(message["spans"]),
+                                    )
                                 )
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
@@ -391,7 +289,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                         try:
                             future.result()
                         except Exception:
-                            logger.exception("Error producing segment to Kafka")
+                            logger.exception("Error spawning process_segment task")
                             try:
                                 project = Project.objects.get_from_cache(id=project_id)
                             except Project.DoesNotExist:
@@ -413,9 +311,6 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 producer_futures.clear()
 
                 buffer.done_flush_segments(flushed_segments)
-
-            if producer_manager is not None:
-                producer_manager.close()
         except KeyboardInterrupt:
             pass
         except Exception:
@@ -514,8 +409,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             )
 
         # We also pause insertion into Redis if Redis is too full. In this case
-        # we cannot allow the flusher to progress either, as it would write
-        # partial/fragmented segments to buffered-segments topic. We have to
+        # we cannot allow the flusher to progress either, as it would spawn
+        # tasks for partial/fragmented segments. We have to
         # wait until the situation is improved manually.
         max_memory_percentage = options.get("spans.buffer.max-memory-percentage")
         if max_memory_percentage < 1.0:

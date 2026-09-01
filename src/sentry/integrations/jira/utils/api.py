@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.shared_integrations.exceptions import ApiError
@@ -108,13 +109,21 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
             logger.info("jira.missing-changelog-status", extra=log_context)
             return
 
+        # For a status transition this is when the transition happened; orders deliveries.
+        updated = (data["issue"].get("fields") or {}).get("updated")
+
         result = integration_service.organization_contexts(integration_id=integration.id)
         for oi in result.organization_integrations:
             with webhook_viewer_context(oi.organization_id):
                 install = integration.get_installation(organization_id=oi.organization_id)
                 if isinstance(install, IssueSyncIntegration):
                     install.sync_status_inbound(
-                        issue_key, {"changelog": changelog, "issue": data["issue"]}
+                        issue_key,
+                        {
+                            "changelog": changelog,
+                            "issue": data["issue"],
+                            PROVIDER_EVENT_TIME_KEY: updated,
+                        },
                     )
                 else:
                     lifecycle.record_halt(

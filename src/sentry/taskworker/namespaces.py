@@ -332,6 +332,16 @@ symbolication_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+symbolication_js_tasks = app.taskregistry.create_namespace(
+    "symbolication.js",
+    app_feature="errors",
+)
+
+symbolication_jvm_tasks = app.taskregistry.create_namespace(
+    "symbolication.jvm",
+    app_feature="errors",
+)
+
 telemetry_experience_tasks = app.taskregistry.create_namespace(
     "telemetry-experience",
     app_feature="transactions",

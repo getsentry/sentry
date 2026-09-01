@@ -11,6 +11,7 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 type RedirectRemainingOrganizationParams = {
@@ -148,7 +149,9 @@ export async function fetchOrganizationByMember(
   memberId: string,
   {addOrg, fetchOrgDetails}: FetchOrganizationByMemberParams
 ) {
-  const data = await api.requestPromise(`/organizations/?query=member_id:${memberId}`);
+  const data = await api.requestPromise(
+    `${getApiUrl('/organizations/')}?query=member_id:${memberId}`
+  );
 
   if (!data.length) {
     return null;
@@ -190,11 +193,16 @@ export async function fetchOrganizationDetails(
   orgId: string,
   {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
 ) {
-  const data = await api.requestPromise(`/organizations/${orgId}/`, {
-    query: {
-      include_feature_flags: 1,
-    },
-  });
+  const data = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {
+      query: {
+        include_feature_flags: 1,
+      },
+    }
+  );
 
   if (setActive) {
     setActiveOrganization(data);

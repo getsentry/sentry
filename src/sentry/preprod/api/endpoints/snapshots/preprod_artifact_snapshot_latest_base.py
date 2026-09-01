@@ -27,7 +27,7 @@ from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodArtifactApiGetLatestBaseSnapshotEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
@@ -199,7 +199,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Manifest key not found"}, status=404)
 
         try:
-            session = get_preprod_session(organization.id, artifact.project_id)
+            session = get_session(UsecaseId.PREPROD, artifact.project)
             response = session.get(manifest_key)
             if response is None:
                 raise FileNotFoundError("Manifest does not exist in objectstore")

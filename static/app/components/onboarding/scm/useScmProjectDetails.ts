@@ -30,6 +30,19 @@ import {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
+export function isProjectNameManuallyModified(
+  projectDetailsForm: ProjectDetailsFormState | undefined
+): boolean {
+  if (!projectDetailsForm) {
+    return false;
+  }
+  if (projectDetailsForm.wasNameManuallyModified !== undefined) {
+    return projectDetailsForm.wasNameManuallyModified;
+  }
+  // Sessions stored before this flag existed contain an explicit project name.
+  return projectDetailsForm.projectName !== undefined;
+}
+
 export function getSubmitTooltipText({
   platform,
   projectName,
@@ -80,7 +93,7 @@ interface UseScmProjectDetailsOptions {
   /**
    * Live form state, owned by the host. Fields absent from the form derive
    * their defaults (platform-based name, first admin team, default alert
-   * config), so the host clearing the form makes the fields re-derive.
+   * config).
    */
   onProjectDetailsFormChange: (form: ProjectDetailsFormState) => void;
   projectDetailsForm: ProjectDetailsFormState | undefined;
@@ -164,7 +177,7 @@ export function useScmProjectDetails({
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // Fields absent from the host-owned form fall back to derived defaults, so
-  // a host clearing the form (e.g. on a platform change) re-derives them.
+  // a host resetting a field (e.g. the name on a platform change) re-derives it.
   const projectNameResolved = projectDetailsForm?.projectName ?? defaultName;
   const teamSlugResolved = projectDetailsForm?.teamSlug ?? firstAdminTeam?.slug ?? '';
   const alertRuleConfig =
@@ -177,7 +190,12 @@ export function useScmProjectDetails({
 
   const onProjectNameChange = useCallback(
     (value: string) => {
-      onProjectDetailsFormChange({...projectDetailsForm, projectName: slugify(value)});
+      const projectName = slugify(value);
+      onProjectDetailsFormChange({
+        ...projectDetailsForm,
+        projectName,
+        wasNameManuallyModified: projectName.length > 0,
+      });
     },
     [onProjectDetailsFormChange, projectDetailsForm]
   );
@@ -348,6 +366,7 @@ export function useScmProjectDetails({
       teamSlug: teamSlugResolved,
       alertRuleConfig,
       notificationSelection,
+      wasNameManuallyModified: isProjectNameManuallyModified(projectDetailsForm),
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
     // (see createProject.tsx): Custom > Default > No Rule, derived from the
@@ -449,6 +468,7 @@ export function useScmProjectDetails({
     notificationProps,
     onComplete,
     organization,
+    projectDetailsForm,
     projectNameResolved,
     selectedPlatform,
     selectedRepository,

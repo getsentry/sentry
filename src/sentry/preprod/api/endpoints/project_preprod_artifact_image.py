@@ -14,7 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -69,7 +69,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         project_id = project.id
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
-        session = get_preprod_session(organization_id, project_id)
+        session = get_session(UsecaseId.PREPROD, project)
 
         try:
             result = session.get(object_key)

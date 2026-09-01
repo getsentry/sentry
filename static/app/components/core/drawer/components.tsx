@@ -7,9 +7,9 @@ import {Button} from '@sentry/scraps/button';
 import type {DrawerOptions} from '@sentry/scraps/drawer';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconClose} from 'sentry/icons/iconClose';
-import {t} from 'sentry/locale';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 import {
@@ -40,7 +40,7 @@ export function useDrawerContentContext() {
  */
 interface DrawerPanelProps extends Pick<
   DrawerOptions,
-  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'resizable' | 'onClose'
+  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'drawerMaxWidth' | 'resizable' | 'onClose'
 > {
   children: React.ReactNode;
   /** Required — GlobalDrawer applies the default before passing it down. */
@@ -55,6 +55,7 @@ function DrawerPanel({
   children,
   onClose,
   drawerWidth,
+  drawerMaxWidth,
   drawerKey,
   resizable = true,
 }: DrawerPanelProps) {
@@ -62,6 +63,7 @@ function DrawerPanel({
     useDrawerResizing({
       drawerKey,
       drawerWidth,
+      drawerMaxWidth,
       enabled: resizable,
     });
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
@@ -136,6 +138,7 @@ export function DrawerHeader({
   hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
+  const {t} = useTranslation();
 
   return (
     <Header

@@ -4,6 +4,8 @@ import logging
 from typing import Any
 from uuid import UUID
 
+from django.utils import timezone
+
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.organizations.services.organization import organization_service
@@ -31,10 +33,10 @@ def _validate_run(
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
-) -> int:
+) -> SeerAgentRun:
     """Load the run mirror and confirm the delivery carries a usable result.
 
-    Returns the SeerRun id, or emits the tagged outcome and aborts for an orphaned run
+    Returns the agent run mirror, or emits the tagged outcome and aborts for an orphaned run
     (`missing_run`) or a failed/empty delivery (`error`).
     """
     agent_run = (
@@ -52,6 +54,14 @@ def _validate_run(
         )
         raise _DeliveryAborted
 
+    metrics.distribution(
+        "smart_assignment.run.duration",
+        max((timezone.now() - agent_run.run.last_triggered_at).total_seconds(), 0),
+        tags={"status": status},
+        unit="second",
+        sample_rate=1.0,
+    )
+
     if status == "error" or result is None:
         _incr("error")
         logger.warning(
@@ -66,7 +76,7 @@ def _validate_run(
         )
         raise _DeliveryAborted
 
-    return agent_run.run_id
+    return agent_run
 
 
 def _validate_group(organization_id: int, run_uuid: UUID) -> Group:
@@ -140,7 +150,7 @@ def _validate_resolve_verdict(
 
 def _record_result(
     group: Group,
-    seer_run_id: int,
+    agent_run: SeerAgentRun,
     run_uuid: UUID,
     predicted_assignee_user_ids: list[int | None],
     log_extra: dict[str, Any],
@@ -154,7 +164,7 @@ def _record_result(
     best-effort pre-check; it covers sequential redelivery but not a concurrent race.
     """
     already_recorded = any(
-        (activity.data or {}).get("run_id") == seer_run_id
+        (activity.data or {}).get("run_id") == agent_run.run_id
         for activity in Activity.objects.filter(
             group=group, type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value
         )
@@ -172,7 +182,7 @@ def _record_result(
         group,
         ActivityType.SMART_ASSIGNMENT_COMPLETED,
         data={
-            "run_id": seer_run_id,
+            "run_id": agent_run.run_id,
             "run_uuid": str(run_uuid),
             "predicted_assignee_user_ids": predicted_assignee_user_ids,
         },
@@ -186,6 +196,19 @@ def _record_result(
     else:
         outcome = "resolved"
     _incr(outcome)
+    metric_tags = {"outcome": outcome}
+    metrics.distribution(
+        "smart_assignment.prediction.candidates",
+        len(predicted_assignee_user_ids),
+        tags=metric_tags,
+        sample_rate=1.0,
+    )
+    metrics.distribution(
+        "smart_assignment.prediction.resolved_candidates",
+        sum(user_id is not None for user_id in predicted_assignee_user_ids),
+        tags=metric_tags,
+        sample_rate=1.0,
+    )
 
 
 def deliver_smart_assignment_result(
@@ -211,7 +234,7 @@ def deliver_smart_assignment_result(
       - `resolved`      -- named someone we mapped to a Sentry user
     """
     try:
-        seer_run_id = _validate_run(organization_id, run_uuid, status, result, error)
+        agent_run = _validate_run(organization_id, run_uuid, status, result, error)
         group = _validate_group(organization_id, run_uuid)
         log_extra = {
             "organization_id": organization_id,
@@ -219,6 +242,6 @@ def deliver_smart_assignment_result(
             "run_uuid": run_uuid,
         }
         predicted_assignee_user_ids = _validate_resolve_verdict(organization_id, result, log_extra)
-        _record_result(group, seer_run_id, run_uuid, predicted_assignee_user_ids, log_extra)
+        _record_result(group, agent_run, run_uuid, predicted_assignee_user_ids, log_extra)
     except _DeliveryAborted:
         return

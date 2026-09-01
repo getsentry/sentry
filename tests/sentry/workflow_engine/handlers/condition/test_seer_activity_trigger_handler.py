@@ -51,10 +51,23 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
             (SeerActivityTriggerStage.RCA_COMPLETED, ActivityType.SEER_RCA_COMPLETED),
             (SeerActivityTriggerStage.SOLUTION_COMPLETED, ActivityType.SEER_SOLUTION_COMPLETED),
             (SeerActivityTriggerStage.CODING_COMPLETED, ActivityType.SEER_CODING_COMPLETED),
-            (SeerActivityTriggerStage.PR_CREATED, ActivityType.SEER_PR_CREATED),
+            (SeerActivityTriggerStage.PR_READY_FOR_REVIEW, ActivityType.SEER_PR_READY_FOR_REVIEW),
         ]:
             event_data = self._create_event_data(activity_type_value)
             self.assert_passes(self.dc, event_data)
+
+    def test_evaluate_value__legacy_pr_created_fires_on_ready_for_review(self) -> None:
+        # TODO(Leander): Remove this test after we update the DB State
+        # `pr_created` can't be set up anymore, but should still fire as a `pr_ready_for_review`
+        self.dc.update(comparison=["pr_created"])
+
+        event_data = self._create_event_data(ActivityType.SEER_PR_READY_FOR_REVIEW)
+        self.assert_passes(self.dc, event_data)
+
+        # The old activity type is not equivalent: the draft/ready split means
+        # `pr_created` can fire while the PR is still a draft.
+        event_data = self._create_event_data(ActivityType.SEER_PR_CREATED)
+        self.assert_does_not_pass(self.dc, event_data)
 
     def test_evaluate_value__unrelated_activity_type(self) -> None:
         event_data = self._create_event_data(ActivityType.SET_RESOLVED)
@@ -74,14 +87,14 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
         self.assert_does_not_pass(self.dc, event_data)
 
     def test_json_schema__valid_single_stage(self) -> None:
-        self.dc.comparison = [SeerActivityTriggerStage.PR_CREATED]
+        self.dc.comparison = [SeerActivityTriggerStage.PR_READY_FOR_REVIEW]
         self.dc.save()
 
     def test_json_schema__valid_multiple_stages(self) -> None:
         self.dc.comparison = [
             SeerActivityTriggerStage.RCA_COMPLETED,
             SeerActivityTriggerStage.CODING_COMPLETED,
-            SeerActivityTriggerStage.PR_CREATED,
+            SeerActivityTriggerStage.PR_READY_FOR_REVIEW,
         ]
         self.dc.save()
 

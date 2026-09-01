@@ -7,6 +7,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
+from sentry.dynamic_sampling.per_org.serving import is_recalibration_factor_served_per_org
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -32,6 +33,7 @@ from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -94,6 +96,10 @@ def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> N
 
 
 def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
+    if is_recalibration_factor_served_per_org(org_id):
+        metrics.incr("dynamic_sampling.tasks.recalibrate_orgs.skipped_served_per_org")
+        return
+
     try:
         # We need the organization object for the feature flag.
         organization = Organization.objects.get_from_cache(id=org_id)

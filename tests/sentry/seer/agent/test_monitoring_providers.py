@@ -14,6 +14,7 @@ TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
 @with_feature("organizations:seer-infra-telemetry")
+@with_feature("organizations:seer-infra-telemetry-user-level-auth")
 class TestGetMonitoringProviderConnections(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -541,3 +542,21 @@ class TestGetMonitoringProviderConnections(TestCase):
         dd_conns = [c for c in result if c["provider_key"] == "datadog"]
         assert len(gcp_conns) == 3
         assert len(dd_conns) == 1
+
+    @with_feature({"organizations:seer-infra-telemetry-user-level-auth": False})
+    def test_personal_identity_ignored_when_user_level_auth_disabled(self) -> None:
+        self._create_org_datadog_integration()
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "personal-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 1
+        assert result[0]["identity_id"] is None
+        assert result[0]["auth_method"] == "api_key"

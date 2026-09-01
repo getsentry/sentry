@@ -7,10 +7,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {GridRow} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {TableBody} from 'sentry/views/explore/components/table';
 import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
@@ -77,17 +76,17 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
 
               if (status === 'pending') {
                 return (
-                  <GridRow key={rowId}>
+                  <DataTable.Row key={rowId}>
                     <LoadingGridBodyCell>
                       <Placeholder height="100%" />
                     </LoadingGridBodyCell>
-                  </GridRow>
+                  </DataTable.Row>
                 );
               }
 
               const isErrorRow = status === 'error';
               return (
-                <GridRow key={rowId}>
+                <DataTable.Row key={rowId}>
                   <UnavailableGridBodyCell>
                     <Flex align="center" gap="sm">
                       <IconWarning size="xs" />
@@ -103,7 +102,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
                       )}
                     </Flex>
                   </UnavailableGridBodyCell>
-                </GridRow>
+                </DataTable.Row>
               );
             }
 
@@ -137,7 +136,7 @@ export function PinnedLogs({allRows, logsPinning, pinnedLogsQuery, renderRow}: P
   );
 }
 
-const PinnedTableBody = styled(TableBody)`
+const PinnedTableBody = styled(DataTable.Body)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
@@ -145,7 +144,7 @@ const PinnedTableBody = styled(TableBody)`
   scrollbar-width: thin;
 `;
 
-const PinnedToolbarRow = styled(GridRow)`
+const PinnedToolbarRow = styled(DataTable.Row)`
   position: sticky;
   bottom: 0;
   z-index: 1;

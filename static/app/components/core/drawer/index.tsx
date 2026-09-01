@@ -13,10 +13,10 @@ import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useTranslation} from '@sentry/scraps/translationContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
@@ -32,6 +32,11 @@ export interface DrawerOptions {
    * Key to identify the drawer and enable persistence of the drawer width
    */
   drawerKey?: string;
+  /**
+   * Custom max width for the drawer, as any CSS length. Applies on top of the
+   * default percentage ceiling rather than replacing it.
+   */
+  drawerMaxWidth?: string;
   /**
    * Custom width for the drawer
    */
@@ -114,6 +119,7 @@ function shouldCloseOnInteractOutsideByDefault(element: Element) {
 
 export function GlobalDrawer({children}: any) {
   const location = useLocation();
+  const {t} = useTranslation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
   >();
@@ -230,6 +236,7 @@ export function GlobalDrawer({children}: any) {
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               resizable={currentDrawerConfig?.options?.resizable}
             >

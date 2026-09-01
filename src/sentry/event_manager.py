@@ -1026,7 +1026,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
     for job in jobs:
         incrs = []
-        frequencies = []
         records = []
         incrs.append((TSDBModel.project, job["project_id"]))
         event = job["event"]
@@ -1036,20 +1035,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
         for group_info in job["groups"]:
             incrs.append((TSDBModel.group, group_info.group.id))
-            frequencies.append(
-                (
-                    TSDBModel.frequent_environments_by_group,
-                    {group_info.group.id: {environment.id: 1}},
-                )
-            )
-
-            if group_info.group_release:
-                frequencies.append(
-                    (
-                        TSDBModel.frequent_releases_by_group,
-                        {group_info.group.id: {group_info.group_release.id: 1}},
-                    )
-                )
             if user:
                 records.append(
                     (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
@@ -1069,9 +1054,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             tsdb.backend.record_multi(
                 records, timestamp=event.datetime, environment_id=environment.id
             )
-
-        if frequencies:
-            tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
 def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:

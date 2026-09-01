@@ -145,8 +145,8 @@ describe('ConversationDetailPage breadcrumbs', () => {
     mockApis();
   });
 
-  it('renders the parent link, conversation id heading, and copy action with the migration flag on', async () => {
-    renderPage(['ui-migration-breadcrumbs']);
+  it('renders the parent link, conversation id heading, and copy action', async () => {
+    renderPage();
 
     const topBar = screen.getByRole('banner');
 
@@ -184,7 +184,7 @@ describe('ConversationDetailPage title', () => {
   });
 
   it('falls back to the conversation id heading when there is no title', async () => {
-    mockApis(null);
+    mockApis();
     renderPage();
 
     // Once loaded, the summary heading shows the id (no title available).
@@ -223,7 +223,7 @@ describe('ConversationDetailPage summary errors', () => {
   });
 
   it('omits the fire icon in the summary when there are no errors', async () => {
-    mockApis(null);
+    mockApis();
     renderPage();
 
     // Wait for the conversation to load before asserting the icon's absence.

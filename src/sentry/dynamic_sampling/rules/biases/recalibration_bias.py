@@ -1,9 +1,7 @@
+from sentry.dynamic_sampling.per_org.serving import get_recalibration_factor
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
-from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
-    get_adjusted_factor,
-    get_adjusted_project_factor,
-)
+from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import get_adjusted_project_factor
 from sentry.dynamic_sampling.utils import is_project_mode_sampling
 from sentry.models.project import Project
 
@@ -24,7 +22,7 @@ class RecalibrationBias(Bias):
         if is_project_mode_sampling(project.organization):
             adjusted_factor = get_adjusted_project_factor(project.id, source="serving")
         else:
-            adjusted_factor = get_adjusted_factor(project.organization.id, source="serving")
+            adjusted_factor = get_recalibration_factor(project.organization.id)
 
         # We don't want to generate any rule in case the factor is 1.0 since we should multiply the factor and 1.0
         # is the identity of the multiplication.

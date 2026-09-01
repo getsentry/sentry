@@ -32,8 +32,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.ai_monitoring.conversation_titles import (
+    clamp_conversation_id_for_storage,
+    conversation_id_hash,
+)
 from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.utils import clamp_conversation_id_for_storage, conversation_id_hash
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -101,6 +104,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
@@ -246,7 +250,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ALL_PROJECTS_DETECTOR_NAME,
+    ActionInvocation,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from social_auth.models import UserSocialAuth
 
@@ -522,6 +530,12 @@ class Factories:
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_organization_avatar(*args, **kwargs) -> OrganizationAvatar:
+        with outbox_runner():
+            return OrganizationAvatar.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -2650,6 +2664,17 @@ class Factories:
         return Detector.objects.create(
             name=name,
             config=config,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_all_projects_detector(organization_id: int, **kwargs) -> Detector:
+        return Detector.objects.create(
+            name=ALL_PROJECTS_DETECTOR_NAME,
+            config={"organization_id": organization_id},
+            type=IssueStreamGroupType.slug,
+            project=None,
             **kwargs,
         )
 

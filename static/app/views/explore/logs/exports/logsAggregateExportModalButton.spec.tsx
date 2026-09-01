@@ -123,7 +123,14 @@ describe('LogsAggregateExportModalButton', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
 
     await waitFor(() => {
-      expect(exportRequest).toHaveBeenCalled();
+      expect(exportRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query_info: expect.objectContaining({sampling: 'HIGHEST_ACCURACY'}),
+          }),
+        })
+      );
     });
   });
 

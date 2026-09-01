@@ -3,11 +3,13 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
-from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
-from sentry.api.endpoints.organization_ai_conversation_details import (
+from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import (
     OrganizationAIConversationDetailsEndpoint,
 )
-from sentry.api.endpoints.organization_ai_conversations import OrganizationAIConversationsEndpoint
+from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
+    OrganizationAIConversationsEndpoint,
+)
+from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
 )
@@ -24,6 +26,9 @@ from sentry.api.endpoints.organization_monitoring_provider_details import (
 )
 from sentry.api.endpoints.organization_monitoring_provider_index import (
     OrganizationMonitoringProviderIndexEndpoint,
+)
+from sentry.api.endpoints.organization_monitoring_provider_verify_connection import (
+    OrganizationMonitoringProviderVerifyConnectionEndpoint,
 )
 from sentry.api.endpoints.organization_pipeline import OrganizationPipelineEndpoint
 from sentry.api.endpoints.organization_project_keys import OrganizationProjectKeysEndpoint
@@ -565,14 +570,12 @@ from sentry.seer.endpoints.organization_events_anomalies import OrganizationEven
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_agent_pr_groups import (
-    OrganizationSeerAgentPRGroupsEndpoint,
-)
 from sentry.seer.endpoints.organization_seer_agent_update import (
     OrganizationSeerAgentUpdateEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
+    OrganizationSeerAutofixScmInfoEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -726,9 +729,12 @@ from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
+from .endpoints.auth_2fa import AuthTwoFactorChallengeEndpoint, AuthTwoFactorEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
+from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
+from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -1081,6 +1087,31 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^/]+)/config/$",
+        AuthOrganizationConfigEndpoint.as_view(),
+        name="sentry-api-0-auth-organization-config",
+    ),
+    re_path(
+        r"^recovery/$",
+        AuthRecoveryEndpoint.as_view(),
+        name="sentry-api-0-auth-recovery",
+    ),
+    re_path(
+        r"^recovery/confirm/$",
+        AuthRecoveryConfirmEndpoint.as_view(),
+        name="sentry-api-0-auth-recovery-confirm",
+    ),
+    re_path(
+        r"^2fa/$",
+        AuthTwoFactorEndpoint.as_view(),
+        name="sentry-api-0-auth-2fa",
+    ),
+    re_path(
+        r"^2fa/challenge/$",
+        AuthTwoFactorChallengeEndpoint.as_view(),
+        name="sentry-api-0-auth-2fa-challenge",
     ),
     re_path(
         r"^validate/$",
@@ -2031,6 +2062,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-monitoring-providers",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/gcp/verify-connection/$",
+        OrganizationMonitoringProviderVerifyConnectionEndpoint.as_view(),
+        name="sentry-api-0-organization-monitoring-provider-gcp-verify-connection",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/monitoring-providers/(?P<provider_key>[^/]+)/$",
         OrganizationMonitoringProviderDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitoring-provider-details",
@@ -2521,6 +2557,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-autofix-overview",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-scm-info/$",
+        OrganizationSeerAutofixScmInfoEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-autofix-scm-info",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
         OrganizationSeerRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-runs",
@@ -2529,11 +2570,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/$",
         OrganizationSeerWorkflowsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflows",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-pr-groups/$",
-        OrganizationSeerAgentPRGroupsEndpoint.as_view(),
-        name="sentry-api-0-organization-seer-explorer-pr-groups",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/explorer-update/(?P<run_id>[^/]+)/$",

@@ -25,7 +25,9 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GithubCheckSuiteEvent,
     check_suite_head_match,
 )
+from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
 from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused, record_pause_blocked
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.seer.utils import get_github_username_for_user
@@ -104,7 +106,8 @@ def _status_comment_body(github_login: str) -> str:
         "fix attempts, so Seer has stopped iterating on this pull request. It needs a human "
         "decision — you can:\n\n"
         "- push a fix to this branch yourself,\n"
-        "- comment `@sentry <guidance>` to send Seer back for another attempt, or\n"
+        "- comment `@sentry <guidance>` to send Seer back for another attempt,\n"
+        "- comment `@sentry stop iterating` to stop this Autofix run from iterating, or\n"
         "- close this pull request if it is not worth pursuing."
     )
 
@@ -118,7 +121,7 @@ def assign_user_for_exhausted_cap(
         organization = Organization.objects.get_from_cache(id=organization_id)
     except Organization.DoesNotExist:
         return
-    if not features.has("organizations:autofix-pr-iteration-cap-assign", organization):
+    if not features.has(CAP_ASSIGN_FLAG, organization):
         return
 
     log_extra: dict[str, Any] = {
@@ -132,6 +135,11 @@ def assign_user_for_exhausted_cap(
     if not head_match.matched or not head_match.head_sha or not head_match.repo_name:
         # A failure on an older commit says nothing about the current head.
         _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
+        return
+
+    if is_pr_iteration_paused(run_id=resolved.run_state.run_id, organization_id=organization_id):
+        record_pause_blocked("cap_exhausted")
+        _skip("paused", log_extra)
         return
 
     if not automated_iteration_cap_reached(resolved.run_state):

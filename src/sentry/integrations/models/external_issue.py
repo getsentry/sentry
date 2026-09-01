@@ -72,6 +72,12 @@ class ExternalIssue(Model):
     title = models.TextField(null=True)
     description = models.TextField(null=True)
     metadata = LegacyTextJSONField(default=dict, null=True)
+    # Newest provider-side timestamp inbound status sync has processed for this issue, on
+    # the provider's own clock, so a webhook that lands out of order can be dropped instead
+    # of writing an old status over a newer one. Fed by GitHub's `issue.updated_at`,
+    # GitLab's `object_attributes.updated_at`, VSTS's `System.ChangedDate` and Jira's
+    # `issue.fields.updated`.
+    provider_status_updated_at = models.DateTimeField(null=True)
 
     objects: ClassVar[ExternalIssueManager] = ExternalIssueManager()
 

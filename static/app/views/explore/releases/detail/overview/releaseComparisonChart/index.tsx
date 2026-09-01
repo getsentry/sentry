@@ -16,6 +16,7 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {
@@ -29,6 +30,7 @@ import {
   type ReleaseWithHealth,
 } from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
@@ -258,7 +260,9 @@ export function ReleaseComparisonChart({
 
     try {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/issues-count/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             project: project.id,
@@ -965,13 +969,25 @@ export function ReleaseComparisonChart({
 
   function getTableHeaders(withExpanders: boolean) {
     const headers = [
-      <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
-      <Cell key="releases">{t('All Releases')}</Cell>,
-      <Cell key="release">{t('This Release')}</Cell>,
-      <Cell key="change">{t('Change')}</Cell>,
+      <SimpleTable.HeaderCell key="description">
+        <DescriptionCell>{t('Description')}</DescriptionCell>
+      </SimpleTable.HeaderCell>,
+      <NumericHeaderCell key="releases">
+        <Cell>{t('All Releases')}</Cell>
+      </NumericHeaderCell>,
+      <NumericHeaderCell key="release">
+        <Cell>{t('This Release')}</Cell>
+      </NumericHeaderCell>,
+      <NumericHeaderCell key="change">
+        <Cell>{t('Change')}</Cell>
+      </NumericHeaderCell>,
     ];
     if (withExpanders) {
-      headers.push(<Cell key="expanders" />);
+      headers.push(
+        <NumericHeaderCell key="expanders">
+          <Cell />
+        </NumericHeaderCell>
+      );
     }
     return headers;
   }
@@ -1108,11 +1124,7 @@ export function ReleaseComparisonChart({
         data-test-id="release-comparison-table"
         withExpanders={withExpanders}
         header={
-          <SimpleTable.HeaderRow>
-            {getTableHeaders(withExpanders).map((header, i) => (
-              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.HeaderRow>
+          <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
@@ -1163,6 +1175,12 @@ const DescriptionCell = styled(Cell)`
   overflow: visible;
 `;
 
+const NumericHeaderCell = styled(SimpleTable.HeaderCell)`
+  ${HeaderCellContent} {
+    justify-content: flex-end;
+  }
+`;
+
 const Change = styled('div')<{color?: string}>`
   font-size: ${p => p.theme.font.size.md};
   ${p => p.color && `color: ${p.color}`}
@@ -1186,10 +1204,6 @@ const ChartTable = styled(SimpleTable, {
           minmax(min-content, 1fr)
         ) ${p => (p.withExpanders ? '75px' : '')};
     }
-  }
-
-  > * {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 

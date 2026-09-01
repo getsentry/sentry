@@ -6,6 +6,8 @@ import pytest
 from django.utils import timezone
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org import cache as per_org_cache
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
@@ -33,6 +35,7 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -789,6 +792,40 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # we sampled at 40% twice as much as we wanted we already have a factor of 0.5
                 # half it again to 0.25
                 assert float(val) == 0.25
+
+    @with_feature("organizations:dynamic-sampling")
+    @override_options({"dynamic-sampling.per_org.serving-rollout-rate": 1.0})
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_recalibrate_orgs_skips_orgs_served_the_per_org_factor(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
+        """An org served the per-org factor keeps the legacy cache untouched.
+
+        Both loops step by previous * target / measured. Writing here as well would step a
+        factor nothing applies, so it would walk to a rebalance bound.
+        """
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+
+        served_org = self.orgs[0]
+        per_org_cache.set_project_sample_rates(
+            served_org.id,
+            [RebalancedItem(id=self.orgs_info[0]["project_ids"][0], count=10, new_sample_rate=0.2)],
+        )
+
+        redis_client = get_redis_client_for_ds()
+
+        with self.tasks():
+            recalibrate_orgs()
+
+        # The served org sampled at 10% against a 20% target, so the legacy task would have
+        # written a factor of 2.0 here.
+        assert redis_client.get(generate_recalibrate_orgs_cache_key(served_org.id)) is None
+
+        # Every other org still has its factor written by the legacy task.
+        other_factor = redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[2].id))
+        assert other_factor is not None
+        assert float(other_factor) == 0.5
 
     @with_feature("organizations:dynamic-sampling")
     @with_feature("organizations:dynamic-sampling-custom")

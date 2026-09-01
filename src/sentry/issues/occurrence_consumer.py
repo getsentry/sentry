@@ -114,6 +114,9 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
     return Event(
         event_id=event_id,
         project_id=project_id,
+        # `snuba_data` only backs the `Event` property accessors. The eventstream serializes
+        # `event.data`, where the `generic-events` schema requires `received`.
+        data={"received": event_data["received"]},
         snuba_data={
             "event_id": event_data["event_id"],
             "project_id": event_data["project_id"],
@@ -121,8 +124,8 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
             "release": event_data.get("release"),
             "environment": event_data.get("environment"),
             "platform": event_data.get("platform"),
-            "tags.key": [tag[0] for tag in event_data.get("tags", [])],
-            "tags.value": [tag[1] for tag in event_data.get("tags", [])],
+            "tags.key": [tag[0] for tag in event_data.get("tags") or []],
+            "tags.value": [tag[1] for tag in event_data.get("tags") or []],
         },
     )
 
@@ -258,7 +261,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "level": occurrence_data["level"],
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
-                    "received": event_payload.get("received", timezone.now().isoformat()),
+                    "received": event_payload.get("received") or timezone.now().isoformat(),
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
                 }

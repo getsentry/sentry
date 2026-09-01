@@ -324,6 +324,61 @@ describe('getWidgetExploreUrl', () => {
     });
   });
 
+  it('widens a screen filter when the widget query has a fallback', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          fields: ['span.op', 'avg(span.self_time)'],
+          aggregates: ['avg(span.self_time)'],
+          columns: ['span.op'],
+          conditions: '!is_transaction:true',
+          orderby: '-avg(span.self_time)',
+          name: '',
+          globalFilterFallback: {
+            attribute: 'app.vitals.start.screen',
+            fallbackAttribute: 'transaction',
+          },
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'app.vitals.start.screen', name: 'app.vitals.start.screen'},
+            value: 'app.vitals.start.screen:[MainActivity]',
+          },
+        ],
+      },
+      selection,
+      organization
+    );
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'span.op'],
+        ['field', 'span.self_time'],
+        ['groupBy', 'span.op'],
+        ['interval', '3h'],
+        ['mode', 'aggregate'],
+        [
+          'query',
+          '(!is_transaction:true) (app.vitals.start.screen:[MainActivity] OR transaction:[MainActivity])',
+        ],
+        ['sort', '-avg(span.self_time)'],
+        ['statsPeriod', '14d'],
+        ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.self_time)']})],
+        ['project', ''],
+      ],
+    });
+  });
+
   it('returns the correct url for multiple queries', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

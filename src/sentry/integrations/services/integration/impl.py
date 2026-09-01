@@ -23,6 +23,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -145,6 +146,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int | None = None,
         organization_integration_id: int | None = None,
         status: int | None = None,
+        using_replica: bool = False,
     ) -> RpcIntegration | None:
         integration_kwargs: dict[str, Any] = {}
         if integration_id is not None:
@@ -162,8 +164,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
+        queryset = Integration.objects.all()
+        if using_replica:
+            queryset = Integration.objects.using_replica()
+
         try:
-            integration = Integration.objects.get(**integration_kwargs)
+            integration = queryset.get(**integration_kwargs)
         except Integration.DoesNotExist:
             return None
         except Integration.MultipleObjectsReturned:
@@ -183,6 +189,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_expired: bool | None = None,
         limit: int | None = None,
         name: str | None = None,
+        using_replica: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
         if org_integration_ids is not None:
@@ -208,8 +215,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        ois = OrganizationIntegration.objects.filter(**oi_kwargs).select_related("integration")
+        queryset = OrganizationIntegration.objects.all()
+        if using_replica:
+            queryset = OrganizationIntegration.objects.using_replica()
 
+        ois = queryset.filter(**oi_kwargs).select_related("integration")
         if limit is not None:
             ois = ois[:limit]
 
@@ -608,6 +618,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
             identity=identity,
             user=user,
         )
+
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
+        try:
+            sa = GcpServiceAccount.objects.get(organization_id=organization_id)
+        except GcpServiceAccount.DoesNotExist:
+            return None
+        return sa.service_account_email
 
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int

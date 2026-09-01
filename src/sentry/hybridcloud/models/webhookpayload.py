@@ -113,8 +113,12 @@ class WebhookPayload(Model):
         integration_id: int | None = None,
     ) -> Self:
         metrics.incr("hybridcloud.deliver_webhooks.saved", tags={"provider": provider})
+        # One mailbox per destination cell, so each cell's copies drain
+        # independently. The cell rides in the middle: the first segment stays
+        # the provider, the last the event type for providers that suffix one.
+        mailbox_name = f"{provider}:{cell}:{identifier}" if cell else f"{provider}:{identifier}"
         return cls.objects.create(
-            mailbox_name=f"{provider}:{identifier}",
+            mailbox_name=mailbox_name,
             provider=provider,
             destination_type=destination_type,
             cell_name=cell,

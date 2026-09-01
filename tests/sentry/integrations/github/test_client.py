@@ -53,6 +53,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -1215,6 +1216,68 @@ class GitHubApiClientTest(TestCase):
             "owner1": "Test-Organization",
             "name1": "foo",
             "number1": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_statuses_chunks_cache_misses(self, get_jwt) -> None:
+        # A batch larger than the chunk size is fetched over several sequential
+        # queries so no single query exceeds GitHub's ~10s server-side timeout.
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        first = PullRequestStatusRequest(repo=self.repo.name, pull_number="41")
+        second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
+
+        with override_options({"github-app.pull-request-status.chunk-size": 1}):
+            results = self.github_client.get_pull_request_statuses([first, second])
+
+        assert results == {
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
+        }
+        # One GraphQL POST per chunk, each carrying only its own PR's variables.
+        assert len(responses.calls) == 2
+        assert orjson.loads(responses.calls[0].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 41,
+        }
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 42,
         }
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

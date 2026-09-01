@@ -14,6 +14,7 @@ import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Response
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import (
     create_blame_query,
@@ -66,6 +67,7 @@ from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
+from sentry.utils.iterators import chunked
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -788,12 +790,13 @@ class GitHubBaseClient(
             api_request_type=GitHubApiRequestType.SEARCH_REPOSITORIES,
         )
 
-    def get_assignees(self, repo: str) -> Sequence[Any]:
+    def get_assignees(self, repo: str, page_number_limit: int | None = None) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/issues/assignees#list-assignees
         """
         return self._get_with_pagination(
             f"/repos/{repo}/assignees",
+            page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_ASSIGNEES,
         )
 
@@ -1092,13 +1095,14 @@ class GitHubBaseClient(
         """
         return self.get(f"/users/{gh_username}", api_request_type=GitHubApiRequestType.GET_USER)
 
-    def get_labels(self, owner: str, repo: str) -> list[Any]:
+    def get_labels(self, owner: str, repo: str, page_number_limit: int | None = None) -> list[Any]:
         """
         Fetches all labels for a repository.
         https://docs.github.com/en/rest/issues/labels#list-labels-for-a-repository
         """
         return self._get_with_pagination(
             f"/repos/{owner}/{repo}/labels",
+            page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_LABELS,
         )
 
@@ -1244,7 +1248,7 @@ class GitHubBaseClient(
     def get_pull_request_statuses(
         self, pull_requests: Sequence[PullRequestStatusRequest]
     ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
-        """Return checks and review state, fetching all cache misses in one query."""
+        """Return checks and review state, fetching cache misses in sequential chunks."""
         results: dict[PullRequestStatusRequest, PullRequestStatusResult] = {}
         cache_keys: dict[PullRequestStatusRequest, str] = {}
         uncached_pull_requests: list[PullRequestStatusRequest] = []
@@ -1261,7 +1265,29 @@ class GitHubBaseClient(
         if not uncached_pull_requests:
             return results
 
-        data = create_pull_request_status_query(uncached_pull_requests)
+        # GitHub terminates a GraphQL query it can't process in ~10s, so fetch in
+        # bounded chunks (one query each) rather than a single oversized query.
+        #
+        # Chunks run sequentially, not in parallel. Chunk *size* alone keeps each
+        # query under the 10s timeout, so parallel would clear that too -- but the
+        # `files` block makes each query CPU-heavy for GitHub, and running them
+        # concurrently concentrates that CPU into a short real-time window. That
+        # trips GitHub's secondary rate limit (~90s of CPU per 60s of real time),
+        # which 403s the whole installation token -- shared with every other org
+        # using it -- and is worse than a slightly slower serial fetch.
+        chunk_size = max(options.get("github-app.pull-request-status.chunk-size"), 1)
+        for chunk in chunked(uncached_pull_requests, chunk_size):
+            fetched_results = self._fetch_pull_request_status_batch(chunk)
+            for pull_request, result in fetched_results.items():
+                # Short enough that checks still appear to advance while CI runs.
+                self.set_cache(cache_keys[pull_request], result, 60)
+            results.update(fetched_results)
+        return results
+
+    def _fetch_pull_request_status_batch(
+        self, pull_requests: Sequence[PullRequestStatusRequest]
+    ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
+        data = create_pull_request_status_query(pull_requests)
         response = self.post(
             path="/graphql",
             data=data,
@@ -1283,14 +1309,7 @@ class GitHubBaseClient(
                 extra={"error_count": len(errors)},
             )
 
-        fetched_results = extract_pull_request_statuses_from_response(
-            response, uncached_pull_requests
-        )
-        for pull_request, result in fetched_results.items():
-            # Short enough that checks still appear to advance while CI runs.
-            self.set_cache(cache_keys[pull_request], result, 60)
-        results.update(fetched_results)
-        return results
+        return extract_pull_request_statuses_from_response(response, pull_requests)
 
     def create_check_run(self, repo: str, data: dict[str, Any]) -> Any:
         """

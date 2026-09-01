@@ -37,6 +37,7 @@ export type TraceItemSearchQueryBuilderProps = {
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
+  disableFullWidthFilterKeyMenu?: SearchQueryBuilderProps['disableFullWidthFilterKeyMenu'];
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
@@ -45,10 +46,12 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
+  invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
+  showSearchIcon?: SearchQueryBuilderProps['showSearchIcon'];
 } & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -133,6 +136,7 @@ export function useTraceItemSearchQueryBuilderProps({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
   const {selection} = usePageFilters();
@@ -246,6 +250,7 @@ export function useTraceItemSearchQueryBuilderProps({
       disabled,
       onCaseInsensitiveClick,
       invalidFilterKeys,
+      invalidMessages,
     }),
     [
       asyncFilterKeyRegistryQueryKey,
@@ -265,6 +270,7 @@ export function useTraceItemSearchQueryBuilderProps({
       getTraceItemAttributeValues,
       initialQuery,
       invalidFilterKeys,
+      invalidMessages,
       itemType,
       matchKeySuggestions,
       namespace,
@@ -321,6 +327,9 @@ export function TraceItemSearchQueryBuilder({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
+  showSearchIcon,
+  disableFullWidthFilterKeyMenu,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -359,9 +368,17 @@ export function TraceItemSearchQueryBuilder({
     allowedAttributeKeys,
     datetime,
     invalidFilterKeys,
+    invalidMessages,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilder
+      autoFocus={autoFocus}
+      showSearchIcon={showSearchIcon}
+      disableFullWidthFilterKeyMenu={disableFullWidthFilterKeyMenu}
+      {...searchQueryBuilderProps}
+    />
+  );
 }
 
 function useFunctionTags(

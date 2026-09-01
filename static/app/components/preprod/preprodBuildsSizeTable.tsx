@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -20,7 +21,7 @@ import {
   PreprodBuildsHeaderCells,
   PreprodBuildsRowCells,
 } from './preprodBuildsTableCommon';
-import {BuildsTableGrid} from './preprodBuildsTableStyles';
+import {BuildsTableGrid, buildsTableColumns} from './preprodBuildsTableStyles';
 
 interface PreprodBuildsSizeTableProps {
   builds: BuildDetailsApiResponse[];
@@ -66,8 +67,7 @@ export function PreprodBuildsSizeTable({
 
   return (
     <BuildsTableGrid
-      tracks={sizeTableColumns}
-      showProjectColumn={showProjectColumn}
+      columns={buildsTableColumns(sizeTableColumns, showProjectColumn)}
       header={
         <SimpleTable.HeaderRow>
           <PreprodBuildsHeaderCells showProjectColumn={showProjectColumn} />
@@ -95,9 +95,11 @@ export function PreprodBuildsSizeTable({
   );
 }
 
-const sizeTableColumns = {
-  withProject: `minmax(250px, 2fr) minmax(120px, 1fr) minmax(250px, 2fr)
-    minmax(100px, 1fr) minmax(100px, 1fr) minmax(80px, 120px)`,
-  withoutProject: `minmax(250px, 2fr) minmax(250px, 2fr) minmax(100px, 1fr)
-    minmax(100px, 1fr) minmax(80px, 120px)`,
-};
+const sizeTableColumns: TableColumnConfig[] = [
+  {key: 'app', width: 'minmax(250px, 2fr)'},
+  {key: 'project', width: 'minmax(120px, 1fr)'},
+  {key: 'build', width: 'minmax(250px, 2fr)'},
+  {key: 'installSize', width: 'minmax(100px, 1fr)'},
+  {key: 'downloadSize', width: 'minmax(100px, 1fr)'},
+  {key: 'created', width: 'minmax(80px, 120px)'},
+];

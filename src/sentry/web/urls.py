@@ -506,6 +506,11 @@ urlpatterns += [
     ),
     # Story book
     re_path(
+        r"^scraps/",
+        react_page_view,
+        name="scraps",
+    ),
+    re_path(
         r"^stories/",
         react_page_view,
         name="stories",
@@ -532,11 +537,6 @@ urlpatterns += [
         r"^docs/api/?$",
         RedirectView.as_view(url="https://docs.sentry.io/api/", permanent=False),
         name="sentry-api-docs-redirect",
-    ),
-    re_path(
-        r"^scraps/?$",
-        RedirectView.as_view(pattern_name="stories", permanent=False),
-        name="sentry-scraps-redirect",
     ),
     re_path(
         r"^api/$",

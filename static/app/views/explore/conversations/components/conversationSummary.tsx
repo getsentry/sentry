@@ -15,7 +15,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire, IconOpen, IconUser} from 'sentry/icons';
+import {IconFire, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
@@ -195,12 +195,9 @@ export function ConversationSummary({
                     })
                   }
                 >
-                  <Flex align="center" gap="xs">
-                    <IconOpen size="xs" />
-                    <Text size="sm" variant="inherit" wrap="nowrap">
-                      {tn('Trace', 'Traces', traces.length)}
-                    </Text>
-                  </Flex>
+                  <Text size="sm" variant="inherit" wrap="nowrap">
+                    {tn('Trace', 'Traces', traces.length)}
+                  </Text>
                 </Link>
               )}
               {aggregates.toolNames.length > 0 && (

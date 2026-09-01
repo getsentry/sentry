@@ -27,10 +27,10 @@ export function ActivityList({activities}: Props) {
               <Version>{version}</Version>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <DateTime date={firstSeen} seconds={false} />
+              <DateTime date={firstSeen} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <DateTime date={lastSeen} seconds={false} />
+              <DateTime date={lastSeen} />
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         );
