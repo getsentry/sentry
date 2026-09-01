@@ -39,7 +39,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.services.app.service import app_service
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhook_subjects import extract_webhook_subject
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -403,36 +403,6 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.RESTRICTED_IP}"
             )
             raise
-        except UnicodeEncodeError:
-            # Custom webhook headers must be latin-1. Invalid customer config —
-            # halt without creating a Sentry failure issue.
-            # Use a fixed halt reason (never the exception) so header secrets in
-            # UnicodeEncodeError.object are not logged via repr(e). Raise
-            # SentryAppIntegratorError so callers/task failures do not carry the
-            # raw header value either.
-            halt_reason = (
-                f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INVALID_HEADER}"
-            )
-            lifecycle.record_halt(halt_reason=halt_reason)
-            buffer.add_request(
-                response_code=TIMEOUT_STATUS_CODE,
-                org_id=org_id,
-                event=event,
-                url=url,
-                headers=app_platform_event.loggable_headers,
-                request_id=request_id,
-                subject_id=subject_id,
-                subject_type=subject_type,
-                duration_ms=None,
-            )
-            raise SentryAppIntegratorError(
-                message=(
-                    "Webhook header contains non-latin-1 characters and cannot be "
-                    "sent as an HTTP header."
-                ),
-                webhook_context={"error_type": halt_reason},
-                status_code=400,
-            )
         except InnerTimeoutError:
             # This means we didn't even start the request since the prev. steps took too long
             lifecycle.record_halt(

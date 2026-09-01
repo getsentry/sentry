@@ -17,7 +17,6 @@ from sentry.sentry_apps.models.sentry_app import (
     VALID_EVENTS,
     required_scope_for_subscription,
 )
-from sentry.sentry_apps.utils.headers import assert_http_header_value
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
@@ -254,13 +253,13 @@ class SentryAppParser(Serializer):
                 raise ValidationError(
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
                 )
+            # HTTP header fields are latin-1; reject unsupported characters on write.
             try:
-                assert_http_header_value(name, field_name="header name")
-                assert_http_header_value(header_value, field_name="header value")
-            except ValueError:
-                # Fixed message only — do not surface exception text to API clients.
+                name.encode("latin-1")
+                header_value.encode("latin-1")
+            except UnicodeEncodeError:
                 raise ValidationError(
-                    "Webhook header contains non-latin-1 characters and cannot be "
+                    "Webhook header contains unsupported characters and cannot be "
                     "sent as an HTTP header."
                 )
             if not _HTTP_TOKEN_RE.match(name):
