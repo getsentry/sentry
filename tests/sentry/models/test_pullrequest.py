@@ -23,6 +23,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.types.activity import ActivityType
 
 
@@ -792,6 +793,21 @@ class GetOrFetchExternalIdTest(TestCase):
         pr.refresh_from_db()
         assert pr.external_id_str == "pr_01abc"
         assert pr.external_id is None
+
+    def test_fetch_preserves_issue_links(self) -> None:
+        pr = self._pr()
+        link = self.create_group_link(
+            linked_id=pr.id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        with self.feature("organizations:pr-lifecycle-activity"), capture_action_log() as log:
+            assert self._fetch(fetch=lambda: "555") == "555"
+
+        assert GroupLink.objects.filter(id=link.id).exists()
+        assert not Activity.objects.filter(group_id=link.group_id).exists()
+        log.assert_not_logged()
 
     def test_returns_fetched_id_unpersisted_when_row_is_absent(self) -> None:
         assert self._fetch(fetch=lambda: "555") == "555"

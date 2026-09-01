@@ -341,7 +341,8 @@ class PullRequestManager(BaseManager["PullRequest"]):
             return None
 
         if stored is not None:
-            stored.update(
+            # Avoid post_save, which reconciles issue links against the PR title/body.
+            self.filter(id=stored.id, organization_id=organization_id).update(
                 external_id_str=external_id,
                 external_id=int(external_id) if external_id.isdigit() else None,
             )
