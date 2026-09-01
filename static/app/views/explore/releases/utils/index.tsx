@@ -63,7 +63,7 @@ export const getSessionStatusPercent = (percent: number, absolute = true) => {
 };
 
 export const displaySessionStatusPercent = (percent: number) => {
-  return `${getSessionStatusPercent(percent, true).toLocaleString()}\u0025`;
+  return `${getSessionStatusPercent(percent).toLocaleString()}\u0025`;
 };
 
 export const getReleaseNewIssuesUrl = (
