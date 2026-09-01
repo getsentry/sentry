@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -332,9 +332,8 @@ function CustomFilterModal({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: filterSchema},
+    validators: defaultFormValidators(filterSchema),
     onSubmit: ({value}) =>
       onSave(value)
         .then(() => closeModal())
@@ -342,7 +341,7 @@ function CustomFilterModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Stack gap="xs">
           <Heading as="h4">
@@ -358,25 +357,25 @@ function CustomFilterModal({
       <Body>
         <Stack gap="xl">
           <Grid columns="4fr 1fr" gap="md">
-            <form.AppField name="name">
+            <form.Field name="name">
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
                   <field.Input
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder={t('e.g. Ignore flaky connection errors')}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
 
-            <form.AppField name="dataType">
+            <form.Field name="dataType">
               {dataTypeField => (
                 <dataTypeField.Layout.Stack label={t('Data Type')} required>
                   <dataTypeField.Select
                     clearable={false}
                     options={modalDataTypeOptions}
-                    value={dataTypeField.state.value}
+                    value={dataTypeField.value}
                     onChange={value => {
                       dataTypeField.handleChange(value);
                       // Carry existing rows over to the new data type. A row
@@ -396,14 +395,14 @@ function CustomFilterModal({
                   />
                 </dataTypeField.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           </Grid>
 
           <form.Subscribe selector={state => state.values.dataType}>
             {dataType => (
-              <form.AppField name="conditions">
+              <form.Field name="conditions">
                 {conditionsField => {
-                  const conditions = conditionsField.state.value;
+                  const conditions = conditionsField.value;
                   return (
                     <Stack gap="lg">
                       <Stack gap="sm">
@@ -414,35 +413,35 @@ function CustomFilterModal({
                             gap="md"
                             align="center"
                           >
-                            <form.AppField name={`conditions[${index}].property`}>
+                            <form.Field name={`conditions[${index}].property`}>
                               {propertyField => (
                                 <propertyField.Select
                                   aria-label={t('Condition property')}
                                   clearable={false}
                                   options={getPropertyOptions(dataType)}
-                                  value={propertyField.state.value}
+                                  value={propertyField.value}
                                   onChange={value => propertyField.handleChange(value)}
                                 />
                               )}
-                            </form.AppField>
+                            </form.Field>
                             <InfoText
                               variant="muted"
                               title={getMatchDescription(condition.property, dataType)}
                             >
                               {t('matches')}
                             </InfoText>
-                            <form.AppField name={`conditions[${index}].value`}>
+                            <form.Field name={`conditions[${index}].value`}>
                               {valueField => (
                                 <valueField.Input
                                   aria-label={t('Condition value')}
                                   placeholder={
                                     getCondition(condition.property).placeholder
                                   }
-                                  value={valueField.state.value}
+                                  value={valueField.value}
                                   onChange={valueField.handleChange}
                                 />
                               )}
-                            </form.AppField>
+                            </form.Field>
                             <Button
                               size="sm"
                               variant="transparent"
@@ -470,7 +469,7 @@ function CustomFilterModal({
                     </Stack>
                   );
                 }}
-              </form.AppField>
+              </form.Field>
             )}
           </form.Subscribe>
         </Stack>
@@ -483,7 +482,7 @@ function CustomFilterModal({
           </form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

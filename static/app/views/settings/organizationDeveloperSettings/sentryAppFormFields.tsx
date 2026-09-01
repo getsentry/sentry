@@ -1,15 +1,16 @@
 import {Tag} from '@sentry/scraps/badge';
-import {withFieldGroup} from '@sentry/scraps/form';
+import {defineAppFieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const NameField = withFieldGroup({
-  defaultValues: {name: ''},
-  render: ({group}) => (
-    <group.AppField name="name">
+const nameFieldGroup = defineAppFieldGroup(({strict}) => ({name: strict<string>()}));
+
+function NameFieldImpl({fields}: {fields: typeof nameFieldGroup.fields}) {
+  return (
+    <fields.Field name="name">
       {field => (
         <field.Layout.Row
           label={t('Name')}
@@ -17,20 +18,23 @@ export const NameField = withFieldGroup({
           required
         >
           <field.Input
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={t('e.g. My Integration')}
           />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-export const AuthorField = withFieldGroup({
-  defaultValues: {author: ''},
-  render: ({group}) => (
-    <group.AppField name="author">
+export const NameField = nameFieldGroup.bindComponent(NameFieldImpl, 'fields');
+
+const authorFieldGroup = defineAppFieldGroup(({strict}) => ({author: strict<string>()}));
+
+function AuthorFieldImpl({fields}: {fields: typeof authorFieldGroup.fields}) {
+  return (
+    <fields.Field name="author">
       {field => (
         <field.Layout.Row
           label={t('Author')}
@@ -38,15 +42,17 @@ export const AuthorField = withFieldGroup({
           required
         >
           <field.Input
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={t('e.g. Acme Software')}
           />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
+
+export const AuthorField = authorFieldGroup.bindComponent(AuthorFieldImpl, 'fields');
 
 // Mirrors CLAUDE_ROUTINE_URL_RE in src/sentry/utils/sentry_apps/webhooks.py;
 // payloads sent to matching URLs get a plain-text prompt added.
@@ -72,56 +78,83 @@ const WEBHOOK_URL_DEFAULT_PROPS: {
   placeholder: t('e.g. https://example.com/sentry/webhook/'),
 };
 
-export const WebhookUrlField = withFieldGroup({
-  defaultValues: {webhookUrl: ''},
-  props: WEBHOOK_URL_DEFAULT_PROPS,
-  render: function WebhookUrlFieldGroup({
-    group,
-    label,
-    hint,
-    placeholder,
-    required,
-    onValueChange,
-  }) {
-    const organization = useOrganization();
+const webhookUrlFieldGroup = defineAppFieldGroup(({strict}) => ({
+  webhookUrl: strict<string>(),
+}));
 
-    return (
-      <group.AppField
-        name="webhookUrl"
-        listeners={{
-          onChange: ({value}: {value: string}) => onValueChange?.(value),
-        }}
-      >
-        {field => (
-          <field.Layout.Row label={label} hintText={hint} required={required}>
-            <field.Input
-              value={field.state.value}
-              onChange={field.handleChange}
-              placeholder={placeholder}
-              trailingItems={
-                organization.features.includes('sentry-apps-claude-routine-webhooks') &&
-                CLAUDE_ROUTINE_URL_REGEX.test(field.state.value) ? (
-                  <Tooltip
-                    title={t(
-                      'Sentry will automatically format your webhook payloads to be compatible with Claude Routines.'
-                    )}
-                  >
-                    <Tag variant="info">{t('Claude routine')}</Tag>
-                  </Tooltip>
-                ) : null
-              }
-            />
-          </field.Layout.Row>
-        )}
-      </group.AppField>
-    );
-  },
-});
+type WebhookUrlFieldProps = {
+  fields: typeof webhookUrlFieldGroup.fields;
+  hint?: React.ReactNode;
+  label?: string;
+  onValueChange?: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
+};
 
-export const WebhookHeadersField = withFieldGroup({
-  defaultValues: {webhookHeaders: ''},
-  render: ({group}) => (
-    <group.AppField name="webhookHeaders">
+function WebhookUrlFieldImpl({
+  fields,
+  label,
+  hint,
+  placeholder,
+  required,
+  onValueChange,
+}: WebhookUrlFieldProps) {
+  const organization = useOrganization();
+  const fieldLabel = label ?? WEBHOOK_URL_DEFAULT_PROPS.label;
+  const fieldHint = hint ?? WEBHOOK_URL_DEFAULT_PROPS.hint;
+  const fieldPlaceholder = placeholder ?? WEBHOOK_URL_DEFAULT_PROPS.placeholder;
+
+  return (
+    <fields.Field
+      name="webhookUrl"
+      listeners={[
+        {
+          run: ({value}) => onValueChange?.(value),
+          triggers: ['change'],
+        },
+      ]}
+    >
+      {field => (
+        <field.Layout.Row label={fieldLabel} hintText={fieldHint} required={required}>
+          <field.Input
+            value={field.value}
+            onChange={field.handleChange}
+            placeholder={fieldPlaceholder}
+            trailingItems={
+              organization.features.includes('sentry-apps-claude-routine-webhooks') &&
+              CLAUDE_ROUTINE_URL_REGEX.test(field.value) ? (
+                <Tooltip
+                  title={t(
+                    'Sentry will automatically format your webhook payloads to be compatible with Claude Routines.'
+                  )}
+                >
+                  <Tag variant="info">{t('Claude routine')}</Tag>
+                </Tooltip>
+              ) : null
+            }
+          />
+        </field.Layout.Row>
+      )}
+    </fields.Field>
+  );
+}
+
+export const WebhookUrlField = webhookUrlFieldGroup.bindComponent(
+  WebhookUrlFieldImpl,
+  'fields'
+);
+
+const webhookHeadersFieldGroup = defineAppFieldGroup(({strict}) => ({
+  webhookHeaders: strict<string>(),
+}));
+
+function WebhookHeadersFieldImpl({
+  fields,
+}: {
+  fields: typeof webhookHeadersFieldGroup.fields;
+}) {
+  return (
+    <fields.Field name="webhookHeaders">
       {field => (
         <field.Layout.Row
           label={t('Webhook Headers')}
@@ -131,40 +164,60 @@ export const WebhookHeadersField = withFieldGroup({
         >
           <field.TextArea
             autosize
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
           />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-export const RedirectUrlField = withFieldGroup({
-  defaultValues: {redirectUrl: ''},
-  render: ({group}) => (
-    <group.AppField name="redirectUrl">
+export const WebhookHeadersField = webhookHeadersFieldGroup.bindComponent(
+  WebhookHeadersFieldImpl,
+  'fields'
+);
+
+const redirectUrlFieldGroup = defineAppFieldGroup(({strict}) => ({
+  redirectUrl: strict<string>(),
+}));
+
+function RedirectUrlFieldImpl({fields}: {fields: typeof redirectUrlFieldGroup.fields}) {
+  return (
+    <fields.Field name="redirectUrl">
       {field => (
         <field.Layout.Row
           label={t('Redirect URL')}
           hintText={t('The URL Sentry will redirect users to after installation.')}
         >
           <field.Input
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={t('e.g. https://example.com/sentry/setup/')}
           />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-export const VerifyInstallField = withFieldGroup({
-  defaultValues: {verifyInstall: false},
-  render: ({group}) => (
-    <group.AppField name="verifyInstall">
+export const RedirectUrlField = redirectUrlFieldGroup.bindComponent(
+  RedirectUrlFieldImpl,
+  'fields'
+);
+
+const verifyInstallFieldGroup = defineAppFieldGroup(({strict}) => ({
+  verifyInstall: strict<boolean>(),
+}));
+
+function VerifyInstallFieldImpl({
+  fields,
+}: {
+  fields: typeof verifyInstallFieldGroup.fields;
+}) {
+  return (
+    <fields.Field name="verifyInstall">
       {field => (
         <field.Layout.Row
           label={t('Verify Installation')}
@@ -172,20 +225,32 @@ export const VerifyInstallField = withFieldGroup({
             'If enabled, installations will need to be verified before becoming installed.'
           )}
         >
-          <field.Switch checked={field.state.value} onChange={field.handleChange} />
+          <field.Switch checked={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-const ALERTABLE_DEFAULT_PROPS: {requireWebhookUrl?: boolean} = {};
+export const VerifyInstallField = verifyInstallFieldGroup.bindComponent(
+  VerifyInstallFieldImpl,
+  'fields'
+);
 
-export const AlertableField = withFieldGroup({
-  defaultValues: {isAlertable: false, webhookUrl: ''},
-  props: ALERTABLE_DEFAULT_PROPS,
-  render: ({group, requireWebhookUrl}) => (
-    <group.AppField name="isAlertable">
+const alertableFieldGroup = defineAppFieldGroup(({strict}) => ({
+  isAlertable: strict<boolean>(),
+  webhookUrl: strict<string>(),
+}));
+
+function AlertableFieldImpl({
+  fields,
+  requireWebhookUrl,
+}: {
+  fields: typeof alertableFieldGroup.fields;
+  requireWebhookUrl?: boolean;
+}) {
+  return (
+    <fields.Field name="isAlertable">
       {field => (
         <field.Layout.Row
           label={t('Alert Action')}
@@ -198,12 +263,15 @@ export const AlertableField = withFieldGroup({
             }
           )}
         >
-          <group.Subscribe
-            selector={state => Boolean(requireWebhookUrl) && !state.values.webhookUrl}
+          <fields.Subscribe
+            selector={state =>
+              Boolean(requireWebhookUrl) &&
+              !(state.values as {webhookUrl?: string}).webhookUrl
+            }
           >
             {webhookDisabled => (
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={
                   webhookDisabled
@@ -212,17 +280,23 @@ export const AlertableField = withFieldGroup({
                 }
               />
             )}
-          </group.Subscribe>
+          </fields.Subscribe>
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-export const SchemaField = withFieldGroup({
-  defaultValues: {schema: ''},
-  render: ({group}) => (
-    <group.AppField name="schema">
+export const AlertableField = alertableFieldGroup.bindComponent(
+  AlertableFieldImpl,
+  'fields'
+);
+
+const schemaFieldGroup = defineAppFieldGroup(({strict}) => ({schema: strict<string>()}));
+
+function SchemaFieldImpl({fields}: {fields: typeof schemaFieldGroup.fields}) {
+  return (
+    <fields.Field name="schema">
       {field => (
         <field.Layout.Row
           label={t('Schema')}
@@ -235,41 +309,50 @@ export const SchemaField = withFieldGroup({
             }
           )}
         >
-          <field.TextArea
-            autosize
-            value={field.state.value}
-            onChange={field.handleChange}
-          />
+          <field.TextArea autosize value={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-export const OverviewField = withFieldGroup({
-  defaultValues: {overview: ''},
-  render: ({group}) => (
-    <group.AppField name="overview">
+export const SchemaField = schemaFieldGroup.bindComponent(SchemaFieldImpl, 'fields');
+
+const overviewFieldGroup = defineAppFieldGroup(({strict}) => ({
+  overview: strict<string>(),
+}));
+
+function OverviewFieldImpl({fields}: {fields: typeof overviewFieldGroup.fields}) {
+  return (
+    <fields.Field name="overview">
       {field => (
         <field.Layout.Row
           label={t('Overview')}
           hintText={t('Description of your Integration and its functionality.')}
         >
-          <field.TextArea
-            autosize
-            value={field.state.value}
-            onChange={field.handleChange}
-          />
+          <field.TextArea autosize value={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
 
-export const AllowedOriginsField = withFieldGroup({
-  defaultValues: {allowedOrigins: ''},
-  render: ({group}) => (
-    <group.AppField name="allowedOrigins">
+export const OverviewField = overviewFieldGroup.bindComponent(
+  OverviewFieldImpl,
+  'fields'
+);
+
+const allowedOriginsFieldGroup = defineAppFieldGroup(({strict}) => ({
+  allowedOrigins: strict<string>(),
+}));
+
+function AllowedOriginsFieldImpl({
+  fields,
+}: {
+  fields: typeof allowedOriginsFieldGroup.fields;
+}) {
+  return (
+    <fields.Field name="allowedOrigins">
       {field => (
         <field.Layout.Row
           label={t('Authorized JavaScript Origins')}
@@ -277,12 +360,17 @@ export const AllowedOriginsField = withFieldGroup({
         >
           <field.TextArea
             autosize
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={t('e.g. example.com')}
           />
         </field.Layout.Row>
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
+
+export const AllowedOriginsField = allowedOriginsFieldGroup.bindComponent(
+  AllowedOriginsFieldImpl,
+  'fields'
+);

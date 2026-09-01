@@ -1,13 +1,14 @@
 import {useRef, type Ref} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import type {Props as ReactSelectProps} from '@sentry/scraps/select/reactSelectWrapper';
 import {components} from '@sentry/scraps/select/reactSelectWrapper';
 
-import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
 function SelectInput({
   selectProps,
@@ -24,8 +25,14 @@ function SelectInput({
   );
 }
 
-function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
-  const indicator = useAutoSaveIndicator();
+function SelectIndicatorsContainer({
+  children,
+  field,
+}: {
+  children: React.ReactNode;
+  field: AnyFieldApi;
+}) {
+  const indicator = useAutoSaveIndicator(field);
   return (
     <Flex padding="0 sm" gap="sm" align="center">
       {indicator}
@@ -111,20 +118,21 @@ const applyInputToRef =
   };
 
 export function SelectField<TValue>({
+  field,
   onChange,
   disabled,
   multiple,
   value,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>) {
+}: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue> & {field: AnyFieldApi}) {
   const autoSaveContext = useAutoSaveContext();
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
 
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {({id, ref: fieldRef, ...fieldProps}) => (
         <Container flex={1} minWidth={0}>
           <Select
@@ -139,7 +147,9 @@ export function SelectField<TValue>({
               {
                 ...props.components,
                 Input: SelectInput,
-                IndicatorsContainer: SelectIndicatorsContainer,
+                IndicatorsContainer: (containerProps: {children: React.ReactNode}) => (
+                  <SelectIndicatorsContainer {...containerProps} field={field} />
+                ),
               } as never
             }
             onMenuOpen={() => {
@@ -186,6 +196,15 @@ export function SelectField<TValue>({
           />
         </Container>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }
+
+type SelectLooseField = <TValue>(
+  props: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>
+) => React.ReactNode;
+
+export const SelectLooseField = fieldComponent.loose(
+  SelectField,
+  'field'
+) as SelectLooseField;

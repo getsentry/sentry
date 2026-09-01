@@ -20,7 +20,7 @@ describe('DatadogCredentialsStep', () => {
   });
 
   it('calls advance with credentials on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<DatadogCredentialsStep {...makeStepProps({stepData: {}, advance})} />);
 
     await selectEvent.select(

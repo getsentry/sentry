@@ -31,7 +31,7 @@ export function DetectorStringField({
       {field => (
         <field.Layout.Row label={label} hintText={help}>
           <field.Input
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={placeholder}
             disabled={disabled}

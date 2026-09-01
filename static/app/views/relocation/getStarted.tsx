@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -40,9 +40,8 @@ export function GetStarted({
   const localityOptions = getSignupLocalities();
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {orgSlugs, localityName, promoCode},
-    validators: {onDynamic: getStartedSchema},
+    validators: defaultFormValidators(getStartedSchema),
     onSubmit: ({value}) => {
       const parsedValue = getStartedSchema.parse(value);
       const completeStep = () => {
@@ -82,14 +81,14 @@ export function GetStarted({
           exit: {opacity: 0},
         }}
       >
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <p>
             {t(
               'In order to best facilitate the process some basic information will be required to ensure success with the relocation process of you self-hosted instance'
             )}
           </p>
           <Stack gap="xl">
-            <form.AppField name="orgSlugs">
+            <form.Field name="orgSlugs">
               {field => (
                 <field.Layout.Stack
                   label={t('Organization slugs being relocated')}
@@ -97,7 +96,7 @@ export function GetStarted({
                 >
                   <field.Input
                     aria-label={t('org-slugs')}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={value => {
                       field.handleChange(value);
                       onUpdateRelocationState({orgSlugs: value});
@@ -106,13 +105,13 @@ export function GetStarted({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
-            <form.AppField name="localityName">
+            </form.Field>
+            <form.Field name="localityName">
               {field => (
                 <field.Layout.Stack label={t('Choose a datacenter location')} required>
                   <field.Select
                     aria-label={t('region')}
-                    value={field.state.value}
+                    value={field.value}
                     options={localityOptions}
                     placeholder={t('Select Location')}
                     onChange={value => {
@@ -122,7 +121,7 @@ export function GetStarted({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           </Stack>
           <form.Subscribe selector={state => state.values.localityName}>
             {selectedLocalityName =>
@@ -145,12 +144,12 @@ export function GetStarted({
             .
           </DatacenterTextBlock>
           {showPromoCode ? (
-            <form.AppField name="promoCode">
+            <form.Field name="promoCode">
               {field => (
                 <field.Layout.Stack label={t('Promo Code')}>
                   <field.Input
                     aria-label={t('promocode')}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={value => {
                       field.handleChange(value);
                       onUpdateRelocationState({promoCode: value});
@@ -158,7 +157,7 @@ export function GetStarted({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           ) : (
             <TogglePromoCode onClick={() => setShowPromoCode(true)}>
               Got a promo code? <u>Click here to redeem it!</u>
@@ -167,7 +166,7 @@ export function GetStarted({
           <Flex justify="end">
             <form.SubmitButton>{t('Continue')}</form.SubmitButton>
           </Flex>
-        </form.AppForm>
+        </ScrapsForm>
       </motion.div>
     </Wrapper>
   );

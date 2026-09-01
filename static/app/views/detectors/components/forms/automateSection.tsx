@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {withFieldGroup} from '@sentry/scraps/form';
+import {defineAppFieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -28,22 +28,37 @@ import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/co
  * Section that lets the user connect, disconnect, and create automations
  * for the detector being edited.
  */
-export const AutomateSection = withFieldGroup({
-  defaultValues: {workflowIds: [] as string[]},
-  props: {} as {project: Project; step?: number},
-  render: ({group, step, project}) => (
-    <group.AppField name="workflowIds">
+const automateFieldGroup = defineAppFieldGroup(({strict}) => ({
+  workflowIds: strict<string[]>(),
+}));
+
+function AutomateSectionImpl({
+  fields,
+  step,
+  project,
+}: {
+  fields: typeof automateFieldGroup.fields;
+  project: Project;
+  step?: number;
+}) {
+  return (
+    <fields.Field name="workflowIds">
       {field => (
         <AutomateSectionInner
           step={step}
           project={project}
-          workflowIds={field.state.value}
+          workflowIds={field.value}
           setWorkflowIds={field.handleChange}
         />
       )}
-    </group.AppField>
-  ),
-});
+    </fields.Field>
+  );
+}
+
+export const AutomateSection = automateFieldGroup.bindComponent(
+  AutomateSectionImpl,
+  'fields'
+);
 
 /**
  * Legacy variant of {@link AutomateSection} for detector forms still using

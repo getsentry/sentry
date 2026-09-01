@@ -126,7 +126,7 @@ describe('Subscription > Notifications', () => {
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '80%'}));
     await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
 
-    // Close the menu, then submit — defaultFormOptions validates on submit
+    // Close the menu, then submit — the form validates on submit
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 

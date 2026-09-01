@@ -2,7 +2,12 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  FormSearch,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -35,15 +40,12 @@ export function PasswordForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       password: '',
       passwordNew: '',
       passwordVerify: '',
     },
-    validators: {
-      onDynamic: schema,
-    },
+    validators: defaultFormValidators(schema),
     onSubmit: ({value, formApi}) => {
       return mutation
         .mutateAsync(value)
@@ -63,36 +65,36 @@ export function PasswordForm() {
 
   return (
     <FormSearch route="/settings/account/security/">
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <form.FieldGroup title={t('Password')}>
           <Alert variant="info" system>
             {t('Changing your password will invalidate all logged in sessions.')}
           </Alert>
-          <form.AppField name="password">
+          <form.Field name="password">
             {field => (
               <field.Layout.Row label={t('Current Password')} required>
                 <field.Password
                   autoComplete="current-password"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Your current password')}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="passwordNew">
+          </form.Field>
+          <form.Field name="passwordNew">
             {field => (
               <field.Layout.Row label={t('New Password')} required>
                 <field.Password
                   autoComplete="new-password"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Your new password')}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
-          <form.AppField name="passwordVerify">
+          </form.Field>
+          <form.Field name="passwordVerify">
             {field => (
               <field.Layout.Row
                 label={t('Verify New Password')}
@@ -101,18 +103,18 @@ export function PasswordForm() {
               >
                 <field.Password
                   autoComplete="new-password"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Verify your new password')}
                 />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
           <Flex justify="end">
             <form.SubmitButton>{t('Change password')}</form.SubmitButton>
           </Flex>
         </form.FieldGroup>
-      </form.AppForm>
+      </ScrapsForm>
     </FormSearch>
   );
 }

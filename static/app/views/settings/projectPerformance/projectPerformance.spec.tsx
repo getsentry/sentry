@@ -706,6 +706,7 @@ describe('projectPerformance', () => {
     const performanceIssuesPutMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'PUT',
+      asyncDelay: 0,
     });
 
     render(<ProjectPerformance />, {organization: org, initialRouterConfig});
@@ -739,6 +740,8 @@ describe('projectPerformance', () => {
     await ue.click(slider);
     for (let index = 0; index < Math.abs(indexDelta); index++) {
       await ue.keyboard(key);
+      await waitFor(() => expect(slider).toBeDisabled());
+      await waitFor(() => expect(slider).toBeEnabled());
     }
     await ue.tab();
 

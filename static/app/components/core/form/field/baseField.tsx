@@ -2,7 +2,7 @@ import {useEffect, useRef, type Ref} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Checkmark, Spinner} from '@sentry/scraps/form/icons';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -12,6 +12,7 @@ import {FieldMeta} from './meta';
 
 export type BaseFieldProps<T extends HTMLElement> = {
   disabled?: boolean | string;
+  error?: string;
   ref?: Ref<T>;
 };
 type FieldChildrenProps<T extends HTMLElement> = {
@@ -24,8 +25,7 @@ type FieldChildrenProps<T extends HTMLElement> = {
   ref: Ref<T>;
 };
 
-export const useAutoSaveIndicator = () => {
-  const field = useFieldContext();
+export const useAutoSaveIndicator = (field: AnyFieldApi) => {
   const status = useAutoSaveContext()?.status;
 
   if (status === 'pending') {
@@ -41,20 +41,18 @@ export const useAutoSaveIndicator = () => {
   return null;
 };
 
-export const useFieldId = () => {
-  const field = useFieldContext();
-
+export const getFieldId = (field: AnyFieldApi) => {
   return field.form.formId + field.name;
 };
 
-export const useHintTextId = () => {
-  const fieldId = useFieldId();
+export const getHintTextId = (field: AnyFieldApi) => {
+  const fieldId = getFieldId(field);
 
   return `${fieldId}-hint`;
 };
 
-export const useLabelId = () => {
-  const fieldId = useFieldId();
+export const getLabelId = (field: AnyFieldApi) => {
+  const fieldId = getFieldId(field);
 
   return `${fieldId}-label`;
 };
@@ -116,18 +114,18 @@ function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
 
 type FieldState = {indicator: React.ReactNode};
 
-export function BaseField<T extends HTMLElement>(
+function BaseFieldImpl<T extends HTMLElement>(
   props: BaseFieldProps<T> & {
     children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
+    field: AnyFieldApi;
   }
 ) {
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
-  const field = useFieldContext();
+  const indicator = useAutoSaveIndicator(props.field);
   const ref = useRef<T>(null);
-  const fieldId = useFieldId();
-  const hintTextId = useHintTextId();
-  useScrollToHash(field.name, ref);
+  const fieldId = getFieldId(props.field);
+  const hintTextId = getHintTextId(props.field);
+  useScrollToHash(String(props.field.name), ref);
   useFocusRestore(ref);
 
   return (
@@ -136,18 +134,31 @@ export function BaseField<T extends HTMLElement>(
         {
           ref: mergeRefs(ref, props.ref),
           disabled: !!props.disabled || autoSaveContext?.status === 'pending',
-          'aria-invalid': !field.state.meta.isValid,
+          'aria-invalid': !props.field.meta.isValid,
           'aria-describedby': hintTextId,
-          onBlur: field.handleBlur,
-          name: field.name,
+          onBlur: props.field.handleBlur,
+          name: props.field.name,
           id: fieldId,
         },
         {indicator}
       )}
-      <FieldMeta.Status disabled={props.disabled} />
+      <FieldMeta.Status disabled={props.disabled} error={props.error} />
     </Flex>
   );
 }
+
+type BaseFieldComponent = <T extends HTMLElement>(
+  props: BaseFieldProps<T> & {
+    children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
+  }
+) => React.ReactNode;
+
+export const BaseField = fieldComponent.loose(
+  BaseFieldImpl,
+  'field'
+) as BaseFieldComponent;
+
+export {BaseFieldImpl};
 
 function animateRowHighlight(node: HTMLElement | null) {
   if (!node) {

@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -74,7 +74,6 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
     },
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {cancel: 1},
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
@@ -108,7 +107,7 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         </strong>
       </p>
       <p>{t('You can subscribe to it again by going to your account settings.')}</p>
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Flex gap="sm" justify="end">
           <Button
             onClick={() => {
@@ -120,7 +119,7 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
           </Button>
           <form.SubmitButton>{t('Unsubscribe')}</form.SubmitButton>
         </Flex>
-      </form.AppForm>
+      </ScrapsForm>
     </Fragment>
   );
 }

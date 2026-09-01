@@ -5,9 +5,10 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
+  ScrapsForm,
   AutoSaveContextProvider,
   AutoSaveForm,
-  defaultFormOptions,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {InfoTip} from '@sentry/scraps/info';
@@ -94,17 +95,19 @@ export function AutofixRepositoriesItem({
   const resetOnErrorRef = useRef(false);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       branchOverrides: repository.branchOverrides,
     },
-    validators: {
-      onDynamic: repoSchema,
-    },
-    listeners: {
-      onChangeDebounceMs: 1000,
-      onChange: ({formApi}) => formApi.handleSubmit(),
-    },
+    validators: defaultFormValidators(repoSchema),
+    listeners: [
+      {
+        triggerDebounceMs: 1000,
+        run: ({formApi}) => {
+          void formApi.handleSubmit();
+        },
+        triggers: ['change'],
+      },
+    ],
     onSubmit: ({value}) => handleUpdateRepo(repoSchema.parse(value)),
   });
 
@@ -206,18 +209,18 @@ export function AutofixRepositoriesItem({
                     size="sm"
                     disabled={!canWrite}
                     placeholder={t('Default branch')}
-                    value={field.state.value ?? ''}
+                    value={field.value ?? ''}
                     onChange={field.handleChange}
                   />
                 </Flex>
               )}
             </AutoSaveForm>
 
-            <form.AppForm form={form}>
-              <form.AppField name="branchOverrides" mode="array">
+            <ScrapsForm form={form}>
+              <form.ArrayField name="branchOverrides">
                 {fieldApi => (
                   <Stack gap="lg">
-                    {fieldApi.state.value.map((override, i) => (
+                    {fieldApi.value.map((override, i) => (
                       <AutoSaveContextProvider
                         key={`branchOverrides[${i}]`}
                         value={{
@@ -230,7 +233,7 @@ export function AutofixRepositoriesItem({
                         }}
                       >
                         <Flex align="center" gap="sm">
-                          <form.AppField name={`branchOverrides[${i}].tagName`}>
+                          <form.Field name={`branchOverrides[${i}].tagName`}>
                             {subField => (
                               <Fragment>
                                 <Text wrap="nowrap">{t('When')}</Text>
@@ -239,13 +242,13 @@ export function AutofixRepositoriesItem({
                                   onChange={subField.handleChange}
                                   placeholder={t('Tag name (e.g. environment)')}
                                   size="sm"
-                                  value={subField.state.value}
+                                  value={subField.value}
                                   width="170px"
                                 />
                               </Fragment>
                             )}
-                          </form.AppField>
-                          <form.AppField name={`branchOverrides[${i}].tagValue`}>
+                          </form.Field>
+                          <form.Field name={`branchOverrides[${i}].tagValue`}>
                             {subField => (
                               <Fragment>
                                 <Text wrap="nowrap">{t('is')}</Text>
@@ -254,13 +257,13 @@ export function AutofixRepositoriesItem({
                                   onChange={subField.handleChange}
                                   placeholder={t('Tag value (e.g. staging)')}
                                   size="sm"
-                                  value={subField.state.value}
+                                  value={subField.value}
                                   width="170px"
                                 />
                               </Fragment>
                             )}
-                          </form.AppField>
-                          <form.AppField name={`branchOverrides[${i}].branchName`}>
+                          </form.Field>
+                          <form.Field name={`branchOverrides[${i}].branchName`}>
                             {subField => (
                               <Fragment>
                                 <Text wrap="nowrap">{t('look at')}</Text>
@@ -269,12 +272,12 @@ export function AutofixRepositoriesItem({
                                   onChange={subField.handleChange}
                                   placeholder={t('Branch name (e.g. dev)')}
                                   size="sm"
-                                  value={subField.state.value}
+                                  value={subField.value}
                                   width="170px"
                                 />
                               </Fragment>
                             )}
-                          </form.AppField>
+                          </form.Field>
                           <Button
                             aria-label={t('Remove override')}
                             disabled={!canWrite}
@@ -308,8 +311,8 @@ export function AutofixRepositoriesItem({
                     </Flex>
                   </Stack>
                 )}
-              </form.AppField>
-            </form.AppForm>
+              </form.ArrayField>
+            </ScrapsForm>
 
             {includeInstructions && (
               <AutoSaveForm
@@ -328,7 +331,7 @@ export function AutofixRepositoriesItem({
                       placeholder={t(
                         'Add any general context or instructions to help Seer understand this repository...'
                       )}
-                      value={field.state.value ?? ''}
+                      value={field.value ?? ''}
                       onChange={field.handleChange}
                     />
                   </Stack>

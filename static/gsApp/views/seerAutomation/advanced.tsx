@@ -77,7 +77,7 @@ export default function SeerAutomationAdvancedSettings() {
                 )}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={
                     organization.features.includes('seer-disable-coding-setting')

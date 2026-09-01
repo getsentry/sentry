@@ -1,9 +1,10 @@
+import {useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -84,6 +85,7 @@ export function RepositoryProjectPathConfigModal({
     ),
   }));
   const repoOptions = repos.map(({name, id}) => ({value: id, label: name}));
+  const [defaultBranchBlurred, setDefaultBranchBlurred] = useState(false);
 
   const endpoint = existingConfig
     ? getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
@@ -116,7 +118,6 @@ export function RepositoryProjectPathConfigModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       projectId: existingConfig?.projectId ?? '',
       repositoryId: existingConfig?.repoId ?? '',
@@ -125,7 +126,7 @@ export function RepositoryProjectPathConfigModal({
       sourceRoot: existingConfig?.sourceRoot ?? '',
       integrationId: integration.id,
     },
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       trackAnalytics('integrations.stacktrace_submit_config', {
         setup_type: 'manual',
@@ -138,69 +139,79 @@ export function RepositoryProjectPathConfigModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <h4>{t('Configure code path mapping')}</h4>
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="projectId">
+          <form.Field name="projectId">
             {field => (
               <field.Layout.Stack label={t('Project')} required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Choose Sentry project')}
                   options={projectOptions}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField
+          <form.Field
             name="repositoryId"
-            listeners={{
-              onChange: async ({value}) => {
-                const repoLabel = repoOptions.find(opt => opt.value === value)?.label;
-                if (!repoLabel) {
-                  return;
-                }
-
-                // If the default branch field has been blurred (i.e., the user has interacted with it),
-                // do not auto-update its value when the repo changes, to avoid overwriting user input.
-                if (form.getFieldMeta('defaultBranch')?.isBlurred) {
-                  return;
-                }
-
-                try {
-                  const data = await queryClient.fetchQuery(
-                    integrationReposOptions(organization.slug, integration.id, repoLabel)
-                  );
-                  const defaultBranch = data.json.repos.find(
-                    r => r.identifier === repoLabel
-                  )?.defaultBranch;
-                  if (defaultBranch) {
-                    form.setFieldValue('defaultBranch', defaultBranch);
+            listeners={[
+              {
+                run: async ({value, formApi}) => {
+                  const repoLabel = repoOptions.find(opt => opt.value === value)?.label;
+                  if (!repoLabel) {
+                    return;
                   }
-                } catch {
-                  // If the fetch fails, keep the current default branch value
-                }
+
+                  // If the default branch field has been blurred (i.e., the user has interacted with it),
+                  // do not auto-update its value when the repo changes, to avoid overwriting user input.
+                  if (defaultBranchBlurred) {
+                    return;
+                  }
+
+                  try {
+                    const data = await queryClient.fetchQuery(
+                      integrationReposOptions(
+                        organization.slug,
+                        integration.id,
+                        repoLabel
+                      )
+                    );
+                    const defaultBranch = data.json.repos.find(
+                      r => r.identifier === repoLabel
+                    )?.defaultBranch;
+                    if (defaultBranch) {
+                      formApi.setFieldValue('defaultBranch', defaultBranch);
+                    }
+                  } catch {
+                    // If the fetch fails, keep the current default branch value
+                  }
+                },
+                triggers: ['change'],
               },
-            }}
+            ]}
           >
             {field => (
               <field.Layout.Stack label={t('Repo')} required>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Choose repo')}
                   options={repoOptions}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="defaultBranch">
+          <form.Field
+            name="defaultBranch"
+            listeners={[{run: () => setDefaultBranchBlurred(true), triggers: ['blur']}]}
+          >
             {field => (
               <field.Layout.Stack
                 label={isStreamBased ? t('Stream') : t('Branch')}
@@ -217,7 +228,7 @@ export function RepositoryProjectPathConfigModal({
                 required={!isStreamBased}
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={
                     isStreamBased
@@ -227,9 +238,9 @@ export function RepositoryProjectPathConfigModal({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="stackRoot">
+          <form.Field name="stackRoot">
             {field => (
               <field.Layout.Stack
                 label={t('Stack Trace Root')}
@@ -239,15 +250,15 @@ export function RepositoryProjectPathConfigModal({
                 variant="compact"
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Type root path of your stack traces')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="sourceRoot">
+          <form.Field name="sourceRoot">
             {field => (
               <field.Layout.Stack
                 label={t('Source Code Root')}
@@ -257,13 +268,13 @@ export function RepositoryProjectPathConfigModal({
                 variant="compact"
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('Type root path of your source code, e.g. `src/`.')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -272,6 +283,6 @@ export function RepositoryProjectPathConfigModal({
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -62,14 +62,13 @@ function CreateTeamModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {slug: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => submitCreateTeam(value).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <h5>{t('Create Team')}</h5>
       </Header>
@@ -78,7 +77,7 @@ function CreateTeamModal({
           <Text as="p">
             {t('Teams group members for issue assignment, ownership, and notifications.')}
           </Text>
-          <form.AppField name="slug">
+          <form.Field name="slug">
             {field => (
               <field.Layout.Stack
                 label={t('Team Slug')}
@@ -86,20 +85,20 @@ function CreateTeamModal({
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={value => field.handleChange(slugify(value))}
                   placeholder={t('e.g. operations, web-frontend, mobile-ios')}
                   autoFocus
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Create Team')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

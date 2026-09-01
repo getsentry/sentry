@@ -1,12 +1,12 @@
 import {createContext, useContext, useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
-import {useAutoSaveIndicator, useLabelId} from './baseField';
+import {getLabelId, useAutoSaveIndicator} from './baseField';
 import {GroupProvider} from './groupContext';
 import {FieldMeta} from './meta';
 
@@ -33,16 +33,16 @@ function useRadioContext() {
 // Radio.Group component
 interface RadioGroupProps {
   children: React.ReactNode;
+  field: AnyFieldApi;
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
 }
 
-function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
-  const field = useFieldContext();
-  const labelId = useLabelId();
+function RadioGroup({children, value, onChange, disabled, field}: RadioGroupProps) {
+  const labelId = getLabelId(field);
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
+  const indicator = useAutoSaveIndicator(field);
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
@@ -59,7 +59,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
     },
     onBlur: field.handleBlur,
     disabled: isDisabled,
-    'aria-invalid': !field.state.meta.isValid,
+    'aria-invalid': !field.meta.isValid,
   };
 
   return (
@@ -78,6 +78,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
 // Radio.Item component
 interface RadioItemProps {
   children: React.ReactNode;
+  field: AnyFieldApi;
   value: string;
   description?: React.ReactNode;
 }
@@ -112,5 +113,5 @@ export function RadioField() {
   return null;
 }
 
-RadioField.Group = RadioGroup;
-RadioField.Item = RadioItem;
+RadioField.Group = fieldComponent.loose(RadioGroup, 'field');
+RadioField.Item = fieldComponent.loose(RadioItem, 'field');

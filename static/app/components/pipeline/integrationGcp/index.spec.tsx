@@ -26,7 +26,7 @@ describe('GcpSaGenerationStep', () => {
   });
 
   it('calls advance on continue click', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <GcpSaGenerationStep
         {...makeSaGenerationStepProps({stepData: {sentrySaEmail}, advance})}
@@ -88,7 +88,7 @@ describe('GcpCustomerConfigStep', () => {
   });
 
   it('calls advance with config on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}, advance})} />
     );
