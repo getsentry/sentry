@@ -339,7 +339,7 @@ export function MonitorForm({
               const parsedSchedule =
                 scheduleType === 'crontab'
                   ? crontabAsText(
-                      form.current.getValue('config.schedule')?.toString() ?? ''
+                      form.current.getValue<string>('config.schedule')?.toString() ?? ''
                     )
                   : null;
 
@@ -515,7 +515,9 @@ export function MonitorForm({
             <PanelBody>
               <Observer>
                 {() => {
-                  const projectSlug = form.current.getValue('project')?.toString();
+                  const projectSlug = form.current
+                    .getValue<string>('project')
+                    ?.toString();
                   return (
                     <SentryMemberTeamSelectorField
                       label={t('Notify')}

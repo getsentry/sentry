@@ -30,7 +30,8 @@ export function SentryMemberTeamSelectorField({
   ...props
 }: RenderFieldProps) {
   const {form} = useContext(FormContext);
-  const fieldValue = form?.getValue(props.name);
+  const {multiple} = props;
+  const fieldValue = form?.getValue<string[] | null>(props.name, multiple ? [] : null);
 
   // Coerce value to always be a list of items
   const currentValue = useMemo(

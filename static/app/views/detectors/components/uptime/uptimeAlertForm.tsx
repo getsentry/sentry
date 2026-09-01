@@ -140,7 +140,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
   useEffect(
     () =>
       autorun(() => {
-        const projectSlug = formModel.getValue('projectSlug');
+        const projectSlug = formModel.getValue<string>('projectSlug');
         const selectedProject = projects.find(p => p.slug === projectSlug);
         const apiEndpoint = rule
           ? `/projects/${organization.slug}/${projectSlug}/uptime/${rule.id}/`
@@ -229,7 +229,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
         // When runtime assertions are disabled, the assertions field is not mounted,
         // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
         if (!hasRuntimeAssertions) {
-          const assertion = formModel.getValue('assertion') as UptimeAssertion | null;
+          const assertion = formModel.getValue<UptimeAssertion | null>('assertion');
           if (!assertion?.root || assertion.root.children?.length === 0) {
             formModel.setValue('assertion', null);
           }
@@ -461,7 +461,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
                       };
                     }}
                     getCurrentAssertion={() =>
-                      formModel.getValue('assertion') as UptimeAssertion | null
+                      formModel.getValue<UptimeAssertion | null>('assertion')
                     }
                     onApplySuggestion={newAssertion => {
                       formModel.setValue('assertion', newAssertion as any);
