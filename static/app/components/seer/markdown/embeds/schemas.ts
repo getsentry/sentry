@@ -246,7 +246,7 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline', 'block'],
     schema: z.object({
       version: z.string().min(1),
-      projectId: z.string().min(1).optional(),
+      projectId: idString.optional(),
     }),
     examples: [
       {

@@ -42,6 +42,12 @@ function releaseEmbedApiOptions({
 }
 
 function getCommitSummary(commitCount: number, authorCount: number) {
+  if (authorCount === 0) {
+    return commitCount === 1
+      ? t('1 commit')
+      : tct('[commitCount] commits', {commitCount});
+  }
+
   if (commitCount === 1) {
     return authorCount === 1
       ? t('1 commit by 1 author')
@@ -65,7 +71,7 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
     deploysApiOptions({
       orgSlug: organization.slug,
       releaseVersion: version,
-      query: projectId ? {project: projectId} : undefined,
+      query: projectId === undefined ? undefined : {project: projectId},
     })
   );
   const release = releaseQuery.data;
@@ -90,6 +96,11 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
   );
   const packageName =
     release?.versionInfo?.package ?? parseVersion(release?.version ?? version)?.package;
+  const newGroups =
+    release && projectId !== undefined
+      ? (release.projects.find(project => String(project.id) === String(projectId))
+          ?.newGroups ?? 0)
+      : (release?.newGroups ?? 0);
   const lastCommitTitle = release?.lastCommit?.message?.split(/\r?\n/, 1)[0];
   const sectionCount =
     4 + Number((release?.commitCount ?? 0) > 0) + Number(Boolean(release?.lastCommit));
@@ -135,7 +146,7 @@ export function ReleaseBlock({version, projectId}: ReleaseData) {
                 {t('New Issues')}
               </Text>
               <Text size="xl" tabular>
-                {release.newGroups}
+                {newGroups}
               </Text>
             </Stack>
 

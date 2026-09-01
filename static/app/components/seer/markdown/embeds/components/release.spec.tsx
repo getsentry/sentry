@@ -8,7 +8,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
 const version = 'frontend@65318d61d370';
-const projectId = '4383603';
+const projectId = 4383603;
 
 function renderReleaseEmbed(level: 'block' | 'inline' = 'block') {
   const tag = `{% release %}${JSON.stringify({version, projectId})}{% /release %}`;
@@ -29,7 +29,7 @@ describe('release embed', () => {
       commitCount: 1,
       dateCreated: '2020-04-08T12:18:00Z',
       lastCommit: commit,
-      newGroups: 2,
+      newGroups: 9,
       shortVersion: version,
       version,
       versionInfo: {...defaultRelease.versionInfo!, package: 'frontend'},
@@ -51,7 +51,7 @@ describe('release embed', () => {
     renderReleaseEmbed();
 
     expect(await screen.findByText('New Issues')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('Date Created')).toBeInTheDocument();
     expect(screen.getByText(/Apr 8, 2020/)).toBeInTheDocument();
     expect(screen.getByText('frontend')).toBeInTheDocument();
@@ -77,6 +77,28 @@ describe('release embed', () => {
         expect.objectContaining({query: {project: projectId}})
       );
     });
+  });
+
+  it('renders a commit count when no commit authors are available', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/releases/${encodeURIComponent(version)}/`,
+      body: ReleaseFixture({
+        authors: [],
+        commitCount: 2,
+        lastCommit: undefined,
+        shortVersion: version,
+        version,
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/releases/${encodeURIComponent(version)}/deploys/`,
+      body: [],
+    });
+
+    renderReleaseEmbed();
+
+    expect(await screen.findByText('2 commits')).toBeInTheDocument();
+    expect(screen.queryByText('2 commits by 0 authors')).not.toBeInTheDocument();
   });
 
   it('renders an inline link without fetching release data', () => {

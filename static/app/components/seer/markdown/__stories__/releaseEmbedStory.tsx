@@ -33,7 +33,7 @@ export function ReleaseEmbedStory() {
           data={{
             version: release.version,
             projectId:
-              release.projects.length === 1 ? String(release.projects[0]!.id) : undefined,
+              release.projects.length === 1 ? release.projects.at(0)?.id : undefined,
           }}
         />
       ) : (
