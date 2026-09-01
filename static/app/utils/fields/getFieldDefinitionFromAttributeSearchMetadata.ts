@@ -1,4 +1,4 @@
-import {ATTRIBUTE_SEARCH_METADATA, type AttributeSearchType} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 
 import {td} from 'sentry/locale';
 
@@ -9,11 +9,10 @@ import {
 } from './getAttributeSearchSecondaryAliases';
 import {FieldKind, type FieldDefinition} from './types';
 
-export const ARRAY_ATTRIBUTE_SEARCH_TYPES = new Set<AttributeSearchType>([
+export const ARRAY_ATTRIBUTE_SEARCH_TYPES = new Set([
   'string[]',
   'boolean[]',
-  'integer[]',
-  'double[]',
+  'number[]',
 ]);
 
 export function getFieldDefinitionFromAttributeSearchMetadata(
