@@ -98,8 +98,6 @@ describe('ProjectFilters', () => {
   }
 
   beforeEach(() => {
-    // The custom filters table only shows its date columns once its container is
-    // wide, and jsdom reports a 0px container.
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
