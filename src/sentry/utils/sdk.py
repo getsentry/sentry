@@ -318,7 +318,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
     return transport
 
 
-def _get_sdk_options() -> tuple[SdkConfig, str]:
+def _get_sdk_options() -> tuple[SdkConfig, str | None]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
     sdk_options["max_value_length"] = 100_000
