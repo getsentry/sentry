@@ -157,7 +157,7 @@ export function isInvalidFilterKey(
   return bareKey !== keyWithArgs && invalidFilterKeys.includes(bareKey);
 }
 
-export function isFilterKeyAlias(
+function isFilterKeyAlias(
   key: string,
   filterKeyAliases: TagCollection | undefined
 ): boolean {
