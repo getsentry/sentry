@@ -101,25 +101,46 @@ function linkKey(link: ToolLink) {
  * `ToolCallList` suppresses a tool call that reported nothing, so a caller deciding whether to open
  * a container around it cannot go by `tool_calls.length` — that opens an empty box.
  *
- * Deliberately the same terms as the per-call `hasContent` guard below, minus the residual-link
- * filtering: residual links are only consumed by rows, and rows already make this true.
+ * The same terms as the per-call `hasContent` guard below, plus the block's own running placeholder,
+ * and attributing progress and live rows the way the list does: only to a call that has not settled.
  */
 export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean {
   const toolCalls = block.message.tool_calls ?? [];
   if (!toolCalls.length) {
     return false;
   }
-  const toolsUsed = getToolsStringFromBlock(block);
   const results = block.tool_results ?? [];
-  const latestTodos = findLatestTodos(blocks);
+  const settledCallIds = new Set(results.flatMap(result => result?.tool_call_id ?? []));
+  const pendingCallIds = toolCalls.flatMap(toolCall =>
+    toolCall.id && !settledCallIds.has(toolCall.id) ? [toolCall.id] : []
+  );
 
-  if (latestTodos?.block === block) {
+  if (findLatestTodos(blocks)?.block === block) {
     return true;
   }
-  if (block.live_calls?.length) {
+  // The placeholder the list renders after its rows, whether or not any row survived.
+  if (
+    block.loading &&
+    toolCalls.some(
+      toolCall =>
+        CODE_MODE_TOOLS.has(toolCall.function) &&
+        toolCall.id &&
+        !settledCallIds.has(toolCall.id)
+    )
+  ) {
     return true;
   }
-  if ((block.tool_links ?? []).some(link => link && !link.params?.is_error)) {
+  // Live rows hang off the block, so the list can only attribute them to a lone pending call.
+  if (block.live_calls?.length && pendingCallIds.length === 1) {
+    return true;
+  }
+  // Progress narration stands in for rows until its call reports.
+  if (
+    (block.progress ?? []).some(
+      event =>
+        event?.token && event.message?.trim() && pendingCallIds.includes(event.token)
+    )
+  ) {
     return true;
   }
   if (
@@ -135,6 +156,7 @@ export function blockRendersToolContent(block: Block, blocks?: Block[]): boolean
   ) {
     return true;
   }
+  const toolsUsed = getToolsStringFromBlock(block);
   return toolCalls.some(
     (toolCall, idx) => !CODE_MODE_TOOLS.has(toolCall.function) && Boolean(toolsUsed[idx])
   );
