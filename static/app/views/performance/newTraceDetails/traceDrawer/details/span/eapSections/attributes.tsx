@@ -17,6 +17,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {formatDollars} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -34,7 +35,6 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
-  findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
   tryParseJsonRecursive,
@@ -250,7 +250,7 @@ export function AttributesContent({
             getCustomActions={getTraceAttributesTreeActions({
               location,
               organization,
-              projectIds: findSpanAttributeValue(attributes, 'project_id'),
+              projectIds: getAttributeValue(attributes, 'project_id')?.toString(),
             })}
           />
         </div>
