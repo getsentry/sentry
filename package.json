@@ -109,7 +109,7 @@
     "@sentry-internal/rrweb-player": "2.41.0",
     "@sentry-internal/rrweb-snapshot": "2.41.0",
     "@sentry/browser": "11.0.0-alpha.2",
-    "@sentry/conventions": "^0.20.0",
+    "@sentry/conventions": "^0.21.0",
     "@sentry/core": "11.0.0-alpha.2",
     "@sentry/node": "11.0.0-alpha.2",
     "@sentry/react": "11.0.0-alpha.2",
