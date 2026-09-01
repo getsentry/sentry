@@ -26,13 +26,9 @@ interface PipelineModalProps<
 > extends ModalRenderProps {
   provider: P;
   type: T;
-  /** Overrides the step's default descriptive copy. */
-  description?: string;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
-  /** Overrides the header title (defaults to the pipeline's `actionTitle`). */
-  title?: string;
 }
 
 function PipelineModal<
@@ -47,8 +43,6 @@ function PipelineModal<
   initialData,
   onComplete,
   onError,
-  title,
-  description,
 }: PipelineModalProps<T, P>) {
   const handleComplete = (data: CompletionDataFor<T, P>) => {
     onComplete?.(data);
@@ -58,7 +52,6 @@ function PipelineModal<
   const pipeline = usePipeline(type, provider, {
     onComplete: handleComplete,
     initialData,
-    description,
   });
   const {stepDefinition} = pipeline;
   // Keeps `onError` out of the deps below. Every distinct error is reported, so a
@@ -89,7 +82,7 @@ function PipelineModal<
   return (
     <Fragment>
       <Header closeButton>
-        <Text size="lg">{title ?? pipeline.definition.actionTitle}</Text>
+        <Text size="lg">{pipeline.definition.actionTitle}</Text>
       </Header>
       <Body>
         <Stack gap="2xl">
@@ -162,12 +155,10 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
-  description?: string;
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
   onError?: (error: string) => void;
-  title?: string;
 }
 
 export function openPipelineModal<
@@ -180,8 +171,6 @@ export function openPipelineModal<
   onComplete,
   onClose,
   onError,
-  title,
-  description,
 }: OpenPipelineModalOptions<T, P>) {
   openModal(
     deps => (
@@ -192,8 +181,6 @@ export function openPipelineModal<
         initialData={initialData}
         onComplete={onComplete}
         onError={onError}
-        title={title}
-        description={description}
       />
     ),
     {onClose, closeEvents: 'none'}
