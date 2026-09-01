@@ -1332,11 +1332,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
         measure = SamplingMeasure.SEGMENTS
-        if options.get("dynamic-sampling.check_span_feature_flag"):
-            span_org_ids = options.get("dynamic-sampling.measure.spans") or []
-            if org_id in span_org_ids:
-                measure = SamplingMeasure.SPANS
-
         projects_with_tx_count_and_rates = []
         for chunk in query_project_counts_by_org(
             [org_id], measure, query_interval=timedelta(days=30)
@@ -1459,7 +1454,6 @@ class DeleteConfirmationArgs(TypedDict):
 
 
 def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
-    from sentry import options
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]

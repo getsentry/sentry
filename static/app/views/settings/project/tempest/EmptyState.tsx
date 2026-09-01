@@ -6,7 +6,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {EmptyState as TableEmptyState} from '@sentry/scraps/emptyState';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -62,7 +62,9 @@ export function EmptyState({
         <Description>
           {t('Your code sleuth eagerly awaits its first mission.')}
         </Description>
-        <Image src={waitingForEventImg} />
+        <Container display={{zero: 'none', '2xl': 'contents'}}>
+          <Image src={waitingForEventImg} />
+        </Container>
       </HeaderWrapper>
       <Divider />
       <Body>
@@ -240,10 +242,6 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`
