@@ -217,7 +217,7 @@ class DetectorHandler(
 
         if self._is_detector_group_value(extracted_value):
             logger.warning(
-                "The default implementation of evaluate_data_packet expects a single value, but a dictionary of values was returned. To support grouping, please override the evaluate_data_packet method"
+                "The default implementation of evaluate expects a single value, but a dictionary of values was returned from extract_value. To support grouping, please override the evaluate method"
             )
 
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
@@ -311,14 +311,13 @@ class ConditionDetectorHandler(
     DetectorHandler[DataPacketType, DataPacketEvaluationType, DataConditionGroupEvaluation]
 ):
     """
-    Base implementation class providing shared infrastructure for detector handlers.
+    Implementation class providing shared infrastructure for detector handlers.
     Includes metrics tracking and condition group loading around the `evaluate` template method.
-
-    TODO - Implement a standard DetectorHandler with this base class -- a-la StatefulDetectorHandler
     """
 
     def __init__(self, detector: Detector):
         super().__init__(detector)
+
         if detector.workflow_condition_group_id is not None:
             try:
                 # Check if workflow_condition_group is already prefetched
