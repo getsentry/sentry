@@ -326,6 +326,7 @@ class SeerAgentClient:
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
         enable_embeds: bool = True,
+        enable_embed_references: bool = False,
         enable_streaming: bool | None = None,
     ):
         self.organization = organization
@@ -346,6 +347,7 @@ class SeerAgentClient:
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
+        self.enable_embed_references = enable_embed_references
         self.enable_streaming = enable_streaming
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
@@ -628,6 +630,20 @@ class SeerAgentClient:
             "organizations:seer-explorer-embeds", self.organization, actor=self.user
         )
 
+    def _embed_references_enabled(self) -> bool:
+        """Whether the agent may address embed payloads instead of inlining them.
+
+        Only for surfaces that resolve a reference — rendering Markdoc is not enough, since an
+        unresolved reference renders nothing where an inline body would have rendered a widget.
+        Opt-in per caller, unlike ``enable_embeds``, and flagged so it can be turned off without
+        a revert.
+        """
+        if not self.enable_embed_references:
+            return False
+        return features.has(
+            "organizations:seer-explorer-embed-references", self.organization, actor=self.user
+        )
+
     def _build_agent_run_options(
         self,
         *,
@@ -678,6 +694,8 @@ class SeerAgentClient:
 
         if self._embed_widgets_enabled():
             opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
+            if self._embed_references_enabled():
+                opts["embed_references"] = True
 
         if self.enable_streaming is True or (
             self.enable_streaming is None

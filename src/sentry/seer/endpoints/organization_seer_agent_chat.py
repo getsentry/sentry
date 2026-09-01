@@ -332,6 +332,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_bash_tools=override_bash_mode_enabled,
                 enable_coding=enable_coding,
                 enable_code_mode_tools=enable_code_mode_tools,
+                # The explorer wraps its transcript in a resolver, so it can take embed payloads
+                # off structuredContent instead of having the agent transcribe them.
+                enable_embed_references=True,
                 reasoning_effort="medium",
             )
             if resolved is not None:
