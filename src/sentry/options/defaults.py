@@ -4307,7 +4307,8 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of random check batches to schedule when there is no stale derived data to heal.
+# Max random check batches heal_stale_derived_data may schedule from leftover
+# heal-max-tasks budget (after any stale regeneration work is scheduled).
 register(
     "issues.derived.check-task-count",
     default=5,
