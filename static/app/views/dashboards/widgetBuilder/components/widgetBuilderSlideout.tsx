@@ -188,9 +188,12 @@ function WidgetBuilderSlideoutInner({
   // - Issue widgets: don't support Group By (issues have their own grouping)
   // - Categorical Bar widgets: group by is not supported yet, but may be in the future
   // - Text widgets: don't support Group By (no data visualization)
+  // - Trace Metrics equations with tables: no other way for selecting columns to group by
   const showGroupBySelector =
     (isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget) ||
-    (state.dataset === WidgetType.TRACEMETRICS && isInEquationMode);
+    (state.dataset === WidgetType.TRACEMETRICS &&
+      isInEquationMode &&
+      state.displayType === DisplayType.TABLE);
 
   // X-Axis selector is only for Categorical Bar widgets, other chart widgets
   // always use time as the X-axis
