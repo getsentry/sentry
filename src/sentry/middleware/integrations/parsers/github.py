@@ -95,19 +95,18 @@ class GithubRequestParser(BaseRequestParser):
                 return repo_id
         return None
 
-    def get_mailbox_identifier(
+    def _bucketed_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
     ) -> str:
-        """Distribute webhooks across sub-mailboxes by repository ID and event type.
+        """Distribute webhooks across sub-mailboxes by repository ID.
 
         Bypasses the rate-limit auto-switch used by the base class so GitHub webhooks
-        are always bucketed.
+        are always bucketed. The event-type suffix is appended by the base class.
         """
-        base = self._build_bucketed_identifier(integration, data)
-        event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
-        if event_type:
-            return f"{base}:{event_type}"
-        return base
+        return self._build_bucketed_identifier(integration, data)
+
+    def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
+        return self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest

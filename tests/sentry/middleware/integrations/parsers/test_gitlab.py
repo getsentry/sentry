@@ -9,6 +9,11 @@ from rest_framework import status
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.integrations.gitlab.webhook_types import GITLAB_EVENT_KINDS
+from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint
+from sentry.integrations.middleware.hybrid_cloud.parser import (
+    EVENT_TYPED_MAILBOX_PROVIDERS_OPTION,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.classifications import IntegrationClassification
@@ -16,6 +21,7 @@ from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
@@ -134,6 +140,74 @@ class GitlabRequestParserTest(TestCase):
             mailbox_name=f"gitlab:{integration.id}",
             cell_names=[cell.name],
         )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @override_options({EVENT_TYPED_MAILBOX_PROVIDERS_OPTION: ["gitlab"]})
+    @responses.activate
+    def test_routing_webhook_mailboxes_by_event_type(self) -> None:
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"gitlab:{integration.id}:push",
+            cell_names=[cell.name],
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @override_options({EVENT_TYPED_MAILBOX_PROVIDERS_OPTION: ["gitlab"]})
+    @responses.activate
+    def test_routing_webhook_ignores_an_unhandled_event_type(self) -> None:
+        integration = self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT.replace(b'"object_kind": "push"', b'"object_kind": "tag_push"'),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Tag Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        # An unvalidated suffix would put an arbitrary body value in the mailbox name.
+        assert_webhook_payloads_for_mailbox(
+            request=request,
+            mailbox_name=f"gitlab:{integration.id}",
+            cell_names=[cell.name],
+        )
+
+    def test_mailbox_event_type(self) -> None:
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+
+        assert parser.mailbox_event_type({"object_kind": "merge_request"}) == "merge_request"
+        assert parser.mailbox_event_type({}) is None
+        assert parser.mailbox_event_type({"object_kind": 4}) is None
+
+    def test_handled_events_all_have_a_mailbox_event_type(self) -> None:
+        # Drift guard: a handler added without its object_kind would silently keep
+        # queuing that event under the integration-level mailbox.
+        assert set(GitlabWebhookEndpoint._handlers) == set(GITLAB_EVENT_KINDS)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

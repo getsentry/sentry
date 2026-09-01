@@ -11,6 +11,7 @@ from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+from sentry import options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
@@ -18,6 +19,7 @@ from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
+from sentry.hybridcloud.webhook_event_types import MAILBOX_EVENT_TYPES
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
 
 SHED_INBOUND_KILLSWITCH = "hybridcloud.webhookpayload.shed-inbound"
+EVENT_TYPED_MAILBOX_PROVIDERS_OPTION = "hybridcloud.webhookpayload.event_typed_mailbox_providers"
 SHED_RETRY_AFTER_SECONDS = 60
 # Its own logger so the sampling stays on the shed line, rather than quietly
 # applying to every info log a future caller adds to this module.
@@ -266,6 +269,14 @@ class BaseRequestParser(ABC):
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
         """
+        identifier = self._bucketed_mailbox_identifier(integration, data)
+        event_type = self._mailbox_event_type(data)
+        return f"{identifier}:{event_type}" if event_type else identifier
+
+    def _bucketed_mailbox_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
+        """The mailbox identifier up to the bucket, before any event-type suffix."""
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         use_buckets_key = f"{ratelimit_key}:use_buckets"
@@ -314,6 +325,32 @@ class BaseRequestParser(ABC):
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
+
+    def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
+        """The validated event-type suffix for this payload, or None for no suffix.
+
+        Validation lives here, not in the subclass, because the discriminator comes
+        out of a body control has not verified — gitlab and bitbucket resolve their
+        handlers on the cell. An unvalidated one would put an attacker-chosen string
+        into `mailbox_name`: unbounded mailboxes and scheduler entries, not just a
+        noisy tag.
+        """
+        if self.provider not in options.get(EVENT_TYPED_MAILBOX_PROVIDERS_OPTION):
+            return None
+        known_event_types = MAILBOX_EVENT_TYPES.get(self.provider)
+        if not known_event_types:
+            return None
+        event_type = self.mailbox_event_type(data)
+        return event_type if event_type in known_event_types else None
+
+    def mailbox_event_type(self, data: dict[str, Any]) -> str | None:
+        """The event type this payload carries, for providers that mailbox by one.
+
+        Returned unvalidated; `_mailbox_event_type` checks it against the registry.
+        The body is `{}` when it did not parse, so return None when there is nothing
+        to read.
+        """
+        return None
 
     def get_response_from_first_cell(self):
         cells = self.get_cells_from_organizations()
