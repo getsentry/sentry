@@ -41,6 +41,28 @@ function toolUseBlock(
   };
 }
 
+/**
+ * Seer's global LLM-wait placeholder: `loading` with no tool calls, content defaulting to
+ * "Thinking..." (see `add_loading_response_block`). Appended before every completion.
+ */
+function llmWaitBlock(): Block {
+  return {
+    id: 'loading',
+    message: {role: 'assistant', content: 'Thinking...', tool_calls: null},
+    timestamp: '2024-01-01T00:02:00Z',
+    loading: true,
+  };
+}
+
+/** The response's `ThinkingBlock`, so a spinner can be located inside or outside it. */
+function reasoningBox(container: HTMLElement): HTMLElement {
+  const box = container.querySelector<HTMLElement>('[data-disclosure]');
+  if (!box) {
+    throw new Error('no reasoning box rendered');
+  }
+  return box;
+}
+
 function assistantBlock(id: string, content: string, loading = false): Block {
   return {
     id,
@@ -213,6 +235,38 @@ describe('ResponseGroup', () => {
     );
 
     expect(screen.getByText('my private reasoning')).toBeVisible();
+  });
+
+  it('spins outside the box while the agent works', () => {
+    // Between tool calls seer appends its LLM-wait placeholder. The tool is done, so the box must
+    // settle and let the placeholder below carry the spinner.
+    const group = [toolUseBlock('t1'), llmWaitBlock()];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(screen.getByRole('button', {name: /spans/})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(reasoningBox(container).contains(screen.getByRole('status'))).toBe(false);
+  });
+
+  it('spins inside the box while a tool works', () => {
+    const group = [toolUseBlock('t1', {loading: true})];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(screen.getByRole('button', {name: /spans/})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(reasoningBox(container).contains(screen.getByRole('status'))).toBe(true);
   });
 
   it('renders no reasoning block when the response is a direct answer', () => {
