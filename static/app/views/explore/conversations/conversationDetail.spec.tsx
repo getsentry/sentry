@@ -253,8 +253,10 @@ describe('ConversationDetailPage summary errors', () => {
     ]);
     renderPage();
 
+    expect(await screen.findByText('Tools:')).toBeInTheDocument();
+
     // Alphabetically alpha_tool would lead, but the errored zeta_tool outranks it.
-    const tags = await screen.findAllByText(/^(alpha|zeta)_tool$/);
+    const tags = screen.getAllByText(/^(alpha|zeta)_tool$/);
     const names = tags.map(tag => tag.textContent);
     expect(names.indexOf('zeta_tool')).toBeLessThan(names.indexOf('alpha_tool'));
   });

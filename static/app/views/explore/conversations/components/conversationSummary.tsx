@@ -129,12 +129,21 @@ export function ConversationSummary({
             </Tooltip>
           )}
         </Container>
-        <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
-          {isLoading ? (
-            <Fragment>
+        {isLoading ? (
+          <Fragment>
+            <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+              <Placeholder width="40px" height="14px" />
+              <Placeholder width="72px" height="20px" />
+              <Placeholder width="72px" height="20px" />
+            </Flex>
+            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="140px" height="14px" />
+              </Flex>
+              <Flex align="center" gap="xs">
+                <Placeholder width="12px" height="12px" />
+                <Placeholder width="40px" height="14px" />
               </Flex>
               {project && (
                 <Flex align="center" gap="xs">
@@ -146,23 +155,50 @@ export function ConversationSummary({
                 <Placeholder width="16px" height="16px" />
                 <Placeholder width="120px" height="14px" />
               </Flex>
-              <Flex align="center" gap="xs">
-                <Placeholder width="12px" height="12px" />
-                <Placeholder width="40px" height="14px" />
+            </Flex>
+          </Fragment>
+        ) : (
+          <Fragment>
+            {aggregates.toolNames.length > 0 && (
+              <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
+                <Text size="sm" wrap="nowrap">
+                  {t('Tools:')}
+                </Text>
+                {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
+                  <ToolTag
+                    key={name}
+                    name={name}
+                    hasError={aggregates.erroredToolNames.has(name)}
+                  />
+                ))}
+                {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+                  <InfoText
+                    size="sm"
+                    variant="muted"
+                    wrap="nowrap"
+                    title={
+                      <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
+                        {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
+                          <ToolTag
+                            key={name}
+                            name={name}
+                            hasError={aggregates.erroredToolNames.has(name)}
+                          />
+                        ))}
+                      </Flex>
+                    }
+                  >
+                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </InfoText>
+                )}
               </Flex>
-              <Flex align="center" gap="sm">
-                <Placeholder width="72px" height="20px" />
-                <Placeholder width="72px" height="20px" />
-              </Flex>
-            </Fragment>
-          ) : (
-            <Fragment>
+            )}
+            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
               {aggregates.startTimestamp !== null && (
                 <Flex align="center" gap="xs">
                   <IconCalendar size="md" />
                   <InfoText
                     size="sm"
-                    variant="muted"
                     title={
                       <TimeSince
                         date={aggregates.startTimestamp}
@@ -174,6 +210,7 @@ export function ConversationSummary({
                   </InfoText>
                 </Flex>
               )}
+              <ConversationTraceLink conversationId={conversationId} traces={traces} />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
@@ -196,41 +233,9 @@ export function ConversationSummary({
                   </InfoText>
                 )}
               </Flex>
-              <ConversationTraceLink conversationId={conversationId} traces={traces} />
-              {aggregates.toolNames.length > 0 && (
-                <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-                  {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
-                    <ToolTag
-                      key={name}
-                      name={name}
-                      hasError={aggregates.erroredToolNames.has(name)}
-                    />
-                  ))}
-                  {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
-                    <InfoText
-                      size="sm"
-                      variant="muted"
-                      wrap="nowrap"
-                      title={
-                        <Flex wrap="wrap" gap="sm" paddingTop="xs" paddingBottom="xs">
-                          {aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => (
-                            <ToolTag
-                              key={name}
-                              name={name}
-                              hasError={aggregates.erroredToolNames.has(name)}
-                            />
-                          ))}
-                        </Flex>
-                      }
-                    >
-                      {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
-                    </InfoText>
-                  )}
-                </Flex>
-              )}
-            </Fragment>
-          )}
-        </Flex>
+            </Flex>
+          </Fragment>
+        )}
       </Stack>
       <Flex align="start" gap="xl" wrap="wrap" flexShrink={0}>
         <Stat
