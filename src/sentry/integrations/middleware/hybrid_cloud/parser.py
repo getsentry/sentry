@@ -18,6 +18,7 @@ from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
+from sentry.hybridcloud.webhook_event_types import MAILBOX_EVENT_TYPES
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -75,6 +76,10 @@ class BaseRequestParser(ABC):
 
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
+
+    always_bucket: ClassVar[bool] = False
+    """Split every integration's mailbox by `mailbox_bucket_id` instead of waiting
+    for it to exceed the hourly rate limit first."""
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
@@ -266,40 +271,21 @@ class BaseRequestParser(ABC):
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
         """
-        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
-        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
-        use_buckets_key = f"{ratelimit_key}:use_buckets"
+        identifier = self._bucketed_mailbox_identifier(integration, data)
+        event_type = self._mailbox_event_type(data)
+        return f"{identifier}:{event_type}" if event_type else identifier
 
-        use_buckets = cache.get(use_buckets_key)
-        if not use_buckets and ratelimiter.is_limited(
-            key=ratelimit_key, window=60 * 60, limit=3000
-        ):
-            # Once we have gone over the rate limit in a day, we use smaller
-            # buckets for the next day.
-            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
-            use_buckets = True
-        if not use_buckets:
+    def _bucketed_mailbox_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
+        """The mailbox identifier up to the bucket, before any event-type suffix.
+
+        Falls back to the integration-level mailbox when the integration is below
+        the volume that warrants buckets, or when no bucket ID is available."""
+        if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
             self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
             return str(integration.id)
 
-        return self._build_bucketed_identifier(integration, data)
-
-    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
-        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
-        metrics.incr(
-            "hybridcloud.webhookpayload.mailbox_routing",
-            tags={
-                "provider": self.provider,
-                "bucketed": "true" if bucketed else "false",
-                "reason": reason,
-            },
-        )
-
-    def _build_bucketed_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """Compute a sub-mailbox identifier from mailbox_bucket_id, falling back to
-        the integration-level mailbox when no bucket ID is available."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
@@ -312,10 +298,53 @@ class BaseRequestParser(ABC):
 
         return f"{integration.id}:{bucket_number}"
 
+    def _exceeds_bucketing_volume(self, integration: RpcIntegration | Integration) -> bool:
+        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
+        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
+        use_buckets_key = f"{ratelimit_key}:use_buckets"
+
+        if cache.get(use_buckets_key):
+            return True
+        if ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
+            # Once we have gone over the rate limit in a day, we use smaller
+            # buckets for the next day.
+            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
+            return True
+        return False
+
+    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
+        metrics.incr(
+            "hybridcloud.webhookpayload.mailbox_routing",
+            tags={
+                "provider": self.provider,
+                "bucketed": "true" if bucketed else "false",
+                "reason": reason,
+            },
+        )
+
     def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
+
+    def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
+        """Validation lives here, not in the subclass: the discriminator comes out of
+        a body control has not verified — gitlab and bitbucket resolve their handlers
+        on the cell — so an unvalidated one would put an attacker-chosen string into
+        `mailbox_name`, and with it unbounded mailboxes and scheduler entries.
+        """
+        known_event_types = MAILBOX_EVENT_TYPES.get(self.provider)
+        if not known_event_types:
+            return None
+        event_type = self.mailbox_event_type(data)
+        return event_type if event_type in known_event_types else None
+
+    def mailbox_event_type(self, data: dict[str, Any]) -> str | None:
+        """Returned unvalidated; `_mailbox_event_type` checks it against the
+        registry.
+        """
+        return None
 
     def get_response_from_first_cell(self):
         cells = self.get_cells_from_organizations()

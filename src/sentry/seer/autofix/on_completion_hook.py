@@ -165,6 +165,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
+
+    Keep dispatching this hook without ``call_on_failure`` until the failure
+    handling below is fully deployed: a mixed rollout that fired this hook on
+    error used to continue the pipeline as if the step succeeded.
     """
 
     @classmethod
@@ -182,6 +186,22 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             logger.exception(
                 "autofix.on_completion_hook.fetch_state_failed",
                 extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+
+        if state.status != "completed":
+            logger.info(
+                "autofix.on_completion_hook.run_not_completed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "status": state.status,
+                    "failure_reason": state.failure_reason,
+                },
+            )
+            metrics.incr(
+                "autofix.on_completion_hook.run_not_completed",
+                tags={"status": state.status},
             )
             return
 

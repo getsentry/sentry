@@ -153,6 +153,19 @@ describe('EmailAuth', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Invalid email or password'
     );
+    expect(screen.getByRole('textbox', {name: 'Email'})).toHaveAccessibleDescription(
+      'Invalid email or password'
+    );
+    await waitFor(() =>
+      expect(document.querySelector('[data-tooltip]')).toHaveTextContent(
+        'Invalid email or password'
+      )
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Forgot password?'}));
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid email or password');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back to Login'}));
 
     await userEvent.type(screen.getByLabelText('Password'), '!');
 

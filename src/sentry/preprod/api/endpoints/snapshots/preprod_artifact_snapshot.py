@@ -67,11 +67,17 @@ from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
 )
-from sentry.preprod.snapshots.image_serialization import build_head_image_dict
+from sentry.preprod.snapshots.image_serialization import build_head_image_list
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
+)
+from sentry.preprod.snapshots.precompute import (
+    build_head_images_payload,
+    head_images_key,
+    load_precomputed_head_images,
+    refresh_manifest_expiration,
 )
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
@@ -348,33 +354,47 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except PreprodSnapshotMetrics.DoesNotExist:
             return Response({"detail": "Snapshot metrics not found"}, status=404)
 
-        manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")
-        if not manifest_key:
-            return Response({"detail": "Manifest key not found"}, status=404)
+        extras = snapshot_metrics.extras or {}
+        session = get_session(UsecaseId.PREPROD, artifact.project)
 
-        try:
-            session = get_session(UsecaseId.PREPROD, artifact.project)
-            get_response = session.get(manifest_key)
-            if get_response is None:
-                raise FileNotFoundError("Manifest does not exist in objectstore")
-            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
-                raw_manifest = get_response.payload.read()
+        image_list: list[SnapshotImageResponseDict]
+        precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
+        if precomputed is not None:
+            image_list, head_diff_threshold = precomputed
+            refresh_manifest_expiration(session, extras.get("manifest_key"))
+        else:
+            manifest_key = extras.get("manifest_key")
+            if not manifest_key:
+                return Response({"detail": "Manifest key not found"}, status=404)
+
+            try:
+                get_response = session.get(manifest_key)
+                if get_response is None:
+                    raise FileNotFoundError("Manifest does not exist in objectstore")
+                with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
+                    raw_manifest = get_response.payload.read()
+                with start_span(
+                    op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
+                ) as span:
+                    head_manifest = orjson.loads(raw_manifest)
+                    head_images: dict[str, Any] = head_manifest.get("images", {})
+                    head_diff_threshold = head_manifest.get("diff_threshold")
+                    set_span_data(span, "image_count", len(head_images))
+            except Exception:
+                logger.exception(
+                    "Failed to retrieve snapshot manifest",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "manifest_key": manifest_key,
+                    },
+                )
+                return Response({"detail": "Internal server error"}, status=500)
+
             with start_span(
-                op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
+                op="preprod.snapshot.serialize_images", name="serialize_head_images"
             ) as span:
-                head_manifest = orjson.loads(raw_manifest)
-                head_images: dict[str, Any] = head_manifest.get("images", {})
-                head_diff_threshold = head_manifest.get("diff_threshold")
                 set_span_data(span, "image_count", len(head_images))
-        except Exception:
-            logger.exception(
-                "Failed to retrieve snapshot manifest",
-                extra={
-                    "preprod_artifact_id": artifact.id,
-                    "manifest_key": manifest_key,
-                },
-            )
-            return Response({"detail": "Internal server error"}, status=500)
+                image_list = build_head_image_list(head_images, head_diff_threshold)
 
         # Build VCS info from commit_comparison
         commit_comparison = artifact.commit_comparison
@@ -484,15 +504,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     )
                     is not None
                 )
-
-        with start_span(
-            op="preprod.snapshot.serialize_images", name="serialize_head_images"
-        ) as span:
-            set_span_data(span, "image_count", len(head_images))
-            image_list: list[SnapshotImageResponseDict] = [
-                build_head_image_dict(key, metadata, head_diff_threshold)
-                for key, metadata in sorted(head_images.items())
-            ]
 
         images_by_file_name: dict[str, SnapshotImageResponseDict] = {
             img["image_file_name"]: img for img in image_list
@@ -817,12 +828,18 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             )
 
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
+            head_images_key_value = head_images_key(
+                project.organization_id, project.id, artifact.id
+            )
 
             snapshot_metrics = PreprodSnapshotMetrics.objects.create(
                 preprod_artifact=artifact,
                 image_count=len(images),
                 is_selective=selective,
-                extras={"manifest_key": manifest_key},
+                extras={
+                    "manifest_key": manifest_key,
+                    "head_images_key": head_images_key_value,
+                },
             )
 
             # Write manifest inside the transaction so that a failed objectstore
@@ -831,7 +848,27 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
-            del manifest_bytes
+
+        try:
+            parsed_manifest = orjson.loads(manifest_bytes)
+            session.put(
+                orjson.dumps(
+                    build_head_images_payload(
+                        parsed_manifest.get("images", {}),
+                        parsed_manifest.get("diff_threshold"),
+                    )
+                ),
+                key=head_images_key_value,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write precomputed head images",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "head_images_key": head_images_key_value,
+                },
+            )
+        del manifest_bytes
 
         logger.info(
             "Created preprod artifact and stored snapshot manifest",

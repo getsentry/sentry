@@ -16,20 +16,27 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {sentryAppWebhookRequestsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SentryApp, SentryAppSchemaIssueLink} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {granularWebhookEvents} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {useRequestLogDetailsDrawer} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLogDetails';
+
+import {useRequestLogDetailsDrawer} from './requestLogDetails';
+import {getWebhookSubjectLabel, WebhookSubject} from './webhookSubjects';
 
 const REQUEST_COLUMNS: TableColumnConfig[] = [
   {key: 'time', width: '1fr'},
   {key: 'statusCode', width: '0.5fr'},
   {key: 'organization', width: '1fr'},
   {key: 'eventType', width: '1fr'},
-  {key: 'webhookUrl', width: '1fr'},
+  {key: 'subjectType', width: '0.75fr'},
+  {key: 'subjectId', width: '1fr'},
+  {key: 'duration', width: '0.5fr'},
 ];
 
 const INTERNAL_REQUEST_COLUMNS = REQUEST_COLUMNS.filter(
@@ -38,7 +45,12 @@ const INTERNAL_REQUEST_COLUMNS = REQUEST_COLUMNS.filter(
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;
-const is24Hours = shouldUse24Hours();
+const EMPTY_VALUE = '—';
+
+const NO_RESPONSE_STATUS_LABELS: Record<number, string> = {
+  0: t('timeout'),
+  [-1]: t('connection error'),
+};
 
 const componentHasSelectUri = (issueLinkComponent: SentryAppSchemaIssueLink): boolean => {
   const hasSelectUri = (fields: any[]): boolean =>
@@ -99,7 +111,7 @@ export function ResponseCode({code}: {code: number}) {
     variant = 'success';
   }
 
-  return <Tag variant={variant}>{code === 0 ? 'timeout' : code}</Tag>;
+  return <Tag variant={variant}>{NO_RESPONSE_STATUS_LABELS[code] ?? code}</Tag>;
 }
 
 interface RequestLogProps {
@@ -107,13 +119,15 @@ interface RequestLogProps {
 }
 
 export function RequestLog({app}: RequestLogProps) {
+  const organization = useOrganization();
+  const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
 
   const {slug, status} = app;
   const isInternal = status === 'internal';
-  const openDetails = useRequestLogDetailsDrawer();
+  const openDetails = useRequestLogDetailsDrawer({isInternal, organization});
 
   const {
     data: requests = [],
@@ -189,7 +203,9 @@ export function RequestLog({app}: RequestLogProps) {
                 <SimpleTable.HeaderCell>{t('Organization')}</SimpleTable.HeaderCell>
               )}
               <SimpleTable.HeaderCell>{t('Event Type')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Webhook URL')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Subject Type')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Subject ID')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
             </SimpleTable.HeaderRow>
           }
         >
@@ -203,7 +219,10 @@ export function RequestLog({app}: RequestLogProps) {
 
           {!isPending &&
             currentRequests.map((request, idx) => (
-              <SimpleTable.Row key={idx} data-test-id="request-item">
+              <SimpleTable.Row
+                key={currentPage * MAX_PER_PAGE + idx}
+                data-test-id="request-item"
+              >
                 <SimpleTable.RowCell>
                   <RowButton
                     aria-label={t('View request details')}
@@ -211,10 +230,7 @@ export function RequestLog({app}: RequestLogProps) {
                   >
                     <InteractionStateLayer />
                     <Text>
-                      <DateTime
-                        date={request.date}
-                        format={is24Hours ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z'}
-                      />
+                      <DateTime date={request.date} format={timeFormat} />
                     </Text>
                   </RowButton>
                 </SimpleTable.RowCell>
@@ -230,7 +246,23 @@ export function RequestLog({app}: RequestLogProps) {
                   <Text ellipsis>{request.eventType}</Text>
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
-                  <Text wordBreak="break-word">{request.webhookUrl}</Text>
+                  <Text ellipsis>{getWebhookSubjectLabel(request.subjectType)}</Text>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <WebhookSubject
+                    subjectType={request.subjectType}
+                    subjectId={request.subjectId}
+                    isInternal={isInternal}
+                    organization={organization}
+                    display="id"
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  {defined(request.durationMs) ? (
+                    <PerformanceDuration milliseconds={request.durationMs} abbreviation />
+                  ) : (
+                    <Text>{EMPTY_VALUE}</Text>
+                  )}
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             ))}
