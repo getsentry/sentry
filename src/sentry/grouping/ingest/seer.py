@@ -501,13 +501,18 @@ def _get_event_exception(event: Event) -> tuple[str | None, str | None]:
     Return the event's main exception type and value, normalized exactly as they are stored in
     group metadata (``group.data.metadata.{type,value}``) — so they compare apples-to-apples with
     the parent's stored values. Reuses ``ErrorEvent.extract_metadata`` (the same code path that
-    produced the parent's values), which respects ``main_exception_id`` and returns nothing for
-    synthetic exceptions. Returns ``(None, None)`` when there is no exception to compare.
+    produced the parent's values), which respects ``main_exception_id``. Returns ``(None, None)``
+    when there is no exception to compare.
+
+    The type is withheld for synthetic exceptions, matching regular grouping: it varies by
+    platform and says nothing about what went wrong, so it must not count as a mismatch.
 
     Note: this reads the exception values directly (via ErrorEvent), so it does not depend on
     the event's ``type`` discriminator being populated.
     """
     metadata = ErrorEvent().extract_metadata(event.data)
+    if metadata.get("synthetic"):
+        return None, metadata.get("value")
     return metadata.get("type"), metadata.get("value")
 
 
@@ -545,7 +550,13 @@ def _should_use_seer_match_for_grouping(
         raise SimilarHashMissingGroupError(
             f"Seer-matched grouphash {parent_grouphash.hash} unexpectedly has no group"
         )
-    parent_exception_type = get_path(parent_group.data, "metadata", "type")
+    # A synthetic parent's stored type must not count as a mismatch either. Same reasoning as
+    # `_get_event_exception`.
+    parent_exception_type = (
+        None
+        if get_path(parent_group.data, "metadata", "synthetic")
+        else get_path(parent_group.data, "metadata", "type")
+    )
     if (
         event_exception_type
         and parent_exception_type

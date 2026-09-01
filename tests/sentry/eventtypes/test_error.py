@@ -58,6 +58,41 @@ class GetMetadataTest(TestCase):
             "value": "",
         }
 
+    def test_synthetic_records_type_and_flag(self) -> None:
+        # Grouping ignores a synthetic type, but it is recorded anyway as a title of last resort.
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Signal 11, Code 1",
+                        "mechanism": {"type": "signal", "synthetic": True},
+                    }
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "type": "SIGSEGV",
+            "value": "Signal 11, Code 1",
+            "synthetic": True,
+        }
+
+    def test_non_synthetic_carries_no_flag(self) -> None:
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "ValueError",
+                        "value": "bad",
+                        "mechanism": {"type": "signal"},
+                    }
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {"type": "ValueError", "value": "bad"}
+
     def test_multiple_exceptions_default(self) -> None:
         inst = ErrorEvent()
         data = {
@@ -106,3 +141,52 @@ class GetTitleTest(TestCase):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": ""})
         assert result == "Error"
+
+    def test_synthetic_prefers_the_crash_location(self) -> None:
+        # Built by hand on purpose: the ordering inside `compute_title` only shows up once both
+        # a type and a function have been recorded.
+        inst = ErrorEvent()
+        metadata = {
+            "type": "SIGSEGV",
+            "value": "Signal 11, Code 1",
+            "function": "U3CCrashCaptureU3Ed__11_MoveNext",
+            "synthetic": True,
+        }
+        assert inst.get_title(metadata) == "U3CCrashCaptureU3Ed__11_MoveNext"
+
+    def test_synthetic_falls_back_to_the_type(self) -> None:
+        # The case this change exists for, and it only holds end to end: recording the type is
+        # what leaves `compute_title` something better than `<unknown>` when nothing symbolicated.
+        inst = ErrorEvent()
+        data = {
+            "platform": "native",
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Signal 11, Code 1",
+                        "mechanism": {"type": "signal", "synthetic": True},
+                        "stacktrace": {"frames": [{"in_app": True, "instruction_addr": "0x1"}]},
+                    }
+                ]
+            },
+        }
+        assert inst.get_title(inst.get_metadata(data)) == "SIGSEGV: Signal 11, Code 1"
+
+    def test_synthetic_with_nothing_to_show(self) -> None:
+        inst = ErrorEvent()
+        assert inst.get_title({"value": "", "synthetic": True}) == "<unknown>"
+
+    def test_non_synthetic_still_prefers_the_type(self) -> None:
+        # Only synthetic exceptions reorder; everything else is untouched.
+        inst = ErrorEvent()
+        metadata = {"type": "ValueError", "value": "bad", "function": "do_thing"}
+        assert inst.get_title(metadata) == "ValueError: bad"
+
+    def test_metadata_stored_before_this_change_is_untouched(self) -> None:
+        # Forward-only: groups stored before this change have no `synthetic` key, so they take
+        # the branch they always took and nothing re-titles on read.
+        inst = ErrorEvent()
+        assert inst.get_title({"value": "Signal 11, Code 1"}) == "<unknown>"
+        assert inst.get_title({"value": "Signal 11, Code 1", "function": "top_func"}) == "top_func"
+        assert inst.get_title({"type": "ValueError", "value": "bad"}) == "ValueError: bad"
