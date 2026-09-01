@@ -667,8 +667,8 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             },
         )
 
-        resp = self.install.get_create_issue_config(group=event.group, user=self.user)
-        assert resp[0]["choices"] == [("getsentry/sentry", "sentry")]
+        create_config = self.install.get_create_issue_config(group=event.group, user=self.user)
+        assert create_config[0]["choices"] == [("getsentry/sentry", "sentry")]
 
         responses.add(
             responses.GET,
@@ -683,16 +683,18 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         # create an issue
         data = {"params": {"repo": "getsentry/hello"}}
-        resp = self.install.get_create_issue_config(group=event.group, user=self.user, **data)
-        assert resp[0]["choices"] == [
+        create_config = self.install.get_create_issue_config(
+            group=event.group, user=self.user, **data
+        )
+        assert create_config[0]["choices"] == [
             ("getsentry/hello", "hello"),
             ("getsentry/sentry", "sentry"),
         ]
         # link an issue
         data = {"params": {"repo": "getsentry/hello"}}
         assert event.group is not None
-        resp = self.install.get_link_issue_config(group=event.group, **data)
-        assert resp[0]["choices"] == [
+        link_config = self.install.get_link_issue_config(group=event.group, **data)
+        assert link_config[0]["choices"] == [
             ("getsentry/hello", "hello"),
             ("getsentry/sentry", "sentry"),
         ]
