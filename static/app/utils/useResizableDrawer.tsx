@@ -16,6 +16,11 @@ export interface UseResizableDrawerOptions {
    */
   min: number;
   /**
+   * The maximum size the container may be dragged to. Optional — defaults
+   * to no upper bound. Only enforced during drag, mirroring `min`.
+   */
+  max?: number;
+  /**
    * Triggered while dragging
    */
   onResize?: (
@@ -23,11 +28,6 @@ export interface UseResizableDrawerOptions {
     maybeOldSize: number | undefined,
     userEvent: boolean
   ) => void;
-  /**
-   * The maximum size the container may be dragged to. Optional — defaults
-   * to no upper bound. Only enforced during drag, mirroring `min`.
-   */
-  max?: number;
   /**
    * Fires once when a drag completes (on mouseUp). Receives the size at
    * the start and end of the drag.
