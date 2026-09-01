@@ -118,6 +118,42 @@ function getAttributeValueFromDeprecationChain(
   return undefined;
 }
 
+/**
+ * Finds an attribute value by walking the requested key's deprecation chain in
+ * metadata order. Attribute metadata lookups, including misses, are cached.
+ *
+ * Attributes may be a name-to-value record or an array of `{name, value}` entries.
+ * For entry arrays, exact names take precedence over normalized typed or prefixed
+ * names. The optional `kind` argument narrows the return type and validates the
+ * value at runtime; a missing key or mismatched value returns `undefined`.
+ *
+ * @example Resolve a deprecated key from a record:
+ * ```ts
+ * const method = getAttributeValue(
+ *   {method: 'POST'},
+ *   'http.request.method',
+ *   'string'
+ * ); // string | undefined
+ * ```
+ *
+ * @example Read an attribute entry array:
+ * ```ts
+ * const category = getAttributeValue(
+ *   [{name: 'span.category', value: 'http'}],
+ *   'span.category',
+ *   'string'
+ * ); // string | undefined
+ * ```
+ *
+ * @example Narrow an array value:
+ * ```ts
+ * const citations = getAttributeValue(
+ *   {'ai.citations': ['https://example.com']},
+ *   'ai.citations',
+ *   'string[]'
+ * ); // string[] | undefined
+ * ```
+ */
 export function getAttributeValue<K extends AttributeValueKind>(
   attributes: unknown,
   key: string,
