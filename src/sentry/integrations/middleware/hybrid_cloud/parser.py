@@ -11,7 +11,6 @@ from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
-from sentry import options
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
@@ -42,7 +41,6 @@ if TYPE_CHECKING:
     from sentry.middleware.integrations.integration_control import ResponseHandler
 
 SHED_INBOUND_KILLSWITCH = "hybridcloud.webhookpayload.shed-inbound"
-EVENT_TYPED_MAILBOX_PROVIDERS_OPTION = "hybridcloud.webhookpayload.event_typed_mailbox_providers"
 SHED_RETRY_AFTER_SECONDS = 60
 # Its own logger so the sampling stays on the shed line, rather than quietly
 # applying to every info log a future caller adds to this module.
@@ -332,8 +330,6 @@ class BaseRequestParser(ABC):
         on the cell — so an unvalidated one would put an attacker-chosen string into
         `mailbox_name`, and with it unbounded mailboxes and scheduler entries.
         """
-        if self.provider not in options.get(EVENT_TYPED_MAILBOX_PROVIDERS_OPTION):
-            return None
         known_event_types = MAILBOX_EVENT_TYPES.get(self.provider)
         if not known_event_types:
             return None

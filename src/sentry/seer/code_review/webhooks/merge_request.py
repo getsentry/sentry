@@ -15,9 +15,9 @@ through ``track_gitlab_contributor_action_processor``, which
 that ordering changes, the first MR open from a new contributor is filtered before
 the same delivery can seed the contributor.
 
-Control queues ``merge_request`` and ``note`` payloads in separate mailboxes when the
-provider is in ``hybridcloud.webhookpayload.event_typed_mailbox_providers``, so a note
-can be handled while the same project's ``merge_request`` mailbox is behind. A new
+Control queues ``merge_request`` and ``note`` payloads in separate mailboxes, one per
+``MAILBOX_EVENT_TYPES`` entry, so a note can be handled while the same project's
+``merge_request`` mailbox is behind. A new
 contributor's ``@sentry review`` on their first MR is then denied
 ``ORG_CONTRIBUTOR_NOT_FOUND`` and dropped rather than retried. GitHub's ``issue_comment``
 path has the same gap for the same reason.
