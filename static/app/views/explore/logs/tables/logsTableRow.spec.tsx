@@ -555,6 +555,36 @@ describe('logsTableRow', () => {
     ]);
   });
 
+  it('uses the untruncated message for the similar spans link when the table value was truncated', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowDataWithTruncatedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+        showExploreSimilarSpansLink
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow);
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+
+    await waitFor(() => {
+      const href = screen
+        .getByText('Explore similar spans')
+        .closest('a')!
+        .getAttribute('href')!;
+      expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
+        {type: 'logs', query: `message:"${fullMessage}"`},
+      ]);
+    });
+  });
+
   it('does not show string filter actions for numeric fields', async () => {
     const numericField = 'custom.duration';
     const numericRowData = LogFixture({

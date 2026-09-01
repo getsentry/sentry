@@ -422,6 +422,13 @@ export const LogRowContent = memo(function LogRowContentImpl({
     a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS
   );
 
+  // The table asks the API to truncate long strings for display, so the row's
+  // message can be cut short. Trace item details come back untruncated, and
+  // hovering the row prefetches them before the cell actions are reachable.
+  const fullMessage = traceItemAttributes?.find(
+    a => a.name === OurLogKnownFieldKey.MESSAGE
+  )?.value;
+
   const rendererExtra: RendererExtra = {
     highlightTerms,
     caseSensitiveHighlighting: !caseInsensitivity,
@@ -597,7 +604,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
             const extraMenuItems =
               field === OurLogKnownFieldKey.MESSAGE
                 ? getExploreSimilarSpansMenuItems({
-                    message: value,
+                    message: typeof fullMessage === 'string' ? fullMessage : value,
                     organization,
                     selection,
                     showExploreSimilarSpansLink,
