@@ -40,8 +40,7 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
 export function SimpleTable({children, columns, header, ...props}: TableProps) {
-  // Cells name their column so it can be hidden, which is not an invitation to
-  // resize it: this shell has no resize affordance of its own.
+  // This shell has no resize affordance, so its columns do not opt into one.
   const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
 
   return (

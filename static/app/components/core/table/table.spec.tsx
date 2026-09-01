@@ -349,8 +349,7 @@ describe('Table', () => {
 
       dragHandle(resizers()[0]!, {from: 100, to: 350});
 
-      // The first column is hidden, so the first handle belongs to the second
-      // entry in `columns` — indexes stay stable against the array passed in.
+      // The first column is hidden, so the first handle is the second entry.
       expect(onColumnResize).toHaveBeenCalledWith(1, 250);
     });
   });
