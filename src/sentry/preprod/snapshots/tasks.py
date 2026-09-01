@@ -151,6 +151,7 @@ def _write_comparison_response_blob(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    key = comparison_response_key(org_id, project_id, head_artifact_id, base_artifact_id)
     metrics_by_artifact = {
         m.preprod_artifact_id: m
         for m in PreprodSnapshotMetrics.objects.filter(
@@ -159,16 +160,17 @@ def _write_comparison_response_blob(
     }
     head_metrics = metrics_by_artifact.get(head_artifact_id)
     base_metrics = metrics_by_artifact.get(base_artifact_id)
-    if head_metrics is None or base_metrics is None:
-        return
-    head_manifest_key = (head_metrics.extras or {}).get("manifest_key")
-    base_manifest_key = (base_metrics.extras or {}).get("manifest_key")
-    if not head_manifest_key or not base_manifest_key:
-        return
-    head_manifest = _load_raw_manifest(session, head_manifest_key)
-    base_manifest = _load_raw_manifest(session, base_manifest_key)
-    # A missing manifest yields a degraded categorization, so refuse to cache it.
+    head_manifest_key = (head_metrics.extras or {}).get("manifest_key") if head_metrics else None
+    base_manifest_key = (base_metrics.extras or {}).get("manifest_key") if base_metrics else None
+    head_manifest = _load_raw_manifest(session, head_manifest_key) if head_manifest_key else None
+    base_manifest = _load_raw_manifest(session, base_manifest_key) if base_manifest_key else None
+    # A missing manifest yields a degraded categorization, so refuse to cache it — and drop
+    # any blob a prior finalize wrote, so a recompare never serves the stale result.
     if head_manifest is None or base_manifest is None:
+        try:
+            session.delete(key)
+        except Exception:
+            logger.exception("finalize: failed to delete stale comparison response")
         return
     head_diff_threshold = head_manifest.get("diff_threshold")
     head_images_by_file_name = {
@@ -186,7 +188,7 @@ def _write_comparison_response_blob(
                 categorized, "diff", str(base_artifact_id), head_diff_threshold
             )
         ),
-        key=comparison_response_key(org_id, project_id, head_artifact_id, base_artifact_id),
+        key=key,
         content_type="application/json",
     )
 
@@ -1332,6 +1334,19 @@ def finalize_snapshot_comparison(
     comparison_key = _comparison_key(org_id, project_id, head_artifact_id, base_artifact_id)
     _put_json(session, comparison_key, comparison_manifest)
 
+    # Precompute the categorized comparison response so the details GET serves it from a
+    # single blob. Written before the SUCCESS swap so any request that observes SUCCESS
+    # sees a fresh blob (and never a prior recompare's result under the same key).
+    try:
+        _write_comparison_response_blob(
+            session, comparison_manifest, org_id, project_id, head_artifact_id, base_artifact_id
+        )
+    except Exception:
+        logger.exception(
+            "finalize: failed to write precomputed comparison response",
+            extra={"comparison_id": comparison.id},
+        )
+
     extras = comparison.extras or {}
     extras["comparison_key"] = comparison_key
     extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
@@ -1440,16 +1455,4 @@ def finalize_snapshot_comparison(
             logger.exception(
                 "compare_completion VCS update failed after successful comparison",
                 extra={"head_artifact_id": head_artifact_id, "comparison_id": comparison.id},
-            )
-
-        # Precompute the categorized comparison response so the details GET can serve
-        # it from a single blob instead of re-reading and re-categorizing the manifests.
-        try:
-            _write_comparison_response_blob(
-                session, comparison_manifest, org_id, project_id, head_artifact_id, base_artifact_id
-            )
-        except Exception:
-            logger.exception(
-                "finalize: failed to write precomputed comparison response",
-                extra={"comparison_id": comparison.id},
             )

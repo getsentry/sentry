@@ -111,8 +111,12 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
     def _put(contents, key, content_type):
         stored[key] = contents
 
+    def _delete(key):
+        stored.pop(key, None)
+
     session.get.side_effect = _get
     session.put.side_effect = _put
+    session.delete.side_effect = _delete
     return session
 
 
@@ -650,10 +654,14 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert payload["base_artifact_id"] == str(b.id)
         assert len(payload["changed"]) == 1
 
-    def test_finalize_skips_comparison_blob_when_base_manifest_missing(self):
+    def test_finalize_deletes_stale_comparison_blob_when_base_manifest_missing(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 
         comparison, h, b, prefix, stored = self._finalize_with_manifests(include_base=False)
+        blob_key = f"{prefix}/snapshot_comparison_response.json"
+        # A prior finalize left a blob under the same key; without a base manifest we can't
+        # rebuild it, so it must be dropped rather than served as the new result.
+        stored[blob_key] = orjson.dumps({"schema_version": 1, "stale": True})
         session = _dict_backed_session(stored)
         with (
             patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
@@ -663,7 +671,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
 
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
-        assert f"{prefix}/snapshot_comparison_response.json" not in stored
+        assert blob_key not in stored
 
     def test_finalize_writes_images_errored_column(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
