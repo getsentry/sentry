@@ -68,12 +68,14 @@ function Label(props: {
   );
 }
 
-function FieldStatus({disabled}: {disabled?: boolean | string}) {
+function FieldStatus({disabled, error}: {disabled?: boolean | string; error?: string}) {
   const field = useFieldContext();
 
-  const errorMessage = field.state.meta.isValid
-    ? undefined
-    : field.state.meta.errors.map((e: Error | undefined) => e?.message).join(',');
+  const errorMessage =
+    error ??
+    (field.state.meta.isValid
+      ? undefined
+      : field.state.meta.errors.map((e: Error | undefined) => e?.message).join(','));
 
   if (errorMessage) {
     return (

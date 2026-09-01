@@ -74,7 +74,7 @@ function SplitDiff({className, base, target}: Props) {
       processedLines.push(currentLine);
     }
     return processedLines;
-  }, [base, target, type]);
+  }, [base, target]);
 
   const displayRows = useMemo(
     () =>
