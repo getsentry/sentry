@@ -251,6 +251,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         """
         if self.condition_group is None:
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
+
             return None, DetectorPriorityLevel.OK
 
         group_evaluation, remaining_slow_conditions = process_data_condition_group(
