@@ -3,13 +3,14 @@ import styled from '@emotion/styled';
 
 import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
 
+const DEFAULT_THICKNESS = 4;
+
 type Props = {
   score: number;
   className?: string;
   palette?: readonly string[];
   radius?: number;
   size?: number;
-  thickness?: number;
   vertical?: boolean;
 };
 
@@ -18,7 +19,6 @@ function BaseScoreBar({
   className,
   vertical,
   size = 40,
-  thickness = 4,
   radius = 3,
   palette = SIMILARITY_SCORE_COLORS,
   ...props
@@ -33,7 +33,7 @@ function BaseScoreBar({
   // Size of bar, depends on orientation, although we could just apply a transformation via css
   const barProps = {
     vertical,
-    thickness,
+    thickness: DEFAULT_THICKNESS,
     size,
     radius,
   };
