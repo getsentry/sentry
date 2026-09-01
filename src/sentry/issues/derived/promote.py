@@ -1,3 +1,15 @@
+"""Promote a fully-computed GroupDerivedData generation into the live row.
+
+Strategy: bring our candidate up to date against the log, attempt an
+atomic CAS against the current live row, and if the CAS fails, retry
+unless post-hoc classification shows a retry can't help. After
+``MAX_PROMOTION_ATTEMPTS`` failed attempts we give up with
+``PromotionFailed``.
+
+The UPDATE is the canonical decision point; the follow-up reads only
+decide whether another attempt is worthwhile.
+"""
+
 from __future__ import annotations
 
 import enum
