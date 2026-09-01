@@ -114,6 +114,7 @@ export function SplitPanel({
     initialSize,
     min,
     max,
+    onResize: () => {},
   });
 
   useImperativeHandle(ref, () => ({setSize}), [setSize]);
