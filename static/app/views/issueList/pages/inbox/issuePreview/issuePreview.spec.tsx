@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {
   ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
@@ -10,7 +11,10 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {clearIndicators} from 'sentry/actionCreators/indicator';
+import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 
 import {IssuePreview} from './issuePreview';
 
@@ -18,8 +22,59 @@ describe('IssuePreview', () => {
   const organization = OrganizationFixture({features: ['gen-ai-features']});
   const project = ProjectFixture({id: '1'});
   const group = GroupFixture({id: '101', project, hasSeen: true});
+  const fixAppliedGroup = GroupFixture({
+    ...group,
+    derivedData: {
+      hasOpenFixPr: false,
+      hasRootCause: true,
+      isAssigned: true,
+      lastProgressedAt: '2026-07-20T12:00:00Z',
+      progress: ProgressState.FIX_APPLIED,
+      status: 'open',
+      viewCount: 1,
+    },
+  });
+  const resolvedFixAppliedGroup = GroupFixture({
+    id: group.id,
+    project,
+    hasSeen: true,
+    derivedData: fixAppliedGroup.derivedData,
+    status: GroupStatus.RESOLVED,
+    statusDetails: {},
+    substatus: null,
+  });
+
+  function mockFixAppliedPreview(getGroup: () => Group = () => fixAppliedGroup) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: getGroup,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/org/repository/pull/10',
+            }),
+            attribution: {id: 'seer', type: 'seer'},
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+        ],
+      },
+    });
+  }
 
   beforeEach(() => {
+    clearIndicators();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
@@ -272,5 +327,73 @@ describe('IssuePreview', () => {
       await screen.findByRole('button', {name: 'Restart Autofix'})
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+  });
+
+  it('resolves a fix applied issue and offers to undo it', async () => {
+    let currentGroup = fixAppliedGroup;
+    mockFixAppliedPreview(() => currentGroup);
+    const resolveRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/issues/`,
+      method: 'PUT',
+      body: (_url: string, options: {data: Pick<Group, 'status'>}) => {
+        currentGroup =
+          options.data.status === GroupStatus.RESOLVED
+            ? resolvedFixAppliedGroup
+            : fixAppliedGroup;
+        return currentGroup;
+      },
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const resolveButton = await screen.findByRole('button', {name: 'Resolve'});
+    expect(resolveButton).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Issue'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${group.id}/?referrer=inbox`
+    );
+    expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+
+    await userEvent.click(resolveButton);
+
+    expect(resolveRequest).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/issues/`,
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Unresolve'}));
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
+    expect(resolveRequest).toHaveBeenLastCalledWith(
+      `/projects/${organization.slug}/${project.slug}/issues/`,
+      expect.objectContaining({
+        data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
+      })
+    );
+  });
+
+  it('does not report success when resolving fails', async () => {
+    mockFixAppliedPreview();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    render(
+      <Fragment>
+        <IssuePreview groupId={group.id} />
+        <Indicators />
+      </Fragment>,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
   });
 });

@@ -34,7 +34,7 @@ from sentry.issue_detection.performance_detection import (
     get_detection_settings,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.environment import Environment
@@ -61,6 +61,31 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 logger = logging.getLogger(__name__)
 
 outcome_aggregator = OutcomeAggregator()
+
+# This set of constants helps us keep occurrence data within the occurrence consumer's limits.
+# Limits on span count are split into overall and context (parent and cause) span limits in order to
+# prioritize offender spans, because they're the ones containing the actual problems we report.
+OVERALL_MAX_EVIDENCE_SPANS = 100
+MAX_EVIDENCE_CONTEXT_SPANS = 10
+MAX_SPAN_DESCRIPTION_LENGTH = 2048
+MAX_SPAN_DATA_VALUE_LENGTH = 500
+MAX_EVIDENCE_VALUE_LENGTH = 500
+MAX_EVIDENCE_LIST_ITEMS = 100
+
+# The `evidence_data` values we actually use for issue details and Seer - all others are dropped
+# when we produce the occurrence
+EVIDENCE_SPAN_DATA_KEYS = frozenset(
+    (
+        "code.filepath",
+        "code.function",
+        "code.lineno",
+        "http.query",
+        "http.request.request_start",
+        "http.request.response_start",
+        "http.response_content_length",
+        "url",
+    )
+)
 
 
 @metrics.wraps("spans.consumers.process_segments.process_segment")
@@ -422,25 +447,50 @@ def _run_legacy_detectors(
     ):
         return detected_problems
 
-    # Prepare a slimmer event payload for the occurrence consumer. This event will be persisted
-    # by the consumer. Once issue detectors can run on standalone spans, we should directly
-    # build a minimal occurrence event payload here, instead.
-    event_data["spans"] = []
-    event_data["timestamp"] = event_data["datetime"]
-
+    # Produce an occurrence for each problem, first filtering and trimming data to stay within the
+    # occurrence consumer's limits
+    spans_by_id = {span["span_id"]: span for span in event_data["spans"]}
     for problem in detected_problems:
+        evidence_display = [
+            IssueEvidence(
+                evidence.name,
+                _truncate_value_for_occurrence(evidence.value, MAX_EVIDENCE_VALUE_LENGTH),
+                evidence.important,
+            )
+            for evidence in problem.evidence_display
+        ]
+        evidence_data = _get_evidence_data_for_occurrence(problem, spans_by_id)
+
+        occurrence_id = uuid.uuid4().hex
+        occurrence_spans = [
+            _get_evidence_span_for_occurrence(spans_by_id[id])
+            # We use `dict.fromkeys` here to preserve ordering
+            for id in dict.fromkeys(
+                (
+                    *evidence_data["parent_span_ids"],
+                    *evidence_data["cause_span_ids"],
+                    *evidence_data["offender_span_ids"],
+                )
+            )
+        ]
+        occurrence_event_data = {
+            **event_data,
+            "event_id": occurrence_id,
+            "spans": occurrence_spans,
+        }
+
         occurrence = IssueOccurrence(
-            id=uuid.uuid4().hex,
+            id=occurrence_id,
             resource_id=None,
             project_id=project.id,
-            event_id=event_data["event_id"],
+            event_id=occurrence_id,
             fingerprint=[problem.fingerprint],
             type=problem.type,
             issue_title=problem.title,
-            subtitle=problem.desc,
+            subtitle=_truncate_value_for_occurrence(problem.desc, MAX_EVIDENCE_VALUE_LENGTH),
             culprit=event_data["transaction"],
-            evidence_data=problem.evidence_data or {},
-            evidence_display=problem.evidence_display,
+            evidence_data=evidence_data,
+            evidence_display=evidence_display,
             detection_time=to_datetime(segment_span["end_timestamp"]),
             level="info",
         )
@@ -448,11 +498,100 @@ def _run_legacy_detectors(
         produce_occurrence_to_kafka(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
-            event_data=event_data,
-            is_buffered_spans=True,
+            event_data=occurrence_event_data,
         )
 
     return detected_problems
+
+
+def _truncate_span_id_list(
+    raw_span_ids: Sequence[str], spans_by_id: dict[str, Any], max_span_ids: int
+) -> list[str]:
+    """
+    Drop ids the segment has no span for (so performance problem evidence never references a missing
+    span), and then truncate the list of ids to the given max length.
+    """
+    ids_for_existing_spans = [span_id for span_id in raw_span_ids if span_id in spans_by_id]
+    return ids_for_existing_spans[:max_span_ids]
+
+
+def _get_evidence_data_for_occurrence(
+    problem: PerformanceProblem, spans_by_id: dict[str, Any]
+) -> dict[str, Any]:
+    # For the three lists of span ids, remove any which points to spans we don't have and then cap
+    # the list length. The three lists can overlap, so the cap on offender span ids may be more
+    # conservative than necessary, but better that than create an occurrence which gets rejected.
+    parent_span_ids = _truncate_span_id_list(
+        problem.parent_span_ids, spans_by_id, MAX_EVIDENCE_CONTEXT_SPANS
+    )
+    cause_span_ids = _truncate_span_id_list(
+        problem.cause_span_ids, spans_by_id, MAX_EVIDENCE_CONTEXT_SPANS
+    )
+    max_offender_spans = OVERALL_MAX_EVIDENCE_SPANS - len(parent_span_ids) - len(cause_span_ids)
+    offender_span_ids = _truncate_span_id_list(
+        problem.offender_span_ids, spans_by_id, max_offender_spans
+    )
+
+    # Now trim the rest of the evidence data
+    evidence_data = problem.evidence_data or {}
+    span_id_keys = {"parent_span_ids", "cause_span_ids", "offender_span_ids"}
+    non_span_id_evidence_data = {
+        key: value for key, value in evidence_data.items() if key not in span_id_keys
+    }
+    trimmed_non_span_id_evidence_data = _truncate_value_for_occurrence(
+        non_span_id_evidence_data, MAX_EVIDENCE_VALUE_LENGTH
+    )
+
+    return {
+        **trimmed_non_span_id_evidence_data,
+        "parent_span_ids": parent_span_ids,
+        "cause_span_ids": cause_span_ids,
+        "offender_span_ids": offender_span_ids,
+    }
+
+
+def _truncate_value_for_occurrence(
+    value: Any, max_chars: int, max_items: int = MAX_EVIDENCE_LIST_ITEMS
+) -> Any:
+    """
+    Create a recursively-trimmed copy of a value for use in issue occurrences.
+    """
+    if isinstance(value, str):
+        return value[:max_chars]
+    if isinstance(value, list | tuple):
+        return [
+            _truncate_value_for_occurrence(inner_value, max_chars, max_items)
+            for inner_value in value[:max_items]
+        ]
+    if isinstance(value, dict):
+        return {
+            key: _truncate_value_for_occurrence(inner_value, max_chars, max_items)
+            for key, inner_value in value.items()
+        }
+    return value
+
+
+def _get_evidence_span_for_occurrence(span: dict[str, Any]) -> dict[str, Any]:
+    trimmed_description = _truncate_value_for_occurrence(
+        span.get("description"), MAX_SPAN_DESCRIPTION_LENGTH
+    )
+    # Only keep the `data` entries we actually need for evidence data
+    filtered_data = {
+        key: _truncate_value_for_occurrence(value, MAX_SPAN_DATA_VALUE_LENGTH)
+        for key, value in (span.get("data") or {}).items()
+        if key in EVIDENCE_SPAN_DATA_KEYS
+    }
+
+    return {
+        "span_id": span["span_id"],
+        "trace_id": span.get("trace_id"),
+        "op": span.get("op"),
+        "description": trimmed_description,
+        "start_timestamp": span.get("start_timestamp"),
+        "timestamp": span.get("timestamp"),
+        "exclusive_time": span.get("exclusive_time"),
+        "data": filtered_data,
+    }
 
 
 def _maybe_run_span_first_detector_parity_check(

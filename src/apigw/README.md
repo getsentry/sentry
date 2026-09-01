@@ -31,7 +31,7 @@ Django's request lifecycle and to the monolith's runtime.
 `apigw` is instead a thin async service built on
 [emmett55](https://github.com/emmett-framework/emmett55):
 
-- requests and responses are **streamed** in both directions (`httpx` async
+- requests and responses are **streamed** in both directions (`punkreq` async
   client, chunked bodies), so concurrency is bounded by sockets and memory,
   not workers;
 - route matching uses emmett's Rust-based router
@@ -87,7 +87,7 @@ apigw/
 ├── dsl.py             cell resolution: org mapping lookup, DSN parsing,
 │                      re-exports of sentry.types.cell
 ├── circuitbreaker.py  per-target concurrency cap + failure-window breaker
-├── proxy.py           the proxy engine: streaming httpx client, header
+├── proxy.py           the proxy engine: streaming punkreq client, header
 │                      filtering/forwarding, timeout overrides, metrics
 ├── utils.py           various utilities
 ├── web.py             entrypoint module (exposes `app`)

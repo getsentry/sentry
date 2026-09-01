@@ -16,6 +16,7 @@ import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -77,10 +78,10 @@ export function SpanDescription({
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
-  const category = findSpanAttributeValue(attributes, 'span.category');
-  const dbSystem = findSpanAttributeValue(attributes, 'db.system');
-  const dbQueryText = findSpanAttributeValue(attributes, 'db.query.text');
-  const group = findSpanAttributeValue(attributes, 'span.group');
+  const category = getAttributeValue(attributes, 'span.category', 'string');
+  const dbSystem = getAttributeValue(attributes, 'db.system', 'string');
+  const dbQueryText = getAttributeValue(attributes, 'db.query.text', 'string');
+  const group = getAttributeValue(attributes, 'span.group', 'string');
 
   const resolvedModule = resolveSpanModule(span.op, category);
 
@@ -157,16 +158,20 @@ export function SpanDescription({
     </BodyContentWrapper>
   ) : null;
 
-  const codeFilepath = findSpanAttributeValue(attributes, 'code.filepath');
-  const codeLineNumber = findSpanAttributeValue(attributes, 'code.lineno');
-  const codeFunction = findSpanAttributeValue(attributes, 'code.function');
+  const codeFilepath = getAttributeValue(attributes, 'code.filepath', 'string');
+  const codeLineNumber = getAttributeValue(
+    attributes,
+    'code.lineno',
+    'number'
+  )?.toString();
+  const codeFunction = getAttributeValue(attributes, 'code.function', 'string');
 
-  const requestMethod = findSpanAttributeValue(attributes, 'http.request.method');
+  const requestMethod = getAttributeValue(attributes, 'http.request.method', 'string');
 
   // `"url.full"` is semantic, but `"url"` is common
   const spanURL =
-    findSpanAttributeValue(attributes, 'url.full') ??
-    findSpanAttributeValue(attributes, 'url');
+    getAttributeValue(attributes, 'url.full', 'string') ??
+    getAttributeValue(attributes, 'url', 'string');
 
   const value =
     resolvedModule === ModuleName.DB ? (
@@ -286,8 +291,8 @@ function getImageSrc(span: TraceTree.EAPSpan, attributes: TraceItemResponseAttri
 
   // Account for relative URLs
   if (src.startsWith('/')) {
-    const urlScheme = findSpanAttributeValue(attributes, 'url.scheme');
-    const serverAddress = findSpanAttributeValue(attributes, 'server.address');
+    const urlScheme = getAttributeValue(attributes, 'url.scheme', 'string');
+    const serverAddress = getAttributeValue(attributes, 'server.address', 'string');
 
     if (urlScheme && serverAddress) {
       src = `${urlScheme}://${serverAddress}${src}`;
