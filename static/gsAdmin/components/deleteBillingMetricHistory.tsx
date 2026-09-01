@@ -13,7 +13,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -59,7 +58,7 @@ function DeleteBillingMetricHistoryModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} = useQuery(
-    apiOptions.as<BillingConfig>()(getApiUrl('/billing-config/'), {
+    apiOptions.as<BillingConfig>()('/billing-config/', {
       staleTime: Infinity,
     })
   );
