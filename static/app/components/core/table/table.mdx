@@ -21,7 +21,7 @@ Higher level components like `SimpleTable` and `GridEditable` add those on top o
 
 To create a table, pass a `columns` array and compose the contents with `Table.Head`, `Table.Body`, `Table.Row`, `Table.HeadCell`, and `Table.Cell`.
 Columns are passed as data rather than children because a resize needs a stable identity for each column.
-Identify each head cell with `column`, or with `columnIndex` when the cells come from an ordered list rather than a keyed config.
+Cells are matched to columns by position, and a resizable table gives each head cell a `columnIndex` so its handle knows which column it drags.
 
 <Storybook.Demo>
   <OverviewDemo />
@@ -37,8 +37,10 @@ const columns = [
 <Table columns={columns}>
   <Table.Head>
     <Table.Row>
-      {columns.map(column => (
-        <Table.HeadCell key={column.key}>{column.key}</Table.HeadCell>
+      {columns.map((column, index) => (
+        <Table.HeadCell columnIndex={index} key={column.key}>
+          {column.key}
+        </Table.HeadCell>
       ))}
     </Table.Row>
   </Table.Head>
@@ -96,8 +98,10 @@ const columns = [
 <Table columns={columns}>
   <Table.Head>
     <Table.Row>
-      {columns.map(column => (
-        <Table.HeadCell key={column.key}>{column.key}</Table.HeadCell>
+      {columns.map((column, index) => (
+        <Table.HeadCell columnIndex={index} key={column.key}>
+          {column.key}
+        </Table.HeadCell>
       ))}
     </Table.Row>
   </Table.Head>
