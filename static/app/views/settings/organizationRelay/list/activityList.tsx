@@ -42,13 +42,10 @@ export function ActivityList({activities}: Props) {
   );
 }
 
-// 2xl rather than the token nearest the old `lg` viewport breakpoint: these
-// cards render inside a settings column that never gets wider than ~1025px, so a
-// larger token would leave the wide layout unreachable.
 const ACTIVITY_COLUMNS: TableColumnConfig[] = [
-  {key: 'version', width: '2fr'},
-  {key: 'firstSeen', width: {zero: '2fr', '2xl': '1fr'}},
-  {key: 'lastSeen', width: {zero: '2fr', '2xl': '1fr'}},
+  {key: 'version', width: 'minmax(max-content, 2fr)'},
+  {key: 'firstSeen', width: 'minmax(max-content, 1fr)'},
+  {key: 'lastSeen', width: 'minmax(max-content, 1fr)'},
 ];
 
 const Version = styled('div')`

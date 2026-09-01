@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0032_add_extras_to_seer_run_milestone
 
-sentry: 1159_organizationmemberteam_new_id_unique_not_null
+sentry: 1160_create_deletion_watermark
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

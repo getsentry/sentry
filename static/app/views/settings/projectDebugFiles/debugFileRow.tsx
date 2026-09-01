@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
@@ -47,46 +48,67 @@ export function DebugFileRow({
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell align="start">
-        <div>
-          <DebugId>{debugId || uuid}</DebugId>
-        </div>
-        <TimeAndSizeWrapper>
-          <StyledFileSize bytes={size} />
-          <TimeWrapper>
-            <IconClock size="xs" />
-            <TimeSince date={dateCreated} />
-          </TimeWrapper>
-        </TimeAndSizeWrapper>
+        <Stack align="stretch" width="100%">
+          <div>
+            <DebugId>{debugId || uuid}</DebugId>
+          </div>
+          <Text as="div" size="sm" variant="muted">
+            <Flex
+              direction={{zero: 'column', md: 'row'}}
+              align={{zero: 'start', md: 'center'}}
+              gap={{zero: 'xs', md: 'md'}}
+              marginTop="md"
+              width="100%"
+            >
+              <StyledFileSize bytes={size} />
+              <Grid
+                columns="min-content 1fr"
+                flex={1}
+                align="center"
+                gap="xs"
+                paddingLeft="xs"
+              >
+                <IconClock size="xs" />
+                <TimeSince date={dateCreated} />
+              </Grid>
+            </Flex>
+          </Text>
+        </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell align="start">
-        <Name>
-          {symbolType === 'proguard' && objectName === 'proguard-mapping'
-            ? '\u2015'
-            : objectName}
-        </Name>
-        <Description>
-          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
-
-          {features && (
-            <FeatureTags>
-              {features.map(feature => (
-                <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
-                  <StyledTag variant="muted">{feature}</StyledTag>
-                </Tooltip>
-              ))}
-            </FeatureTags>
-          )}
-          {showDetails && (
-            <div>
-              {/* there will be more stuff here in the future */}
-              {codeId && (
-                <DetailsItem>
-                  {t('Code ID')}: {codeId}
-                </DetailsItem>
+        <Stack align="start">
+          <Name>
+            {symbolType === 'proguard' && objectName === 'proguard-mapping'
+              ? '\u2015'
+              : objectName}
+          </Name>
+          <Text as="div" size="sm" variant="muted">
+            <Flex align="center" gap={{zero: 'md', '4xl': '0 md'}} wrap="wrap">
+              <Text as="span" size="sm" variant="muted">
+                {getPrettyFileType(debugFile)}
+              </Text>
+              {features && (
+                <Flex display="inline-flex" wrap="wrap" gap="xs">
+                  {features.map(feature => (
+                    <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
+                      <Tag variant="muted">{feature}</Tag>
+                    </Tooltip>
+                  ))}
+                </Flex>
               )}
-            </div>
-          )}
-        </Description>
+            </Flex>
+            {showDetails && (
+              <div>
+                {/* there will be more stuff here in the future */}
+                {codeId && (
+                  <DetailsItem>
+                    {t('Code ID')}: {codeId}
+                  </DetailsItem>
+                )}
+              </div>
+            )}
+          </Text>
+        </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" align="start" marginTop="md">
         <Grid flow="column" align="center" gap="xs">
@@ -141,59 +163,17 @@ export function DebugFileRow({
   );
 }
 
-const DescriptionText = styled('span')`
-  display: inline-flex;
-  margin: 0 ${p => p.theme.space.md} ${p => p.theme.space.md} 0;
-`;
-
-const FeatureTags = styled('div')`
-  display: inline-flex;
-  flex-wrap: wrap;
-  margin: -${p => p.theme.space.xs};
-`;
-
-const StyledTag = styled(Tag)`
-  padding: ${p => p.theme.space.xs};
-`;
-
 const DebugId = styled('code')`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-const TimeAndSizeWrapper = styled('div')`
-  width: 100%;
-  display: flex;
-  font-size: ${p => p.theme.font.size.sm};
-  margin-top: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
-  align-items: center;
-`;
-
 const StyledFileSize = styled(FileSize)`
-  flex: 1;
-  padding-left: ${p => p.theme.space.xs};
-`;
-
-const TimeWrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-template-columns: min-content 1fr;
-  flex: 2;
-  align-items: center;
   padding-left: ${p => p.theme.space.xs};
 `;
 
 const Name = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-const Description = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    line-height: 1.7;
-  }
 `;
 
 const DetailsItem = styled('div')`

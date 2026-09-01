@@ -419,7 +419,11 @@ export function useActiveBreakpoint(): BreakpointSize {
     [mediaQueries]
   );
 
-  return useSyncExternalStore(subscribe, () => findLargestBreakpoint(mediaQueries));
+  return useSyncExternalStore(
+    subscribe,
+    () => findLargestBreakpoint(mediaQueries),
+    () => '2xs'
+  );
 }
 
 function findLargestBreakpoint(
