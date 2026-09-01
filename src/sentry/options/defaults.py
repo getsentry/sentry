@@ -2595,7 +2595,7 @@ register(
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
 # aborting. Also gates concurrent delivery: only these providers' claims deliver
-# in parallel waves, and only they dispatch from the due head. Only safe for
+# on `worker_threads` threads, and only they dispatch from the due head. Only safe for
 # providers whose cell-side handlers tolerate reordering, since a skipped or
 # concurrently delivered message can land after the ones behind it. Providers not
 # listed deliver strictly: one record at a time, in order, stopping on failure.

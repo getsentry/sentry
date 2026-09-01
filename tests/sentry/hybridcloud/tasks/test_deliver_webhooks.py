@@ -1,3 +1,4 @@
+import threading
 import time
 from datetime import timedelta
 from typing import Any
@@ -17,7 +18,6 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     BATCH_SCHEDULE_OFFSET,
     DRAIN_LOCK_TTL,
     MAX_MAILBOX_DRAIN,
-    MIN_RECORDS_PER_THREAD,
     RELEASE_MARGIN,
     SLOW_DELIVERY_THRESHOLD,
     Dispatcher,
@@ -37,7 +37,7 @@ from sentry.types.cell import Cell, CellResolutionError
 
 cell_config = [Cell("us", 1, "http://us.testserver")]
 
-# Drains invoked directly carry no dispatcher attribution; `_dispatch_tags`
+# Drains invoked directly carry no dispatcher attribution; `_delivery_tags`
 # tags them rather than omitting the key, so the tag stays queryable.
 UNATTRIBUTED = {"dispatcher": "unknown"}
 
@@ -376,11 +376,11 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
             schedule_for=claimed_for,
         )
 
-        outcome = _claim_and_dispatch(
+        claim = _claim_and_dispatch(
             webhook.id, webhook.mailbox_name, dispatcher=Dispatcher.SCHEDULER
         )
 
-        assert outcome == "not_due"
+        assert claim is None
         mock_drain.delay.assert_not_called()
         webhook.refresh_from_db()
         # The existing claim must not be extended either.
@@ -397,11 +397,12 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         )
 
         with CaptureQueriesContext(connections["control"]) as ctx:
-            outcome = _claim_and_dispatch(
+            claim = _claim_and_dispatch(
                 webhook.id, webhook.mailbox_name, dispatcher=Dispatcher.SCHEDULER
             )
 
-        assert outcome == "sequential"
+        assert claim is not None
+        assert claim.claimed == 1
         mock_drain.delay.assert_called_once_with(
             payload_id=webhook.id,
             claimed_count=1,
@@ -930,9 +931,26 @@ def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list
     return created
 
 
-def assert_drain_skips_failed_message(
-    provider: str, *, claimed_count: int = MAX_MAILBOX_DRAIN
-) -> None:
+class ConcurrencyProbe:
+    """A `deliver_message` stand-in that records how many deliveries overlapped."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._in_progress = 0
+        self.value = 0
+
+    def deliver(self, payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+        with self._lock:
+            self._in_progress += 1
+            self.value = max(self.value, self._in_progress)
+        # Long enough for every pool thread to be inside here at once.
+        time.sleep(0.2)
+        with self._lock:
+            self._in_progress -= 1
+        return (payload, None)
+
+
+def assert_drain_skips_failed_message(provider: str) -> None:
     """
     Drain a 5 message mailbox where the second delivery fails.
 
@@ -951,7 +969,7 @@ def assert_drain_skips_failed_message(
     responses.add(responses.POST, url, status=200, body="")
     records = create_payloads(5, f"{provider}:123", provider=provider)
 
-    drain_mailbox(records[0].id, claimed_count=claimed_count, valid_until=fresh_deadline())
+    drain_mailbox(records[0].id, claimed_count=MAX_MAILBOX_DRAIN, valid_until=fresh_deadline())
 
     assert len(responses.calls) == 5
     assert WebhookPayload.objects.count() == 1
@@ -1006,6 +1024,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     def test_drain_stops_at_claimed_count(self) -> None:
         # A claim-mode drain holds no lock while running: delivering past its
         # claimed records would race a drain another dispatcher may have started
@@ -1022,26 +1041,79 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
-    def test_drain_stops_at_claimed_count_threaded(self) -> None:
-        # The claim boundary binds waves too, not only the serial walk.
+    def test_drain_stops_at_claimed_count_concurrently(self) -> None:
+        # The claim boundary binds concurrent delivery too, not only the in-order walk.
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
         records = create_payloads(8, "github:123", provider="github")
 
-        drain_mailbox(
-            records[0].id, claimed_count=MIN_RECORDS_PER_THREAD + 1, valid_until=fresh_deadline()
-        )
+        drain_mailbox(records[0].id, claimed_count=6, valid_until=fresh_deadline())
 
         assert len(responses.calls) == 6
         remaining = set(WebhookPayload.objects.values_list("id", flat=True))
         assert remaining == {records[6].id, records[7].id}
 
+    @responses.activate
     @override_cells(cell_config)
-    def test_unexpected_wave_error_does_not_abandon_sibling_deliveries(self) -> None:
-        # An unexpected error surfaces from the wave, but only after every
-        # result is processed: a sibling delivered on another thread must still
-        # be deleted, or a later claim would redeliver it.
-        records = create_payloads(MIN_RECORDS_PER_THREAD + 1, "github:123", provider="github")
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 0})
+    def test_drain_survives_zero_worker_threads(self) -> None:
+        # The option is operator-editable; a zero must degrade to one thread, not
+        # fail every drain of the provider until the claim horizon, and again.
+        url = "http://us.testserver/extensions/github/webhook/"
+        responses.add(responses.POST, url, status=200, body="")
+        records = create_payloads(3, "github:123", provider="github")
+
+        drain_mailbox(records[0].id, claimed_count=3, valid_until=fresh_deadline())
+
+        assert len(responses.calls) == 3
+        assert WebhookPayload.objects.count() == 0
+
+    @override_cells(cell_config)
+    def test_strict_provider_spends_the_attempt_before_the_request(self) -> None:
+        # A drain killed mid-request leaves no result to reschedule on. A strict
+        # provider's record would head-block its mailbox on every retry at the
+        # claim horizon, so it carries the attempt when the request goes out —
+        # and is not charged a second one when the request then fails.
+        record = create_payloads(1, "jira:123", provider="jira")[0]
+        attempts_at_request: list[int] = []
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            attempts_at_request.append(payload.attempts)
+            return (payload, deliver_webhooks.DeliveryFailed())
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            drain_mailbox(record.id, claimed_count=1, valid_until=fresh_deadline())
+
+        assert attempts_at_request == [1]
+        record.refresh_from_db()
+        assert record.attempts == 1
+        assert record.schedule_for > timezone.now()
+
+    @override_cells(cell_config)
+    def test_skip_on_failure_provider_spends_the_attempt_on_the_result(self) -> None:
+        # The high-volume providers are spared the extra write per record: their
+        # attempt is spent only when a request comes back failed.
+        record = create_payloads(1, "github:123", provider="github")[0]
+        attempts_at_request: list[int] = []
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            attempts_at_request.append(payload.attempts)
+            return (payload, deliver_webhooks.DeliveryFailed())
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            drain_mailbox(record.id, claimed_count=1, valid_until=fresh_deadline())
+
+        assert attempts_at_request == [0]
+        record.refresh_from_db()
+        assert record.attempts == 1
+        assert record.schedule_for > timezone.now()
+
+    @override_cells(cell_config)
+    def test_unexpected_delivery_error_does_not_abandon_in_flight_deliveries(self) -> None:
+        # An unexpected error surfaces from the drain, but only after every
+        # in-flight result is handled: a sibling delivered on another thread must
+        # still be deleted, or a later claim would redeliver it.
+        records = create_payloads(4, "github:123", provider="github")
 
         def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
             if payload.id == records[0].id:
@@ -1050,13 +1122,9 @@ class DrainMailboxTest(TestCase):
             time.sleep(0.2)
             return (payload, None)
 
-        with patch.object(deliver_webhooks, "deliver_message_parallel", side_effect=deliver):
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
             with pytest.raises(ValueError):
-                drain_mailbox(
-                    records[0].id,
-                    claimed_count=MIN_RECORDS_PER_THREAD + 1,
-                    valid_until=fresh_deadline(),
-                )
+                drain_mailbox(records[0].id, claimed_count=4, valid_until=fresh_deadline())
 
         remaining = set(WebhookPayload.objects.values_list("id", flat=True))
         # The delivered sibling is gone; the errored head keeps its retry.
@@ -1065,10 +1133,11 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
-    def test_drain_stale_discards_consume_claim_budget_in_waves(self) -> None:
-        # Stale rows are discarded inside the wave, so they consume claim budget
-        # like delivered rows. Deleting them out-of-band would leave the budget
-        # to spill onto unclaimed due rows — the overlap claimed_count prevents.
+    def test_drain_stale_discards_consume_claim_budget(self) -> None:
+        # Stale rows are discarded where they would have been delivered, so they
+        # consume claim budget like delivered rows. Deleting them out-of-band
+        # would leave the budget to spill onto unclaimed due rows — the overlap
+        # claimed_count prevents.
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
         stale = [
@@ -1093,8 +1162,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     def test_drain_discards_stale_rows_instead_of_delivering(self) -> None:
-        # MAX_DELIVERY_AGE applies to serial drains too: stale rows are
+        # MAX_DELIVERY_AGE applies to in-order drains too: stale rows are
         # discarded in the walk, not forwarded days late.
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
@@ -1159,10 +1229,11 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
-    def test_drain_skip_on_failure_serial(self) -> None:
-        # A claim at MIN_RECORDS_PER_THREAD stays serial; skipping past the
-        # failure is a distinct branch there, not a side effect of the wave.
-        assert_drain_skips_failed_message("github", claimed_count=5)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
+    def test_drain_skip_on_failure_in_order(self) -> None:
+        # One worker thread delivers in order; skipping past the failure is a
+        # distinct branch there, not a side effect of concurrent delivery.
+        assert_drain_skips_failed_message("github")
 
     @responses.activate
     @override_cells(cell_config)
@@ -1258,9 +1329,9 @@ class DrainMailboxTest(TestCase):
     @responses.activate
     @override_cells(cell_config)
     @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
-    def test_drain_batch_deletes_span_waves(self) -> None:
-        # The delete batch belongs to the drain, not to one delivery wave:
-        # accumulating per wave would cap every DELETE at the wave width.
+    def test_drain_batch_deletes_span_concurrent_deliveries(self) -> None:
+        # The delete batch belongs to the drain, not to one result: eight
+        # concurrent deliveries flush as a single DELETE.
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
         records = create_payloads(8, "github:123", provider="github")
@@ -1733,8 +1804,9 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_serial_conflict_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+    def test_in_order_conflict_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1751,8 +1823,9 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_serial_unauthorized_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
+    def test_in_order_unauthorized_not_counted_as_delivered(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1775,18 +1848,17 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
         # past it even for providers that stop on the first failure.
         responses.add(
             responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
+            "http://us.testserver/extensions/jira/webhook/",
             status=401,
             body="",
         )
         responses.add(
             responses.POST,
-            "http://us.testserver/extensions/github/webhook/",
+            "http://us.testserver/extensions/jira/webhook/",
             status=200,
             body="",
         )
-        first = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
-        second = self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
+        first, second = create_payloads(2, "jira:123", provider="jira")
 
         drain_mailbox(first.id, claimed_count=MAX_MAILBOX_DRAIN, valid_until=fresh_deadline())
 
@@ -1865,8 +1937,9 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_serial_dropped_outcome_tagged_with_provider(self, mock_metrics: MagicMock) -> None:
+    def test_in_order_dropped_outcome_tagged_with_provider(self, mock_metrics: MagicMock) -> None:
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -1931,7 +2004,7 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         maybe_trigger_drain(webhook.mailbox_name)
 
         assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.push_trigger.success") == [
-            {"provider": "github", "drain": "sequential"}
+            {"provider": "github"}
         ]
 
 
@@ -1953,10 +2026,10 @@ class DispatchMetricTest(MetricCallsMixin, TestCase):
 
         assert mock_drain.delay.call_args.kwargs["dispatcher"] == Dispatcher.PUSH
         assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
-            {"dispatcher": "push", "drain": "sequential", "provider": "github"}
+            {"dispatcher": "push", "provider": "github"}
         ]
         assert self.distribution_calls(mock_metrics, DISPATCH_CLAIMED_METRIC) == [
-            (1, {"dispatcher": "push", "drain": "sequential", "provider": "github"})
+            (1, {"dispatcher": "push", "provider": "github"})
         ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
@@ -1966,7 +2039,7 @@ class DispatchMetricTest(MetricCallsMixin, TestCase):
     ) -> None:
         # Deep on purpose: `claimed` must report the batch, not one per dispatch,
         # or webhook share collapses back into dispatch share.
-        depth = MIN_RECORDS_PER_THREAD + 1
+        depth = 3
         for _ in range(depth):
             self.create_webhook_payload(mailbox_name="github:123", cell_name="us")
 
@@ -1974,13 +2047,10 @@ class DispatchMetricTest(MetricCallsMixin, TestCase):
 
         assert mock_drain.delay.call_args.kwargs["dispatcher"] == Dispatcher.SCHEDULER
         assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
-            {"dispatcher": "scheduler", "drain": "parallel", "provider": "github"}
+            {"dispatcher": "scheduler", "provider": "github"}
         ]
         assert self.distribution_calls(mock_metrics, DISPATCH_CLAIMED_METRIC) == [
-            (
-                depth,
-                {"dispatcher": "scheduler", "drain": "parallel", "provider": "github"},
-            )
+            (depth, {"dispatcher": "scheduler", "provider": "github"})
         ]
 
 
@@ -2053,8 +2123,10 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_wave_delivery_time_carries_dispatch_attribution(self, mock_metrics: MagicMock) -> None:
-        # Attribution must survive the threadpool hop, not only the serial walk.
+    def test_concurrent_delivery_time_carries_dispatch_attribution(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # Attribution must survive the threadpool hop, not only the in-order walk.
         responses.add(
             responses.POST,
             "http://us.testserver/extensions/github/webhook/",
@@ -2065,7 +2137,7 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
 
         drain_mailbox(
             records[0].id,
-            claimed_count=MIN_RECORDS_PER_THREAD + 1,
+            claimed_count=2,
             dispatcher=Dispatcher.PUSH,
             valid_until=fresh_deadline(),
         )
@@ -2107,6 +2179,7 @@ class LostHeadTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_drain_delivers_nothing_when_its_head_is_gone(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -2127,10 +2200,10 @@ class LostHeadTest(MetricCallsMixin, TestCase):
     @responses.activate
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    def test_threaded_drain_delivers_nothing_when_its_head_is_gone(
+    def test_concurrent_drain_delivers_nothing_when_its_head_is_gone(
         self, mock_metrics: MagicMock
     ) -> None:
-        # The stand-down must come before the first wave is delivered, not after
+        # The stand-down must come before the first request is sent, not after
         # it: these rows are the overtaking drain's to deliver, and sending them
         # here duplicates every one of them.
         responses.add(
@@ -2140,12 +2213,7 @@ class LostHeadTest(MetricCallsMixin, TestCase):
         head_id = records[0].id
         records[0].delete()
 
-        drain_mailbox(
-            head_id,
-            claimed_count=MIN_RECORDS_PER_THREAD + 1,
-            mailbox="github:123",
-            valid_until=fresh_deadline(),
-        )
+        drain_mailbox(head_id, claimed_count=3, mailbox="github:123", valid_until=fresh_deadline())
 
         assert len(responses.calls) == 0
         assert WebhookPayload.objects.count() == 2
@@ -2383,24 +2451,28 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
             {"dispatcher": "push", "outcome": "race", "provider": "unknown"}
         ]
 
-    @responses.activate
     @override_cells(cell_config)
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks._run_parallel_delivery_batch")
-    def test_strict_provider_never_delivers_in_waves(self, mock_batch: MagicMock) -> None:
-        responses.add(
-            responses.POST, "http://us.testserver/extensions/jira/webhook/", status=200, body=""
-        )
-        records = create_payloads(MIN_RECORDS_PER_THREAD + 2, "jira:123", provider="jira")
+    def test_strict_provider_never_delivers_concurrently(self) -> None:
+        # Depth never buys a strict-ordering provider a second thread: the next
+        # request must not start until the previous one has completed.
+        records = create_payloads(7, "jira:123", provider="jira")
+        peak = ConcurrencyProbe()
 
-        drain_mailbox(
-            records[0].id,
-            claimed_count=len(records),
-            valid_until=(timezone.now() + BATCH_SCHEDULE_OFFSET).timestamp(),
-            mailbox="jira:123",
-        )
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=peak.deliver):
+            drain_mailbox(records[0].id, claimed_count=len(records), valid_until=fresh_deadline())
 
-        mock_batch.assert_not_called()
-        assert len(responses.calls) == len(records)
+        assert peak.value == 1
+        assert WebhookPayload.objects.count() == 0
+
+    @override_cells(cell_config)
+    def test_skip_on_failure_provider_delivers_concurrently(self) -> None:
+        records = create_payloads(7, "github:123", provider="github")
+        peak = ConcurrencyProbe()
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=peak.deliver):
+            drain_mailbox(records[0].id, claimed_count=len(records), valid_until=fresh_deadline())
+
+        assert peak.value > 1
         assert WebhookPayload.objects.count() == 0
 
 
@@ -2463,6 +2535,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     def test_release_covers_only_the_tail_behind_delivered_rows(self) -> None:
         responses.add(
             responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
@@ -2492,6 +2565,65 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
         for record in (records[1], records[2]):
             record.refresh_from_db()
             assert record.schedule_for <= timezone.now()
+
+    @responses.activate
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 2})
+    def test_release_settles_in_flight_requests_before_covering_the_tail(self) -> None:
+        responses.add(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
+        )
+        valid_until = timezone.now() + BATCH_SCHEDULE_OFFSET
+        records = create_payloads(4, "github:123", provider="github")
+        WebhookPayload.objects.filter(id__in=[r.id for r in records]).update(
+            schedule_for=valid_until
+        )
+
+        # The deadline nears once the first two requests are in flight: both must
+        # settle — delivered and deleted — before the tail behind them is released.
+        with patch.object(
+            deliver_webhooks._MailboxClaim,
+            "nearing_deadline",
+            side_effect=[False, True],
+        ):
+            drain_mailbox(
+                records[0].id,
+                claimed_count=4,
+                valid_until=valid_until.timestamp(),
+                mailbox="github:123",
+            )
+
+        assert len(responses.calls) == 2
+        assert not WebhookPayload.objects.filter(id__in=[records[0].id, records[1].id]).exists()
+        for record in (records[2], records[3]):
+            record.refresh_from_db()
+            assert record.schedule_for <= timezone.now()
+
+    @override_cells(cell_config)
+    def test_wind_down_cancels_unstarted_requests_and_names_the_release_start(self) -> None:
+        # Two threads, three requests: the third waits in the executor's queue and
+        # is cancelled, so the release must start at it — not at the frontier
+        # past it, which would leave it stranded until the claim's deadline.
+        records = create_payloads(3, "github:123", provider="github")
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            time.sleep(0.2)
+            return (payload, None)
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            pool = deliver_webhooks._DeliveryPool(
+                deliver_webhooks._PayloadDeleter(batched=False),
+                worker_threads=2,
+                delivery_tags={**UNATTRIBUTED, "provider": "github"},
+                spends_attempt_on_submit=False,
+            )
+            for record in records:
+                pool.submit(record)
+            lowest_cancelled = pool.wind_down()
+
+        assert lowest_cancelled == records[2].id
+        assert pool.delivered == 2
+        assert set(WebhookPayload.objects.values_list("id", flat=True)) == {records[2].id}
 
 
 @control_silo_test
@@ -2722,57 +2854,6 @@ class PushTriggerTest(MetricCallsMixin, TestCase):
         mock_drain.delay.assert_not_called()
         # Lock must also be released so the scheduler can pick it up when backoff expires
         assert cache.get(f"wh:drain_active:{webhook.mailbox_name}") is None
-
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_push_trigger_reports_parallel_drain_for_deep_mailbox(
-        self, mock_drain: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        records = create_payloads(MIN_RECORDS_PER_THREAD + 1, "github:123")
-
-        maybe_trigger_drain("github:123")
-
-        mock_drain.delay.assert_called_once_with(
-            payload_id=records[0].id,
-            claimed_count=MIN_RECORDS_PER_THREAD + 1,
-            dispatcher=Dispatcher.PUSH,
-        )
-        assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
-            {"dispatcher": "push", "drain": "parallel", "provider": "github"}
-        ]
-
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_push_trigger_reports_sequential_drain_for_shallow_mailbox(
-        self, mock_drain: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        # One record short of a second delivery thread stays sequential.
-        records = create_payloads(MIN_RECORDS_PER_THREAD, "github:123")
-
-        maybe_trigger_drain("github:123")
-
-        mock_drain.delay.assert_called_once_with(
-            payload_id=records[0].id,
-            claimed_count=MIN_RECORDS_PER_THREAD,
-            dispatcher=Dispatcher.PUSH,
-        )
-        assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
-            {"dispatcher": "push", "drain": "sequential", "provider": "github"}
-        ]
-
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_push_trigger_reports_sequential_drain_for_deep_strict_mailbox(
-        self, mock_drain: MagicMock, mock_metrics: MagicMock
-    ) -> None:
-        # Depth never buys a strict-ordering provider concurrent delivery.
-        create_payloads(MIN_RECORDS_PER_THREAD + 1, "jira:123")
-
-        maybe_trigger_drain("jira:123")
-
-        assert self.tags_for(mock_metrics, DISPATCH_METRIC) == [
-            {"dispatcher": "push", "drain": "sequential", "provider": "jira"}
-        ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox_parallel")
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
