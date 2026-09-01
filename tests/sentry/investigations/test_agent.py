@@ -305,6 +305,14 @@ class InvestigationAgentTest(TestCase):
             "2026-08-14T23:56:02+00:00"
         )
 
+    def test_start_run_categorizes_the_run_as_an_investigation(self) -> None:
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        assert client.category_key == "investigation"
+        assert client.category_value == str(self.investigation.id)
+
     @patch("sentry.investigations.agent.record_execution_started")
     def test_start_run_records_execution_started(self, record_started: MagicMock) -> None:
         pending_execution = self.create_investigation_block_execution(
@@ -1176,6 +1184,18 @@ class InvestigationAgentTest(TestCase):
         assert "casual, plain language" in prompt
         assert "1 or 2 short" in prompt
         assert "Avoid headings and jargon" in prompt
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_generation_categorizes_the_run_as_an_investigation(
+        self, mock_client: MagicMock
+    ) -> None:
+        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        kwargs = mock_client.call_args.kwargs
+        assert kwargs["category_key"] == "investigation"
+        assert kwargs["category_value"] == str(self.investigation.id)
 
     @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.SeerAgentClient")
