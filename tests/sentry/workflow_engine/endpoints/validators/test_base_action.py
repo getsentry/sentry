@@ -39,6 +39,7 @@ class TestBaseActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is True
+        assert validator.validated_data["type"] is Action.Type.SLACK
 
     def test_validate_type__invalid(
         self, mock_action_handler_get: mock.MagicMock, mock_action_validator_get: mock.MagicMock
@@ -53,6 +54,8 @@ class TestBaseActionValidator(TestCase):
 
         result = validator.is_valid()
         assert result is False
+        assert "type" in validator.errors
+        mock_action_handler_get.assert_not_called()
 
     def test_validate_config(
         self, mock_action_handler_get: mock.MagicMock, mock_action_validator_get: mock.MagicMock
