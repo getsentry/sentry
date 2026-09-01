@@ -17,12 +17,7 @@ interface Props {
   group?: string | null;
 }
 
-export function SpanGroupDetailsLink({
-  moduleName,
-  group,
-  projectId,
-  description,
-}: Props) {
+export function SpanGroupDetailsLink({moduleName, group, projectId, description}: Props) {
   const location = useLocation();
 
   const moduleURL = useModuleURL(moduleName);

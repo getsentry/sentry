@@ -24,11 +24,7 @@ interface Props {
   shortDescription?: string;
 }
 
-export function FullSpanDescription({
-  group,
-  shortDescription,
-  moduleName,
-}: Props) {
+export function FullSpanDescription({group, shortDescription, moduleName}: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
