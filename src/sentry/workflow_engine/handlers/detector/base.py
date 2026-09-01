@@ -310,6 +310,17 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
         return {None: cast(DataPacketEvaluationType, data_values)}
 
+    def _is_detector_group_value(self, value: Any) -> bool:
+        """
+        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
+
+        An empty dict is a grouped value with no groups to evaluate.
+        """
+        if not isinstance(value, dict):
+            return False
+
+        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
+
     def _build_detector_evaluation(
         self,
         group_key: DetectorGroupKey,
@@ -364,14 +375,3 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         event_data.setdefault("tags", {})
 
         return event_data
-
-    def _is_detector_group_value(self, value: Any) -> bool:
-        """
-        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-
-        An empty dict is a grouped value with no groups to evaluate.
-        """
-        if not isinstance(value, dict):
-            return False
-
-        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
