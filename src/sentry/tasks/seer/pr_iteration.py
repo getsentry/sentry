@@ -104,7 +104,6 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
@@ -144,29 +143,6 @@ def _ineligible_comment_cache_key(*, organization_id: int, repo_id: int, pr_numb
 
 def _ineligible_pr_iteration_comment_body(github_username: str) -> str:
     return f"@{github_username}\n\n{INELIGIBLE_PR_ITERATION_COMMENT}"
-
-
-def trigger_pr_iteration_agent(
-    *,
-    group: Group,
-    referrer: AutofixReferrer,
-    run_id: int,
-    feedback_items: list[Feedback],
-    actor_user_id: int | None,
-    organization_id: int,
-    iteration_id: int | None,
-) -> SeerRun:
-    return trigger_autofix_agent(
-        group=group,
-        step=AutofixStep.PR_ITERATION,
-        referrer=referrer,
-        run_id=run_id,
-        user_context="\n\n".join(item.text for item in feedback_items),
-        feedback=feedback_items,
-        actor_user_id=actor_user_id,
-        commit_author=commit_author_for_feedback(feedback_items, organization_id),
-        iteration_id=iteration_id,
-    )
 
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
@@ -594,13 +570,15 @@ def _drain_queued_autofix_feedback(
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
-        trigger_pr_iteration_agent(
+        trigger_autofix_agent(
             group=group,
+            step=AutofixStep.PR_ITERATION,
             referrer=referrer,
             run_id=run_id,
-            feedback_items=feedback_items,
+            user_context="\n\n".join(item.text for item in feedback_items),
+            feedback=feedback_items,
             actor_user_id=actor_user_id,
-            organization_id=organization_id,
+            commit_author=commit_author_for_feedback(feedback_items, organization_id),
             iteration_id=iteration_id,
         )
     except (
