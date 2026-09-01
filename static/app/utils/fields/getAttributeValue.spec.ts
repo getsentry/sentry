@@ -142,9 +142,12 @@ describe('getAttributeValue', () => {
     ).toBeUndefined();
   });
 
-  it('returns undefined for a cached metadata miss', () => {
+  it('falls back to the requested key after a cached metadata miss', () => {
     expect(getAttributeValue({value: 'test'}, 'unknown.attribute')).toBeUndefined();
     expect(getAttributeValue({value: 'test'}, 'unknown.attribute')).toBeUndefined();
+    expect(
+      getAttributeValue({'unknown.attribute': 'test'}, 'unknown.attribute', 'string')
+    ).toBe('test');
   });
 
   it.each([

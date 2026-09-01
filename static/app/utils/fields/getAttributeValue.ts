@@ -163,7 +163,7 @@ function getAttributeValueFromDeprecationChain(
  * `kind` argument narrows the return type and validates the value at runtime. The
  * `number` kind also converts numeric strings, returning a `bigint` when an integer
  * exceeds JavaScript's safe integer range. A missing key or mismatched value returns
- * `undefined`.
+ * `undefined`. If the requested key has no metadata, it is looked up directly.
  *
  * @example Resolve a deprecated key from a record:
  * ```ts
@@ -222,13 +222,9 @@ export function getAttributeValue(
   const prettifiedKey = key.match(TYPED_TAG_KEY_RE)?.[1] ?? key;
   const deprecationChain = ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.get(prettifiedKey);
   if (ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.has(prettifiedKey)) {
-    if (!deprecationChain) {
-      return undefined;
-    }
-
     return getAttributeValueFromDeprecationChain(
       attributes as AttributeSource,
-      deprecationChain,
+      deprecationChain ?? [prettifiedKey],
       kind
     );
   }
@@ -241,13 +237,9 @@ export function getAttributeValue(
 
   ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(prettifiedKey, metadata?.deprecationChain);
 
-  if (!metadata) {
-    return undefined;
-  }
-
   return getAttributeValueFromDeprecationChain(
     attributes as AttributeSource,
-    metadata.deprecationChain,
+    metadata?.deprecationChain ?? [prettifiedKey],
     kind
   );
 }
