@@ -4,6 +4,15 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import type {
+  CssHeight,
+  CssMaxHeight,
+  CssMaxWidth,
+  CssMinHeight,
+  CssMinWidth,
+  CssWidth,
+} from '@sentry/scraps/cssTypes';
+
+import type {
   BorderVariant,
   RadiusSize,
   SpaceSize,
@@ -81,13 +90,13 @@ interface ContainerLayoutProps {
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
-  width?: Responsive<React.CSSProperties['width']>;
-  minWidth?: Responsive<React.CSSProperties['minWidth']>;
-  maxWidth?: Responsive<React.CSSProperties['maxWidth']>;
+  width?: Responsive<CssWidth>;
+  minWidth?: Responsive<CssMinWidth>;
+  maxWidth?: Responsive<CssMaxWidth>;
 
-  height?: Responsive<React.CSSProperties['height']>;
-  minHeight?: Responsive<React.CSSProperties['minHeight']>;
-  maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
+  height?: Responsive<CssHeight>;
+  minHeight?: Responsive<CssMinHeight>;
+  maxHeight?: Responsive<CssMaxHeight>;
 
   border?: Responsive<BorderVariant>;
   borderTop?: Responsive<BorderVariant>;

@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import {CssHeight, CssWidth} from '@sentry/scraps/cssTypes';
 import type {Responsive} from '@sentry/scraps/layout';
 import {getRadius, rc} from '@sentry/scraps/layout';
 
@@ -13,7 +14,7 @@ export interface ImageProps extends Omit<
   alt: string;
   src: string;
   aspectRatio?: CSSProperties['aspectRatio'];
-  height?: Responsive<CSSProperties['height']>;
+  height?: CssHeight;
   /**
    * Determines if the image should be loaded eagerly or lazily.
    * @default 'lazy'
@@ -32,8 +33,8 @@ export function Image({loading, width, height, ...props}: ImageProps) {
 
 const Img = styled('img')<
   Omit<ImageProps, 'width' | 'height'> & {
-    h: Responsive<CSSProperties['height']>;
-    w: Responsive<CSSProperties['width']>;
+    h: Responsive<CssHeight>;
+    w: Responsive<CssWidth>;
   }
 >`
   ${p => rc('width', p.w ?? '100%', p.theme)};

@@ -78,7 +78,7 @@ function anomalyMarklineTooltip(ctx: AnomalyTooltipContext) {
 
 function ChartError() {
   return (
-    <Flex justify="center" align="center" height={CHART_HEIGHT}>
+    <Flex justify="center" align="center" height={`${CHART_HEIGHT}px`}>
       <ErrorPanel>
         <IconWarning variant="muted" size="lg" />
         <div>{t('Error loading chart data')}</div>
@@ -89,7 +89,7 @@ function ChartError() {
 
 function ChartLoading() {
   return (
-    <Flex justify="center" align="center" height={CHART_HEIGHT}>
+    <Flex justify="center" align="center" height={`${CHART_HEIGHT}px`}>
       <Placeholder height={`${CHART_HEIGHT}px`} />
     </Flex>
   );
