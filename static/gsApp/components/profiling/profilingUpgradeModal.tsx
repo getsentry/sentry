@@ -249,10 +249,7 @@ function ActionButtons({
 
   return hasBillingAccess ? (
     <ButtonRow>
-      <Button
-        variant="primary"
-        onClick={onUpdatePlan}
-      >
+      <Button variant="primary" onClick={onUpdatePlan}>
         {t('Update Now')}
       </Button>
       <LinkButton

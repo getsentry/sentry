@@ -40,9 +40,7 @@ export function AddIntegrationButton({
 }: AddIntegrationButtonProps) {
   const label =
     buttonText ??
-    (installStatus === 'Disabled'
-      ? t('Reinstall')
-      : t('Add %s', provider.metadata.noun));
+    (installStatus === 'Disabled' ? t('Reinstall') : t('Add %s', provider.metadata.noun));
 
   const {startFlow} = useAddIntegration();
 
