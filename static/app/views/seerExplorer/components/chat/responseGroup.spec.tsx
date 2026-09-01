@@ -54,9 +54,17 @@ function llmWaitBlock(): Block {
   };
 }
 
-/** The response's `ThinkingBlock`, so a spinner can be located inside or outside it. */
+/**
+ * The response's `ThinkingBlock`. Located structurally rather than by title: the header shows the
+ * live tool label while active but a static summary once settled, so a title match silently stops
+ * meaning "the box is open".
+ */
+function queryReasoningBox(container: HTMLElement): HTMLElement | null {
+  return container.querySelector<HTMLElement>('[data-disclosure]');
+}
+
 function reasoningBox(container: HTMLElement): HTMLElement {
-  const box = container.querySelector<HTMLElement>('[data-disclosure]');
+  const box = queryReasoningBox(container);
   if (!box) {
     throw new Error('no reasoning box rendered');
   }
@@ -169,11 +177,12 @@ describe('ResponseGroup', () => {
       },
     ];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
 
-    expect(screen.queryByRole('button', {name: /Thinking/})).not.toBeInTheDocument();
+    expect(queryReasoningBox(container)).not.toBeInTheDocument();
   });
 
   it('still opens the box when the call reported call records', () => {
@@ -200,21 +209,23 @@ describe('ResponseGroup', () => {
       },
     ];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
 
-    expect(screen.getByRole('button', {name: /Thinking|Retrieving/})).toBeInTheDocument();
+    expect(queryReasoningBox(container)).toBeInTheDocument();
   });
 
   it('still opens the box for a classic tool call', () => {
     const group = [toolUseBlock('t1')];
 
-    render(<ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />, {
-      organization,
-    });
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
 
-    expect(screen.getByRole('button', {name: /Queried/})).toBeInTheDocument();
+    expect(queryReasoningBox(container)).toBeInTheDocument();
   });
 
   it('collapses the reasoning until it is expanded', async () => {
@@ -247,7 +258,7 @@ describe('ResponseGroup', () => {
       {organization}
     );
 
-    expect(screen.getByRole('button', {name: /spans/})).toHaveAttribute(
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
       'aria-expanded',
       'false'
     );
@@ -262,7 +273,7 @@ describe('ResponseGroup', () => {
       {organization}
     );
 
-    expect(screen.getByRole('button', {name: /spans/})).toHaveAttribute(
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
       'aria-expanded',
       'true'
     );
