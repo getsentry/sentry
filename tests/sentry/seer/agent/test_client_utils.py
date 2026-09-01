@@ -213,6 +213,35 @@ class CollectUserOrgContextTest(TestCase):
         assert [r["external_id"] for r in user_by_id[self.project1.id]["repos"]] == ["ext-1"]
         assert [r["external_id"] for r in user_by_id[self.project2.id]["repos"]] == ["ext-2"]
 
+    def test_collect_context_scopes_projects(self) -> None:
+        repo = self.create_repo(
+            project=self.project1,
+            name="acme/project-1-repo",
+            provider="integrations:github",
+            integration_id=999,
+            external_id="ext-1",
+        )
+        self.create_seer_project_repository(project=self.project1, repository=repo)
+
+        context = collect_user_org_context(
+            self.user,
+            self.organization,
+            project_ids=[self.project1.id],
+        )
+
+        assert [project["id"] for project in context["all_org_projects"]] == [self.project1.id]
+        assert [project["id"] for project in context["user_projects"]] == [self.project1.id]
+        assert context["all_org_projects"][0]["repos"][0]["external_id"] == "ext-1"
+
+        context_without_user = collect_user_org_context(
+            None,
+            self.organization,
+            project_ids=[self.project1.id],
+        )
+        assert [project["id"] for project in context_without_user["all_org_projects"]] == [
+            self.project1.id
+        ]
+
 
 class SnapshotToMarkdownTest(TestCase):
     def test_single_node(self) -> None:

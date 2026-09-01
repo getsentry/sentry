@@ -123,6 +123,7 @@ class SeerFeatureRunRequest(TypedDict):
     feature_id: str
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
+    user_org_context: NotRequired[dict[str, Any]]
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -376,14 +377,16 @@ def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
+    project_ids: Sequence[int] | None = None,
 ) -> dict[str, Any]:
-    """Collect user and organization context for a new agent run."""
-    all_projects = Project.objects.filter(
-        organization=organization, status=ObjectStatus.ACTIVE
-    ).values("id", "slug")
+    """Collect user and organization context, optionally scoped to specific projects."""
+    all_projects = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    if project_ids is not None:
+        all_projects = all_projects.filter(id__in=project_ids)
+    project_values = list(all_projects.values("id", "slug"))
 
     prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id, [p["id"] for p in all_projects]
+        organization.id, [p["id"] for p in project_values]
     )
     repos_by_pid = {
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
@@ -391,7 +394,7 @@ def collect_user_org_context(
 
     all_org_projects = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
-        for p in all_projects
+        for p in project_values
     ]
 
     if user is None or isinstance(user, AnonymousUser):
@@ -426,6 +429,8 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
+    if project_ids is not None:
+        my_projects = my_projects.filter(id__in=project_ids)
     user_projects = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
