@@ -2,7 +2,6 @@ import {useEffect, useMemo, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -40,10 +39,7 @@ export function TraceAiTab({traceSlug}: {traceSlug: string}) {
     trackAnalytics('agent-monitoring.trace.rendered', {organization});
   }, [isLoading, error, nodes.length, traceSlug, organization]);
 
-  const hasConversations =
-    hasGenAiConversationsFeature(organization) && conversationIds.length > 0;
-
-  if (hasConversations) {
+  if (conversationIds.length > 0) {
     return (
       <TraceAiConversations
         conversationIds={conversationIds}

@@ -22,9 +22,7 @@ const BASE_CONVERSATION = {
 };
 
 describe('useConversations', () => {
-  const organization = OrganizationFixture({
-    features: ['gen-ai-conversations'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

@@ -35,13 +35,7 @@ function ConversationsLayout() {
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Feature
-        features="gen-ai-conversations"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <ConversationsLayoutContent />
-      </Feature>
+      <ConversationsLayoutContent />
     </Feature>
   );
 }
