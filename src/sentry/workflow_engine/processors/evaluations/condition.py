@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeAlias
 
 from sentry.workflow_engine.types import DataConditionResult
 
-from .base import BaseWorkflowEngineEvaluation
+from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models.data_condition import DataCondition
@@ -18,9 +18,22 @@ class DataConditionEvaluationException(Exception):
 ConditionEvaluationData: TypeAlias = Any
 
 
+@dataclass(frozen=True)
+class DataConditionEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    condition_id: int
+    condition_type: str
+    input_type: str
+    input: bool | int | float | str | None
+    result: DataConditionResult
+
+
 @dataclass(frozen=True, kw_only=True)
 class DataConditionEvaluation(
-    BaseWorkflowEngineEvaluation[DataConditionResult, ConditionEvaluationData]
+    BaseWorkflowEngineEvaluation[
+        DataConditionResult,
+        ConditionEvaluationData,
+        DataConditionEvaluationArtifact,
+    ]
 ):
     """
     This class is used to track the evaluation of a DataCondition's logic.
@@ -43,13 +56,16 @@ class DataConditionEvaluation(
     result: DataConditionResult = None
     condition: DataCondition
 
-    @property
-    def artifact_fields(self) -> dict[str, Any]:
+    def _build_artifact(
+        self, *, triggered: bool, error: str | None
+    ) -> DataConditionEvaluationArtifact:
         safe_input = self.data if isinstance(self.data, (bool, int, float, str)) else None
-        return {
-            "condition_id": self.condition.id,
-            "condition_type": self.condition.type,
-            "input_type": type(self.data).__name__,
-            "input": safe_input,
-            "result": getattr(self.result, "value", self.result),
-        }
+        return DataConditionEvaluationArtifact(
+            triggered=triggered,
+            error=error,
+            condition_id=self.condition.id,
+            condition_type=self.condition.type,
+            input_type=type(self.data).__name__,
+            input=safe_input,
+            result=getattr(self.result, "value", self.result),
+        )

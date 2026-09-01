@@ -63,6 +63,10 @@ def get_transaction_sample_rates(
     return named_rates, implicit_rate
 
 
+def is_recalibration_factor_served_per_org(org_id: int) -> bool:
+    return _serving_source(org_id) is ServingSource.PER_ORG
+
+
 def get_recalibration_factor(org_id: int) -> float:
     source = _serving_source(org_id)
     emit_serving_source(ServedValue.RECALIBRATION_FACTOR, source)

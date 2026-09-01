@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';

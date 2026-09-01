@@ -94,8 +94,6 @@ interface TableData {
   isSpanDataLoading?: boolean;
 }
 
-const EMPTY_ARRAY: never[] = [];
-
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
   {key: 'agents', name: t('Agents / Trace Root'), width: COL_WIDTH_UNDEFINED},
@@ -320,7 +318,6 @@ export function TracesTable({
       data={tableData}
       stickyHeader
       columnOrder={columnOrder}
-      columnSortBy={EMPTY_ARRAY}
       grid={{
         renderBodyCell,
         renderHeadCell,

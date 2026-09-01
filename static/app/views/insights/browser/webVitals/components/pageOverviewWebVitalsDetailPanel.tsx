@@ -353,8 +353,10 @@ export function PageOverviewWebVitalsDetailPanel({
               columnOrder={
                 isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
               }
-              columnSortBy={[sort]}
               grid={{
+                getColumnSort: column => ({
+                  direction: column.key === sort.key ? sort.order : undefined,
+                }),
                 renderHeadCell,
                 renderBodyCell: renderSpansBodyCell,
               }}
