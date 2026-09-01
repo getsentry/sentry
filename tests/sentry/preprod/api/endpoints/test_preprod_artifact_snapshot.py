@@ -709,8 +709,6 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         blob = orjson.dumps(build_head_images_payload(images, None))
 
-        # Only the precomputed blob resolves; a manifest read would return None and
-        # 500, so a 200 proves the fast path served the response.
         def _get(key):
             if key == head_key:
                 result = MagicMock()
@@ -1610,9 +1608,6 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         metrics.extras["head_images_key"] = head_key
         metrics.save(update_fields=["extras"])
 
-        # Only the precomputed blob is available; the manifest key is absent, so a
-        # fallback read would 500. Matching the golden proves the fast path served a
-        # byte-identical response.
         self._mock_multi_session(
             mock_get_session, {head_key: self._head_images_blob_bytes(head_images)}
         )

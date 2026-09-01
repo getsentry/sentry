@@ -8,13 +8,11 @@ import orjson
 from objectstore_client import Session
 
 from sentry.preprod.api.models.public.snapshots import SnapshotImageResponseDict
-from sentry.preprod.snapshots.image_serialization import build_head_image_dict
+from sentry.preprod.snapshots.image_serialization import build_head_image_list
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
-# Bump whenever the shape of a precomputed head-image dict changes, so stale blobs
-# are treated as a cache miss and the read path rebuilds from the manifest.
 HEAD_IMAGES_SCHEMA_VERSION = 1
 
 
@@ -34,10 +32,7 @@ def build_head_images_payload(
     return {
         "schema_version": HEAD_IMAGES_SCHEMA_VERSION,
         "diff_threshold": diff_threshold,
-        "images": [
-            build_head_image_dict(image_file_name, metadata, diff_threshold)
-            for image_file_name, metadata in sorted(images.items())
-        ],
+        "images": build_head_image_list(images, diff_threshold),
     }
 
 
@@ -56,7 +51,10 @@ def load_precomputed_head_images(
         ) as span:
             raw = response.payload.read()
             payload = orjson.loads(raw)
-            if payload.get("schema_version") != HEAD_IMAGES_SCHEMA_VERSION:
+            if (
+                payload.get("schema_version") != HEAD_IMAGES_SCHEMA_VERSION
+                or "images" not in payload
+            ):
                 return None
             images = payload["images"]
             set_span_data(span, "image_count", len(images))

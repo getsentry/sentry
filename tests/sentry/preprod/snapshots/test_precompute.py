@@ -75,6 +75,11 @@ class TestLoadPrecomputedHeadImages:
 
         assert load_precomputed_head_images(_mock_session(raw), "k") is None
 
+    def test_returns_none_when_images_key_absent(self) -> None:
+        raw = orjson.dumps({"schema_version": HEAD_IMAGES_SCHEMA_VERSION, "diff_threshold": 0.1})
+
+        assert load_precomputed_head_images(_mock_session(raw), "k") is None
+
     def test_returns_none_on_read_error(self) -> None:
         session = MagicMock()
         result = MagicMock()

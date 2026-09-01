@@ -67,7 +67,7 @@ from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
 )
-from sentry.preprod.snapshots.image_serialization import build_head_image_dict
+from sentry.preprod.snapshots.image_serialization import build_head_image_list
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
@@ -392,10 +392,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 op="preprod.snapshot.serialize_images", name="serialize_head_images"
             ) as span:
                 set_span_data(span, "image_count", len(head_images))
-                image_list = [
-                    build_head_image_dict(key, metadata, head_diff_threshold)
-                    for key, metadata in sorted(head_images.items())
-                ]
+                image_list = build_head_image_list(head_images, head_diff_threshold)
 
         # Build VCS info from commit_comparison
         commit_comparison = artifact.commit_comparison
@@ -850,8 +847,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
 
-        # Best-effort: precompute the serialized head-image list so reads skip the
-        # per-image build. A miss here just falls back to rebuilding from the manifest.
         try:
             parsed_manifest = orjson.loads(manifest_bytes)
             session.put(
