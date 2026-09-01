@@ -55,6 +55,12 @@ export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 export type ParsedFunction = {
   arguments: string[];
   name: string;
+  /**
+   * The search query from a backtick-wrapped first argument (EAP `_if` filter).
+   * Name and arguments are left as written; use `parseConditionalAggregate` when the
+   * combinator should be stripped.
+   */
+  filter?: string;
 };
 
 type ValidateColumnValueFunction = (data: {
@@ -949,12 +955,53 @@ export function getAggregateArg(field: string): string | null {
   return null;
 }
 
+function isSearchFilterArgument(value: string): boolean {
+  return value.length >= 2 && value.startsWith('`') && value.endsWith('`');
+}
+
+const IF_SUFFIX = '_if';
+
+function getBaseAggregateFromParsedFunction(result: ParsedFunction): {
+  arguments: string[];
+  name: string;
+} {
+  if (result.filter !== undefined && result.name.endsWith(IF_SUFFIX)) {
+    return {
+      name: result.name.slice(0, -IF_SUFFIX.length),
+      arguments: result.arguments.slice(1),
+    };
+  }
+
+  return {name: result.name, arguments: result.arguments};
+}
+
+/**
+ * Parse an aggregate into its name and arguments.
+ *
+ * When the first argument is backtick-wrapped, `filter` is set to the unwrapped search
+ * query. Name and arguments are left as written so Discover helpers (explode, alias,
+ * prettify) keep working unchanged:
+ * `avg_if(\`span.op:db\`,span.duration)` →
+ * `{name: 'avg_if', arguments: ['\`span.op:db\`', 'span.duration'], filter: 'span.op:db'}`.
+ * Discover style conditionals such as `count_if(span.duration,equals,300)` do not wrap
+ * their first argument in backticks, and are left untouched.
+ */
 export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results?.length === 3) {
+    const name = results[1]!;
+    const args = parseArguments(results[2]!);
+    const firstArgument = args[0];
+    if (isSearchFilterArgument(firstArgument ?? '') && name.endsWith(IF_SUFFIX)) {
+      return {
+        name,
+        arguments: args,
+        filter: firstArgument!.slice(1, -1),
+      };
+    }
     return {
-      name: results[1]!,
-      arguments: parseArguments(results[2]!),
+      name,
+      arguments: args,
     };
   }
 
@@ -975,19 +1022,29 @@ function parseArguments(columnText: string): string[] {
   let quoted = false;
   let inTag = false;
   let escaped = false;
+  let inFilter = false;
 
   let i = 0;
   let j = 0;
 
   while (j < columnText?.length) {
-    if (!inTag && i === j && columnText[j] === '"') {
+    if (!inFilter && !inTag && i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
-    } else if (!quoted && columnText[j] === '[' && _lookback(columnText, j, 'tags')) {
+    } else if (
+      !inFilter &&
+      !quoted &&
+      columnText[j] === '[' &&
+      _lookback(columnText, j, 'tags')
+    ) {
       // when the argument begins with tags[,
       // then this is the beginning of the tag that may contain commas
       inTag = true;
+    } else if (!quoted && i === j && columnText[j] === '`') {
+      // when the argument begins with a backtick, it is a search filter for an
+      // `_if` aggregate and may contain any character other than a backtick
+      inFilter = true;
     } else if (i === j && columnText[j] === ' ') {
       // argument has leading spaces, skip over them
       i += 1;
@@ -1003,6 +1060,9 @@ function parseArguments(columnText: string): string[] {
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
       inTag = false;
+    } else if (inFilter && columnText[j] === '`') {
+      // when we see a backtick while inside a search filter, we should end it
+      inFilter = false;
     } else if (quoted && escaped) {
       // when we are inside a quoted string and have
       // begun an escape character, we should end it
@@ -1011,7 +1071,7 @@ function parseArguments(columnText: string): string[] {
       // when we are inside a quoted string or tag and see
       // a comma, it should not be considered an
       // argument separator
-    } else if (columnText[j] === ',') {
+    } else if (!inFilter && columnText[j] === ',') {
       // when we see a comma outside of a quoted string
       // it is an argument separator
       args.push(columnText.substring(i, j).trim());
@@ -1163,6 +1223,7 @@ function normalizeFunctionArgument(value: string): string {
 function generateFunctionArgument(value: string): string {
   if (
     isQuotedFunctionArgument(value) ||
+    isSearchFilterArgument(value) ||
     EXPLICIT_TAG_FUNCTION_ARGUMENT.test(value) ||
     !UNSAFE_FUNCTION_ARGUMENT.test(value)
   ) {
@@ -1214,10 +1275,12 @@ export function getAggregateAlias(field: string): string {
     return field;
   }
 
-  let alias = result.name;
+  const {name, arguments: args} = getBaseAggregateFromParsedFunction(result);
 
-  if (result.arguments.length > 0) {
-    alias += '_' + result.arguments.join('_');
+  let alias = name;
+
+  if (args.length > 0) {
+    alias += '_' + args.join('_');
   }
 
   return alias.replace(/\W/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
@@ -1277,7 +1340,8 @@ export function aggregateOutputType(field: string | undefined): AggregationOutpu
   if (!result) {
     return 'number';
   }
-  const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
+  const {name, arguments: args} = getBaseAggregateFromParsedFunction(result);
+  const outputType = aggregateFunctionOutputType(name, args[0]);
   if (outputType === null) {
     return 'number';
   }
@@ -1399,11 +1463,12 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!result) {
     return 'area';
   }
-  if (!Object.hasOwn(AGGREGATIONS, result.name)) {
+  const {name} = getBaseAggregateFromParsedFunction(result);
+  if (!Object.hasOwn(AGGREGATIONS, name)) {
     return 'area';
   }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return AGGREGATIONS[result.name].multiPlotType;
+  return AGGREGATIONS[name].multiPlotType;
 }
 
 function validateForNumericAggregate(

@@ -5,6 +5,16 @@ import {LLMNodeContext, useLLMContextRegistry} from './llmContext';
 import type {LLMContextNodeType} from './llmContextTypes';
 
 /**
+ * `display: contents` drops this element from the box tree entirely, so it
+ * never affects layout (flex/grid siblings, etc.) — the wrapped component's
+ * own DOM output behaves exactly as if this element weren't there. It still
+ * exists as a real DOM node with a queryable attribute, which is what lets
+ * Seer XRay Mode find "the node's DOM position" without every registered
+ * component threading a ref through.
+ */
+const DOM_ANCHOR_STYLE = {display: 'contents'} as const;
+
+/**
  * HOC that registers a component as a named node in the LLM context tree.
  *
  * On mount, a new node of the given `nodeType` is created in the tree,
@@ -49,8 +59,14 @@ export function registerLLMContext<P>(
       // Provide ownNodeId downward so child registerLLMContext wrappers
       // and useLLMContext(data) calls read this as their context anchor.
       <LLMNodeContext.Provider value={ownNodeId}>
-        {/* TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261 */}
-        <WrappedComponent {...(props as any)} />
+        <div
+          data-seer-xray-node-id={ownNodeId}
+          data-seer-xray-node-type={nodeType}
+          style={DOM_ANCHOR_STYLE}
+        >
+          {/* TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261 */}
+          <WrappedComponent {...(props as any)} />
+        </div>
       </LLMNodeContext.Provider>
     );
   }

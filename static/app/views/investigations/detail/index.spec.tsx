@@ -1,3 +1,4 @@
+import {useEffect, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -14,12 +15,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {
+  AsyncSDKIntegrationContextProvider,
+  useAsyncSDKIntegrationStore,
+} from 'sentry/views/app/asyncSDKIntegrationProvider';
+import {
+  getInvestigationDetailQueryOptions,
+  investigationExecutionDetailQueryOptions,
+  investigationListQueryOptions,
+} from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
-import type {
-  InvestigationBlock,
-  InvestigationDetail,
-} from 'sentry/views/investigations/types';
+import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -28,97 +37,78 @@ const organization = OrganizationFixture({
   openMembership: true,
 });
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const titleGenerationUrl =
+  '/organizations/org-slug/investigations/investigation-1/title-generation/';
 
-function InvestigationDetailFixture(
-  overrides: Partial<InvestigationDetail> = {}
-): InvestigationDetail & {blocks: InvestigationBlock[]} {
-  return {
-    id: 'investigation-1',
-    title: 'Investigate database latency',
-    status: 'active',
-    sourceType: 'manual',
-    createdBy: '1',
-    dateCreated: '2026-08-13T20:00:00Z',
-    dateUpdated: '2026-08-13T21:00:00Z',
-    version: 1,
-    blockCount: 2,
-    isFavorited: false,
-    blocks: [
-      {
-        id: 'block-1',
-        position: 0,
-        kind: 'text',
-        title: 'Summary',
-        content: 'Initial notes',
-        generationPrompt: '',
-        generatedContent: '',
-        output: null,
-        outputStatus: 'notRun',
-        currentExecution: null,
-        config: {},
-        display: {type: 'markdown'},
-        dependencies: [],
-        parameterKeys: [],
-        version: 1,
-        staleAt: null,
-        createdBy: '1',
-        lastEditedBy: '1',
-      },
-      {
-        id: 'block-2',
-        position: 1,
-        kind: 'query',
-        title: 'Latency query',
-        content: '',
-        generationPrompt: 'Find slow spans',
-        generatedContent: '',
-        output: null,
-        outputStatus: 'notRun',
-        currentExecution: null,
-        config: {},
-        display: {type: 'table'},
-        dependencies: [],
-        parameterKeys: [],
-        version: 1,
-        staleAt: null,
-        createdBy: '1',
-        lastEditedBy: '1',
-      },
-    ],
-    filters: {},
-    parameters: [],
-    projectIds: [],
-    source: {type: 'manual', ref: {}, revision: null},
-    template: null,
-    titleGeneration: {status: null},
-    ...overrides,
-  };
+const feedbackForm = {
+  appendToDom: jest.fn(),
+  open: jest.fn(),
+  close: jest.fn(),
+  removeFromDom: jest.fn(),
+};
+const createFeedbackForm = jest.fn().mockResolvedValue(feedbackForm);
+const feedbackIntegration = {
+  createForm: createFeedbackForm,
+} as unknown as FeedbackIntegration;
+
+function FeedbackProvider({children}: {children: ReactNode}) {
+  return (
+    <AsyncSDKIntegrationContextProvider>
+      <InstallFeedbackIntegration />
+      <GlobalFeedbackForm>{children}</GlobalFeedbackForm>
+    </AsyncSDKIntegrationContextProvider>
+  );
+}
+
+function InstallFeedbackIntegration() {
+  const {setState} = useAsyncSDKIntegrationStore();
+
+  useEffect(() => {
+    setState({Feedback: feedbackIntegration});
+  }, [setState]);
+
+  return null;
 }
 
 function renderView(
   renderOrganization = organization,
-  queryClient = makeTestQueryClient()
+  queryClient = makeTestQueryClient(),
+  withFeedback = false
 ) {
   const result = render(<InvestigationDetailView />, {
     additionalWrapper: ({children}) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        {withFeedback ? <FeedbackProvider>{children}</FeedbackProvider> : children}
+      </QueryClientProvider>
     ),
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
-        pathname: '/organizations/org-slug/seer/investigation/investigation-1/',
+        pathname: '/organizations/org-slug/explore/investigations/investigation-1/',
       },
-      route: '/organizations/:orgId/seer/investigation/:investigationId/',
+      route: '/organizations/:orgId/explore/investigations/:investigationId/',
     },
   });
 
   return {...result, queryClient};
 }
 
+async function chooseCellAction(
+  cellTitle: string,
+  action: 'Delete' | 'Refine' | 'Rerun'
+) {
+  await userEvent.click(
+    await screen.findByRole('button', {name: `Cell actions for ${cellTitle}`})
+  );
+  await userEvent.click(await screen.findByRole('menuitemradio', {name: action}));
+}
+
 describe('Investigation detail', () => {
   beforeEach(() => {
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
+    createFeedbackForm.mockClear();
+    ConfigStore.set('customerDomain', null);
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -131,18 +121,297 @@ describe('Investigation detail', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Summary')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Ask Seer about Summary'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
-    ).toBeInTheDocument();
+      screen.queryByRole('button', {name: /Ask Seer about/})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Rerun/})).not.toBeInTheDocument();
     expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Cell actions for Summary'));
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rerun'})).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByLabelText('Cell actions for Latency query'));
+    expect(screen.getByRole('menuitemradio', {name: 'Rerun'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
   });
 
-  it('shows running and dependency-waiting states for auto-run cells', async () => {
+  it('opens feedback scoped to the investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        template: {key: 'breached_metric', version: 1},
+      }),
+    });
+
+    renderView(organization, makeTestQueryClient(), true);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Give feedback'}));
+
+    await waitFor(() => {
+      expect(createFeedbackForm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          formTitle: 'Give feedback on this investigation',
+          messagePlaceholder: 'What was useful, incorrect, or missing?',
+          tags: {
+            'feedback.source': 'investigation',
+            'feedback.owner': 'ml-ai',
+            'investigation.id': 'investigation-1',
+            'investigation.source_type': 'metric_open_period',
+            'investigation.template': 'breached_metric',
+          },
+        })
+      );
+    });
+  });
+
+  it('renders completed investigation metadata above the first block', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        summary: 'Errors rose across releases',
+        summaryDescription:
+          'All active releases increased together.\nCheck shared infrastructure and dependencies.',
+      }),
+    });
+
+    renderView();
+
+    const summary = await screen.findByTestId('investigation-summary');
+    expect(within(summary).getByText('Current understanding')).toBeInTheDocument();
+    expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
+    expect(
+      within(summary).getByText(/All active releases increased together/)
+    ).toBeInTheDocument();
+    expect(
+      summary.compareDocumentPosition(screen.getByTestId('investigation-cell-block-1'))
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('renders partial text while an agent-written text cell is running', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks[0] = {
+      ...investigation.blocks[0]!,
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-1',
+        status: 'running',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: null,
+        error: null,
+      },
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: 'Errors are concentrated in checkout.',
+        error: null,
+      },
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByText('Errors are concentrated in checkout.')
+    ).toBeInTheDocument();
+  });
+
+  it('does not render stale streamed text after a text cell completes', async () => {
+    const queryClient = makeTestQueryClient();
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks[0] = {
+      ...investigation.blocks[0]!,
+      outputStatus: 'available',
+      output: {schemaVersion: 1, markdown: 'Final persisted analysis'},
+      currentExecution: {
+        id: 'execution-1',
+        status: 'completed',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: '2026-08-18T20:01:00Z',
+        error: null,
+      },
+    };
+    const executionOptions = investigationExecutionDetailQueryOptions({
+      organizationSlug: organization.slug,
+      investigationId: investigation.id,
+      blockId: 'block-1',
+      executionId: 'execution-1',
+    });
+    queryClient.setQueryData(executionOptions.queryKey, {
+      headers: {},
+      json: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: 'Thinking…',
+        error: null,
+      },
+    });
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView(organization, queryClient);
+
+    expect(await screen.findByText('Final persisted analysis')).toBeInTheDocument();
+    expect(screen.queryByText('Thinking…')).not.toBeInTheDocument();
+  });
+
+  it('renders the streamed investigation title preview', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: 'Checkout error rate spike'},
+    });
+
+    renderView();
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+        'Checkout error rate spike'
+      )
+    );
+  });
+
+  it('restores the generated preview after abandoning an empty title edit', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: 'Checkout error rate spike'},
+    });
+
+    renderView();
+
+    const titleInput = await screen.findByRole('textbox', {
+      name: 'Investigation title',
+    });
+    await waitFor(() => expect(titleInput).toHaveValue('Checkout error rate spike'));
+    await userEvent.clear(titleInput);
+    fireEvent.blur(titleInput);
+
+    await waitFor(() => expect(titleInput).toHaveValue('Checkout error rate spike'));
+  });
+
+  it('does not replace an investigation title that was renamed before mount', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Manually renamed investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    const titleRequest = MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: 'Generated title preview'},
+    });
+
+    renderView();
+
+    await waitFor(() => expect(titleRequest).toHaveBeenCalled());
+    expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+      'Manually renamed investigation'
+    );
+    expect(screen.queryByDisplayValue('Generated title preview')).not.toBeInTheDocument();
+  });
+
+  it('renders the persisted title when completion has no preview', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'running', preview: null},
+    });
+
+    renderView();
+    expect(await screen.findByDisplayValue('Untitled investigation')).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Mobile API Monitor False Alert',
+        summary: 'Comparison logic triggered breach',
+        summaryDescription: 'One event appeared against a zero-event baseline.',
+        titleGeneration: {status: 'completed'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'completed', preview: null},
+    });
+
+    await waitFor(
+      () =>
+        expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
+          'Mobile API Monitor False Alert'
+        ),
+      {timeout: 2000}
+    );
+    expect(screen.getByText('Comparison logic triggered breach')).toBeInTheDocument();
+  });
+
+  it('invalidates the investigations list when metadata generation settles', async () => {
+    const queryClient = makeTestQueryClient();
+    const listOptions = investigationListQueryOptions({
+      organizationSlug: 'org-slug',
+    });
+    queryClient.setQueryData(listOptions.queryKey, {
+      headers: {},
+      json: [],
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        title: 'Untitled investigation',
+        titleGeneration: {status: 'running'},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'completed', preview: 'Checkout error rate spike'},
+    });
+
+    renderView(organization, queryClient);
+
+    await waitFor(() =>
+      expect(queryClient.getQueryState(listOptions.queryKey)?.isInvalidated).toBe(true)
+    );
+  });
+
+  it('shows active auto-run cells, hides waiting cells, and opens agent steps', async () => {
     const investigation = InvestigationDetailFixture({
       template: {key: 'breached_metric', version: 1},
     });
@@ -185,12 +454,44 @@ describe('Investigation detail', () => {
       },
     ];
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-1/`,
+      body: {
+        id: 'execution-1',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-2/executions/execution-2/`,
+      body: {
+        id: 'execution-2',
+        status: 'pending',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
 
     renderView();
 
-    expect(await screen.findAllByText('Seer is working on this cell…')).toHaveLength(2);
-    expect(screen.getByText('Waiting for previous cells…')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Ask Seer about Synthesis'})).toBeDisabled();
+    expect(await screen.findAllByRole('button', {name: 'Close Seer panel'})).toHaveLength(
+      2
+    );
+    expect(screen.getByTestId('investigation-cell-block-1')).toBeInTheDocument();
+    expect(screen.getByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-cell-block-3')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
   });
 
   it('keeps polling while an auto-run cell is waiting to start', async () => {
@@ -219,7 +520,8 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(await screen.findByText('Waiting for previous cells…')).toBeInTheDocument();
+    await screen.findByText('Initial notes');
+    expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
   });
 
@@ -242,7 +544,69 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(await screen.findByText('This cell failed to run.')).toBeInTheDocument();
+    expect(await screen.findByTestId('cell-execution-failed')).toHaveTextContent(
+      'Query failed'
+    );
+  });
+
+  it('only blocks cells that depend on a failed branch', async () => {
+    const investigation = InvestigationDetailFixture();
+    const textBlock = investigation.blocks[0]!;
+    const queryBlock = investigation.blocks[1]!;
+    investigation.blocks = [
+      {
+        ...textBlock,
+        outputStatus: 'failed',
+        currentExecution: {
+          id: 'execution-failed',
+          status: 'failed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: {message: 'Summary failed'},
+        },
+      },
+      {
+        ...queryBlock,
+        config: {autoRun: true},
+        dependencies: ['block-1'],
+      },
+      {
+        ...textBlock,
+        id: 'block-3',
+        position: 2,
+        title: 'Independent analysis',
+        outputStatus: 'completed',
+        currentExecution: {
+          id: 'execution-completed',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+      {
+        ...queryBlock,
+        id: 'block-4',
+        position: 3,
+        title: 'Independent follow-up',
+        config: {autoRun: true},
+        dependencies: ['block-3'],
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    expect(await screen.findByTestId('investigation-cell-block-2')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.queryByTestId('investigation-cell-block-4')).not.toBeInTheDocument();
+    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('investigation-execution-failed')
+    ).not.toBeInTheDocument();
   });
 
   it('keeps the refinement composer expanded while editing', async () => {
@@ -252,11 +616,7 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Ask Seer about Latency query',
-      })
-    );
+    await chooseCellAction('Latency query', 'Refine');
 
     const prompt = screen.getByLabelText('Instructions for Seer');
     expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
@@ -331,8 +691,8 @@ describe('Investigation detail', () => {
       'data-cell-variant',
       'bordered'
     );
-    expect(screen.getByTestId('query-cell-header')).toContainElement(
-      screen.getByRole('button', {name: 'Ask Seer about Database latency'})
+    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+      screen.getByRole('button', {name: 'Cell actions for Database latency'})
     );
     expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
       'data-has-divider',
@@ -356,6 +716,47 @@ describe('Investigation detail', () => {
     await userEvent.click(screen.getByTestId('query-cell-title'));
     expect(screen.queryByText('820ms')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Toggle Database latency'}));
+    expect(screen.getByText('820ms')).toBeVisible();
+  });
+
+  it('starts generated query evidence collapsed', async () => {
+    const investigation = InvestigationDetailFixture();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[1]!,
+        config: {autoRun: true},
+        outputStatus: 'completed',
+        output: {
+          schemaVersion: 1,
+          preferredView: 'table',
+          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
+          chart: null,
+          chartUnavailableReason: null,
+          isEmpty: false,
+          queryLinks: [],
+        },
+        currentExecution: {
+          id: 'execution-completed',
+          status: 'completed',
+          startedAt: '2026-08-17T10:00:00Z',
+          completedAt: '2026-08-17T10:00:10Z',
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+
+    renderView();
+
+    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
+      screen.getByRole('button', {name: 'Cell actions for Latency query'})
+    );
+
+    await userEvent.click(toggle);
+
     expect(screen.getByText('820ms')).toBeVisible();
   });
 
@@ -496,12 +897,15 @@ describe('Investigation detail', () => {
     expect(
       within(chartHeader).getByText(/3:57pm–4:12pm PST\s+\|\s+363 Total Events/)
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Ask Seer about Latency query'})
-    ).toBeInTheDocument();
     expect(screen.getByLabelText('Cell actions for Latency query')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Ask Seer about Latency query'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Rerun Latency query'})
+    ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Rerun Latency query'}));
+    await chooseCellAction('Latency query', 'Rerun');
     await waitFor(() =>
       expect(rerunRequest).toHaveBeenCalledWith(
         runUrl,
@@ -524,8 +928,7 @@ describe('Investigation detail', () => {
     });
 
     renderView(organization, queryClient);
-    await userEvent.click(await screen.findByLabelText('Cell actions for Latency query'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+    await chooseCellAction('Latency query', 'Delete');
     expect(deleteRequest).not.toHaveBeenCalled();
     renderGlobalModal();
     act(() => {
@@ -549,6 +952,34 @@ describe('Investigation detail', () => {
       )
     );
     expect(screen.queryByDisplayValue('Latency query')).not.toBeInTheDocument();
+  });
+
+  it('deletes a text cell from its actions menu', async () => {
+    const investigation = InvestigationDetailFixture();
+    const block = investigation.blocks[0]!;
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/${block.id}/`,
+      method: 'DELETE',
+    });
+
+    renderView();
+    await chooseCellAction('Summary', 'Delete');
+    expect(deleteRequest).not.toHaveBeenCalled();
+    renderGlobalModal();
+    await userEvent.click(await screen.findByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(deleteRequest).toHaveBeenCalledWith(
+        `${detailUrl}blocks/${block.id}/`,
+        expect.objectContaining({
+          data: {investigationVersion: 1, version: 1},
+        })
+      )
+    );
+    expect(
+      screen.queryByTestId(`investigation-cell-${block.id}`)
+    ).not.toBeInTheDocument();
   });
 
   it('adds text and query cells and starts a never-run cell from its stored prompt', async () => {
@@ -576,7 +1007,9 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(await screen.findByRole('button', {name: 'Text cell'}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Add text cell (debug only)'})
+    );
     await userEvent.type(screen.getByLabelText('Cell title'), 'Working theory');
     await userEvent.type(
       screen.getByLabelText('Cell instructions'),
@@ -598,7 +1031,9 @@ describe('Investigation detail', () => {
       )
     );
     expect(
-      await screen.findByRole('button', {name: 'Ask Seer about Working theory'})
+      await screen.findByRole('button', {
+        name: 'Cell actions for Working theory',
+      })
     ).toBeInTheDocument();
     expect(screen.queryByDisplayValue('Working theory')).not.toBeInTheDocument();
 
@@ -613,7 +1048,9 @@ describe('Investigation detail', () => {
       method: 'POST',
       body: queryBlock,
     });
-    await userEvent.click(screen.getByRole('button', {name: 'Query cell'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Add query cell (debug only)'})
+    );
     await userEvent.type(screen.getByLabelText('Cell title'), 'Error volume');
     await userEvent.type(
       screen.getByLabelText('Cell instructions'),
@@ -664,9 +1101,7 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Ask Seer about Error volume'})
-    );
+    await chooseCellAction('Error volume', 'Refine');
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue(
       'Show errors over the last 24 hours'
     );
@@ -814,7 +1249,7 @@ describe('Investigation detail', () => {
 
     renderView();
     expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer about Summary'}));
+    await chooseCellAction('Summary', 'Refine');
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
     const promptInput = screen.getByLabelText('Instructions for Seer');
     await userEvent.type(promptInput, 'Compare against deploys');
@@ -850,6 +1285,116 @@ describe('Investigation detail', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Ask Seer again'}));
     expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
+  });
+
+  it('shows "Building chart…" for a query block\'s in-progress structured result instead of raw JSON', async () => {
+    const investigation = InvestigationDetailFixture();
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const blockUrl = `${detailUrl}blocks/block-2/`;
+    MockApiClient.addMockResponse({
+      url: blockUrl,
+      method: 'PUT',
+      body: {...investigation.blocks[1]!, version: 2},
+    });
+    const runUrl = `${blockUrl}executions/`;
+    MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-building', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-building/`,
+      body: {
+        id: 'execution-building',
+        status: 'running',
+        blocks: [
+          {
+            id: 'step-1',
+            timestamp: '2026-08-18T20:00:01Z',
+            loading: true,
+            message: {
+              role: 'assistant',
+              content: '{"tableMarkdown":"| Fact | Value |\\n|---|---|\\n| Monit',
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+        ],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    await chooseCellAction('Latency query', 'Refine');
+    await userEvent.type(
+      screen.getByLabelText('Instructions for Seer'),
+      'Find slow spans'
+    );
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+
+    expect(await screen.findByText('Building chart…')).toBeInTheDocument();
+    expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
+  });
+
+  it("hides a query block's completed structured result from the transcript, not just while streaming", async () => {
+    const investigation = InvestigationDetailFixture();
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const blockUrl = `${detailUrl}blocks/block-2/`;
+    MockApiClient.addMockResponse({
+      url: blockUrl,
+      method: 'PUT',
+      body: {...investigation.blocks[1]!, version: 2},
+    });
+    const runUrl = `${blockUrl}executions/`;
+    MockApiClient.addMockResponse({
+      url: runUrl,
+      method: 'POST',
+      body: {id: 'execution-built', status: 'running'},
+    });
+    MockApiClient.addMockResponse({
+      url: `${runUrl}execution-built/`,
+      body: {
+        id: 'execution-built',
+        status: 'completed',
+        blocks: [
+          {
+            id: 'step-1',
+            timestamp: '2026-08-18T20:00:04Z',
+            loading: false,
+            message: {
+              role: 'assistant',
+              content:
+                '{"tableMarkdown":"| Fact | Value |","chart":null,"preferredView":"table","isEmpty":false,"chartUnavailableReason":null}',
+            },
+            artifacts: [],
+            toolLinks: null,
+            toolResults: null,
+          },
+        ],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    await chooseCellAction('Latency query', 'Refine');
+    await userEvent.type(
+      screen.getByLabelText('Instructions for Seer'),
+      'Find slow spans'
+    );
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+
+    // The transcript renders once the block settles, but the raw JSON answer is dropped —
+    // `QueryResult` above already presents its parsed chart/table.
+    expect(await screen.findByText('No steps')).toBeInTheDocument();
+    expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Building chart…')).not.toBeInTheDocument();
   });
 
   it('stops an active refinement and leaves the rendered result visible', async () => {
@@ -892,9 +1437,7 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
-    );
+    await chooseCellAction('Summary', 'Refine');
     await userEvent.type(
       screen.getByLabelText('Instructions for Seer'),
       'Try another angle'
@@ -955,9 +1498,6 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Ask Seer about Summary'})
-    );
     expect(
       await screen.findByText('Which environment should I inspect?')
     ).toBeInTheDocument();
@@ -1034,6 +1574,18 @@ describe('Investigation detail', () => {
     const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
     const investigation = InvestigationDetailFixture();
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-running/`,
+      body: {
+        id: 'execution-running',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
     MockApiClient.addMockResponse({
       url: detailUrl,
       method: 'PUT',
@@ -1117,6 +1669,10 @@ describe('Investigation detail', () => {
   it('polls for and displays a generated title after block execution finishes', async () => {
     let requestCount = 0;
     MockApiClient.addMockResponse({
+      url: titleGenerationUrl,
+      body: {status: 'completed', preview: null},
+    });
+    MockApiClient.addMockResponse({
       url: detailUrl,
       body: () => {
         requestCount += 1;
@@ -1164,12 +1720,17 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(router.location.pathname).toBe(
-        '/organizations/org-slug/seer/investigation/investigation-2/'
+        '/organizations/org-slug/explore/investigations/investigation-2/'
       )
     );
   });
 
   it('copies the link from the title menu', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
       value: {writeText},
@@ -1186,7 +1747,7 @@ describe('Investigation detail', () => {
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/organizations/org-slug/seer/investigation/investigation-1/`
+        `${window.location.origin}/explore/investigations/investigation-1/`
       )
     );
   });

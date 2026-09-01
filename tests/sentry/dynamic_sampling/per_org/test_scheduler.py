@@ -197,7 +197,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
@@ -226,7 +225,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
@@ -358,7 +356,7 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
@@ -428,7 +426,7 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
@@ -476,7 +474,7 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_skips_the_factor_without_stored_segments(
@@ -512,10 +510,10 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 0.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
         }
     )
-    def test_run_calculations_per_org_skips_recalibration_outside_its_rollout(self) -> None:
+    def test_run_calculations_per_org_skips_recalibration_for_an_unserved_org(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
@@ -529,14 +527,19 @@ class RunCalculationsPerOrgTest(TestCase):
                 PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
                 TRANSACTION_VOLUMES: _transaction_volumes(org, project.id),
                 TRANSACTION_BALANCING: {},
-                **END_OF_PASS,
+                SET_FACTOR: DEFAULT,
+                EMIT_COMPARISONS: DEFAULT,
             }
         ) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
+        # Relay never applies the factor of an unserved org, so a factor computed for it
+        # would only compound from one pass to the next.
         assert config.results.recalibration_factor is None
+        mocks[SET_FACTOR].assert_not_called()
+        _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_still_reports_when_a_stage_raises(self) -> None:

@@ -11,7 +11,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -21,7 +21,6 @@ import {
   IconChevron,
   IconClose,
   IconEllipsis,
-  IconRefresh,
   IconReturn,
   IconSeer,
 } from 'sentry/icons';
@@ -38,6 +37,7 @@ import {
 } from 'sentry/views/investigations/api';
 import type {
   InvestigationBlock,
+  InvestigationBlockKind,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationExecutionStatus,
@@ -47,6 +47,7 @@ import type {
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {MessagePlaceholder} from 'sentry/views/seerExplorer/components/chat/shared';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
@@ -62,15 +63,38 @@ export function InvestigationCell({
   investigation,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [traceExecutionId, setTraceExecutionId] = useState<string | null>(null);
-  const [showPrompt, setShowPrompt] = useState(true);
+  const activeExecutionId = isExecutionActive(block.currentExecution?.status)
+    ? (block.currentExecution?.id ?? null)
+    : null;
+  const autoOpenedExecutionId = useRef(activeExecutionId);
+  const [panelOpen, setPanelOpen] = useState(Boolean(activeExecutionId));
+  const [traceExecutionId, setTraceExecutionId] = useState<string | null>(
+    activeExecutionId
+  );
+  const [showPrompt, setShowPrompt] = useState(!activeExecutionId);
   const [prompt, setPrompt] = useState(() =>
     block.outputStatus === 'notRun' ? block.generationPrompt : ''
   );
   const progressState = getCellProgressState(block, investigation.blocks ?? []);
   const waitingForDependencies =
-    progressState === 'waiting' || progressState === 'blocked';
+    progressState === 'waiting' ||
+    progressState === 'blockedByFailure' ||
+    progressState === 'blockedByCancellation';
+  const executionId = block.currentExecution?.id;
+  const streamedTextQuery = useQuery({
+    ...investigationExecutionDetailQueryOptions({
+      organizationSlug,
+      investigationId: investigation.id,
+      blockId: block.id,
+      executionId: executionId ?? 'disabled',
+    }),
+    enabled:
+      block.kind === 'text' &&
+      Boolean(executionId) &&
+      isExecutionActive(block.currentExecution?.status),
+    refetchInterval: query =>
+      isExecutionActive(query.state.data?.json.status) ? 500 : false,
+  });
 
   const chartTitle =
     block.kind === 'query'
@@ -90,6 +114,16 @@ export function InvestigationCell({
     investigation.id,
     {onError: () => addErrorMessage(t('Unable to delete this cell.'))}
   );
+
+  useEffect(() => {
+    if (!activeExecutionId || autoOpenedExecutionId.current === activeExecutionId) {
+      return;
+    }
+    autoOpenedExecutionId.current = activeExecutionId;
+    setPanelOpen(true);
+    setTraceExecutionId(activeExecutionId);
+    setShowPrompt(false);
+  }, [activeExecutionId]);
 
   function openPanel() {
     setPanelOpen(true);
@@ -111,38 +145,56 @@ export function InvestigationCell({
       setPanelOpen(true);
       setTraceExecutionId(execution.id);
       setShowPrompt(false);
+      autoOpenedExecutionId.current = execution.id;
     } catch {
       // The mutation owns user-facing error handling.
     }
   }
 
-  const refinementButton = (
-    <Button
-      size="xs"
-      variant="transparent"
-      icon={<IconSeer size="xs" />}
-      aria-label={t('Ask Seer about %s', displayTitle)}
-      disabled={waitingForDependencies}
-      onClick={panelOpen ? () => setPanelOpen(false) : openPanel}
-    />
+  const actionItems: MenuItemProps[] = [];
+  if (block.kind === 'query') {
+    actionItems.push({
+      key: 'rerun',
+      label: t('Rerun'),
+      disabled:
+        !canRun ||
+        rerunMutation.isPending ||
+        isExecutionActive(block.currentExecution?.status) ||
+        !(block.generationPrompt || block.content).trim(),
+      onAction: () => void rerun(),
+    });
+  }
+  actionItems.push(
+    {
+      key: 'refine',
+      label: t('Refine'),
+      disabled: waitingForDependencies,
+      onAction: openPanel,
+    },
+    {
+      key: 'delete',
+      label: t('Delete'),
+      priority: 'danger',
+      disabled:
+        !canRun ||
+        deleteMutation.isPending ||
+        isExecutionActive(block.currentExecution?.status),
+      onAction: () =>
+        openConfirmModal({
+          message: t('Are you sure you want to delete this cell?'),
+          priority: 'danger',
+          confirmText: t('Delete'),
+          onConfirm: () =>
+            deleteMutation.mutate({
+              block,
+              investigationVersion: investigation.version,
+            }),
+        }),
+    }
   );
 
-  const queryHeaderActions = (
-    <Flex align="center" gap="xs" flexShrink={0}>
-      {refinementButton}
-      <Button
-        size="xs"
-        variant="transparent"
-        icon={<IconRefresh size="xs" />}
-        aria-label={t('Rerun %s', displayTitle)}
-        busy={rerunMutation.isPending}
-        disabled={
-          !canRun ||
-          isExecutionActive(block.currentExecution?.status) ||
-          !(block.generationPrompt || block.content).trim()
-        }
-        onClick={() => void rerun()}
-      />
+  const cellActions = (
+    <CellActions flexShrink={0}>
       <DropdownMenu
         position="bottom-end"
         usePortal
@@ -153,30 +205,9 @@ export function InvestigationCell({
           icon: <IconEllipsis size="xs" />,
           'aria-label': t('Cell actions for %s', displayTitle),
         }}
-        items={[
-          {
-            key: 'delete',
-            label: t('Delete'),
-            priority: 'danger',
-            disabled:
-              !canRun ||
-              deleteMutation.isPending ||
-              isExecutionActive(block.currentExecution?.status),
-            onAction: () =>
-              openConfirmModal({
-                message: t('Are you sure you want to delete this cell?'),
-                priority: 'danger',
-                confirmText: t('Delete'),
-                onConfirm: () =>
-                  deleteMutation.mutate({
-                    block,
-                    investigationVersion: investigation.version,
-                  }),
-              }),
-          },
-        ]}
+        items={actionItems}
       />
-    </Flex>
+    </CellActions>
   );
 
   const panel = panelOpen ? (
@@ -206,7 +237,7 @@ export function InvestigationCell({
       {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
-            actions={queryHeaderActions}
+            actions={cellActions}
             block={block}
             progressState={progressState}
           />
@@ -216,8 +247,13 @@ export function InvestigationCell({
         <Fragment>
           <CellResult
             block={block}
+            actions={cellActions}
             progressState={progressState}
-            refinementButton={refinementButton}
+            streamedMarkdown={
+              isExecutionActive(block.currentExecution?.status)
+                ? streamedTextQuery.data?.partialMarkdown
+                : null
+            }
           />
           {panel}
         </Fragment>
@@ -227,17 +263,20 @@ export function InvestigationCell({
 }
 
 function CellResult({
+  actions,
   block,
   progressState,
-  refinementButton,
+  streamedMarkdown,
 }: {
+  actions: React.ReactNode;
   block: InvestigationBlock;
   progressState: CellProgressState;
-  refinementButton: React.ReactNode;
+  streamedMarkdown?: string | null;
 }) {
-  const markdown = getTextOutput(block.output) ?? (block.content.trim() || null);
+  const markdown =
+    streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
   return (
-    <Stack
+    <CellHoverSurface
       position="relative"
       flex={1}
       minWidth={0}
@@ -246,14 +285,15 @@ function CellResult({
       data-cell-variant="unbordered"
     >
       <Container position="absolute" top={0} right={0}>
-        {refinementButton}
+        {actions}
       </Container>
+      <CellExecutionAlert block={block} />
       {markdown ? (
         <SeerMarkdown raw={markdown} />
       ) : (
         <CellProgress state={progressState} />
       )}
-    </Stack>
+    </CellHoverSurface>
   );
 }
 
@@ -266,7 +306,7 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(block.config.autoRun !== true);
   const output = getQueryOutput(block.output);
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
@@ -278,19 +318,22 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <Stack width="100%" gap="sm">
-      <QueryDisclosureButton
-        size="sm"
-        variant="transparent"
-        icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
-        aria-label={t('Toggle %s', title)}
-        aria-expanded={expanded}
-        onClick={() => setExpanded(value => !value)}
-      >
-        <Text data-test-id="query-cell-title" size="sm" tabular>
-          {title}
-        </Text>
-      </QueryDisclosureButton>
+    <CellHoverSurface width="100%" gap="sm">
+      <Flex width="100%" align="center" gap="xs" data-test-id="query-cell-toolbar">
+        <QueryDisclosureButton
+          size="sm"
+          variant="transparent"
+          icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
+          aria-label={t('Toggle %s', title)}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(value => !value)}
+        >
+          <Text data-test-id="query-cell-title" size="sm" tabular>
+            {title}
+          </Text>
+        </QueryDisclosureButton>
+        {actions}
+      </Flex>
       {expanded ? (
         <Stack
           width="100%"
@@ -322,9 +365,9 @@ function QueryResult({
                 </Text>
               ) : null}
             </Stack>
-            {actions}
           </Flex>
           <Container width="100%" overflow="hidden" padding={chart ? 'md lg' : '0'}>
+            <CellExecutionAlert block={block} />
             {chart ? (
               <ChartContent data={chart} showHeader={false} />
             ) : output?.tableMarkdown ? (
@@ -337,23 +380,40 @@ function QueryResult({
           </Container>
         </Stack>
       ) : null}
-    </Stack>
+    </CellHoverSurface>
   );
 }
 
 type CellProgressState =
   | 'running'
   | 'waiting'
-  | 'blocked'
   | 'failed'
   | 'cancelled'
+  | 'blockedByFailure'
+  | 'blockedByCancellation'
   | null;
+
+function CellExecutionAlert({block}: {block: InvestigationBlock}) {
+  const execution = block.currentExecution;
+  if (execution?.status !== 'failed' && execution?.status !== 'cancelled') {
+    return null;
+  }
+  const failed = execution.status === 'failed';
+  return (
+    <Alert.Container data-test-id={`cell-execution-${execution.status}`}>
+      <Alert variant={failed ? 'danger' : 'warning'}>
+        {execution.error?.message ||
+          (failed ? t('This Seer run failed.') : t('This Seer run was cancelled.'))}
+      </Alert>
+    </Alert.Container>
+  );
+}
 
 function CellProgress({state}: {state: CellProgressState}) {
   if (!state) {
     return <Text variant="muted">{t('This cell has no output yet.')}</Text>;
   }
-  let message = t('Waiting for a successful result from previous cells.');
+  let message = t('Cancelled because a previous cell failed.');
   if (state === 'running') {
     message = t('Seer is working on this cell…');
   } else if (state === 'waiting') {
@@ -362,6 +422,8 @@ function CellProgress({state}: {state: CellProgressState}) {
     message = t('This cell failed to run.');
   } else if (state === 'cancelled') {
     message = t('This cell run was cancelled.');
+  } else if (state === 'blockedByCancellation') {
+    message = t('Waiting because a previous cell was cancelled.');
   }
   return (
     <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
@@ -394,18 +456,22 @@ function getCellProgressState(
   ) {
     return null;
   }
-  const dependencies = block.dependencies.flatMap(dependencyId => {
-    const dependency = blocks.find(candidate => candidate.id === dependencyId);
-    return dependency ? [dependency] : [];
-  });
-  if (
-    dependencies.some(dependency =>
-      ['failed', 'cancelled'].includes(dependency.currentExecution?.status ?? '')
-    )
-  ) {
-    return 'blocked';
+  if (hasFailedDependency(block, blocks)) {
+    return 'blockedByFailure';
+  }
+  if (hasCancelledDependency(block, blocks)) {
+    return 'blockedByCancellation';
   }
   return 'waiting';
+}
+
+export function shouldDisplayInvestigationBlock(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[]
+) {
+  // Waiting cells have no useful content yet. Dependency failures and cancellations
+  // remain visible so users can understand why downstream work stopped.
+  return getCellProgressState(block, blocks) !== 'waiting';
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
@@ -416,6 +482,63 @@ export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
   );
 }
 
+function isInvestigationFailureExecution(
+  execution: InvestigationBlock['currentExecution']
+) {
+  return (
+    execution?.status === 'failed' ||
+    (execution?.status === 'cancelled' &&
+      execution.error?.code === 'investigation_execution_failed')
+  );
+}
+
+function hasFailedDependency(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[],
+  visited = new Set<string>()
+): boolean {
+  for (const dependencyId of block.dependencies) {
+    if (visited.has(dependencyId)) {
+      continue;
+    }
+    visited.add(dependencyId);
+    const dependency = blocks.find(candidate => candidate.id === dependencyId);
+    if (!dependency) {
+      continue;
+    }
+    if (isInvestigationFailureExecution(dependency.currentExecution)) {
+      return true;
+    }
+    if (hasFailedDependency(dependency, blocks, visited)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasCancelledDependency(
+  block: InvestigationBlock,
+  blocks: InvestigationBlock[],
+  visited = new Set<string>()
+): boolean {
+  for (const dependencyId of block.dependencies) {
+    if (visited.has(dependencyId)) {
+      continue;
+    }
+    visited.add(dependencyId);
+    const dependency = blocks.find(candidate => candidate.id === dependencyId);
+    if (!dependency) {
+      continue;
+    }
+    if (dependency.currentExecution?.status === 'cancelled') {
+      return true;
+    }
+    if (hasCancelledDependency(dependency, blocks, visited)) {
+      return true;
+    }
+  }
+  return false;
+}
 function FlushTable({children}: {children: React.ReactNode}) {
   return (
     <Container overflowX="auto">
@@ -591,7 +714,7 @@ function RefinementPanel({
 
   return (
     <RefinementDisclosure defaultExpanded size="sm">
-      <Disclosure.Title
+      <AgentActivityDisclosureTitle
         leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
@@ -606,11 +729,12 @@ function RefinementPanel({
           </Flex>
         }
       >
-        <Text monospace>{getExecutionTitle(status)}</Text>
-      </Disclosure.Title>
+        <AgentActivityTitle monospace>{getExecutionTitle(status)}</AgentActivityTitle>
+      </AgentActivityDisclosureTitle>
       <RefinementDisclosureContent>
         <Stack gap="md">
           <Transcript
+            blockKind={block.kind}
             blocks={execution?.blocks ?? []}
             completedAt={currentExecution?.completedAt ?? null}
             active={active}
@@ -746,17 +870,22 @@ function PendingInvestigationQuestion({
 
 function Transcript({
   active,
+  blockKind,
   blocks,
   completedAt,
 }: {
   active: boolean;
+  blockKind: InvestigationBlockKind;
   blocks: InvestigationTranscriptBlock[];
   completedAt: string | null;
 }) {
   const now = useNow(active);
   const visibleBlocks = useMemo(
-    () => blocks.filter(isRenderableTranscriptBlock),
-    [blocks]
+    () =>
+      blocks.filter((block, index) =>
+        isRenderableTranscriptBlock(block, index, blockKind)
+      ),
+    [blocks, blockKind]
   );
   const explorerBlocks = useMemo(
     () => visibleBlocks.map(adaptTranscriptBlock),
@@ -776,18 +905,33 @@ function Transcript({
       data-test-id="investigation-transcript"
     >
       {explorerBlocks.map((block, index) => {
+        const currentVisibleBlock = visibleBlocks[index];
+        if (!currentVisibleBlock) {
+          return null;
+        }
         const end =
           visibleBlocks[index + 1]?.timestamp ?? completedAt ?? (active ? now : null);
         const duration = getElapsedMilliseconds(block.timestamp, end);
+        // Still streaming in: the raw JSON is unreadable as prose, so this row is rendered as a
+        // plain loading placeholder instead of routing it through `BlockComponent`, which would
+        // otherwise show it as assistant markdown. `isRenderableTranscriptBlock` drops the row
+        // outright once the object is complete, since `QueryResult` above already renders it.
+        const isBuildingChart =
+          currentVisibleBlock.loading &&
+          isStructuredQueryResultBlock(currentVisibleBlock, blockKind);
         return (
           <Grid key={block.id} columns="minmax(0, 1fr) auto" align="start" gap="md">
-            <BlockComponent
-              block={block}
-              blockIndex={index}
-              blocks={explorerBlocks}
-              readOnly
-              showThinking
-            />
+            {isBuildingChart ? (
+              <MessagePlaceholder content={t('Building chart…')} />
+            ) : (
+              <BlockComponent
+                block={block}
+                blockIndex={index}
+                blocks={explorerBlocks}
+                readOnly
+                showThinking
+              />
+            )}
             {duration === null ? null : <ElapsedDuration milliseconds={duration} />}
           </Grid>
         );
@@ -805,8 +949,34 @@ function isInternalPromptBlock(block: InvestigationTranscriptBlock, index: numbe
   );
 }
 
-function isRenderableTranscriptBlock(block: InvestigationTranscriptBlock, index: number) {
+/**
+ * A query block's final answer is always a single raw JSON object (see `QUERY_INSTRUCTIONS` in
+ * `agent.py`), never prose meant to be read as-is — `QueryResult` above already renders its
+ * parsed chart or table. Detected by role and a `{` prefix so a legitimate inline clarification
+ * question (plain markdown, never JSON) still renders normally.
+ */
+function isStructuredQueryResultBlock(
+  block: InvestigationTranscriptBlock,
+  blockKind: InvestigationBlockKind
+): boolean {
+  return (
+    blockKind === 'query' &&
+    block.message.role === 'assistant' &&
+    Boolean(block.message.content?.trim().startsWith('{'))
+  );
+}
+
+function isRenderableTranscriptBlock(
+  block: InvestigationTranscriptBlock,
+  index: number,
+  blockKind: InvestigationBlockKind
+) {
   if (isInternalPromptBlock(block, index)) {
+    return false;
+  }
+  // Once it has finished streaming, this is the redundant raw JSON dump described above — the
+  // rendered chart/table already stands in for it, so the row is dropped rather than shown.
+  if (!block.loading && isStructuredQueryResultBlock(block, blockKind)) {
     return false;
   }
   if (block.loading || block.message.content?.trim()) {
@@ -1004,9 +1174,30 @@ function getSeriesName(series: {label: string} | {name: string}) {
 }
 
 const QueryDisclosureButton = styled(Button)`
-  width: 100%;
+  flex: 1;
   justify-content: flex-start;
+  padding-inline: ${p => p.theme.space.xs};
   text-align: left;
+`;
+
+const CellActions = styled(Flex)`
+  opacity: 0;
+  pointer-events: none;
+`;
+
+const CellHoverSurface = styled(Stack)`
+  &:hover ${CellActions},
+  &:focus-within ${CellActions} {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: none) {
+    ${CellActions} {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
 `;
 
 const QueryTable = styled('table')`
@@ -1017,6 +1208,24 @@ const QueryTable = styled('table')`
 const RefinementDisclosure = styled(Disclosure)`
   width: 100%;
   margin-top: ${p => p.theme.space.lg};
+
+  & > div:first-child {
+    padding-inline: ${p => p.theme.space['2xs']};
+  }
+`;
+
+const AgentActivityDisclosureTitle = styled(Disclosure.Title)`
+  padding-inline: 0;
+`;
+
+const AgentActivityTitle = styled(Text)`
+  font-size: ${p => p.theme.font.size.sm};
+  font-style: normal;
+  font-weight: 700;
+  line-height: ${p => p.theme.font.lineHeight.fixed};
+  letter-spacing: 0;
+  vertical-align: middle;
+  font-variant-numeric: lining-nums tabular-nums;
 `;
 
 const RefinementPrompt = styled('div')`

@@ -18,14 +18,17 @@ from fixtures.gitlab import (
 )
 from sentry.integrations.gitlab.webhooks import MergeEventWebhook
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.types.activity import ActivityType
 
 
 class WebhookTest(GitLabTestCase):
@@ -767,7 +770,10 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         assert mock_sync_status.called
         call_args = mock_sync_status.call_args
         assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
-        assert call_args[0][1] == {"action": "close"}
+        assert call_args[0][1] == {
+            "action": "close",
+            "provider_event_time": "2023-01-01 00:00:00 UTC",
+        }
 
     @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
     def test_reopen_event_triggers_sync(self, mock_sync_status: MagicMock) -> None:
@@ -783,7 +789,10 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         assert mock_sync_status.called
         call_args = mock_sync_status.call_args
         assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
-        assert call_args[0][1] == {"action": "reopen"}
+        assert call_args[0][1] == {
+            "action": "reopen",
+            "provider_event_time": "2023-01-01 00:00:00 UTC",
+        }
 
     @patch("sentry.integrations.gitlab.integration.GitlabIntegration.sync_status_inbound")
     def test_open_event_does_not_trigger_sync(self, mock_sync_status: MagicMock) -> None:
@@ -813,3 +822,43 @@ class TestIssuesEventWebhookStatusSync(GitLabTestCase):
         call_args = mock_sync_status.call_args
         assert call_args[0][0] == "example.gitlab.com/group-x:cool-group/sentry#23"
         assert call_args[0][1]["action"] == "close"
+
+    def test_close_delivered_after_reopen_does_not_resolve(self) -> None:
+        # A close/reopen pair delivered in reverse order must not resolve the group.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            org_integration.update(config={"sync_status_reverse": True})
+
+        group = self.create_group(project=self.project)
+        self.create_integration_external_issue(
+            group=group,
+            integration=self.integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#23",
+        )
+
+        reopened = orjson.loads(ISSUE_REOPENED_EVENT)
+        reopened["object_attributes"]["updated_at"] = "2023-01-01 00:00:03 UTC"
+        closed = orjson.loads(ISSUE_CLOSED_EVENT)
+        closed["object_attributes"]["updated_at"] = "2023-01-01 00:00:00 UTC"
+
+        features = [
+            "organizations:integrations-issue-sync",
+            "organizations:integrations-gitlab-project-management",
+        ]
+        with self.feature(features), self.tasks():
+            for payload in (reopened, closed):
+                response = self.client.post(
+                    self.url,
+                    data=orjson.dumps(payload),
+                    content_type="application/json",
+                    HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+                    HTTP_X_GITLAB_EVENT="Issue Hook",
+                )
+                assert response.status_code == 204
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+        # The reopen was applied, so the close really did reach the guard.
+        assert group.activity_set.filter(type=ActivityType.SET_UNRESOLVED.value).exists()
+        assert not group.activity_set.filter(type=ActivityType.SET_RESOLVED.value).exists()

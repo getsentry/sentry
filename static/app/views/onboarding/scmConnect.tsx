@@ -70,7 +70,10 @@ export function ScmConnect({
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
 
   return (
-    <Stack align="center" gap="3xl" flexGrow={1}>
+    // The onboarding flow has no page-level query container (project creation
+    // resolves against `#main`), and the flow's fixed footers preclude one
+    // higher up, so each SCM step declares its own.
+    <Stack align="center" gap="3xl" flexGrow={1} containerType="inline-size">
       <ScmStepHeader
         heading={t('Connect your code')}
         subtitle={t(

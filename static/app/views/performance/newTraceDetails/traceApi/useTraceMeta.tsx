@@ -1,5 +1,8 @@
-import {useQuery, type QueryStatus} from '@tanstack/react-query';
-import type {QueryFunctionContext} from '@tanstack/react-query';
+import {
+  useQuery,
+  type QueryStatus,
+  type QueryFunctionContext,
+} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';

@@ -53,6 +53,15 @@ class DerivedMetrics:
     mode: ProcessingStrategy
     incremental: bool
 
+    def as_not_incremental(self) -> DerivedMetrics:
+        """Disable incremental-only metrics.
+
+        An incremental path can discover in context that the row requires initial or replay processing.
+        """
+        if not self.incremental:
+            return self
+        return DerivedMetrics(mode=self.mode, incremental=False)
+
     def report_batch_processed(
         self,
         entries: Sequence[GroupActionLogEntry],
@@ -86,13 +95,17 @@ class DerivedMetrics:
             )
 
 
-def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
+def _ensure_derived(group_id: int, pipeline_hash: str) -> tuple[GroupDerivedData, bool]:
     """Get or create the GroupDerivedData row for a group.
 
+    Returns the row and whether processing from it is expected to be incremental
+    based on row existence and pipeline hash. This is best-effort: a concurrently
+    initialized row may still have historical entries left to process.
     Raises Group.DoesNotExist if the group has been deleted.
     """
     try:
-        return GroupDerivedData.objects.get(group_id=group_id)
+        derived = GroupDerivedData.objects.get(group_id=group_id)
+        return derived, derived.pipeline_hash == pipeline_hash
     except GroupDerivedData.DoesNotExist:
         pass
 
@@ -114,7 +127,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
         # therefore not the group_id uniqueness race, but another constraint. With
         # this model's current constraints, that is a missing Group foreign key.
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
-    return derived
+    return derived, False
 
 
 def _entries_after_cursor(
@@ -281,7 +294,9 @@ def process_group_log(
     """
     p = pipeline or PIPELINE
 
-    derived = _ensure_derived(group_id, p.pipeline_hash)
+    derived, expected_incremental = _ensure_derived(group_id, p.pipeline_hash)
+    if derived_metrics is not None and not expected_incremental:
+        derived_metrics = derived_metrics.as_not_incremental()
 
     if timeout is not None:
         drained = _drain_log(
@@ -327,7 +342,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     with metrics.timer("issues.derived.inline_processing"):
         try:
-            derived = _ensure_derived(group_id, pipeline.pipeline_hash)
+            derived, expected_incremental = _ensure_derived(group_id, pipeline.pipeline_hash)
         except ObjectDoesNotExist:
             return
 
@@ -335,13 +350,16 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
             pipeline,
             derived,
             INLINE_BATCH_SIZE,
-            derived_metrics=DerivedMetrics(mode=strategy, incremental=True),
+            derived_metrics=DerivedMetrics(
+                mode=strategy,
+                incremental=expected_incremental,
+            ),
         )
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
-        process_group_log_task.delay(group_id, incremental=True)
+        process_group_log_task.delay(group_id, incremental=expected_incremental)
 
 
 # ---------------------------------------------------------------------------

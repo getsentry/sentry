@@ -9,15 +9,16 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
-from sentry.workflow_engine.models import DataSourceDetector, DetectorGroup
+from sentry.workflow_engine.models import DataCondition, DataSourceDetector, DetectorGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 MAX_BREACH_WINDOW = timedelta(days=45)
 
@@ -49,12 +50,51 @@ def _code_mode_dataset(
 
 
 def _direction(conditions: list[dict[str, Any]]) -> str:
-    condition_types = {condition["type"] for condition in conditions}
+    anomaly_condition = next(
+        (condition for condition in conditions if condition["type"] == Condition.ANOMALY_DETECTION),
+        None,
+    )
+    if anomaly_condition is not None and isinstance(anomaly_condition["comparison"], dict):
+        threshold_type = anomaly_condition["comparison"].get("threshold_type")
+        if not isinstance(threshold_type, int):
+            return "comparison"
+        return {
+            AlertRuleThresholdType.ABOVE.value: "above",
+            AlertRuleThresholdType.BELOW.value: "below",
+            AlertRuleThresholdType.ABOVE_AND_BELOW.value: "both",
+        }.get(threshold_type, "comparison")
+    condition_types = {
+        condition["type"]
+        for condition in conditions
+        if condition["result"] != DetectorPriorityLevel.OK
+    }
     if condition_types & {Condition.GREATER, Condition.GREATER_OR_EQUAL}:
         return "above"
     if condition_types & {Condition.LESS, Condition.LESS_OR_EQUAL}:
         return "below"
     return "comparison"
+
+
+def _condition_snapshot(
+    condition: DataCondition, detection_type: AlertRuleDetectionType
+) -> dict[str, Any]:
+    snapshot = {
+        "type": condition.type,
+        "comparison": condition.comparison,
+        "result": condition.condition_result,
+    }
+    if detection_type != AlertRuleDetectionType.PERCENT or not isinstance(
+        condition.comparison, (int, float)
+    ):
+        return snapshot
+    if condition.type in {
+        Condition.GREATER,
+        Condition.GREATER_OR_EQUAL,
+        Condition.LESS,
+        Condition.LESS_OR_EQUAL,
+    }:
+        snapshot["thresholdChangePercent"] = abs(float(condition.comparison) - 100)
+    return snapshot
 
 
 def _analysis_window(open_period: GroupOpenPeriod, now: datetime) -> dict[str, str]:
@@ -147,12 +187,17 @@ def resolve_breached_metric_sources(
         ):
             continue
         detector = detector_group.detector
-        if (
-            detector.type != "metric_issue"
-            or detector.project_id != group.project_id
-            or detector.config.get("detection_type") != AlertRuleDetectionType.STATIC
-        ):
+        if detector.type != "metric_issue" or detector.project_id != group.project_id:
             continue
+        try:
+            detection_type = AlertRuleDetectionType(detector.config.get("detection_type"))
+        except (TypeError, ValueError):
+            continue
+        if (
+            detection_type == AlertRuleDetectionType.STATIC
+            and detector.config.get("comparison_delta") is not None
+        ):
+            detection_type = AlertRuleDetectionType.PERCENT
         data_source_link = data_source_links.get(detector.id)
         if data_source_link is None:
             continue
@@ -175,11 +220,7 @@ def resolve_breached_metric_sources(
         if condition_group is None:
             continue
         conditions = [
-            {
-                "type": condition.type,
-                "comparison": condition.comparison,
-                "result": condition.condition_result,
-            }
+            _condition_snapshot(condition, detection_type)
             for condition in condition_group.conditions.all()
         ]
         if not conditions:
@@ -196,6 +237,7 @@ def resolve_breached_metric_sources(
                 "aggregate": snuba_query.aggregate,
                 "groupBy": snuba_query.group_by or [],
                 "timeWindowSeconds": snuba_query.time_window,
+                "detectionType": detection_type.value,
                 "comparisonDeltaSeconds": detector.config.get("comparison_delta"),
                 "direction": _direction(conditions),
                 "conditions": conditions,

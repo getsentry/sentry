@@ -18,7 +18,7 @@ from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
 from sentry import analytics
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.categorize import categorize_image_sets
@@ -747,7 +747,7 @@ def process_snapshot_comparison_chunk(
     base_artifact_id: int,
     **kwargs: Any,
 ) -> None:
-    session = get_preprod_session(org_id, project_id)
+    session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
 
     try:
@@ -944,7 +944,7 @@ def compare_snapshots(
             )
 
     try:
-        session = get_preprod_session(org_id, project_id)
+        session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
 
         head_manifest_key = (head_metrics.extras or {}).get("manifest_key")
         base_manifest_key = (base_metrics.extras or {}).get("manifest_key")
@@ -1199,7 +1199,7 @@ def finalize_snapshot_comparison(
     ).update(date_updated=timezone.now())
 
     comparison.refresh_from_db(fields=["chunks_done_indices"])
-    session = get_preprod_session(org_id, project_id)
+    session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
