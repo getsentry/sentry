@@ -16,6 +16,7 @@ import {slugify} from 'sentry/utils/slugify';
 
 interface Props extends ModalRenderProps {
   organization: Organization;
+  onClose?: (team: Team) => void;
 }
 
 const schema = z.object({
@@ -27,6 +28,7 @@ function CreateTeamModal({
   Footer,
   Header,
   organization,
+  onClose,
   closeModal,
 }: Props) {
   const {mutateAsync: submitCreateTeam} = useMutation({
@@ -47,6 +49,7 @@ function CreateTeamModal({
         })
       );
       closeModal();
+      onClose?.(team);
     },
     onError: (_err, variables) => {
       addErrorMessage(

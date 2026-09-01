@@ -107,6 +107,7 @@ export interface TableProps extends Omit<
   columns?: TableColumnConfig[];
   flexibleLastColumn?: boolean;
   minimumColumnWidth?: number;
+  onColumnResize?: (index: number, width: number) => void;
   prependColumnWidths?: string[];
   ref?: RefObject<HTMLTableElement | null>;
 }
@@ -116,6 +117,7 @@ export function Table({
   columns = EMPTY_COLUMNS,
   flexibleLastColumn = true,
   minimumColumnWidth = COL_WIDTH_MINIMUM,
+  onColumnResize,
   prependColumnWidths,
   ref,
   ...props
@@ -124,11 +126,12 @@ export function Table({
   const gridRef = ref ?? internalRef;
 
   const [internalWidths, setInternalWidths] = useState<Record<string, number>>({});
+  const isControlled = !!onColumnResize;
 
   const resolveWidth = useCallback(
     (column: TableColumnConfig): ResolvedWidth =>
-      internalWidths[column.key] ?? column.width,
-    [internalWidths]
+      isControlled ? column.width : (internalWidths[column.key] ?? column.width),
+    [internalWidths, isControlled]
   );
 
   const buildTemplate = useCallback(
@@ -156,11 +159,13 @@ export function Table({
     (index: number, width: number) => {
       const key = columns[index]?.key;
 
-      if (key) {
+      if (onColumnResize) {
+        onColumnResize(index, width);
+      } else if (key) {
         setInternalWidths(current => ({...current, [key]: width}));
       }
     },
-    [columns]
+    [columns, onColumnResize]
   );
 
   const getResizeTemplate = useCallback(
