@@ -17,14 +17,14 @@ from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEva
 
 @dataclass(frozen=True)
 class CustomDetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
-    result: int
+    result: bool
     data: dict[str, Any]
 
 
 @dataclass(frozen=True, kw_only=True)
 class CustomDetectorEvaluation(
     BaseWorkflowEngineEvaluation[
-        DetectorPriorityLevel,
+        bool,
         dict[str, Any],
         CustomDetectorEvaluationArtifact,
     ]
@@ -33,7 +33,7 @@ class CustomDetectorEvaluation(
     The trigger decision of a detector that does not use a DataConditionGroup.
 
     Inherited properties
-    - result: DetectorPriorityLevel - The priority the detector decided on.
+    - result: bool - Whether the detector decided to trigger.
     - data: dict - Whatever the handler wants to record about how it decided.
     - error: ConditionError - Set when something went wrong while deciding.
     - triggered: bool - Whether the decision should move the detector off `OK`.
@@ -45,7 +45,7 @@ class CustomDetectorEvaluation(
         return CustomDetectorEvaluationArtifact(
             triggered=triggered,
             error=error,
-            result=self.result.value,
+            result=self.result,
             data=self.data,
         )
 

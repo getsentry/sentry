@@ -184,7 +184,7 @@ class MockDetectorHandler(DetectorHandler[dict[str, Any], int, CustomDetectorEva
 
         return (
             CustomDetectorEvaluation(
-                result=priority,
+                result=priority != DetectorPriorityLevel.OK,
                 data={"value": extracted_value},
                 triggered=priority != DetectorPriorityLevel.OK,
             ),
@@ -218,7 +218,7 @@ class MockTaintedDetectorHandler(MockDetectorHandler):
     ) -> tuple[CustomDetectorEvaluation | None, DetectorPriorityLevel]:
         return (
             CustomDetectorEvaluation(
-                result=DetectorPriorityLevel.HIGH,
+                result=True,
                 data={"value": extracted_value},
                 triggered=True,
                 error=ConditionError(msg="decision blew up"),
@@ -814,7 +814,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         trigger_evaluation = self.evaluate_triggered().data["trigger_group_evaluation"]
 
         assert isinstance(trigger_evaluation, CustomDetectorEvaluation)
-        assert trigger_evaluation.result == DetectorPriorityLevel.HIGH
+        assert trigger_evaluation.result is True
         assert trigger_evaluation.data == {"value": 1}
 
     def test_evaluate__trigger_evaluation_is_loggable(self) -> None:
@@ -823,7 +823,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         assert artifact.trigger_evaluation == CustomDetectorEvaluationArtifact(
             triggered=True,
             error=None,
-            result=DetectorPriorityLevel.HIGH.value,
+            result=True,
             data={"value": 1},
         )
 
@@ -953,7 +953,7 @@ class MockIntDetectorHandler(DetectorHandler[int, int, CustomDetectorEvaluation]
 
         return (
             CustomDetectorEvaluation(
-                result=priority,
+                result=priority != DetectorPriorityLevel.OK,
                 data={"value": extracted_value, "threshold": self.threshold},
                 triggered=priority != DetectorPriorityLevel.OK,
             ),
@@ -1037,7 +1037,7 @@ class TestMockIntDetectorHandler(BaseGroupTypeTest):
         assert evaluation.to_artifact().trigger_evaluation == CustomDetectorEvaluationArtifact(
             triggered=True,
             error=None,
-            result=DetectorPriorityLevel.HIGH.value,
+            result=True,
             data={"value": 42, "threshold": 10},
         )
 
