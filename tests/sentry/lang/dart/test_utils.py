@@ -23,8 +23,8 @@ MOCK_DEBUG_MAP = {
     "_YMa": "_entry",
 }
 
-# Includes the junk entries real dart symbol maps contain: an empty pair, an
-# identity mapping and a symbol mapping to an empty string.
+# Includes the junk real dart symbol maps carry: an empty pair, an identity mapping
+# and a symbol mapping to an empty string.
 MOCK_SYMBOL_MAP = {
     "": "",
     "a": "A",
@@ -656,12 +656,12 @@ def test_deobfuscate_exception_type_compound() -> None:
 
     exceptions = data["exception"]["values"]
 
-    # Compound type: the obfuscated token is remapped, the readable prefix is kept
+    # Compound type: only the obfuscated token changes
     assert exceptions[0]["type"] == "Bloc CheckoutBloc"
     assert exceptions[0]["raw_type"] == "Bloc aBc"
     assert exceptions[0]["value"] == "Instance of 'CheckoutBloc'"
 
-    # Exact match still works and now records the original type
+    # Exact match still works and now records the original
     assert exceptions[1]["type"] == "CheckoutBloc"
     assert exceptions[1]["raw_type"] == "aBc"
 
