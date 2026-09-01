@@ -1,13 +1,15 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useId, useState} from 'react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconArrow, IconHide, IconShow} from 'sentry/icons';
+import {IconArrow, IconExclamation, IconHide, IconShow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   useEmailAuth,
@@ -25,6 +27,7 @@ interface EmailAuthProps {
 }
 
 export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
+  const authErrorDescriptionId = useId();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -36,7 +39,6 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
     ? t('Hide password')
     : t('Show password');
   const authError = emailAuth.errorMessage;
-  const errorMessage = passwordReset.errorMessage ?? authError;
   const isPending = emailAuth.isPending || passwordReset.isPending;
 
   function handleEmailChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -51,7 +53,6 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
   }
 
   function setPasswordRecoveryMode(enabled: boolean) {
-    emailAuth.reset();
     passwordReset.reset();
     setIsPasswordRecovery(enabled);
   }
@@ -89,11 +90,11 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
       }}
     >
       <Container>
-        {errorMessage && (
+        {passwordReset.errorMessage && (
           <Container paddingBottom="md">
             <Alert.Container>
               <Alert role="alert" variant="danger" showIcon={false}>
-                {errorMessage}
+                {passwordReset.errorMessage}
               </Alert>
             </Alert.Container>
           </Container>
@@ -123,10 +124,18 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
                 isPasswordRecovery ? t('Email of account to recover') : t('Email')
               }
               aria-label={t('Email')}
-              aria-invalid={Boolean(errorMessage)}
+              aria-describedby={authError ? authErrorDescriptionId : undefined}
+              aria-invalid={Boolean(authError)}
               required
               onChange={handleEmailChange}
             />
+            {authError && (
+              <InputGroup.TrailingItems>
+                <Tooltip forceVisible skipWrapper title={authError}>
+                  <IconExclamation aria-hidden size="sm" variant="danger" />
+                </Tooltip>
+              </InputGroup.TrailingItems>
+            )}
           </InputGroup>
         )}
         {!isPasswordRecovery && (
@@ -205,6 +214,11 @@ export function EmailAuth({onAuthResult, organizationSlug}: EmailAuthProps) {
             )}
           </Flex>
         </Flex>
+        {authError && (
+          <VisuallyHidden id={authErrorDescriptionId} role="alert">
+            {authError}
+          </VisuallyHidden>
+        )}
       </Container>
     </form>
   );
