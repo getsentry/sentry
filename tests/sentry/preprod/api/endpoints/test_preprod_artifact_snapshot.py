@@ -649,7 +649,7 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["head_artifact_id"] == str(artifact.id)
-        assert response.data["state"] == PreprodArtifact.ArtifactState.UPLOADED
+        assert response.data["state"] == PreprodArtifact.ArtifactState.UPLOADED.name
         assert response.data["image_count"] == 2
         assert len(response.data["images"]) == 2
         # Images should be sorted by key
