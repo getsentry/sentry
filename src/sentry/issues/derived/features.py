@@ -42,6 +42,9 @@ HAS_OPEN_FIX_PR = Feature[bool]("has_open_fix_pr", default=False)
 # Whether the issue currently has an assignee.
 IS_ASSIGNED = Feature[bool]("is_assigned", default=False)
 
+# The action-log entry which first assigned this issue.
+FIRST_ASSIGNMENT_ACTION_ID = Feature[int | None]("first_assignment_action_id", default=None)
+
 # Whether the issue has a root cause identified.
 HAS_ROOT_CAUSE = Feature[bool]("has_root_cause", default=False)
 
