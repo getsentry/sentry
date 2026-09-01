@@ -65,10 +65,6 @@ function getSentryIntegrations() {
       useNavigationType,
       createRoutesFromChildren,
       matchRoutes,
-      _experiments: {
-        enableStandaloneClsSpans: true,
-        enableStandaloneLcpSpans: true,
-      },
       linkPreviousTrace: 'session-storage',
     }),
     ...(NODE_ENV === 'production' ? [Sentry.browserProfilingIntegration()] : []),
@@ -78,6 +74,7 @@ function getSentryIntegrations() {
     }),
     Sentry.featureFlagsIntegration(),
     Sentry.consoleLoggingIntegration(),
+    Sentry.userTimingIntegration(),
   ];
 
   return integrations;
@@ -117,22 +114,22 @@ export function initializeSdk(config: Config) {
     profileLifecycle: 'trace',
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
-      const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP] || '';
-      if (op.startsWith('ui.action')) {
+      const op = context.attributes?.[Sentry.SEMANTIC_ATTRIBUTE_SENTRY_OP];
+      if (typeof op === 'string' && op.startsWith('ui.action')) {
         return context.inheritOrSampleWith(tracesSampleRate / 100);
       }
       return context.inheritOrSampleWith(tracesSampleRate);
     },
     ignoreSpans: IGNORED_SPAN_NAMES,
 
-    beforeSendSpan: Sentry.withStreamedSpan(span => {
-      const op = span.attributes?.['sentry.op'];
+    beforeSendSpan: span => {
+      const op = span.attributes['sentry.op'];
       if (span.name && (op === 'pageload' || op === 'navigation')) {
         span.name = normalizeUrl(span.name, {forceCustomerDomain: true});
       }
 
       return span;
-    }),
+    },
 
     ignoreErrors: [
       /**
@@ -210,12 +207,6 @@ export function initializeSdk(config: Config) {
       }
 
       return log;
-    },
-
-    enableLogs: true,
-    dataCollection: {},
-    _experiments: {
-      enableMetrics: true,
     },
   });
 

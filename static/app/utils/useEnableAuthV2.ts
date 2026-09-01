@@ -43,10 +43,11 @@ export function useEnableAuthV2() {
 
   const setAuthV2CookieState = useCallback((state: AuthV2CookieState) => {
     const domain = getCookieDomain();
-    const options = {
+    const secure = window.location.protocol === 'https:';
+    const options: Cookies.CookieAttributes = {
       path: '/',
-      sameSite: 'none' as const,
-      secure: true,
+      sameSite: secure ? 'none' : 'lax',
+      ...(secure ? {secure: true} : {}),
       ...(domain ? {domain} : {}),
     };
 

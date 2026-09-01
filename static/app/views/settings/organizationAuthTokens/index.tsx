@@ -242,7 +242,7 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
 }
 
 const ResponsiveSimpleTable = styled(SimpleTable)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr 1fr;
 
     /* Hide the "Created" and "Last access" columns; the flat nth-child(4n + x)

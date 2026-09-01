@@ -1,6 +1,7 @@
 import datetime
 import enum
 import logging
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
 from typing import Any
@@ -8,7 +9,7 @@ from typing import Any
 import orjson
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Exists, Min, Q, Subquery, Value, When
+from django.db.models import Case, CharField, Count, Exists, Min, Q, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -476,6 +477,25 @@ def _gated_mailbox_heads() -> list[dict[str, Any]]:
     return records
 
 
+def _record_backlog_depth(due_rows: Mapping[str, int], in_flight_rows: Mapping[str, int]) -> None:
+    """
+    Report the scanned backlog's depth per provider: due rows await dispatch,
+    in-flight rows are held by claims and retry backoffs.
+    """
+    for provider, rows in due_rows.items():
+        metrics.distribution(
+            "hybridcloud.schedule_webhook_delivery.due_rows",
+            rows,
+            tags={"provider": provider},
+        )
+    for provider, rows in in_flight_rows.items():
+        metrics.distribution(
+            "hybridcloud.schedule_webhook_delivery.in_flight_rows",
+            rows,
+            tags={"provider": provider},
+        )
+
+
 def _due_mailbox_heads() -> list[dict[str, Any]]:
     """
     Discovery for due-head mode: one aggregate pass finds two mailbox records:
@@ -483,21 +503,32 @@ def _due_mailbox_heads() -> list[dict[str, Any]]:
     dispatch from the oldest due record; strict providers still require the true
     head to be due (see `_gated_mailbox_heads`). Provider comes from the mailbox
     name — the aggregate never fetches rows.
+
+    The same pass counts each mailbox's due and in-flight rows for the per-provider
+    backlog metrics; it already visits every row to find the heads.
     """
     now = timezone.now()
     mailbox_heads = WebhookPayload.objects.values("mailbox_name").annotate(
         id_min=Min("id"),
         id_min_due=Min("id", filter=Q(schedule_for__lte=now)),
+        due_count=Count("id", filter=Q(schedule_for__lte=now)),
+        in_flight_count=Count("id", filter=Q(schedule_for__gt=now)),
     )
     skip_on_failure_providers = frozenset(
         options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
     )
+    due_rows: defaultdict[str, int] = defaultdict(int)
+    in_flight_rows: defaultdict[str, int] = defaultdict(int)
     heads = []
     for mailbox_head in mailbox_heads:
+        provider = _provider_from_mailbox(mailbox_head["mailbox_name"])
+        # Counted before the skips below: a mailbox that cannot dispatch is backlog
+        # too, and omitting it would shrink depth exactly when a provider stalls.
+        due_rows[provider] += mailbox_head["due_count"]
+        in_flight_rows[provider] += mailbox_head["in_flight_count"]
         if mailbox_head["id_min_due"] is None:
             # Everything is claimed or backing off.
             continue
-        provider = _provider_from_mailbox(mailbox_head["mailbox_name"])
         if (
             provider not in skip_on_failure_providers
             and mailbox_head["id_min"] != mailbox_head["id_min_due"]
@@ -519,6 +550,7 @@ def _due_mailbox_heads() -> list[dict[str, Any]]:
         len(heads),
         tags={"source": "aggregate"},
     )
+    _record_backlog_depth(due_rows, in_flight_rows)
     return [
         {"id": head_id, "mailbox_name": mailbox_name}
         for _, head_id, mailbox_name in heads[:BATCH_SELECT_LIMIT]
