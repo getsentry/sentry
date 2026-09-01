@@ -330,7 +330,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.get_or_create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=user.id,
                 type=NotificationSettingEnum.WORKFLOW.value,
@@ -351,7 +351,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.get_or_create(
                 scope_type=NotificationScopeEnum.PROJECT.value,
                 scope_identifier=group.project.id,
                 type=NotificationSettingEnum.WORKFLOW.value,

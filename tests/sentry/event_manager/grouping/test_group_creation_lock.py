@@ -59,7 +59,7 @@ def test_group_creation_race(default_project, lock_disabled) -> None:
     with contextlib.ExitStack() as ctx:
         if lock_disabled:
             # Disable transaction isolation just within event manager, but not in
-            # GroupHash.objects.create_or_update
+            # GroupHash.objects.get_or_create
             ctx.enter_context(patch("sentry.event_manager.transaction", FakeTransactionModule))
 
             # `select_for_update` cannot be used outside of transactions

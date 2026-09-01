@@ -17,7 +17,6 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
-from sentry.db.models.query import create_or_update
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.silo.base import SiloLimit
 from sentry.utils.cache import cache
@@ -476,9 +475,6 @@ class BaseManager(_base_manager_base[M]):
 
         return final_results
 
-    def create_or_update(self, **kwargs: Any) -> tuple[Any, bool]:
-        return create_or_update(self.model, **kwargs)
-
     def uncache_object(self, instance_id: int) -> None:
         pk_name = self.model._meta.pk.name
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
@@ -548,11 +544,6 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
         "bulk_create": limit.create_override(cls.bulk_create),
         "bulk_update": limit.create_override(cls.bulk_update),
         "create": limit.create_override(cls.create),
-        "create_or_update": (
-            limit.create_override(cls.create_or_update)
-            if hasattr(cls, "create_or_update")
-            else None
-        ),
         "get_or_create": limit.create_override(cls.get_or_create),
         "post_delete": (
             limit.create_override(cls.post_delete) if hasattr(cls, "post_delete") else None
