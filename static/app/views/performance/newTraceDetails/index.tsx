@@ -10,6 +10,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getAttributeSearchMetadataKey} from 'sentry/utils/fields/getAttributeSearchMetadataKey';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
@@ -120,11 +121,11 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     traceSlug,
     timestamp: queryParams.timestamp,
     additionalAttributes: [
-      'thread.id',
-      'tags[performance.timeOrigin,number]',
-      'gen_ai.operation.type',
-      'http.response.status_code',
-      'span.status',
+      getAttributeSearchMetadataKey('thread.id'),
+      getAttributeSearchMetadataKey('tags[performance.timeOrigin,number]'),
+      getAttributeSearchMetadataKey('gen_ai.operation.type'),
+      getAttributeSearchMetadataKey('http.response.status_code'),
+      getAttributeSearchMetadataKey('span.status'),
     ],
   });
   const tree = useTraceTree({trace, replay: null});
