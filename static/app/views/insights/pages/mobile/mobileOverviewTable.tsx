@@ -116,7 +116,7 @@ export type ValidSort = Sort & {
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
+  return (SORTABLE_FIELDS as readonly string[]).includes(sort.field);
 }
 
 interface Props {
@@ -161,7 +161,8 @@ export function MobileOverviewTable({response, sort}: Props) {
         grid={{
           prependColumnWidths: ['max-content'],
           renderPrependColumns,
-          getColumnSort: column => getColumnSort({column, location, sort}),
+          getColumnSort: column =>
+            getColumnSort({column, location, sort, sortableFields: SORTABLE_FIELDS}),
           renderHeadCell: column => renderHeadCell({column}),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),
