@@ -15,9 +15,7 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {
-  IntegrationWithConfig,
-} from 'sentry/types/integrations';
+import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
