@@ -449,7 +449,6 @@ def _run_legacy_detectors(
             payload_type=PayloadType.OCCURRENCE,
             occurrence=occurrence,
             event_data=event_data,
-            is_buffered_spans=True,
         )
 
     return detected_problems

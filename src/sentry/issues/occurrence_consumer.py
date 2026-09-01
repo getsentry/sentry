@@ -335,11 +335,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     "title": occurrence_data["issue_title"],
                 }
 
-                return {
-                    "occurrence_data": occurrence_data,
-                    "event_data": event_data,
-                    "is_buffered_spans": payload.get("is_buffered_spans") is True,
-                }
+                return {"occurrence_data": occurrence_data, "event_data": event_data}
             else:
                 if not payload.get("event_id"):
                     raise InvalidEventPayloadError(
@@ -363,8 +359,6 @@ def process_occurrence_message(
         kwargs = _get_kwargs(message)
     occurrence_data = kwargs["occurrence_data"]
     metric_tags = {"occurrence_type": occurrence_data["type"]}
-    is_buffered_spans = kwargs.get("is_buffered_spans", False)
-
     metrics.incr(
         "occurrence_ingest.messages",
         sample_rate=1.0,
@@ -399,9 +393,7 @@ def process_occurrence_message(
         set_span_tag(span, "result", "dropped_rate_limited")
         return None
 
-    if "event_data" in kwargs and is_buffered_spans:
-        return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
-    elif "event_data" in kwargs:
+    if "event_data" in kwargs:
         set_span_tag(span, "result", "success")
         with metrics.timer(
             "occurrence_consumer._process_message.process_event_and_issue_occurrence",
