@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockExecutionStatus,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -79,6 +83,8 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             self.collection_url, data={"title": "Running investigation"}, format="json"
         ).data
         investigation = Investigation.objects.get(id=created["id"])
+        investigation.version += 3
+        investigation.save(update_fields=["version", "date_updated"])
         block = self.create_investigation_block(investigation=investigation, kind="text")
         self.create_investigation_block_execution(
             block=block,
@@ -105,6 +111,94 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert response.data == {
             "detail": "Stop active block runs before archiving this investigation."
         }
+
+    def test_archiving_agentic_investigation_durably_queues_cancellation(self) -> None:
+        created = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "seed": {}}},
+            format="json",
+        ).data
+        investigation = Investigation.objects.get(id=created["id"])
+        block = self.create_investigation_block(
+            investigation=investigation,
+            kind="text",
+            report_revision=1,
+            stable_agent_key="streaming-summary",
+        )
+        execution = self.create_investigation_block_execution(
+            block=block,
+            executor="code_mode",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=block.version,
+            input_snapshot={"projectIds": [self.project.id]},
+        )
+        investigation.version += 3
+        investigation.save(update_fields=["version", "date_updated"])
+
+        with mock.patch(
+            "sentry.investigations.services.orchestration.transaction.on_commit"
+        ) as schedule:
+            response = self.client.delete(
+                self.details_url(investigation),
+                data={"investigationVersion": created["version"]},
+                format="json",
+            )
+
+        assert response.status_code == 204
+        investigation.refresh_from_db()
+        assert investigation.status == InvestigationStatus.ARCHIVED
+        execution.refresh_from_db()
+        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.error == {
+            "code": "investigation_archived",
+            "message": "The investigation was archived.",
+        }
+        command = InvestigationOrchestrationCommand.objects.get(
+            orchestration_run__investigation=investigation
+        )
+        assert command.type == "cancel"
+        assert command.payload == {"reason": "investigation_archived"}
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        run = investigation.orchestration_run
+        assert run.projection["_sentryControl"]["notebookWriteFenceGeneration"] == run.generation
+        schedule.assert_called_once()
+
+    def test_agentic_title_update_marks_a_manual_override(self) -> None:
+        created = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "seed": {}}},
+            format="json",
+        ).data
+        investigation = Investigation.objects.get(id=created["id"])
+
+        response = self.client.put(
+            self.details_url(investigation),
+            data={
+                "investigationVersion": created["version"],
+                "title": "My incident title",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.data
+        run = investigation.orchestration_run
+        assert run.projection["_sentryControl"] == {
+            "manualTitleOverride": True,
+            "titleBuffer": "My incident title",
+            "titleStarted": True,
+        }
+
+        stale_response = self.client.put(
+            self.details_url(investigation),
+            data={
+                "investigationVersion": created["version"],
+                "title": "Overwrite from a stale editor",
+            },
+            format="json",
+        )
+        assert stale_response.status_code == 409
+        investigation.refresh_from_db()
+        assert investigation.title == "My incident title"
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(

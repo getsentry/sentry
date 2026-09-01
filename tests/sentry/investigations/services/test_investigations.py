@@ -28,6 +28,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationProject,
     InvestigationSourceType,
+    InvestigationStatus,
 )
 from sentry.investigations.seer_client import (
     create_investigation_orchestration_run,
@@ -51,8 +52,10 @@ from sentry.investigations.services.investigations import (
 )
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
+    archive_investigation_with_orchestration,
     create_agentic_manual_investigation,
     get_orchestration_projection,
+    update_investigation_with_orchestration,
 )
 from sentry.investigations.services.orchestration_events import (
     MAX_ORCHESTRATION_EVENT_BYTES,
@@ -971,6 +974,12 @@ class InvestigationOrchestrationEventTest(TestCase):
             generation=3,
             phase="investigating",
         )
+        block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            report_revision=1,
+            stable_agent_key="stale-summary",
+        )
 
         reconcile_orchestration_projection(
             orchestration_run_id=self.orchestration_run.id,
@@ -979,14 +988,25 @@ class InvestigationOrchestrationEventTest(TestCase):
                 workflow_version=2,
                 generation=2,
                 phase="planning",
+                report_revision=2,
+                clear_intent={
+                    "id": "clear-report-2",
+                    "revision": 2,
+                    "reason": "workflow_changed",
+                    "requestedAt": "2025-01-01T00:00:00+00:00",
+                    "completed": True,
+                },
             ),
         )
 
         self.orchestration_run.refresh_from_db()
+        block.refresh_from_db()
         assert self.orchestration_run.workflow_version == 2
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
+        assert self.orchestration_run.notebook_revision == 1
+        assert block.deleted_at is not None
 
     def test_text_and_title_stream_resets_replace_stale_content(self) -> None:
         manual = self.create_investigation_block(
@@ -1090,6 +1110,113 @@ class InvestigationOrchestrationEventTest(TestCase):
         )
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.notebook_revision == 7
+
+    def test_manual_title_override_survives_generated_title_events(self) -> None:
+        self.investigation.title = "My incident title"
+        self.investigation.save(update_fields=["title", "date_updated"])
+        projection = self.orchestration_run.projection
+        projection["_sentryControl"] = {
+            "manualTitleOverride": True,
+            "titleBuffer": "My incident title",
+            "titleStarted": True,
+        }
+        self.orchestration_run.projection = projection
+        self.orchestration_run.save(update_fields=["projection", "date_updated"])
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "title_delta",
+                {"reportRevision": 1, "delta": "Generated title", "reset": True},
+            )
+        )
+        self.deliver(
+            self.event(
+                3,
+                "metadata_completed",
+                {
+                    "reportRevision": 1,
+                    "title": "Final generated title",
+                    "summary": "Root cause found",
+                    "summaryDescription": "A release changed routing.",
+                },
+            )
+        )
+
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.title == "My incident title"
+        assert self.investigation.summary == "Root cause found"
+        assert self.orchestration_run.projection["report"]["metadata"]["title"] == (
+            "My incident title"
+        )
+
+    def test_archive_generation_fence_survives_restore_until_a_new_generation(self) -> None:
+        block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            report_revision=1,
+            stable_agent_key="preserved-summary",
+        )
+        archived = archive_investigation_with_orchestration(
+            investigation=self.investigation,
+            expected_version=self.investigation.version,
+            actor_id=self.user.id,
+        )
+        assert archived.status == InvestigationStatus.ARCHIVED
+        delayed_projection = self.projection(
+            workflow_version=2,
+            generation=1,
+            report_revision=2,
+        )
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=delayed_projection,
+        )
+        block.refresh_from_db()
+        assert block.deleted_at is None
+        assert block.report_revision == 1
+        restored = update_investigation_with_orchestration(
+            investigation=archived,
+            expected_version=archived.version,
+            fields={"status": InvestigationStatus.ACTIVE},
+            project_ids=None,
+        )
+        assert restored.status == InvestigationStatus.ACTIVE
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=delayed_projection,
+        )
+        block.refresh_from_db()
+        assert block.deleted_at is None
+        assert block.report_revision == 1
+
+        fenced = self.deliver(self.event(1, "report_clear", {"reportRevision": 1}, generation=1))
+        assert fenced.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.notebook_revision == 0
+
+        self.deliver(
+            self.event(
+                2,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        generation=2,
+                    )
+                },
+                generation=2,
+            )
+        )
+        accepted = self.deliver(self.event(3, "report_clear", {"reportRevision": 1}, generation=2))
+
+        assert accepted.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.notebook_revision == 1
 
     def test_query_upsert_persists_an_immutable_completed_snapshot(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
