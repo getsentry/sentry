@@ -602,6 +602,54 @@ describe('BackendJsonSubmitForm', () => {
       expect(await screen.findByText('prefetched-repo')).toBeInTheDocument();
     });
 
+    it('only waits for the fields declared as prefetch dependencies', async () => {
+      const prefetchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'labels',
+            query: '',
+            repo: 'my-org/my-repo',
+            project: '',
+          }),
+        ],
+        body: [{value: 'bug', label: 'bug'}],
+      });
+
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'repo',
+              type: 'select',
+              label: 'Repository',
+              updatesForm: true,
+            },
+            {
+              name: 'project',
+              type: 'select',
+              label: 'Project',
+              updatesForm: true,
+            },
+            {
+              name: 'labels',
+              type: 'select',
+              label: 'Labels',
+              url: '/search',
+              prefetch: true,
+              dependsOn: ['repo'],
+            },
+          ]}
+          dynamicFieldValues={{repo: 'my-org/my-repo', project: ''}}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+        />,
+        {organization: org}
+      );
+
+      await waitFor(() => expect(prefetchResponse).toHaveBeenCalled());
+    });
+
     it('async select fetches from URL on search', async () => {
       // Catch-all for unmatched queries
       MockApiClient.addMockResponse({

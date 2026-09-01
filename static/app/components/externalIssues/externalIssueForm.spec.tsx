@@ -149,6 +149,7 @@ describe('ExternalIssueForm', () => {
             choices: [],
             url: '/search',
             prefetch: true,
+            dependsOn: ['repo'],
           },
           {
             label: 'Labels',
@@ -159,6 +160,7 @@ describe('ExternalIssueForm', () => {
             choices: [],
             url: '/search',
             prefetch: true,
+            dependsOn: ['repo'],
           },
         ],
       };

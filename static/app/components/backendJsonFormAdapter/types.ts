@@ -48,6 +48,10 @@ interface JsonFormAdapterSelect extends JsonFormAdapterBase {
   type: 'select' | 'choice';
   choices?: readonly JsonFormAdapterChoice[];
   /**
+   * Field names that must have values before prefetched options can be fetched.
+   */
+  dependsOn?: string[];
+  /**
    * When true, allows selecting multiple values.
    */
   multiple?: boolean;

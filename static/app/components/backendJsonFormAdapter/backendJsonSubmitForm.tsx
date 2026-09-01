@@ -185,6 +185,13 @@ function buildAsyncSelectQuery(
   };
 }
 
+function hasFieldValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  return value !== undefined && value !== null && value !== '';
+}
+
 /**
  * A multi-field form that renders backend-driven field configs with a submit button.
  * Unlike `BackendJsonFormAdapter` (which is per-field auto-save), this component
@@ -381,14 +388,9 @@ export function BackendJsonSubmitForm({
                         const staticOptions = transformChoices(field.choices);
                         const dynamicQueryValues = {...dynamicFieldValues};
                         delete dynamicQueryValues[field.name];
-                        const prefetchReady = fields
-                          .filter(
-                            candidate =>
-                              candidate.updatesForm && candidate.name !== field.name
-                          )
-                          .every(candidate =>
-                            Boolean(dynamicFieldValues?.[candidate.name])
-                          );
+                        const prefetchReady = (field.dependsOn ?? []).every(dependency =>
+                          hasFieldValue(dynamicFieldValues?.[dependency])
+                        );
                         const customQueryOptions = customAsyncQueryOptions?.[field.name];
                         const defaultAsyncQueryOptions = ((debouncedInput: string) => {
                           const requestQuery =
