@@ -3,6 +3,7 @@ from __future__ import annotations
 import orjson
 from requests import HTTPError, RequestException
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
@@ -52,7 +53,7 @@ def validate_datadog_credentials(api_key: str, app_key: str, site: str) -> str:
         raise IntegrationConfigurationError(
             "Unable to validate Datadog credentials. Please try again."
         )
-    except RequestException:
+    except (RestrictedIPAddress, RequestException):
         raise IntegrationConfigurationError(
             "Could not reach Datadog to validate credentials. Please try again."
         )

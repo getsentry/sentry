@@ -2,6 +2,7 @@ import pytest
 import requests
 import responses
 
+from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.datadog.client import validate_datadog_credentials
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
@@ -43,6 +44,14 @@ def test_validate_translates_auth_error() -> None:
 @responses.activate
 def test_validate_translates_network_error() -> None:
     responses.add(responses.GET, CURRENT_USER_URL, body=requests.exceptions.ConnectionError("boom"))
+
+    with pytest.raises(IntegrationConfigurationError, match="Could not reach Datadog"):
+        validate_datadog_credentials("api", "app", "datadoghq.com")
+
+
+@responses.activate
+def test_validate_translates_restricted_ip() -> None:
+    responses.add(responses.GET, CURRENT_USER_URL, body=RestrictedIPAddress("blocked"))
 
     with pytest.raises(IntegrationConfigurationError, match="Could not reach Datadog"):
         validate_datadog_credentials("api", "app", "datadoghq.com")
