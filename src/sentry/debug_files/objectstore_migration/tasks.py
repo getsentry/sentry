@@ -167,7 +167,7 @@ def migrate_shard(
             if activation_id:
                 mark_spawned(_SHARD_TASK_KEY, activation_id)
     except UnableToAcquireLock:
-        logger.info(
+        logger.exception(
             "debug_files.objectstore_migration.shard_already_running",
             extra=log_extra(),
         )

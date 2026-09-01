@@ -58,7 +58,9 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
     def test_duplicate_shard_exits_when_lock_is_held(self) -> None:
         with (
             patch("sentry.debug_files.objectstore_migration.tasks.locks.get") as get_lock,
-            patch("sentry.debug_files.objectstore_migration.tasks.logger.info") as logger_info,
+            patch(
+                "sentry.debug_files.objectstore_migration.tasks.logger.exception"
+            ) as logger_exception,
             patch(
                 "sentry.debug_files.objectstore_migration.tasks.migrate_debug_file"
             ) as migrate_one,
@@ -68,7 +70,7 @@ class DebugFileObjectstoreMigrationTaskTest(TestCase):
             migrate_shard(shard_id=2, num_shards=64, cursor=100)
 
         migrate_one.assert_not_called()
-        logger_info.assert_called_once_with(
+        logger_exception.assert_called_once_with(
             "debug_files.objectstore_migration.shard_already_running",
             extra={
                 "shard_id": 2,
