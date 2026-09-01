@@ -152,8 +152,6 @@ describe('getAttributeValue', () => {
 
   it.each([
     [{value: 'test'}, 'http.request.method'],
-    [null, 'http.request.method'],
-    ['not an object', 'http.request.method'],
     [{'http.request.method': {method: 'GET'}}, 'http.request.method'],
     [{'http.request.method': ['GET', 200]}, 'http.request.method'],
   ])('returns undefined when no value can be found', (attributes, key) => {

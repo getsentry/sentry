@@ -20,9 +20,10 @@ type AttributeValueKind = keyof AttributeValueByKind;
 type AttributeEntry = {
   name: string;
   value: unknown;
+  type?: unknown;
 };
 
-type AttributeSource = Record<string, unknown> | unknown[];
+type AttributeSource = Record<string, unknown> | AttributeEntry[];
 
 function isAttributeValue(value: unknown): value is AttributeValue {
   return (
@@ -102,7 +103,7 @@ function prettifyAttributeName(name: string): string {
 }
 
 function findAttributeEntry(
-  attributes: unknown[],
+  attributes: AttributeEntry[],
   candidateKey: string
 ): AttributeEntry | undefined {
   return (
@@ -202,16 +203,16 @@ function getAttributeValueFromDeprecationChain(
  * ```
  */
 export function getAttributeValue<K extends AttributeValueKind>(
-  attributes: unknown,
+  attributes: AttributeSource,
   key: string,
   kind: K
 ): AttributeValueByKind[K] | undefined;
 export function getAttributeValue(
-  attributes: unknown,
+  attributes: AttributeSource,
   key: string
 ): AttributeValue | undefined;
 export function getAttributeValue(
-  attributes: unknown,
+  attributes: AttributeSource,
   key: string,
   kind?: AttributeValueKind
 ): AttributeValue | bigint | undefined {
@@ -223,7 +224,7 @@ export function getAttributeValue(
   const deprecationChain = ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.get(prettifiedKey);
   if (ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.has(prettifiedKey)) {
     return getAttributeValueFromDeprecationChain(
-      attributes as AttributeSource,
+      attributes,
       deprecationChain ?? [prettifiedKey],
       kind
     );
@@ -238,7 +239,7 @@ export function getAttributeValue(
   ATTRIBUTE_DEPRECATION_CHAIN_BY_KEY.set(prettifiedKey, metadata?.deprecationChain);
 
   return getAttributeValueFromDeprecationChain(
-    attributes as AttributeSource,
+    attributes,
     metadata?.deprecationChain ?? [prettifiedKey],
     kind
   );
