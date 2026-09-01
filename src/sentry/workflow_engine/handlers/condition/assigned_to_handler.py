@@ -40,18 +40,18 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
     }
 
     @staticmethod
-    def _coerce_target_identifier(target_identifier: Any) -> int | None:
-        """Normalize target_identifier to int.
+    def _coerce_target_identifier(raw_target_identifier: Any) -> int | None:
+        """Normalize raw_target_identifier to a trusted int target_identifier.
 
         The comparison schema accepts both integers and digit strings (e.g. from
         Terraform / OpenAPI string unions). Evaluation compares against integer
         assignee FK ids, so we must coerce before storage and at evaluate time.
         """
         # bool is a subclass of int; reject it explicitly.
-        if target_identifier is None or isinstance(target_identifier, bool):
+        if raw_target_identifier is None or isinstance(raw_target_identifier, bool):
             return None
         try:
-            return int(target_identifier)
+            return int(raw_target_identifier)
         except (TypeError, ValueError):
             return None
 
@@ -60,28 +60,28 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         cls, comparison: dict[str, Any], organization: Organization
     ) -> dict[str, Any]:
         target_type = comparison.get("target_type")
-        target_identifier = comparison.get("target_identifier")
+        raw_target_identifier = comparison.get("target_identifier")
         if target_type == AssigneeTargetType.UNASSIGNED.value:
             return comparison
 
         # TEAM/MEMBER require a real positive integer id. Do not treat falsy values
         # like "" or 0 as "missing" and skip validation — that would store conditions
         # that can never match an assignee.
-        coerced = cls._coerce_target_identifier(target_identifier)
-        if coerced is None or coerced <= 0:
+        target_identifier = cls._coerce_target_identifier(raw_target_identifier)
+        if target_identifier is None or target_identifier <= 0:
             raise serializers.ValidationError("target_identifier must be an integer")
 
         if target_type == AssigneeTargetType.TEAM.value:
-            if not Team.objects.filter(id=coerced, organization=organization).exists():
+            if not Team.objects.filter(id=target_identifier, organization=organization).exists():
                 raise serializers.ValidationError("This team is not part of the organization.")
         elif target_type == AssigneeTargetType.MEMBER.value:
             if not OrganizationMember.objects.filter(
-                user_id=coerced, organization=organization
+                user_id=target_identifier, organization=organization
             ).exists():
                 raise serializers.ValidationError("This user is not part of the organization.")
 
         # Persist the integer form so evaluate_value can compare against int FKs.
-        return {**comparison, "target_identifier": coerced}
+        return {**comparison, "target_identifier": target_identifier}
 
     @staticmethod
     def get_assignees(group: Group) -> Sequence[GroupAssignee]:
@@ -105,17 +105,22 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
         if target_type == AssigneeTargetType.UNASSIGNED:
             return len(assignees) == 0
 
-        target_id = AssignedToConditionHandler._coerce_target_identifier(
-            comparison.get("target_identifier")
+        raw_target_identifier = comparison.get("target_identifier")
+        target_identifier = AssignedToConditionHandler._coerce_target_identifier(
+            raw_target_identifier
         )
-        if target_id is None:
+        if target_identifier is None:
             return False
 
         if target_type == AssigneeTargetType.TEAM:
-            return any(assignee.team_id and assignee.team_id == target_id for assignee in assignees)
+            return any(
+                assignee.team_id and assignee.team_id == target_identifier for assignee in assignees
+            )
 
         # Remaining AssigneeTargetType is MEMBER.
-        return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
+        return any(
+            assignee.user_id and assignee.user_id == target_identifier for assignee in assignees
+        )
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
