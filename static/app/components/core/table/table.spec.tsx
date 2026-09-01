@@ -24,7 +24,7 @@ function TestTable({
       <Table.Head>
         <Table.Row>
           {columns.map(column => (
-            <Table.HeadCell column={column.key} key={column.key}>
+            <Table.HeadCell columnKey={column.key} key={column.key}>
               {column.key}
             </Table.HeadCell>
           ))}
@@ -34,7 +34,7 @@ function TestTable({
         <Table.Row>
           {columns.map(column => (
             <Table.Cell
-              column={column.key}
+              columnKey={column.key}
               key={column.key}
             >{`${column.key}-value`}</Table.Cell>
           ))}

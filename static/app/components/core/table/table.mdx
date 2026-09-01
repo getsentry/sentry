@@ -38,7 +38,7 @@ const columns = [
   <Table.Head>
     <Table.Row>
       {columns.map(column => (
-        <Table.HeadCell column={column.key} key={column.key}>
+        <Table.HeadCell columnKey={column.key} key={column.key}>
           {column.key}
         </Table.HeadCell>
       ))}
@@ -85,7 +85,7 @@ Pass `onColumnResize` to control them instead, which is how `GridEditable` persi
 Keys are container breakpoints on the `theme.container` scale, and both resolve mobile-first, like every other responsive prop.
 
 A column whose `visible` resolves to `false` loses its track entirely, so the remaining columns divide the full width.
-Cells name their column with `column`, and a cell whose column is hidden is not rendered at all.
+Cells name their column with `column`, which is how a cell is hidden along with its track.
 
 ```jsx
 const columns = [
@@ -98,7 +98,7 @@ const columns = [
   <Table.Head>
     <Table.Row>
       {columns.map(column => (
-        <Table.HeadCell column={column.key} key={column.key}>
+        <Table.HeadCell columnKey={column.key} key={column.key}>
           {column.key}
         </Table.HeadCell>
       ))}

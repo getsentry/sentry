@@ -202,14 +202,16 @@ function OrganizationAuthTokensIndex() {
             columns={TOKEN_COLUMNS}
             header={
               <SimpleTable.HeaderRow>
-                <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell column="created">
+                <SimpleTable.HeaderCell columnKey="token">
+                  {t('Token')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="created">
                   {t('Created')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell column="lastAccess">
+                <SimpleTable.HeaderCell columnKey="lastAccess">
                   {t('Last access')}
                 </SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
+                <SimpleTable.HeaderCell columnKey="actions" />
               </SimpleTable.HeaderRow>
             }
           >

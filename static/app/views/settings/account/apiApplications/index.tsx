@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -113,15 +112,15 @@ export default function ApiApplications() {
     <SentryDocumentTitle title={t('API Applications')}>
       <SettingsPageHeader title="API Applications" action={action} />
 
-      <ApplicationsTable
+      <SimpleTable
         columns={APPLICATION_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Application Name')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell column="age">
+            <SimpleTable.HeaderCell columnKey="age">
               {t('Age')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell column="actions" />
+            <SimpleTable.HeaderCell columnKey="actions" />
           </SimpleTable.HeaderRow>
         }
       >
@@ -134,7 +133,7 @@ export default function ApiApplications() {
             <Row key={app.id} app={app} onRemove={handleRemoveApplication} />
           ))
         )}
-      </ApplicationsTable>
+      </SimpleTable>
     </SentryDocumentTitle>
   );
 }
@@ -148,12 +147,6 @@ const APPLICATION_COLUMNS: TableColumnConfig[] = [
   },
   {key: 'actions', width: 'max-content'},
 ];
-
-const ApplicationsTable = styled(SimpleTable)`
-  [data-column-name='actions'] {
-    padding-left: 0;
-  }
-`;
 
 interface CreateApplicationModalProps {
   Body: ModalRenderProps['Body'];

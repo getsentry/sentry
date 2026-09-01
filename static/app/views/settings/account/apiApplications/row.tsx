@@ -60,7 +60,7 @@ export function Row({app, onRemove}: Props) {
         </Stack>
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell column="age">
+      <SimpleTable.RowCell columnKey="age">
         {app.dateCreated ? (
           <TimeSince date={app.dateCreated} suffix="" />
         ) : (
@@ -70,7 +70,7 @@ export function Row({app, onRemove}: Props) {
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell justify="end" column="actions">
+      <SimpleTable.RowCell justify="end" columnKey="actions" padding="lg xl lg 0">
         <ConfirmDelete
           message={t(
             'Removing this API Application will break existing usages of the application!'

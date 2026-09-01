@@ -43,7 +43,8 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
 
   return (
     <SimpleTable.RowCell
-      column="visualization"
+      columnKey="visualization"
+      column="-3 / -1"
       padding="lg 0"
       borderLeft="muted"
       height="100%"
@@ -82,7 +83,8 @@ export default function UptimeDetectorsList() {
         if (!detector) {
           return (
             <SimpleTable.RowCell
-              column="visualization"
+              columnKey="visualization"
+              column="-3 / -1"
               padding="lg 0"
               borderLeft="muted"
               height="100%"

@@ -181,14 +181,16 @@ function OrganizationFeatureFlagsChangeTracking() {
         data-test-id="secrets-table"
         header={
           <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell column="created">
+            <SimpleTable.HeaderCell columnKey="provider">
+              {t('Provider')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="created">
               {t('Created')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell column="createdBy">
+            <SimpleTable.HeaderCell columnKey="createdBy">
               {t('Created by')}
             </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell />
+            <SimpleTable.HeaderCell columnKey="actions" />
           </SimpleTable.HeaderRow>
         }
       >

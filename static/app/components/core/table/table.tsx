@@ -1,6 +1,5 @@
 import type {
   ComponentProps,
-  CSSProperties,
   HTMLAttributes,
   ReactNode,
   Ref,
@@ -54,10 +53,10 @@ export interface TableColumnConfig {
   resizable?: boolean;
   /**
    * Whether the column takes part in the layout, defaulting to `true`. A
-   * responsive value drops the column's track from the grid template and its
-   * cells from the table as the container crosses a breakpoint.
+   * responsive value drops the column's track from the grid template and hides
+   * its cells as the container crosses a breakpoint.
    *
-   * Cells name their column with `column={key}`, which is how they are dropped
+   * Cells name their column with `columnKey`, which is how they are hidden
    * along with their track.
    */
   visible?: Responsive<boolean>;
@@ -115,16 +114,14 @@ export function useTableElement() {
 }
 
 /**
- * Drops a cell whose column is currently hidden. Inline because a cell's own
- * `display` comes from a class, and hidden rather than unrendered so that the
- * table still holds its content when it is measured at zero width.
+ * Whether the named column is currently dropped from the table. Cells are hidden
+ * rather than unrendered so that a table measured at zero width — every table
+ * under jsdom — still holds its content.
  */
-export function useColumnStyle(column: string | undefined, style?: CSSProperties) {
+export function useIsColumnHidden(columnKey: string | undefined) {
   const context = useTableContext();
 
-  return column !== undefined && context?.hiddenColumnKeys.has(column)
-    ? {...style, display: 'none'}
-    : style;
+  return columnKey !== undefined && context?.hiddenColumnKeys.has(columnKey) === true;
 }
 
 const EMPTY_COLUMNS: TableColumnConfig[] = [];
@@ -277,27 +274,20 @@ function Row(props: ComponentProps<typeof TableRow>) {
 }
 
 interface CellProps extends ComponentProps<typeof TableCell> {
-  column?: string;
+  columnKey?: string;
 }
 
-function Cell({column, style, ...props}: CellProps) {
-  return (
-    <TableCell
-      data-column-name={column}
-      role="cell"
-      {...props}
-      style={useColumnStyle(column, style)}
-    />
-  );
+function Cell({columnKey, ...props}: CellProps) {
+  return <TableCell hidden={useIsColumnHidden(columnKey)} role="cell" {...props} />;
 }
 
 interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
-  column?: string;
   /**
    * Identifies the column by position, for callers that render their head cells
    * from an ordered list rather than from a keyed column config.
    */
   columnIndex?: number;
+  columnKey?: string;
   onSort?: (event: React.MouseEvent) => void;
   overlays?: ReactNode;
   ref?: Ref<HTMLTableCellElement>;
@@ -314,8 +304,8 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
 
 function HeadCell({
   children,
-  column,
   columnIndex,
+  columnKey,
   onSort,
   overlays,
   ref,
@@ -327,7 +317,7 @@ function HeadCell({
   const context = useTableContext();
   const index =
     columnIndex ??
-    (column === undefined ? undefined : context?.columnIndexByKey.get(column));
+    (columnKey === undefined ? undefined : context?.columnIndexByKey.get(columnKey));
 
   const showResizer =
     context !== null &&
@@ -346,12 +336,11 @@ function HeadCell({
   return (
     <TableHeadCell
       aria-sort={getAriaSort(sort)}
-      data-column-name={column}
+      hidden={useIsColumnHidden(columnKey)}
       {...props}
       id={cellId}
       ref={getMergedRef(ref)}
       role="columnheader"
-      style={useColumnStyle(column, props.style)}
     >
       {sortable ? (
         <SortableHeaderCell

@@ -12,7 +12,7 @@ import {
   fullWidthCellStyle,
   Table,
   type TableColumnConfig,
-  useColumnStyle,
+  useIsColumnHidden,
 } from '@sentry/scraps/table';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -79,7 +79,7 @@ function HeaderCell({
 }: HTMLAttributes<HTMLTableCellElement> & {
   align?: ColumnAlign;
   children?: React.ReactNode;
-  column?: string;
+  columnKey?: string;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
@@ -117,12 +117,11 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
 
 function RowCell({
   children,
-  column,
-  style,
+  columnKey,
   ...props
 }: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
-  column?: string;
+  columnKey?: string;
 }) {
   return (
     <Flex
@@ -131,9 +130,8 @@ function RowCell({
       align="center"
       overflow="hidden"
       padding="lg xl"
-      data-column-name={column}
+      hidden={useIsColumnHidden(columnKey)}
       {...props}
-      style={useColumnStyle(column, style)}
     >
       {children}
     </Flex>

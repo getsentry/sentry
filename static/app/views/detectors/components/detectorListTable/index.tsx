@@ -191,17 +191,17 @@ export function DetectorListTable({
                   <span>{t('Name')}</span>
                 </Flex>
               </HeaderCell>
-              <HeaderCell column="type" divider sortKey="type">
+              <HeaderCell columnKey="type" divider sortKey="type">
                 {t('Type')}
               </HeaderCell>
-              <HeaderCell column="last-issue" divider sortKey="latestGroup">
+              <HeaderCell columnKey="last-issue" divider sortKey="latestGroup">
                 {t('Last Issue')}
               </HeaderCell>
-              <HeaderCell column="assignee" divider>
+              <HeaderCell columnKey="assignee" divider>
                 {t('Assignee')}
               </HeaderCell>
               <HeaderCell
-                column="connected-automations"
+                columnKey="connected-automations"
                 divider
                 sortKey="connectedWorkflows"
               >
@@ -211,12 +211,12 @@ export function DetectorListTable({
                 <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
               ))}
               {hasVisualization && detectors.length > 0 && (
-                <VisualizationHeaderCell column="visualization" ref={elementRef} scope="col">
+                <VisualizationHeaderCell columnKey="visualization" ref={elementRef} scope="col">
                   <GridLineLabels timeWindowConfig={timeWindowConfig} />
                 </VisualizationHeaderCell>
               )}
               {hasVisualization && (
-                <VisualizationExpandButtonCell column="visualization-expand" scope="col">
+                <VisualizationExpandButtonCell columnKey="visualization-expand" scope="col">
                   <Button
                     size="xs"
                     variant="transparent"
@@ -373,12 +373,6 @@ function makeDetectorColumns({
 
 const DetectorListSimpleTable = styled(SimpleTable)`
   overflow: clip;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    [data-column-name='visualization'] {
-      grid-column: -3 / -1;
-    }
-  }
 `;
 
 const GridLineOverlayRow = styled(SimpleTable.Row)`

@@ -223,7 +223,7 @@ export default Storybook.story('SimpleTable', story => {
             header={
               <SimpleTable.HeaderRow>
                 {headers.map(header => (
-                  <SimpleTable.HeaderCell key={header.key} column={header.key}>
+                  <SimpleTable.HeaderCell key={header.key} columnKey={header.key}>
                     {header.label}
                   </SimpleTable.HeaderCell>
                 ))}
@@ -234,10 +234,10 @@ export default Storybook.story('SimpleTable', story => {
               <SimpleTable.Row key={row.name}>
                 <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-                <SimpleTable.RowCell column="action">
+                <SimpleTable.RowCell columnKey="action">
                   {row.action}
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell column="lastTriggered">
+                <SimpleTable.RowCell columnKey="lastTriggered">
                   <TimeAgoCell date={row.lastTriggered} />
                 </SimpleTable.RowCell>
               </SimpleTable.Row>

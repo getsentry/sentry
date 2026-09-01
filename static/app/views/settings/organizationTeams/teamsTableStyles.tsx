@@ -19,10 +19,6 @@ export function TeamsTable(props: ComponentProps<typeof StyledTeamsTable>) {
 
 const StyledTeamsTable = styled(SimpleTable)`
   margin-bottom: ${p => p.theme.space.xl};
-
-  [data-column-name='actions'] {
-    padding-left: 0;
-  }
 `;
 
 export const TeamLink = styled(Link)`

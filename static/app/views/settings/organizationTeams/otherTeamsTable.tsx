@@ -69,11 +69,11 @@ export function OtherTeamsTable({
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell column="role" />
-          <SimpleTable.HeaderCell column="projects">
+          <SimpleTable.HeaderCell columnKey="role" />
+          <SimpleTable.HeaderCell columnKey="projects">
             {t('Projects')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell column="actions" />
+          <SimpleTable.HeaderCell columnKey="actions" />
         </SimpleTable.HeaderRow>
       }
     >
@@ -140,14 +140,14 @@ function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
           badge
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell column="role">{null}</SimpleTable.RowCell>
-      <SimpleTable.RowCell column="projects">
+      <SimpleTable.RowCell columnKey="role">{null}</SimpleTable.RowCell>
+      <SimpleTable.RowCell columnKey="projects">
         <TeamProjectsCell
           projects={teamProjects}
           teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
         />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" column="actions">
+      <SimpleTable.RowCell justify="end" columnKey="actions" padding="lg xl lg 0">
         <TeamAction
           isLoading={isLoading}
           isPending={team.isPending}

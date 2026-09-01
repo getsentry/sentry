@@ -26,6 +26,12 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList from 'sentry/views/automations/list';
 
+// Cells the container is too narrow to show are hidden rather than dropped, so
+// the row still holds every column in order: name, last triggered, action,
+// projects, connected monitors.
+const projectsCell = (row: HTMLElement) =>
+  within(row).getAllByRole('cell', {hidden: true})[3]!;
+
 describe('AutomationsList', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1', slug: 'project-1'});
@@ -141,8 +147,7 @@ describe('AutomationsList', () => {
     const row = await screen.findByTestId('automation-list-row');
 
     // Projects column should show em dash for automation with no detectors
-    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
-    expect(within(projectsColumn as HTMLElement).getByText('—')).toBeInTheDocument();
+    expect(within(projectsCell(row)).getByText('—')).toBeInTheDocument();
   });
 
   it('shows all projects for an all-projects detector', async () => {
@@ -160,10 +165,7 @@ describe('AutomationsList', () => {
     render(<AutomationsList />, {organization});
 
     const row = await screen.findByTestId('automation-list-row');
-    const projectsColumn = row.querySelector('[data-column-name="projects"]')!;
-    expect(
-      await within(projectsColumn as HTMLElement).findByText('All Projects')
-    ).toBeInTheDocument();
+    expect(await within(projectsCell(row)).findByText('All Projects')).toBeInTheDocument();
   });
 
   it('can filter by project', async () => {

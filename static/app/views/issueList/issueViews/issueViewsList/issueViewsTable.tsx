@@ -51,34 +51,34 @@ export function IssueViewsTable({
       data-test-id={`table-${type}`}
       header={
         <SavedEntityTable.Header>
-          <SavedEntityTable.HeaderCell column="star" />
-          <SavedEntityTable.HeaderCell column="name" divider={false}>
+          <SavedEntityTable.HeaderCell columnKey="star" />
+          <SavedEntityTable.HeaderCell columnKey="name" divider={false}>
             {t('Name')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell column="project">
+          <SavedEntityTable.HeaderCell columnKey="project">
             {t('Project')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell column="envs">
+          <SavedEntityTable.HeaderCell columnKey="envs">
             {t('Environments')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell column="query">
+          <SavedEntityTable.HeaderCell columnKey="query">
             {t('Query')}
           </SavedEntityTable.HeaderCell>
           {!hideCreatedBy && (
-            <SavedEntityTable.HeaderCell column="creator">
+            <SavedEntityTable.HeaderCell columnKey="creator">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
           )}
-          <SavedEntityTable.HeaderCell column="last-visited">
+          <SavedEntityTable.HeaderCell columnKey="last-visited">
             {t('Last Viewed')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell column="created">
+          <SavedEntityTable.HeaderCell columnKey="created">
             {t('Created')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell column="stars">
+          <SavedEntityTable.HeaderCell columnKey="stars">
             {t('Stars')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell column="actions" />
+          <SavedEntityTable.HeaderCell columnKey="actions" />
         </SavedEntityTable.Header>
       }
       isLoading={isPending}
@@ -95,7 +95,7 @@ export function IssueViewsTable({
             isFirst={index === 0}
             data-test-id={`table-${type}-row-${index}`}
           >
-            <SavedEntityTable.Cell column="star" hasButton>
+            <SavedEntityTable.Cell columnKey="star" hasButton>
               <SavedEntityTable.CellStar
                 isStarred={view.starred}
                 onClick={() => {
@@ -110,39 +110,39 @@ export function IssueViewsTable({
                 }}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="name">
+            <SavedEntityTable.Cell columnKey="name">
               <SavedEntityTable.CellName
                 to={`/organizations/${organization.slug}/issues/views/${view.id}/`}
               >
                 {view.name}
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="project">
+            <SavedEntityTable.Cell columnKey="project">
               <SavedEntityTable.CellProjects projects={view.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="envs">
+            <SavedEntityTable.Cell columnKey="envs">
               <SavedEntityTable.CellEnvironments environments={view.environments} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="query">
+            <SavedEntityTable.Cell columnKey="query">
               <SavedEntityTable.CellQuery query={view.query} />
             </SavedEntityTable.Cell>
             {!hideCreatedBy && (
-              <SavedEntityTable.Cell column="creator">
+              <SavedEntityTable.Cell columnKey="creator">
                 <SavedEntityTable.CellUser user={view.createdBy} />
               </SavedEntityTable.Cell>
             )}
-            <SavedEntityTable.Cell column="last-visited">
+            <SavedEntityTable.Cell columnKey="last-visited">
               <SavedEntityTable.CellTimeSince date={view.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="created">
+            <SavedEntityTable.Cell columnKey="created">
               <SavedEntityTable.CellTimeSince date={view.dateCreated} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="stars">
+            <SavedEntityTable.Cell columnKey="stars">
               <SavedEntityTable.CellTextContent>
                 {view.stars.toLocaleString()}
               </SavedEntityTable.CellTextContent>
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell column="actions" hasButton>
+            <SavedEntityTable.Cell columnKey="actions" hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   {
