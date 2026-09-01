@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from enum import StrEnum
+from typing import Any
 
 from django.utils import timezone
 
@@ -44,12 +45,11 @@ def is_pr_iteration_paused(*, run_id: int, organization_id: int) -> bool:
     return get_run_extra(seer_run, PAUSED_EXTRA) is not None
 
 
-def get_pause_reason(*, run_id: int, organization_id: int) -> PauseReason | None:
-    seer_run = _get_seer_run(run_id, organization_id)
-    if seer_run is None:
-        return None
+def pause_reason_from_marker(marker: Any | None) -> PauseReason | None:
+    """Read the reason off a marker a caller already holds, sparing the query.
 
-    marker = get_run_extra(seer_run, PAUSED_EXTRA)
+    Markers written before the reason existed record a user stop.
+    """
     if marker is None:
         return None
 
@@ -57,6 +57,14 @@ def get_pause_reason(*, run_id: int, organization_id: int) -> PauseReason | None
         return PauseReason(marker.get("reason", PauseReason.USER_STOP))
     except ValueError:
         return None
+
+
+def get_pause_reason(*, run_id: int, organization_id: int) -> PauseReason | None:
+    seer_run = _get_seer_run(run_id, organization_id)
+    if seer_run is None:
+        return None
+
+    return pause_reason_from_marker(get_run_extra(seer_run, PAUSED_EXTRA))
 
 
 def pause_pr_iteration(

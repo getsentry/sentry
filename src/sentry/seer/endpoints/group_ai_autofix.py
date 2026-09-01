@@ -68,6 +68,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
     get_pause_reason,
+    pause_reason_from_marker,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
@@ -612,6 +613,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             for repo_name, info in missing_perms.items()
         ]
         queued_feedback = [item.feedback.dict() for item in queued_items]
+        # Off the fetched row, not is_pr_iteration_paused: polled every second.
+        paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
+        pause_reason = pause_reason_from_marker(paused_marker)
         return Response(
             {
                 "autofix": {
@@ -636,10 +640,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
-                    # Off the fetched row, not is_pr_iteration_paused: polled every second.
-                    "pr_iteration_paused": (
-                        run is not None and get_run_extra(run, PAUSED_EXTRA) is not None
-                    ),
+                    "pr_iteration_paused": paused_marker is not None,
+                    "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
                     "warnings": warnings,
                 }
             }

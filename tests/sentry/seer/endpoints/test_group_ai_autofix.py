@@ -99,6 +99,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["pr_iteration_paused"] is False
+        assert response.data["autofix"]["pr_iteration_pause_reason"] is None
 
         pause_pr_iteration(
             run_id=888, organization_id=self.organization.id, reason=PauseReason.USER_STOP
@@ -109,6 +110,48 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["pr_iteration_paused"] is True
+        assert response.data["autofix"]["pr_iteration_pause_reason"] == "user_stop"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reports_an_errored_pause_apart_from_a_user_stop(self, mock_get_explorer_state):
+        group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        pause_pr_iteration(
+            run_id=888, organization_id=self.organization.id, reason=PauseReason.RUN_ERRORED
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["pr_iteration_paused"] is True
+        assert response.data["autofix"]["pr_iteration_pause_reason"] == "run_errored"
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reads_a_reasonless_marker_as_a_user_stop(self, mock_get_explorer_state):
+        """Markers written before the reason existed came from `@sentry` stop."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        run.update(extras={PAUSED_EXTRA: {"paused_at": "2024-01-01T00:00:00Z"}})
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["pr_iteration_paused"] is True
+        assert response.data["autofix"]["pr_iteration_pause_reason"] == "user_stop"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_pr_iteration_not_paused_without_mirror_row(self, mock_get_explorer_state):
