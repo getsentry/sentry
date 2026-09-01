@@ -103,20 +103,12 @@ def open_pr_iteration_details(
         )
 
 
-def trigger_pr_iteration_details(
-    *,
-    run_id: int,
-    organization_id: int,
-    referrer: str | None = None,
-    feedback_count: int = 0,
-    queued_count: int = 0,
-    dropped_count: int = 0,
-    automated_feedback_count: int = 0,
-) -> int | None:
-    """Claim the waiting iteration for the agent run about to start, and name it.
+def trigger_pr_iteration_details(*, run_id: int, organization_id: int) -> int | None:
+    """Claim the waiting iteration for the drain that is about to pop the queue.
 
-    The returned id travels with the agent request so the completion hook can
-    find this row again; the next feedback item opens a fresh one.
+    The claim comes before the pop, so feedback that arrives while the drain
+    works opens its own row instead of conflicting with this one. The returned
+    id travels with the agent request, so the completion hook finds this row.
     """
     try:
         seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
@@ -124,8 +116,35 @@ def trigger_pr_iteration_details(
             return None
 
         iteration = _claim_untriggered(seer_run)
+        return None if iteration is None else iteration.id
+    except Exception:
+        logger.exception(
+            "autofix.pr_iteration.details.trigger_failed",
+            extra={"run_id": run_id, "organization_id": organization_id},
+        )
+        return None
+
+
+def record_pr_iteration_counts(
+    *,
+    run_id: int,
+    organization_id: int,
+    iteration_id: int,
+    referrer: str | None,
+    feedback_count: int,
+    queued_count: int,
+    dropped_count: int,
+    automated_feedback_count: int,
+) -> None:
+    """Write what the drain saw onto the row it claimed."""
+    try:
+        seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
+        if seer_run is None:
+            return
+
+        iteration = get_iteration(seer_run, iteration_id)
         if iteration is None:
-            return None
+            return
 
         update_iteration(
             iteration,
@@ -135,29 +154,21 @@ def trigger_pr_iteration_details(
             dropped_count=dropped_count,
             automated_feedback_count=automated_feedback_count,
         )
-        return iteration.id
     except Exception:
         logger.exception(
-            "autofix.pr_iteration.details.trigger_failed",
+            "autofix.pr_iteration.details.counts_failed",
             extra={"run_id": run_id, "organization_id": organization_id},
         )
-        return None
 
 
-def discard_pr_iteration_details(
-    *, run_id: int, organization_id: int, iteration_id: int | None = None
-) -> None:
+def discard_pr_iteration_details(*, run_id: int, organization_id: int, iteration_id: int) -> None:
     """Drop the row of an iteration that will never reach the agent."""
     try:
         seer_run = _seer_run(run_id=run_id, organization_id=organization_id)
         if seer_run is None:
             return
 
-        iteration = (
-            get_iteration(seer_run, iteration_id)
-            if iteration_id is not None
-            else _claim_untriggered(seer_run)
-        )
+        iteration = get_iteration(seer_run, iteration_id)
         if iteration is None:
             return
 

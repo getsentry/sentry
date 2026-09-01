@@ -68,6 +68,7 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 )
 from sentry.seer.autofix.pr_iteration.emit import (
     discard_pr_iteration_details,
+    record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
@@ -457,6 +458,13 @@ def consume_queued_autofix_feedback(
             raise
 
 
+def _discard_iteration(run_id: int, organization_id: int, iteration_id: int | None) -> None:
+    if iteration_id is not None:
+        discard_pr_iteration_details(
+            run_id=run_id, organization_id=organization_id, iteration_id=iteration_id
+        )
+
+
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -489,8 +497,12 @@ def _drain_queued_autofix_feedback(
         )
         return
 
+    # Claim before the pop, so feedback arriving mid-drain opens its own row.
+    iteration_id = trigger_pr_iteration_details(run_id=run_id, organization_id=organization_id)
+
     queued_items = pop_queued_autofix_feedback(run_id)
     if not queued_items:
+        _discard_iteration(run_id, organization_id, iteration_id)
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -552,7 +564,7 @@ def _drain_queued_autofix_feedback(
             dropped=dropped,
         )
         # The drain popped the queue, so this iteration will never run.
-        discard_pr_iteration_details(run_id=run_id, organization_id=organization_id)
+        _discard_iteration(run_id, organization_id, iteration_id)
         return
 
     referrer = _get_feedback_referrer(consumable_items)
@@ -572,17 +584,17 @@ def _drain_queued_autofix_feedback(
         actor_user_id=actor_user_id,
     )
 
-    # Claim the buffer these items accumulated into, so the id it is keyed by
-    # travels with the agent run that acts on them.
-    iteration_id = trigger_pr_iteration_details(
-        run_id=run_id,
-        organization_id=organization_id,
-        referrer=referrer.value,
-        feedback_count=len(feedback_items),
-        queued_count=len(queued_items),
-        dropped_count=len(dropped),
-        automated_feedback_count=sum(1 for item in feedback_items if item.source.is_automated),
-    )
+    if iteration_id is not None:
+        record_pr_iteration_counts(
+            run_id=run_id,
+            organization_id=organization_id,
+            iteration_id=iteration_id,
+            referrer=referrer.value,
+            feedback_count=len(feedback_items),
+            queued_count=len(queued_items),
+            dropped_count=len(dropped),
+            automated_feedback_count=sum(1 for item in feedback_items if item.source.is_automated),
+        )
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
@@ -609,10 +621,7 @@ def _drain_queued_autofix_feedback(
             trigger_source=trigger_source,
         )
         # The drain popped the queue, so this iteration will never run.
-        if iteration_id is not None:
-            discard_pr_iteration_details(
-                run_id=run_id, organization_id=organization_id, iteration_id=iteration_id
-            )
+        _discard_iteration(run_id, organization_id, iteration_id)
         return
 
     log_ctx.info(

@@ -17,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
     discard_pr_iteration_details,
     open_pr_iteration_details,
+    record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -74,15 +75,21 @@ class PrIterationDetailsTest(TestCase):
         )
 
     def _trigger(self) -> int | None:
-        return trigger_pr_iteration_details(
-            run_id=RUN_ID,
-            organization_id=self.organization.id,
-            referrer="github_pr_comment",
-            feedback_count=2,
-            queued_count=3,
-            dropped_count=1,
-            automated_feedback_count=1,
+        iteration_id = trigger_pr_iteration_details(
+            run_id=RUN_ID, organization_id=self.organization.id
         )
+        if iteration_id is not None:
+            record_pr_iteration_counts(
+                run_id=RUN_ID,
+                organization_id=self.organization.id,
+                iteration_id=iteration_id,
+                referrer="github_pr_comment",
+                feedback_count=2,
+                queued_count=3,
+                dropped_count=1,
+                automated_feedback_count=1,
+            )
+        return iteration_id
 
     def _complete(self, iteration_id: int, *, pushed_changes: bool = True) -> None:
         complete_pr_iteration_details(
@@ -223,13 +230,6 @@ class PrIterationDetailsTest(TestCase):
         self._open()
 
         assert len(self._open_rows()) == 1
-
-    def test_a_discarded_iteration_leaves_no_row(self) -> None:
-        self._open()
-
-        discard_pr_iteration_details(run_id=RUN_ID, organization_id=self.organization.id)
-
-        assert self._open_rows() == []
 
     def test_a_triggered_iteration_is_discarded_by_id(self) -> None:
         self._open()
