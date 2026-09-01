@@ -109,7 +109,7 @@ class OrganizationWorkflowPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
         "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
         "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
     }
 
@@ -418,8 +418,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk enable or disable alerts for a given Organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -436,16 +437,25 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         enabled = validator.validated_data["enabled"]
 
         queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
 
+        if raw_idlist:
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            if requested_ids != {workflow.id for workflow in workflows}:
+                raise PermissionDenied
+
+        if not can_edit_workflows(workflows, request):
+            raise PermissionDenied
+
         with transaction.atomic(router.db_for_write(Workflow)):
             # We update workflows individually to ensure post_save signals are called
-            for workflow in queryset:
+            for workflow in workflows:
                 workflow.update(enabled=enabled)
 
         return self.paginate(

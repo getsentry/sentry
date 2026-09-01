@@ -113,6 +113,102 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             {"name": "assigneeId", "value": "3"},
         ]
 
+    def test_team_admin_can_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Updated Workflow"},
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name == "Updated Workflow"
+
+    def test_team_contributor_cannot_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
+
+    def test_team_admin_cannot_update_detached_workflow(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
+
+    def test_team_admin_cannot_update_workflow_with_mixed_project_access(self) -> None:
+        accessible_detector = self.create_detector(project=self.project)
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(
+            organization=self.organization,
+            teams=[other_team],
+        )
+        inaccessible_detector = self.create_detector(project=other_project)
+        self.create_detector_workflow(workflow=self.workflow, detector=accessible_detector)
+        self.create_detector_workflow(workflow=self.workflow, detector=inaccessible_detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
+
     def test_simple(self) -> None:
         self.valid_workflow["name"] = "Updated Workflow"
         response = self.get_success_response(

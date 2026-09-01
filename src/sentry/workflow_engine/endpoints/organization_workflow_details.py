@@ -95,6 +95,9 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         """
         Updates an alert.
         """
+        if not can_edit_workflows([workflow], request):
+            raise PermissionDenied
+
         validator = WorkflowValidator(
             data=request.data,
             context={
