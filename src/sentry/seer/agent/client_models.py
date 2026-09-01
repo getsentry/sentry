@@ -269,7 +269,6 @@ class SeerRunState(BaseModel):
     # plain str so a new Seer reason does not fail validation mid-deploy.
     failure_reason: str | None = None
     updated_at: str
-    failure_reason: str | None = None
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)

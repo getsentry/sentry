@@ -17,15 +17,18 @@ describe('GcpConnectionStatus', () => {
 
   function renderStatus({
     configData,
+    isVerifying = false,
     onRetested = jest.fn(),
   }: {
     configData: OrganizationIntegration['configData'];
+    isVerifying?: boolean;
     onRetested?: jest.Mock;
   }) {
     render(
       <GcpConnectionStatus
         configData={configData}
         organization={organization}
+        isVerifying={isVerifying}
         onRetested={onRetested}
       />,
       {organization}
@@ -176,6 +179,22 @@ describe('GcpConnectionStatus', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
 
     await waitFor(() => expect(onRetested).toHaveBeenCalled());
+  });
+
+  it('reports a check started elsewhere on the page as running', () => {
+    renderStatus({
+      isVerifying: true,
+      configData: {
+        ...baseConfig,
+        connection_status: 'unverified',
+        project_statuses: [],
+        last_verified_at: null,
+      },
+    });
+
+    expect(screen.getByText('Checking connection...')).toBeInTheDocument();
+    expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeDisabled();
   });
 
   it('cannot be re-tested when the config is incomplete', () => {
