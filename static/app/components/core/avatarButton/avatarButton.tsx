@@ -60,7 +60,7 @@ export function AvatarButton({
 
   if (!avatar) {
     return (
-      <StyledAvatarButton {...props} size={size} chonk={undefined}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={undefined}>
         <AvatarContainer
           size={size}
           round={round}
@@ -80,7 +80,7 @@ export function AvatarButton({
       : color(avatarDefinition.configuration.background).darken(0.65).hex();
 
     return (
-      <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
+      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
         <AvatarContainer
           size={size}
           round={round}
@@ -100,7 +100,7 @@ export function AvatarButton({
   const chonk = isSuggested ? undefined : imageResult?.chonk;
 
   return (
-    <StyledAvatarButton {...props} size={size} chonk={chonk}>
+    <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
       <AvatarContainer
         size={size}
         round={round}
@@ -175,10 +175,20 @@ const AVATAR_BUTTON_ELEVATION: Record<string, string> = {
   xs: '1px',
 };
 
-const StyledAvatarButton = styled(Button)<{chonk: string | undefined}>`
+const StyledAvatarButton = styled(Button)<{chonk: string | undefined; round?: boolean}>`
   padding: 0;
   width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
   min-width: ${p => (p.size === 'zero' ? '24px' : p.theme.form[p.size ?? 'md'].height)};
+
+  ${p =>
+    p.round &&
+    css`
+      &&,
+      &&::before,
+      &&::after {
+        border-radius: ${p.theme.radius.full};
+      }
+    `}
 
   ${p =>
     p.chonk &&
