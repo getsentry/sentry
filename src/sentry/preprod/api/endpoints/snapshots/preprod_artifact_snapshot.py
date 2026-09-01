@@ -74,7 +74,6 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.precompute import (
-    build_comparison_payload,
     build_head_images_payload,
     comparison_response_key,
     head_images_key,
@@ -552,22 +551,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_type = "waiting_for_base"
             else:
                 comparison_type = "solo"
-
-            if comparison_manifest is not None and comparison_response_key_value is not None:
-                try:
-                    session.put(
-                        orjson.dumps(
-                            build_comparison_payload(
-                                categorized, comparison_type, base_artifact_id, head_diff_threshold
-                            )
-                        ),
-                        key=comparison_response_key_value,
-                    )
-                except Exception:
-                    logger.exception(
-                        "Failed to write precomputed comparison",
-                        extra={"preprod_artifact_id": artifact.id},
-                    )
 
         if commit_comparison:
             vcs_info = BuildDetailsVcsInfo(

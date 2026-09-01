@@ -610,6 +610,61 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
 
+    def _finalize_with_manifests(self, include_base=True):
+        comparison, h, b = self._comparison(1, done_indices=[0])
+        prefix = f"{self.organization.id}/{self.project.id}/{h.id}/{b.id}"
+        head_key = f"{self.organization.id}/{self.project.id}/{h.id}/manifest.json"
+        base_key = f"{self.organization.id}/{self.project.id}/{b.id}/manifest.json"
+        comparison.head_snapshot_metrics.extras = {"manifest_key": head_key}
+        comparison.head_snapshot_metrics.save(update_fields=["extras"])
+        comparison.base_snapshot_metrics.extras = {"manifest_key": base_key}
+        comparison.base_snapshot_metrics.save(update_fields=["extras"])
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(h, b).dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(self._changed_chunk_result().dict()),
+            head_key: orjson.dumps(
+                {"images": {"a.png": {"content_hash": "h", "width": 1, "height": 2}}},
+            ),
+        }
+        if include_base:
+            stored[base_key] = orjson.dumps(
+                {"images": {"a.png": {"content_hash": "b", "width": 1, "height": 2}}}
+            )
+        return comparison, h, b, prefix, stored
+
+    def test_finalize_writes_comparison_response_blob(self):
+        from sentry.preprod.snapshots.precompute import COMPARISON_SCHEMA_VERSION
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b, prefix, stored = self._finalize_with_manifests()
+        session = _dict_backed_session(stored)
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+
+        payload = orjson.loads(stored[f"{prefix}/snapshot_comparison_response.json"])
+        assert payload["schema_version"] == COMPARISON_SCHEMA_VERSION
+        assert payload["comparison_type"] == "diff"
+        assert payload["base_artifact_id"] == str(b.id)
+        assert len(payload["changed"]) == 1
+
+    def test_finalize_skips_comparison_blob_when_base_manifest_missing(self):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, h, b, prefix, stored = self._finalize_with_manifests(include_base=False)
+        session = _dict_backed_session(stored)
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_session", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, h, b))
+
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert f"{prefix}/snapshot_comparison_response.json" not in stored
+
     def test_finalize_writes_images_errored_column(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
 

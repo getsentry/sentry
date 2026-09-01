@@ -22,6 +22,7 @@ from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.categorize import categorize_image_sets
+from sentry.preprod.snapshots.comparison_categorizer import categorize_comparison_images
 from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
@@ -35,6 +36,7 @@ from sentry.preprod.snapshots.image_diff.compare import (
 )
 from sentry.preprod.snapshots.image_diff.odiff import OdiffServer
 from sentry.preprod.snapshots.image_diff.types import ImageSize
+from sentry.preprod.snapshots.image_serialization import build_head_image_list
 from sentry.preprod.snapshots.manifest import (
     ChunkAssignment,
     ChunkCandidate,
@@ -49,6 +51,7 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.preprod.snapshots.precompute import build_comparison_payload, comparison_response_key
 from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
@@ -131,6 +134,61 @@ def _put_json(session: Session, key: str, model: BaseModel) -> None:
 
 def _put_diff_mask(session: Session, key: str, data: bytes) -> None:
     _retry_objectstore(lambda: session.put(data, key=key, content_type="image/png"))
+
+
+def _load_raw_manifest(session: Session, key: str) -> dict[str, Any] | None:
+    response = session.get(key)
+    if response is None:
+        return None
+    return orjson.loads(response.payload.read())
+
+
+def _write_comparison_response_blob(
+    session: Session,
+    comparison_manifest: ComparisonManifest,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> None:
+    metrics_by_artifact = {
+        m.preprod_artifact_id: m
+        for m in PreprodSnapshotMetrics.objects.filter(
+            preprod_artifact_id__in=(head_artifact_id, base_artifact_id)
+        )
+    }
+    head_metrics = metrics_by_artifact.get(head_artifact_id)
+    base_metrics = metrics_by_artifact.get(base_artifact_id)
+    if head_metrics is None or base_metrics is None:
+        return
+    head_manifest_key = (head_metrics.extras or {}).get("manifest_key")
+    base_manifest_key = (base_metrics.extras or {}).get("manifest_key")
+    if not head_manifest_key or not base_manifest_key:
+        return
+    head_manifest = _load_raw_manifest(session, head_manifest_key)
+    base_manifest = _load_raw_manifest(session, base_manifest_key)
+    # A missing manifest yields a degraded categorization, so refuse to cache it.
+    if head_manifest is None or base_manifest is None:
+        return
+    head_diff_threshold = head_manifest.get("diff_threshold")
+    head_images_by_file_name = {
+        img["image_file_name"]: img
+        for img in build_head_image_list(head_manifest.get("images", {}), head_diff_threshold)
+    }
+    categorized = categorize_comparison_images(
+        comparison_manifest.dict()["images"],
+        head_images_by_file_name,
+        base_manifest.get("images", {}),
+    )
+    session.put(
+        orjson.dumps(
+            build_comparison_payload(
+                categorized, "diff", str(base_artifact_id), head_diff_threshold
+            )
+        ),
+        key=comparison_response_key(org_id, project_id, head_artifact_id, base_artifact_id),
+        content_type="application/json",
+    )
 
 
 def _errored_result(candidate: ChunkCandidate, reason: str) -> ComparisonImageResult:
@@ -1382,4 +1440,16 @@ def finalize_snapshot_comparison(
             logger.exception(
                 "compare_completion VCS update failed after successful comparison",
                 extra={"head_artifact_id": head_artifact_id, "comparison_id": comparison.id},
+            )
+
+        # Precompute the categorized comparison response so the details GET can serve
+        # it from a single blob instead of re-reading and re-categorizing the manifests.
+        try:
+            _write_comparison_response_blob(
+                session, comparison_manifest, org_id, project_id, head_artifact_id, base_artifact_id
+            )
+        except Exception:
+            logger.exception(
+                "finalize: failed to write precomputed comparison response",
+                extra={"comparison_id": comparison.id},
             )

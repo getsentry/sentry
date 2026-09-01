@@ -12,6 +12,8 @@ from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot_latest_bas
     LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS,
 )
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.snapshots.comparison_categorizer import categorize_comparison_images
+from sentry.preprod.snapshots.image_serialization import build_head_image_list
 from sentry.preprod.snapshots.manifest import (
     ComparisonImageResult,
     ComparisonManifest,
@@ -19,7 +21,7 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.snapshots.precompute import build_head_images_payload
+from sentry.preprod.snapshots.precompute import build_comparison_payload, build_head_images_payload
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
@@ -1674,25 +1676,28 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         self._mock_multi_session(mock_get_session, session_objects)
         return head_artifact, base_artifact
 
-    def _mock_rw_session(self, mock_get_session, initial):
-        store = dict(initial)
-
-        def _get(key):
-            if key not in store:
-                return None
-            result = MagicMock()
-            result.payload.read.return_value = store[key]
-            return result
-
-        def _put(data, key):
-            store[key] = data
-            return MagicMock()
-
-        session = MagicMock()
-        session.get.side_effect = _get
-        session.put.side_effect = _put
-        mock_get_session.return_value = session
-        return store
+    def _comparison_blob_bytes(self, head_artifact, base_artifact):
+        # Build the precomputed blob exactly as finalize does: same manifests, same
+        # categorizer inputs — so a fast-path hit is byte-identical to the live response.
+        head_manifest = orjson.loads(self._snapshot_manifest_bytes(self._head_images(), 0.2))
+        base_manifest = orjson.loads(self._snapshot_manifest_bytes(self._base_images()))
+        comparison_manifest = orjson.loads(
+            self._comparison_manifest_bytes(head_artifact, base_artifact)
+        )
+        head_images_by_file_name = {
+            img["image_file_name"]: img
+            for img in build_head_image_list(
+                head_manifest["images"], head_manifest.get("diff_threshold")
+            )
+        }
+        categorized = categorize_comparison_images(
+            comparison_manifest["images"], head_images_by_file_name, base_manifest["images"]
+        )
+        return orjson.dumps(
+            build_comparison_payload(
+                categorized, "diff", str(base_artifact.id), head_manifest.get("diff_threshold")
+            )
+        )
 
     @patch("sentry.analytics.record")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
@@ -1707,47 +1712,31 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
             base_snapshot_metrics=base_metrics,
             state=PreprodSnapshotComparison.State.SUCCESS,
         )
-        comparison_key = (
-            f"{self.org.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}/comparison.json"
-        )
-        comparison.extras = {"comparison_key": comparison_key}
+        comparison.extras = {
+            "comparison_key": f"{self.org.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}/comparison.json"
+        }
         comparison.save(update_fields=["extras"])
 
-        manifest_objects = {
-            self._manifest_key(head_artifact): self._snapshot_manifest_bytes(head_images, 0.2),
-            self._manifest_key(base_artifact): self._snapshot_manifest_bytes(base_images),
-            comparison_key: self._comparison_manifest_bytes(head_artifact, base_artifact),
-        }
-        store = self._mock_rw_session(mock_get_session, manifest_objects)
-
-        dynamic_ids = {
-            "head_artifact_id": "<HEAD_ID>",
-            "base_artifact_id": "<BASE_ID>",
-            "project_id": "<PROJECT_ID>",
-        }
-
-        # First GET runs the live (miss) path and writes the comparison blob.
-        self._assert_golden(
-            "snapshot_diff.json",
-            self.client.get(self._get_detail_url(head_artifact.id)),
-            dynamic_ids,
-        )
-
-        comparison_blob_key = (
+        blob_key = (
             f"{self.org.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
             "/snapshot_comparison_response.json"
         )
-        assert comparison_blob_key in store
+        # Only the precomputed blob is available — every manifest is absent, so a fallback
+        # could not produce a diff. Matching the diff golden proves the fast path served it.
+        self._mock_multi_session(
+            mock_get_session, {blob_key: self._comparison_blob_bytes(head_artifact, base_artifact)}
+        )
 
-        # Drop every manifest so only the precomputed blob can answer; proves the fast
-        # path is byte-identical to the live response.
-        for key in manifest_objects:
-            del store[key]
+        response = self.client.get(self._get_detail_url(head_artifact.id))
 
         self._assert_golden(
             "snapshot_diff.json",
-            self.client.get(self._get_detail_url(head_artifact.id)),
-            dynamic_ids,
+            response,
+            {
+                "head_artifact_id": "<HEAD_ID>",
+                "base_artifact_id": "<BASE_ID>",
+                "project_id": "<PROJECT_ID>",
+            },
         )
 
     @patch("sentry.analytics.record")
