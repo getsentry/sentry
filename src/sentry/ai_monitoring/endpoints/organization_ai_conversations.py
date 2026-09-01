@@ -529,7 +529,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if trace_id:
                     traces_by_conversation[conv_id].add(trace_id)
 
-                if row.get("gen_ai.operation.type") == "invoke_agent":
+                if row.get("gen_ai.operation.type") == "agent":
                     agent_name = row.get("gen_ai.agent.name", "")
                     if agent_name:
                         flows_by_conversation[conv_id].append(agent_name)
