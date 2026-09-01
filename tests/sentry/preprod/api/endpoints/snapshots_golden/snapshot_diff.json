@@ -176,7 +176,7 @@
     }
   ],
   "skipped_count": 1,
-  "state": 1,
+  "state": "UPLOADED",
   "unchanged": [
     {
       "canvas_theme": null,
