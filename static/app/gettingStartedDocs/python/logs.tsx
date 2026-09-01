@@ -65,7 +65,6 @@ export const logs = (): OnboardingConfig => ({
           ),
         },
         getPythonInstallCodeBlock({
-          packageName: 'sentry-sdk',
           minimumVersion: '2.35.0',
         }),
       ],

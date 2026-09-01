@@ -706,7 +706,7 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
 ];
 
 // These are the mobile platforms that can set up replay.
-const replayMobilePlatforms: PlatformKey[] = [
+export const replayMobilePlatforms: PlatformKey[] = [
   'android',
   'apple-ios',
   'react-native',

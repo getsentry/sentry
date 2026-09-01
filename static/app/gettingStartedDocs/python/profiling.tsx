@@ -114,7 +114,6 @@ export const profiling = ({
           ),
         },
         getPythonInstallCodeBlock({
-          packageName: 'sentry-sdk',
           minimumVersion: '2.24.1',
         }),
       ],
