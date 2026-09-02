@@ -103,7 +103,12 @@ export function useTransactionThreshold({
     );
   }, [projectThresholdError]);
 
-  const threshold = overrideQuery.data ?? projectThresholdQuery.data;
+  // React Query keeps the last successful `data` when a refetch fails, so a
+  // deleted override would otherwise linger after `Reset All`. Only trust the
+  // override while its query is not in an error state.
+  const threshold = overrideQuery.isError
+    ? projectThresholdQuery.data
+    : overrideQuery.data;
 
   // Stay loading across the handover to the project default, otherwise the
   // trigger flickers enabled for a render between the two requests.
