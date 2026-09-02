@@ -3,7 +3,7 @@ from typing import Any
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Exists, F, OuterRef, Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,6 +50,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 
+@extend_schema_serializer(deprecate_fields=["role", "teams"])
 class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]):
     email = AllowedEmailField(
         max_length=75, required=True, help_text="The email address to send the invitation to."
