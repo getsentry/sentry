@@ -2,6 +2,7 @@ import dataclasses
 import datetime
 import enum
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, wait
@@ -64,8 +65,10 @@ REQUEST_BOUND = datetime.timedelta(seconds=2 * CELL_REQUEST_TIMEOUT + 2)
 """
 The longest a delivery request can take and still come back: the connect and
 read timeouts back to back, plus slack for the thread to hand the result over.
-A request still in flight past it is stuck — the read timeout is per socket
-read, so a cell that keeps trickling bytes outruns it — and is not waited for.
+A request still in flight past it is stuck and is not waited for. Two things
+the timeouts do not cover can put a request there: name resolution runs ahead
+of the connect timeout, and the read timeout is per socket read, so a cell
+that keeps trickling bytes outruns it.
 """
 
 SETTLE_ALLOWANCE = datetime.timedelta(seconds=4)
@@ -989,7 +992,7 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
         deleter,
         worker_threads=worker_threads,
         delivery_tags=delivery_tags,
-        settle_by=claim.valid_until - SETTLE_ALLOWANCE,
+        valid_until=claim.valid_until,
         # A drain killed mid-request leaves no result to reschedule on, so the
         # record would be retried at every claim horizon until it is stale. A
         # strict provider's record head-blocks its mailbox all that while, so
@@ -1068,7 +1071,7 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
                 # The failed record has already been rescheduled.
                 break
     finally:
-        pool.wind_down(reason="exception")
+        pool.wind_down(reason="cleanup")
         deleter.flush()
     if pool.unexpected is not None:
         raise pool.unexpected
@@ -1089,12 +1092,13 @@ class _DeliveryPool:
         *,
         worker_threads: int,
         delivery_tags: Mapping[str, str],
-        settle_by: datetime.datetime,
+        valid_until: datetime.datetime,
         spends_attempt_on_submit: bool,
     ) -> None:
         self._deleter = deleter
         self._delivery_tags = delivery_tags
-        self._settle_by = settle_by
+        self._valid_until = valid_until
+        self._settle_by = valid_until - SETTLE_ALLOWANCE
         self._spends_attempt_on_submit = spends_attempt_on_submit
         self._capacity = worker_threads
         self._executor = ContextPropagatingThreadPoolExecutor(max_workers=worker_threads)
@@ -1129,8 +1133,10 @@ class _DeliveryPool:
         """
         Block until a request finishes, then handle every result that is in.
         False when none finished inside REQUEST_BOUND: every request in flight
-        was already running when the wait began, so all of them are now stuck.
+        has then been out for at least that long, so all of them are stuck.
         """
+        if not self._in_flight:
+            return True
         done, _ = wait(
             self._in_flight, timeout=REQUEST_BOUND.total_seconds(), return_when=FIRST_COMPLETED
         )
@@ -1150,8 +1156,8 @@ class _DeliveryPool:
         settled by then, so the release's `schedule_for` match passes them by.
 
         The wait lasts at most `patience` seconds — by default REQUEST_BOUND,
-        or what is left before `settle_by`, whichever is shorter — and is
-        recorded under `reason` whenever there was something to wait for.
+        or what is left before the settle deadline, whichever is shorter — and
+        is recorded under `reason` whenever there was something to wait for.
         Requests still running after that are abandoned (`_abandon`), and the
         executor is shut down without joining their threads.
         """
@@ -1163,11 +1169,14 @@ class _DeliveryPool:
             if patience is None:
                 remaining = (self._settle_by - timezone.now()).total_seconds()
                 patience = max(0.0, min(REQUEST_BOUND.total_seconds(), remaining))
-            with metrics.timer(
-                "hybridcloud.deliver_webhooks.drain.wind_down",
+            started = time.monotonic()
+            done, stuck = wait(self._in_flight, timeout=patience)
+            metrics.distribution(
+                "hybridcloud.deliver_webhooks.drain.wind_down_ms",
+                (time.monotonic() - started) * 1000,
                 tags={**self._delivery_tags, "reason": reason},
-            ):
-                done, stuck = wait(self._in_flight, timeout=patience)
+                unit="millisecond",
+            )
             self._handle(done)
             self._abandon(stuck)
         self._executor.shutdown(wait=False)
@@ -1178,10 +1187,19 @@ class _DeliveryPool:
         Give up on requests the drain will not wait for. Each counts as a failed
         attempt: the record goes into its retry backoff, so a request that never
         answers cannot be retried at every claim horizon until the record is
-        stale. Its thread finishes on its own; nothing reads the result, so a
-        late success is redelivered once after the backoff.
+        stale. Nothing reads the result, so a late success is redelivered once
+        after the backoff. The thread finishes when its socket does — or, for a
+        cell that keeps trickling bytes, when the worker process does.
+
+        Once the claim has lapsed the rows are due, and possibly another
+        dispatcher's already, so they are left as they are.
         """
+        lapsed = timezone.now() >= self._valid_until
         for future in stuck:
+            if future.done():
+                # It came back while the results ahead of it were being handled.
+                self._handle([future])
+                continue
             record = self._in_flight.pop(future)
             self.failed += 1
             # Unsampled: rare, and each one is a request the cell never answered.
@@ -1191,7 +1209,7 @@ class _DeliveryPool:
                 sample_rate=1.0,
             )
             logger.warning("deliver_webhook.abandoned", extra=record.as_dict())
-            if not self._spends_attempt_on_submit:
+            if not self._spends_attempt_on_submit and not lapsed:
                 record.schedule_next_attempt()
 
     def _handle(self, done: Iterable[Future[tuple[WebhookPayload, Exception | None]]]) -> None:

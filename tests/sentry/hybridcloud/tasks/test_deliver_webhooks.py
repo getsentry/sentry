@@ -12,7 +12,12 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from requests.exceptions import ConnectionError, ReadTimeout
 
-from sentry.hybridcloud.models.webhookpayload import MAX_ATTEMPTS, WebhookPayload
+from sentry.hybridcloud.models.webhookpayload import (
+    BACKOFF_INTERVAL,
+    BACKOFF_RATE,
+    MAX_ATTEMPTS,
+    WebhookPayload,
+)
 from sentry.hybridcloud.tasks import deliver_webhooks
 from sentry.hybridcloud.tasks.deliver_webhooks import (
     BATCH_SCHEDULE_OFFSET,
@@ -2616,7 +2621,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
                 deliver_webhooks._PayloadDeleter(batched=False),
                 worker_threads=2,
                 delivery_tags={**UNATTRIBUTED, "provider": "github"},
-                settle_by=timezone.now() + BATCH_SCHEDULE_OFFSET,
+                valid_until=timezone.now() + BATCH_SCHEDULE_OFFSET,
                 spends_attempt_on_submit=False,
             )
             for record in records:
@@ -2630,10 +2635,10 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
     @override_cells(cell_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_wind_down_records_how_long_it_waited(self, mock_metrics: MagicMock) -> None:
-        # RELEASE_MARGIN is sized to this wait, so every wind-down that had
-        # something to wait for reports its length under the reason it stopped —
-        # and one with nothing in flight reports nothing, or the no-op winds
-        # down in every drain's `finally` would bury the real ones.
+        # REQUEST_BOUND caps this wait, so every wind-down that had something
+        # to wait for reports its length under the reason it stopped — and one
+        # with nothing in flight reports nothing, or the no-op wind-down in
+        # every drain's `finally` would bury the real ones.
         record = create_payloads(1, "github:123", provider="github")[0]
         tags = {**UNATTRIBUTED, "provider": "github"}
 
@@ -2646,34 +2651,39 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
                 deliver_webhooks._PayloadDeleter(batched=False),
                 worker_threads=1,
                 delivery_tags=tags,
-                settle_by=timezone.now() + BATCH_SCHEDULE_OFFSET,
+                valid_until=timezone.now() + BATCH_SCHEDULE_OFFSET,
                 spends_attempt_on_submit=False,
             )
             pool.submit(record)
             pool.wind_down(reason="deadline")
-            pool.wind_down(reason="exception")
+            pool.wind_down(reason="cleanup")
 
-        timers = [
-            call
-            for call in mock_metrics.timer.call_args_list
-            if call[0][0] == "hybridcloud.deliver_webhooks.drain.wind_down"
-        ]
-        assert [call[1]["tags"] for call in timers] == [{**tags, "reason": "deadline"}]
+        waits = self.distribution_calls(
+            mock_metrics, "hybridcloud.deliver_webhooks.drain.wind_down_ms"
+        )
+        assert [tags_ for _, tags_ in waits] == [{**tags, "reason": "deadline"}]
+        assert waits[0][0] >= 100
 
     @override_cells(cell_config)
+    @patch.object(deliver_webhooks, "REQUEST_BOUND", timedelta(seconds=0.3))
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_wind_down_abandons_a_request_it_cannot_wait_out(self, mock_metrics: MagicMock) -> None:
-        # The settle deadline bounds the wait: a request still running at it is
+        # The request bound caps the wait: a request still running at it is
         # given up on — rescheduled into its backoff, its row kept — while the
         # sibling that answered is deleted, and the call returns without joining
         # the stuck thread.
         stuck, answered = create_payloads(2, "github:123", provider="github")
         release = threading.Event()
         self.addCleanup(release.set)
+        stuck_started = threading.Event()
+        answered_returned = threading.Event()
 
         def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
             if payload.id == stuck.id:
+                stuck_started.set()
                 release.wait()
+            else:
+                answered_returned.set()
             return (payload, None)
 
         with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
@@ -2681,11 +2691,14 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
                 deliver_webhooks._PayloadDeleter(batched=False),
                 worker_threads=2,
                 delivery_tags={**UNATTRIBUTED, "provider": "github"},
-                settle_by=timezone.now() + timedelta(seconds=0.3),
+                valid_until=timezone.now() + BATCH_SCHEDULE_OFFSET,
                 spends_attempt_on_submit=False,
             )
             pool.submit(stuck)
             pool.submit(answered)
+            # Not yet started means cancellable, which is a different outcome.
+            assert stuck_started.wait(timeout=5)
+            assert answered_returned.wait(timeout=5)
             pool.wind_down(reason="deadline")
 
         assert pool.delivered == 1
@@ -2702,7 +2715,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
 
     @override_cells(cell_config)
     @override_options({"hybridcloud.webhookpayload.worker_threads": 2})
-    @patch.object(deliver_webhooks, "REQUEST_BOUND", timedelta(seconds=0.3))
+    @patch.object(deliver_webhooks, "REQUEST_BOUND", timedelta(seconds=1))
     def test_unresponsive_cell_stops_the_drain_without_releasing(self) -> None:
         # Nothing answering inside the request bound means the cell is down: the
         # in-flight records go into their backoff and the drain stops. The tail
@@ -2737,6 +2750,48 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             assert record.attempts == 0
             assert record.schedule_for == valid_until
 
+    @override_cells(cell_config)
+    def test_wind_down_handles_a_request_that_lands_during_the_settle(self) -> None:
+        # Handling the results that were in takes real time (deletes); a request
+        # that returns meanwhile has a result, and abandoning it would redeliver
+        # a webhook the cell already took.
+        early, late = create_payloads(2, "github:123", provider="github")
+        late_started = threading.Event()
+        late_may_return = threading.Event()
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            if payload.id == late.id:
+                late_started.set()
+                late_may_return.wait()
+            return (payload, None)
+
+        def delete_then_release_late(payload: WebhookPayload) -> None:
+            payload.delete()
+            late_may_return.set()
+            time.sleep(0.1)
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            pool = deliver_webhooks._DeliveryPool(
+                deliver_webhooks._PayloadDeleter(batched=False),
+                worker_threads=2,
+                delivery_tags={**UNATTRIBUTED, "provider": "github"},
+                valid_until=timezone.now() + BATCH_SCHEDULE_OFFSET,
+                spends_attempt_on_submit=False,
+            )
+            pool.submit(early)
+            pool.submit(late)
+            # Not yet started means cancellable, which is a different outcome.
+            assert late_started.wait(timeout=5)
+            with patch.object(
+                deliver_webhooks._PayloadDeleter, "delete", side_effect=delete_then_release_late
+            ):
+                pool.wind_down(reason="deadline", patience=0.5)
+
+        assert pool.unexpected is None, repr(pool.unexpected)
+        assert pool.delivered == 2
+        assert pool.failed == 0
+        assert WebhookPayload.objects.count() == 0
+
     def test_release_margin_covers_the_wait_and_the_settle(self) -> None:
         # The soft-stop must leave room for a full request bound plus the flush
         # and release, or a drain stopping on time still overshoots its claim.
@@ -2745,6 +2800,13 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             deliver_webhooks.REQUEST_BOUND.total_seconds()
             > 2 * deliver_webhooks.CELL_REQUEST_TIMEOUT
         )
+
+    def test_first_backoff_outlasts_the_claim(self) -> None:
+        # An abandoned record's request is still running. Its backoff must move
+        # its schedule_for off the claim's, or the release hands it straight to
+        # the next dispatcher while that request is in flight.
+        first_backoff = timedelta(minutes=BACKOFF_INTERVAL * BACKOFF_RATE)
+        assert first_backoff > BATCH_SCHEDULE_OFFSET
 
 
 @control_silo_test
