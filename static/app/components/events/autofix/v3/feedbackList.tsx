@@ -652,8 +652,7 @@ function OtherComment({item}: {item: IterationFeedback}) {
   return <CommentBody text={item.text} />;
 }
 
-// Past this length a comment collapses into a disclosure.
-const COLLAPSED_LENGTH = 280;
+const MAX_UNCOLLAPSED_COMMENT_LENGTH = 280;
 
 function CommentBody({
   text,
@@ -681,12 +680,11 @@ function CommentBody({
     </Text>
   );
 
-  if (text.length <= COLLAPSED_LENGTH) {
+  if (text.length <= MAX_UNCOLLAPSED_COMMENT_LENGTH) {
     return body;
   }
 
   return (
-    // The preview clears on open, so the body below is never a duplicate of it.
     <CollapsibleContent
       title={isOpen =>
         isOpen ? null : (
