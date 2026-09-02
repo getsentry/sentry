@@ -13,7 +13,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationRun,
 )
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
 
 MAX_ORCHESTRATION_EVENT_BYTES = 1024 * 1024
@@ -90,6 +90,10 @@ def deliver_orchestration_event(
                     "organization_id": organization_id,
                     "type": SeerRunType.INVESTIGATION,
                     "user_id": run.investigation.created_by_id,
+                    # Adoption only happens because Seer already confirmed the
+                    # run, so the mirror is live on arrival. Nothing else can
+                    # advance it: the create outbox does not dispatch this type.
+                    "mirror_status": SeerRunMirrorStatus.LIVE,
                     "last_triggered_at": timezone.now(),
                 },
             )

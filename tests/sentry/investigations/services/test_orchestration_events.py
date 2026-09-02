@@ -15,7 +15,7 @@ from sentry.investigations.services.orchestration_events import (
     MAX_ORCHESTRATION_EVENT_BYTES,
     deliver_orchestration_event,
 )
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
 
 
@@ -139,6 +139,9 @@ class InvestigationOrchestrationSeerRunAdoptionTest(TestCase):
         assert adopted.seer_run is not None
         assert adopted.seer_run.seer_run_state_id == 8128
         assert adopted.seer_run.type == SeerRunType.INVESTIGATION.value
+        # Adoption implies Seer already confirmed the run, and nothing else can
+        # advance this mirror, so it must not be left pending.
+        assert adopted.seer_run.mirror_status == SeerRunMirrorStatus.LIVE
         assert adopted.seer_run.organization_id == self.organization.id
 
     def test_reuses_an_existing_mirror_for_the_same_seer_run(self) -> None:
