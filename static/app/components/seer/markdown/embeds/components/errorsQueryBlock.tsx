@@ -212,6 +212,10 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
       border="primary"
       data-test-id={`seer-errors-query-${kind}-embed`}
       margin="lg 0"
+      // A flex item defaults to `min-width: auto`, which refuses to shrink
+      // below its content. Whatever lays this embed out gets to decide how wide
+      // it is.
+      minWidth="0"
       padding="lg"
       radius="md"
       width="100%"

@@ -168,7 +168,23 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      <Container data-test-id="seer-chart-content" height={`${height}px`} width="100%">
+      {/*
+        ECharts sizes its canvas to an explicit pixel width, which would
+        otherwise propagate up as this box's min-content width and stop every
+        ancestor from shrinking below whatever the chart last measured — in a
+        centering flex row (Storybook's `Demo`) that widens the whole embed and
+        spills it out both sides. `min-width: 0` plus a non-visible `overflow`
+        cuts the canvas out of that min-content chain, and clips a stale canvas
+        instead of letting it paint outside. Tooltips are unaffected; both
+        visualizations render them with `appendToBody`.
+      */}
+      <Container
+        data-test-id="seer-chart-content"
+        height={`${height}px`}
+        minWidth="0"
+        overflow="hidden"
+        width="100%"
+      >
         {visualizationComponent}
       </Container>
     </Stack>
