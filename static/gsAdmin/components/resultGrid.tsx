@@ -155,9 +155,11 @@ interface ResultGridProps {
    * table with a Region column (placed by `regionColumnIndex`). Rows appear as
    * each region responds.
    *
-   * Cursors do not compose across regions, so this mode always merges each
-   * region's first page and hides pagination. Provide `sortValueForRow` so the
-   * merged rows keep a coherent order as regions trickle in.
+   * Cursors do not compose across regions, so this mode holds one cursor per
+   * region and grows the table by a page from each of them, through a "Load
+   * more" control in place of the single-cursor pagination. Provide
+   * `sortValueForRow` so the merged rows keep a coherent order as pages
+   * arrive.
    *
    * Only meaningful together with `isRegional`/`isCellScoped`.
    *
@@ -348,6 +350,12 @@ export type State = {
   probingRegions: boolean;
   query: string;
   /**
+   * The cursor of the next page of every region that still has one, keyed by
+   * cell name. A region leaves the map when it runs out of pages, so an empty
+   * map means the merged table holds every result.
+   */
+  regionCursors: Record<string, string>;
+  /**
    * Names of regions whose all-regions request failed.
    */
   regionErrors: string[];
@@ -428,6 +436,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       missingExactMatch: false,
       pendingRegions: [],
       regionErrors: [],
+      regionCursors: {},
     };
   }
 
@@ -472,6 +481,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         missingExactMatch: false,
         pendingRegions: [],
         regionErrors: [],
+        regionCursors: {},
       },
       this.fetchData
     );
@@ -503,6 +513,26 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       : this.props.endpoint;
   }
 
+  /**
+   * The request parameters for the current search, sort and filters.
+   *
+   * The cursor here is the grid's own; the all-regions view overrides it with
+   * the cursor of the region it is asking.
+   */
+  // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
+  buildQueryParams(): Record<string, any> {
+    return {
+      ...this.props.defaultParams,
+      ...(this.props.useQueryString
+        ? (this.props.location?.query ?? {})
+        : this.state.query
+          ? {query: this.state.query}
+          : {}),
+      sortBy: this.state.sortBy,
+      cursor: this.state.cursor,
+    };
+  }
+
   fetchData = () => {
     // Avoid slow-fetch race conditions
     this.props.api.clear();
@@ -519,7 +549,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       this.state.regionMatches.length > 0 ||
       this.state.missingExactMatch ||
       this.state.pendingRegions.length > 0 ||
-      this.state.regionErrors.length > 0
+      this.state.regionErrors.length > 0 ||
+      Object.keys(this.state.regionCursors).length > 0
     ) {
       this.setState({
         probingRegions: false,
@@ -527,20 +558,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         missingExactMatch: false,
         pendingRegions: [],
         regionErrors: [],
+        regionCursors: {},
       });
     }
 
-    // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
-    const queryParams: Record<string, any> = {
-      ...this.props.defaultParams,
-      ...(this.props.useQueryString
-        ? (this.props.location?.query ?? {})
-        : this.state.query
-          ? {query: this.state.query}
-          : {}),
-      sortBy: this.state.sortBy,
-      cursor: this.state.cursor,
-    };
+    const queryParams = this.buildQueryParams();
 
     if (this.state.allRegions) {
       this.fetchAllRegions(queryParams);
@@ -644,7 +666,6 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
    */
   fetchAllRegions = (queryParams: Record<string, any>) => {
     const cells = getCells();
-    const token = this.fetchToken;
 
     if (cells.length === 0) {
       this.setState({loading: false, error: false, rows: [], pageLinks: null});
@@ -658,12 +679,45 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       pageLinks: null,
       pendingRegions: cells.map(c => c.name),
       regionErrors: [],
+      regionCursors: {},
     });
 
-    // Cursors do not compose across regions; always merge first pages.
-    const params = {...queryParams, cursor: ''};
+    this.fetchRegionPages(
+      cells.map(cell => ({cell, cursor: ''})),
+      queryParams
+    );
+  };
 
-    cells.forEach(cell => {
+  /**
+   * Load the next page of every region that still has one and append it to the
+   * merged table. A merged view has no cursor of its own — cursors do not
+   * compose across regions — so it grows a page per region at a time.
+   */
+  loadMoreRegions = () => {
+    const {regionCursors} = this.state;
+    const pages = getCells()
+      .filter(cell => regionCursors[cell.name])
+      .map(cell => ({cell, cursor: regionCursors[cell.name]!}));
+
+    if (pages.length === 0) {
+      return;
+    }
+
+    this.setState({pendingRegions: pages.map(page => page.cell.name), regionErrors: []});
+    this.fetchRegionPages(pages, this.buildQueryParams());
+  };
+
+  /**
+   * Request one page from each given region, merge the rows into the table and
+   * record the cursor of any region that reports a further page.
+   */
+  fetchRegionPages = (
+    pages: Array<{cell: Cell; cursor: string}>,
+    queryParams: Record<string, any>
+  ) => {
+    const token = this.fetchToken;
+
+    pages.forEach(({cell, cursor}) => {
       const markFailed = () => {
         if (token !== this.fetchToken) {
           return;
@@ -674,7 +728,10 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           }
           const regionErrors = [...prev.regionErrors, cell.name];
           return {
-            error: regionErrors.length === cells.length,
+            // Every region failing with nothing to show is a failed load. A
+            // region failing under rows we already have is a partial result,
+            // so keep the table.
+            error: prev.rows.length === 0 && regionErrors.length === pages.length,
             pendingRegions: prev.pendingRegions.filter(name => name !== cell.name),
             regionErrors,
           };
@@ -684,8 +741,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       const request = this.props.api.request(this.cellEndpoint(cell), {
         method: this.props.method,
         host: cell.locality_url,
-        data: params,
-        success: data => {
+        data: {...queryParams, cursor},
+        success: (data, _, resp) => {
           if (token !== this.fetchToken) {
             return;
           }
@@ -694,13 +751,23 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
             ...row,
             __region: cell,
           }));
+          const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
+          const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
+
           this.setState(prev => {
             if (!prev.pendingRegions.includes(cell.name)) {
               return null;
             }
+            const regionCursors = {...prev.regionCursors};
+            if (nextCursor) {
+              regionCursors[cell.name] = nextCursor;
+            } else {
+              delete regionCursors[cell.name];
+            }
             return {
               rows: this.sortRows([...prev.rows, ...tagged]),
               pendingRegions: prev.pendingRegions.filter(name => name !== cell.name),
+              regionCursors,
             };
           });
           this.props.onLoad?.();
@@ -783,6 +850,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           allRegions: true,
           cell: undefined,
           loading: true,
+          rows: [],
           regionMatches: [],
           probingRegions: false,
         },
@@ -1123,6 +1191,9 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // the outstanding ones; when a region failed, a warning icon with a
     // tooltip names the failed regions.
     const {pendingRegions, regionErrors} = this.state;
+    const moreRegions = cells
+      .map(c => c.name)
+      .filter(name => this.state.regionCursors[name]);
     const probeNote =
       pendingRegions.length > 0 || regionErrors.length > 0 ? (
         <RegionStatusNote role="status" align="center" gap="sm" wrap="wrap">
@@ -1227,6 +1298,17 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
             onCursor={useQueryString ? undefined : this.onCursor}
           />
         )}
+        {hasPagination && this.state.allRegions && moreRegions.length > 0 && (
+          <LoadMoreRow justify="center">
+            <Button
+              size="sm"
+              onClick={this.loadMoreRegions}
+              busy={pendingRegions.length > 0}
+            >
+              {`Load more (${moreRegions.join(', ')})`}
+            </Button>
+          </LoadMoreRow>
+        )}
       </Container>
     );
   }
@@ -1290,6 +1372,10 @@ export const SearchInput = styled(Input)`
   &:focus-visible {
     box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
+`;
+
+const LoadMoreRow = styled(Flex)`
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledPagination = styled(Pagination)`

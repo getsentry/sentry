@@ -19,7 +19,7 @@ type Props = Omit<Partial<ResultGridProps>, 'endpoint'> &
   Pick<ResultGridProps, 'endpoint'>;
 
 const growth = (current: number | undefined, prev: number | undefined) =>
-  current && prev ? current / prev - 1 : 0;
+  current === undefined || !prev ? 0 : current / prev - 1;
 
 /**
  * Mirrors the server's sort keys so the all-regions view can keep merged

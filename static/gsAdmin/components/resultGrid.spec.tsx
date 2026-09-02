@@ -570,6 +570,90 @@ describe('ResultGrid allowAllRegions', () => {
     ).toBeInTheDocument();
   });
 
+  it('loads the next page of every region that has one', async () => {
+    const usFirstPage = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: ''})],
+      body: [{id: '1', name: 'Acme', members: 5}],
+      headers: {
+        Link:
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:1:0>; ' +
+          'rel="next"; results="true"; cursor="0:1:0"',
+      },
+    });
+    const usSecondPage = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: '0:1:0'})],
+      body: [{id: '2', name: 'Beta', members: 4}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '3', name: 'Ceta', members: 3}],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    // Only the us region has a second page, so only it is named.
+    const loadMore = await screen.findByRole('button', {name: 'Load more (us)'});
+    expect(usFirstPage).toHaveBeenCalledTimes(1);
+    expect(usSecondPage).not.toHaveBeenCalled();
+
+    await userEvent.click(loadMore);
+
+    expect(await screen.findByText('Beta')).toBeInTheDocument();
+    // The rows already on screen stay, merged with the new page.
+    expect(screen.getByText('Acme')).toBeInTheDocument();
+    expect(screen.getByText('Ceta')).toBeInTheDocument();
+  });
+
+  it('drops the load more control once every region is exhausted', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: ''})],
+      body: [{id: '1', name: 'Acme', members: 5}],
+      headers: {
+        Link:
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:1:0>; ' +
+          'rel="next"; results="true"; cursor="0:1:0"',
+      },
+    });
+    // The last page reports no further results.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: '0:1:0'})],
+      body: [{id: '2', name: 'Beta', members: 4}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Load more (us)'}));
+
+    expect(await screen.findByText('Beta')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole('button', {name: /Load more/})).not.toBeInTheDocument()
+    );
+  });
+
+  it('shows no load more control when a single page holds every result', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme', members: 5}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Beta', members: 10}],
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Load more/})).not.toBeInTheDocument();
+  });
+
   it('errors only when every region fails', async () => {
     MockApiClient.addMockResponse({
       url: '/_admin/cells/us/customers/',
