@@ -155,43 +155,27 @@ const INTERNAL_ERROR_COUNT_FIELD =
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
+  const attributeOptions = {
+    enabled: organization.features.includes('visibility-explore-view'),
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
   const {
     attributes: stringAttributes,
     isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
-  } = useSpanItemAttributes(
-    {
-      enabled: organization.features.includes('visibility-explore-view'),
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
-    'string'
-  );
+  } = useSpanItemAttributes(attributeOptions, 'string');
   const {
     attributes: numberAttributes,
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
-  } = useSpanItemAttributes(
-    {
-      enabled: organization.features.includes('visibility-explore-view'),
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
-    'number'
-  );
+  } = useSpanItemAttributes(attributeOptions, 'number');
   const {
     attributes: booleanAttributes,
     isLoading: booleanAttributesLoading,
     secondaryAliases: booleanSecondaryAliases,
-  } = useSpanItemAttributes(
-    {
-      enabled: organization.features.includes('visibility-explore-view'),
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
-    'boolean'
-  );
+  } = useSpanItemAttributes(attributeOptions, 'boolean');
   const isFetchingFilterKeys =
     stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 

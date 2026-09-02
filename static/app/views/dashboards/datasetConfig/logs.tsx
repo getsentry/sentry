@@ -161,53 +161,34 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
+  const logsEnabled = isLogsEnabled(organization);
+  const attributeOptions = {
+    enabled: logsEnabled,
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
   const {
     attributes: stringAttributes,
     isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
-  } = useLogItemAttributes(
-    {
-      enabled: isLogsEnabled(organization),
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
-    'string'
-  );
+  } = useLogItemAttributes(attributeOptions, 'string');
   const {
     attributes: numberAttributes,
     isLoading: numberAttributesLoading,
     secondaryAliases: numberSecondaryAliases,
-  } = useLogItemAttributes(
-    {
-      enabled: isLogsEnabled(organization),
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
-    'number'
-  );
+  } = useLogItemAttributes(attributeOptions, 'number');
   const {
     attributes: booleanAttributes,
     isLoading: booleanAttributesLoading,
     secondaryAliases: booleanSecondaryAliases,
-  } = useLogItemAttributes(
-    {
-      enabled: isLogsEnabled(organization),
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
-    'boolean'
-  );
+  } = useLogItemAttributes(attributeOptions, 'boolean');
   const {
     attributes: arrayAttributes,
     isLoading: arrayAttributesLoading,
     secondaryAliases: arraySecondaryAliases,
   } = useLogItemAttributes(
-    {
-      enabled: isLogsEnabled(organization) && supportsArrays,
-      search: filterKeySearch,
-      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-    },
+    {...attributeOptions, enabled: logsEnabled && supportsArrays},
     'array'
   );
   const isFetchingFilterKeys =
