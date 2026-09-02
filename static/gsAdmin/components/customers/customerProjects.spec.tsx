@@ -1,7 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {CustomerProjects} from 'admin/components/customers/customerProjects';
 
@@ -17,7 +23,7 @@ describe('CustomerProjects', () => {
       url: `/organizations/${org.slug}/projects/`,
       body: [
         {
-          ...ProjectFixture(),
+          ...ProjectFixture({slug: 'backend-project'}),
           stats: [
             [1, 3],
             [2, 4],
@@ -39,7 +45,11 @@ describe('CustomerProjects', () => {
       },
     });
 
-    expect(await screen.findByText('7')).toBeInTheDocument();
+    const projectRow = await screen.findByRole('row', {
+      name: /backend-project/,
+    });
+
+    expect(within(projectRow).getByText('7')).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledTimes(1);
     const requestData = projectsMock.mock.calls[0][1].data;
     expect(requestData).toEqual(
