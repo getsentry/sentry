@@ -266,6 +266,7 @@ function makeSlotConsumer<T extends Slot>(options: {
 
     const bridges = state[name]?.contextBridges;
     if (bridges) {
+      // eslint-disable-next-line e18e/prefer-array-to-reversed
       content = [...bridges]
         .reverse()
         .reduce(
