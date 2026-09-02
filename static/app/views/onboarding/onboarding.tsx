@@ -140,7 +140,15 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
 }
 
 function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
-  const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
+  const {
+    createdProjectSlug,
+    messagingSetup,
+    selectedFeatures,
+    selectedPlatform,
+    selectedRepository,
+    setCreatedProjectSlug,
+    setMessagingSetup,
+  } = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
   // this step before it renders without a platform, so this is unreachable —
@@ -151,11 +159,15 @@ function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
 
   return (
     <ScmMessaging
+      createdProjectSlug={createdProjectSlug}
       messagingSetup={messagingSetup}
       onMessagingSetupChange={setMessagingSetup}
-      selectedPlatform={selectedPlatform}
-      genBackButton={genBackButton}
+      onProjectCreated={setCreatedProjectSlug}
       onComplete={onComplete}
+      selectedFeatures={selectedFeatures}
+      selectedPlatform={selectedPlatform}
+      selectedRepository={selectedRepository}
+      genBackButton={genBackButton}
     />
   );
 }

@@ -16,6 +16,7 @@ import {
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
+  buildIntegrationAction,
   buildNotificationSelection,
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
@@ -23,6 +24,53 @@ import {
   useCreateNotificationAction,
   useScmNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+
+describe('buildIntegrationAction', () => {
+  it.each([
+    [
+      'slack',
+      '#alerts',
+      {
+        id: IssueAlertActionType.SLACK,
+        workspace: '15',
+        channel: '#alerts',
+      },
+    ],
+    [
+      'discord',
+      '123456789',
+      {
+        id: IssueAlertActionType.DISCORD,
+        server: '15',
+        channel_id: '123456789',
+      },
+    ],
+    [
+      'msteams',
+      '19:abc@thread.tacv2',
+      {
+        id: IssueAlertActionType.MS_TEAMS,
+        team: '15',
+        channel: '19:abc@thread.tacv2',
+      },
+    ],
+  ])('serializes a %s destination', (provider, channel, expectedAction) => {
+    expect(buildIntegrationAction({provider, integrationId: '15', channel})).toEqual(
+      expectedAction
+    );
+  });
+
+  it('returns undefined for an incomplete or unsupported selection', () => {
+    expect(buildIntegrationAction({provider: 'slack'})).toBeUndefined();
+    expect(
+      buildIntegrationAction({
+        provider: 'unsupported',
+        integrationId: '15',
+        channel: '#alerts',
+      })
+    ).toBeUndefined();
+  });
+});
 
 describe('MessagingIntegrationAlertRule', () => {
   const organization = OrganizationFixture();
