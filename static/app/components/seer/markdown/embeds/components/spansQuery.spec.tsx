@@ -2,6 +2,10 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
+jest.mock('sentry/components/charts/baseChart', () => ({
+  BaseChart: jest.fn(() => null),
+}));
+
 function renderEmbed({
   data,
   level = 'block',
@@ -46,6 +50,7 @@ describe('spans query embed', () => {
       'href',
       expect.stringContaining('/explore/traces/')
     );
+    expect(screen.getAllByLabelText('span.op:http.server').length).toBeGreaterThan(0);
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -92,6 +97,10 @@ describe('spans query embed', () => {
     expect(await screen.findByText('http.server')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
+    // A group-by column is present, so the table still renders instead of a
+    // chart.
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-chart-content')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -103,6 +112,52 @@ describe('spans query embed', () => {
             per_page: 5,
             sort: '-p95_span_duration',
             statsPeriod: '7d',
+          }),
+        })
+      );
+    });
+  });
+
+  it('renders a chart instead of a table when aggregate mode has no groupBy', async () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [1_700_000_000, [{count: 5}]],
+          [1_700_003_600, [{count: 8}]],
+        ],
+      },
+    });
+
+    renderEmbed({
+      data: {
+        query: 'span.op:http.server',
+        mode: 'aggregate',
+        yAxes: ['count(span.duration)'],
+        statsPeriod: '1h',
+        title: 'Span count',
+      },
+    });
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('span.op:http.server').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    // The table's own fetch is skipped entirely in chart mode.
+    expect(eventsRequest).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+            query: 'span.op:http.server',
+            statsPeriod: '1h',
+            yAxis: ['count(span.duration)'],
           }),
         })
       );

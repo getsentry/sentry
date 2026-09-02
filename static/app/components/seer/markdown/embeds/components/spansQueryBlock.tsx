@@ -1,21 +1,35 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
+import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
+import {transformEventsStatsToSeries} from 'sentry/views/dashboards/utils/transformEventsStatsToSeries';
 
 import {SpansQueryLink} from './spansQueryLink';
 import {
+  buildSpansChartQuery,
   buildSpansEventView,
   getSpansQueryFields,
+  hasNoGroupBy,
+  resolveChartYAxes,
+  toChartUnit,
   type SpansQueryData,
 } from './spansQueryUtils';
 
@@ -41,13 +55,101 @@ function formatCellValue(value: unknown): string {
   return JSON.stringify(value) ?? '—';
 }
 
-export function SpansQueryBlock({data}: {data: SpansQueryData}) {
+function chartSeriesFromStatsResponse(
+  responseData: EventsStats | MultiSeriesEventsStats,
+  yAxisFields: string[]
+) {
+  if (isEventsStats(responseData)) {
+    const field = yAxisFields[0] ?? t('Count');
+    return [transformEventsStatsToSeries(responseData, field, field)];
+  }
+
+  if (isMultiSeriesEventsStats(responseData)) {
+    return Object.entries(responseData)
+      .filter(([key]) => key !== 'order')
+      .map(([seriesName, stats]) =>
+        transformEventsStatsToSeries(stats, seriesName, seriesName)
+      );
+  }
+
+  return [];
+}
+
+function SpansQueryChart({
+  data,
+  eventView,
+  fields,
+}: {
+  data: SpansQueryData;
+  eventView: ReturnType<typeof buildSpansEventView>;
+  fields: string[];
+}) {
+  const organization = useOrganization();
+  const yAxisFields = resolveChartYAxes(data, fields);
+
+  const query = useQuery({
+    ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
+      '/organizations/$organizationIdOrSlug/events-stats/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: buildSpansChartQuery(eventView, yAxisFields),
+        staleTime: 30_000,
+      }
+    ),
+    retry: false,
+  });
+
+  if (query.isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (query.isError) {
+    return (
+      <Alert role="alert" variant="danger">
+        {t('Unable to load chart data')}
+      </Alert>
+    );
+  }
+
+  const series = chartSeriesFromStatsResponse(query.data, yAxisFields).map(item => ({
+    label: item.seriesName,
+    data: item.data.map(point => ({
+      x: new Date(point.name).toISOString(),
+      y: point.value,
+    })),
+  }));
+
+  if (series.every(item => item.data.length === 0)) {
+    return (
+      <Alert role="alert" variant="muted">
+        {t('No matching spans')}
+      </Alert>
+    );
+  }
+
+  return (
+    <ChartContent
+      data={{
+        title: data.title ?? t('Spans over time'),
+        visualization: 'line',
+        x_axis: 'time',
+        y_axis_unit: toChartUnit(aggregateOutputType(yAxisFields[0])),
+        series,
+      }}
+      showHeader={false}
+    />
+  );
+}
+
+export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
   const organization = useOrganization();
   const eventView = buildSpansEventView(data);
   const fields = getSpansQueryFields(data);
-  const query = useQuery({
+  const isChartMode = hasNoGroupBy(data);
+
+  const tableQuery = useQuery({
     ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organization.slug},
+      path: isChartMode ? skipToken : {organizationIdOrSlug: organization.slug},
       query: {
         ...eventView.generateQueryStringObject(),
         per_page: ROW_LIMIT,
@@ -57,6 +159,7 @@ export function SpansQueryBlock({data}: {data: SpansQueryData}) {
     }),
     retry: false,
   });
+
   const columns = fields.map((field, index) => ({
     key: field,
     width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
@@ -78,38 +181,43 @@ export function SpansQueryBlock({data}: {data: SpansQueryData}) {
             {data.mode === 'aggregate' ? t('Aggregate') : t('Spans')}
           </Tag>
         </Flex>
-        <SimpleTable
-          columns={columns}
-          header={
-            <SimpleTable.HeaderRow>
-              {fields.map(field => (
-                <SimpleTable.HeaderCell key={field}>
-                  <Text ellipsis>{field}</Text>
-                </SimpleTable.HeaderCell>
-              ))}
-            </SimpleTable.HeaderRow>
-          }
-        >
-          {query.isPending ? (
-            <SimpleTable.Loading />
-          ) : query.isError ? (
-            <SimpleTable.Empty>{t('Unable to load spans')}</SimpleTable.Empty>
-          ) : query.data.data.length === 0 ? (
-            <SimpleTable.Empty>{t('No matching spans')}</SimpleTable.Empty>
-          ) : (
-            query.data.data.slice(0, ROW_LIMIT).map((row, rowIndex) => (
-              <SimpleTable.Row key={row.id ?? rowIndex}>
+        {data.query ? <ProvidedFormattedQuery query={data.query} /> : null}
+        {isChartMode ? (
+          <SpansQueryChart data={data} eventView={eventView} fields={fields} />
+        ) : (
+          <SimpleTable
+            columns={columns}
+            header={
+              <SimpleTable.HeaderRow>
                 {fields.map(field => (
-                  <SimpleTable.RowCell key={field}>
-                    <Text ellipsis>
-                      {formatCellValue(row[field] ?? row[getAggregateAlias(field)])}
-                    </Text>
-                  </SimpleTable.RowCell>
+                  <SimpleTable.HeaderCell key={field}>
+                    <Text ellipsis>{field}</Text>
+                  </SimpleTable.HeaderCell>
                 ))}
-              </SimpleTable.Row>
-            ))
-          )}
-        </SimpleTable>
+              </SimpleTable.HeaderRow>
+            }
+          >
+            {tableQuery.isPending ? (
+              <SimpleTable.Loading />
+            ) : tableQuery.isError ? (
+              <SimpleTable.Empty>{t('Unable to load spans')}</SimpleTable.Empty>
+            ) : tableQuery.data.data.length === 0 ? (
+              <SimpleTable.Empty>{t('No matching spans')}</SimpleTable.Empty>
+            ) : (
+              tableQuery.data.data.slice(0, ROW_LIMIT).map((row, rowIndex) => (
+                <SimpleTable.Row key={row.id ?? rowIndex}>
+                  {fields.map(field => (
+                    <SimpleTable.RowCell key={field}>
+                      <Text ellipsis>
+                        {formatCellValue(row[field] ?? row[getAggregateAlias(field)])}
+                      </Text>
+                    </SimpleTable.RowCell>
+                  ))}
+                </SimpleTable.Row>
+              ))
+            )}
+          </SimpleTable>
+        )}
       </Stack>
     </Container>
   );
