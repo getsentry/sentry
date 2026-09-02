@@ -243,9 +243,9 @@ export async function fetchAvatarColor(
   }
 }
 
-// Darkens `hex` until it clears MIN_EDGE_CONTRAST against itself, giving up
-// after a handful of steps. Contrast against a fixed reference increases
-// monotonically as a color darkens toward black, so this always converges.
+// Shifts `hex` away from itself until it clears MIN_EDGE_CONTRAST. Tries
+// darkening first; if the color is too close to black to reach 3:1 that way,
+// falls back to lightening.
 export function darkenUntilContrasts(hex: string, theme: Theme['type']): string {
   const reference = color(hex);
   let candidate = color(hex);
@@ -253,6 +253,16 @@ export function darkenUntilContrasts(hex: string, theme: Theme['type']): string 
 
   for (let i = 0; i < 12 && candidate.contrast(reference) < MIN_EDGE_CONTRAST; i++) {
     candidate = candidate.darken(step);
+  }
+
+  if (candidate.contrast(reference) >= MIN_EDGE_CONTRAST) {
+    return candidate.hex();
+  }
+
+  // Near-black: darkening bottoms out, use absolute lightness steps instead.
+  candidate = color(hex);
+  for (let i = 0; i < 12 && candidate.contrast(reference) < MIN_EDGE_CONTRAST; i++) {
+    candidate = candidate.lightness(candidate.lightness() + 5);
   }
 
   return candidate.hex();

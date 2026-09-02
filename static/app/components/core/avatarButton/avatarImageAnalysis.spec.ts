@@ -98,9 +98,11 @@ describe('darkenUntilContrasts', () => {
     expect(contrast).toBeGreaterThanOrEqual(MIN_EDGE_CONTRAST);
   });
 
-  it('leaves already-dark colors unchanged', () => {
-    const result = darkenUntilContrasts('#000000', 'light');
-    expect(result).toBe('#000000');
+  it('lightens near-black colors to reach contrast', () => {
+    const result = darkenUntilContrasts('#0A0A0A', 'light');
+    const contrast = color(result).contrast(color('#0A0A0A'));
+    expect(contrast).toBeGreaterThanOrEqual(MIN_EDGE_CONTRAST);
+    expect(color(result).luminosity()).toBeGreaterThan(color('#0A0A0A').luminosity());
   });
 });
 
