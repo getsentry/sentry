@@ -1,4 +1,4 @@
 interface:
   display_name: 'Frontend UI Screenshots'
   short_description: 'Create focused before-and-after UI screenshots'
-  default_prompt: 'Use $frontend-ui-screenshots to capture before-and-after screenshots for my frontend changes, inferring story or product context, themes, and relevant breakpoints.'
+  default_prompt: 'Use $frontend-ui-screenshots to capture a light-mode product before-and-after for my frontend changes.'

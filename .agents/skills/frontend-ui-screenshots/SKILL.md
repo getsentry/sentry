@@ -11,16 +11,15 @@ Produce reviewable evidence of the UI affected by the current frontend diff. Inf
 
 Infer these unless the user overrides them:
 
-- `mode=auto|story|product` (default `auto`): use `story` when the changed component has a useful Scraps story; otherwise use `product`.
-- `themes=both|light|dark` (default `both`).
-- `breakpoints=auto|all|none` (default `auto`): responsive evidence captures affected breakpoint boundaries; `all` captures all relevant defined breakpoints; `none` captures one representative viewport.
+- `mode=product|story|auto` (default `product`): use `story` for a changed component with a useful Scraps story; `auto` lets the agent choose.
+- `themes=light|dark|both` (default `light`).
+- `breakpoints=none|auto|all` (default `none`): `none` captures one representative viewport; `auto` uses responsive evidence to select affected breakpoint boundaries; `all` captures all relevant defined breakpoints.
 
-`auto` should avoid an unnecessary viewport matrix for non-responsive changes. For container-query changes, use widths immediately below and above affected boundaries, plus any width needed to reproduce consequential product states such as the Seer Explorer drawer reducing the content container.
+When breakpoint coverage is requested, use widths immediately below and above affected container-query boundaries, plus any width needed to reproduce consequential product states such as the Seer Explorer drawer reducing the content container.
 
 ## Safety and invariants
 
-- Product UI must use only the synthetic `demo` organization through `demo.dev.getsentry.net`. Validate the location after every interaction and immediately before capture; stop if navigation leaves that hostname.
-- Scraps may use `sentry.dev.getsentry.net` because it renders local fixtures.
+- Every capture must use the synthetic `demo` organization through `demo.dev.getsentry.net`, including Scraps routes. Validate the location after every interaction and immediately before capture; stop if navigation leaves that hostname.
 - Never publish screenshots automatically. Leave them in `.artifacts/ui-capture/` unless the user separately authorizes posting them.
 - Use the dedicated Chrome profile in [references/chrome-setup.md](references/chrome-setup.md); CDP must bind to localhost.
 - Capture PNG at device scale factor 2. Wait for fonts and lazy-loaded images; reject broken images.

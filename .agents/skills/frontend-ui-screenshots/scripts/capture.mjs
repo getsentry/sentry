@@ -26,15 +26,11 @@ function validateUrl(value, targetKind) {
   if (url.protocol !== 'https:') {
     throw new Error(`Capture URL must use HTTPS: ${value}`);
   }
-  if (targetKind === 'story') {
-    if (
-      url.hostname !== 'sentry.dev.getsentry.net' ||
-      !url.pathname.startsWith('/scraps/')
-    ) {
-      throw new Error(`Story captures must use local Scraps: ${value}`);
-    }
-  } else if (url.hostname !== 'demo.dev.getsentry.net') {
-    throw new Error(`Routed captures must use the demo organization hostname: ${value}`);
+  if (url.hostname !== 'demo.dev.getsentry.net') {
+    throw new Error(`Captures must use the demo organization hostname: ${value}`);
+  }
+  if (targetKind === 'story' && !url.pathname.startsWith('/scraps/')) {
+    throw new Error(`Story captures must use the demo Scraps route: ${value}`);
   }
   return url;
 }
@@ -44,17 +40,11 @@ function assertCaptureLocation(page, targetKind, stage) {
   if (current.pathname.startsWith('/auth/login/')) {
     throw new Error(`${stage} redirected to login; refresh the dedicated Chrome session`);
   }
-  if (targetKind === 'story') {
-    if (
-      current.hostname !== 'sentry.dev.getsentry.net' ||
-      !current.pathname.startsWith('/scraps/')
-    ) {
-      throw new Error(`${stage} left local Scraps: ${current.href}`);
-    }
-    return;
-  }
   if (current.hostname !== 'demo.dev.getsentry.net') {
     throw new Error(`${stage} left the synthetic demo organization: ${current.href}`);
+  }
+  if (targetKind === 'story' && !current.pathname.startsWith('/scraps/')) {
+    throw new Error(`${stage} left the demo Scraps route: ${current.href}`);
   }
 }
 
@@ -339,7 +329,7 @@ async function capture(planPath, cdpUrl) {
       safeName(plan.name)
     );
     fs.mkdirSync(outputDirectory, {recursive: true});
-    const themes = plan.themes ?? ['light', 'dark'];
+    const themes = plan.themes ?? ['light'];
     const viewports = plan.viewports ?? [{name: 'default', width: 1440, height: 1000}];
     const artifacts = [];
 
