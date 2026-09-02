@@ -112,16 +112,8 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
         assert isinstance(installation, self.installation_class)
         if field == "assignee":
-            choices = (
-                installation.search_allowed_assignees(repo, query)
-                if query
-                else installation.get_allowed_assignees(repo, PAGE_LIMIT)
-            )
+            choices = installation.search_allowed_assignees(repo, query)
         else:
-            if query:
-                choices = installation.search_repo_labels(repo, query)
-            else:
-                owner, repo_name = repo.split("/", 1)
-                choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
+            choices = installation.search_repo_labels(repo, query)
 
         return Response([{"label": label, "value": value} for value, label in choices])

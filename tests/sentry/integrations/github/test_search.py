@@ -193,17 +193,10 @@ class GithubSearchTest(APITestCase):
 
     @responses.activate
     def test_prefetches_assignee_results(self) -> None:
-        assignees_url = self.base_url + "/repos/test/example/assignees"
-        paginated_url = f"{assignees_url}?per_page=100"
         responses.add(
-            responses.GET,
-            paginated_url,
-            json=[{"login": "octocat"}],
-            headers={
-                "link": (
-                    f'<{paginated_url}&page=2>; rel="next", <{paginated_url}&page=2>; rel="last"'
-                )
-            },
+            responses.POST,
+            self.graphql_url,
+            json={"data": {"repository": {"results": {"nodes": [{"login": "octocat"}]}}}},
         )
 
         resp = self.client.get(
@@ -216,7 +209,8 @@ class GithubSearchTest(APITestCase):
             {"value": "", "label": "Unassigned"},
             {"value": "octocat", "label": "octocat"},
         ]
-        assert len(responses.calls) == 1
+        request_body = orjson.loads(responses.calls[0].request.body)
+        assert request_body["variables"]["search"] == ""
 
     @responses.activate
     def test_searches_assignees(self) -> None:
@@ -244,9 +238,13 @@ class GithubSearchTest(APITestCase):
     @responses.activate
     def test_prefetches_label_results(self) -> None:
         responses.add(
-            responses.GET,
-            self.base_url + "/repos/test/example/labels",
-            json=[{"name": "bug"}, {"name": "enhancement"}],
+            responses.POST,
+            self.graphql_url,
+            json={
+                "data": {
+                    "repository": {"results": {"nodes": [{"name": "bug"}, {"name": "enhancement"}]}}
+                }
+            },
         )
 
         resp = self.client.get(
@@ -259,6 +257,8 @@ class GithubSearchTest(APITestCase):
             {"value": "bug", "label": "bug"},
             {"value": "enhancement", "label": "enhancement"},
         ]
+        request_body = orjson.loads(responses.calls[0].request.body)
+        assert request_body["variables"]["search"] == ""
 
     @responses.activate
     def test_searches_labels(self) -> None:

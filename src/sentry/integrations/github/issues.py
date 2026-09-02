@@ -393,7 +393,8 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         except Exception as e:
             self.raise_error(e)
 
-        return tuple((user["login"], user["login"]) for user in response)
+        users = tuple((user["login"], user["login"]) for user in response)
+        return users if query else (("", "Unassigned"),) + users
 
     def get_repo_labels(
         self, owner: str, repo: str, page_number_limit: int | None = None
