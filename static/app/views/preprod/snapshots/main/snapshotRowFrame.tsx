@@ -2,9 +2,6 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
-// A single virtualized row's frame. Grouped rows share a continuous bordered
-// container: side borders on every row, top/bottom border+radius on the group
-// edges, and a separator between adjacent cards.
 export const RowFrame = styled(Container)`
   background: ${p => p.theme.tokens.background.primary};
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
@@ -22,7 +19,6 @@ export const RowFrame = styled(Container)`
     border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 
-  /* Keep in sync with SnapshotVariantContainer's separator in snapshotFrames.tsx. */
   &[data-separator] {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }

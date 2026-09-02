@@ -2,9 +2,6 @@ import type {SidebarItem, SnapshotImage} from 'sentry/views/preprod/types/snapsh
 
 import {buildRowIndex, buildRows, rowFrameEdges} from './snapshotListView';
 
-// buildRows/buildRowIndex are pure, but importing them from snapshotListView
-// transitively loads the card components (and d3-zoom, which Jest cannot parse).
-// This mock keeps that import chain resolvable; the hook is never called here.
 const mockZoom = {
   containerRef: {current: null},
   resetZoom: jest.fn(),
@@ -102,8 +99,6 @@ describe('buildRows', () => {
     };
     const rows = buildRows([item], 900);
     const cardRow = rows.find(r => r.kind === 'card')!;
-    // CARD_CHROME_HEIGHT (120) + min(aspectHeight, MAX_IMAGE_HEIGHT); 320<=900 => 180.
-    // Single card is also last-in-group, so ROW_PADDING_BOTTOM (16) is added.
     expect(cardRow.estimatedHeight).toBe(120 + 180 + 16);
   });
 
@@ -138,7 +133,6 @@ describe('buildRows', () => {
       ],
       900
     ).find(r => r.kind === 'card')!;
-    // errored adds ERRORED_BANNER_HEIGHT (56) over the same changed estimate.
     expect(errored.estimatedHeight).toBe(changed.estimatedHeight + 56);
   });
 
@@ -256,11 +250,11 @@ describe('buildRowIndex', () => {
       900
     );
     const idx = buildRowIndex(rows);
-    expect(idx.order).toEqual(['a.png', 'b.png']); // per-card ordinal order
+    expect(idx.order).toEqual(['a.png', 'b.png']);
     expect(idx.positionByKey.get('b.png')).toBe(1);
-    expect(idx.rowIndexByKey.get('a.png')).toBe(1); // row 0 is the header
+    expect(idx.rowIndexByKey.get('a.png')).toBe(1);
     expect(idx.rowIndexByKey.get('b.png')).toBe(2);
-    expect(idx.firstRowByItemKey.get('changed:Screens')).toBe(0); // header row
-    expect(idx.lastRowByItemKey.get('changed:Screens')).toBe(2); // last card row
+    expect(idx.firstRowByItemKey.get('changed:Screens')).toBe(0);
+    expect(idx.lastRowByItemKey.get('changed:Screens')).toBe(2);
   });
 });

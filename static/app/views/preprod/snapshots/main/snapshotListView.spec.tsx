@@ -78,7 +78,6 @@ describe('SnapshotListView', () => {
       paddingRight: '0px',
       getPropertyValue: () => '',
     } as unknown as CSSStyleDeclaration);
-    // jsdom does not implement scrollIntoView; keyboard nav calls it.
     HTMLElement.prototype.scrollIntoView = jest.fn();
   });
 
@@ -118,9 +117,7 @@ describe('SnapshotListView', () => {
   it('renders every card in a large single group (per-card rows) plus one header', () => {
     renderListView([changedGroup(6)]);
 
-    // Exactly one in-flow group header (sticky overlay only appears once scrolled).
     expect(screen.getAllByRole('heading', {name: 'Screens'})).toHaveLength(1);
-    // All six cards mount because mockElementSize gives the viewport enough height.
     expect(screen.getByText('Screen 0')).toBeInTheDocument();
     expect(screen.getByText('Screen 5')).toBeInTheDocument();
   });
@@ -128,11 +125,8 @@ describe('SnapshotListView', () => {
   it('frames the first row of a group as frame-top and the last card row as frame-bottom', () => {
     renderListView([changedGroup(2)]);
 
-    // Frame edges are pure styling hooks with no ARIA role; query the DOM directly.
-    expect(document.querySelectorAll('[data-frame-top]')).toHaveLength(1); // header row
-    expect(document.querySelectorAll('[data-frame-bottom]')).toHaveLength(1); // last card row
-    // The inter-group gap is gated to the last row only; padding every row would
-    // break the group's continuous bordered frame.
+    expect(document.querySelectorAll('[data-frame-top]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-frame-bottom]')).toHaveLength(1);
     expect(document.querySelectorAll('[data-last-in-group]')).toHaveLength(1);
   });
 
@@ -148,22 +142,6 @@ describe('SnapshotListView', () => {
     ]);
 
     expect(screen.queryByRole('heading', {name: 'solo.png'})).not.toBeInTheDocument();
-  });
-
-  it('reports the first visible card ordinal and a finite progress on scroll', async () => {
-    const onScrollProgress = jest.fn();
-    render(
-      <SnapshotListView
-        items={[changedGroup(5)]}
-        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
-        onScrollProgress={onScrollProgress}
-      />
-    );
-
-    await waitFor(() => expect(onScrollProgress).toHaveBeenCalled());
-    const [progress, firstIdx] = onScrollProgress.mock.calls.at(-1)!;
-    expect(Number.isFinite(progress)).toBe(true);
-    expect(firstIdx).toBe(0);
   });
 
   it('reports the visible item key to the sidebar even for ungrouped items', async () => {

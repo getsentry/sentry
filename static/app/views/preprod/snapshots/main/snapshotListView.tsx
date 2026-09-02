@@ -236,8 +236,6 @@ function isGroupedRow(row: ListRow): boolean {
   return row.kind === 'header' || !row.isUngrouped;
 }
 
-// Where a row sits in its group's continuous bordered frame. A grouped group's
-// top border is carried by its header row, so a grouped first card is not a top.
 export function rowFrameEdges(row: ListRow): {
   frameBottom: boolean;
   frameTop: boolean;
@@ -354,17 +352,11 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       setScrollTop(top);
       const virtualRows = virtualizer.getVirtualItems();
 
-      // Virtualizer offsets are content-relative; the container's top padding
-      // sits above them. Anchor row detection to the same line the sticky header
-      // uses so the sidebar group and progress counter stay in sync with it.
       const anchor = top - Number.parseFloat(theme.space.xl);
 
-      // Topmost visible row defines the active group and the scroll anchor.
       const topRowItem = virtualRows.find(vi => vi.end > anchor) ?? virtualRows[0];
       visibleRowIdxRef.current = topRowItem?.index ?? 0;
       const topRow = topRowItem ? rowsRef.current[topRowItem.index] : undefined;
-      // The sidebar highlights whatever item is at the top — grouped or not
-      // (the sticky *header* is what hides for ungrouped items, computed below).
       onVisibleGroupChangeRef.current?.(topRow?.itemKey ?? null);
 
       if (onScrollProgressRef.current) {
@@ -576,8 +568,6 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   const activeRow = activeRowItem ? rows[activeRowItem.index] : undefined;
   const activeItemKey = activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null;
   const activeGroupName = activeItemKey === null ? null : (activeRow?.groupName ?? null);
-  // A large group's last row is often outside the overscan window, so its bound
-  // is an estimate until measured; the sticky bottom self-corrects once near it.
   const measurements = virtualizer.measurementsCache;
   const activeGroupBounds = (() => {
     if (activeItemKey === null) {
@@ -806,9 +796,6 @@ const RowPositioner = styled('div')`
   right: 0;
   contain: layout paint;
 
-  /* Only the last row of a group carries the inter-group gap, matching the
-   * ROW_PADDING_BOTTOM added to its estimated height in buildRows. Padding every
-   * row would break the group's continuous bordered frame. */
   &[data-last-in-group] {
     padding-bottom: ${p => p.theme.space.xl};
   }
