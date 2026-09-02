@@ -21,6 +21,7 @@ import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function replayRecordApiOptions({
@@ -165,6 +166,8 @@ export function useReplayData({
   );
 
   const projectSlug = useReplayProjectSlug({replayRecord});
+  const {fetching: isFetchingProjects} = useProjects();
+  const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
   const getAttachmentsQueryOptions = useCallback(
     ({cursor, per_page}: {cursor: string; per_page: number}) =>
@@ -397,6 +400,7 @@ export function useReplayData({
 
   const allStatuses = [
     replayId ? fetchReplayStatus : undefined,
+    isResolvingProjectSlug ? 'pending' : undefined,
     enableAttachments ? fetchAttachmentsStatus : undefined,
     enableErrors ? fetchErrorsStatus : undefined,
     enableExtraErrors ? fetchExtraErrorsStatus : undefined,
