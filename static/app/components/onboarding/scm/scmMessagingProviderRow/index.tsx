@@ -29,6 +29,7 @@ import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {RowActions} from './action';
+import {openMsTeamsConnectionModal} from './msTeamsConnection';
 import {RowSubtitle} from './subtitle';
 import type {RowVisualState} from './types';
 
@@ -191,6 +192,10 @@ export function ScmMessagingProviderRow({
   });
 
   const handleConnect = useCallback(() => {
+    if (resolvedProvider.providerKey === 'msteams') {
+      openMsTeamsConnectionModal(resolvedProvider.provider);
+      return;
+    }
     startFlow({
       provider: resolvedProvider.provider,
       organization,

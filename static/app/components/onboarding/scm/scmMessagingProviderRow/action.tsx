@@ -44,7 +44,6 @@ export function RowActions({
       <Button
         size="sm"
         icon={<IconAdd size="xs" />}
-        disabled={!resolvedProvider.provider.canAdd}
         onClick={onConnect}
         aria-label={t('Connect %s', resolvedProvider.provider.name)}
       >
