@@ -608,6 +608,35 @@ describe('logsTableRow', () => {
   });
 
   it('resolves the untruncated message when similar spans is clicked before the details load', async () => {
+    // Hold the details response open so the item is still unresolved when clicked,
+    // rather than racing the hover prefetch for that window.
+    let releaseDetails = () => {};
+    const detailsHeld = new Promise<void>(resolve => {
+      releaseDetails = resolve;
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      asyncDelay: detailsHeld,
+      body: {
+        itemId: rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: {},
+        timestamp: rowDataWithTruncatedMessage[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: Object.entries({
+          ...rowDataWithTruncatedMessage,
+          [OurLogKnownFieldKey.MESSAGE]: fullMessage,
+        }).map(
+          ([k, v]) =>
+            ({
+              name: k,
+              value: v,
+              type: typeof v === 'string' ? 'str' : 'float',
+            }) as TraceItemResponseAttribute
+        ),
+      },
+    });
+
     const {router} = render(
       <LogRowContent
         dataRow={rowDataWithTruncatedMessage}
@@ -626,6 +655,8 @@ describe('logsTableRow', () => {
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
     await userEvent.click(await screen.findByText('Explore similar spans'));
+
+    releaseDetails();
 
     await waitFor(() => {
       expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([
