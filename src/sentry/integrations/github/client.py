@@ -68,6 +68,7 @@ from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.iterators import chunked
+from sentry.utils.safe import get_path
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -861,7 +862,19 @@ class GitHubBaseClient(
             allow_text=False,
             api_request_type=api_request_type,
         )
-        return response["data"]["repository"]["results"]["nodes"]
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if any(error.get("type") == "RATE_LIMITED" for error in errors):
+            raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+        nodes = get_path(response, "data", "repository", "results", "nodes")
+        if nodes is None:
+            message = "\n".join(error.get("message", "") for error in errors).strip()
+            raise ApiError(message or "Invalid GitHub GraphQL response")
+
+        return nodes
 
     def _get_with_pagination(
         self,
