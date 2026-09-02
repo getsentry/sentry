@@ -28,17 +28,7 @@ type Margin = SpaceSize | 'auto' | '0';
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
-  display?: Responsive<
-    | 'block'
-    | 'inline'
-    | 'inline-block'
-    | 'flex'
-    | 'inline-flex'
-    | 'grid'
-    | 'inline-grid'
-    | 'contents'
-    | 'none'
-  >;
+  display?: Responsive<CSS['display']>;
 
   padding?: Responsive<Shorthand<SpaceSize, 4>>;
   paddingTop?: Responsive<SpaceSize>;
@@ -60,11 +50,11 @@ interface ContainerLayoutProps {
 
   overscrollBehavior?: Responsive<'contain' | 'auto' | 'none'>;
 
-  pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
+  pointerEvents?: Responsive<CSS['pointerEvents']>;
 
-  cursor?: Responsive<React.CSSProperties['cursor']>;
+  cursor?: Responsive<CSS['cursor']>;
 
-  contain?: Responsive<React.CSSProperties['contain']>;
+  contain?: Responsive<CSS['contain']>;
 
   /**
    * Declares this element as a query container, so descendants' container
@@ -98,18 +88,18 @@ interface ContainerLayoutProps {
   borderRight?: Responsive<BorderVariant>;
 
   // Grid Item Properties
-  area?: Responsive<React.CSSProperties['gridArea']>;
-  row?: Responsive<React.CSSProperties['gridRow']>;
-  column?: Responsive<React.CSSProperties['gridColumn']>;
+  area?: Responsive<CSS['gridArea']>;
+  row?: Responsive<CSS['gridRow']>;
+  column?: Responsive<CSS['gridColumn']>;
 
   // Flex Item Properties
-  order?: Responsive<React.CSSProperties['order']>;
-  flex?: Responsive<React.CSSProperties['flex']>;
-  flexGrow?: Responsive<React.CSSProperties['flexGrow']>;
-  flexShrink?: Responsive<React.CSSProperties['flexShrink']>;
-  flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
-  alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
-  justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+  order?: Responsive<CSS['order']>;
+  flex?: Responsive<CSS['flex']>;
+  flexGrow?: Responsive<CSS['flexGrow']>;
+  flexShrink?: Responsive<CSS['flexShrink']>;
+  flexBasis?: Responsive<CSS['flexBasis']>;
+  alignSelf?: Responsive<CSS['alignSelf']>;
+  justifySelf?: Responsive<CSS['justifySelf']>;
 
   visibility?: Responsive<'visible' | 'hidden' | 'collapse'>;
 
