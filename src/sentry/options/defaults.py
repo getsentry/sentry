@@ -2587,11 +2587,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
-# aborting. Only safe for providers whose cell-side handlers tolerate reordering,
-# since a skipped message is retried after the ones behind it. Aborting is not a
-# strict-ordering guarantee to begin with: drain_mailbox_parallel delivers a whole
-# batch concurrently before it consults this list, and dispatch to it is chosen on
-# backlog depth alone (PARALLEL_DRAIN_THRESHOLD), for every provider.
+# aborting. Also gates concurrent delivery: only these providers' claims deliver
+# on `worker_threads` threads, and only they dispatch from the due head. Only safe for
+# providers whose cell-side handlers tolerate reordering, since a skipped or
+# concurrently delivered message can land after the ones behind it. Providers not
+# listed deliver strictly: one record at a time, in order, stopping on failure.
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
