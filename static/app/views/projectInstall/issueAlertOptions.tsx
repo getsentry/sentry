@@ -74,7 +74,7 @@ export type RequestDataFragment = Pick<
 
 export interface AlertRuleOptions {
   alertSetting: RuleAction;
-  interval: string;
+  interval: Interval;
   metric: MetricValues;
   threshold: string;
 }
