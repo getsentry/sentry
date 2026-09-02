@@ -3,15 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import type {
-  CssHeight,
-  CssInset,
-  CssMaxHeight,
-  CssMaxWidth,
-  CssMinHeight,
-  CssMinWidth,
-  CssWidth,
-} from '@sentry/scraps/cssTypes';
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import type {
   BorderVariant,
@@ -56,11 +48,11 @@ interface ContainerLayoutProps {
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
-  inset?: Responsive<CssInset>;
-  top?: Responsive<CssInset>;
-  bottom?: Responsive<CssInset>;
-  left?: Responsive<CssInset>;
-  right?: Responsive<CssInset>;
+  inset?: Responsive<CSS['inset']>;
+  top?: Responsive<CSS['inset']>;
+  bottom?: Responsive<CSS['inset']>;
+  left?: Responsive<CSS['inset']>;
+  right?: Responsive<CSS['inset']>;
 
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
@@ -91,13 +83,13 @@ interface ContainerLayoutProps {
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
-  width?: Responsive<CssWidth>;
-  minWidth?: Responsive<CssMinWidth>;
-  maxWidth?: Responsive<CssMaxWidth>;
+  width?: Responsive<CSS['width']>;
+  minWidth?: Responsive<CSS['minWidth']>;
+  maxWidth?: Responsive<CSS['maxWidth']>;
 
-  height?: Responsive<CssHeight>;
-  minHeight?: Responsive<CssMinHeight>;
-  maxHeight?: Responsive<CssMaxHeight>;
+  height?: Responsive<CSS['height']>;
+  minHeight?: Responsive<CSS['minHeight']>;
+  maxHeight?: Responsive<CSS['maxHeight']>;
 
   border?: Responsive<BorderVariant>;
   borderTop?: Responsive<BorderVariant>;

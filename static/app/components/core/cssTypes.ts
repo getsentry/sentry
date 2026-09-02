@@ -48,10 +48,15 @@ type HeightUnit =
   | 'cqmin'
   | 'cqmax';
 
-export type CssWidth = BaseSize | `${number}${WidthUnit}` | Globals;
-export type CssMinWidth = CssWidth;
-export type CssMaxWidth = CssWidth | 'none';
-export type CssHeight = BaseSize | `${number}${HeightUnit}` | Globals;
-export type CssMinHeight = CssHeight;
-export type CssMaxHeight = CssHeight | 'none';
-export type CssInset = `${number}${HeightUnit}` | Globals | BaseDimension;
+type Width = BaseSize | `${number}${WidthUnit}` | Globals;
+type Height = BaseSize | `${number}${HeightUnit}` | Globals;
+
+export type CSS = {
+  height: Height;
+  inset: `${number}${HeightUnit}` | Globals | BaseDimension;
+  maxHeight: Height | 'none';
+  maxWidth: Width | 'none';
+  minHeight: Height;
+  minWidth: Width;
+  width: Width;
+};

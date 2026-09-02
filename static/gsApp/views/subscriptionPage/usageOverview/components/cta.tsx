@@ -4,7 +4,7 @@ import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import type {CssHeight} from '@sentry/scraps/cssTypes';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -43,7 +43,7 @@ function Cta({
   subtitle: React.ReactNode;
   title: React.ReactNode;
   buttons?: React.ReactNode;
-  heightOverride?: CssHeight;
+  heightOverride?: CSS['height'];
   icon?: React.ReactNode;
 } & ({image: string; imageAlt: string} | {image?: never; imageAlt?: never})) {
   return (

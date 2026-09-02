@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import type {CssMaxWidth} from '@sentry/scraps/cssTypes';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -25,7 +25,7 @@ interface CreditCardPanelProps {
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
-  maxPanelWidth?: CssMaxWidth;
+  maxPanelWidth?: CSS['maxWidth'];
   shouldExpandInitially?: boolean;
 }
 
