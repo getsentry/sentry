@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -104,7 +105,7 @@ function HeaderFields({children}: RequiredChildren) {
   );
 }
 
-function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
+function Body({children, maxWidth}: RequiredChildren & {maxWidth?: CSS['maxWidth']}) {
   return (
     <Stack
       flexGrow={1}
@@ -121,7 +122,7 @@ function Body({children, maxWidth}: RequiredChildren & {maxWidth?: string}) {
 
 interface FooterProps extends RequiredChildren {
   label?: string;
-  maxWidth?: string;
+  maxWidth?: CSS['maxWidth'];
 }
 
 function Footer({children, label, maxWidth}: FooterProps) {

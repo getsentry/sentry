@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -34,7 +35,7 @@ export function BillingDetailsPanel({
   organization: Organization;
   subscription: Subscription;
   analyticsEvent?: GetsentryEventKey;
-  maxPanelWidth?: string;
+  maxPanelWidth?: CSS['maxWidth'];
   shouldExpandInitially?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);

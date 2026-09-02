@@ -429,6 +429,36 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Teapot (GPU crash dump symbolication service)
+register(
+    "teapot.enabled",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Tight timeout: decode is sub-second, so a slow teapot should fail fast.
+register(
+    "teapot.timeout-seconds",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Retries only on transient 5xx; low so a slow teapot can't pile up work.
+register(
+    "teapot.max-attempts",
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# After `error_limit` failures in `error_limit_window`s, skip teapot for
+# `broken_state_duration`s so an outage can't back up the GPU pool.
+register(
+    "teapot.circuit-breaker-config",
+    default={
+        "error_limit_window": 60,
+        "error_limit": 20,
+        "broken_state_duration": 60,
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
 # it break everywhere.
@@ -1548,6 +1578,12 @@ register(
 # 0.0 or no config means no load shedding.
 register(
     "store.load-shed-symbolicate-event-projects",
+    type=Any,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.load-shed-gpu-crash-projects",
     type=Any,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
