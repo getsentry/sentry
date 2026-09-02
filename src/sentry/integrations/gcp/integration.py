@@ -22,7 +22,13 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gcp.client import delete_sentry_sa, generate_sentry_sa
-from sentry.integrations.gcp.utils import GCP_MCP_URLS, validate_gcp_project_id
+from sentry.integrations.gcp.utils import (
+    GCP_MCP_URLS,
+    GCP_STATUS_UNVERIFIED,
+    parse_customer_sa_email,
+    parse_gcp_project_ids,
+    validate_gcp_project_id,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -222,8 +228,8 @@ class GcpIntegration(IntegrationInstallation):
                 "type": "string",
                 "label": _("Sentry Service Account"),
                 "help": _(
-                    "Auto-generated service account in the sentry-connectors project. "
-                    "Your customer SA must grant this account the "
+                    "A service account that Sentry has auto-generated for you. "
+                    "Your service account must grant this account the "
                     "roles/iam.serviceAccountTokenCreator role."
                 ),
                 "disabled": True,
@@ -234,19 +240,17 @@ class GcpIntegration(IntegrationInstallation):
                 "type": "string",
                 "label": _("Customer Service Account"),
                 "help": _(
-                    "Your GCP service account that the Sentry SA impersonates. "
-                    "It must have viewer roles on the configured projects."
+                    "Your GCP service account that the Sentry service account impersonates. "
+                    "It must have viewer roles on the connected projects."
                 ),
-                "disabled": True,
-                "disabledReason": _("To update, uninstall and re-install the integration."),
+                "required": True,
             },
             {
                 "name": "projects",
                 "type": "string",
                 "label": _("GCP Project IDs"),
-                "help": _("Comma-separated list of GCP project IDs."),
-                "disabled": True,
-                "disabledReason": _("To update, uninstall and re-install the integration."),
+                "help": _("Comma-separated list of IDs for connected GCP projects."),
+                "required": True,
             },
         ]
 
@@ -258,10 +262,49 @@ class GcpIntegration(IntegrationInstallation):
             "sentry_sa_email": config.get("sentry_sa_email", ""),
             "customer_sa_email": config.get("customer_sa_email", ""),
             "projects": ", ".join(config.get("projects", [])),
+            "connection_status": config.get("connection_status", GCP_STATUS_UNVERIFIED),
+            "project_statuses": config.get("project_statuses", []),
+            "last_verified_at": config.get("last_verified_at"),
         }
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        pass
+        config = self.gcp_config
+        if config is None or not config.get("projects"):
+            raise IntegrationConfigurationError("GCP integration is not configured.")
+
+        new_config: GcpConfig = cast(GcpConfig, dict(config))
+        changed = False
+
+        if "customer_sa_email" in data:
+            customer_sa_email = parse_customer_sa_email(data["customer_sa_email"])
+            if customer_sa_email != config.get("customer_sa_email"):
+                new_config["customer_sa_email"] = customer_sa_email
+                changed = True
+
+        if "projects" in data:
+            projects = parse_gcp_project_ids(data["projects"])
+            if set(projects) != set(config.get("projects", [])):
+                new_config["projects"] = projects
+                changed = True
+
+        if not changed:
+            return
+
+        new_config["connection_status"] = GCP_STATUS_UNVERIFIED
+        new_config["project_statuses"] = [
+            {
+                "gcp_project_id": project_id,
+                "connection_status": GCP_STATUS_UNVERIFIED,
+                "error_detail": None,
+            }
+            for project_id in new_config["projects"]
+        ]
+        new_config["last_verified_at"] = None
+
+        integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=dict(new_config),
+        )
 
     def get_client(self) -> Any:
         raise NotImplementedError

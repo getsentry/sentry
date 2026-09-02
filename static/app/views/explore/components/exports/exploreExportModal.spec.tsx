@@ -226,6 +226,35 @@ describe('ExploreExportModal', () => {
     expect(config.localDownload).not.toHaveBeenCalled();
   });
 
+  it('routes to the server export when the config offers no local download', async () => {
+    const config = makeConfig({localDownload: undefined, localRowCount: undefined});
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
+    renderModal(config);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({limit: 500, query_type: 'Explore'}),
+        })
+      );
+    });
+    expect(config.trackExportSubmit).toHaveBeenCalledWith({
+      format: 'csv',
+      limit: 500,
+      isAllColumns: false,
+      exportType: 'export_download',
+    });
+  });
+
   it('hides the All Columns switch when not supported', async () => {
     renderModal(makeConfig({supportsAllColumns: false}));
 

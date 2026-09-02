@@ -154,6 +154,89 @@ class GithubSearchTest(APITestCase):
         assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
+    def test_prefetches_repo_results_with_empty_query(self) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories",
+            json={
+                "total_count": 2,
+                "repositories": [
+                    {"id": 1, "name": "example", "full_name": "test/example"},
+                    {"id": 2, "name": "other", "full_name": "test/other"},
+                ],
+            },
+        )
+
+        resp = self.client.get(self.url, data={"field": "repo", "query": ""})
+
+        assert resp.status_code == 200
+        assert resp.data == [
+            {"value": "test/example", "label": "example"},
+            {"value": "test/other", "label": "other"},
+        ]
+
+    @responses.activate
+    def test_prefetch_repo_rate_limit(self) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/installation/repositories",
+            status=429,
+            json={"message": "API rate limit exceeded"},
+        )
+
+        resp = self.client.get(self.url, data={"field": "repo", "query": ""})
+
+        assert resp.status_code == 429
+        assert resp.data == {"detail": "Rate limit exceeded"}
+
+    @responses.activate
+    def test_prefetches_assignee_results(self) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/test/example/assignees",
+            json=[{"login": "octocat"}],
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == [
+            {"value": "", "label": "Unassigned"},
+            {"value": "octocat", "label": "octocat"},
+        ]
+
+    @responses.activate
+    def test_prefetches_label_results(self) -> None:
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/test/example/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "labels", "query": "", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 200
+        assert resp.data == [
+            {"value": "bug", "label": "bug"},
+            {"value": "enhancement", "label": "enhancement"},
+        ]
+
+    def test_rejects_invalid_repo_when_prefetching_fields(self) -> None:
+        resp = self.client.get(
+            self.url,
+            data={"field": "labels", "query": "", "repo": "invalid"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Invalid repository"}
+
+    @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_repo_search_validation_error(self, mock_record: MagicMock) -> None:
         responses.add(

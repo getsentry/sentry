@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type RefObject,
 } from 'react';
 import styled from '@emotion/styled';
@@ -902,7 +901,7 @@ function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | un
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{
-  margin: CSSProperties['margin'];
+  margin: string;
 }>`
   ${p => p.margin && `margin: ${p.margin}`};
 `;

@@ -349,6 +349,7 @@ export type SentryAppWebhookRequest = {
   responseCode: number;
   sentryAppSlug: string;
   webhookUrl: string;
+  durationMs?: number | null;
   error_id?: string | null;
   organization?: {
     id: number;
@@ -356,6 +357,7 @@ export type SentryAppWebhookRequest = {
     slug: string;
   };
   project_id?: number | null;
+  requestId?: string | null;
   request_body?: string | null;
   /**
    * Values of custom headers are masked before they reach the buffer, so only
@@ -363,6 +365,8 @@ export type SentryAppWebhookRequest = {
    */
   request_headers?: Record<string, string> | null;
   response_body?: string | null;
+  subjectId?: string | null;
+  subjectType?: string | null;
 };
 
 /**
@@ -462,6 +466,8 @@ interface CommonIntegration {
 }
 
 export interface Integration extends CommonIntegration {
+  /** OAuth scopes from provider metadata. Always sent; null when unused (e.g. GitHub). */
+  scopes: string[] | null;
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -472,7 +478,6 @@ export interface Integration extends CommonIntegration {
   };
   // Present on OrganizationIntegration; for GitHub this is the App installation id.
   externalId?: string;
-  scopes?: string[];
 }
 
 type ConfigData = Record<string, unknown> & {
@@ -481,9 +486,10 @@ type ConfigData = Record<string, unknown> & {
 
 export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
-  configOrganization: JsonFormAdapterFieldConfig[];
   externalId: string;
-  organizationId: string;
+  organizationId: number;
+  /** Omitted when the list endpoint is fetched with includeConfig=0. */
+  configOrganization?: JsonFormAdapterFieldConfig[];
 }
 
 // we include the configOrganization when we need it

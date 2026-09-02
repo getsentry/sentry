@@ -12,6 +12,7 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.integrations.jira.utils.api import handle_issue_moved
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -104,6 +105,9 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             return self.respond()
 
         try:
+            # Rekey first: a move that also changes status or assignee arrives as one
+            # webhook, and the handlers below look the issue up by its new key.
+            handle_issue_moved(integration, data)
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
