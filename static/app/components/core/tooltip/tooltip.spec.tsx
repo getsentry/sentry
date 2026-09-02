@@ -248,7 +248,9 @@ describe('Tooltip', () => {
       const rules = getEmotionRules(await showTooltip()).join('');
 
       expect(rules).toMatch(
-        />\s*\[data-tooltip-section\]\s*{[^}]*margin-inline:\s*calc\(-1 \*/
+        new RegExp(
+          `>\\s*\\[data-tooltip-section\\]\\s*{[^}]*margin-inline:\\s*calc\\(-${theme.space.lg}\\)`
+        )
       );
     });
 
@@ -259,7 +261,11 @@ describe('Tooltip', () => {
       expect(rules).toMatch(
         /\[data-tooltip-section\]\s*~\s*\[data-tooltip-section\]\s*{[^}]*margin-block-start:\s*0/
       );
-      expect(rules).toMatch(/:last-child\s*{[^}]*margin-block-end:\s*calc\(-1 \*/);
+      expect(rules).toMatch(
+        new RegExp(
+          `:last-child\\s*{[^}]*margin-block-end:\\s*calc\\(-${theme.space.md}\\)`
+        )
+      );
     });
 
     it('does not depend on a section being the overlay first child', async () => {
