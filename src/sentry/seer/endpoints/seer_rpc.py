@@ -85,6 +85,7 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
+    get_group_assignees,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -843,6 +844,7 @@ def deliver_feature_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None = None,
     error: str | None = None,
+    prompt_version: str | None = None,
 ) -> None:
     """Dispatch a feature result from Seer to the registered handler."""
     handler = DELIVERY_HANDLERS.get(feature_id)
@@ -858,7 +860,7 @@ def deliver_feature_result(
     except (TypeError, ValueError):
         raise ParseError("Invalid run uuid")
 
-    handler(organization_id, parsed_run_uuid, status, result, error)
+    handler(organization_id, parsed_run_uuid, status, result, error, prompt_version)
 
 
 def get_monitoring_provider_connections(
@@ -1017,6 +1019,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
     "get_team_members": seer_rpc(get_team_members),
+    "get_group_assignees": seer_rpc(get_group_assignees),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),

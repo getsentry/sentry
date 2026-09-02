@@ -68,6 +68,15 @@ const enrichedBooleanTags: TagCollection = {
   },
 };
 
+// Array attributes are keyed by their backend form and carry the array kind.
+const arrayTags: TagCollection = {
+  'tags[my.tags,array]': {
+    key: 'tags[my.tags,array]',
+    name: 'my.tags',
+    kind: FieldKind.ARRAY,
+  },
+};
+
 describe('ColumnEditorModal', () => {
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
@@ -421,6 +430,67 @@ describe('ColumnEditorModal', () => {
     const columns = screen.getAllByTestId('editor-column');
     expect(columns[0]).toHaveTextContent('span.is_segment');
     expect(columns[0]).toHaveTextContent('boolean');
+    expect(columns[1]).toHaveTextContent('id');
+    expect(columns[1]).toHaveTextContent('string');
+  });
+
+  it('displays array tags in column options with correct type', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+            arrayTags={arrayTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const column = screen.getByTestId('editor-column');
+    await userEvent.click(within(column).getByRole('button', {name: 'Column id string'}));
+
+    const columnOptions = await screen.findAllByRole('option');
+    const arrayOptions = columnOptions.filter(option =>
+      option.textContent?.includes('array')
+    );
+    expect(arrayOptions).toHaveLength(1);
+    expect(arrayOptions[0]).toHaveTextContent('my.tags');
+    expect(arrayOptions[0]).toHaveTextContent('array');
+  });
+
+  it('renders existing array column with correct type badge', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['tags[my.tags,array]', 'id']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+            arrayTags={arrayTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('editor-column');
+    expect(columns[0]).toHaveTextContent('my.tags');
+    expect(columns[0]).toHaveTextContent('array');
     expect(columns[1]).toHaveTextContent('id');
     expect(columns[1]).toHaveTextContent('string');
   });

@@ -13,6 +13,7 @@ import {
 import {API_ACCESS_SCOPE_DETAILS, type ApiAccessScope} from 'sentry/constants/scopes';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
@@ -101,7 +102,9 @@ function AgentWriteApprovalContent({
       const response = requestApproval
         ? await requestApproval(pendingApproval.sessionId, pendingApproval.requiredScopes)
         : await fetchMutation<AgentApprovalResponse>({
-            url: `/organizations/${organization.slug}/agent/approve/`,
+            url: getApiUrl('/organizations/$organizationIdOrSlug/agent/approve/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
             method: 'POST',
             data: {
               sessionId: pendingApproval.sessionId,

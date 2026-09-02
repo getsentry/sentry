@@ -118,6 +118,22 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_rejects_non_object_actions(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [None],
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -1382,6 +1398,59 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
+
+    def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.workflow.id)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+
+    def test_team_contributor_cannot_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
+
+    def test_team_admin_cannot_delete_detached_workflow(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
 
     def test_simple(self) -> None:
         with outbox_runner():

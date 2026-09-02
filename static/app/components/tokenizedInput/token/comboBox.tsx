@@ -188,7 +188,13 @@ export function ComboBox({
     [onInputBlur, shouldCloseOnInteractOutside, state]
   );
 
-  const isOpen = state.isOpen;
+  const totalOptions = items.reduce(
+    (acc, item) => acc + (itemIsSectionWithKey(item) ? item.options.length : 1),
+    0
+  );
+
+  // Showing the overlay with nothing to select renders as an empty grey bar
+  const isOpen = state.isOpen && totalOptions > hiddenOptions.size;
 
   const handleComboBoxKeyDown = useCallback(
     (evt: KeyboardEvent) => {

@@ -34,7 +34,6 @@ export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}:
         ...envColumn,
         {key: 'expectedAt', width: COL_WIDTH_UNDEFINED, name: t('Expected At')},
       ]}
-      columnSortBy={[]}
       grid={{
         renderBodyCell: (column, checkIn) => (
           <CheckInCell cellKey={column.key} project={project} checkIn={checkIn} />

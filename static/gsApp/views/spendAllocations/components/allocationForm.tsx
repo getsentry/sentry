@@ -12,7 +12,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -349,107 +349,119 @@ export function AllocationForm({
         </Container>
       </OffsetBody>
       <Container marginTop="xl">
-        <PanelTable headers={[<div key="summary">{t('Allocation Pool Summary')}</div>]}>
-          <div>
-            {showPrice ? (
-              <div>
-                <HalvedGrid>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    {t('Available Unconsumed Spend')}
-                  </Text>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    {displayPrice({
-                      cents: costPerItem * availableUnconsumedEvents,
-                    })}
-                  </Text>
-                </HalvedGrid>
-                <HalvedGrid>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    {t('Available Unallocated Spend')}
-                  </Text>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    {displayPrice({
-                      cents:
-                        costPerItem *
-                        (rootAllocation ? rootAllocation.reservedQuantity : 0),
-                    })}
-                  </Text>
-                </HalvedGrid>
-              </div>
-            ) : (
-              <div>
-                <HalvedGrid>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    {t('Available Unconsumed Events')}
-                  </Text>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    <Tooltip title={availableUnconsumedEvents}>
-                      {bigNumFormatter(availableUnconsumedEvents, 2, metricUnit)}
-                    </Tooltip>
-                  </Text>
-                </HalvedGrid>
-                <HalvedGrid>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    {t('Available Unallocated Events')}
-                  </Text>
-                  <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
-                    <Tooltip title={rootAllocation ? rootAllocation.reservedQuantity : 0}>
-                      {bigNumFormatter(
-                        rootAllocation ? rootAllocation.reservedQuantity : 0,
-                        2,
-                        metricUnit
-                      )}
-                    </Tooltip>
-                  </Text>
-                </HalvedGrid>
-              </div>
-            )}
-            {initializedData && !showPrice && (
-              <Fragment>
-                <HalvedGrid>
-                  <div>{t('Current Allocation:')}</div>
-                  <div>
-                    {bigNumFormatter(initializedData.reservedQuantity, metricUnit)}
-                  </div>
-                </HalvedGrid>
-                <HalvedGrid>
-                  <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
-                    {t('Current Project Consumption:')}
-                  </Text>
-                  <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
-                    {bigNumFormatter(initializedData.consumedQuantity, metricUnit)}
-                  </Text>
-                </HalvedGrid>
-              </Fragment>
-            )}
-            {initializedData && showPrice && (
-              <Fragment>
-                <HalvedGrid>
-                  <div>{t('Current Allocation')}</div>
-                  <div>
-                    {displayPrice({
-                      cents:
-                        initializedData.costPerItem * initializedData.reservedQuantity,
-                      formatBigNum: true,
-                    })}
-                  </div>
-                </HalvedGrid>
-                <HalvedGrid>
-                  <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
-                    {t('Consumed Spend')}
-                  </Text>
-                  <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
-                    {displayPrice({
-                      cents:
-                        initializedData.costPerItem * initializedData.consumedQuantity,
-                      formatBigNum: true,
-                    })}
-                  </Text>
-                </HalvedGrid>
-              </Fragment>
-            )}
-          </div>
-        </PanelTable>
+        <SimpleTable
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>
+                {t('Allocation Pool Summary')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          <SimpleTable.Row>
+            <SimpleTable.RowCell direction="column" align="stretch">
+              {showPrice ? (
+                <div>
+                  <HalvedGrid>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      {t('Available Unconsumed Spend')}
+                    </Text>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      {displayPrice({
+                        cents: costPerItem * availableUnconsumedEvents,
+                      })}
+                    </Text>
+                  </HalvedGrid>
+                  <HalvedGrid>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      {t('Available Unallocated Spend')}
+                    </Text>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      {displayPrice({
+                        cents:
+                          costPerItem *
+                          (rootAllocation ? rootAllocation.reservedQuantity : 0),
+                      })}
+                    </Text>
+                  </HalvedGrid>
+                </div>
+              ) : (
+                <div>
+                  <HalvedGrid>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      {t('Available Unconsumed Events')}
+                    </Text>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      <Tooltip title={availableUnconsumedEvents}>
+                        {bigNumFormatter(availableUnconsumedEvents, 2, metricUnit)}
+                      </Tooltip>
+                    </Text>
+                  </HalvedGrid>
+                  <HalvedGrid>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      {t('Available Unallocated Events')}
+                    </Text>
+                    <Text variant={exhaustedEvents ? 'danger' : 'primary'}>
+                      <Tooltip
+                        title={rootAllocation ? rootAllocation.reservedQuantity : 0}
+                      >
+                        {bigNumFormatter(
+                          rootAllocation ? rootAllocation.reservedQuantity : 0,
+                          2,
+                          metricUnit
+                        )}
+                      </Tooltip>
+                    </Text>
+                  </HalvedGrid>
+                </div>
+              )}
+              {initializedData && !showPrice && (
+                <Fragment>
+                  <HalvedGrid>
+                    <div>{t('Current Allocation:')}</div>
+                    <div>
+                      {bigNumFormatter(initializedData.reservedQuantity, metricUnit)}
+                    </div>
+                  </HalvedGrid>
+                  <HalvedGrid>
+                    <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
+                      {t('Current Project Consumption:')}
+                    </Text>
+                    <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
+                      {bigNumFormatter(initializedData.consumedQuantity, metricUnit)}
+                    </Text>
+                  </HalvedGrid>
+                </Fragment>
+              )}
+              {initializedData && showPrice && (
+                <Fragment>
+                  <HalvedGrid>
+                    <div>{t('Current Allocation')}</div>
+                    <div>
+                      {displayPrice({
+                        cents:
+                          initializedData.costPerItem * initializedData.reservedQuantity,
+                        formatBigNum: true,
+                      })}
+                    </div>
+                  </HalvedGrid>
+                  <HalvedGrid>
+                    <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
+                      {t('Consumed Spend')}
+                    </Text>
+                    <Text variant={overConsumedEvents ? 'danger' : 'primary'}>
+                      {displayPrice({
+                        cents:
+                          initializedData.costPerItem * initializedData.consumedQuantity,
+                        formatBigNum: true,
+                      })}
+                    </Text>
+                  </HalvedGrid>
+                </Fragment>
+              )}
+            </SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable>
       </Container>
       <Footer>
         <Grid flow="column" align="center" gap="md">

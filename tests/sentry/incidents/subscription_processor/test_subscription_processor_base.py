@@ -202,7 +202,6 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         with (
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:visibility-explore-view",
                 ]
@@ -228,7 +227,6 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
         with (
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:visibility-explore-view",
                 ]
@@ -264,7 +262,6 @@ class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
         with (
             self.feature(
                 [
-                    "organizations:incidents",
                     "organizations:performance-view",
                     "organizations:visibility-explore-view",
                 ]

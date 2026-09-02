@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -8,11 +7,12 @@ import {Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Select} from '@sentry/scraps/select';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {DateTime} from 'sentry/components/dateTime';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -40,6 +40,13 @@ const avatarStyle = {
   height: 36,
   marginRight: 8,
 };
+
+const AUDIT_LOG_COLUMNS: TableColumnConfig[] = [
+  {key: 'member', width: 'auto'},
+  {key: 'action', width: 'auto'},
+  {key: 'ip', width: 'auto'},
+  {key: 'time', width: 'auto'},
+];
 
 const getAvatarDisplay = (logEntryUser: User | undefined) => {
   // Display Sentry's avatar for system or superuser-initiated events
@@ -351,52 +358,62 @@ export function AuditLogList({
   return (
     <div>
       <SettingsPageHeader title={t('Audit Log')} action={headerActions} />
-      <PanelTable
-        headers={[t('Member'), t('Action'), t('IP'), t('Time')]}
-        isEmpty={!hasEntries && entries?.length === 0}
-        emptyMessage={t('No audit entries available')}
-        isLoading={isLoading}
+      <SimpleTable
+        columns={AUDIT_LOG_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Member')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Action')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('IP')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Time')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        {(entries ?? []).map(entry => {
-          if (!entry) {
-            return null;
-          }
-          return (
-            <Fragment key={entry.id}>
-              <UserInfo>
-                <div>{getAvatarDisplay(entry.actor)}</div>
-                <Stack justify="center">
-                  {addUsernameDisplay(entry.actor)}
-                  <AuditNote entry={entry} orgSlug={organization.slug} />
-                </Stack>
-              </UserInfo>
-              <Flex align="center">
-                <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
-              </Flex>
-              <Flex align="center">
-                {entry.ipAddress && (
-                  <IpAddressOverflow>
-                    <Tooltip
-                      title={entry.ipAddress}
-                      disabled={entry.ipAddress.length <= ipv4Length}
-                    >
-                      <MonoDetail>{entry.ipAddress}</MonoDetail>
-                    </Tooltip>
-                  </IpAddressOverflow>
-                )}
-              </Flex>
-              <TimestampInfo>
-                <DateTime dateOnly date={entry.dateCreated} />
-                <DateTime
-                  timeOnly
-                  format={is24Hours ? 'HH:mm z' : 'LT z'}
-                  date={entry.dateCreated}
-                />
-              </TimestampInfo>
-            </Fragment>
-          );
-        })}
-      </PanelTable>
+        {isLoading && <SimpleTable.Loading />}
+        {!isLoading && !hasEntries && entries?.length === 0 && (
+          <SimpleTable.Empty>{t('No audit entries available')}</SimpleTable.Empty>
+        )}
+        {!isLoading &&
+          (entries ?? []).map(entry => {
+            if (!entry) {
+              return null;
+            }
+            return (
+              <SimpleTable.Row key={entry.id}>
+                <UserInfo>
+                  <div>{getAvatarDisplay(entry.actor)}</div>
+                  <Stack justify="center">
+                    {addUsernameDisplay(entry.actor)}
+                    <AuditNote entry={entry} orgSlug={organization.slug} />
+                  </Stack>
+                </UserInfo>
+                <SimpleTable.RowCell>
+                  <MonoDetail>{getTypeDisplay(entry.event)}</MonoDetail>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  {entry.ipAddress && (
+                    <IpAddressOverflow>
+                      <Tooltip
+                        title={entry.ipAddress}
+                        disabled={entry.ipAddress.length <= ipv4Length}
+                      >
+                        <MonoDetail>{entry.ipAddress}</MonoDetail>
+                      </Tooltip>
+                    </IpAddressOverflow>
+                  )}
+                </SimpleTable.RowCell>
+                <TimestampInfo>
+                  <DateTime dateOnly date={entry.dateCreated} />
+                  <DateTime
+                    timeOnly
+                    format={is24Hours ? 'HH:mm z' : 'LT z'}
+                    date={entry.dateCreated}
+                  />
+                </TimestampInfo>
+              </SimpleTable.Row>
+            );
+          })}
+      </SimpleTable>
       {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
     </div>
   );
@@ -414,7 +431,7 @@ const EventSelector = styled(Select)`
   width: 250px;
 `;
 
-const UserInfo = styled('div')`
+const UserInfo = styled(SimpleTable.RowCell)`
   display: flex;
   align-items: center;
   line-height: 1.2;
@@ -442,7 +459,7 @@ const MonoDetail = styled('code')`
   white-space: no-wrap;
 `;
 
-const TimestampInfo = styled('div')`
+const TimestampInfo = styled(SimpleTable.RowCell)`
   display: grid;
   grid-template-rows: auto auto;
   gap: ${p => p.theme.space.md};

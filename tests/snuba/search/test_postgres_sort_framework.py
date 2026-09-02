@@ -360,7 +360,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
         # not the postgres-only shortcut that skips type-visibility filtering. The chunked
         # path calls snuba_search; the shortcut does not.
         with (
-            _patch_pg_strategies({"test_sort": _ts_strategy()}),
+            _patch_pg_strategies({"postgres_only": _ts_strategy()}),
             override_options({"snuba.search.max-pre-snuba-candidates": 0}),
             mock.patch.object(
                 PostgresSnubaQueryExecutor,
@@ -368,7 +368,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
             ) as snuba_spy,
         ):
-            list(self.make_query("test_sort"))
+            list(self.make_query("postgres_only"))
         assert snuba_spy.called
 
     def test_overflow_with_date_key_skips_shortcut(self):
@@ -389,11 +389,10 @@ class TestFallbackBehavior(PostgresSortTestBase):
         assert snuba_spy.called
 
     def test_overflow_with_postgres_only_key_falls_back_to_date(self):
-        # "inbox" is in sort_strategies but maps to "" (a Postgres-only sort with no Snuba
-        # aggregation). On overflow the fallback must rewrite it to `date` rather than flow
-        # the empty sort_field into the Snuba aggregation lookup (which would KeyError).
+        # A Postgres-only sort with no Snuba aggregation must fall back to `date` on
+        # overflow rather than flow an empty sort field into the aggregation lookup.
         with (
-            _patch_pg_strategies({"inbox": _ts_strategy()}),
+            _patch_pg_strategies({"postgres_only": _ts_strategy()}),
             override_options({"snuba.search.max-pre-snuba-candidates": 0}),
             mock.patch.object(
                 PostgresSnubaQueryExecutor,
@@ -401,7 +400,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 return_value=([(g.id, 1) for g in self.groups], len(self.groups)),
             ) as snuba_spy,
         ):
-            list(self.make_query("inbox"))
+            list(self.make_query("postgres_only"))
         assert snuba_spy.call_args.kwargs["sort_field"] == "last_seen"
 
     def test_unregistered_sort_uses_snuba_path(self):

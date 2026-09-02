@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -33,7 +34,9 @@ export function SaveConversationQueryButton() {
       saveQuery: async (name, starred) => {
         const {datetime, projects, environments} = selection;
         const response = await api.requestPromise(
-          `/organizations/${organization.slug}/explore/saved/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {
             method: 'POST',
             data: {

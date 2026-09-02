@@ -29,12 +29,12 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
@@ -96,11 +96,11 @@ export interface TraceWaterfallProps {
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
   const api = useApi();
+  const routerLocation = useLocation();
   const navigate = useNavigate();
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
 
   const isEAP = useIsEAPTraceEnabled();
 
@@ -370,6 +370,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     (node: BaseNode): Promise<BaseNode | null> => {
       return onScrollToNode(node).then(maybeNode => {
         if (maybeNode) {
+          if (traceStateRef.current.preferences.drawer.minimized) {
+            traceDispatch({type: 'minimize drawer', payload: false});
+          }
           setRowAsFocused(
             maybeNode,
             null,
@@ -382,7 +385,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         return maybeNode;
       });
     },
-    [onScrollToNode, setRowAsFocused]
+    [onScrollToNode, setRowAsFocused, traceDispatch]
   );
 
   useEffect(() => {
@@ -581,6 +584,67 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     tree: props.tree,
   });
 
+  const handledZoomQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    const query = qs.parse(routerLocation.search);
+    if (typeof query.zoomToNode !== 'string') {
+      handledZoomQueryRef.current = null;
+      return;
+    }
+
+    if (
+      onLoadScrollStatus !== 'success' ||
+      handledZoomQueryRef.current === routerLocation.search
+    ) {
+      return;
+    }
+    handledZoomQueryRef.current = routerLocation.search;
+
+    const node = props.tree.root.findChild(candidate =>
+      candidate.matchByPath(query.zoomToNode as TraceTree.NodePath)
+    );
+
+    const {
+      zoomToNode: _zoomToNode,
+      zoomToTimestamp: _zoomToTimestamp,
+      zoomToVital: _zoomToVital,
+      ...nextQuery
+    } = query;
+    navigate(
+      {
+        pathname: routerLocation.pathname,
+        query: nextQuery,
+      },
+      {replace: true}
+    );
+
+    if (!node) {
+      return;
+    }
+
+    void onTabScrollToNode(node);
+    const timestamp =
+      typeof query.zoomToTimestamp === 'string'
+        ? Number.parseFloat(query.zoomToTimestamp)
+        : Number.NaN;
+    if (Number.isFinite(timestamp)) {
+      viewManager.onZoomToVital(
+        timestamp,
+        typeof query.zoomToVital === 'string' ? query.zoomToVital : `${timestamp}`
+      );
+    } else {
+      viewManager.onZoomIntoSpace(node.space);
+    }
+  }, [
+    navigate,
+    onLoadScrollStatus,
+    onTabScrollToNode,
+    props.tree,
+    routerLocation.pathname,
+    routerLocation.search,
+    viewManager,
+  ]);
+
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
     return {search: traceState.search.query};
@@ -692,7 +756,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   // On the standalone trace page these two moved into the page-title crumb.
   // Embedded waterfalls (issues, replay) have no such crumb, so they keep them.
-  const showToolbarTraceActions = !(props.source === 'performance' && hasNewBreadcrumbs);
+  const showToolbarTraceActions = props.source !== 'performance';
 
   return (
     <Stack flex={1}>
@@ -746,6 +810,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
                 rerender={rerender}
                 trace_id={waterfallTraceId}
                 onRowClick={onRowClick}
+                onScrollToNode={onTabScrollToNode}
                 onTraceSearch={onTraceSearch}
                 previouslyFocusedNodeRef={previouslyFocusedNodeRef}
                 manager={viewManager}

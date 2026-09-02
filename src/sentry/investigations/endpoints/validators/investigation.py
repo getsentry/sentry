@@ -5,6 +5,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.investigations.endpoints.validators.orchestration import validate_agentic_source
 from sentry.investigations.models import InvestigationStatus
 
 
@@ -12,7 +13,7 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
     title = serializers.CharField(max_length=255, required=False)
     template_key = serializers.CharField(max_length=128, required=False)
     template_version = serializers.IntegerField(min_value=1, required=False)
-    source_ref = serializers.JSONField(required=False)
+    source = serializers.JSONField(required=False)  # type: ignore[assignment]
     parameters = serializers.JSONField(required=False)
     project_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False)
     filters = serializers.JSONField(required=False)
@@ -20,15 +21,16 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         has_key = "template_key" in attrs
         has_version = "template_version" in attrs
+        has_source = "source" in attrs
         if has_key != has_version:
             raise serializers.ValidationError(
                 {"template_key": "templateKey and templateVersion must be provided together."}
             )
         if has_key:
-            if "source_ref" not in attrs:
-                raise serializers.ValidationError({"source_ref": "This field is required."})
-            if not isinstance(attrs["source_ref"], dict):
-                raise serializers.ValidationError({"source_ref": "Must be an object."})
+            if "source" not in attrs:
+                raise serializers.ValidationError({"source": "This field is required."})
+            if not isinstance(attrs["source"], dict):
+                raise serializers.ValidationError({"source": "Must be an object."})
             if not isinstance(attrs.get("parameters", {}), dict):
                 raise serializers.ValidationError({"parameters": "Must be an object."})
             forbidden = set(attrs).intersection({"project_ids", "filters"})
@@ -36,10 +38,16 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
                 raise serializers.ValidationError(
                     {field: "Template creation controls this field." for field in forbidden}
                 )
+        elif has_source:
+            validate_agentic_source(attrs["source"])
+            if "parameters" in attrs:
+                raise serializers.ValidationError(
+                    {"parameters": "Agentic investigations do not use template parameters."}
+                )
         else:
             if "title" not in attrs:
                 raise serializers.ValidationError({"title": "This field is required."})
-            forbidden = set(attrs).intersection({"source_ref", "parameters"})
+            forbidden = set(attrs).intersection({"parameters"})
             if forbidden:
                 raise serializers.ValidationError(
                     {field: "Requires a template." for field in forbidden}
@@ -52,6 +60,17 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
     def validate_filters(self, value: Any) -> dict[str, Any]:
         if not isinstance(value, dict):
             raise serializers.ValidationError("Must be an object.")
+        return value
+
+
+class InvestigationCandidatesValidator(StrictCamelSnakeValidator):
+    template_key = serializers.CharField(max_length=128)
+    template_version = serializers.IntegerField(min_value=1)
+    sources = serializers.ListField(child=serializers.JSONField(), min_length=1, max_length=100)
+
+    def validate_sources(self, value: list[Any]) -> list[dict[str, Any]]:
+        if not all(isinstance(source, dict) for source in value):
+            raise serializers.ValidationError("Each source must be an object.")
         return value
 
 

@@ -11,6 +11,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
@@ -37,7 +38,9 @@ export function SetupIntentForm(props: IntentFormProps) {
     mutationFn: ({paymentMethod}: {paymentMethod: string | PaymentMethod | null}) =>
       fetchMutation<Subscription>({
         method: 'PUT',
-        url: `/customers/${organization.slug}/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {
           paymentMethod,
           ftcConsentLocation,

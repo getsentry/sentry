@@ -14,15 +14,17 @@ interface UseResetAutofixStepOptions {
   section: AutofixSection;
   step: AutofixExplorerStep;
   canReset?: boolean;
+  initialShouldShowReset?: boolean;
 }
 
 export function useResetAutofixStep({
   autofix,
   canReset,
+  initialShouldShowReset = false,
   section,
   step,
 }: UseResetAutofixStepOptions) {
-  const [shouldShowReset, setShouldShowReset] = useState(false);
+  const [shouldShowReset, setShouldShowReset] = useState(initialShouldShowReset);
 
   const {runState, startStep} = autofix;
   const runId = getAutofixRunId(runState);

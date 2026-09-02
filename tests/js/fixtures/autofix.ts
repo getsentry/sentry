@@ -21,6 +21,7 @@ export function ExplorerAutofixFixture(
     isLoading: false,
     isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
     ...params,
   };
 }

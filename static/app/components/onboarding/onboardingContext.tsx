@@ -17,6 +17,8 @@ type OnboardingContextProps = {
   setAgentSetupProjectBaseline: (
     baseline?: OnboardingSessionState['agentSetupProjectBaseline']
   ) => void;
+  setAgenticProgressClientRunId: (clientRunId?: string) => void;
+  setAgenticProgressOnboardingCode: (onboardingCode?: string) => void;
   setCreatedProjectSlug: (slug?: string) => void;
   setMessagingSetup: (messagingSetup: ScmMessagingSetup) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
@@ -24,6 +26,8 @@ type OnboardingContextProps = {
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
   setSelectedRepository: (repo?: Repository) => void;
   agentSetupProjectBaseline?: OnboardingSessionState['agentSetupProjectBaseline'];
+  agenticProgressClientRunId?: string;
+  agenticProgressOnboardingCode?: string;
   createdProjectSlug?: string;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
@@ -38,6 +42,8 @@ type OnboardingSessionState = {
     organizationId: string;
     projectIds: string[];
   };
+  agenticProgressClientRunId?: string;
+  agenticProgressOnboardingCode?: string;
   createdProjectSlug?: string;
   messagingSetup?: ScmMessagingSetup;
   selectedFeatures?: ProductSolution[];
@@ -64,6 +70,10 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setMessagingSetup: () => {},
   agentSetupProjectBaseline: undefined,
   setAgentSetupProjectBaseline: () => {},
+  agenticProgressClientRunId: undefined,
+  setAgenticProgressClientRunId: () => {},
+  agenticProgressOnboardingCode: undefined,
+  setAgenticProgressOnboardingCode: () => {},
   clearDerivedState: () => {},
   resetOnboarding: () => {},
   discardOnboardingSession: () => {},
@@ -137,6 +147,14 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
         agentSetupProjectBaseline?: OnboardingSessionState['agentSetupProjectBaseline']
       ) => {
         setOnboarding(prev => ({...prev, agentSetupProjectBaseline}));
+      },
+      agenticProgressClientRunId: onboarding?.agenticProgressClientRunId,
+      setAgenticProgressClientRunId: (agenticProgressClientRunId?: string) => {
+        setOnboarding(prev => ({...prev, agenticProgressClientRunId}));
+      },
+      agenticProgressOnboardingCode: onboarding?.agenticProgressOnboardingCode,
+      setAgenticProgressOnboardingCode: (agenticProgressOnboardingCode?: string) => {
+        setOnboarding(prev => ({...prev, agenticProgressOnboardingCode}));
       },
       // Clear state derived from the selected repository (platform, features,
       // created project) without wiping the entire session. Use this when the

@@ -57,16 +57,74 @@ function parseArgs(): Options {
   return opts;
 }
 
-const isAny = (type: ts.Type, typeChecker: ts.TypeChecker) => {
+function getTypeParameters(type: ts.Type): readonly ts.TypeParameterDeclaration[] {
+  const symbol = type.aliasSymbol ?? type.symbol;
+  const declaration = symbol?.declarations?.find(
+    node =>
+      ts.isClassDeclaration(node) ||
+      ts.isInterfaceDeclaration(node) ||
+      ts.isTypeAliasDeclaration(node)
+  );
+  return declaration?.typeParameters ?? [];
+}
+
+function hasAnyTypeArgument(
+  typeArguments: readonly ts.Type[],
+  typeParameters: readonly ts.TypeParameterDeclaration[],
+  typeChecker: ts.TypeChecker
+): boolean {
+  return typeArguments.some((typeArgument, index) => {
+    if (!(typeArgument.flags & ts.TypeFlags.Any)) {
+      return false;
+    }
+
+    const defaultType = typeParameters[index]?.default;
+    return (
+      !defaultType ||
+      !(typeChecker.getTypeFromTypeNode(defaultType).flags & ts.TypeFlags.Any)
+    );
+  });
+}
+
+function hasDirectAnyTypeArgument(type: ts.Type, typeChecker: ts.TypeChecker): boolean {
+  if (type.aliasTypeArguments) {
+    return hasAnyTypeArgument(
+      type.aliasTypeArguments,
+      getTypeParameters(type),
+      typeChecker
+    );
+  }
+
+  if (
+    type.flags & ts.TypeFlags.Object &&
+    (type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference
+  ) {
+    const reference = type as ts.TypeReference;
+    return hasAnyTypeArgument(
+      typeChecker.getTypeArguments(reference),
+      getTypeParameters(reference.target),
+      typeChecker
+    );
+  }
+
+  return false;
+}
+
+const isAny = (type: ts.Type, typeChecker: ts.TypeChecker): boolean => {
   if (type.flags & ts.TypeFlags.Any) {
     return true;
   }
-  const typeText = typeChecker.typeToString(type);
-  if (typeText === 'any') {
+
+  if (hasDirectAnyTypeArgument(type, typeChecker)) {
     return true;
   }
-  // Check for 'any' within generic types like Record<string, any>, Array<any>, etc.
-  return /\bany\b/.test(typeText);
+
+  // Check union members after direct arguments to support aliases like Maybe<any>.
+  if (type.isUnionOrIntersection()) {
+    return type.types.some(member => isAny(member, typeChecker));
+  }
+
+  return false;
 };
 
 function hasExplicitType(
@@ -132,11 +190,7 @@ function isContextuallyTypedCallbackParam(
     return false;
   }
 
-  const paramType = typeChecker.getTypeOfSymbolAtLocation(
-    sig.parameters[paramIndex]!,
-    param
-  );
-  return !isAny(paramType, typeChecker);
+  return true;
 }
 
 type AnyHit = {
@@ -187,12 +241,11 @@ function recordNonNull(
   hits: NonNullHit[],
   sourceFile: ts.SourceFile,
   node: ts.Node,
-  kind: NonNullHit['kind'],
-  codeNode?: ts.Node
+  kind: NonNullHit['kind']
 ) {
   const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
-  const code = textPreview((codeNode ?? node).getText(sourceFile));
+  const code = textPreview(node.getText(sourceFile));
   hits.push({
     file: relPath,
     line: pos.line + 1,
@@ -207,12 +260,11 @@ function recordTypeAssertion(
   sourceFile: ts.SourceFile,
   node: ts.Node,
   kind: TypeAssertionHit['kind'],
-  targetType: string,
-  codeNode?: ts.Node
+  targetType: string
 ) {
   const pos = ts.getLineAndCharacterOfPosition(sourceFile, node.getStart(sourceFile));
   const relPath = path.relative(process.cwd(), sourceFile.fileName);
-  const code = textPreview((codeNode ?? node).getText(sourceFile));
+  const code = textPreview(node.getText(sourceFile));
   hits.push({
     file: relPath,
     line: pos.line + 1,
@@ -223,9 +275,13 @@ function recordTypeAssertion(
   });
 }
 
-function textPreview(s: string, max = 80) {
+const TEXT_PREVIEW_MAX_LENGTH = 80;
+
+function textPreview(s: string) {
   const one = s.replace(/\s+/g, ' ').trim();
-  return one.length <= max ? one : one.slice(0, max - 1) + '…';
+  return one.length <= TEXT_PREVIEW_MAX_LENGTH
+    ? one
+    : one.slice(0, TEXT_PREVIEW_MAX_LENGTH - 1) + '…';
 }
 
 function countBindingPatternElements(
@@ -260,7 +316,14 @@ function countBindingPatternElements(
       const parentType = parentDeclaration
         ? typeChecker.getTypeAtLocation(parentDeclaration)
         : undefined;
-      if (parentType && !isAny(parentType, typeChecker)) {
+      const isContextuallyTyped =
+        parentDeclaration &&
+        parentKind === 'param(binding)' &&
+        ts.isParameter(parentDeclaration) &&
+        !hasExplicitType(parentDeclaration) &&
+        isContextuallyTypedCallbackParam(parentDeclaration, typeChecker);
+
+      if ((parentType && !isAny(parentType, typeChecker)) || isContextuallyTyped) {
         typed = true;
       }
     } else if (
@@ -277,8 +340,8 @@ function countBindingPatternElements(
       );
 
       if (
-        (hasParentExplicitType || isContextuallyTyped) &&
-        !isAny(parentType, typeChecker)
+        (hasParentExplicitType && !isAny(parentType, typeChecker)) ||
+        (!hasParentExplicitType && isContextuallyTyped)
       ) {
         typed = true;
       }

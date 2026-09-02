@@ -44,6 +44,29 @@ describe('initializeSdk', () => {
       })
     );
   });
+
+  it('ignores the ECharts tooltip error thrown when a chart replaces its series', () => {
+    initializeSdk({
+      ...window.__initialData,
+      apmSampling: 1,
+      sentryConfig: {
+        allowUrls: [],
+        dsn: '',
+        release: '',
+        tracePropagationTargets: [],
+      },
+    });
+
+    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
+    const message =
+      "TypeError: Cannot read properties of undefined (reading 'getDataParams')";
+
+    expect(
+      ignoreErrors.some(pattern =>
+        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
+      )
+    ).toBe(true);
+  });
 });
 
 describe('isFilteredRequestErrorEvent', () => {

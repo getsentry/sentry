@@ -31,6 +31,14 @@ export function getWidgetConfigError(
       : t('The widget configuration is not valid. Please add a "Visualize" field.');
   }
 
+  if (
+    widget.widgetType === WidgetType.TRACEMETRICS &&
+    widget.displayType === DisplayType.TABLE &&
+    widget.queries.every(q => q.aggregates.length === 0)
+  ) {
+    return t('This widget is missing a metric aggregation to visualize.');
+  }
+
   // Trace-metric widgets encode the metric in the aggregate; if it doesn't resolve,
   // nothing can render (applies to every display type, including heat maps).
   if (widget.widgetType === WidgetType.TRACEMETRICS && hasUnresolvedTraceMetric(widget)) {

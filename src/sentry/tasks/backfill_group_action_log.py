@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime
 
 from django.utils import timezone
@@ -11,6 +12,7 @@ from sentry.issues.action_log.backfill import (
     bulk_insert_action_log_entries,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -18,7 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_long_tasks, issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import (
@@ -32,14 +34,13 @@ _TASK_KEY = "backfill_group_action_log_for_project"
 _COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
 _ENROLLMENT_TASK_KEY = "enroll_projects_for_group_action_log_backfill"
 _ORGANIZATION_ENROLLMENT_TASK_KEY = "enroll_organization_projects_for_group_action_log_backfill"
-GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
-
 _GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_group",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
 def backfill_group_action_log_for_group(
@@ -81,7 +82,8 @@ def backfill_group_action_log_for_group(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.reset_and_backfill_group_action_log",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
 def reset_and_backfill_group_action_log(
@@ -121,7 +123,8 @@ def reset_and_backfill_group_action_log(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_project",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
@@ -376,8 +379,9 @@ def _complete_project_backfill(project: Project, chain_pr_lifecycle: bool) -> No
         "sentry.tasks.backfill_group_action_log."
         "enroll_organization_projects_for_group_action_log_backfill"
     ),
-    namespace=issues_tasks,
-    processing_deadline_duration=15 * 60,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def enroll_organization_projects_for_group_action_log_backfill(
@@ -424,10 +428,12 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
     projects = list(
         Project.objects.filter(
-            organization_id=organization_id,
+            organization=organization,
             status=ObjectStatus.ACTIVE,
             id__gt=last_project_id,
-        ).order_by("id")[:batch_size]
+        )
+        .select_related("organization")
+        .order_by("id")[:batch_size]
     )
     if not projects:
         logger.info(
@@ -436,20 +442,8 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
-    feature_results = features.batch_has(
-        [_GROUP_ACTION_LOG_WRITE_FEATURE],
-        projects=projects,
-        organization=organization,
-    )
-    if feature_results is None:
-        raise RuntimeError("Unable to evaluate group action log write feature")
-
     eligible_project_ids = [
-        project.id
-        for project in projects
-        if feature_results.get(f"project:{project.id}", {}).get(
-            _GROUP_ACTION_LOG_WRITE_FEATURE, False
-        )
+        project.id for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
     ]
 
     # Track missing rows so we only invalidate caches for newly enrolled projects.
@@ -508,8 +502,9 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.enroll_projects_for_group_action_log_backfill",
-    namespace=issues_tasks,
-    processing_deadline_duration=15 * 60,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def enroll_projects_for_group_action_log_backfill(
@@ -584,8 +579,9 @@ def enroll_projects_for_group_action_log_backfill(
 
 @instrumented_task(
     name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_all_projects",
-    namespace=issues_tasks,
-    processing_deadline_duration=15 * 60,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
 def backfill_group_action_log_for_all_projects(
@@ -596,6 +592,14 @@ def backfill_group_action_log_for_all_projects(
     """Dispatch project backfills in batches for projects explicitly marked with a false backfill option."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
+    logger.info(
+        "backfill_group_action_log.coordinator.started",
+        extra={
+            "activation_id": activation_id,
+            "last_project_option_id": last_project_option_id,
+            "project_reset": project_reset,
+        },
+    )
     if activation_id and already_spawned(_COORDINATOR_TASK_KEY, activation_id):
         logger.info(
             "backfill_group_action_log.coordinator.duplicate_redelivery.skipped",
@@ -620,15 +624,30 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
+    logger.info(
+        "backfill_group_action_log.coordinator.query_started",
+        extra={
+            "batch_size": batch_size,
+            "last_project_option_id": last_project_option_id,
+        },
+    )
+    query_started_at = time.monotonic()
     project_options = list(
         ProjectOption.objects.filter(
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
             value=False,
-            project__status=ObjectStatus.ACTIVE,
             id__gt=last_project_option_id,
         )
         .order_by("id")
         .values_list("id", "project_id")[:batch_size]
+    )
+    logger.info(
+        "backfill_group_action_log.coordinator.query_completed",
+        extra={
+            "duration_ms": (time.monotonic() - query_started_at) * 1000,
+            "incomplete_option_count": len(project_options),
+            "option_count": len(project_options),
+        },
     )
 
     if not project_options:
@@ -638,6 +657,10 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
+    logger.info(
+        "backfill_group_action_log.coordinator.dispatch_started",
+        extra={"project_count": len(project_options)},
+    )
     for _, project_id in project_options:
         backfill_group_action_log_for_project.apply_async(
             kwargs={
@@ -655,6 +678,7 @@ def backfill_group_action_log_for_all_projects(
             "first_project_option_id": project_options[0][0],
             "last_project_option_id": project_options[-1][0],
             "project_reset": project_reset,
+            "project_count": len(project_options),
         },
     )
 
@@ -666,6 +690,10 @@ def backfill_group_action_log_for_all_projects(
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
+        )
+        logger.info(
+            "backfill_group_action_log.coordinator.self_chain_scheduled",
+            extra={"last_project_option_id": project_options[-1][0]},
         )
         if activation_id:
             mark_spawned(_COORDINATOR_TASK_KEY, activation_id)

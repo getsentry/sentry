@@ -11,7 +11,6 @@ import {EmailField, type EmailFieldProps} from './fields/emailField';
 import {FileField, type FileFieldProps} from './fields/fileField';
 import {HiddenField, type HiddenFieldProps} from './fields/hiddenField';
 import {NumberField, type NumberFieldProps} from './fields/numberField';
-import {ProjectMapperField, type ProjectMapperProps} from './fields/projectMapperField';
 import {RadioField, type RadioFieldProps} from './fields/radioField';
 import {RangeField, type RangeFieldProps} from './fields/rangeField';
 import {SecretField, type SecretFieldProps} from './fields/secretField';
@@ -79,8 +78,6 @@ export function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement
       throw new Error('Invalid `choices` type. Use an array of options');
     case 'table':
       return <TableField {...(componentProps as TableFieldProps)} />;
-    case 'project_mapper':
-      return <ProjectMapperField {...(componentProps as ProjectMapperProps)} />;
     case 'file':
       return <FileField {...(componentProps as FileFieldProps)} />;
     case 'datetime':

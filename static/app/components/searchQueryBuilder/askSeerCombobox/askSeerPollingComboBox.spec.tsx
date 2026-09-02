@@ -49,9 +49,9 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
-function renderPollingComboBox(features: string[], withFeedback = true) {
+function renderPollingComboBox(withFeedback = true) {
   const {organization} = initializeOrg({
-    organization: {features, hideAiFeatures: false},
+    organization: {features: ['gen-ai-features'], hideAiFeatures: false},
   });
 
   render(
@@ -87,17 +87,8 @@ describe('AskSeerPollingComboBox loading state', () => {
     });
   });
 
-  it('preserves the existing loading experience when the rework is disabled', async () => {
-    renderPollingComboBox(['gen-ai-features']);
-    await submitQuery();
-
-    expect(await screen.findByText("I'm on it...")).toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
-  });
-
-  it('shows the single loading status when the rework is enabled', async () => {
-    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+  it('shows the loading status', async () => {
+    renderPollingComboBox();
     await submitQuery();
 
     expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
@@ -110,31 +101,6 @@ describe('AskSeerPollingComboBox results', () => {
   beforeEach(() => {
     destroyAnnouncer();
     MockApiClient.clearMockResponses();
-  });
-
-  it('preserves the results prompt when the rework is disabled', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/search-agent/start/',
-      method: 'POST',
-      body: {run_id: 123},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/search-agent/state/123/',
-      body: {
-        session: {
-          status: 'completed',
-          current_step: null,
-          completed_steps: [],
-          final_response: {query: 'span.duration:>30s'},
-        },
-      },
-    });
-    renderPollingComboBox(['gen-ai-features']);
-
-    await submitQuery();
-
-    expect(await screen.findByText('Filter')).toBeInTheDocument();
-    expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
   });
 
   it('regenerates results when feedback is unavailable', async () => {
@@ -155,10 +121,7 @@ describe('AskSeerPollingComboBox results', () => {
         },
       },
     });
-    const {organization} = renderPollingComboBox(
-      ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
-      false
-    );
+    const {organization} = renderPollingComboBox(false);
 
     await submitQuery();
     const regenerateButton = await screen.findByRole('button', {
@@ -187,7 +150,7 @@ describe('AskSeerPollingComboBox results', () => {
     });
   });
 
-  it('shows result feedback in the reworked footer', async () => {
+  it('shows result feedback in the footer', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',
@@ -204,7 +167,7 @@ describe('AskSeerPollingComboBox results', () => {
         },
       },
     });
-    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+    renderPollingComboBox();
 
     await submitQuery();
 
@@ -235,7 +198,7 @@ describe('AskSeerPollingComboBox results', () => {
     });
     const {organization} = initializeOrg({
       organization: {
-        features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        features: ['gen-ai-features'],
         hideAiFeatures: false,
       },
     });
@@ -305,7 +268,7 @@ describe('AskSeerPollingComboBox error state', () => {
         },
       },
     });
-    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+    renderPollingComboBox();
 
     await submitQuery();
 
@@ -318,33 +281,5 @@ describe('AskSeerPollingComboBox error state', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
 
     await waitFor(() => expect(startRequest).toHaveBeenCalledTimes(2));
-  });
-
-  it('preserves the legacy error state when the rework is disabled', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/search-agent/start/',
-      method: 'POST',
-      body: {run_id: 123},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/search-agent/state/123/',
-      body: {
-        session: {
-          status: 'error',
-          current_step: null,
-          completed_steps: [],
-        },
-      },
-    });
-    renderPollingComboBox(['gen-ai-features']);
-
-    await submitQuery();
-
-    expect(
-      await screen.findByText('Seer failed to process your search. Please try again.')
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('img', {name: 'Error'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Try again'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 });

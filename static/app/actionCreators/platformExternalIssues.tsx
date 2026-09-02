@@ -1,4 +1,5 @@
 import type {Client} from 'sentry/api';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export async function deleteExternalIssue(
   api: Client,
@@ -7,7 +8,16 @@ export async function deleteExternalIssue(
   externalIssueId: string
 ) {
   return await api.requestPromise(
-    `/organizations/${orgSlug}/issues/${groupId}/external-issues/${externalIssueId}/`,
+    getApiUrl(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/$externalIssueId/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          issueId: groupId,
+          externalIssueId,
+        },
+      }
+    ),
     {method: 'DELETE'}
   );
 }

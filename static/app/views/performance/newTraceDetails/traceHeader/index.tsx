@@ -1,19 +1,14 @@
 import {Container} from '@sentry/scraps/layout';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {Highlights} from 'sentry/views/performance/newTraceDetails/traceHeader/highlights';
@@ -24,7 +19,6 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
 
-import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {Meta} from './meta';
 import {Title} from './title';
 import {TraceBreadcrumbs} from './traceBreadcrumbs';
@@ -47,13 +41,9 @@ const traceViewFeedbackOptions = {
 };
 
 export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
-  const location = useLocation();
   const logsEnabled = isLogsEnabled(props.organization);
   const metricsEnabled = canUseMetricsUI(props.organization);
-  const {view} = useDomainViewFilters();
-  const moduleURLBuilder = useModuleURLBuilder(true);
   const {projects} = useProjects();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const {hasLogs, hasMetrics} = useTraceContextSections({
     tree: props.tree,
     logs: props.overview.logs.representative,
@@ -99,27 +89,12 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent gap="xs">
-        {hasNewBreadcrumbs ? (
-          <TraceBreadcrumbs
-            organization={props.organization}
-            traceSlug={props.traceSlug}
-            project={project}
-            rootEventResults={props.rootEventResults}
-          />
-        ) : (
-          <TopBar.Slot name="title">
-            <Breadcrumbs
-              crumbs={getTraceViewBreadcrumbs({
-                organization: props.organization,
-                location,
-                moduleURLBuilder,
-                traceSlug: props.traceSlug,
-                project,
-                view,
-              })}
-            />
-          </TopBar.Slot>
-        )}
+        <TraceBreadcrumbs
+          organization={props.organization}
+          traceSlug={props.traceSlug}
+          project={project}
+          rootEventResults={props.rootEventResults}
+        />
         <TopBar.Slot name="feedback">
           <FeedbackButton
             feedbackOptions={traceViewFeedbackOptions}

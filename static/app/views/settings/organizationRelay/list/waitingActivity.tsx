@@ -1,8 +1,8 @@
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {CommandLine} from 'sentry/components/commandLine';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {Panel} from 'sentry/components/panels/panel';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
@@ -13,7 +13,7 @@ type Props = {
 
 export function WaitingActivity({onRefresh, disabled}: Props) {
   return (
-    <Panel>
+    <Container background="primary" border="primary" radius="md" position="relative">
       <EmptyMessage
         title={t('Waiting on Activity!')}
         action={
@@ -28,6 +28,6 @@ export function WaitingActivity({onRefresh, disabled}: Props) {
               commandLine: <CommandLine>{'relay run'}</CommandLine>,
             })}
       </EmptyMessage>
-    </Panel>
+    </Container>
   );
 }
