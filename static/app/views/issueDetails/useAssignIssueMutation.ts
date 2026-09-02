@@ -14,7 +14,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
-export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
+type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
 type AssignIssueVariables = {
   actor: Pick<Actor, 'id' | 'type'> | null;
