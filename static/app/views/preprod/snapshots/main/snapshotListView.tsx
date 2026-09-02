@@ -213,6 +213,32 @@ export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[]
   return rows;
 }
 
+export interface RowIndex {
+  firstRowByItemKey: Map<string, number>;
+  order: string[];
+  positionByKey: Map<string, number>;
+  rowIndexByKey: Map<string, number>;
+}
+
+export function buildRowIndex(rows: ListRow[]): RowIndex {
+  const order: string[] = [];
+  const positionByKey = new Map<string, number>();
+  const rowIndexByKey = new Map<string, number>();
+  const firstRowByItemKey = new Map<string, number>();
+  rows.forEach((row, rowIdx) => {
+    if (!firstRowByItemKey.has(row.itemKey)) {
+      firstRowByItemKey.set(row.itemKey, rowIdx);
+    }
+    if (row.kind === 'card') {
+      const key = snapshotKeyFor(row.card);
+      positionByKey.set(key, order.length);
+      order.push(key);
+      rowIndexByKey.set(key, rowIdx);
+    }
+  });
+  return {order, positionByKey, rowIndexByKey, firstRowByItemKey};
+}
+
 function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {

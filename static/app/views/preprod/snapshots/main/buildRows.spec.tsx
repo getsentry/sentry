@@ -1,6 +1,6 @@
 import type {SidebarItem, SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {buildRows} from './snapshotListView';
+import {buildRowIndex, buildRows} from './snapshotListView';
 
 const mockZoom = {
   containerRef: {current: null},
@@ -102,5 +102,41 @@ describe('buildRows', () => {
     // CARD_CHROME_HEIGHT (120) + min(aspectHeight, MAX_IMAGE_HEIGHT); 320<=900 => 180.
     // Single card is also last-in-group, so ROW_PADDING_BOTTOM (16) is added.
     expect(cardRow.estimatedHeight).toBe(120 + 180 + 16);
+  });
+});
+
+describe('buildRowIndex', () => {
+  it('maps keys to card ordinals and row indices', () => {
+    const rows = buildRows(
+      [
+        {
+          key: 'changed:Screens',
+          name: 'Screens',
+          displayName: 'Screens',
+          type: 'changed',
+          pairs: [
+            {
+              base_image: image({image_file_name: 'a.base.png'}),
+              head_image: image({image_file_name: 'a.png'}),
+              diff: null,
+              diff_image_key: null,
+            },
+            {
+              base_image: image({image_file_name: 'b.base.png'}),
+              head_image: image({image_file_name: 'b.png'}),
+              diff: null,
+              diff_image_key: null,
+            },
+          ],
+        },
+      ],
+      900
+    );
+    const idx = buildRowIndex(rows);
+    expect(idx.order).toEqual(['a.png', 'b.png']); // per-card ordinal order
+    expect(idx.positionByKey.get('b.png')).toBe(1);
+    expect(idx.rowIndexByKey.get('a.png')).toBe(1); // row 0 is the header
+    expect(idx.rowIndexByKey.get('b.png')).toBe(2);
+    expect(idx.firstRowByItemKey.get('changed:Screens')).toBe(0); // header row
   });
 });
