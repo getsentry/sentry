@@ -812,7 +812,7 @@ export function ResultGrid({
             never renders above the results, so nothing moves while the probe runs. */}
         {probe.probingRegions && <RegionHintNote>Checking other regions…</RegionHintNote>}
         {hasSearch && (
-          <Flex align="center" gap="xs" width="100%">
+          <Flex align="center" gap="xs" flex="1" minWidth="240px">
             <SearchInput
               type="text"
               placeholder="Search"
