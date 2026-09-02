@@ -72,7 +72,7 @@ export function getErrorsQueryHref(
 
 const AGGREGATE_FIELD_PATTERN = /\(.*\)/;
 
-export function isAggregateFieldName(field: string): boolean {
+function isAggregateFieldName(field: string): boolean {
   return AGGREGATE_FIELD_PATTERN.test(field);
 }
 
