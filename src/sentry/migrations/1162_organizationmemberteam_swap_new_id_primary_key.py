@@ -128,7 +128,7 @@ class Migration(CheckedMigration):
     atomic = True
 
     dependencies = [
-        ("sentry", "1160_create_deletion_watermark"),
+        ("sentry", "1161_drop_organizationmapping_require_email_verification_pending"),
     ]
 
     operations = [

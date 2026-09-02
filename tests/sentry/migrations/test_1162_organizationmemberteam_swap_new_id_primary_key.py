@@ -75,7 +75,7 @@ def next_sequence_value():
 
 
 def assert_identity_id():
-    # Rolling 1161 back always restores an identity, so this shape needs no reshaping.
+    # Rolling 1162 back always restores an identity, so this shape needs no reshaping.
     assert id_is_identity()
 
 
@@ -96,8 +96,8 @@ def force_sequence_backed_id():
 
 class SwapOrganizationMemberTeamNewIdPrimaryKeyTest(TestMigrations):
     app = "sentry"
-    migrate_from = "1160_create_deletion_watermark"
-    migrate_to = "1161_organizationmemberteam_swap_new_id_primary_key"
+    migrate_from = "1161_drop_organizationmapping_require_email_verification_pending"
+    migrate_to = "1162_organizationmemberteam_swap_new_id_primary_key"
 
     def prepare_id_shape(self):
         assert_identity_id()
