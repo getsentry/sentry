@@ -672,7 +672,6 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
       await userEvent.click(
         await screen.findByRole('button', {name: /Set up manually instead/})
       );
@@ -687,10 +686,8 @@ describe('Onboarding', () => {
       );
     });
 
-    it('shows the agent setup on start click without leaving welcome', async () => {
+    it('opens on the agent setup rather than the product interstitial', async () => {
       const {router} = renderOnboarding('welcome');
-
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(
         await screen.findByText('npx @sentry/agent-plugin install')
@@ -698,19 +695,20 @@ describe('Onboarding', () => {
       expect(
         screen.getByRole('button', {name: /Set up manually instead/})
       ).toBeInTheDocument();
+      // The product list and its "get started" button belong to the paths that
+      // still show an interstitial.
+      expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
+      expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
+      // Capabilities live behind the hovercard, so they stay hidden until hover.
       expect(
         screen.queryByText('Detect your framework and language')
       ).not.toBeInTheDocument();
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'onboarding.scm_welcome_present_agentic_interstitial_clicked',
-        expect.objectContaining({organization: scmOrganization})
-      );
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );
     });
 
-    it('preloads agent setup while the welcome screen is visible', async () => {
+    it('initializes the agentic run exactly once on welcome mount', async () => {
       renderOnboarding('welcome');
 
       await waitFor(() => expect(agenticRunRequestMock).toHaveBeenCalledTimes(1));
@@ -718,8 +716,6 @@ describe('Onboarding', () => {
 
     it('replaces setup instructions with agent progress', async () => {
       renderOnboarding('welcome');
-
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(
         await screen.findByText('npx @sentry/agent-plugin install')
@@ -795,7 +791,6 @@ describe('Onboarding', () => {
     it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
       await userEvent.click(
         await screen.findByRole('button', {name: /Set up manually instead/})
       );
