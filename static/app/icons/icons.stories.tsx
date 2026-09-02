@@ -1927,7 +1927,7 @@ function Section(props: CategorySectionProps) {
         columns={{
           zero: 'repeat(2, 1fr)',
           sm: 'repeat(3, 1fr)',
-          '4xl': 'repeat(4, 1fr)',
+          xl: 'repeat(4, 1fr)',
         }}
         align="center"
         gap="md"
