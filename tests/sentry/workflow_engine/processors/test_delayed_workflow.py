@@ -753,6 +753,43 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         assert artifact.outcome == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
         assert len(artifact.filter_evaluations) == 1
 
+    def test_outcome_does_not_leak_across_same_group_events(self) -> None:
+        when_dcg = self.workflow1.when_condition_group
+        assert when_dcg is not None
+        event_data = EventRedisData(
+            events={
+                EventKey(
+                    workflow_id=self.workflow1.id,
+                    group_id=self.group1.id,
+                    when_dcg_id=when_dcg.id,
+                    if_dcg_ids=frozenset(),
+                    passing_dcg_ids=frozenset({self.workflow1_if_dcgs[1].id}),
+                    original_key="triggering-event",
+                ): EventInstance(event_id="triggering-event"),
+                EventKey(
+                    workflow_id=self.workflow1.id,
+                    group_id=self.group1.id,
+                    when_dcg_id=when_dcg.id,
+                    if_dcg_ids=frozenset(),
+                    passing_dcg_ids=frozenset(),
+                    original_key="non-triggering-event",
+                ): EventInstance(event_id="non-triggering-event"),
+            }
+        )
+
+        eval_result = get_groups_to_fire(
+            self.data_condition_groups,
+            self.workflows_to_envs,
+            event_data,
+            self.condition_group_results,
+            get_slow_conditions_for_groups(list(event_data.dcg_ids)),
+        )
+
+        assert {artifact.event_id: artifact.outcome for artifact in eval_result.artifacts} == {
+            "triggering-event": WorkflowEvaluationOutcome.ACTIONS_TRIGGERED,
+            "non-triggering-event": WorkflowEvaluationOutcome.NO_ACTIONS,
+        }
+
     def test_missing_query_result_excludes_group(self) -> None:
         existing_query = UniqueConditionQuery(
             handler=EventUniqueUserFrequencyQueryHandler, interval="1h", environment_id=None

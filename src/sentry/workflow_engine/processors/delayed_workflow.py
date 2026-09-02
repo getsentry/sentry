@@ -654,6 +654,7 @@ def get_groups_to_fire(
         evaluated_workflow_ids.add(workflow_id)
         workflow_env = workflows_to_envs[workflow_id]
         filter_evaluations: list[DataConditionGroupEvaluation] = []
+        actions_triggered = False
         # When there is no WHEN group, treat the workflow as triggered with no taint.
         # This is the identity element for the taint-aware AND (`.all`) below.
         when_evaluation = DataConditionGroupEvaluation(
@@ -717,6 +718,7 @@ def get_groups_to_fire(
                     untainted += 1
 
                 if if_triggered:
+                    actions_triggered = True
                     groups_to_fire[group_id].add(dcg)
                     if_dcg_passed[workflow_id][group_id][dcg.id] = [
                         pc.condition.id for pc in if_group.data["condition_evaluations"]
@@ -732,6 +734,7 @@ def get_groups_to_fire(
                 else:
                     untainted += 1
 
+                actions_triggered = True
                 groups_to_fire[group_id].add(dcg)
                 if_dcg_passed[workflow_id][group_id][dcg.id] = [
                     c.id for c in dcg_to_slow_conditions.get(dcg.id, [])
@@ -745,7 +748,7 @@ def get_groups_to_fire(
             outcome = WorkflowEvaluationOutcome.ERROR
         elif not when_evaluation.triggered:
             outcome = WorkflowEvaluationOutcome.NOT_TRIGGERED
-        elif if_dcg_passed[workflow_id].get(group_id):
+        elif actions_triggered:
             outcome = WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
         else:
             outcome = WorkflowEvaluationOutcome.NO_ACTIONS
