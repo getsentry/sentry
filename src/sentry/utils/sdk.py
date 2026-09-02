@@ -405,6 +405,8 @@ def configure_sdk():
     if internal_project_key and internal_project_key.dsn_private:
         sentry_sdk.init(
             dsn=internal_project_key.dsn_private,
+            integrations=integrations,
+            disabled_integrations=disabled_integrations,
             **sdk_options,
         )
 
