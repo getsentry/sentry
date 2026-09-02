@@ -8,21 +8,27 @@ import responses
 from django.test import RequestFactory, override_settings
 from pytest import raises
 
+from sentry.net.http import BlacklistAdapter, SafeSession
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
 from sentry.silo.client import (
     CACHE_TIMEOUT,
+    CELL_SESSION_POOL_MAXSIZE,
     REQUEST_ATTEMPTS_LIMIT,
     CellSiloClient,
     SiloClientError,
+    close_cell_sessions,
     get_cell_ip_addresses,
+    get_cell_session,
     validate_cell_ip_address,
 )
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
+from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, CellResolutionError
 from sentry.utils import json
 
@@ -510,3 +516,77 @@ def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) ->
         # Ensure we log a single metric when IP resolution fails
         assert mock_incr.call_count == 1
         assert mock_incr.call_args.args[0] == "hybrid_cloud.silo_client.ip_address_resolution_error"
+
+
+def _cell_adapter(session: SafeSession, url: str) -> BlacklistAdapter:
+    adapter = session.get_adapter(url)
+    assert isinstance(adapter, BlacklistAdapter)
+    return adapter
+
+
+@control_silo_test
+class CellSessionTest(TestCase):
+    """Cell clients send on one process-wide session per cell and retry policy."""
+
+    def setUp(self) -> None:
+        self.cell = Cell("na", 1, "http://na.testserver")
+        self.other_cell = Cell("eu", 2, "http://eu.testserver")
+        self.cell_config = (self.cell, self.other_cell)
+
+    def test_clients_for_a_cell_share_one_session(self) -> None:
+        with override_cells(self.cell_config):
+            with CellSiloClient(self.cell).borrow_session() as first:
+                pass
+            with CellSiloClient(self.cell).borrow_session() as second:
+                pass
+            assert first is second
+            assert first is get_cell_session(self.cell, None)
+
+    def test_sessions_are_keyed_by_cell_and_retry_policy(self) -> None:
+        with (
+            override_cells(self.cell_config),
+            override_options({"hybridcloud.regionsiloclient.retries": 3}),
+        ):
+            plain = get_cell_session(self.cell, None)
+            assert get_cell_session(self.other_cell, None) is not plain
+
+            with CellSiloClient(self.cell, retry=True).borrow_session() as retrying:
+                pass
+            assert retrying is not plain
+            assert retrying is get_cell_session(self.cell, 3)
+            # requests' default policy never retries a POST; the cell policy does.
+            retrying_policy = _cell_adapter(retrying, "http://na.testserver").max_retries
+            assert retrying_policy.total == 3
+            assert retrying_policy.allowed_methods is not None
+            assert "POST" in retrying_policy.allowed_methods
+            plain_policy = _cell_adapter(plain, "http://na.testserver").max_retries
+            assert plain_policy.allowed_methods is not None
+            assert "POST" not in plain_policy.allowed_methods
+
+    def test_session_pool_is_sized_for_concurrent_deliveries(self) -> None:
+        with override_cells(self.cell_config):
+            session = get_cell_session(self.cell, None)
+            pool = _cell_adapter(session, "http://na.testserver").poolmanager.connection_from_url(
+                "http://na.testserver"
+            )
+            assert pool.pool is not None
+            assert pool.pool.maxsize == CELL_SESSION_POOL_MAXSIZE
+
+    @responses.activate
+    def test_request_leaves_the_shared_session_open(self) -> None:
+        with override_cells(self.cell_config):
+            responses.add(responses.GET, "http://na.testserver/api/0/imaginary/", json={})
+            session = get_cell_session(self.cell, None)
+            with patch.object(session, "close", wraps=session.close) as mock_close:
+                CellSiloClient(self.cell).request("GET", "/api/0/imaginary/")
+                CellSiloClient(self.cell).request("GET", "/api/0/imaginary/")
+            assert mock_close.call_count == 0
+            assert len(responses.calls) == 2
+
+    def test_close_cell_sessions_forgets_and_closes(self) -> None:
+        with override_cells(self.cell_config):
+            session = get_cell_session(self.cell, None)
+            with patch.object(session, "close", wraps=session.close) as mock_close:
+                close_cell_sessions()
+            assert mock_close.call_count == 1
+            assert get_cell_session(self.cell, None) is not session

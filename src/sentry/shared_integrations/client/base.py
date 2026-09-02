@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from contextlib import AbstractContextManager
 from types import TracebackType
 from typing import Any, Literal, NotRequired, Self, TypedDict, TypeVar, overload
 
@@ -188,6 +189,15 @@ class BaseApiClient:
         """
         return build_session()
 
+    def borrow_session(self) -> AbstractContextManager[SafeSession]:
+        """
+        The session one `_request` call sends on. By default that is a fresh
+        `build_session()` closed when the call ends, so its connection pool
+        never outlives the request. Clients that keep a session across calls
+        override this to hand out the shared one without closing it.
+        """
+        return self.build_session()
+
     @staticmethod
     def _normalize_cert_setting(cert_setting: object) -> str | tuple[str, str] | None:
         # ``requests`` accepts cert as None, a single cert path, or a
@@ -346,7 +356,7 @@ class BaseApiClient:
             extra["api_request_type"] = api_request_type_tag
 
         try:
-            with self.build_session() as session:
+            with self.borrow_session() as session:
                 finalized_request = self.finalize_request(_prepared_request)
                 self.set_proxy_request_options(finalized_request, timeout)
                 environment_settings = session.merge_environment_settings(

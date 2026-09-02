@@ -451,6 +451,12 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
 
+    # Shared cell sessions bind the IP check and cell set they were built
+    # under; a later test that patches either must get a fresh one.
+    from sentry.silo.client import close_cell_sessions
+
+    close_cell_sessions()
+
     sentry_sdk.get_global_scope().set_client(None)
 
 

@@ -3,7 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
+import threading
 from collections.abc import Mapping
+from contextlib import AbstractContextManager, nullcontext
 from hashlib import sha256
 from typing import Any
 
@@ -36,6 +38,12 @@ from sentry.utils import metrics
 
 REQUEST_ATTEMPTS_LIMIT = 10
 CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
+
+# Idle connections a process keeps open per cell. Slots are only taken when a
+# connection is returned, so an oversized pool costs nothing; an undersized one
+# makes every thread past the cap reconnect on each request. Sized above the
+# concurrent deliveries a webhook drain runs.
+CELL_SESSION_POOL_MAXSIZE = 32
 
 
 class SiloClientError(Exception):
@@ -94,6 +102,55 @@ def validate_cell_ip_address(ip: str) -> bool:
     if not result:
         sentry_sdk.capture_exception(CellResolutionError(f"Disallowed Cell Silo IP address: {ip}"))
     return result
+
+
+def _new_cell_session(retries: int | None) -> SafeSession:
+    max_retries = None
+    if retries is not None:
+        max_retries = Retry(
+            total=retries,
+            backoff_factor=0.1,
+            status_forcelist=[503],
+            allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+        )
+    return build_session(
+        is_ipaddress_permitted=validate_cell_ip_address,
+        max_retries=max_retries,
+        pool_maxsize=CELL_SESSION_POOL_MAXSIZE,
+    )
+
+
+_cell_sessions: dict[tuple[str, int | None], SafeSession] = {}
+_cell_sessions_lock = threading.Lock()
+
+
+def get_cell_session(cell: Cell, retries: int | None) -> SafeSession:
+    """
+    The process-wide session for requests to `cell`, created on first use.
+
+    Sharing it across `CellSiloClient` instances is what lets connections be
+    reused: a session closed after one request pools nothing. Threads are
+    free to send on it concurrently; urllib3 pools hand out one connection
+    per in-flight request. The retry policy is baked into a session's
+    adapter, so each policy gets its own. Cells get their own too, rather than
+    sharing one session's host pools, so a `PoolManager` LRU-evicting a
+    cell's pool cannot quietly bring back per-request connections.
+    """
+    key = (cell.name, retries)
+    with _cell_sessions_lock:
+        session = _cell_sessions.get(key)
+        if session is None:
+            session = _cell_sessions[key] = _new_cell_session(retries)
+    return session
+
+
+def close_cell_sessions() -> None:
+    """Close and forget every shared cell session. Tests reset with this."""
+    with _cell_sessions_lock:
+        sessions = list(_cell_sessions.values())
+        _cell_sessions.clear()
+    for session in sessions:
+        session.close()
 
 
 class CellSiloClient(BaseApiClient):
@@ -192,25 +249,26 @@ class CellSiloClient(BaseApiClient):
             timeout=timeout,
         )
 
+    def _retries(self) -> int | None:
+        if not self.retry:
+            return None
+        return options.get("hybridcloud.regionsiloclient.retries")
+
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to Cell Silo IP addresses.
         """
-        if not self.retry:
-            return build_session(
-                is_ipaddress_permitted=validate_cell_ip_address,
-            )
+        return _new_cell_session(self._retries())
 
-        return build_session(
-            is_ipaddress_permitted=validate_cell_ip_address,
-            max_retries=Retry(
-                total=options.get("hybridcloud.regionsiloclient.retries"),
-                backoff_factor=0.1,
-                status_forcelist=[503],
-                allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
-            ),
-        )
+    def borrow_session(self) -> AbstractContextManager[SafeSession]:
+        """
+        Send on the process-wide session for this cell instead of a fresh one
+        per request, and leave it open afterwards so its connections are there
+        for the next request. The cell IP check is bound to the session's
+        pools and runs on every new connection, reused session or not.
+        """
+        return nullcontext(get_cell_session(self.cell, self._retries()))
 
     def _get_hash_cache_key(self, hash: str) -> str:
         return f"region_silo_client:request_attempts:{hash}"
