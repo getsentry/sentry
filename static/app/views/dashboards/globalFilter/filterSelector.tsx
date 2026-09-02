@@ -321,7 +321,7 @@ export function FilterSelector({
     });
     // Filter values fetched using getTagValues
     fetchedFilterValues?.forEach(value =>
-      addOption(typeof value === 'string' ? value : String(value.value ?? ''), optionMap)
+      addOption(typeof value === 'string' ? value : value.value, optionMap)
     );
 
     // Allow setting a custom filter value based on search input
