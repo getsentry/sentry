@@ -42,6 +42,10 @@ describe('useReplayData', () => {
     jest.useFakeTimers();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
   });
 
   afterEach(() => {
@@ -102,7 +106,7 @@ describe('useReplayData', () => {
     );
   });
 
-  it('should stay pending until the projects store resolves the project slug', async () => {
+  it('should stay pending until the projects request resolves the project slug', async () => {
     const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
       count_errors: 0,
       count_segments: 0,
@@ -115,6 +119,14 @@ describe('useReplayData', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: []},
+    });
+    let resolveProjects = () => {};
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+      asyncDelay: new Promise<void>(resolve => {
+        resolveProjects = resolve;
+      }),
     });
     ProjectsStore.reset();
 
@@ -132,10 +144,45 @@ describe('useReplayData', () => {
 
     act(() => {
       ProjectsStore.loadInitialData([project]);
+      resolveProjects();
     });
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
     expect(result.current.projectSlug).toBe(project.slug);
+    expect(result.current.status).toBe('success');
+  });
+
+  it('should stop pending when the projects request fails', async () => {
+    const {mockReplayResponse, expectedReplay} = getMockReplayRecord({
+      count_errors: 0,
+      count_segments: 0,
+      error_ids: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
+      body: {data: mockReplayResponse},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+    ProjectsStore.reset();
+
+    const {result} = renderHookWithProviders(useReplayData, {
+      initialProps: {
+        replayId: mockReplayResponse.id,
+        orgSlug: organization.slug,
+      },
+    });
+
+    await waitFor(() => expect(result.current.replayRecord).toEqual(expectedReplay));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(result.current.projectSlug).toBeNull();
     expect(result.current.status).toBe('success');
   });
 
