@@ -117,4 +117,3 @@ class GetAggregationValueHelperTest(TestCase):
 
         assert get_aggregation_value_helper(self._update(True)) == 1.0
         assert get_aggregation_value_helper(self._update(False)) == 0.0
-
