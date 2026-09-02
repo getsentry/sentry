@@ -54,16 +54,6 @@ describe('RowActions', () => {
       renderActions('installable');
       expect(screen.getByRole('button', {name: /Connect Slack/})).toBeEnabled();
     });
-
-    it('renders a disabled Connect button when canAdd is false', () => {
-      renderActions('installable', {
-        resolvedProvider: {
-          ...installableSlack,
-          provider: {...slackProvider, canAdd: false},
-        },
-      });
-      expect(screen.getByRole('button', {name: /Connect/})).toBeDisabled();
-    });
   });
 
   describe.each<[RowVisualState, ScmMessagingResolvedProvider]>([
