@@ -14,7 +14,7 @@ import {
 import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
-import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import {OmittedFrames} from './omittedFrames';
 
@@ -31,9 +31,7 @@ type Props = {
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideSourceMapDebugger?: boolean;
-  isHoverPreviewed?: boolean;
   lockAddress?: string;
-  mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   threadId?: number;
 } & Partial<DefaultProps>;
@@ -46,7 +44,6 @@ export function Content({
   expandFirstFrame = true,
   platform,
   includeSystemFrames = true,
-  isHoverPreviewed = false,
   meta,
   threadId,
   lockAddress,
@@ -151,7 +148,7 @@ export function Content({
           },
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
-          isHoverPreviewed,
+          isHoverPreviewed: false,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
           isANR,
