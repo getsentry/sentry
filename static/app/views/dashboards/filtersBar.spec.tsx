@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
@@ -61,6 +61,49 @@ describe('FiltersBar', () => {
     expect(
       await screen.findByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ['Logs', 'logs'],
+    ['Spans', 'spans'],
+    ['Application Metrics', 'tracemetrics'],
+  ])('dynamically fetches %s filter keys when searched', async (dataset, itemType) => {
+    organization = OrganizationFixture({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'ourlogs-enabled',
+        'visibility-explore-view',
+      ],
+    });
+    const filterKey = `custom.searched.${itemType}`;
+    const searchRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [
+        {
+          attributeSource: {source_type: 'user'},
+          attributeType: 'string',
+          key: filterKey,
+          name: filterKey,
+        },
+      ],
+      match: [(_url, options) => Boolean(options.query?.substringMatch)],
+    });
+
+    renderFilterBar();
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    await userEvent.click(screen.getByRole('option', {name: dataset}));
+    await userEvent.type(screen.getByRole('textbox'), 'searched');
+
+    await waitFor(() =>
+      expect(searchRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/trace-items/attributes/',
+        expect.objectContaining({
+          query: expect.objectContaining({itemType, substringMatch: 'searched'}),
+        })
+      )
+    );
+    expect(await screen.findByRole('option', {name: filterKey})).toBeInTheDocument();
   });
 
   it('should render save button with unsaved changes', async () => {
@@ -293,6 +336,7 @@ const mockNetworkRequests = () => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
+    match: [(_url, options) => !options.query?.substringMatch],
   });
 
   const mockSearchResponse = [
