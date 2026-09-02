@@ -258,7 +258,7 @@ const commonTheme = {
   },
 
   ...typography,
-};
+} as const;
 
 export interface SentryTheme extends Omit<
   typeof lightThemeDefinition,

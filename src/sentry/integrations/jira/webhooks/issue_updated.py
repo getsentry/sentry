@@ -20,7 +20,12 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
-from ..utils import handle_assignee_change, handle_jira_api_error, handle_status_change
+from ..utils import (
+    handle_assignee_change,
+    handle_issue_moved,
+    handle_jira_api_error,
+    handle_status_change,
+)
 from .base import JiraWebhookBase
 
 logger = logging.getLogger(__name__)
@@ -84,10 +89,10 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
         # Temporary: when the linked org has the
         # `jira-issue-updated-payload-logging` feature enabled, log the full
-        # webhook payload so we can see exactly what Jira sends us (especially
-        # for `project` changes, which we want to use to update the linked
-        # Jira issue link in Sentry). Skip the check (and the log) for ambiguous
-        # multi-tenant Jira installations, where `org is None`.
+        # webhook payload so we can see exactly what Jira sends us. `handle_issue_moved`
+        # below now acts on the key change a `project` move carries; this stays on to
+        # confirm the payload shape against real installations. Skip the check (and the
+        # log) for ambiguous multi-tenant Jira installations, where `org is None`.
         #
         # This is purely diagnostic, so swallow any failure (including transient
         # RPC errors from the feature-flag check) rather than letting it skip
@@ -123,6 +128,9 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
             logger.info("jira.missing-changelog", extra={"integration_id": rpc_integration.id})
             return self.respond()
 
+        # Rekey first: a move that also changes status or assignee arrives as one
+        # webhook, and the handlers below look the issue up by its new key.
+        handle_issue_moved(rpc_integration, data)
         handle_assignee_change(rpc_integration, data, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE)
         handle_status_change(rpc_integration, data)
 

@@ -31,6 +31,11 @@ from taskbroker_client.task import Task
 from sentry import options
 from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.deletions.models.watermark import (
+    BaseDeletionWatermark,
+    CellDeletionWatermark,
+    ControlDeletionWatermark,
+)
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -40,6 +45,9 @@ from sentry.utils import json, metrics, redis
 TOMBSTONE_WATERMARK = "tombstone"
 ROW_WATERMARK = "row"
 WATERMARK_PREFIXES = (TOMBSTONE_WATERMARK, ROW_WATERMARK)
+
+WRITE_WATERMARK_TO_POSTGRES_OPTION = "hybrid_cloud.write_deletion_watermark_to_postgres"
+READ_WATERMARK_FROM_POSTGRES_OPTION = "hybrid_cloud.read_deletion_watermark_from_postgres"
 
 
 @dataclass
@@ -59,6 +67,21 @@ def get_watermark_key(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> st
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
+def _watermark_model(
+    field: HybridCloudForeignKey[Any, Any],
+) -> type[BaseDeletionWatermark]:
+    current_mode = SiloMode.get_current_mode()
+    if current_mode == SiloMode.CONTROL:
+        return ControlDeletionWatermark
+    if current_mode == SiloMode.CELL:
+        return CellDeletionWatermark
+
+    silo_limit = getattr(field.model._meta, "silo_limit", None)
+    if silo_limit is not None and silo_limit.modes == frozenset({SiloMode.CONTROL}):
+        return ControlDeletionWatermark
+    return CellDeletionWatermark
+
+
 def _write_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, transaction_id: str
 ) -> None:
@@ -75,19 +98,73 @@ def _write_watermark(
         ),
     )
 
+    # Dual-write deletion watermarks to Redis and Postgres
+    if options.get(WRITE_WATERMARK_TO_POSTGRES_OPTION):
+        try:
+            _watermark_model(field).objects.update_or_create(
+                prefix=prefix,
+                table_name=field.model._meta.db_table,
+                field_name=field.name,
+                defaults={"low_bound": value, "transaction_id": transaction_id},
+            )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+            metrics.incr(
+                "deletion.hybrid_cloud.watermark_dual_write_error",
+                tags=dict(
+                    field_name=f"{field.model._meta.db_table}.{field.name}",
+                    watermark=prefix,
+                ),
+                sample_rate=1.0,
+            )
 
-def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
-    client = _get_redis_client()
-    key = get_watermark_key(prefix, field)
-    v = client.get(key)
+
+def _watermark_row_lookup(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> dict[str, str]:
+    return dict(
+        prefix=prefix,
+        table_name=field.model._meta.db_table,
+        field_name=field.name,
+    )
+
+
+def _read_redis_watermark(
+    prefix: str, field: HybridCloudForeignKey[Any, Any]
+) -> tuple[int, str] | None:
+    v = _get_redis_client().get(get_watermark_key(prefix, field))
     if v is None:
-        result = (0, uuid4().hex)
-        _write_watermark(prefix, field, *result)
-        return result
+        return None
     lower, transaction_id = json.loads(v)
     if not (isinstance(lower, int) and isinstance(transaction_id, str)):
         raise TypeError("Expected watermarks data to be a tuple of (int, str)")
     return lower, transaction_id
+
+
+def _read_postgres_watermark(
+    prefix: str, field: HybridCloudForeignKey[Any, Any]
+) -> tuple[int, str] | None:
+    row = _watermark_model(field).objects.filter(**_watermark_row_lookup(prefix, field)).first()
+    if row is None:
+        return None
+    return row.low_bound, row.transaction_id
+
+
+def _postgres_is_source_of_truth() -> bool:
+    return bool(options.get(WRITE_WATERMARK_TO_POSTGRES_OPTION)) and bool(
+        options.get(READ_WATERMARK_FROM_POSTGRES_OPTION)
+    )
+
+
+def get_watermark(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> tuple[int, str]:
+    if _postgres_is_source_of_truth():
+        watermark = _read_postgres_watermark(prefix, field)
+    else:
+        watermark = _read_redis_watermark(prefix, field)
+
+    if watermark is None:
+        result = (0, uuid4().hex)
+        _write_watermark(prefix, field, *result)
+        return result
+    return watermark
 
 
 def set_watermark(
