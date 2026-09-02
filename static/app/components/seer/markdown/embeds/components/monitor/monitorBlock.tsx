@@ -39,7 +39,7 @@ const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> 
   issue_stream: IconTimer,
 };
 
-function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) {
+export function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
     {

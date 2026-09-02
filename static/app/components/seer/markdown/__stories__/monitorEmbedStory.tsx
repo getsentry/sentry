@@ -1,44 +1,38 @@
-import {useQuery} from '@tanstack/react-query';
+import {useState} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {Text} from '@sentry/scraps/text';
-
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {STORY_MONITOR_DETECTORS} from 'sentry/components/seer/markdown/embeds/components/monitor/fixtures';
+import {monitorDetailsApiOptions} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorBlock';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 import {EmbedStory, EmbedVariant} from './embedStory';
 
-const STORY_MONITOR_TYPES = [
-  'error',
-  'metric_issue',
-  'monitor_check_in_failure',
-  'uptime_domain_failure',
-  'preprod_size_analysis',
-] as const satisfies Array<Detector['type']>;
-
+/**
+ * Seeds a query client with fixture detectors instead of fetching real ones,
+ * so the story renders the same rich, deterministic data everywhere it's
+ * viewed rather than whatever monitors happen to exist in the current org.
+ */
 export function MonitorEmbedStory() {
   const organization = useOrganization();
-  const {
-    data: detectors,
-    isError,
-    isPending,
-  } = useQuery(detectorListApiOptions(organization, {sortBy: '-id', limit: 100}));
-
-  const storyDetectors = STORY_MONITOR_TYPES.flatMap(type => {
-    const detector = detectors?.find(candidate => candidate.type === type);
-    return detector ? [detector] : [];
+  const [queryClient] = useState(() => new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG));
+  // Lazy useState initializers run exactly once, before children mount --
+  // seeding here (rather than in an effect) guarantees the cache is
+  // populated before MonitorBlock's first query.
+  useState(() => {
+    for (const detector of STORY_MONITOR_DETECTORS) {
+      queryClient.setQueryData(
+        monitorDetailsApiOptions(organization.slug, detector.id).queryKey,
+        {headers: {}, json: detector}
+      );
+    }
   });
 
   return (
-    <EmbedStory name="monitor">
-      {isPending ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <Text variant="muted">Unable to load a monitor example.</Text>
-      ) : storyDetectors.length ? (
-        storyDetectors.map(detector => (
+    <QueryClientProvider client={queryClient}>
+      <EmbedStory name="monitor">
+        {STORY_MONITOR_DETECTORS.map(detector => (
           <EmbedVariant
             key={detector.type}
             name="monitor"
@@ -48,10 +42,8 @@ export function MonitorEmbedStory() {
               name: detector.name,
             }}
           />
-        ))
-      ) : (
-        <Text variant="muted">No monitor is available for this organization.</Text>
-      )}
-    </EmbedStory>
+        ))}
+      </EmbedStory>
+    </QueryClientProvider>
   );
 }
