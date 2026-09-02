@@ -28,9 +28,7 @@ export function ErrorMonitor({
         {t('Rules')}
       </Heading>
       <Stack gap="xs">
-        <Text bold size="xs" uppercase variant="muted">
-          {t('Detect')}
-        </Text>
+        <Text variant="muted">{t('Detect')}</Text>
         <Text as="p">
           {tct(
             'All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link:read the docs].',
@@ -43,9 +41,7 @@ export function ErrorMonitor({
         </Text>
       </Stack>
       <Stack gap="xs">
-        <Text bold size="xs" uppercase variant="muted">
-          {t('Assign')}
-        </Text>
+        <Text variant="muted">{t('Assign')}</Text>
         <Text as="p">
           {project
             ? tct(
@@ -64,9 +60,7 @@ export function ErrorMonitor({
         </Text>
       </Stack>
       <Stack gap="xs">
-        <Text bold size="xs" uppercase variant="muted">
-          {t('Prioritize')}
-        </Text>
+        <Text variant="muted">{t('Prioritize')}</Text>
         <Text as="p">
           {tct(
             'New error issues are prioritized based on log level. [link:Learn more about Issue Priority].',
