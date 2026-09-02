@@ -524,6 +524,26 @@ describe('ResultGrid allowAllRegions', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows no cross-region hint while all regions are already queried', async () => {
+    // The user-details membership grid combines allowAllRegions with
+    // probeAllRegions; the probe hint only applies after narrowing to one region.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme', members: 5}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Beta', members: 10}],
+    });
+
+    renderGrid(undefined, {}, {...allRegionsProps, probeAllRegions: true});
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(await screen.findByText('Beta')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View in de'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View in us'})).not.toBeInTheDocument();
+  });
+
   it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
     // The real API client swallows fetch rejections without calling success
     // or error, so the grid must resolve the region through requestPromise.
