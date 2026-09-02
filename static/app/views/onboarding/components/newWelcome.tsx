@@ -29,7 +29,6 @@ import {
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
 import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
-import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
@@ -159,7 +158,6 @@ export function NewWelcomeUI(props: StepProps) {
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
-        <WelcomeBackgroundNewUi />
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
