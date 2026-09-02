@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAgenticProgressInit} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
@@ -128,9 +127,11 @@ export function NewWelcomeUI(props: StepProps) {
     reportExposure: false,
   });
   const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
-  const [showAgentSetup, setShowAgentSetup] = useState(false);
-
-  useAgenticProgressInit({enabled: hasScmOnboarding && hasAgenticSetup});
+  // The agent experience opens on the setup card itself. The product list is an
+  // interstitial for the paths that still end in a "get started" click, and
+  // WelcomeAgentSetup initializes the agentic run as soon as it mounts — so
+  // there is no separate preload to run first.
+  const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
 
   useWelcomeAnalyticsEffect();
 
@@ -143,13 +144,6 @@ export function NewWelcomeUI(props: StepProps) {
   }, []);
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
-
-  const handleGetStarted = () => {
-    trackAnalytics('onboarding.scm_welcome_present_agentic_interstitial_clicked', {
-      organization,
-    });
-    setShowAgentSetup(true);
-  };
 
   const handleCopyCommand = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
@@ -259,7 +253,7 @@ export function NewWelcomeUI(props: StepProps) {
                   >
                     <Button
                       variant="primary"
-                      onClick={hasAgenticSetup ? handleGetStarted : handleComplete}
+                      onClick={handleComplete}
                       data-test-id="onboarding-welcome-start"
                     >
                       {t('Let’s get started')}
