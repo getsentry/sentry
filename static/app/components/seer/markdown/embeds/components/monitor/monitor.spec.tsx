@@ -1,12 +1,13 @@
+import {
+  CronDetectorFixture,
+  ErrorDetectorFixture,
+  MetricDetectorFixture,
+  PreprodDetectorFixture,
+  UptimeDetectorFixture,
+} from 'sentry-fixture/detectors';
+
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  STORY_CRON_DETECTOR,
-  STORY_ERROR_DETECTOR,
-  STORY_METRIC_DETECTOR,
-  STORY_MOBILE_BUILD_DETECTOR,
-  STORY_UPTIME_DETECTOR,
-} from 'sentry/components/seer/markdown/embeds/components/monitor/fixtures';
 import {
   getEmbedLinkHref,
   renderEmbed,
@@ -33,7 +34,9 @@ describe('Seer monitor embed', () => {
   });
 
   it('renders configuration rules for an error monitor', async () => {
-    renderMonitor(STORY_ERROR_DETECTOR);
+    const detector = ErrorDetectorFixture({id: '2', latestGroup: null});
+
+    renderMonitor(detector);
 
     expect(await screen.findByText('Rules')).toBeInTheDocument();
     expect(screen.getByText('Detect')).toBeInTheDocument();
@@ -42,7 +45,13 @@ describe('Seer monitor embed', () => {
   });
 
   it('renders the query and thresholds for a metric monitor', async () => {
-    renderMonitor(STORY_METRIC_DETECTOR);
+    renderMonitor(
+      MetricDetectorFixture({
+        id: '3',
+        name: 'Request volume',
+        latestGroup: null,
+      })
+    );
 
     expect(await screen.findByText('Rules')).toBeInTheDocument();
     expect(await screen.findByText('Dataset:')).toBeInTheDocument();
@@ -51,17 +60,21 @@ describe('Seer monitor embed', () => {
   });
 
   it('renders configuration for an uptime monitor', async () => {
-    renderMonitor(STORY_UPTIME_DETECTOR);
+    const detector = UptimeDetectorFixture({id: '4', latestGroup: null});
+
+    renderMonitor(detector);
 
     expect(await screen.findByText('Monitor configuration')).toBeInTheDocument();
-    expect(await screen.findByText('GET https://example.com/health')).toBeInTheDocument();
+    expect(await screen.findByText('GET https://example.com')).toBeInTheDocument();
     expect(screen.getByText('Interval')).toBeInTheDocument();
     expect(screen.getByText('Creates an issue')).toBeInTheDocument();
     expect(screen.queryByText('Recent check-ins')).not.toBeInTheDocument();
   });
 
   it('renders the schedule for a cron monitor', async () => {
-    renderMonitor(STORY_CRON_DETECTOR);
+    const detector = CronDetectorFixture({id: '5', latestGroup: null});
+
+    renderMonitor(detector);
 
     expect(await screen.findByText('Schedule')).toBeInTheDocument();
     expect(screen.getByText('Monitor slug')).toBeInTheDocument();
@@ -70,7 +83,9 @@ describe('Seer monitor embed', () => {
   });
 
   it('renders thresholds for a mobile build monitor', async () => {
-    renderMonitor(STORY_MOBILE_BUILD_DETECTOR);
+    const detector = PreprodDetectorFixture({id: '6', latestGroup: null});
+
+    renderMonitor(detector);
 
     expect(await screen.findByText('Rules')).toBeInTheDocument();
     expect(await screen.findByText('Measurement:')).toBeInTheDocument();
