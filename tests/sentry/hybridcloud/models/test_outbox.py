@@ -652,21 +652,18 @@ class OutboxAggregationTest(TestCase):
                 shard_identifier=2,
                 cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
-                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=7,
             ),
             dict(
                 shard_identifier=1,
                 cell_name="eu",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
-                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=4,
             ),
             dict(
                 shard_identifier=3,
                 cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
-                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=1,
             ),
         ]
@@ -678,7 +675,6 @@ class OutboxAggregationTest(TestCase):
                 shard_identifier=2,
                 cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
-                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=7,
             )
         ]
@@ -687,6 +683,51 @@ class OutboxAggregationTest(TestCase):
         ControlOutbox.objects.all().delete()
         assert ControlOutbox.objects.count() == 0
         assert ControlOutbox.get_shard_depths_descending() == []
+
+    def test_get_shard_category_breakdown(self) -> None:
+        # AUDIT_LOG_SCOPE only permits a single category, so use ORGANIZATION_SCOPE
+        # (a shard identifier not otherwise used in setUp) to exercise a shard with
+        # more than one category.
+        for i in range(3):
+            ControlOutbox(
+                cell_name="us",
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=99,
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+                object_identifier=999900 + i,
+                payload={"foo": "bar"},
+            ).save()
+        ControlOutbox(
+            cell_name="us",
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=99,
+            category=OutboxCategory.PROJECT_UPDATE,
+            object_identifier=999910,
+            payload={"foo": "bar"},
+        ).save()
+
+        breakdown = ControlOutbox.get_shard_category_breakdown(
+            {
+                "shard_identifier": 99,
+                "cell_name": "us",
+                "shard_scope": OutboxScope.ORGANIZATION_SCOPE.value,
+            }
+        )
+
+        assert breakdown == [
+            dict(category=OutboxCategory.ORGANIZATION_UPDATE.value, depth=3),
+            dict(category=OutboxCategory.PROJECT_UPDATE.value, depth=1),
+        ]
+
+    def test_get_shard_category_breakdown_empty(self) -> None:
+        breakdown = ControlOutbox.get_shard_category_breakdown(
+            {
+                "shard_identifier": 404,
+                "cell_name": "us",
+                "shard_scope": OutboxScope.AUDIT_LOG_SCOPE.value,
+            }
+        )
+        assert breakdown == []
 
     def test_total_count(self) -> None:
         assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1
@@ -746,4 +787,52 @@ class OutboxAggregationTest(TestCase):
                 "category": OutboxCategory.ORGANIZATION_UPDATE.name,
             },
             sample_rate=1.0,
+        )
+
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.DEEP_SHARD_LOG_THRESHOLD", 5)
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.logger")
+    def test_deep_shard_log_attributes_dominant_category(self, mock_logger: Mock) -> None:
+        # Add a second deep shard (shard_identifier=99, depth 6) with multiple
+        # categories so we can confirm the log attributes it to the dominant
+        # one, not just any row. AUDIT_LOG_SCOPE only permits a single
+        # category, so this shard uses ORGANIZATION_SCOPE instead.
+        for i in range(4):
+            ControlOutbox(
+                cell_name="us",
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=99,
+                category=OutboxCategory.ORGANIZATION_UPDATE,
+                object_identifier=999900 + i,
+                payload={"foo": "bar"},
+            ).save()
+        for i in range(2):
+            ControlOutbox(
+                cell_name="us",
+                shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                shard_identifier=99,
+                category=OutboxCategory.PROJECT_UPDATE,
+                object_identifier=999910 + i,
+                payload={"foo": "bar"},
+            ).save()
+
+        schedule_outbox_model(
+            silo_mode=SiloMode.CONTROL,
+            outbox_model=ControlOutbox,
+            drain_task=Mock(),
+        )
+
+        deep_shard_calls = {
+            warning_call.kwargs["extra"]["shard_identifier"]: warning_call
+            for warning_call in mock_logger.warning.mock_calls
+            if warning_call.args and warning_call.args[0] == "deliver_from_outbox.deep_shard"
+        }
+        assert set(deep_shard_calls) == {2, 99}
+        assert deep_shard_calls[2].kwargs["extra"]["depth"] == 7
+        assert (
+            deep_shard_calls[2].kwargs["extra"]["category"] == OutboxCategory.AUDIT_LOG_EVENT.name
+        )
+        assert deep_shard_calls[99].kwargs["extra"]["depth"] == 6
+        assert (
+            deep_shard_calls[99].kwargs["extra"]["category"]
+            == OutboxCategory.ORGANIZATION_UPDATE.name
         )
