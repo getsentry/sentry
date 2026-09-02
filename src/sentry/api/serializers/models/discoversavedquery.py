@@ -9,6 +9,7 @@ from sentry.discover.models import (
     DatasetSourcesTypes,
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
@@ -37,6 +38,8 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     interval: str
     exploreQuery: dict
     lastVisited: str
+    starred: bool
+    position: int | None
 
 
 class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
@@ -108,6 +111,15 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         user_last_visited: dict[int, datetime] = {}
         if has_migrate_feature:
+            starred_queries = dict(
+                DiscoverSavedQueryStarred.objects.filter(
+                    discover_saved_query__in=item_list,
+                    user_id=user.id,
+                    organization=item_list[0].organization if item_list else None,
+                    starred=True,
+                ).values_list("discover_saved_query_id", "position")
+            )
+
             user_last_visited = dict(
                 DiscoverSavedQueryLastVisited.objects.filter(
                     discover_saved_query__in=item_list,
@@ -154,6 +166,16 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
                     discover_saved_query.explore_query_id
                 )
             if has_migrate_feature:
+                if discover_saved_query.id in starred_queries:
+                    result[discover_saved_query]["starred"] = True
+                    result[discover_saved_query]["position"] = starred_queries[
+                        discover_saved_query.id
+                    ]
+                else:
+                    result[discover_saved_query]["starred"] = False
+                    result[discover_saved_query]["position"] = None
+                # Always set the key, so a query the caller has never visited serializes as
+                # ``lastVisited: null`` rather than dropping the field entirely.
                 result[discover_saved_query]["user_last_visited"] = user_last_visited.get(
                     discover_saved_query.id
                 )
@@ -193,6 +215,12 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         if "user_last_visited" in attrs:
             data["lastVisited"] = attrs["user_last_visited"]
+
+        if "starred" in attrs:
+            data["starred"] = attrs["starred"]
+
+        if "position" in attrs:
+            data["position"] = attrs["position"]
 
         for key in query_keys:
             if obj.query.get(key) is not None:

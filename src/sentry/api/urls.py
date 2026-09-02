@@ -177,6 +177,9 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.discover.endpoints.discover_saved_query_starred import (
+    DiscoverSavedQueryStarredEndpoint,
+)
 from sentry.explore.endpoints.explore_saved_queries import ExploreSavedQueriesEndpoint
 from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryDetailEndpoint,
@@ -558,6 +561,9 @@ from sentry.rules.history.endpoints.project_rule_group_history import (
     ProjectRuleGroupHistoryIndexEndpoint,
 )
 from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
+from sentry.savedqueries.endpoints.saved_query_starred_order import (
+    SavedQueryStarredOrderEndpoint,
+)
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
@@ -1562,6 +1568,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-discover-saved-query-visit",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/discover/saved/(?P<id>\d+)/starred/$",
+        DiscoverSavedQueryStarredEndpoint.as_view(),
+        name="sentry-api-0-discover-saved-query-starred",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/key-transactions/$",
         KeyTransactionEndpoint.as_view(),
         name="sentry-api-0-organization-key-transactions",
@@ -1612,6 +1623,13 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
+    ),
+    # Saved queries spanning both Discover and Explore. Not nested under either product,
+    # because the starred list it reorders spans the two.
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/saved-queries/starred/order/$",
+        SavedQueryStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-saved-query-starred-order",
     ),
     # Attribute Mappings
     re_path(

@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.discover.models import (
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
@@ -332,6 +333,226 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 200
         assert response.data[0]["lastVisited"] is None
+
+    def test_get_no_starred_queries(self) -> None:
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            position=1,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        DiscoverSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False)
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_get_starred_queries(self) -> None:
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model_a = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred query A",
+            query=query,
+            version=2,
+        )
+        model_a.set_projects(self.project_ids)
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_a,
+            position=1,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            discover_saved_query=model_a,
+            position=1,
+        )
+
+        model_b = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred query B",
+            query=query,
+            version=2,
+        )
+        model_b.set_projects(self.project_ids)
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            discover_saved_query=model_b,
+            position=2,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert (
+            len(response.data) == 1
+        )  # Only one query should be returned because the other query is starred by a different user
+        assert response.data[0]["name"] == "Starred query A"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 1
+
+    def test_get_most_starred_queries(self) -> None:
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Most starred query",
+            query=query,
+            version=2,
+        )
+        second_model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Second most starred query",
+            query=query,
+            version=2,
+        )
+        model.set_projects(self.project_ids)
+        second_model.set_projects(self.project_ids)
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model,
+            position=1,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            discover_saved_query=model,
+            position=1,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 2,
+            discover_saved_query=model,
+            position=1,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=second_model,
+            position=2,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            discover_saved_query=second_model,
+            position=2,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"sortBy": "mostStarred"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        assert response.data[0]["name"] == "Most starred query"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 1
+        assert response.data[1]["name"] == "Second most starred query"
+        assert response.data[1]["starred"] is True
+        assert response.data[1]["position"] == 2
+        assert response.data[-1]["name"] == "Test query"
+        assert response.data[-1]["starred"] is False
+        assert response.data[-1]["position"] is None
+
+    def test_get_sortby_starred(self) -> None:
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model_a = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query A",
+            query=query,
+            version=2,
+        )
+        model_a.set_projects(self.project_ids)
+
+        model_b = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query B",
+            query=query,
+            version=2,
+        )
+        model_b.set_projects(self.project_ids)
+
+        model_c = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query C",
+            query=query,
+            version=2,
+        )
+        model_c.set_projects(self.project_ids)
+
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_a,
+            position=1,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_b,
+            position=2,
+        )
+
+        model_d = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query D",
+            query=query,
+            version=2,
+        )
+        model_d.set_projects(self.project_ids)
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            discover_saved_query=model_d,
+            position=1,
+        )
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 2,
+            discover_saved_query=model_d,
+            position=1,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"sortBy": "starred"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 5
+        assert response.data[0]["name"] == "Query B"
+        assert response.data[0]["starred"] is True
+        assert response.data[0]["position"] == 2
+        assert response.data[1]["name"] == "Query A"
+        assert response.data[1]["starred"] is True
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["name"] == "Query D"
+        assert response.data[2]["starred"] is False
+        assert response.data[2]["position"] is None
+        assert response.data[3]["name"] == "Query C"
+        assert response.data[3]["starred"] is False
+        assert response.data[3]["position"] is None
+        assert response.data[4]["name"] == "Test query"
+        assert response.data[4]["starred"] is False
+        assert response.data[4]["position"] is None
 
     def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")

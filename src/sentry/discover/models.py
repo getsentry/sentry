@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import ClassVar
 
-from django.db import models, router, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
@@ -15,7 +15,9 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPosit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
+from sentry.models.organization import Organization
 from sentry.models.projectteam import ProjectTeam
+from sentry.savedqueries import starred as starred_queries
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_KEY_TRANSACTIONS = 10
@@ -213,6 +215,120 @@ class TeamKeyTransaction(Model):
         unique_together = (("project_team", "transaction"),)
 
 
+class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"]):
+    """
+    Positions here are not local to this table. See `savedqueries/starred.py` for the
+    shared sequence of positions across both Explore and Discover starred queries.
+    """
+
+    def get_starred_query(
+        self, organization: Organization, user_id: int, query: DiscoverSavedQuery
+    ) -> DiscoverSavedQueryStarred | None:
+        """
+        Returns the starred query if it exists, otherwise None.
+        """
+        return self.filter(
+            organization=organization, user_id=user_id, discover_saved_query=query
+        ).first()
+
+    def insert_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: DiscoverSavedQuery,
+        starred: bool = True,
+    ) -> bool:
+        """
+        Inserts a new starred query at the end of the shared list.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            discover_saved_query: The query to insert
+
+        Returns:
+            True if the query was starred, False if the query was already starred
+        """
+        try:
+            with transaction.atomic(using=starred_queries.db_alias()):
+                starred_queries.lock_starred_list(organization.id, user_id)
+
+                if self.get_starred_query(organization, user_id, query):
+                    return False
+
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    discover_saved_query=query,
+                    position=starred_queries.next_position(organization, user_id),
+                    starred=starred,
+                )
+                return True
+        except IntegrityError:
+            # A concurrent request starred the same query first
+            return False
+
+    def delete_starred_query(
+        self, organization: Organization, user_id: int, query: DiscoverSavedQuery
+    ) -> bool:
+        """
+        Deletes a starred query from the list.
+        Decrements the position of all later queries, in both tables, to close the gap.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            discover_saved_query: The query to delete
+
+        Returns:
+            True if the query was unstarred, False if the query was already unstarred
+        """
+        with transaction.atomic(using=starred_queries.db_alias()):
+            starred_queries.lock_starred_list(organization.id, user_id)
+
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            deleted_position = starred_query.position
+            starred_query.delete()
+
+            # A row unstarred via ``updated_starred_query`` holds no position and so left no
+            # gap to close. Filtering on ``position__gt=None`` would raise, not match nothing.
+            if deleted_position is not None:
+                starred_queries.shift_positions(
+                    organization, user_id, from_position=deleted_position, delta=-1
+                )
+            return True
+
+    def updated_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: DiscoverSavedQuery,
+        starred: bool,
+    ) -> bool:
+        """
+        Updates the starred status of a query, keeping the row.
+
+        Unstarring this way drops the row's position without closing the gap it leaves. The
+        sequence only has to be strictly increasing, so the gap is harmless.
+        """
+        with transaction.atomic(using=starred_queries.db_alias()):
+            starred_queries.lock_starred_list(organization.id, user_id)
+
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            starred_query.starred = starred
+            if starred:
+                starred_query.position = starred_queries.next_position(organization, user_id)
+            else:
+                starred_query.position = None
+
+            starred_query.save()
+            return True
+
+
 @cell_silo_model
 class DiscoverSavedQueryStarred(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
@@ -223,6 +339,8 @@ class DiscoverSavedQueryStarred(DefaultFieldsModel):
 
     position = models.PositiveSmallIntegerField(null=True, db_default=None)
     starred = models.BooleanField(db_default=True)
+
+    objects: ClassVar[DiscoverSavedQueryStarredManager] = DiscoverSavedQueryStarredManager()
 
     class Meta:
         app_label = "discover"

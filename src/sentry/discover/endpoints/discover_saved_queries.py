@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from django.db.models import (
     Case,
+    Count,
     DateTimeField,
+    Exists,
     F,
     IntegerField,
     OuterRef,
@@ -46,6 +48,7 @@ from sentry.discover.models import (
     DatasetSourcesTypes,
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
     DiscoverSavedQueryTypes,
 )
 from sentry.models.organization import Organization
@@ -188,8 +191,51 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 "-date_created",
             ]
 
+        elif has_migrate_feature and sort_by == "mostStarred":
+            queryset = queryset.annotate(starred_count=Count("discoversavedquerystarred"))
+            order_by = ["-starred_count"]
+
+        elif has_migrate_feature and sort_by == "starred":
+            queryset = queryset.annotate(
+                is_starred=Exists(
+                    DiscoverSavedQueryStarred.objects.filter(
+                        discover_saved_query_id=OuterRef("id"),
+                        user_id=request.user.id,
+                        starred=True,
+                    )
+                )
+            )
+            order_by = ["-is_starred"]
+
         else:
             order_by = ["lower_name"]
+
+        if has_migrate_feature:
+            starred = request.query_params.get("starred")
+
+            if starred == "1":
+                queryset = (
+                    queryset.filter(
+                        id__in=DiscoverSavedQueryStarred.objects.filter(
+                            organization=organization, user_id=request.user.id, starred=True
+                        ).values_list("discover_saved_query_id", flat=True)
+                    )
+                    .annotate(
+                        position=Subquery(
+                            DiscoverSavedQueryStarred.objects.filter(
+                                discover_saved_query_id=OuterRef("id"),
+                                user_id=request.user.id,
+                                starred=True,
+                            ).values("position")[:1]
+                        )
+                    )
+                    .order_by("position")
+                )
+                order_by = ["position", "-date_created"]
+
+            # Entries with null last visited need a deterministic tiebreaker,
+            # hence adding id to serve this purpose.
+            order_by.append("-id")
 
         queryset = queryset.order_by(*order_by)
 
