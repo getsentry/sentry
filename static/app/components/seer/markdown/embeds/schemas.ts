@@ -386,16 +386,23 @@ export const SEER_EMBED_SCHEMAS = {
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (cron, uptime, or metric ' +
-      'detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
+      'or mobile build detector). Use the detector ID exactly as the monitors API returns it. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
       name: z.string().min(1).optional(),
     }),
-    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
+    examples: [
+      {
+        label: 'Monitor',
+        data: {id: '9931', name: 'nightly-billing-sync'},
+      },
+    ],
   },
   savedIssueView: {
     description:
