@@ -33,14 +33,15 @@ describe('Seer monitor embed', () => {
     ).toBe('/organizations/org-slug/monitors/9931/');
   });
 
-  it('does not render a preview for an error monitor', async () => {
+  it('renders configuration rules for an error monitor', async () => {
     const detector = ErrorDetectorFixture({id: '2', latestGroup: null});
 
     renderMonitor(detector);
 
-    expect(
-      await screen.findByText('Error monitors do not support block previews.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Rules')).toBeInTheDocument();
+    expect(screen.getByText('Detect')).toBeInTheDocument();
+    expect(screen.getByText('Assign')).toBeInTheDocument();
+    expect(screen.getByText('Prioritize')).toBeInTheDocument();
   });
 
   it('renders the query and thresholds for a metric monitor', async () => {

@@ -10,7 +10,6 @@ import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/mon
 import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/error';
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
 import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/mobileBuild';
-import {ProjectMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/projectMonitor';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
@@ -58,7 +57,7 @@ function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) 
 function MonitorBlockContent({detector}: {detector: Detector}) {
   switch (detector.type) {
     case 'error':
-      return <ErrorMonitor />;
+      return <ErrorMonitor detector={detector} />;
     case 'metric_issue':
       return <MetricMonitor detector={detector} />;
     case 'monitor_check_in_failure':
@@ -68,7 +67,8 @@ function MonitorBlockContent({detector}: {detector: Detector}) {
     case 'preprod_size_analysis':
       return <MobileBuildMonitor detector={detector} />;
     case 'issue_stream':
-      return <ProjectMonitor />;
+      // Project monitors have no per-detector config to preview.
+      return null;
     default:
       unreachable(detector);
       return null;
