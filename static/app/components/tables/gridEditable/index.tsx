@@ -1,6 +1,7 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
@@ -53,7 +54,7 @@ type GridEditableProps<
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-  height?: CSSProperties['height'];
+  height?: CSS['height'];
 
   highlightedRowKey?: number;
 

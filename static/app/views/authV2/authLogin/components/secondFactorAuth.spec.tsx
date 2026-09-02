@@ -40,6 +40,10 @@ describe('SecondFactorAuth', () => {
     expect(
       await screen.findByText('Enter the code from your Authenticator')
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Contact support'})).toHaveAttribute(
+      'href',
+      'https://www.sentry.help/'
+    );
   });
 
   it('does not reactivate SMS after switching methods', async () => {
@@ -107,9 +111,7 @@ describe('SecondFactorAuth', () => {
     );
 
     expect(
-      screen.getByText(
-        'Waiting for passkey, biometric, or hardware key authentication...'
-      )
+      screen.getByText('Waiting for passkey, biometric, or hardware key')
     ).toBeInTheDocument();
     await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(1));
     await waitFor(() =>

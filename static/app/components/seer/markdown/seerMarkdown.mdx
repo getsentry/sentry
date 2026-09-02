@@ -9,7 +9,10 @@ resources:
 import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
+import {DashboardEmbedStory} from './__stories__/dashboardEmbedStory';
 import {EmbedStory} from './__stories__/embedStory';
+import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
+import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
@@ -48,7 +51,7 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### dashboard
 
-<EmbedStory name="dashboard" />
+<DashboardEmbedStory />
 
 ### dsn
 
@@ -70,6 +73,10 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <ReplayEmbedStory />
 
+### release
+
+<ReleaseEmbedStory />
+
 ### chart
 
 <EmbedStory name="chart" />
@@ -84,7 +91,7 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### monitor
 
-<EmbedStory name="monitor" />
+<MonitorEmbedStory />
 
 ### savedIssueView
 

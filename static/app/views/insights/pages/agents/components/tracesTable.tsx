@@ -122,7 +122,6 @@ interface TracesTableProps {
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
-  linkToTraceView?: boolean;
   tableWidths?: number[];
 }
 
@@ -307,7 +306,7 @@ export function TracesTable({
         bodyStyle: FRAMELESS_STYLES,
         resizable: true,
         scrollable: true,
-        height: '100%',
+        height: '100%' as const,
       }
     : {};
 

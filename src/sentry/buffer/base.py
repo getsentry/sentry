@@ -130,7 +130,7 @@ class Buffer(Service):
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
-                # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
+                # XXX: QuerySet.update doesn't fire `post_save` signals, and so this update never
                 # ends up in the cache. This causes issues when handling issue alerts, and likely
                 # elsewhere. Use `update` here since we're already special casing, and we know that
                 # the group will already exist.
