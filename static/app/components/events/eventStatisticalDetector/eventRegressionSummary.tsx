@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
@@ -172,6 +172,6 @@ function formatBreakpoint(breakpoint: number) {
   );
 }
 
-const StyledKeyValueList = styled(KeyValueList)`
+const StyledKeyValueList = styled(KeyValueTableDataList)`
   margin-bottom: 0 !important;
 `;

@@ -13,7 +13,6 @@ import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
@@ -21,6 +20,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -473,7 +473,7 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const StyledKeyValueList = styled(KeyValueList)`
+const StyledKeyValueList = styled(KeyValueTableDataList)`
   && {
     margin-bottom: 0;
   }

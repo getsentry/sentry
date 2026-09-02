@@ -1,6 +1,6 @@
 import {getOrderedContextItemsFromContexts} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -48,7 +48,7 @@ export function Contexts({
     >
       {eventHasAdditionalData ? <AdditionalData extra={extra} /> : null}
       {eventHasExtraContexts ? (
-        <KeyValueData.Container>{extraContextCards}</KeyValueData.Container>
+        <KeyValueTableCardGrid>{extraContextCards}</KeyValueTableCardGrid>
       ) : null}
     </FoldSection>
   );

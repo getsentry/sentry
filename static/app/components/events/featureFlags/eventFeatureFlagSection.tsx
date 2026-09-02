@@ -25,7 +25,7 @@ import {
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -282,8 +282,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     >
       {hasFlags ? (
         <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-          <KeyValueData.Card expandLeft contentItems={columnOne} />
-          <KeyValueData.Card expandLeft contentItems={columnTwo} />
+          <KeyValueTableCard expandLeft contentItems={columnOne} />
+          <KeyValueTableCard expandLeft contentItems={columnTwo} />
         </CardContainer>
       ) : (
         <StyledEmptyStateWarning withIcon small>

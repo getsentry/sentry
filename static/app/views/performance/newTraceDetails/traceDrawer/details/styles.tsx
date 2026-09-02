@@ -23,13 +23,6 @@ import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreens
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  CardPanel,
-  KeyValueData,
-  Subject,
-  ValueSection,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -38,6 +31,14 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+  KeyValueTableCardPanel,
+  type KeyValueTableDataRowProps,
+  KeyValueTableSubject,
+  KeyValueTableValueSection,
+} from 'sentry/components/tables/keyValueTable';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -1049,14 +1050,14 @@ function SectionCard({
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
-  itemProps?: Partial<KeyValueDataContentProps>;
+  itemProps?: Partial<KeyValueTableDataRowProps>;
   sortAlphabetically?: boolean;
 }) {
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
     <CardWrapper>
-      <KeyValueData.Card
+      <KeyValueTableCard
         title={title}
         contentItems={contentItems}
         sortAlphabetically={sortAlphabetically}
@@ -1070,11 +1071,11 @@ function SectionCard({
 // with tests failing otherwise, since @container queries are not supported by the version of
 // jsdom currently used by jest.
 const CardWrapper = styled('div')`
-  ${CardPanel} {
+  ${KeyValueTableCardPanel} {
     container-type: inline-size;
   }
 
-  ${Subject} {
+  ${KeyValueTableSubject} {
     display: flex;
     align-items: center;
     @container (width < 350px) {
@@ -1082,13 +1083,13 @@ const CardWrapper = styled('div')`
     }
   }
 
-  ${ValueSection} {
+  ${KeyValueTableValueSection} {
     align-items: center;
   }
 `;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueData.Container>{children}</KeyValueData.Container>;
+  return <KeyValueTableCardGrid>{children}</KeyValueTableCardGrid>;
 }
 
 function CopyableCardValueWithLink({

@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -18,7 +18,7 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   switch (view) {
     case 'report':
       return (
-        <KeyValueList
+        <KeyValueTableDataList
           data={Object.entries(data).map(([key, value]) => {
             return {
               key,

@@ -6,27 +6,28 @@ import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {IconEdit, IconSentry, IconSettings} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-export default Storybook.story('KeyValueData', story => {
+export default Storybook.story('KeyValueTable', story => {
   story('Usage', () => (
     <CodeBlock language="js">
-      import KeyValueData from 'sentry/components/keyValueData';
+      {"import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';"}
     </CodeBlock>
   ));
-  story('<KeyValueData.Content />', () => {
+  story('<KeyValueTableDataRow />', () => {
     const theme = useTheme();
     const contentItems = generateContentItems(theme);
 
     return (
       <Fragment>
         <p>
-          <code>{'<KeyValueData.Content/>'}</code> will often be generated as a result of
-          creating a <code>{'<KeyValueData.Card/>'}</code>
+          <code>{'<KeyValueTableDataRow/>'}</code> will often be generated as a result of
+          creating a <code>{'<KeyValueTableCard/>'}</code>
           component. These allow for customizing every item rendered in the card
           individually.
         </p>
@@ -54,12 +55,12 @@ export default Storybook.story('KeyValueData', story => {
             <code>meta</code> - Metadata for adding annotations like redactions/filters
           </li>
         </ul>
-        <KeyValueData.Card contentItems={contentItems} />
+        <KeyValueTableCard contentItems={contentItems} />
       </Fragment>
     );
   });
 
-  story('<KeyValueData.Card />', () => {
+  story('<KeyValueTableCard />', () => {
     const theme = useTheme();
     const contentItems = generateContentItems(theme);
 
@@ -68,13 +69,13 @@ export default Storybook.story('KeyValueData', story => {
         <p>
           Display a set of key-value data as a card. Creates structured data for
           lists/dicts and changes format based on value type. Any of the customization
-          from <code>KeyValueData.Content</code> is available here, and display many of
-          these cards using <code>KeyValueData.Container</code>.
+          from <code>KeyValueTableDataRow</code> is available here, and display many of
+          these cards using <code>KeyValueTableCardGrid</code>.
         </p>
         <h4>Props</h4>
         <ul>
           <li>
-            <code>contentItems</code> - A list of <code>KeyValueData.ContentProps</code>{' '}
+            <code>contentItems</code> - A list of <code>KeyValueTableDataRowProps</code>{' '}
             objects, which will be turned into the rows for the card.
           </li>
           <li>
@@ -88,17 +89,17 @@ export default Storybook.story('KeyValueData', story => {
             <code>subject</code>
           </li>
         </ul>
-        <KeyValueData.Container>
-          <KeyValueData.Card
+        <KeyValueTableCardGrid>
+          <KeyValueTableCard
             title="Dataset Title"
             contentItems={contentItems.slice(0, 3)}
           />
-          <KeyValueData.Card
+          <KeyValueTableCard
             title="Alphabetical Sort"
             contentItems={contentItems}
             sortAlphabetically
           />
-          <KeyValueData.Card
+          <KeyValueTableCard
             title={
               <span
                 style={{
@@ -113,25 +114,25 @@ export default Storybook.story('KeyValueData', story => {
             }
             contentItems={contentItems.slice(4, 9)}
           />
-          <KeyValueData.Card
+          <KeyValueTableCard
             title="Truncate at Length 4"
             contentItems={contentItems}
             truncateLength={4}
           />
-        </KeyValueData.Container>
+        </KeyValueTableCardGrid>
       </Fragment>
     );
   });
 
-  story('<KeyValueData.Container />', () => {
+  story('<KeyValueTableCardGrid />', () => {
     const theme = useTheme();
     const contentItems = generateContentItems(theme);
 
     return (
       <Fragment>
         <p>
-          <code>{'<KeyValueData.Container/>'}</code> can be used in combination with{' '}
-          <code>{'<KeyValueData.Card/>'}</code> components to create a 'masonry' style
+          <code>{'<KeyValueTableCardGrid/>'}</code> can be used in combination with{' '}
+          <code>{'<KeyValueTableCard/>'}</code> components to create a 'masonry' style
           layout for space efficiency. They leverage the{' '}
           <code>useIssueDetailsColumnCount</code> hook to distribute cards into the
           available space evenly. They don't accept any props, and just require{' '}
@@ -139,30 +140,30 @@ export default Storybook.story('KeyValueData', story => {
         </p>
         <p>
           <CodeBlock language="jsx">
-            {`<KeyValueData.Container>
-  <KeyValueData.Card ... />
-  <KeyValueData.Card ... />
-  <KeyValueData.Card ... />
-</KeyValueData.Container>`}
+            {`<KeyValueTableCardGrid>
+  <KeyValueTableCard ... />
+  <KeyValueTableCard ... />
+  <KeyValueTableCard ... />
+</KeyValueTableCardGrid>`}
           </CodeBlock>
         </p>
         <p>
           It should be noted that the number of items per card, or content size is not
           factored in, and can lead to some inconsistencies.
         </p>
-        <KeyValueData.Container>
-          <KeyValueData.Card contentItems={contentItems.slice(0, 2)} />
-          <KeyValueData.Card contentItems={contentItems.slice(4, 6)} />
-          <KeyValueData.Card contentItems={contentItems.slice(1, 6)} />
-          <KeyValueData.Card contentItems={contentItems.slice(0, 8)} />
-          <KeyValueData.Card contentItems={contentItems.slice(2, 5)} />
-        </KeyValueData.Container>
+        <KeyValueTableCardGrid>
+          <KeyValueTableCard contentItems={contentItems.slice(0, 2)} />
+          <KeyValueTableCard contentItems={contentItems.slice(4, 6)} />
+          <KeyValueTableCard contentItems={contentItems.slice(1, 6)} />
+          <KeyValueTableCard contentItems={contentItems.slice(0, 8)} />
+          <KeyValueTableCard contentItems={contentItems.slice(2, 5)} />
+        </KeyValueTableCardGrid>
       </Fragment>
     );
   });
 });
 
-function generateContentItems(theme: Theme): KeyValueDataContentProps[] {
+function generateContentItems(theme: Theme): KeyValueTableDataRowProps[] {
   return [
     {
       item: {

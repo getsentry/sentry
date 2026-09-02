@@ -1,10 +1,10 @@
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-import {KeyValueList} from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';
 
 type Props = {
@@ -19,7 +19,7 @@ export function EventSdk({sdk, meta}: Props) {
 
   return (
     <FoldSection title={t('SDK')} sectionKey={SectionKey.SDK} initialCollapse>
-      <KeyValueList
+      <KeyValueTableDataList
         data={[
           {
             key: 'name',

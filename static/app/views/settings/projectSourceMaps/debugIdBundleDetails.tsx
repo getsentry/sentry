@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
@@ -64,7 +64,7 @@ export function DebugIdBundleDetails({
   return <StyledKeyValueList data={detailsData} shouldSort={false} />;
 }
 
-const StyledKeyValueList = styled(KeyValueList)`
+const StyledKeyValueList = styled(KeyValueTableDataList)`
   && {
     margin-bottom: 0;
   }

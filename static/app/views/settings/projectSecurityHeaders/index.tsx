@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -12,6 +11,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {recreateRoute} from 'sentry/utils/recreateRoute';

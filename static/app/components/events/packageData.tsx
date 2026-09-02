@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -41,7 +41,7 @@ export function EventPackageData({event}: Props) {
   }
 
   const componentItems = packages.map((item, i) => (
-    <KeyValueData.Content
+    <KeyValueTableDataRow
       key={`content-card-${item.key}-${i}`}
       item={item}
       meta={item.meta}

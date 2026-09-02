@@ -1,10 +1,9 @@
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-
-import {KeyValueList} from './interfaces/keyValueList';
 
 type Props = {
   event: Event;
@@ -25,7 +24,7 @@ export function EventDevice({event}: Props) {
 
   return (
     <FoldSection sectionKey={SectionKey.DEVICE} title={t('Device')}>
-      <KeyValueList
+      <KeyValueTableDataList
         shouldSort={false}
         data={[
           {
