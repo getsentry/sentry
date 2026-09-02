@@ -313,6 +313,7 @@ class AuthIdentityHandler:
             if invite_helper.invite_approved:
                 rpc_om = invite_helper.accept_invite(user)
                 assert rpc_om
+                self._set_linked_flag(rpc_om)
                 return user, rpc_om
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,

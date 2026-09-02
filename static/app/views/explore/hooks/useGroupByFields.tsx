@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
+import {DISALLOWED_GROUP_BY_FIELDS} from 'sentry/views/explore/constants';
 import {UNGROUPED} from 'sentry/views/explore/contexts/pageParamsContext/groupBys';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {sortKnownAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
@@ -66,10 +67,6 @@ export function useGroupByFields({
     ];
   }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);
 }
-
-// Some fields don't make sense to allow users to group by as they create
-// very high cardinality groupings and is not useful.
-const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
 
 function filterDisallowed(tags: TagCollection): TagCollection {
   return Object.fromEntries(

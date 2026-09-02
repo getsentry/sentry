@@ -18,7 +18,7 @@ import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
 import {MessagePlaceholder, hasValidContent} from './shared';
-import {CODE_MODE_TOOLS, ToolCallList} from './toolUse';
+import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
 
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
@@ -163,6 +163,12 @@ export function ResponseGroup({
 }: ResponseGroupProps) {
   const answer = finalAnswer(group);
   const active = group.some(block => block.loading);
+  // Only a running tool keeps the box live. Loading with no tool calls is seer's LLM-wait
+  // placeholder (`is_global_loading`), which announces itself below; letting it drive the box
+  // animated a settled tool row and charged the model's wait to it.
+  const toolActive = group.some(block =>
+    Boolean(block.loading && block.message.tool_calls?.length)
+  );
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
   // `showThinking` toggle), any intermediate narration, and the tool calls.
@@ -171,14 +177,16 @@ export function ResponseGroup({
     return (
       (showThinking && hasValidContent(block.message.thinking_content)) ||
       (!isAnswer && hasValidContent(block.message.content)) ||
-      Boolean(block.message.tool_calls?.length)
+      // Not `tool_calls.length`: a call that reported nothing renders no row, and counting it
+      // opens a reasoning box with an empty body.
+      blockRendersToolContent(block, blocks)
     );
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // Keep ThinkingBlock expanded if loading or awaiting user input (approval/question)
+  // Keep ThinkingBlock expanded while a tool runs or we await user input (approval/question)
   const endTime =
-    active || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
+    toolActive || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">

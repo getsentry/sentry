@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import responses
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from rest_framework import status
@@ -141,6 +142,45 @@ class JiraRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             mailbox_name=f"jira:{integration.id}", cell_names=[cell.name], request=request
         )
+
+    @responses.activate
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    def test_get_response_routing_to_cell_async_bucketed(self) -> None:
+        integration = self.get_integration()
+        use_buckets_key = f"webhookpayload:jira:{integration.id}:use_buckets"
+        cache.set(use_buckets_key, 1)
+        request = self.factory.post(
+            path=f"{self.path_base}/issue-updated/",
+            data={"issue": {"id": "10425"}},
+            content_type="application/json",
+        )
+        parser = JiraRequestParser(request, self.get_response)
+
+        with patch.object(parser, "get_integration_from_request") as method:
+            method.return_value = integration
+            response = parser.get_response()
+
+        cache.delete(use_buckets_key)
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_webhook_payloads_for_mailbox(
+            # 10425 % 10
+            mailbox_name=f"jira:{integration.id}:5",
+            cell_names=[cell.name],
+            request=request,
+        )
+
+    def test_mailbox_bucket_id(self) -> None:
+        request = self.factory.post(path=f"{self.path_base}/issue-updated/")
+        parser = JiraRequestParser(request, self.get_response)
+
+        assert parser.mailbox_bucket_id({"issue": {"id": "10403"}}) == 10403
+        assert parser.mailbox_bucket_id({"issue": {"id": 10403}}) == 10403
+        assert parser.mailbox_bucket_id({}) is None
+        assert parser.mailbox_bucket_id({"issue": {}}) is None
+        assert parser.mailbox_bucket_id({"issue": "LR-123"}) is None
+        assert parser.mailbox_bucket_id({"issue": {"id": "LR-123"}}) is None
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)

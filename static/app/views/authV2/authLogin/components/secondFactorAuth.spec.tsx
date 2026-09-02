@@ -107,9 +107,7 @@ describe('SecondFactorAuth', () => {
     );
 
     expect(
-      screen.getByText(
-        'Waiting for passkey, biometric, or hardware key authentication...'
-      )
+      screen.getByText('Waiting for passkey, biometric, or hardware key')
     ).toBeInTheDocument();
     await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(1));
     await waitFor(() =>
