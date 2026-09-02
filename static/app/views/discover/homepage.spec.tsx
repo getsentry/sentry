@@ -22,7 +22,6 @@ describe('Discover > Homepage', () => {
   const features = ['discover-query'];
   let organization: ReturnType<typeof OrganizationFixture>;
   let mockHomepage: jest.Mock;
-  let measurementsMetaMock: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -80,11 +79,6 @@ describe('Discover > Homepage', () => {
         query: 'event.type:error',
         queryDataset: 'discover',
       },
-    });
-    measurementsMetaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/measurements-meta/',
-      method: 'GET',
-      body: {},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -177,12 +171,9 @@ describe('Discover > Homepage', () => {
       },
       organization,
     });
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
 
     // 'Discover' is the header for the homepage
-    expect(screen.getByText('Discover')).toBeInTheDocument();
+    expect(await screen.findByText('Discover')).toBeInTheDocument();
     expect(screen.queryByText(/Created by:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
@@ -263,8 +254,6 @@ describe('Discover > Homepage', () => {
     expect(
       await screen.findByRole('menuitemradio', {name: 'Set as Default'})
     ).not.toHaveAttribute('aria-disabled', 'true');
-
-    expect(measurementsMetaMock).toHaveBeenCalled();
   });
 
   it('follows absolute date selection', async () => {
@@ -368,11 +357,7 @@ describe('Discover > Homepage', () => {
       `/organizations/${organization.slug}/explore/discover/homepage/?${queryParams.toString()}`
     );
 
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText('event.type')).toBeInTheDocument();
+    expect(await screen.findByText('event.type')).toBeInTheDocument();
   });
 
   it('overrides homepage filters with pinned filters if they exist', async () => {
@@ -399,11 +384,8 @@ describe('Discover > Homepage', () => {
       },
       organization,
     });
-    await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
-    });
 
-    expect(screen.getByText('project-slug')).toBeInTheDocument();
+    expect(await screen.findByText('project-slug')).toBeInTheDocument();
   });
 
   it('allows users to set the All Events query as default', async () => {

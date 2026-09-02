@@ -244,6 +244,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
                     request_body = json.loads(pool.urlopen.call_args[1]["body"])
                     assert request_body["granularity"] == expected_granularity
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_insights_query_spm(self) -> None:
         time_window = 3600
         sub = self.create_subscription(
@@ -338,6 +339,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_insights_query_spm(self) -> None:
         sub = self.create_subscription(
             QuerySubscription.Status.CREATING,
@@ -409,6 +411,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_insights_query_spm(self) -> None:
         subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(

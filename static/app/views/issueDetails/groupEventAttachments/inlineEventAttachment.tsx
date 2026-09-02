@@ -1,7 +1,4 @@
-import styled from '@emotion/styled';
-
-import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {AttachmentViewer} from 'sentry/components/events/attachmentViewers/attachmentViewer';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,25 +15,13 @@ export function InlineEventAttachment({
   eventId,
 }: InlineAttachmentsProps) {
   const organization = useOrganization();
-  const AttachmentComponent = getInlineAttachmentRenderer(attachment);
-
-  if (!AttachmentComponent) {
-    return null;
-  }
 
   return (
-    <AttachmentPreviewWrapper>
-      <AttachmentComponent
-        orgSlug={organization.slug}
-        projectSlug={projectSlug}
-        eventId={eventId}
-        attachment={attachment}
-      />
-    </AttachmentPreviewWrapper>
+    <AttachmentViewer
+      orgSlug={organization.slug}
+      projectSlug={projectSlug}
+      eventId={eventId}
+      attachment={attachment}
+    />
   );
 }
-
-const AttachmentPreviewWrapper = styled(PanelItem)`
-  grid-column: auto / span 3;
-  justify-content: center;
-`;

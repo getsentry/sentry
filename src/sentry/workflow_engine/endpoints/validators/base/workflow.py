@@ -46,6 +46,17 @@ class ActionFilterInput(DataConditionGroupInput):
     actions: list[ActionInput]
 
 
+class ActionFilterValidator(BaseDataConditionGroupValidator):
+    actions = serializers.ListField(child=serializers.DictField())
+
+    def validate_actions(self, value: ListInputData) -> ListInputData:
+        id_field = serializers.IntegerField()
+        for action in value:
+            if "id" in action:
+                action["id"] = id_field.run_validation(action["id"])
+        return value
+
+
 class WorkflowInput(TypedDict):
     id: NotRequired[str]
     name: str
@@ -83,8 +94,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         required=False,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
-    action_filters = serializers.ListField(
-        child=serializers.DictField(),
+    action_filters = ActionFilterValidator(
+        many=True,
         required=False,
         help_text=ACTION_FILTERS_HELP_TEXT,
     )
@@ -108,28 +119,23 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         schema = Workflow.config_schema
         return validate_json_schema(value, schema)
 
+    def validate_triggers(self, value: InputData) -> InputData:
+        if "workflow" in self.context:
+            self._validate_trigger_ownership(value)
+
+        return value
+
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         if "workflow" in self.context:
             self._validate_action_filter_ownership(value)
 
         for action_filter in value:
-            actions, condition_group = self._split_action_and_condition_group(action_filter)
-            dcg_validator = BaseDataConditionGroupValidator(
-                data=condition_group, context=self.context
-            )
-            dcg_validator.is_valid(raise_exception=True)
-            action_filter.update(dcg_validator.validated_data)
-
-            validated_actions = []
-            for action in actions:
+            for action in action_filter["actions"]:
                 action_validator = BaseActionValidator(data=action, context=self.context)
                 action_validator.is_valid(raise_exception=True)
 
                 # update because the validated data does not contain "id" for updates
                 action.update(action_validator.validated_data)
-                validated_actions.append(action)
-
-            action_filter["actions"] = validated_actions
 
         return value
 
@@ -261,6 +267,21 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return condition_group
 
+    def _validate_trigger_ownership(self, triggers: InputData) -> None:
+        """
+        If a data_condition_group id is passed in, it must belong to the workflow being updated
+        to prevent claiming another workflow's group
+        """
+        workflow = self.context["workflow"]
+
+        condition_group_id = triggers.get("id")
+
+        if (
+            condition_group_id is not None
+            and int(condition_group_id) != workflow.when_condition_group_id
+        ):
+            raise serializers.ValidationError(f"Invalid Condition Group ID {condition_group_id}")
+
     def _validate_action_filter_ownership(self, action_filters: ListInputData) -> None:
         workflow = self.context["workflow"]
 
@@ -319,8 +340,15 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         with transaction.atomic(router.db_for_write(Workflow)):
             # Update the Workflow.when_condition_group
             triggers = validated_data.pop("triggers", None)
+
             if triggers is not None:
-                self.update_or_create_data_condition_group(triggers, instance.when_condition_group)
+                when_condition_group = self.update_or_create_data_condition_group(
+                    triggers, instance.when_condition_group
+                )
+
+                # Bind new condition group to workflow if it didn't have one before
+                if instance.when_condition_group_id is None:
+                    instance.when_condition_group = when_condition_group
 
             # Update the Action Filters and Actions
             action_filters = validated_data.pop("action_filters", None)

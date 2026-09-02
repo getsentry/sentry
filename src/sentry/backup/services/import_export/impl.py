@@ -193,16 +193,8 @@ class UniversalImportExportService(ImportExportService):
                 logger.info("import_by_model.already_imported", extra=extra)
                 return existing_import_chunk
 
-            # We don't need the control and region silo synced into the correct `*Replica` tables
-            # immediately. The locally silo-ed versions of the models are written by the scripts
-            # themselves, and the remote versions will be synced a few minutes later, well before
-            # any users are likely ot need to get ahold of them to view actual data in the UI.
             using = router.db_for_write(model)
-            # HACK(azaslavsky): Need to figure out why `OrganizationMemberTeam` in particular is failing, but we can just use async outboxes for it for now.
-            with outbox_context(
-                transaction.atomic(using=using),
-                flush=import_model_name != "sentry.organizationmemberteam",
-            ):
+            with outbox_context(transaction.atomic(using=using), flush=True):
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0

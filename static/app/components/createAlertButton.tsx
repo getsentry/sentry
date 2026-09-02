@@ -7,7 +7,6 @@ import {Link} from '@sentry/scraps/link';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {IconSiren} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -97,26 +96,13 @@ export function CreateAlertFromViewButton({
 
 type CreateAlertButtonProps = {
   organization: Organization;
-  hideIcon?: boolean;
-  iconProps?: SVGIconProps;
-  /**
-   * Callback when the button is clicked.
-   * This is different from `onClick` which always overrides the default
-   * behavior when the button was clicked.
-   */
-  onEnter?: () => void;
   projectSlug?: string;
-  referrer?: string;
   to?: string | LocationDescriptor;
 } & Omit<LinkButtonProps, 'to'>;
 
 export function CreateAlertButton({
   organization,
   projectSlug,
-  iconProps,
-  referrer,
-  hideIcon,
-  onEnter,
   to,
   ...buttonProps
 }: CreateAlertButtonProps) {
@@ -125,9 +111,6 @@ export function CreateAlertButton({
   const {projects} = useProjects();
   const createAlertUrl = (providedProj: string): string => {
     const params = new URLSearchParams();
-    if (referrer) {
-      params.append('referrer', referrer);
-    }
     if (providedProj !== ':projectId') {
       params.append('project', providedProj);
     }
@@ -138,7 +121,6 @@ export function CreateAlertButton({
 
   function handleClickWithoutProject(event: React.MouseEvent) {
     event.preventDefault();
-    onEnter?.();
 
     navigateTo(createAlertUrl(':projectId'), navigate, location);
   }
@@ -156,7 +138,7 @@ export function CreateAlertButton({
   return (
     <LinkButton
       disabled={!canCreateAlert}
-      icon={!hideIcon && <IconSiren {...iconProps} />}
+      icon={<IconSiren />}
       to={to ?? (projectSlug ? createAlertUrl(projectSlug) : '')}
       tooltipProps={{
         title: canCreateAlert ? undefined : permissionTooltipText,
@@ -166,7 +148,7 @@ export function CreateAlertButton({
           maxWidth: '270px',
         },
       }}
-      onClick={projectSlug ? onEnter : handleClickWithoutProject}
+      onClick={projectSlug ? undefined : handleClickWithoutProject}
       {...buttonProps}
     >
       {buttonProps.children ?? t('Create Monitor')}

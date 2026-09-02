@@ -9,13 +9,13 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 function DiscoverContainer() {
   const organization = useOrganization();
@@ -38,7 +38,7 @@ function DiscoverContainer() {
       (location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
         location.query.dataset === Dataset.TRANSACTIONS)
     ) {
-      return <Redirect to={normalizeUrl('/explore/traces/')} />;
+      return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
     }
     return <Redirect to={redirectPath} />;
   }
@@ -46,7 +46,7 @@ function DiscoverContainer() {
   // Tranasctions deprecation redirects
   if (
     discoverTransactionsDeprecation &&
-    location.pathname.includes('/explore/discover/')
+    location.pathname.includes('/explore/discover')
   ) {
     // errors dataset (or no dataset specified) redirects to errors url and keeps the same query params
     if (
@@ -54,15 +54,15 @@ function DiscoverContainer() {
       location.query.dataset !== Dataset.TRANSACTIONS
     ) {
       const match = location.pathname.match(/\/explore\/discover\/([^/]+)\//);
-      const discoverPath = match?.[1] ?? 'homepage';
+      const discoverPath = match?.[1];
       const targetPath = makeDiscoverPathname({
-        path: `/${discoverPath}/`,
+        path: discoverPath ? `/${discoverPath}/` : '/',
         organization,
       });
       return <Redirect to={targetPath + location.search} />;
     }
     // transactions dataset redirects to traces url as we don't support transactions anymore
-    return <Redirect to={normalizeUrl('/explore/traces/')} />;
+    return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
   }
 
   // Backwards compatibility: if the org doesn't (or no longer) has the
@@ -70,14 +70,11 @@ function DiscoverContainer() {
   // was disabled, or sent to an org without it) should still work — send the
   // user to the /explore/discover/ equivalent, which supports the full
   // Discover experience.
-  if (
-    !discoverTransactionsDeprecation &&
-    location.pathname.includes('/explore/errors/')
-  ) {
+  if (!discoverTransactionsDeprecation && location.pathname.includes('/explore/errors')) {
     const match = location.pathname.match(/\/explore\/errors\/([^/]+)\//);
-    const discoverPath = match?.[1] ?? 'homepage';
+    const discoverPath = match?.[1];
     const targetPath = makeDiscoverPathname({
-      path: `/${discoverPath}/`,
+      path: discoverPath ? `/${discoverPath}/` : '/',
       organization,
     });
     return <Redirect to={targetPath + location.search} />;

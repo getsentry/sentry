@@ -6,9 +6,10 @@ import startCase from 'lodash/startCase';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -17,7 +18,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconArrow, IconOpen} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -76,6 +77,13 @@ enum RuleType {
   INVESTIGATION_RULE = 'Investigation Rule',
   MINIMUM_SAMPLE_RATE_TARGET = 'Minimum Sample Rate',
 }
+
+const DS_RULE_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'auto'},
+  {key: 'type', width: 'auto'},
+  {key: 'value', width: 'auto'},
+  {key: 'target', width: 'auto'},
+];
 
 const getRuleType = ({id}: RuleV2): RuleType | undefined => {
   const RESERVED_IDS = {
@@ -368,13 +376,22 @@ function DynamicSamplingRulesTable({
   return (
     <Fragment>
       <DSRulesTable
-        headers={['Name', 'Type', 'Value', 'Target']}
-        isEmpty={!dynamicSamplingRules.length}
-        emptyMessage="No dynamic sampling rules to display"
+        columns={DS_RULE_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>Name</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Type</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Value</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>Target</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
+        {dynamicSamplingRules.length === 0 && (
+          <SimpleTable.Empty>No dynamic sampling rules to display</SimpleTable.Empty>
+        )}
         {dynamicSamplingRules.map(row => (
-          <Fragment key={row.id}>
-            <Stack gap="xs">
+          <SimpleTable.Row key={row.id}>
+            <SimpleTable.RowCell direction="column" align="start" gap="xs">
               {row.type}
               {defined(row.timeRange) && (
                 <div data-test-id="timerange">
@@ -392,9 +409,9 @@ function DynamicSamplingRulesTable({
                   </NameColumnDetail>
                 </div>
               )}
-            </Stack>
-            <div>{row.formattedRateType}</div>
-            <Flex justify="end" paddingRight="3xl" gap="md">
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>{row.formattedRateType}</SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="end" paddingRight="3xl" gap="md">
               <Tooltip isHoverable title={row.samplingValue.value}>
                 {row.formattedRateValue}
               </Tooltip>
@@ -410,9 +427,9 @@ function DynamicSamplingRulesTable({
                   size="xs"
                 />
               </Tooltip>
-            </Flex>
-            <div>{row.target}</div>
-          </Fragment>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>{row.target}</SimpleTable.RowCell>
+          </SimpleTable.Row>
         ))}
       </DSRulesTable>
     </Fragment>
@@ -440,7 +457,7 @@ const BaseSampleRateWrapper = styled(Alert)`
   flex-basis: 50%;
 `;
 
-const DSRulesTable = styled(PanelTable)`
+const DSRulesTable = styled(SimpleTable)`
   border: none;
   border-radius: 0 0 4px 4px;
   margin-bottom: 0;

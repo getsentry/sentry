@@ -432,7 +432,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                     event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                     data=omt.get_audit_log_data(),
                 )
-            OrganizationMemberTeam.objects.bulk_delete(omts)
+            OrganizationMemberTeam.objects.filter(id__in=[omt.id for omt in omts]).delete()
 
     def _rename_team_operation(self, request: Request, new_name, team):
         serializer = TeamSerializer(

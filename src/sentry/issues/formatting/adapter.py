@@ -12,6 +12,7 @@ from typing import Any
 
 from sentry.issues.formatting.models import (
     Breadcrumb,
+    CspDetails,
     EventObject,
     EvidenceSpan,
     ExceptionDetails,
@@ -69,6 +70,42 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
     return tags, transaction_name
 
 
+# Feedback issues carry the reporter's contact details in two places: occurrence.evidenceDisplay
+# and contexts.feedback (see feedback.usecases.ingest). They are user identifiers like the ones
+# user_section holds back, so they follow the same rule and stay out of the default output. The
+# free-form `message` is the issue's own content, not an identifier, so it stays.
+_REPORTER_IDENTIFIER_KEYS = frozenset({"contact_email", "name"})
+
+
+def _contexts(data: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    # a context key can hold a null or a scalar; those carry nothing to render and would fail
+    # EventObject's dict[str, dict] validation, which takes the whole render down, not just
+    # this section -- the adapter runs before any section does
+    contexts = {
+        key: value for key, value in (data.get("contexts") or {}).items() if isinstance(value, dict)
+    }
+    # scoped to the feedback context on purpose: `name` is a legitimate key on browser, os
+    # and runtime contexts, so a blanket filter would drop real data
+    if "feedback" in contexts:
+        contexts["feedback"] = {
+            key: value
+            for key, value in contexts["feedback"].items()
+            if key not in _REPORTER_IDENTIFIER_KEYS
+        }
+    return contexts
+
+
+def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
+    # occurrence.evidenceDisplay carries the human-readable name/value summary for
+    # perf and generic/regression issues (e.g. "Regression": "... increased ...")
+    display = (data.get("occurrence") or {}).get("evidenceDisplay") or []
+    return [
+        (item["name"], item["value"])
+        for item in display
+        if item.get("name") and item.get("value") and item["name"] not in _REPORTER_IDENTIFIER_KEYS
+    ]
+
+
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     entries = _entries_by_type(data)
     tags, transaction_name = _tags(data)
@@ -80,6 +117,7 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     request = entries.get("request")
     # a top-level stacktrace entry, distinct from the one nested on an exception
     stacktrace = entries.get("stacktrace")
+    csp = entries.get("csp")
     user = data.get("user")
 
     return EventObject(
@@ -97,8 +135,10 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         threads=[_thread(v) for v in _values(entries.get("threads"))],
         breadcrumbs=[Breadcrumb.parse_obj(v) for v in _values(entries.get("breadcrumbs"))],
         request=RequestDetails.parse_obj(request) if request else None,
+        csp=CspDetails.parse_obj(csp) if csp else None,
         tags=tags,
-        contexts=data.get("contexts") or {},
+        contexts=_contexts(data),
         user=UserDetails.parse_obj(user) if user else None,
         spans=[EvidenceSpan.parse_obj(s) for s in entries.get("spans") or []],
+        evidence=_evidence(data),
     )

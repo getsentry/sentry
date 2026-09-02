@@ -4,6 +4,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsQuery,
   useQueryParamsSortBys,
@@ -22,6 +23,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
 
   const query = useQueryParamsQuery();
   const aggregateFields = useQueryParamsAggregateFields();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
 
@@ -32,7 +34,9 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
       traceItemType: TraceItemDataset.SPANS,
       environments: selection.environments,
       field: getColumnFieldsForValidation({aggregateFields, fields}),
-      orderBy: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+      orderBy: [...sortBys, ...aggregateSortBys].map(sortBy =>
+        sortBy.kind === 'desc' ? `-${sortBy.field}` : sortBy.field
+      ),
       query,
       projectIds: selection.projects,
     }),

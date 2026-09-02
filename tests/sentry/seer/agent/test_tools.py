@@ -1,12 +1,13 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from django.core.cache import cache
 from django.core.exceptions import BadRequest, ObjectDoesNotExist
 from pydantic import BaseModel
+from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
@@ -34,6 +35,7 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
+    get_group_assignees,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
@@ -1461,6 +1463,40 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert len(result["user_activity"]) == 1
         assert result["user_activity"][0]["type"] == "note"
 
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_user_attributed_seer_actions_are_included(self, mock_tags, mock_ts):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        for activity_type, user_id in (
+            (ActivityType.TRIGGER_AUTOFIX, self.user.id),
+            (ActivityType.SEER_ITERATION_STARTED, self.user.id),
+            (ActivityType.TRIGGER_AUTOFIX, None),
+        ):
+            Activity.objects.create(
+                group=group,
+                project=self.project,
+                type=activity_type.value,
+                user_id=user_id,
+            )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert {activity["type"] for activity in result["user_activity"]} == {
+            "trigger_autofix",
+            "seer_iteration_started",
+        }
+        assert all(activity["user"] is not None for activity in result["user_activity"])
+
     # --- assignee ---
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
@@ -2005,6 +2041,89 @@ class TestGetTeamMembers(APITestCase):
         assert result is None
 
 
+class TestGetGroupAssignees(APITestCase):
+    def test_returns_active_user_assignees_by_group_id(self):
+        second_user = self.create_user(email="second@example.com")
+        self.create_member(user=second_user, organization=self.organization)
+        first_group = self.create_group(project=self.project)
+        second_group = self.create_group(project=self.project)
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=first_group,
+            user_id=self.user.id,
+        )
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=second_group,
+            user_id=second_user.id,
+        )
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[second_group.id, team_group.id, first_group.id],
+        )
+
+        assert result["assignees"] == {
+            str(second_group.id): {
+                "id": second_user.id,
+                "username": second_user.username,
+            },
+            str(first_group.id): {
+                "id": self.user.id,
+                "username": self.user.username,
+            },
+        }
+
+    @patch("sentry.seer.agent.tools.user_service.get_many")
+    def test_skips_user_service_when_no_groups_have_user_assignees(self, get_many):
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[team_group.id],
+        )
+
+        assert result["assignees"] == {}
+        get_many.assert_not_called()
+
+    def test_excludes_groups_from_other_organizations(self):
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+        other_group = self.create_group(project=other_project)
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(user=other_user, organization=other_organization)
+        GroupAssignee.objects.create(
+            project=other_project,
+            group=other_group,
+            user_id=other_user.id,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[other_group.id],
+        )
+
+        assert result["assignees"] == {}
+
+    def test_rejects_more_than_one_hundred_groups(self):
+        with pytest.raises(BadRequest):
+            get_group_assignees(
+                organization_id=self.organization.id,
+                group_ids=list(range(101)),
+            )
+
+
 class TestGetEventDetails(
     APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin, SpanTestCase
 ):
@@ -2021,7 +2140,7 @@ class TestGetEventDetails(
         return self.store_event(data=data, project_id=self.project.id)
 
     def _assert_event_response_shape(
-        self, result, expected_event_id: str | None, expected_trace_id: str | None = None
+        self, result, expected_event_id: str | None, expected_trace_id: Any = ANY
     ):
         assert result is not None
         assert result["project_id"] == self.project.id
@@ -2062,7 +2181,103 @@ class TestGetEventDetails(
             project_slug=self.project.slug,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
+
+    def test_format_returns_shared_formatter_output(self) -> None:
+        event = self._make_error_event()
+
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            result = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+            )
+
+        assert result is not None
+        assert result["formatted"] is not None
+        assert "## Title" in result["formatted"]
+        assert "## Exception" in result["formatted"]
+
+    def test_format_omitted_when_option_disabled(self) -> None:
+        # format requested, but the rollout option is off -> no formatted (caller falls back)
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+            format="markdown",
+        )
+
+        assert result is not None
+        assert result["formatted"] is None
+
+    def test_no_format_omits_formatted(self) -> None:
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        assert result["formatted"] is None
+
+    def test_invalid_format_raises_parse_error(self) -> None:
+        # `format` is an unvalidated RPC argument; an unknown value must be a 400, not a 500,
+        # and the answer can't depend on whether the org has the rollout yet
+        event = self._make_error_event()
+
+        for features in ([], ["organizations:issue-standardized-markdown-for-llm"]):
+            with self.subTest(features=features), self.feature(features):
+                with pytest.raises(ParseError):
+                    get_event_details(
+                        organization_id=self.organization.id,
+                        event_id=event.event_id,
+                        project_slug=self.project.slug,
+                        format="yaml",  # type: ignore[arg-type]
+                    )
+
+        # ...and it can't depend on the lookup succeeding either: a bad argument is a bad
+        # argument, not a "not found"
+        with pytest.raises(ParseError):
+            get_event_details(
+                organization_id=self.organization.id,
+                event_id=uuid.uuid4().hex,
+                project_slug=self.project.slug,
+                format="yaml",  # type: ignore[arg-type]
+            )
+
+    def test_include_breadcrumbs_false_drops_section(self) -> None:
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["breadcrumbs"] = {
+            "values": [{"category": "auth", "message": "login", "level": "info"}]
+        }
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        with self.feature("organizations:issue-standardized-markdown-for-llm"):
+            with_crumbs = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+            )
+            without_crumbs = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+                include_breadcrumbs=False,
+            )
+
+        assert with_crumbs is not None and with_crumbs["formatted"] is not None
+        assert "## Breadcrumbs" in with_crumbs["formatted"]
+        assert without_crumbs is not None and without_crumbs["formatted"] is not None
+        assert "## Breadcrumbs" not in without_crumbs["formatted"]
 
     def test_by_event_id_multi_project(self) -> None:
         """Fetching by event_id without project_slug hits the multi-project code path."""
@@ -2074,7 +2289,9 @@ class TestGetEventDetails(
             event_id=event.event_id,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     def test_by_event_id_not_found_returns_none(self) -> None:
         result = get_event_details(
@@ -2149,7 +2366,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_qualified_short_id(self, mock_recommended):
@@ -2169,7 +2388,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_with_time_range(self, mock_recommended):

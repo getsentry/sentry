@@ -2,9 +2,11 @@ import type {ComponentProps} from 'react';
 import {SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {
   DataConditionType,
@@ -12,7 +14,10 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {MetricDetectorTriggeredSection} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
+import {
+  MetricDetectorTriggeredSection,
+  MetricIssueSeerInvestigationSection,
+} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
 
 describe('MetricDetectorTriggeredSection', () => {
   const condition: MetricCondition = {
@@ -54,6 +59,7 @@ describe('MetricDetectorTriggeredSection', () => {
   };
 
   beforeEach(() => {
+    ConfigStore.set('customerDomain', null);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -86,6 +92,299 @@ describe('MetricDetectorTriggeredSection', () => {
     });
   });
 
+  it('links to an existing investigation for the selected open period', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: 'Errors rose across releases',
+        summaryDescription: 'All active releases increased together.',
+        titleGeneration: {status: 'completed'},
+      },
+    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    await screen.findByRole('region', {
+      name: 'Seer Investigation',
+    });
+    expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
+    expect(
+      screen.getByText('All active releases increased together.')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toHaveAttribute('href', '/explore/investigations/4567/');
+  });
+
+  it('hides an existing investigation summary until all summary fields are ready', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: 'Errors rose across releases',
+        summaryDescription: null,
+        titleGeneration: {status: 'failed'},
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+  });
+
+  it('keeps polling briefly while metadata generation is starting', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: null},
+        blocks: [
+          {
+            id: 'block-1',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'completed',
+            currentExecution: {status: 'completed'},
+          },
+        ],
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(2000));
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+    jest.useRealTimers();
+  });
+
+  it('keeps polling while a parallel branch is active after another branch fails', async () => {
+    jest.useFakeTimers();
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'view', investigationId: '4567'}]},
+    });
+    const detailRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/4567/',
+      body: {
+        id: '4567',
+        summary: null,
+        summaryDescription: null,
+        titleGeneration: {status: null},
+        blocks: [
+          {
+            id: 'block-1',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'failed',
+            currentExecution: {status: 'failed'},
+          },
+          {
+            id: 'block-2',
+            config: {autoRun: true},
+            dependencies: [],
+            outputStatus: 'running',
+            currentExecution: {status: 'running'},
+          },
+        ],
+      },
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'View Investigation'})
+    ).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(2000));
+    await waitFor(() => expect(detailRequest).toHaveBeenCalledTimes(2));
+    jest.useRealTimers();
+  });
+
+  it('launches an investigation for the selected open period', async () => {
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+    const launchMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/',
+      method: 'POST',
+      body: {id: '4567'},
+    });
+
+    const {router} = render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText(
+        'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Launch Investigation'})
+    );
+
+    await waitFor(() => {
+      expect(launchMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            templateKey: 'breached_metric',
+            templateVersion: 1,
+            source: {
+              type: 'metric_open_period',
+              ref: {groupId: defaultGroup.id, openPeriodId: '101'},
+            },
+          },
+        })
+      );
+    });
+    expect(router.location.pathname).toBe('/explore/investigations/4567/');
+  });
+
+  it('uses the latest open period when the displayed event is not linked to one', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    const event = {...defaultEvent, id: 'unlinked-event', eventID: 'unlinked-event'};
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({
+          groupId: defaultGroup.id,
+          eventId: 'unlinked-event',
+          per_page: 1,
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [
+        {
+          id: 'latest-period',
+          start: openPeriodStartDate,
+          end: openPeriodEndDate,
+          isOpen: false,
+          activities: [],
+        },
+      ],
+      match: [MockApiClient.matchQuery({groupId: defaultGroup.id, per_page: 1})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Launch Investigation'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not fall back to an unrelated open period when the event lookup fails', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    const event = {...defaultEvent, id: 'failed-event', eventID: 'failed-event'};
+    const latestPeriodMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+      match: [MockApiClient.matchQuery({groupId: defaultGroup.id, per_page: 1})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      statusCode: 500,
+      match: [
+        MockApiClient.matchQuery({
+          groupId: defaultGroup.id,
+          eventId: 'failed-event',
+          per_page: 1,
+        }),
+      ],
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByText('Unable to load investigation information.')
+    ).toBeInTheDocument();
+    expect(latestPeriodMock).not.toHaveBeenCalled();
+  });
+
   it('renders nothing when event has no occurrence', () => {
     const event = EventFixture({
       occurrence: null,
@@ -95,6 +394,27 @@ describe('MetricDetectorTriggeredSection', () => {
       <MetricDetectorTriggeredSection {...defaultProps} event={event} />
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders the investigation entrypoint when a metric event has no occurrence', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    const event = EventFixture({occurrence: null});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} event={event} />, {
+      organization,
+    });
+
+    expect(
+      await screen.findByRole('region', {name: 'Seer Investigation'})
+    ).toBeInTheDocument();
   });
 
   it('renders only message when conditions are missing but subtitle exists', () => {
@@ -219,6 +539,62 @@ describe('MetricDetectorTriggeredSection', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Evaluated Value'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '250'})).toBeInTheDocument();
+  });
+
+  it('omits the evaluated value when the value is null', async () => {
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [dataSource],
+          value: null,
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    expect(
+      await screen.findByRole('region', {name: 'Triggered Condition'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: 'Evaluated Value'})).not.toBeInTheDocument();
+  });
+
+  it('omits the evaluated value when the anomaly detector value is null', async () => {
+    const event = EventFixture({
+      occurrence: {
+        id: '1',
+        eventId: 'event-1',
+        fingerprint: ['fingerprint'],
+        issueTitle: 'Test Issue',
+        subtitle: 'Subtitle',
+        resourceId: 'resource-1',
+        evidenceData: {
+          conditions: [condition],
+          dataSources: [dataSource],
+          value: {value: null},
+        },
+        evidenceDisplay: [],
+        type: 8001,
+        detectionTime: '2024-01-01T00:00:00Z',
+      },
+    });
+
+    render(<MetricDetectorTriggeredSection {...defaultProps} event={event} />);
+
+    expect(
+      await screen.findByRole('region', {name: 'Triggered Condition'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: 'Evaluated Value'})).not.toBeInTheDocument();
   });
 
   it('renders contributing issues section for errors dataset', async () => {

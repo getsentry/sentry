@@ -25,10 +25,11 @@ import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -43,6 +44,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -60,6 +62,10 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import {IssueListFilters} from './filters';
@@ -92,7 +98,7 @@ interface Props {
   withColumns?: GroupListColumn[];
 }
 
-interface EndpointParams extends Partial<PageFilters['datetime']> {
+interface EndpointParams extends Partial<PageFilterDatetime> {
   environment: string[];
   project: number[];
   cursor?: string;
@@ -220,9 +226,7 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
-  const hasIssueStreamProgressUI = organization.features.includes(
-    'issue-stream-progress-ui'
-  );
+  const hasIssueInbox = orgHasIssueInbox(organization);
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
@@ -294,15 +298,11 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = [
-      'owners',
-      'inbox',
-      ...(hasIssueStreamProgressUI ? ['derivedData'] : []),
-    ];
+    params.expand = ['owners', 'inbox', ...(hasIssueInbox ? ['derivedData'] : [])];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, hasIssueStreamProgressUI]);
+  }, [getEndpointParams, location.query, hasIssueInbox]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -356,7 +356,9 @@ function IssueListOverviewInner({
 
       try {
         const data = await api.requestPromise(
-          `/organizations/${organization.slug}/issues-stats/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
           {
             method: 'GET',
             data: qs.stringify(statsRequestParams),
@@ -374,7 +376,10 @@ function IssueListOverviewInner({
         // Other transactions include stacktrace preview request
         const currentSpan = Sentry.getActiveSpan();
         const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
-        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+        if (
+          rootSpan &&
+          Sentry.spanToJSON(rootSpan).attributes['sentry.op'] === 'navigation'
+        ) {
           rootSpan.end();
         }
       }
@@ -423,7 +428,9 @@ function IssueListOverviewInner({
 
     try {
       const [data, _, resp] = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
           data: qs.stringify(requestParams),
@@ -559,7 +566,7 @@ function IssueListOverviewInner({
   useDisableRouteAnalytics(issuesLoading);
   useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
   useRouteAnalyticsParams({
-    page: parsePageQueryParam(location, 0),
+    page: parsePageQueryParam(location),
     query,
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
@@ -642,7 +649,7 @@ function IssueListOverviewInner({
 
   const getPageCounts = useCallback(() => {
     const links = parseLinkHeader(pageLinks);
-    const queryPageInt = parsePageQueryParam(location, 0);
+    const queryPageInt = parsePageQueryParam(location);
     // Cursor must be present for the page number to be used
     const page = location.query.cursor ? queryPageInt : 0;
 
@@ -740,7 +747,7 @@ function IssueListOverviewInner({
   const onSelectStatsPeriod = (period: string) => {
     if (period !== getGroupStatsPeriod()) {
       const cursor = decodeScalar(location.query.cursor);
-      const queryPageInt = parsePageQueryParam(location, 0);
+      const queryPageInt = parsePageQueryParam(location);
       const page = cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
@@ -925,6 +932,10 @@ function IssueListOverviewInner({
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
+  const selectedProjects = useSelectedProjectsForLLMContext();
+  // Visible rows may span a subset of the page-filter selection; keep those
+  // separate from the hard selected project filter the agent should scope to.
+  const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
 
   useLLMContext({
     contextHint:
@@ -936,13 +947,17 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
+      'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
       'You can get issue details for aggregate stats, get event details for a specific error event, ' +
       'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,
     issueCount: queryCount,
-    projectSlugs: [...new Set(groups.map(g => g.project.slug))],
+    ...toLLMContextProjectFields(selectedProjects),
+    displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,
     displayedIssues: [

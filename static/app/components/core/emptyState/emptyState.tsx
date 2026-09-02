@@ -18,7 +18,7 @@ export function EmptyState({
   action,
   ...props
 }: EmptyStateProps) {
-  const switchOn = 'xs';
+  const switchOn = 'md';
   const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
 
   return (

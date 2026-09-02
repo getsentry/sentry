@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {lineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -37,6 +37,32 @@ interface UseMetricDetectorAnomalyThresholdsResult {
   anomalyThresholdSeries: LineSeriesOption[];
   error: RequestError | null;
   isLoading: boolean;
+}
+
+/**
+ * Round large anomaly bounds more aggressively while keeping precision for
+ * small unitless metrics (e.g. CLS ~0.004) so tooltips don't collapse to 0.
+ */
+export function smartRound(value: number): number {
+  const magnitude = Math.abs(value);
+
+  if (magnitude >= 100) {
+    return Math.round(value);
+  }
+  if (magnitude >= 10) {
+    return Math.round(value * 10) / 10;
+  }
+  if (magnitude >= 1) {
+    return Math.round(value * 100) / 100;
+  }
+  if (magnitude >= 0.1) {
+    return Math.round(value * 1000) / 1000;
+  }
+  if (magnitude >= 0.01) {
+    return Math.round(value * 10000) / 10000;
+  }
+
+  return value;
 }
 
 /**
@@ -105,15 +131,15 @@ export function useMetricDetectorAnomalyThresholds({
       const anomalyPoint = anomalyMap.get(timestamp);
 
       if (anomalyPoint) {
-        upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
-        lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
+        upperBoundData.push([timestamp, smartRound(anomalyPoint.yhat_upper)]);
+        lowerBoundData.push([timestamp, smartRound(anomalyPoint.yhat_lower)]);
       }
     });
 
     const lineColor = theme.colors.red400;
 
     return [
-      LineSeries({
+      lineSeries({
         name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
         lineStyle: {
@@ -135,7 +161,7 @@ export function useMetricDetectorAnomalyThresholds({
         connectNulls: true,
         step: false,
       }),
-      LineSeries({
+      lineSeries({
         name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
         lineStyle: {

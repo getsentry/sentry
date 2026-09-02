@@ -354,7 +354,7 @@ def test_custom_inbound_filter_condition_translation(
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
     assert generic_filter == {
-        "id": f"cif-{custom_filter.id}",
+        "id": f"custom-inbound-filter:{custom_filter.id}",
         "isEnabled": True,
         "condition": expected_condition,
     }
@@ -386,7 +386,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         "version": 1,
         "filters": [
             {
-                "id": f"cif-{custom_filter.id}",
+                "id": f"custom-inbound-filter:{custom_filter.id}",
                 "isEnabled": True,
                 "condition": {
                     "op": "and",
@@ -478,7 +478,7 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     )
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    assert generic_filter["id"] == f"cif-{valid_filter.id}"
+    assert generic_filter["id"] == f"custom-inbound-filter:{valid_filter.id}"
 
 
 @django_db_all
@@ -493,7 +493,7 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
 
     generic_filters = get_custom_inbound_filter_generic_filters(default_project)
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
-        f"cif-{custom_filter.id}" for custom_filter in created
+        f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created
     ]
 
 

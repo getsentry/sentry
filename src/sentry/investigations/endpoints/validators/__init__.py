@@ -1,11 +1,13 @@
 __all__ = (
     "BlockCreateValidator",
     "BlockDeleteValidator",
+    "BlockExecutionResumeValidator",
     "BlockExecutionStartValidator",
     "BlockOrderValidator",
     "BlockUpdateValidator",
     "FavoriteUpdateValidator",
     "InvestigationCreateValidator",
+    "InvestigationCandidatesValidator",
     "InvestigationDeleteValidator",
     "InvestigationUpdateValidator",
     "ParameterValuesValidator",
@@ -20,6 +22,7 @@ from .base import StrictCamelSnakeValidator
 from .block import (
     BlockCreateValidator,
     BlockDeleteValidator,
+    BlockExecutionResumeValidator,
     BlockExecutionStartValidator,
     BlockOrderValidator,
     BlockUpdateValidator,
@@ -28,6 +31,7 @@ from .block import (
 )
 from .investigation import (
     FavoriteUpdateValidator,
+    InvestigationCandidatesValidator,
     InvestigationCreateValidator,
     InvestigationDeleteValidator,
     InvestigationUpdateValidator,

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Self
+from collections.abc import Iterable
+from typing import Any, ClassVar
 
-from django.db import models
+from django.db import connections, models, router
 
 from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
@@ -10,31 +11,81 @@ from sentry.db.models import (
     BoundedAutoField,
     BoundedBigIntegerField,
     FlexibleForeignKey,
+    Model,
     cell_silo_model,
     sane_repr,
 )
-from sentry.hybridcloud.models.outbox import CellOutboxBase
-from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 
+MAX_RESERVED_IDS = 100_000
+
+
+def _reserve_ids(model: type[Model], count: int, using: str) -> list[int]:
+    """Claim `count` values from the model's primary key sequence ahead of insert.
+
+    Sequences are per-database, so `using` must be where the rows are written —
+    drawing from another hands out ids that are already taken.
+    """
+    if not 1 <= count <= MAX_RESERVED_IDS:
+        raise ValueError(f"Cannot reserve {count} ids, expected 1 to {MAX_RESERVED_IDS}.")
+
+    with connections[using].cursor() as cursor:
+        cursor.execute(
+            "SELECT nextval(%s) FROM generate_series(1,%s);",
+            [f"{model._meta.db_table}_id_seq", count],
+        )
+        return [row_id for (row_id,) in cursor.fetchall()]
+
+
+class OrganizationMemberTeamQuerySet(BaseQuerySet["OrganizationMemberTeam"]):
+    """Keeps `new_id` equal to `id` on bulk inserts.
+
+    This lives on the queryset rather than the manager because not every bulk insert
+    goes through `objects`: adding a team via a member's `teams` accessor, or any
+    `.using(...)` call, reaches the queryset directly.
+    """
+
+    def bulk_create(
+        self, objs: Iterable[OrganizationMemberTeam], *args: Any, **kwds: Any
+    ) -> list[OrganizationMemberTeam]:
+        rows = list[OrganizationMemberTeam](objs)
+        if not rows:
+            return super().bulk_create(rows, *args, **kwds)
+
+        # `self.db` would give the read database here.
+        using = self._db  # type: ignore[attr-defined]
+        if using is None:
+            using = router.db_for_write(self.model, **self._hints)  # type: ignore[attr-defined]
+
+        # Claim the pks up front so `new_id` can be written in the same INSERT.
+        rows_with_ids = zip(rows, _reserve_ids(self.model, len(rows), using))
+        for row, row_id in rows_with_ids:
+            row.id = row_id
+            row.new_id = row_id
+        return super().bulk_create(rows, *args, **kwds)
+
+
+OrganizationMemberTeamManager = BaseManager.from_queryset(
+    OrganizationMemberTeamQuerySet, "OrganizationMemberTeamManager"
+)
+
 
 @cell_silo_model
-class OrganizationMemberTeam(ReplicatedCellModel):
+class OrganizationMemberTeam(Model):
     """
     Identifies relationships between organization members and the teams they are on.
     """
 
-    objects: ClassVar[CellOutboxProducingManager[Self]] = CellOutboxProducingManager()
+    objects: ClassVar[BaseManager[OrganizationMemberTeam]] = OrganizationMemberTeamManager()
 
     __relocation_scope__ = RelocationScope.Organization
-    category = OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE
 
     id = BoundedAutoField(primary_key=True)
-    # Shadow column for the in-progress widening of `id` to int8; swapped into the
-    # primary key once backfilled. Nothing reads or writes it yet.
-    new_id = BoundedBigIntegerField(null=True)
+    # Shadow column for the in-progress widening of `id` to int8. Every write keeps it equal to `id`.
+    new_id = BoundedBigIntegerField()
     team = FlexibleForeignKey("sentry.Team")
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     # an inactive membership simply removes the team from the default list
@@ -49,14 +100,18 @@ class OrganizationMemberTeam(ReplicatedCellModel):
 
     __repr__ = sane_repr("team_id", "organizationmember_id")
 
-    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
-        return super().outbox_for_update(
-            shard_identifier=(
-                self.organizationmember.organization_id
-                if shard_identifier is None
-                else shard_identifier
-            )
-        )
+    def save(self, **kwds: Any) -> None:
+        if self.id is None:
+            # Claim the pk up front so `new_id` can be written in the same INSERT.
+            using = kwds.get("using")
+            if using is None:
+                using = router.db_for_write(type(self), instance=self)
+            self.id = _reserve_ids(type(self), 1, using)[0]
+            self.new_id = self.id
+            # A freshly claimed pk cannot already exist, so skip the UPDATE probe
+            # Django would otherwise run before inserting.
+            kwds["force_insert"] = True
+        super().save(**kwds)
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {

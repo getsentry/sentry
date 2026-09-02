@@ -3,7 +3,7 @@ import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'ech
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {ToolBox} from 'sentry/components/charts/components/toolBox';
+import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
@@ -318,7 +318,7 @@ export function useChartZoom({
       return {};
     }
 
-    return ToolBox(
+    return getToolBox(
       {id: 'useChartZoom-toolbox'},
       {
         dataZoom: {

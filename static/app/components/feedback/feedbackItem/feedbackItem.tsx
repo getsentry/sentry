@@ -198,9 +198,9 @@ function FeedbackItemContexts({
       ...eventData.contexts,
       feedback: {
         ...eventData.contexts?.feedback,
-        ['auto_spam.detection_enabled']: evidenceObject.spam_detection_enabled,
+        'auto_spam.detection_enabled': evidenceObject.spam_detection_enabled,
         ...(evidenceObject.spam_detection_enabled
-          ? {['auto_spam.is_spam']: evidenceObject.is_spam}
+          ? {'auto_spam.is_spam': evidenceObject.is_spam}
           : {}),
       },
     },

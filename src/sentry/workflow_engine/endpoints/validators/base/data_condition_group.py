@@ -10,7 +10,12 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 )
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
 from sentry.workflow_engine.models import DataConditionGroup
-from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, DataCondition
+from sentry.workflow_engine.models.data_condition import (
+    Condition,
+    DataCondition,
+    get_condition_handler,
+)
+from sentry.workflow_engine.types import DataConditionHandler
 
 
 class DataConditionGroupInput(TypedDict):
@@ -40,23 +45,34 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         break upon updating.
         """
         for condition in condition_data:
-            if (condition.get("type") in TRIGGER_CONDITIONS) and (
-                logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
-            ):
+            try:
+                condition_type = Condition(str(condition.get("type")))
+            except ValueError:
+                raise serializers.ValidationError(
+                    f"Invalid condition type, '{condition.get('type')}'"
+                )
+
+            condition_handler = get_condition_handler(condition_type)
+
+            if (
+                condition_handler is not None
+                and condition_handler.group == DataConditionHandler.Group.WORKFLOW_TRIGGER
+            ) and (logic_type != DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value):
                 raise serializers.ValidationError("Triggers' logic type must be 'any-short'")
 
     def update_or_create_condition(
-        self, condition_data: dict[str, Any], organization_id: int
+        self, condition_data: dict[str, Any], condition_group_id: int
     ) -> DataCondition:
         validator = BaseDataConditionValidator()
         condition_id = condition_data.get("id")
 
         if condition_id:
             try:
-                # Validate that the condition belongs to this organization
+                # Validate that the condition already belongs to this condition group, preventing
+                # a condition from another group from being re-parented into this one.
                 condition = DataCondition.objects.get(
                     id=condition_id,
-                    condition_group__organization_id=organization_id,
+                    condition_group_id=condition_group_id,
                 )
             except DataCondition.DoesNotExist as exc:
                 raise serializers.ValidationError(
@@ -68,6 +84,15 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             condition = validator.create(condition_data)
 
         return condition
+
+    def _validate_new_conditions(self, condition_data: list[dict[str, Any]]) -> None:
+        """
+        When creating a new data condition, ensure that the conditions don't reference existing conditions.
+        """
+        for condition in condition_data:
+            condition_id = condition.get("id")
+            if condition_id:
+                raise serializers.ValidationError(f"Condition with id {condition_id} not found.")
 
     def update(
         self,
@@ -87,7 +112,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             for condition_data in conditions:
                 # Always set condition_group_id programmatically to prevent cross-org IDOR
                 condition_data["condition_group_id"] = instance.id
-                self.update_or_create_condition(condition_data, context_org.id)
+                self.update_or_create_condition(condition_data, instance.id)
 
         # update the condition group
         instance.update(**validated_data)
@@ -97,6 +122,7 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
         logic_type = validated_data.get("logic_type", DataConditionGroup.Type.ANY.value)
         conditions = validated_data.get("conditions", [])
         self._validate_logic_type(conditions, logic_type)
+        self._validate_new_conditions(conditions)
 
         with transaction.atomic(router.db_for_write(DataConditionGroup)):
             condition_group = DataConditionGroup.objects.create(

@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
@@ -8,8 +9,9 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type GridProps, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
@@ -116,8 +118,16 @@ export function ReleaseCard({
   };
 
   return (
-    <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
-      <ReleaseInfo>
+    <ResponsivePanel reloading={reloading} data-test-id="release-panel">
+      <Stack
+        borderRight={{zero: 'none', '3xl': 'primary'}}
+        flexShrink={1}
+        gap={{zero: 'md', '3xl': '0'}}
+        maxWidth={{zero: 'none', '3xl': '300px'}}
+        minWidth={{zero: '0', '3xl': '260px'}}
+        padding="lg xl"
+        width={{zero: 'auto', '3xl': '22%'}}
+      >
         {/* Header/info is the table sidecard */}
         <ReleaseInfoHeader>
           <Link
@@ -210,12 +220,17 @@ export function ReleaseCard({
             </FinalizeWrapper>
           </Flex>
         </ReleaseInfoSubheader>
-      </ReleaseInfo>
+      </Stack>
 
-      <ReleaseProjects>
+      <Grid borderTop={{zero: 'primary', '3xl': 'none'}} flexGrow={1}>
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+          <Grid
+            align="center"
+            columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
+            gap="0 md"
+            width="100%"
+          >
             <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
@@ -227,17 +242,35 @@ export function ReleaseCard({
             <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
             <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
             <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-          </ReleaseProjectsLayout>
+          </Grid>
         </ReleaseProjectsHeader>
 
         <Container position="relative">
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
-              <ExpandButtonWrapper>
+              <Flex
+                align="center"
+                bottom="0"
+                justify="center"
+                position="absolute"
+                radius={{zero: '0 0 md md', '3xl': '0 0 md 0'}}
+                width="100%"
+                css={cssTheme => css`
+                  background-image: linear-gradient(
+                    180deg,
+                    ${color(cssTheme.tokens.background.primary).alpha(0).string()} 0,
+                    ${cssTheme.tokens.background.primary}
+                  );
+                  background-repeat: repeat-x;
+                  border-bottom: ${cssTheme.space.md} solid
+                    ${cssTheme.tokens.background.primary};
+                  border-top: ${cssTheme.space.md} solid transparent;
+                `}
+              >
                 <Button variant="primary" size="xs" onClick={onExpand}>
                   {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
                 </Button>
-              </ExpandButtonWrapper>
+              </Flex>
             )}
             collapseButton={({onCollapse}) => (
               <Flex justify="center" align="center" height="41px">
@@ -270,20 +303,36 @@ export function ReleaseCard({
         </Container>
 
         {projectsToHide.length > 0 && (
-          <HiddenProjectsMessage data-test-id="hidden-projects">
-            <Tooltip title={getHiddenProjectsTooltip()}>
-              <TextOverflow>
-                {projectsToHide.length === 1
-                  ? tct('[number:1] hidden project', {number: <strong />})
-                  : tct('[number] hidden projects', {
-                      number: <strong>{projectsToHide.length}</strong>,
-                    })}
-              </TextOverflow>
-            </Tooltip>
-          </HiddenProjectsMessage>
+          <Flex
+            align="center"
+            background="secondary"
+            borderTop="primary"
+            height="24px"
+            overflow="hidden"
+            padding="0 xl"
+            css={cssTheme => css`
+              border-bottom-right-radius: ${cssTheme.radius.md};
+
+              @container (max-width: ${cssTheme.container['3xl']}) {
+                border-bottom-left-radius: ${cssTheme.radius.md};
+              }
+            `}
+          >
+            <Text size="sm" variant="muted">
+              <Tooltip title={getHiddenProjectsTooltip()}>
+                <TextOverflow>
+                  {projectsToHide.length === 1
+                    ? tct('[number:1] hidden project', {number: <strong />})
+                    : tct('[number] hidden projects', {
+                        number: <strong>{projectsToHide.length}</strong>,
+                      })}
+                </TextOverflow>
+              </Tooltip>
+            </Text>
+          </Flex>
         )}
-      </ReleaseProjects>
-    </StyledPanel>
+      </Grid>
+    </ResponsivePanel>
   );
 }
 
@@ -295,29 +344,25 @@ const StyledVersion = styled(Version)`
   text-overflow: ellipsis;
 `;
 
-const StyledPanel = styled(Panel)<{reloading: number}>`
-  opacity: ${p => (p.reloading ? 0.5 : 1)};
-  pointer-events: ${p => (p.reloading ? 'none' : 'auto')};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: flex;
-  }
-`;
-
-const ReleaseInfo = styled('div')`
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  flex-shrink: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    min-width: 260px;
-    width: 22%;
-    max-width: 300px;
-  }
-`;
+function ResponsivePanel({
+  reloading,
+  ...props
+}: React.ComponentProps<typeof Panel> & {reloading: boolean}) {
+  return (
+    <Container display={{zero: 'block', '3xl': 'flex'}}>
+      {containerProps => (
+        <Panel
+          {...props}
+          {...containerProps}
+          css={css`
+            opacity: ${reloading ? 0.5 : 1};
+            pointer-events: ${reloading ? 'none' : 'auto'};
+          `}
+        />
+      )}
+    </Container>
+  );
+}
 
 const ReleaseInfoSubheader = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
@@ -349,16 +394,6 @@ const PackageName = styled('div')`
   max-width: 100%;
 `;
 
-const ReleaseProjects = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  flex-grow: 1;
-  display: grid;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    border-top: none;
-  }
-`;
-
 const ReleaseInfoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   display: grid;
@@ -373,55 +408,19 @@ const ReleaseProjectsHeader = styled(PanelHeader)`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-const ExpandButtonWrapper = styled('div')`
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-image: linear-gradient(
-    180deg,
-    ${p => color(p.theme.tokens.background.primary).alpha(0).string()} 0,
-    ${p => p.theme.tokens.background.primary}
-  );
-  background-repeat: repeat-x;
-  border-bottom: ${p => p.theme.space.md} solid ${p => p.theme.tokens.background.primary};
-  border-top: ${p => p.theme.space.md} solid transparent;
-  border-bottom-right-radius: ${p => p.theme.radius.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-  }
-`;
+export function getReleaseProjectColumns(
+  showReleaseAdoptionStages: boolean
+): NonNullable<GridProps['columns']> {
+  const adoptionStagesSize = showReleaseAdoptionStages ? '0.7fr' : '';
 
-export const ReleaseProjectsLayout = styled('div')<{
-  showReleaseAdoptionStages?: boolean;
-}>`
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
-
-  grid-column-gap: ${p => p.theme.space.md};
-  align-items: center;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    ${p => {
-      const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
-      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
-    }}
-  }
-`;
+  return {
+    zero: '1fr 1.4fr 0.6fr 0.7fr',
+    xl: '1fr 1fr 1fr 0.5fr 0.5fr 0.5fr',
+    '5xl': `1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`,
+  };
+}
 
 export const ReleaseProjectColumn = styled('div')`
-  display: block;
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
@@ -429,21 +428,20 @@ export const ReleaseProjectColumn = styled('div')`
   line-height: 20px;
 `;
 
-export const NewIssuesColumn = styled(ReleaseProjectColumn)`
+export function NewIssuesColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Text align={{zero: 'left', xl: 'right'}} tabular>
+      {containerProps => (
+        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
+      )}
+    </Text>
+  );
+}
+
+const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    text-align: right;
-  }
-`;
-
-export const AdoptionColumn = styled(ReleaseProjectColumn)`
-  display: none;
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    /* Chart tooltips need overflow */
+  @container (min-width: ${p => p.theme.container.xl}) {
     overflow: visible;
   }
 
@@ -452,53 +450,52 @@ export const AdoptionColumn = styled(ReleaseProjectColumn)`
   }
 `;
 
-export const AdoptionStageColumn = styled(ReleaseProjectColumn)`
-  display: none;
+export function AdoptionColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Container display={{zero: 'none', xl: 'flex'}}>
+      {containerProps => (
+        <StyledAdoptionColumn {...containerProps}>{children}</StyledAdoptionColumn>
+      )}
+    </Container>
+  );
+}
+
+const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    display: flex;
-
-    /* Need to show the edges of the tags */
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     overflow: visible;
   }
 `;
 
-export const CrashFreeRateColumn = styled(ReleaseProjectColumn)`
-  font-variant-numeric: tabular-nums;
+export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Container display={{zero: 'none', '5xl': 'flex'}}>
+      {containerProps => (
+        <StyledAdoptionStageColumn {...containerProps}>
+          {children}
+        </StyledAdoptionStageColumn>
+      )}
+    </Container>
+  );
+}
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    text-align: center;
-  }
+export function CrashFreeRateColumn({children}: {children: React.ReactNode}) {
+  return (
+    <Text align={{zero: 'left', xl: 'center', '5xl': 'right'}} tabular>
+      {containerProps => (
+        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
+      )}
+    </Text>
+  );
+}
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    text-align: right;
-  }
-`;
-
-export const DisplaySmallCol = styled(ReleaseProjectColumn)`
-  display: none;
-  font-variant-numeric: tabular-nums;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    text-align: right;
-  }
-`;
-
-const HiddenProjectsMessage = styled('div')`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.sm};
-  padding: 0 ${p => p.theme.space.xl};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  overflow: hidden;
-  height: 24px;
-  line-height: 24px;
-  color: ${p => p.theme.tokens.content.secondary};
-  background-color: ${p => p.theme.tokens.background.secondary};
-  border-bottom-right-radius: ${p => p.theme.radius.md};
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-  }
-`;
+export function DisplaySmallCol({children}: {children: React.ReactNode}) {
+  return (
+    <Text align="right" display={{zero: 'none', xl: 'block'}} tabular>
+      {containerProps => (
+        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
+      )}
+    </Text>
+  );
+}

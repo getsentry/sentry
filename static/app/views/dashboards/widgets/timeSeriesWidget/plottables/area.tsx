@@ -1,6 +1,6 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {lineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -58,7 +58,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
       if (isIncomplete) {
         plottableSeries.push(
-          LineSeries({
+          lineSeries({
             ...commonOptions,
             stack: `incomplete-${index}`,
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
@@ -78,7 +78,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
 
       if (!isIncomplete) {
         plottableSeries.push(
-          LineSeries({
+          lineSeries({
             ...commonOptions,
             stack: `complete-${index}`,
             areaStyle: {

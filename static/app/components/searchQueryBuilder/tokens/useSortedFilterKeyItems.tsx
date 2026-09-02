@@ -1,17 +1,14 @@
 import {useMemo, type ReactNode} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 import type {FuseResult, IFuseOptions} from 'fuse.js/basic';
 
-import {
-  useSearchQueryBuilderAI,
-  useSearchQueryBuilderConfig,
-} from 'sentry/components/searchQueryBuilder/context';
+import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
   SearchKeyItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {
-  createAskSeerItem,
   createFilterValueItem,
   createItem,
   createLogicFilterItem,
@@ -21,11 +18,12 @@ import {
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type FilterKeySearchItem = {
   description: string;
@@ -177,11 +175,12 @@ export function useSortedFilterKeyItems({
     getTagKeys,
     filterKeyRegistryQueryKey,
   } = useSearchQueryBuilderConfig();
-  const {enableAISearch} = useSearchQueryBuilderAI();
 
   // Async key fetching with debounce when getTagKeys is provided
   const shouldFetchAsync = !!getTagKeys;
-  const debouncedFilterValue = useDebouncedValue(filterValue);
+  const [debouncedFilterValue] = useDebouncedValue(filterValue, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const {data: asyncKeys, isLoading: isQueryLoading} = useQuery({
     queryKey: [
       'search-query-builder-tag-keys',
@@ -290,7 +289,7 @@ export function useSortedFilterKeyItems({
         .map(key => createItem(key, getFieldDefinition(key.key)));
     }
 
-    const searched = search.search(filterValue);
+    const searched = search.search(stripArrayMembershipOperator(filterValue));
 
     const allKeyItems = searched
       .map(({item: filterSearchKeyItem}) => filterSearchKeyItem)
@@ -325,11 +324,6 @@ export function useSortedFilterKeyItems({
     const staticKeyItems = allKeyItems.filter(item => !asyncOnlyKeys.has(item.value));
     const asyncKeyItems = allKeyItems.filter(item => asyncOnlyKeys.has(item.value));
     const keyItems = [...staticKeyItems, ...asyncKeyItems];
-
-    const askSeerItem = [];
-    if (enableAISearch) {
-      askSeerItem.push(createAskSeerItem());
-    }
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
@@ -418,16 +412,14 @@ export function useSortedFilterKeyItems({
         ...(shouldIncludeRawSearch ? [rawSearchSection] : []),
         keyItemsSection,
         ...(!shouldShowAtTop && suggestedFiltersSection ? [suggestedFiltersSection] : []),
-        ...askSeerItem,
       ];
     }
 
-    return [...keyItems, ...askSeerItem];
+    return keyItems;
   }, [
     allKeysLookup,
     asyncOnlyKeys,
     disallowFreeText,
-    enableAISearch,
     filterKeySections,
     filterValue,
     flatKeys,

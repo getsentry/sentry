@@ -353,6 +353,32 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 0
 
+    @patch("sentry.tasks.assemble.MAX_SOURCE_FILE_SIZE", 10)
+    def test_assembled_bundle_is_rejected_if_a_file_is_too_large(self) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version="1.0",
+            dist="android",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+        )
+
+        status, details = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        )
+        assert status == ChunkFileState.ERROR
+        assert "exceeds the maximum uncompressed file size" in details
+
+        files = File.objects.filter()
+        assert len(files) == 0
+
     def test_assembled_bundle_is_deleted_if_checksum_mismatches(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id

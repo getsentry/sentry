@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -12,7 +12,7 @@ interface UseProfileFunctionTrendsOptions {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
   cursor?: string;
-  datetime?: PageFilters['datetime'];
+  datetime?: PageFilterDatetime;
   enabled?: boolean;
   limit?: number;
   projects?: Array<number | string>;

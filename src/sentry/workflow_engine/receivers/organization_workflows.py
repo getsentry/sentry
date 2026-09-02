@@ -2,7 +2,6 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import options
 from sentry.models.organization import Organization
 from sentry.signals import organization_created
 from sentry.workflow_engine.defaults.detectors import (
@@ -12,8 +11,6 @@ from sentry.workflow_engine.defaults.workflows import ensure_default_organizatio
 
 
 def create_organization_workflows(organization: Organization, **kwargs: Any) -> None:
-    if not options.get("workflow_engine.all_projects_auto_creation_enabled"):
-        return
     try:
         ensure_default_organization_workflows(organization)
     except UnableToAcquireLockApiError as e:

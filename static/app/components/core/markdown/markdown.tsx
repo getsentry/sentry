@@ -48,6 +48,8 @@ export type MarkdownComponents = Partial<{
       data: unknown;
       level: 'block' | 'inline';
       name: string;
+      /** Original `{% tag %}` source, including body and closing tag. */
+      raw: string;
     }>
   >;
   TaskList: ComponentType<WithDefault<{children: ReactNode}>>;

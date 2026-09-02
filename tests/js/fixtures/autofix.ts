@@ -10,6 +10,7 @@ export function ExplorerAutofixFixture(
 ): ReturnType<typeof useExplorerAutofix> {
   return {
     runState: ExplorerAutofixStateFixture(),
+    autofixFormatted: null,
     startStep: jest.fn(),
     createPR: jest.fn(),
     reset: jest.fn(),
@@ -18,7 +19,9 @@ export function ExplorerAutofixFixture(
     dismissCodingAgentError: jest.fn(),
     warnings: [],
     isLoading: false,
+    isWaitingForRun: false,
     isPolling: false,
+    isProcessing: false,
     ...params,
   };
 }

@@ -10,7 +10,7 @@ import {truncationFormatter} from 'sentry/components/charts/utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-export function Legend(
+export function legend(
   props: ChartProps['legend'] & {theme: Theme}
 ): LegendComponentOption {
   const {truncate, theme, ...rest} = props ?? {};

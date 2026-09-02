@@ -27,6 +27,20 @@ const routeChildren = [
   },
 ];
 
+const documentIntegrationRouteChildren = [
+  {
+    path: 'document-integrations',
+    handle: {name: 'Integrations', path: 'document-integrations/'},
+    children: [
+      {
+        path: ':integrationSlug',
+        handle: {name: 'Details', path: ':integrationSlug'},
+        element: <div />,
+      },
+    ],
+  },
+];
+
 describe('BreadcrumbTitle', () => {
   it('renders settings breadcrumbs and replaces title', () => {
     render(
@@ -82,5 +96,24 @@ describe('BreadcrumbTitle', () => {
 
     expect(crumbsNext).toHaveLength(1);
     expect(screen.getByText('Two')).toBeInTheDocument();
+  });
+
+  it('uses the explicit title for document integrations', () => {
+    render(
+      <BreadcrumbProvider>
+        <SettingsBreadcrumb params={{integrationSlug: 'example-doc'}} />
+        <BreadcrumbTitle title="Example Documentation" />
+      </BreadcrumbProvider>,
+      {
+        initialRouterConfig: {
+          route: '/',
+          location: {pathname: '/document-integrations/example-doc'},
+          children: documentIntegrationRouteChildren,
+        },
+      }
+    );
+
+    expect(screen.getByText('Example Documentation')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'example-doc'})).not.toBeInTheDocument();
   });
 });

@@ -420,21 +420,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(project_id=[-1])
         assert response.status_code == 200
 
-    def test_boolean_search_feature_flag(self) -> None:
+    def test_boolean_search_not_supported(self) -> None:
         self.login_as(user=self.user)
+        expected_detail = (
+            'Error parsing search query: Boolean statements containing "OR" or "AND" are not '
+            "supported in this search"
+        )
+
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
         assert response.status_code == 400
-        assert (
-            response.data["detail"]
-            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
-        )
+        assert response.data["detail"] == expected_detail
 
         response = self.get_response(sort_by="date", query="title:hello AND title:goodbye")
         assert response.status_code == 400
-        assert (
-            response.data["detail"]
-            == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
-        )
+        assert response.data["detail"] == expected_detail
+
+        response = self.get_response(sort_by="date", query="has:[title,message]")
+        assert response.status_code == 400
+        assert response.data["detail"] == expected_detail
 
     def test_invalid_query(self) -> None:
         now = timezone.now()
@@ -2263,17 +2266,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ]
         assert len(platform_issue_queries) == 1
 
-    @with_feature(
-        {
-            "organizations:event-attachments": True,
-            "organizations:issue-stream-batched-latest-event-attachments": False,
-        }
-    )
-    @patch("sentry.api.serializers.models.group_stream.metrics")
-    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
-    def test_expand_latest_event_has_attachments(
-        self, mock_bulk_get_latest_event_ids: MagicMock, mock_metrics: MagicMock
-    ) -> None:
+    @with_feature("organizations:event-attachments")
+    def test_expand_latest_event_has_attachments(self) -> None:
         event = self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -2310,24 +2304,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.status_code == 200
         assert response.data[0]["latestEventHasAttachments"] is True
-        mock_bulk_get_latest_event_ids.assert_not_called()
-        assert mock_metrics.timer.call_args_list == [
-            call(
-                "group_stream.get_attrs.latest_event_attachments.duration",
-                tags={"strategy": "n_plus_one"},
-            ),
-            call(
-                "group_stream.get_attrs.latest_event_attachments.duration",
-                tags={"strategy": "n_plus_one"},
-            ),
-        ]
 
-    @with_feature(
-        [
-            "organizations:event-attachments",
-            "organizations:issue-stream-batched-latest-event-attachments",
-        ]
-    )
+    @with_feature("organizations:event-attachments")
     @patch("sentry.api.serializers.models.group_stream.metrics")
     @patch("sentry.models.Group.get_latest_event")
     def test_expand_latest_event_has_attachments_is_batched(
@@ -2379,12 +2357,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             tags={"strategy": "bulk"},
         )
 
-    @with_feature(
-        [
-            "organizations:event-attachments",
-            "organizations:issue-stream-batched-latest-event-attachments",
-        ]
-    )
+    @with_feature("organizations:event-attachments")
     def test_expand_latest_event_attachments_match_project_and_event(self) -> None:
         other_project = self.create_project(organization=self.organization, teams=[self.team])
         shared_event_id = "b" * 32
@@ -2438,12 +2411,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             second_project_event.group.id: False,
         }
 
-    @with_feature(
-        [
-            "organizations:event-attachments",
-            "organizations:issue-stream-batched-latest-event-attachments",
-        ]
-    )
+    @with_feature("organizations:event-attachments")
     @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids", return_value={})
     def test_expand_no_latest_event_has_no_attachments(self, mock_latest_events: MagicMock) -> None:
         self.store_event(
@@ -2459,37 +2427,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         # Expand should not execute since there is no latest event
         assert "latestEventHasAttachments" not in response.data[0]
-
-    @with_feature(
-        {
-            "organizations:event-attachments": True,
-            "organizations:issue-stream-batched-latest-event-attachments": False,
-        }
-    )
-    @patch("sentry.api.serializers.models.group_stream.bulk_get_latest_event_ids")
-    @patch("sentry.models.Group.get_latest_event", return_value=None)
-    def test_expand_no_latest_event_has_no_attachments_legacy(
-        self,
-        mock_get_latest_event: MagicMock,
-        mock_bulk_get_latest_event_ids: MagicMock,
-    ) -> None:
-        self.store_event(
-            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query="status:unresolved",
-            expand=["latestEventHasAttachments"],
-        )
-
-        assert response.status_code == 200
-        assert "latestEventHasAttachments" not in response.data[0]
-        mock_get_latest_event.assert_called_once_with()
-        mock_bulk_get_latest_event_ids.assert_not_called()
 
     def test_expand_owners(self) -> None:
         event = self.store_event(
@@ -3287,6 +3224,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
+
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug, status="resolved")
+
+        assert response.status_code == 204
 
     def test_global_resolve(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
@@ -4236,6 +4184,22 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
         assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
+    def test_rejects_negative_snooze_count(self) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED)
+
+        self.login_as(user=self.user)
+
+        self.get_error_response(
+            qs_params={"id": group.id},
+            status="ignored",
+            ignoreCount=-1,
+            status_code=400,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert not GroupSnooze.objects.filter(group=group).exists()
+
     def test_snooze_user_count(self) -> None:
         for i in range(10):
             event = self.store_event(
@@ -4700,6 +4664,17 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug)
+
+        assert response.status_code == 204
 
     @patch("sentry.eventstream.snuba.SnubaEventStream._send")
     @patch("sentry.eventstream.snuba.datetime")

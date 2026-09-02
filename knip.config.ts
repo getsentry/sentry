@@ -5,30 +5,28 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
+  // scraps has all index.tsx file as separate entry points
+  'static/app/components/core/*/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
   'static/app/serviceWorker/worker/worker.ts',
-  // exports used by scripts
-  'static/app/components/seer/markdown/embeds/schemas.ts',
+  // scripts are entry points
+  'scripts/*.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
-  // frontend experiemnt framework may be unused when we have no experiemnets
-  'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
-  // Only used in stories (so far)
-  'static/app/components/core/quote/*.tsx',
-  'static/app/components/core/markdown/**/*.{ts,tsx}',
-  'static/app/components/core/revealOnHover/*.tsx',
   // TODO: Remove when wired into Seer Explorer
   'static/app/components/core/chat/thinkingBlock.tsx',
+  'static/app/components/core/chat/toolCall.tsx',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
-  'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
-  // TODO: Remove when wired into the connect repository modal
-  'static/app/components/connectRepository/**/*.{ts,tsx}',
+  // TODO: Remove when the autofixRef embed consumes it (#122099)
+  'static/app/components/seer/autofixChatContext.tsx',
+  'static/app/components/brandPageLayout/**/*.{ts,tsx}',
+  // React authentication routes are discovered dynamically by the frontend route registry
+  'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [
@@ -77,10 +75,15 @@ const config: KnipConfig = {
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
+        'zrender', // used in echarts
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
+    },
+    'static/eslint/eslintPluginSentry': {
+      // RuleTester resolves these cross-file fixtures by filename.
+      ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
     },
   },
   ignoreExportsUsedInFile: isProductionMode,

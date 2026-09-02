@@ -7,7 +7,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -47,14 +46,6 @@ type Props = {
    */
   extraButton?: React.ReactNode;
   /**
-   * Additional form field props for custom components.
-   */
-  fieldProps?: FieldGroupProps;
-  /**
-   * Custom styles for the form footer.
-   */
-  footerStyle?: React.CSSProperties;
-  /**
    * Initial form data.
    */
   initialData?: BillingDetails;
@@ -62,12 +53,7 @@ type Props = {
    * Display detailed view for subscription settings.
    */
   isDetailed?: boolean;
-  onPreSubmit?: () => void;
   onSubmitError?: (error: any) => void;
-  /**
-   * Are changes required before the form can be submitted?
-   */
-  requireChanges?: boolean;
   /**
    * Form submit button label.
    */
@@ -85,7 +71,6 @@ const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 function BillingDetailsFormFields({
   form,
   isDetailed,
-  fieldProps,
   initialData,
   handleStripeFormChange,
   state,
@@ -97,7 +82,6 @@ function BillingDetailsFormFields({
   isDetailed: boolean;
   onSubmitDisabled: (disabled: boolean) => void;
   state: State;
-  fieldProps?: FieldGroupProps;
   initialData?: BillingDetails;
   taxFieldInfo?: TaxFieldInfo;
 }) {
@@ -149,7 +133,6 @@ function BillingDetailsFormFields({
               )}
               placeholder={t('name@example.com (optional)')}
               value={form.getValue('billingEmail') ?? ''}
-              fieldProps={fieldProps}
             />
           )}
           {stripeIsLoading && <LoadingIndicator />}
@@ -200,7 +183,6 @@ function BillingDetailsFormFields({
               )}
               value={form.getValue('taxNumber') ?? ''}
               placeholder={taxFieldInfo.placeholder}
-              fieldProps={fieldProps}
             />
           )}
         </Fragment>
@@ -215,12 +197,10 @@ function CustomBillingDetailsFormField({
   help,
   placeholder,
   value,
-  fieldProps,
 }: {
   inputName: string;
   label: string;
   value: string;
-  fieldProps?: FieldGroupProps;
   help?: React.ReactNode;
   placeholder?: string;
 }) {
@@ -233,7 +213,6 @@ function CustomBillingDetailsFormField({
         <QuestionTooltip title={help} size="sm" />
       </Flex>
       <StyledTextField
-        {...fieldProps}
         name={inputName}
         placeholder={placeholder}
         value={value}
@@ -249,15 +228,11 @@ function CustomBillingDetailsFormField({
  */
 export function BillingDetailsForm({
   initialData,
-  onPreSubmit,
   onSubmitError,
   onSubmitSuccess,
   organization,
   submitLabel,
-  footerStyle,
-  requireChanges,
   isDetailed = true,
-  fieldProps,
   extraButton,
   analyticsEvent,
 }: Props) {
@@ -350,21 +325,17 @@ export function BillingDetailsForm({
       <Form
         apiMethod="PUT"
         model={form}
-        requireChanges={requireChanges}
         submitDisabled={submitDisabled}
         apiEndpoint={`/customers/${organization.slug}/billing-details/`}
         submitLabel={submitLabel}
-        onPreSubmit={onPreSubmit}
         onSubmitSuccess={handleSubmit}
         onSubmitError={err => onSubmitError?.(err)}
         initialData={transformedInitialData}
-        footerStyle={footerStyle}
         extraButton={extraButton}
       >
         <BillingDetailsFormFields
           form={form}
           isDetailed={isDetailed}
-          fieldProps={fieldProps}
           initialData={initialData}
           handleStripeFormChange={handleStripeFormChange}
           state={state}

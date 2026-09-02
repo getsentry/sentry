@@ -214,7 +214,13 @@ class GroupNoteCreateTest(APITestCase):
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.post(url, format="json", data={"text": "hello world"})
+        response = self.client.post(
+            url,
+            format="json",
+            data={"text": "hello world"},
+            HTTP_USER_AGENT="sentry-mcp/1.0",
+            HTTP_X_SENTRY_MCP_CLIENT_FAMILY="claude-code",
+        )
         assert response.status_code == 201, response.content
 
         activity = Activity.objects.get(
@@ -225,6 +231,7 @@ class GroupNoteCreateTest(APITestCase):
         # `id` is the Activity id (comment_id), matching the flag-off contract
         assert response.data["id"] == str(activity.id)
         assert response.data["type"] == "note"
+        assert response.data["source"] == "mcp:claude-code"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["data"]["text"] == "hello world"
         assert response.data["data"]["comment_id"] == activity.id

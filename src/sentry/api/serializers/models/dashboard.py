@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.db.models import prefetch_related_objects
 
 from sentry import features
@@ -311,10 +312,23 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
             widget_type = None
         else:
-            widget_type = (
-                DashboardWidgetTypes.get_type_name(obj.widget_type)
-                or DashboardWidgetTypes.TYPE_NAMES[0]
-            )
+            widget_type = DashboardWidgetTypes.get_type_name(obj.widget_type)
+            if widget_type is None:
+                sentry_sdk.set_context(
+                    "dashboard",
+                    {
+                        "dashboard_id": obj.dashboard_id,
+                        "widget_id": obj.id,
+                        "widget_type": obj.widget_type,
+                        "discover_widget_split": obj.discover_widget_split,
+                    },
+                )
+                sentry_sdk.capture_message("Widget has an unresolvable widget_type", level="error")
+                # Preserves the existing behaviour rather than the desired state. There is
+                # no correct dataset to report for these widgets, and `discover` is
+                # deprecated -- but clients already receive it, so keep it until the
+                # underlying rows are gone.
+                widget_type = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.DISCOVER)
 
         discover_widget_type = (
             obj.widget_type == DashboardWidgetTypes.DISCOVER or obj.widget_type is None
@@ -668,9 +682,20 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             user=user,
         )
 
+        creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]
+        serialized_creators = (
+            user_service.serialize_many(filter={"user_ids": creator_ids}) if creator_ids else []
+        )
+        serialized_users = {u["id"]: u for u in serialized_creators}
+
         for dashboard in item_list:
             dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
-            result[dashboard] = {"widgets": dashboard_widgets}
+            created_by = (
+                serialized_users.get(str(dashboard.created_by_id))
+                if dashboard.created_by_id is not None
+                else None
+            )
+            result[dashboard] = {"widgets": dashboard_widgets, "created_by": created_by}
 
         return result
 
@@ -681,11 +706,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": (
-                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
-                if obj.created_by_id
-                else None
-            ),
+            "createdBy": attrs.get("created_by"),
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,

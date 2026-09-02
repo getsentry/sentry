@@ -32,7 +32,6 @@ interface OrganizationDropdownProps {
    * When true, hides settings, projects, members, teams, and billing links for the current organization.
    */
   hideCurrentOrganizationLinks?: boolean;
-  onClick?: () => void;
 }
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
@@ -92,10 +91,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           size={size}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
-          onClick={e => {
-            triggerProps.onClick?.(e);
-            props.onClick?.();
-          }}
         />
       )}
       position="right-start"

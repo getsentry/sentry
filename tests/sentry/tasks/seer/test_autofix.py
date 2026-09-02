@@ -8,6 +8,7 @@ from sentry.seer.models import (
     SummarizeIssueResponse,
     SummarizeIssueScores,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.autofix import (
     configure_seer_for_existing_org,
     generate_issue_summary_only,
@@ -56,6 +57,15 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
+    @patch("sentry.tasks.seer.autofix.logger")
+    def test_missing_organization_returns_without_retry(self, mock_logger: MagicMock) -> None:
+        configure_seer_for_existing_org(organization_id=0)
+
+        mock_logger.warning.assert_called_once_with(
+            "configure_seer_for_existing_org.organization_not_found",
+            extra={"organization_id": 0},
+        )
+
     def test_configures_org_and_project_settings(self) -> None:
         """Test that org and project settings are configured correctly."""
         project1 = self.create_project(organization=self.organization)
@@ -79,6 +89,36 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
         assert project1.get_option("sentry:seer_automation_handoff_target") is None
         assert project2.get_option("sentry:seer_automation_handoff_point") is None
         assert project2.get_option("sentry:seer_automation_handoff_target") is None
+
+    def test_clears_free_cohort_repository_configuration(self) -> None:
+        repository = self.create_repo(project=self.project)
+        self.create_seer_project_repository(project=self.project, repository=repository)
+
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+        other_repository = self.create_repo(project=other_project)
+        other_seer_repository = self.create_seer_project_repository(
+            project=other_project, repository=other_repository
+        )
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        assert not SeerProjectRepository.objects.filter(
+            project_repository__project__organization=self.organization
+        ).exists()
+        assert SeerProjectRepository.objects.filter(id=other_seer_repository.id).exists()
+        assert self.organization.get_option("agentic-triage-free-cohort", False) is False
+
+    def test_preserves_non_cohort_repository_configuration(self) -> None:
+        repository = self.create_repo(project=self.project)
+        seer_repository = self.create_seer_project_repository(
+            project=self.project, repository=repository
+        )
+
+        configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        assert SeerProjectRepository.objects.filter(id=seer_repository.id).exists()
 
     @pytest.mark.skip("DO NOT override autofix automation tuning off")
     def test_overrides_autofix_off_to_medium(self) -> None:

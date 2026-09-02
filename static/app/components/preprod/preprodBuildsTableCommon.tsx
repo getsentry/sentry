@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -7,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {FullRowLink} from 'sentry/components/preprod/preprodBuildsTableStyles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
@@ -46,6 +45,7 @@ interface PreprodBuildsRowCellsProps {
   build: BuildDetailsApiResponse;
   showInteraction: boolean;
   showProjectColumn: boolean;
+  rowLink?: {to: string; onClick?: () => void};
   showInstallGroups?: boolean;
   showInstallabilityIndicator?: boolean;
 }
@@ -54,6 +54,7 @@ const MAX_VISIBLE_INSTALL_GROUPS = 3;
 
 export function PreprodBuildsRowCells({
   build,
+  rowLink,
   showInteraction,
   showProjectColumn,
   showInstallGroups = false,
@@ -68,7 +69,7 @@ export function PreprodBuildsRowCells({
 
   return (
     <Fragment>
-      {showInteraction && <InteractionStateLayer />}
+      {showInteraction && <InteractionStateLayer as="td" />}
       <SimpleTable.RowCell justify="start">
         {build.app_info?.name || build.app_info?.app_id ? (
           <Stack gap="xs">
@@ -78,12 +79,18 @@ export function PreprodBuildsRowCells({
               )}
               <Container paddingLeft="xs">
                 <Text size="lg" bold>
-                  {build.app_info?.name || '--'}
+                  {rowLink ? (
+                    <FullRowLink to={rowLink.to} onClick={rowLink.onClick}>
+                      {build.app_info?.name || '--'}
+                    </FullRowLink>
+                  ) : (
+                    build.app_info?.name || '--'
+                  )}
                 </Text>
               </Container>
               {(build.distribution_info?.is_installable ||
                 showInstallabilityIndicator) && (
-                <Flex align="center">
+                <Flex align="center" position="relative">
                   {build.distribution_info?.is_installable ? (
                     <InstallAppButton
                       projectId={build.project_slug}
@@ -236,13 +243,3 @@ export function PreprodBuildsCreatedRowCell({build}: {build: BuildDetailsApiResp
     </SimpleTable.RowCell>
   );
 }
-
-export const FullRowLink = styled(Link)`
-  display: contents;
-  cursor: pointer;
-  color: inherit;
-
-  &:hover {
-    color: inherit;
-  }
-`;

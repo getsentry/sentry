@@ -52,6 +52,7 @@ export function BitbucketIntegrationConfigFixture(): Integration {
       name: 'Bitbucket',
       slug: 'bitbucket',
     },
+    scopes: null,
     status: 'active',
   };
 }
@@ -74,6 +75,7 @@ export function GitHubIntegrationConfigFixture(): Integration {
       name: 'Github',
       slug: 'github',
     },
+    scopes: null,
     status: 'active',
   };
 }

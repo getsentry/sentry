@@ -33,7 +33,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
 
     // If no samples, return empty flamegraph
     if (samples.length === 0) {
-      return Flamegraph.Empty();
+      return Flamegraph.empty();
     }
 
     // Create frame index for profiling

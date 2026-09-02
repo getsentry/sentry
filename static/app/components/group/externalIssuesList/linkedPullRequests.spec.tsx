@@ -72,7 +72,7 @@ describe('LinkedPullRequests', () => {
       `Pull request #123 in ${REPOSITORY_NAME}, Merged, Fix widget crash on startup`
     );
     await userEvent.hover(linkedPullRequest);
-    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(2);
+    expect(await screen.findAllByText('Fix widget crash on startup')).toHaveLength(1);
     expect(within(list).getAllByRole('listitem')).toHaveLength(2);
     expect(within(list).getByText(`${REPOSITORY_NAME}#123`)).toBeInTheDocument();
     expect(within(list).getByText(`${REPOSITORY_NAME}#124`)).toBeInTheDocument();

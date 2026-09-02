@@ -118,7 +118,7 @@ function makeColorBuffer(
 
 export const makeStackToColor = (
   fallbackColor: [number, number, number, number]
-): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
+): FlamegraphTheme['COLORS']['stackToColor'] => {
   return (
     frames: readonly FlamegraphFrame[],
     generateColorMap: ColorMapFn,

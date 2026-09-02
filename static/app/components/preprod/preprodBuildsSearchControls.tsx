@@ -38,15 +38,6 @@ interface PreprodBuildsSearchControlsProps {
    */
   projects: number[];
   /**
-   * Overrides the display-specific list of attribute keys shown in the search bar.
-   */
-  allowedKeys?: string[];
-  /**
-   * Overrides the display-specific list of attributes whose values are entered
-   * as free text.
-   */
-  freeformKeys?: string[];
-  /**
    * Hide the display mode toggle
    */
   hideDisplayToggle?: boolean;
@@ -72,8 +63,6 @@ export function PreprodBuildsSearchControls({
   initialQuery,
   display,
   projects,
-  allowedKeys,
-  freeformKeys,
   hideDisplayToggle,
   onChange,
   onSearch,
@@ -93,40 +82,50 @@ export function PreprodBuildsSearchControls({
 
   return (
     <Flex
-      align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
-      direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+      align={{zero: 'stretch', md: 'center'}}
+      direction={{zero: 'column', md: 'row'}}
       gap="md"
       wrap="wrap"
     >
-      <Container flex="1">
+      <Container flex="1" minWidth="0" width="100%">
         <PreprodSearchBar
           initialQuery={initialQuery}
-          allowedKeys={allowedKeys ?? displayAllowedKeys}
-          freeformKeys={freeformKeys ?? displayFreeformKeys}
+          allowedKeys={displayAllowedKeys}
+          freeformKeys={displayFreeformKeys}
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}
         />
       </Container>
       {onExportCsv && (
-        <Button icon={<IconDownload />} onClick={onExportCsv}>
-          {t('Download CSV')}
-        </Button>
+        <Container width={{zero: '100%', md: 'max-content'}}>
+          {containerProps => (
+            <Button {...containerProps} icon={<IconDownload />} onClick={onExportCsv}>
+              {t('Download CSV')}
+            </Button>
+          )}
+        </Container>
       )}
       {!hideDisplayToggle && (
-        <Container maxWidth="200px">
-          <CompactSelect
-            options={displaySelectOptions}
-            value={display}
-            onChange={option => onDisplayChange(option.value)}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                prefix={t('Display')}
-                style={{width: '100%', zIndex: 1}}
-              />
-            )}
-          />
+        <Container
+          maxWidth={{zero: 'none', md: '200px'}}
+          width={{zero: '100%', md: 'max-content'}}
+        >
+          {containerProps => (
+            <CompactSelect
+              {...containerProps}
+              options={displaySelectOptions}
+              value={display}
+              onChange={option => onDisplayChange(option.value)}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  prefix={t('Display')}
+                  style={{width: '100%', zIndex: 1}}
+                />
+              )}
+            />
+          )}
         </Container>
       )}
     </Flex>

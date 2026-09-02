@@ -182,6 +182,11 @@ register(
 
 # SMS
 register(
+    "sms.backend",
+    default="twilio",
+    flags=FLAG_NOSTORE,
+)
+register(
     "sms.twilio-account",
     default="",
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -258,6 +263,12 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "auth.email-verification-at-signup.sso-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -293,6 +304,13 @@ register(
     "api.rate-limit.org-create",
     default=5,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "api.permission-scope-audit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
@@ -332,6 +350,23 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Aggregate rows/sec ceiling for PullRequest deletions across all concurrent
+# deletion tasks. 0 disables rate limiting. Sized to sit well above the
+# steady-state deletion rate while keeping any backlog drain gentle, so it
+# needs no tuning around deploys.
+register(
+    "deletions.pull-request.rate-limit",
+    default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "deletions.nodestore.killswitch-projects",
+    default=[],
+    type=Any,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "unmerge.killswitch-projects",
@@ -347,7 +382,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# Idempotency guard for self-chaining tasks (e.g. merge_groups, unmerge): dedupe the chain-step
 # spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
 register(
     "taskworker.selfchain_idempotency.enabled",
@@ -392,6 +427,36 @@ register(
     "symbolicator.options",
     default={"url": "http://127.0.0.1:3021"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Teapot (GPU crash dump symbolication service)
+register(
+    "teapot.enabled",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Tight timeout: decode is sub-second, so a slow teapot should fail fast.
+register(
+    "teapot.timeout-seconds",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Retries only on transient 5xx; low so a slow teapot can't pile up work.
+register(
+    "teapot.max-attempts",
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# After `error_limit` failures in `error_limit_window`s, skip teapot for
+# `broken_state_duration`s so an outage can't back up the GPU pool.
+register(
+    "teapot.circuit-breaker-config",
+    default={
+        "error_limit_window": 60,
+        "error_limit": 20,
+        "broken_state_duration": 60,
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
@@ -509,13 +574,6 @@ register(
 register(
     "replay.endpoints.project_replay_summary.trace_sample_rate_get",
     default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Chunk size for bulk delete job
-register(
-    "replay.bulk_delete_job.chunk_size_days",
-    default=7,
-    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -679,6 +737,12 @@ register(
     "github-app.fetch-commits.max-compare-commits",
     type=Int,
     default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-app.pull-request-status.chunk-size",
+    type=Int,
+    default=25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -963,7 +1027,7 @@ register(
 )
 
 
-# Refresh Bundle Indexes reported as used by symbolicator
+# TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
@@ -1246,6 +1310,13 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Serves 304 responses from endpoints using ConditionalGetResponseMixin.
+register(
+    "api.conditional_get.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
 # on conversation id. Requires organizations:gen-ai-conversation-title-generation.
@@ -1323,6 +1394,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "issues.derived_data.read_path_checks.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.action_log.dedicated_outbox_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
     default=False,
@@ -1354,6 +1437,36 @@ register(
 )
 register(
     "issues.backfill_group_action_log.coordinator_inter_batch_delay_s",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_batch_size",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_organization_inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.enrollment_project_inter_batch_delay_s",
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1465,6 +1578,12 @@ register(
 # 0.0 or no config means no load shedding.
 register(
     "store.load-shed-symbolicate-event-projects",
+    type=Any,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "store.load-shed-gpu-crash-projects",
     type=Any,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2304,6 +2423,14 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in minutes of the recalibration factor stored in Redis.
+register(
+    "dynamic-sampling.recalibration.factor-ttl-minutes",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
@@ -2328,15 +2455,36 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the recalibration step within the per-org pipeline,
-# keyed on organization id. Recalibration writes the factor that serving applies,
-# so it rolls out separately from the rest of the pipeline. An org must be in both
-# this group and dynamic-sampling.per_org.rollout-rate for its factor to be updated.
+# No longer read. Kept registered until the options automator stops setting it.
 register(
     "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
+# id. Above 0.0, rule generation reads the project, transaction and recalibration sample
+# rates of the selected orgs from the per-org caches instead of the legacy ones. An org
+# only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it too.
+# An org switches over as a whole:
+# until a pass has stored its project sample rates, rule generation serves all of its
+# values from the legacy caches, and from then on all of them from the per-org ones.
+register(
+    "dynamic-sampling.per_org.serving-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations rule generation serves from the per-org caches, whatever
+# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
+# before a rate group exists.
+register(
+    "dynamic-sampling.per_org.serving-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Sample rate for metrics emitted by the per-org dynamic sampling pipeline
@@ -2401,23 +2549,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enables a feature flag check in dynamic sampling tasks that switches
-# organizations between transactions and spans for rebalancing. This check is
-# expensive, so it can be disabled using this option.
-register(
-    "dynamic-sampling.check_span_feature_flag",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
-# List of organization IDs that should be using spans for rebalancing in dynamic sampling.
-register(
-    "dynamic-sampling.measure.spans",
-    default=[],
-    type=Sequence,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
@@ -2427,6 +2558,16 @@ register(
 )
 register(
     "hybrid_cloud.disable_tombstone_cleanup",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybrid_cloud.write_deletion_watermark_to_postgres",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybrid_cloud.read_deletion_watermark_from_postgres",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2471,25 +2612,59 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Remove the rows a claim-bounded drain finishes with — delivered, attempts
+# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
+# stays inside a claim reserved for its whole run, so deferring deletes cannot
+# hand rows to a concurrent drain; a crashed worker reprocesses at most one
+# unflushed batch, which redelivers the delivered rows and re-discards the rest.
 register(
-    "hybridcloud.webhookpayload.push_drain_trigger",
+    "hybridcloud.webhookpayload.drain_batch_deletes",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Providers whose mailbox drains skip a failed message and keep going instead of
+# aborting. Also gates concurrent delivery: only these providers' claims deliver
+# on `worker_threads` threads, and only they dispatch from the due head. Only safe for
+# providers whose cell-side handlers tolerate reordering, since a skipped or
+# concurrently delivered message can land after the ones behind it. Providers not
+# listed deliver strictly: one record at a time, in order, stopping on failure.
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=["github"],
+    default=[
+        "github",
+        "github_enterprise",
+        "bitbucket",
+        "bitbucket_server",
+        "gitlab",
+    ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Drops GitHub check webhooks that reference no pull request based in their own
-# repo (see ActionFilter.own_repo_pr_actions). Ships off: unlike the other parser
-# drops this one keys off payload shape rather than a header, so it needs a switch
-# that stops the loss immediately if the predicate turns out to be wrong.
+# How many chained drains a strict provider's mailbox may run per lineage,
+# counting the ordinary dispatch as the first link: at 1 a finished drain never
+# chains, and each increment lets a busy mailbox re-dispatch itself once more
+# before falling back to the scheduler.
 register(
-    "hybridcloud.webhookpayload.github_drop_checks_without_own_repo_pr",
+    "hybridcloud.webhookpayload.max_chain_depth",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Dispatch skip-on-failure providers' mailboxes from their oldest due record
+# instead of gating on the absolute head, so one record in retry backoff cannot
+# hide every due record behind it. Strict-ordering providers keep the gate.
+register(
+    "hybridcloud.webhookpayload.dispatch_from_due_head",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Break glass for inbound webhook floods. Matching webhooks are dropped with a
+# 429 before any WebhookPayload row is written, and whatever the sender does not
+# redeliver is lost. Conditions are documented in sentry.killswitches.
+register(
+    "hybridcloud.webhookpayload.shed-inbound",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(
@@ -2638,12 +2813,41 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
+# Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
+# sentry-options-automator.
+register(
+    "crons.check_accept_monitor_checkin.timeout_rollout_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Bound how long the crons ingest consumer waits on seat/quota acceptance when
+# the timeout rollout selects the check-in. On timeout the check-in is accepted
+# (fail-open) so a slow quotas backend cannot stall the consumer. Set to 0 to
+# disable the timeout wrapper even for selected traffic.
+register(
+    "crons.check_accept_monitor_checkin.timeout_sec",
+    type=Float,
+    default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Webhook timeout overrides by installation organization ID. Values are seconds.
+# Example: {"123456": {"webhook_timeout_override": 0.5, "hard_timeout_override": 5.0}}
+register(
+    "sentry-apps.override.organization_ids.webhook.timeouts.sec",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Hard timeout for webhook requests to prevent indefinite hangs.
@@ -3227,13 +3431,6 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "spans.buffer.process-segments-task-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3264,8 +3461,8 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TTL in seconds for span deduplication tracking. When > 0, the consumer
-# will use Redis SETNX to detect duplicate spans and emit metrics.
+# TTL in seconds for span deduplication tracking. When > 0, the process_segment
+# task will use Redis SETNX to detect duplicate spans and emit metrics.
 # Set to 0 to disable.
 register(
     "spans.process-segments.dedupe-ttl",
@@ -3422,7 +3619,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "workflow_engine.all_projects_auto_creation_enabled",
+    "workflow_engine.all_projects_detectors.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.auto_creation.pull_request_workflow",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.auto_creation.all_projects_detector",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3454,12 +3663,26 @@ register(
     default=0.1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Workflows for which to always try to record evaluation logs.
+register(
+    "workflow_engine.evaluation_log_target_workflow_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Whether to directly log workflow evaluation logs to Sentry instead of using the stdlib
 # logger (which also logs to Sentry).
 register(
     "workflow_engine.evaluation_logs_direct_to_sentry",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "workflow_engine.process_workflows_debug_workflow_ids",
+    type=Sequence,
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Safe default limit for workflows. Should be high enough to cover almost all orgs,
@@ -4137,6 +4360,14 @@ register(
 register(
     "issues.derived.heal-max-tasks",
     default=100,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Max random check batches heal_stale_derived_data may schedule from leftover
+# heal-max-tasks budget (after any stale regeneration work is scheduled).
+register(
+    "issues.derived.check-task-count",
+    default=5,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -9,7 +9,7 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -18,7 +18,7 @@ import {withPageFilters} from 'sentry/utils/withPageFilters';
 
 type Props = Omit<
   EventsChartProps,
-  keyof Omit<PageFilters, 'datetime'> | keyof PageFilters['datetime']
+  keyof Omit<PageFilters, 'datetime'> | keyof PageFilterDatetime
 > & {
   onTotalValuesChange: (value: number | null) => void;
   selection: PageFilters;

@@ -1,4 +1,5 @@
-import {useEffect, useEffectEvent, useRef} from 'react';
+import {useEffect} from 'react';
+import {useDebouncer} from '@tanstack/react-pacer';
 
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -22,31 +23,24 @@ interface UseEngagedViewTrackingParams {
  */
 export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingParams) {
   const organization = useOrganization();
-  const trackedGroupId = useRef<string | null>(null);
-  const trackEngagedView = useEffectEvent(() => {
-    trackAnalytics('issue.engaged_view', {
-      organization,
-      group_id: parseInt(group.id, 10),
-      project_id: parseInt(project.id, 10),
-      issue_type: group.issueType,
-    });
-  });
+  const {maybeExecute: trackEngagedView} = useDebouncer(
+    (groupId: string) => {
+      if (group.id !== groupId) {
+        return;
+      }
+
+      trackAnalytics('issue.engaged_view', {
+        organization,
+        group_id: parseInt(groupId, 10),
+        project_id: parseInt(project.id, 10),
+        issue_type: group.issueType,
+      });
+    },
+    {wait: ENGAGED_VIEW_THRESHOLD_MS}
+  );
 
   useEffect(() => {
     // Only track once per group
-    if (trackedGroupId.current === group.id) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      if (trackedGroupId.current !== group.id) {
-        trackedGroupId.current = group.id;
-        trackEngagedView();
-      }
-    }, ENGAGED_VIEW_THRESHOLD_MS);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [group.id]);
+    trackEngagedView(group.id);
+  }, [group.id, trackEngagedView]);
 }

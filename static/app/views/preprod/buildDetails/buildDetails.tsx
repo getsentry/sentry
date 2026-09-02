@@ -106,7 +106,10 @@ export default function BuildDetails() {
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/organizations/${organization.slug}/preprod-artifact/rerun-analysis/${artifactId}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-analysis/$headArtifactId/',
+          {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
+        ),
         method: 'POST',
       });
     },

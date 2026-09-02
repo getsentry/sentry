@@ -183,8 +183,7 @@ class AlertRuleNotification(ProjectNotification):
         rule_details = get_rules(self.rules, self.organization, self.project, self.group.type)
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
         for rule in rule_details:
-            rule.url = rule.url + sentry_query_params
-            rule.status_url = rule.url + sentry_query_params
+            rule.status_url = rule.status_url + sentry_query_params
 
         notification_reason = get_owner_reason(
             project=self.project,

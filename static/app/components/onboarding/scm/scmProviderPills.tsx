@@ -1,4 +1,4 @@
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
@@ -25,7 +25,20 @@ interface ScmProviderPillsProps {
   providers: IntegrationProvider[];
 }
 
-export function ScmProviderPills({
+export function ScmProviderPills(props: ScmProviderPillsProps) {
+  return (
+    // Declares its own query container: the pills compact and wrap against
+    // this wrapper's width when it is tight. The wrapper is capped well below
+    // the page-level container scale, so page-relative keys would never fire
+    // here. The row is a separate component because it reads this container in
+    // JS, and an element can't query itself.
+    <Flex justify="start" containerType="inline-size">
+      <ScmProviderPillRow {...props} />
+    </Flex>
+  );
+}
+
+function ScmProviderPillRow({
   analyticsFlow,
   providers,
   onInstall,
@@ -34,76 +47,67 @@ export function ScmProviderPills({
   const {startFlow} = useAddIntegration();
   const {primaryProviders, moreProviders} = partitionScmProviders(providers);
   const view = INSTALL_VIEW[analyticsFlow];
-  const gridItemCount = primaryProviders.length + (moreProviders.length > 0 ? 1 : 0);
 
-  const columnsXs = `repeat(${Math.min(gridItemCount, 2)}, 1fr)`;
-  const columnsMd = [
-    primaryProviders.length && `repeat(${primaryProviders.length}, 1fr)`,
-    moreProviders.length && 'min-content',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  // When the row is tight the pills compact: the xs button size with matching
+  // icons and a tighter gap. Pills that still do not fit wrap to the next line
+  // instead of overflowing the container.
+  const isCompact = useResponsivePropValue({zero: true, sm: false});
+  const buttonSize = isCompact ? 'xs' : 'md';
+  const iconSize = isCompact ? 'xs' : 'sm';
 
   return (
-    <Flex justify="start">
-      <Grid
-        columns={{
-          'screen:xs': columnsXs,
-          'screen:md': columnsMd,
-        }}
-        justify="center"
-        gap="md"
-      >
-        {primaryProviders.map(provider => (
-          <IntegrationContext
-            key={provider.key}
-            value={{
-              provider,
-              type: 'first_party',
-              installStatus: 'Not Installed',
-              analyticsParams: {
-                view,
-                variant: 'scm',
-                already_installed: false,
-              },
-              suppressSuccessMessage: true,
+    <Flex wrap="wrap" gap={{zero: 'sm', sm: 'md'}}>
+      {primaryProviders.map(provider => (
+        <IntegrationContext
+          key={provider.key}
+          value={{
+            provider,
+            type: 'first_party',
+            installStatus: 'Not Installed',
+            analyticsParams: {
+              view,
+              variant: 'scm',
+              already_installed: false,
+            },
+            suppressSuccessMessage: true,
+          }}
+        >
+          <IntegrationButton
+            userHasAccess
+            onAddIntegration={onInstall}
+            onExternalClick={() => {}}
+            buttonProps={{
+              size: buttonSize,
+              icon: getIntegrationIcon(provider.key, iconSize),
+              buttonText: provider.name,
             }}
-          >
-            <IntegrationButton
-              userHasAccess
-              onAddIntegration={onInstall}
-              onExternalClick={() => {}}
-              buttonProps={{
-                icon: getIntegrationIcon(provider.key, 'sm'),
-                buttonText: provider.name,
-              }}
-            />
-          </IntegrationContext>
-        ))}
-        {moreProviders.length > 0 && (
-          <DropdownMenu
-            triggerLabel={t('More')}
-            position="bottom-end"
-            items={moreProviders.map(provider => ({
-              key: provider.key,
-              label: provider.name,
-              leadingItems: getIntegrationIcon(provider.key, 'sm'),
-              onAction: () =>
-                startFlow({
-                  provider,
-                  organization,
-                  onInstall,
-                  analyticsParams: {
-                    view,
-                    variant: 'scm',
-                    already_installed: false,
-                  },
-                  suppressSuccessMessage: true,
-                }),
-            }))}
           />
-        )}
-      </Grid>
+        </IntegrationContext>
+      ))}
+      {moreProviders.length > 0 && (
+        <DropdownMenu
+          triggerLabel={t('More')}
+          position="bottom-end"
+          size={buttonSize}
+          items={moreProviders.map(provider => ({
+            key: provider.key,
+            label: provider.name,
+            leadingItems: getIntegrationIcon(provider.key, iconSize),
+            onAction: () =>
+              startFlow({
+                provider,
+                organization,
+                onInstall,
+                analyticsParams: {
+                  view,
+                  variant: 'scm',
+                  already_installed: false,
+                },
+                suppressSuccessMessage: true,
+              }),
+          }))}
+        />
+      )}
     </Flex>
   );
 }

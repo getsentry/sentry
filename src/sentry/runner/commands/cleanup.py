@@ -792,6 +792,7 @@ def remove_cross_project_bulk_query_models(
 def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
+    from sentry.ai_monitoring.models import AIConversationMetadata
     from sentry.models.groupemailthread import GroupEmailThread
     from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
     from sentry.models.userreport import UserReport
@@ -806,6 +807,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
         additional_bulk_query_deletes.append((model_tp, entry[1], entry[2]))
 
     BULK_QUERY_DELETES = [
+        (AIConversationMetadata, "date_updated", "date_updated"),
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
         (GroupOpenPeriodActivity, "date_added", None),

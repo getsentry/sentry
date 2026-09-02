@@ -1081,6 +1081,19 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         with pytest.raises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
 
+    def test_has_in_filter_with_boolean_disabled(self) -> None:
+        config = SearchConfig.create_from(default_config, allow_boolean=False)
+
+        assert parse_search_query("has:[release]", config=config) == [
+            SearchFilter(
+                key=SearchKey(name="release"),
+                operator="!=",
+                value=SearchValue(raw_value=""),
+            )
+        ]
+        with pytest.raises(InvalidSearchQuery, match="Boolean statements"):
+            parse_search_query("has:[release,zoo]", config=config)
+
     def test_not_has_team_key_transaction_allowed_when_disabled(self) -> None:
         config = SearchConfig.create_from(default_config, allow_not_has_filter=False)
 

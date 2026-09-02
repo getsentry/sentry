@@ -49,7 +49,6 @@ dependencies = [
   "grpcio>=1.71.2",
   # not directly used, but provides a speedup for redis
   "hiredis>=2.3.2",
-  "httpx>=0.28.1",
   "jsonschema>=4.20.0",
   "lxml>=6.1.0",
   "maxminddb>=2.3.0",
@@ -57,7 +56,7 @@ dependencies = [
   "mmh3>=4.0.0",
   "msgspec>=0.19.0",
   "msgpack>=1.2.1",
-  "objectstore-client>=0.2.1",
+  "objectstore-client>=0.2.5",
   "openai>=1.3.5",
   "orjson>=3.10.10",
   "packaging>=24.1",
@@ -69,6 +68,7 @@ dependencies = [
   "protobuf>=5.29.6",
   "psutil>=5.9.7",
   "psycopg2-binary>=2.9.10",
+  "punkreq>=0.2.0",
   "pydantic>=1.10.26,<2",
   "pymemcache>=4.0.0",
   "pyjwt>=2.13.0",
@@ -86,17 +86,17 @@ dependencies = [
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
   "sentry-arroyo>=2.42.2",
-  "sentry-conventions>=0.19.0",
+  "sentry-conventions>=0.21.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=2.2.0",
   "sentry-ophio>=1.1.3",
   # sentry-options is only used in getsentry for now
-  "sentry-options>=1.2.6",
-  "sentry-protos>=0.61.0",
+  "sentry-options>=1.2.8",
+  "sentry-protos>=0.64.5",
   "sentry-redis-tools>=0.5.0",
-  "sentry-relay>=0.9.27",
-  "sentry-scm>=1.3.0",
-  "sentry-sdk[http2]==2.66.1",
+  "sentry-relay>=0.9.28",
+  "sentry-scm==1.5.0",
+  "sentry-sdk[http2]>=2.68.0",
   "sentry-usage-accountant>=0.0.10",
   "simplejson>=3.17.6",
   "slack-sdk>=3.40.1",
@@ -105,7 +105,7 @@ dependencies = [
   "statsd>=3.3.0",
   "structlog>=22.1.0",
   "symbolic>=13.1.1",
-  "taskbroker-client>=0.20.20",
+  "taskbroker-client>=0.20.23",
   "tiktoken>=0.8.0",
   "tokenizers>=0.22.0",
   "tldextract>=5.1.2",
@@ -116,7 +116,7 @@ dependencies = [
   # note: we cannot resolve urllib3[brotli] but brotli is installed
   #       and will be used
   "urllib3>=2.7.0",
-  "vroomrs>=0.1.23",
+  "vroomrs>=0.1.24",
   "xmlsec>=1.3.17",
   "zstandard>=0.18.0",
   # [begin] getsentry
@@ -279,6 +279,7 @@ markers = [
   "sentry_metrics: test requires access to sentry metrics",
   "symbolicator: test requires access to symbolicator",
   "querybuilder: smoke tests for QueryBuilders",
+  "seer_agent_token_matrix: API authentication and permission matrix",
   "thread_leak_allowlist: temporarily allow known-issue thread leaks",
 ]
 filterwarnings = [
@@ -314,7 +315,7 @@ num_workers = 5
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
-exclude = ["^.venv/", "^venv/", "^self-hosted/"]
+exclude = ["^.venv/", "^venv/", "^self-hosted/", "^bin/"]
 
 # minimal strictness settings
 check_untyped_defs = true
@@ -402,7 +403,6 @@ disable_error_code = [
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "bin.*",
     "bitfield.*",
     "django_picklefield.*",
     "fixtures.apidocs_test_case",
@@ -474,11 +474,8 @@ module = [
     "sentry.api.endpoints.frontend_version",
     "sentry.api.endpoints.index",
     "sentry.api.endpoints.internal.*",
-    "sentry.api.endpoints.internal_ea_features",
     "sentry.api.endpoints.oauth_userinfo",
     "sentry.api.endpoints.organization_access_request_details",
-    "sentry.api.endpoints.organization_ai_conversation_details",
-    "sentry.api.endpoints.organization_ai_conversations",
     "sentry.api.endpoints.organization_api_key_details",
     "sentry.api.endpoints.organization_api_key_index",
     "sentry.api.endpoints.organization_artifactbundle_assemble",
@@ -649,7 +646,6 @@ module = [
     "sentry.api.serializers.models.userrollback",
     "sentry.api.serializers.release_details_types",
     "sentry.api.serializers.rest_framework",
-    "sentry.api.serializers.rest_framework.ai_conversations",
     "sentry.api.serializers.rest_framework.base",
     "sentry.api.serializers.rest_framework.commit",
     "sentry.api.serializers.rest_framework.dashboard",
@@ -657,7 +653,6 @@ module = [
     "sentry.api.serializers.rest_framework.groupsearchview",
     "sentry.api.serializers.rest_framework.list",
     "sentry.api.serializers.rest_framework.notification_action",
-    "sentry.api.serializers.rest_framework.organizationmemberinvite",
     "sentry.api.serializers.rest_framework.origin",
     "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.project_key",
@@ -720,7 +715,6 @@ module = [
     "sentry.discover.apps",
     "sentry.discover.arithmetic",
     "sentry.discover.compare_tables",
-    "sentry.discover.compare_timeseries",
     "sentry.discover.dashboard_widget_split",
     "sentry.discover.dataset_split",
     "sentry.discover.endpoints.*",
@@ -770,7 +764,6 @@ module = [
     "sentry.incidents.endpoints.serializers.*",
     "sentry.incidents.serializers.*",
     "sentry.ingest",
-    "sentry.ingest.billing_metrics_consumer",
     "sentry.ingest.consumer.*",
     "sentry.ingest.inbound_filters",
     "sentry.ingest.transaction_clusterer.*",
@@ -1272,7 +1265,6 @@ module = [
     "sentry.seer.entrypoints.*",
     "sentry.seer.explorer.*",
     "sentry.seer.issue_detection",
-    "sentry.seer.math",
     "sentry.seer.migrations.*",
     "sentry.seer.models.*",
     "sentry.seer.seer_setup",
@@ -1280,18 +1272,12 @@ module = [
     "sentry.seer.signed_seer_api",
     "sentry.seer.supergroups.*",
     "sentry.seer.utils",
-    "sentry.seer.vendored",
-    "sentry.sentry_apps",
     "sentry.sentry_apps.alert_rule_action_creator",
     "sentry.sentry_apps.api.bases.*",
     "sentry.sentry_apps.api.endpoints.*",
     "sentry.sentry_apps.api.parsers.*",
     "sentry.sentry_apps.api.serializers.*",
-    "sentry.sentry_apps.components",
-    "sentry.sentry_apps.external_requests.*",
-    "sentry.sentry_apps.installations",
     "sentry.sentry_apps.logic",
-    "sentry.sentry_apps.metrics",
     "sentry.sentry_apps.models.*",
     "sentry.sentry_apps.tasks.*",
     "sentry.sentry_metrics",
@@ -1612,7 +1598,6 @@ module = [
     "tests.sentry.api.endpoints.test_group_external_issues",
     "tests.sentry.api.endpoints.test_index",
     "tests.sentry.api.endpoints.test_internal_beacon",
-    "tests.sentry.api.endpoints.test_internal_ea_features",
     "tests.sentry.api.endpoints.test_internal_feature_flags",
     "tests.sentry.api.endpoints.test_oauth_userinfo",
     "tests.sentry.api.endpoints.test_onboarding",
@@ -1767,7 +1752,6 @@ module = [
     "tests.sentry.discover",
     "tests.sentry.discover.test_arithmetic",
     "tests.sentry.discover.test_compare_tables",
-    "tests.sentry.discover.test_compare_timeseries",
     "tests.sentry.discover.test_dashboard_widget_split",
     "tests.sentry.discover.test_dataset_split",
     "tests.sentry.discover.test_models",
@@ -2041,7 +2025,6 @@ module = [
     "tests.sentry.seer.supergroups.*",
     "tests.sentry.seer.test_breakpoints",
     "tests.sentry.seer.test_issue_detection",
-    "tests.sentry.seer.test_math",
     "tests.sentry.seer.test_signed_seer_api",
     "tests.sentry.seer.test_test_generation",
     "tests.sentry.seer.test_utils",
@@ -2173,7 +2156,6 @@ module = [
     "tests.sentry.test_http",
     "tests.sentry.test_killswitches",
     "tests.sentry.test_mypy_stronglist",
-    "tests.sentry.test_no_create_or_update_usage",
     "tests.sentry.test_sdk_updates",
     "tests.sentry.test_stacktraces",
     "tests.sentry.test_unmerge",

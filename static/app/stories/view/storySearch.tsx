@@ -202,7 +202,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     }
     navigate({
       pathname: normalizeUrl(
-        `/organizations/${organization.slug}/stories/${node.category}/${node.slug}/`
+        `/organizations/${organization.slug}/scraps/${node.category}/${node.slug}/`
       ),
     });
   };

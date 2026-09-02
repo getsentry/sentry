@@ -6,7 +6,7 @@ from functools import cache
 from django.db import router, transaction
 from rest_framework import status
 
-from sentry import features
+from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -332,9 +332,10 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
 
 def ensure_default_organization_detectors(organization: Organization) -> dict[str, Detector]:
     detectors: dict[str, Detector] = {}
-    detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(
-        organization_id=organization.id
-    )
+    if options.get("workflow_engine.auto_creation.all_projects_detector"):
+        detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(
+            organization_id=organization.id
+        )
     return detectors
 
 

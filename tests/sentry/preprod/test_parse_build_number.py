@@ -14,13 +14,21 @@ from sentry.utils.numbers import validate_bigint
         ("9999", 9999),
         ("0", 0),
         ("1", 1),
-        # Apple CFBundleVersion: up to three dot-separated non-negative integers
+        # Apple CFBundleVersion: two or three dot-separated non-negative integers
         ("1.2.3", 1_000_002_000_003),
         ("1.2", 1_000_002_000_000),
+        # CFBundleVersion allows more than three groups; groups beyond the
+        # third are dropped
+        ("1.2.3.4", 1_000_002_000_003),
+        ("1.2.3.4.5", 1_000_002_000_003),
+        ("1.2.3.0", 1_000_002_000_003),
+        # Dropped groups are not width-checked, but must still be numeric
+        ("1.2.3.1234567", 1_000_002_000_003),
+        ("1.2.3.beta", None),
+        ("1.2.3.", None),
         # Malformed or unsupported shapes fall back to None
         ("1.2.a", None),
         ("abc", None),
-        ("1.2.3.4", None),
         ("", None),
         # A component too wide for the padding width is refused rather than
         # silently corrupting the ordering of adjacent components

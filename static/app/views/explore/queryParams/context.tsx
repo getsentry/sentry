@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import type {NavigateOptions} from 'react-router-dom';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
@@ -30,12 +31,13 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {isConditionalAggregateYAxisValid} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface QueryParamsContextValue {
   managedFields: Set<string>;
   queryParams: ReadableQueryParams;
   setManagedFields: (managedFields: Set<string>) => void;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (queryParams: WritableQueryParams, options?: NavigateOptions) => void;
 }
 
 const QueryParamsContext = createContext<QueryParamsContextValue | undefined>(undefined);
@@ -54,7 +56,7 @@ interface QueryParamsContextProps {
   children: ReactNode;
   isUsingDefaultFields: boolean;
   queryParams: ReadableQueryParams;
-  setQueryParams: (queryParams: WritableQueryParams) => void;
+  setQueryParams: (queryParams: WritableQueryParams, options?: NavigateOptions) => void;
   shouldManageFields: boolean;
 }
 
@@ -105,7 +107,7 @@ export function useSetQueryParams() {
   } = useQueryParamsContext();
 
   return useCallback(
-    (writableQueryParams: WritableQueryParams) => {
+    (writableQueryParams: WritableQueryParams, options?: NavigateOptions) => {
       const {updatedFields, updatedManagedFields} = deriveUpdatedManagedFields(
         managedFields,
         readableQueryParams,
@@ -129,7 +131,11 @@ export function useSetQueryParams() {
         writableQueryParams.breakdownCursor = null;
       }
 
-      setQueryParams(writableQueryParams);
+      if (options) {
+        setQueryParams(writableQueryParams, options);
+      } else {
+        setQueryParams(writableQueryParams);
+      }
     },
     [managedFields, setManagedFields, readableQueryParams, setQueryParams]
   );
@@ -234,8 +240,8 @@ export function useSetQueryParamsFields() {
   const setQueryParams = useSetQueryParams();
 
   return useCallback(
-    (fields: string[]) => {
-      setQueryParams({fields});
+    (fields: string[], options?: NavigateOptions) => {
+      setQueryParams({fields}, options);
     },
     [setQueryParams]
   );
@@ -269,10 +275,15 @@ export function useQueryParamsAggregateFields(
   return useMemo(() => {
     if (validate) {
       return queryParams.aggregateFields.filter(aggregateField => {
-        if (isVisualize(aggregateField) && isVisualizeEquation(aggregateField)) {
+        if (!isVisualize(aggregateField)) {
+          return true;
+        }
+        if (isVisualizeEquation(aggregateField)) {
           return aggregateField.expression.isValid;
         }
-        return true;
+        // Drop series whose `_if` filter is invalid (e.g. aggregates as keys) so
+        // timeseries / table queries never send them to the backend.
+        return isConditionalAggregateYAxisValid(aggregateField.yAxis);
       });
     }
     return queryParams.aggregateFields;
@@ -305,7 +316,8 @@ export function useQueryParamsVisualizes(
         if (isVisualizeEquation(visualize)) {
           return visualize.expression.isValid;
         }
-        return true;
+        // Same as aggregateFields: skip series with an invalid `_if` filter.
+        return isConditionalAggregateYAxisValid(visualize.yAxis);
       });
     }
     return queryParams.visualizes;

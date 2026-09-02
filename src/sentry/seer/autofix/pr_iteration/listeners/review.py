@@ -17,9 +17,9 @@ another, and take a single ``PullRequestReviewEvent`` argument.
 The listener filters to submitted reviews, resolves org/integration/repo context
 from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_review``
 which fetches the review's inline comments and summary body and dispatches an
-Autofix PR iteration. The task gates on the review author's repo write access, so
-a review only drives an iteration when its author could push the change
-themselves.
+Autofix PR iteration. The task gates human review authors on repo write access, so
+a human review only drives an iteration when its author could push the change
+themselves; bot reviews are instead bounded by the automated-iteration cap.
 """
 
 from __future__ import annotations
@@ -32,17 +32,15 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import PullRequestReviewEvent
+from sentry.seer.autofix.pr_iteration.constants import (
+    PR_ITERATION_PROVIDER,
+    PR_ITERATION_PROVIDER_SLUG,
+)
 
 logger = logging.getLogger(__name__)
 
 # We only care about a freshly submitted PR review
 _HANDLED_ACTIONS = frozenset({"submitted"})
-
-# SCM provider name (from the subscription event) -> Sentry repository provider.
-_PROVIDER_TO_REPO_PROVIDER = {
-    "github": "integrations:github",
-    "github_enterprise": "integrations:github_enterprise",
-}
 
 
 @scm_event_stream.listen_for(event_type="pull_request_review")
@@ -66,6 +64,9 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
     extra = subscription.get("extra") or {}
     installation_id = extra.get("installation_id")
     repository_id = extra.get("repository_id")
+    # Legacy GitHub Enterprise hosts may deliver without a verified signature, so
+    # the payload's author fields are unattested.
+    delivery_authenticated = not extra.get("skipped-authentication", False)
 
     provider = subscription.get("type")
     author_id = event.author.get("id")
@@ -91,8 +92,11 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
 
     logger.info("autofix.pr_iteration.review_listener.received", extra=log_extra)
 
-    repo_provider = _PROVIDER_TO_REPO_PROVIDER.get(provider) if provider else None
-    if repo_provider is None:
+    # ``subscription["type"]`` is the integration provider slug, so GitHub
+    # Enterprise — which delivers the same ``pull_request_review`` events — is
+    # turned away here, before any repo query or control-silo RPC. See
+    # ``PR_ITERATION_PROVIDER``.
+    if provider != PR_ITERATION_PROVIDER_SLUG:
         logger.warning("autofix.pr_iteration.review_listener.unsupported_provider", extra=log_extra)
         return None
 
@@ -131,7 +135,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
     organizations = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
     repos = Repository.objects.filter(
         organization_id__in=org_ids,
-        provider=repo_provider,
+        provider=PR_ITERATION_PROVIDER,
         external_id=str(repository_id),
     )
 
@@ -160,6 +164,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             author_username=event.author.get("username"),
             author_external_id=event.author.get("id"),
             author_is_bot=event.is_bot,
+            delivery_authenticated=delivery_authenticated,
         )
         dispatched = True
 

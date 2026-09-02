@@ -4,7 +4,6 @@ import type {QueryStatus} from '@tanstack/react-query';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -15,7 +14,6 @@ import {isEmptyTrace} from './utils';
 type UseTraceTreeParams = {
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
-  traceSlug?: string;
 };
 
 function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
@@ -30,13 +28,8 @@ function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
   return 'success';
 }
 
-export function useIssuesTraceTree({
-  trace,
-  replay,
-  traceSlug,
-}: UseTraceTreeParams): IssuesTraceTree {
+export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesTraceTree {
   const api = useApi();
-  const {projects} = useProjects();
   const traceState = useTraceState();
   const organization = useOrganization();
 
@@ -46,17 +39,7 @@ export function useIssuesTraceTree({
     const status = getTraceViewQueryStatus(trace.status);
 
     if (status === 'error') {
-      setTree(t =>
-        t.type === 'error'
-          ? t
-          : IssuesTraceTree.ErrorState(
-              {
-                project_slug: projects?.[0]?.slug ?? '',
-                event_id: traceSlug,
-              },
-              organization
-            )
-      );
+      setTree(t => (t.type === 'error' ? t : IssuesTraceTree.ErrorState(organization)));
       return;
     }
 
@@ -66,17 +49,7 @@ export function useIssuesTraceTree({
     }
 
     if (status === 'pending') {
-      setTree(t =>
-        t.type === 'loading'
-          ? t
-          : IssuesTraceTree.Loading(
-              {
-                project_slug: projects?.[0]?.slug ?? '',
-                event_id: traceSlug,
-              },
-              organization
-            )
-      );
+      setTree(t => (t.type === 'loading' ? t : IssuesTraceTree.Loading(organization)));
       return;
     }
 
@@ -94,7 +67,7 @@ export function useIssuesTraceTree({
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, organization, projects, replay, trace.status, trace.data, traceSlug]);
+  }, [api, organization, replay, trace.status, trace.data]);
 
   return tree;
 }

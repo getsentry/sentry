@@ -12,16 +12,10 @@ const StyledPanel = styled(Panel)`
 `;
 const Div = styled('div')``;
 
-export const getPerformanceWidgetContainer = ({
-  containerType,
-}: {
-  containerType: PerformanceWidgetContainerTypes;
-}) => {
-  if (containerType === 'panel') {
-    return StyledPanel;
-  }
-  if (containerType === 'inline') {
-    return Div;
-  }
-  return Div;
+export const PERFORMANCE_WIDGET_CONTAINERS: Record<
+  PerformanceWidgetContainerTypes,
+  typeof StyledPanel | typeof Div
+> = {
+  panel: StyledPanel,
+  inline: Div,
 };

@@ -3,7 +3,7 @@ import {
   buildSeerDateTimeSelection,
   type SeerDateTimeSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {
   AggregateField,
@@ -62,7 +62,7 @@ export function getSeerExploreQuery({
   pageDatetime,
   result,
 }: {
-  pageDatetime: PageFilters['datetime'];
+  pageDatetime: PageFilterDatetime;
   result: AskSeerSearchQuery;
 }): SeerExploreQuery {
   const datetime = buildSeerDateTimeSelection(

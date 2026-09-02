@@ -1,8 +1,7 @@
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
-import {ActorAvatar} from '@sentry/scraps/avatar';
-import {TeamAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
@@ -130,7 +129,7 @@ export function GroupHeaderAssigneeSelector({
   return (
     <AssigneeSelector
       group={group}
-      owners={owners}
+      owners={event ? owners : undefined}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}

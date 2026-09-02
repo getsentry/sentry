@@ -302,7 +302,7 @@ describe('getTraceItemTagCollection', () => {
   it('preserves explicitly-typed string tags', () => {
     const key = 'tags[organization.id,string]';
 
-    expect(getTraceItemTagCollection([makeAttribute(key, 'string')], 'string')).toEqual({
+    expect(getTraceItemTagCollection([makeAttribute(key)], 'string')).toEqual({
       [key]: {
         key,
         name: key,
@@ -313,13 +313,15 @@ describe('getTraceItemTagCollection', () => {
     });
   });
 
-  it('collects array attributes with the [*] membership key and array kind', () => {
+  it('collects array attributes under their backend key form with the array kind', () => {
     const key = 'tags[csv_headers,array]';
 
-    expect(getTraceItemTagCollection([makeAttribute(key, 'array')], 'array')).toEqual({
-      [`${key}[*]`]: {
-        key: `${key}[*]`,
-        name: key,
+    expect(
+      getTraceItemTagCollection([makeAttribute(key, 'array', 'csv_headers')], 'array')
+    ).toEqual({
+      'tags[csv_headers,array]': {
+        key: 'tags[csv_headers,array]',
+        name: 'csv_headers',
         kind: FieldKind.ARRAY,
         secondaryAliases: [],
         attributeSource: 'user',
@@ -336,8 +338,8 @@ describe('getTraceItemTagCollection', () => {
 
     expect(result.stringAttributes).toEqual({});
     expect(result.arrayAttributes).toEqual({
-      [`${arrayKey}[*]`]: {
-        key: `${arrayKey}[*]`,
+      'tags[csv_headers,array]': {
+        key: 'tags[csv_headers,array]',
         name: 'csv_headers',
         kind: FieldKind.ARRAY,
         secondaryAliases: [],

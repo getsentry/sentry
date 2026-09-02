@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 
 const HOUR = 60 * 60 * 1000;
@@ -8,7 +8,7 @@ const HOUR = 60 * 60 * 1000;
 // A fixed, recent, hour-aligned anchor so window strings read as real dates.
 const BASE_MS = Date.UTC(2024, 0, 1); // 2024-01-01T00:00:00Z
 
-type DateTimeFilter = PageFilters['datetime'];
+type DateTimeFilter = PageFilterDatetime;
 
 describe('partitionDateTimeIntoHeatMapWindows', () => {
   it('Returns an empty plan when the interval is unusable', () => {

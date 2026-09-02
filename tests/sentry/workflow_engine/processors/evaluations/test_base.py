@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.processors.evaluations import DataConditionGroupEvaluation
 from sentry.workflow_engine.processors.evaluations.base import BaseWorkflowEngineEvaluation
@@ -140,6 +142,15 @@ class TestWithError:
 
     def test_is_noop_when_already_tainted(self) -> None:
         assert _ev(True, ERR).with_error(OTHER_ERR).error == ERR
+
+    def test_to_artifact_includes_common_fields(self) -> None:
+        assert asdict(_ev(True, ERR).to_artifact()) == {
+            "triggered": True,
+            "error": ERR.msg,
+            "logic_type": DataConditionGroup.Type.ANY,
+            "result": True,
+            "condition_evaluations": [],
+        }
 
 
 class TestChooseTainted:

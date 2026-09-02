@@ -118,6 +118,22 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
 
+    def test_update_rejects_non_object_actions(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [None],
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -314,6 +330,31 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         }
         assert action.data["settings"] == self.sentry_app_settings
 
+    def test_update_rejects_non_numeric_sentry_app_target_identifier(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "config": {
+                            "targetIdentifier": str(self.sentry_app_installation.uuid),
+                            "targetType": ActionType.SENTRY_APP,
+                        },
+                        "data": {"settings": self.sentry_app_settings},
+                        "type": Action.Type.SENTRY_APP,
+                    },
+                ],
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+
     def test_update_triggers_with_empty_conditions(self) -> None:
         """Test that passing an empty list to triggers.conditions clears all conditions"""
         # Create a workflow with a trigger condition
@@ -358,6 +399,42 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         workflow.refresh_from_db()
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 0
+
+    def test_update_triggers_when_workflow_has_no_when_condition_group(self) -> None:
+        """Test that updating triggers on a workflow without a when_condition_group connects
+        the newly created condition group to the workflow"""
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=None,
+        )
+
+        assert workflow.when_condition_group_id is None
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {"type": "every_event", "comparison": True, "conditionResult": True},
+                ],
+            },
+        }
+
+        response = self.get_success_response(self.organization.slug, workflow.id, raw_data=data)
+
+        assert response.status_code == 200
+        assert response.data["triggers"] is not None
+        assert response.data["triggers"]["logicType"] == "any-short"
+        assert len(response.data["triggers"]["conditions"]) == 1
+        assert response.data["triggers"]["conditions"][0]["type"] == "every_event"
+
+        workflow.refresh_from_db()
+
+        when_condition_group = workflow.when_condition_group
+        assert when_condition_group is not None
+        assert when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert when_condition_group.organization_id == self.organization.id
+        assert when_condition_group.conditions.count() == 1
 
     def test_update_detectors_add_detector(self) -> None:
         detector1 = self.create_detector(project=self.project)
@@ -819,45 +896,6 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         other_action.refresh_from_db()
         assert other_action.config == original_config
 
-    def test_update_trigger_condition_from_different_organization(self) -> None:
-        """Test that conditionGroupId in trigger conditions cannot reference another org's group"""
-        other_org = self.create_organization()
-        other_dcg = DataConditionGroup.objects.create(
-            organization=other_org,
-            logic_type=DataConditionGroup.Type.ALL,
-        )
-        original_condition_count = other_dcg.conditions.count()
-
-        data = {
-            **self.valid_workflow,
-            "triggers": {
-                "logicType": "any",
-                "conditions": [
-                    {
-                        "conditionGroupId": other_dcg.id,
-                        "type": "first_seen_event",
-                        "comparison": True,
-                        "conditionResult": True,
-                    }
-                ],
-            },
-        }
-
-        self.get_success_response(
-            self.organization.slug,
-            self.workflow.id,
-            raw_data=data,
-        )
-
-        # Workflow should be updated successfully, but the conditionGroupId should be ignored
-        self.workflow.refresh_from_db()
-        assert self.workflow.when_condition_group is not None
-        assert self.workflow.when_condition_group.organization_id == self.organization.id
-
-        # Verify the other org's condition group was not modified
-        other_dcg.refresh_from_db()
-        assert other_dcg.conditions.count() == original_condition_count
-
     def test_update_action_filter_condition_from_different_organization(self) -> None:
         """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
         other_org = self.create_organization()
@@ -953,6 +991,402 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         )
         assert "not supported for activity triggers" in str(response.data)
 
+    """
+    Ensure data integrity for
+    1. data condition and data condition group updates
+    2. whether or not the request data is in the same organization or another
+    3. whether or not the workflow originally had a data condition group or not
+    2 x 2 x 2 scenarios = 8 tests
+    """
+
+    def test_update_trigger_conditions_from_same_organization(self) -> None:
+        other_data_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_data_condition = self.create_data_condition(
+            condition_group=other_data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "id": other_data_condition.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "condition with id" in response_data and "not found" in response_data
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group is not None
+        assert other_workflow.when_condition_group.conditions.count() == 1
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
+
+    def test_update_trigger_conditions_from_same_organization_without_data_condition_group(
+        self,
+    ) -> None:
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=None,
+        )
+
+        other_data_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_data_condition = self.create_data_condition(
+            condition_group=other_data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "id": other_data_condition.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "condition with id" in response_data and "not found" in response_data
+
+        workflow.refresh_from_db()
+
+        assert workflow.when_condition_group_id != other_data_condition_group.id
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group is not None
+        assert other_workflow.when_condition_group.conditions.count() == 1
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
+
+    def test_update_trigger_conditions_from_different_organization(self) -> None:
+        other_organization = self.create_organization()
+
+        other_data_condition_group = self.create_data_condition_group(
+            organization=other_organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_data_condition = self.create_data_condition(
+            condition_group=other_data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=other_organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "id": other_data_condition.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "condition with id" in response_data and "not found" in response_data
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group is not None
+        assert other_workflow.when_condition_group.conditions.count() == 1
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
+
+    def test_update_trigger_conditions_from_different_organization_without_data_condition_group(
+        self,
+    ) -> None:
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=None,
+        )
+
+        other_organization = self.create_organization()
+
+        other_data_condition_group = self.create_data_condition_group(
+            organization=other_organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_data_condition = self.create_data_condition(
+            condition_group=other_data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=other_organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "id": other_data_condition.id,
+                        "type": "first_seen_event",
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "condition with id" in response_data and "not found" in response_data
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group is not None
+        assert other_workflow.when_condition_group.conditions.count() == 1
+        assert other_workflow.when_condition_group.conditions.first() == other_data_condition
+
+    def test_update_triggers_from_same_organization(self) -> None:
+        other_data_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "id": other_data_condition_group.id,
+                "logicType": "any-short",
+                "conditions": [],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "invalid condition group id" in response_data
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group_id == other_data_condition_group.id
+
+    def test_update_triggers_from_same_organization_without_data_condition_group(self) -> None:
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=None,
+        )
+
+        other_data_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "id": other_data_condition_group.id,
+                "logicType": "any-short",
+                "conditions": [],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "invalid condition group id" in response_data
+
+        workflow.refresh_from_db()
+
+        assert workflow.when_condition_group_id is None
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group_id == other_data_condition_group.id
+
+    def test_update_triggers_from_different_organization(self) -> None:
+        other_organization = self.create_organization()
+
+        other_data_condition_group = self.create_data_condition_group(
+            organization=other_organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=other_organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "id": other_data_condition_group.id,
+                "logicType": "any-short",
+                "conditions": [],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "invalid condition group id" in response_data
+
+        self.workflow.refresh_from_db()
+
+        assert self.workflow.when_condition_group_id != other_data_condition_group.id
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group_id == other_data_condition_group.id
+
+    def test_update_triggers_from_different_organization_without_data_condition_group(self) -> None:
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=None,
+        )
+
+        other_organization = self.create_organization()
+
+        other_data_condition_group = self.create_data_condition_group(
+            organization=other_organization,
+            logic_type=DataConditionGroup.Type.ALL,
+        )
+
+        other_workflow = self.create_workflow(
+            organization=other_organization,
+            when_condition_group=other_data_condition_group,
+        )
+
+        data = {
+            **self.valid_workflow,
+            "triggers": {
+                "id": other_data_condition_group.id,
+                "logicType": "any-short",
+                "conditions": [],
+            },
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        response_data = str(response.data).lower()
+
+        assert "invalid condition group id" in response_data
+
+        workflow.refresh_from_db()
+
+        assert workflow.when_condition_group_id is None
+
+        other_workflow.refresh_from_db()
+
+        assert other_workflow.when_condition_group_id == other_data_condition_group.id
+
 
 @cell_silo_test
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
@@ -964,6 +1398,59 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
+
+    def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.workflow.id)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+
+    def test_team_contributor_cannot_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
+
+    def test_team_admin_cannot_delete_detached_workflow(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
 
     def test_simple(self) -> None:
         with outbox_runner():

@@ -50,8 +50,9 @@ export function ActiveDemo() {
 
 ## Completed (collapsed)
 
-Once `endTime` is set the timer freezes and the block collapses. The user can
-still click to re-expand.
+Once `endTime` is set the timer freezes, the title is replaced with a summary
+("See thinking and tool calls"), and the block collapses. The user can still
+click to re-expand.
 
 export function CompletedDemo() {
   const [start] = useState(() => new Date(Date.now() - 56_400));

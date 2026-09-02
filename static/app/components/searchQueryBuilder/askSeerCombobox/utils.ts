@@ -2,11 +2,7 @@ import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {
-  AskSeerSearchItems,
-  NoneOfTheseItem,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
@@ -81,12 +77,6 @@ export function trackAiQueryOutcome({
     result_count: resultCount,
   });
   Sentry.metrics.distribution('assisted_query.outcome', resultCount, {attributes});
-}
-
-export function isNoneOfTheseItem(
-  item: AskSeerSearchItems<any>
-): item is NoneOfTheseItem {
-  return item.key === 'none-of-these';
 }
 
 /**

@@ -1,4 +1,3 @@
-import {connect} from 'echarts';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -16,7 +15,7 @@ import {
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -35,6 +34,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -120,7 +120,7 @@ export function getThresholdUnitSelectOptions(
 
 export function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>,
+  datetimeObj: Partial<PageFilterDatetime>,
   widgetIntervalOverride?: string,
   fidelity?: Fidelity
 ): string {
@@ -249,10 +249,10 @@ export function getWidgetDiscoverUrl(
     }
   });
   discoverLocation.query.field = fields;
-  discoverLocation.query.query = applyDashboardFilters(
-    query.conditions,
-    dashboardFilters
-  );
+  discoverLocation.query.query = applyDashboardFilters({
+    baseQuery: query.conditions,
+    dashboardFilters,
+  });
 
   // Pass empty string when projects is empty to preserve "My Projects" selection in URL
   const projectParam =
@@ -278,12 +278,12 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: applyDashboardFilters(
-      widget.queries?.[0]?.conditions,
+    query: applyDashboardFilters({
+      baseQuery: widget.queries?.[0]?.conditions,
       dashboardFilters,
-      widget.widgetType,
-      true // Issue search does not support parens
-    ),
+      widgetType: widget.widgetType,
+      skipParens: true, // Issue search does not support parens
+    }),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
@@ -306,7 +306,7 @@ export function getWidgetReleasesUrl(
       : {statsPeriod: period};
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
-    query: applyDashboardFilters('', dashboardFilters),
+    query: applyDashboardFilters({baseQuery: '', dashboardFilters}),
     // Pass empty string when projects is empty to preserve "My Projects" selection in URL
     project: selection.projects.length === 0 ? '' : selection.projects,
     environment: selection.environments,
@@ -417,12 +417,14 @@ export function hasUnsavedFilterChanges(
 }
 
 export function getSavedFiltersAsPageFilters(dashboard: DashboardDetails): PageFilters {
+  const hasSavedDatetime = Boolean(dashboard.period || dashboard.start || dashboard.end);
+
   return {
     datetime: {
       end: dashboard.end || null,
-      period: dashboard.period || null,
+      period: dashboard.period || (hasSavedDatetime ? null : DEFAULT_STATS_PERIOD),
       start: dashboard.start || null,
-      utc: null,
+      utc: dashboard.utc ?? false,
     },
     environments: dashboard.environment || [],
     projects: dashboard.projects || [],
@@ -549,10 +551,6 @@ export function dashboardFiltersToString(
   return dashboardFilterConditions;
 }
 
-export function connectDashboardCharts(groupName: string) {
-  connect?.(groupName);
-}
-
 export function hasDatasetSelector(_organization: Organization): boolean {
   return true;
 }
@@ -590,12 +588,17 @@ function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
 
 export const performanceScoreTooltip = t('peformance_score is not supported in Discover');
 
-export function applyDashboardFilters(
-  baseQuery: string | undefined,
-  dashboardFilters: DashboardFilters | undefined,
-  widgetType?: WidgetType,
-  skipParens?: boolean
-): string | undefined {
+export function applyDashboardFilters({
+  baseQuery,
+  dashboardFilters,
+  widgetType,
+  skipParens,
+}: {
+  baseQuery: string | undefined;
+  dashboardFilters: DashboardFilters | undefined;
+  skipParens?: boolean;
+  widgetType?: WidgetType;
+}): string | undefined {
   const dashboardFilterConditions = dashboardFiltersToString(
     dashboardFilters,
     widgetType

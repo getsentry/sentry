@@ -31,7 +31,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
-from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DetectorParams,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -208,7 +214,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(type__in=values)
                         else:
                             queryset = queryset.filter(type__in=values)
-                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                    case SearchFilter(
+                        key=SearchKey("assignee"), operator=("=" | "IN" | "!=" | "NOT IN")
+                    ):
                         # Filter values can be emails, team slugs, "me", "my_teams", "none"
                         values = (
                             filter.value.value
@@ -217,7 +225,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         )
                         assignee_q = convert_assignee_values(values, projects, request.user)
 
-                        if filter.operator == "!=":
+                        if filter.operator == "!=" or filter.operator == "NOT IN":
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)
@@ -259,6 +267,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.SORT,
             DetectorParams.ID,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

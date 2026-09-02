@@ -27,7 +27,7 @@ class TestCreateOrganizationDetectors(TestCase):
             config__organization_id=self.organization.id,
         ).exists()
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_creates_detector(self) -> None:
         self.send_signal()
         detector = Detector.objects.get(
@@ -37,7 +37,7 @@ class TestCreateOrganizationDetectors(TestCase):
         )
         assert detector.enabled
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     def test_no_duplicates_ever(self) -> None:
         # Multiple signal emissions
         self.send_signal()
@@ -55,7 +55,7 @@ class TestCreateOrganizationDetectors(TestCase):
             == 1
         )
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
+    @override_options({"workflow_engine.auto_creation.all_projects_detector": True})
     @mock.patch("sentry.workflow_engine.receivers.organization_detectors.sentry_sdk")
     def test_captures_exception_on_creation_failure(self, mock_sdk: mock.MagicMock) -> None:
         organization = self.create_organization()

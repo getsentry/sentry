@@ -37,7 +37,7 @@ class AlertRuleDetailsBase(APITestCase):
 
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_dual_written_resolves_detector(self) -> None:
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id
             )
@@ -48,16 +48,12 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         # Simulate a single-written detector by removing the AlertRuleDetector bridge.
         AlertRuleDetector.objects.filter(detector=self.detector).delete()
         fake_id = get_fake_id_from_object_id(self.detector.id)
-        with self.feature("organizations:incidents"):
-            resp = self.get_success_response(self.organization.slug, self.project.slug, fake_id)
+        resp = self.get_success_response(self.organization.slug, self.project.slug, fake_id)
         assert resp.data["name"] == self.detector.name
 
     def test_single_written_fake_id_not_found_returns_404(self) -> None:
         fake_id = get_fake_id_from_object_id(999999999)
-        with self.feature("organizations:incidents"):
-            self.get_error_response(
-                self.organization.slug, self.project.slug, fake_id, status_code=404
-            )
+        self.get_error_response(self.organization.slug, self.project.slug, fake_id, status_code=404)
 
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
@@ -89,7 +85,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     def test_simple(self) -> None:
         alert_rule = self.alert_rule
 
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             resp = self.get_success_response(
                 self.organization.slug, self.project.slug, alert_rule.id, **self._put_payload()
             )
@@ -114,15 +110,14 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
         AlertRuleDetector.objects.filter(detector=self.detector).delete()
         fake_id = get_fake_id_from_object_id(self.detector.id)
 
-        with self.feature("organizations:incidents"):
-            self.get_success_response(
-                self.organization.slug, self.project.slug, fake_id, status_code=204
-            )
+        self.get_success_response(
+            self.organization.slug, self.project.slug, fake_id, status_code=204
+        )
 
         assert not Detector.objects.filter(id=self.detector.id).exists()
 
     def test_dual_written_detector_deleted(self) -> None:
-        with self.feature("organizations:incidents"), outbox_runner():
+        with outbox_runner():
             self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
             )

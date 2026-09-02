@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_by_project_pb2 import (
+    GetUsageByProjectRequest,
+    GetUsageByProjectResponse,
+)
 from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
     GetUsageRequest,
     GetUsageResponse,
@@ -7,6 +11,9 @@ from sentry_protos.billing.v1.services.usage.v1.endpoint_usage_pb2 import (
 
 from sentry.billing.platform.core import BillingService, service_method
 from sentry.billing.platform.services.usage._outcomes_query import query_outcomes_usage
+from sentry.billing.platform.services.usage._project_outcomes_query import (
+    query_project_outcomes_usage,
+)
 
 
 class UsageService(BillingService):
@@ -20,3 +27,8 @@ class UsageService(BillingService):
         dynamic_sampling.
         """
         return query_outcomes_usage(request)
+
+    @service_method
+    def get_usage_by_project(self, request: GetUsageByProjectRequest) -> GetUsageByProjectResponse:
+        """Similar to get_usage, but grouped by project."""
+        return query_project_outcomes_usage(request)

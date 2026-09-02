@@ -23,9 +23,10 @@ import {
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -67,7 +68,7 @@ export function getLogsSeerLocationQuery({
 }: {
   currentAggregateFields: readonly AggregateField[];
   currentLocation: Location;
-  pageDatetime: PageFilters['datetime'];
+  pageDatetime: PageFilterDatetime;
   result: AskSeerSearchQuery;
   projects?: Project[];
 }): LogsSeerLocationQueryResult {
@@ -161,7 +162,9 @@ export function LogsTabSeerComboBox() {
     mutationFn: async (queryToSubmit: string) => {
       const user = ConfigStore.get('user');
       const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           org_id: organization.id,

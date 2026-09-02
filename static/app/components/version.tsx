@@ -6,7 +6,6 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -24,11 +23,7 @@ type Props = {
   anchor?: boolean;
   className?: string;
   /**
-   * Should link to release page preserve user's page filter values
-   */
-  preservePageFilters?: boolean;
-  /**
-   * Will add project ID to the linked url (can be overridden by preservePageFilters).
+   * Will add project ID to the linked url.
    */
   projectId?: string;
   /**
@@ -47,18 +42,12 @@ type Props = {
    * Ellipsis on overflow
    */
   truncate?: boolean;
-  /**
-   * Should we also show package name
-   */
-  withPackage?: boolean;
 };
 
 export function Version({
   version,
   anchor = true,
-  preservePageFilters,
   tooltipRawVersion,
-  withPackage,
   projectId,
   truncate,
   shouldWrapText = false,
@@ -67,33 +56,22 @@ export function Version({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const versionToDisplay = shouldFormatVersion
-    ? formatVersion(version, withPackage)
-    : version;
+  const versionToDisplay = shouldFormatVersion ? formatVersion(version) : version;
   const isHashVersion = /\b[a-f0-9]{40}\b|\b[a-f0-9]{64}\b/.test(version);
 
   let releaseDetailProjectId: null | undefined | string | string[];
   if (projectId) {
-    // we can override preservePageFilters's project id
     releaseDetailProjectId = projectId;
   }
 
   const renderVersion = () => {
     if (anchor && organization?.slug) {
-      const pathname = makeReleaseDrawerPathname({
+      const to = makeReleaseDrawerPathname({
         location,
         release: version,
         projectId: releaseDetailProjectId,
         source: 'release-version-link',
       });
-      const to = preservePageFilters
-        ? typeof pathname === 'string'
-          ? {pathname, query: extractSelectionParameters(location.query)}
-          : {
-              ...pathname,
-              query: {...extractSelectionParameters(location.query), ...pathname.query},
-            }
-        : pathname;
 
       return (
         <Link to={to} className={className}>

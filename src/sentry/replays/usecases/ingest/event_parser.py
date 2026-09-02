@@ -680,6 +680,13 @@ def as_string_strict(value: Any) -> str:
     raise ValueError("Value was not a string.")
 
 
+def as_int_or_none(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 T = TypeVar("T")
 
 
@@ -740,7 +747,7 @@ def parse_highlighted_event(
     """Attempt to parse an event to a highlighted event."""
     try:
         return as_highlighted_event(event, event_type, sampled)
-    except (AssertionError, AttributeError, KeyError, TypeError):
+    except (AssertionError, AttributeError, KeyError, TypeError, ValueError):
         logger.warning(
             "[EVENT PARSE FAIL] Could not parse identified event.",
             exc_info=True,
@@ -819,9 +826,13 @@ def parse_network_content_lengths(event: dict[str, Any]) -> tuple[int | None, in
 
 
 def parse_tap_event(payload: dict[str, Any]) -> TapEvent | None:
+    timestamp = as_int_or_none(payload.get("timestamp"))
+    if timestamp is None:
+        return None
+
     payload_data = payload.get("data", {})
     return TapEvent(
-        timestamp=int(payload["timestamp"]),
+        timestamp=timestamp,
         message=payload.get("message", ""),
         view_class=payload_data.get("view.class", ""),
         view_id=payload_data.get("view.id", ""),
@@ -832,6 +843,10 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
     node = payload["data"].get("node")
 
     if not isinstance(node, dict) or node.get("id", -1) < 0:
+        return None
+
+    timestamp = as_int_or_none(payload.get("timestamp"))
+    if timestamp is None:
         return None
 
     attributes = node.get("attributes", {})
@@ -850,7 +865,7 @@ def parse_click_event(payload: dict[str, Any], is_dead: bool, is_rage: bool) -> 
         tag=node["tagName"][:32],
         testid=_get_testid(attributes)[:64],
         text=node["textContent"][:1024],
-        timestamp=int(payload["timestamp"]),
+        timestamp=timestamp,
         title=attributes.get("title", "")[:64],
         url=payload["data"].get("url"),
     )

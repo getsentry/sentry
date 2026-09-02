@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.db import OperationalError, connections
+from django.db import OperationalError, connections, router, transaction
 from pytest import raises
 
 from sentry.hybridcloud.models.outbox import (
@@ -20,7 +20,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.projectkey import ProjectKey
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
@@ -299,6 +299,24 @@ class OutboxDrainTest(TransactionTestCase):
 
 
 class CellOutboxTest(TestCase):
+    @patch.object(CellOutbox, "drain_shard")
+    @patch("sentry.hybridcloud.models.outbox.metrics.timer")
+    def test_sync_shard_drain_records_duration(
+        self, mock_timer: Mock, mock_drain_shard: Mock
+    ) -> None:
+        with self.captureOnCommitCallbacks(execute=True):
+            with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
+                Organization(id=10).outbox_for_update().save()
+
+        mock_timer.assert_called_once_with(
+            "outbox.sync_shard_drain.duration",
+            tags={
+                "category": "ORGANIZATION_UPDATE",
+                "outbox_name": "sentry.CellOutbox",
+            },
+        )
+        mock_drain_shard.assert_called_once_with()
+
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()
@@ -539,50 +557,63 @@ class CellOutboxTest(TestCase):
         assert CellOutbox.objects.count() == 1
 
 
+def outboxed_ids() -> set[int]:
+    """The rows currently carrying an outbox, by object identifier.
+
+    Asserted as a set rather than a count because a model may register its own
+    delete-time outbox hook on top of the manager's, so the row count is not
+    one-per-object for every model.
+    """
+    return set[int](CellOutbox.objects.values_list("object_identifier", flat=True))
+
+
 class TestOutboxesManager(TestCase):
     def test_bulk_operations(self) -> None:
-        org = self.create_organization()
-        team = self.create_team(organization=org)
-        members = [
-            self.create_member(user_id=i + 1000, organization_id=org.id) for i in range(0, 10)
-        ]
-        do_not_touch = OrganizationMemberTeam(
-            organizationmember=self.create_member(user_id=99, organization_id=org.id),
-            team=team,
-            role="ploy",
-        )
-        do_not_touch.save()
+        project = self.create_project()
+        do_not_touch = ProjectKey.objects.create(project=project, label="untouched")
+        # Drain the outboxes produced by the fixtures above, so each assertion below
+        # counts only the outboxes from the bulk operation it follows.
+        with outbox_runner():
+            pass
 
-        OrganizationMemberTeam.objects.bulk_create(
-            OrganizationMemberTeam(organizationmember=member, team=team) for member in members
+        managed = ProjectKey.objects.bulk_create(
+            [
+                ProjectKey(
+                    project=project,
+                    label=f"key-{i}",
+                    public_key=ProjectKey.generate_api_key(),
+                    secret_key=ProjectKey.generate_api_key(),
+                )
+                for i in range(0, 10)
+            ]
         )
+        managed_ids = {key.id for key in managed}
 
         with outbox_runner():
-            assert CellOutbox.objects.count() == 10
-            assert OrganizationMemberTeam.objects.count() == 11
+            assert outboxed_ids() == managed_ids
+            assert ProjectKey.objects.filter(id__in=managed_ids).count() == 10
 
         assert CellOutbox.objects.count() == 0
-        assert OrganizationMemberTeam.objects.count() == 11
 
-        existing = OrganizationMemberTeam.objects.all().exclude(id=do_not_touch.id).all()
+        existing = list[Any](ProjectKey.objects.filter(id__in=managed_ids))
         for obj in existing:
-            obj.role = "cow"
-        OrganizationMemberTeam.objects.bulk_update(existing, ["role"])
+            obj.label = "cow"
+        ProjectKey.objects.bulk_update(existing, ["label"])
 
         with outbox_runner():
-            assert CellOutbox.objects.count() == 10
+            assert outboxed_ids() == managed_ids
 
         assert CellOutbox.objects.count() == 0
-        assert OrganizationMemberTeam.objects.filter(role="cow").count() == 10
+        assert ProjectKey.objects.filter(label="cow").count() == 10
 
-        OrganizationMemberTeam.objects.bulk_delete(existing)
+        ProjectKey.objects.bulk_delete(existing)
 
         with outbox_runner():
-            assert CellOutbox.objects.count() == 10
-            assert OrganizationMemberTeam.objects.count() == 1
+            assert outboxed_ids() == managed_ids
+            assert ProjectKey.objects.filter(id__in=managed_ids).count() == 0
 
         assert CellOutbox.objects.count() == 0
-        assert OrganizationMemberTeam.objects.count() == 1
+        assert ProjectKey.objects.filter(id=do_not_touch.id).exists()
 
 
 @control_silo_test

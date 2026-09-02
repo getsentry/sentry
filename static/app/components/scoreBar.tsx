@@ -7,7 +7,6 @@ type Props = {
   score: number;
   className?: string;
   palette?: readonly string[];
-  paletteClassNames?: string[];
   radius?: number;
   size?: number;
   thickness?: number;

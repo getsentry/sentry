@@ -20,7 +20,7 @@ from snuba_sdk import (
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics_layer.query import (
     _lookup_indexer_resolve,
     _resolve_granularity,
@@ -29,7 +29,12 @@ from sentry.snuba.metrics_layer.query import (
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
@@ -40,13 +45,13 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
 
     def test_resolve_metrics_query(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             project_id=self.project.id,
             tags={},
             value=1,
         )
         metrics_query = MetricsQuery(
-            query=Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
+            query=Timeseries(Metric(mri="d:transactions/duration@millisecond"), aggregate="count"),
             scope=MetricsScope(
                 org_ids=[self.project.organization_id],
                 project_ids=[self.project.id],
@@ -59,15 +64,15 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         assert resolved_metrics_query.query.metric.id == expected_metric_id
-        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["d:transactions/duration@millisecond"] == expected_metric_id
         assert reverse_mappings.tag_keys == set()
 
     def test_resolve_formula_metrics_query(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             project_id=self.project.id,
             tags={},
             value=1,
@@ -76,8 +81,12 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             query=Formula(
                 ArithmeticOperator.PLUS,
                 [
-                    Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
-                    Timeseries(Metric(mri=TransactionMRI.DURATION.value), aggregate="count"),
+                    Timeseries(
+                        Metric(mri="d:transactions/duration@millisecond"), aggregate="count"
+                    ),
+                    Timeseries(
+                        Metric(mri="d:transactions/duration@millisecond"), aggregate="count"
+                    ),
                 ],
             ),
             scope=MetricsScope(
@@ -95,15 +104,15 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
-        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["d:transactions/duration@millisecond"] == expected_metric_id
         assert reverse_mappings.tag_keys == set()
 
     def test_resolve_metrics_query_with_groupby(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             project_id=self.project.id,
             tags={"transaction": "/checkout"},
             value=1,
@@ -123,7 +132,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         expected_transaction_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
@@ -137,15 +146,15 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         )
         mappings.update(indexer_mappings)
         assert resolved_metrics_query.query.metric.public_name == "transaction.duration"
-        assert resolved_metrics_query.query.metric.mri == TransactionMRI.DURATION.value
+        assert resolved_metrics_query.query.metric.mri == "d:transactions/duration@millisecond"
         assert resolved_metrics_query.query.metric.id == expected_metric_id
-        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["d:transactions/duration@millisecond"] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
         assert reverse_mapping.tag_keys == {"transaction"}
 
     def test_resolve_formula_metrics_query_with_groupby(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             project_id=self.project.id,
             tags={"transaction": "/checkout", "status_code": "200"},
             value=1,
@@ -160,7 +169,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
                         groupby=[Column("transaction")],
                     ),
                     Timeseries(
-                        Metric(mri=TransactionMRI.DURATION.value),
+                        Metric(mri="d:transactions/duration@millisecond"),
                         aggregate="count",
                         groupby=[Column("transaction")],
                     ),
@@ -176,7 +185,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         expected_transaction_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
@@ -198,24 +207,25 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
             resolved_metrics_query.query.parameters[0].metric.public_name == "transaction.duration"
         )
         assert (
-            resolved_metrics_query.query.parameters[0].metric.mri == TransactionMRI.DURATION.value
+            resolved_metrics_query.query.parameters[0].metric.mri
+            == "d:transactions/duration@millisecond"
         )
         assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
-        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["d:transactions/duration@millisecond"] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
         assert mappings["status_code"] == expected_status_code_id
         assert reverse_mapping.tag_keys == {"transaction", "status_code"}
 
     def test_resolve_metrics_query_with_filters(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             project_id=self.project.id,
             tags={"transaction": "/checkout", "device": "BlackBerry"},
             value=1,
         )
         metrics_query = MetricsQuery(
             query=Timeseries(
-                Metric(mri=TransactionMRI.DURATION.value),
+                Metric(mri="d:transactions/duration@millisecond"),
                 aggregate="count",
                 filters=[
                     Condition(Column("transaction"), Op.EQ, "/checkout"),
@@ -237,7 +247,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         expected_transaction_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
@@ -256,14 +266,14 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         )
         mappings.update(indexer_mappings)
         assert resolved_metrics_query.query.metric.id == expected_metric_id
-        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["d:transactions/duration@millisecond"] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
         assert mappings["device"] == expected_device_id
         assert reverse_mapping.tag_keys == {"transaction"}
 
     def test_resolve_formula_metrics_query_with_filters(self) -> None:
         self.store_performance_metric(
-            name=TransactionMRI.DURATION.value,
+            name="d:transactions/duration@millisecond",
             project_id=self.project.id,
             tags={"transaction": "/checkout", "device": "BlackBerry", "status_code": "200"},
             value=1,
@@ -273,7 +283,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
                 ArithmeticOperator.PLUS,
                 [
                     Timeseries(
-                        Metric(mri=TransactionMRI.DURATION.value),
+                        Metric(mri="d:transactions/duration@millisecond"),
                         aggregate="count",
                         filters=[
                             Condition(Column("transaction"), Op.EQ, "/checkout"),
@@ -287,7 +297,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
                         groupby=[Column("transaction")],
                     ),
                     Timeseries(
-                        Metric(mri=TransactionMRI.DURATION.value),
+                        Metric(mri="d:transactions/duration@millisecond"),
                         aggregate="count",
                         filters=[
                             Condition(Column("transaction"), Op.EQ, "/cart"),
@@ -312,7 +322,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         expected_metric_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
             self.project.organization_id,
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         expected_transaction_id = indexer.resolve(
             UseCaseID.TRANSACTIONS,
@@ -336,7 +346,7 @@ class MetricsQueryLayerTest(BaseMetricsLayerTestCase, TestCase):
         )
         mappings.update(indexer_mappings)
         assert resolved_metrics_query.query.parameters[0].metric.id == expected_metric_id
-        assert mappings[TransactionMRI.DURATION.value] == expected_metric_id
+        assert mappings["d:transactions/duration@millisecond"] == expected_metric_id
         assert mappings["transaction"] == expected_transaction_id
         assert mappings["device"] == expected_device_id
         assert mappings["status_code"] == expected_status_code_id

@@ -83,7 +83,7 @@ type UnsavedTrigger = {
   alertRuleId?: string;
 };
 
-export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
+type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
   dateCreated: string;
   id: string;
@@ -114,7 +114,7 @@ type UnsavedMetricRule = {
 };
 
 // Form values for updating a metric alert rule
-export interface SavedMetricRule extends UnsavedMetricRule {
+interface SavedMetricRule extends UnsavedMetricRule {
   dateCreated: string;
   dateModified: string;
   id: string;

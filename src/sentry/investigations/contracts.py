@@ -205,6 +205,22 @@ class VisualizationSerializer(StrictContractSerializer):
     topN = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=20)
 
 
+class InvestigationQueryLinkSerializer(StrictContractSerializer):
+    kind = serializers.CharField(max_length=64)
+    params = serializers.DictField()
+
+    def validate_params(self, value: dict[str, Any]) -> dict[str, Any]:
+        for item in value.values():
+            nested = (
+                any(isinstance(entry, dict | list) for entry in item)
+                if isinstance(item, list)
+                else isinstance(item, dict)
+            )
+            if nested:
+                raise serializers.ValidationError("Link params must not be nested.")
+        return value
+
+
 class InvestigationQueryResultSerializer(StrictContractSerializer):
     schemaVersion = serializers.IntegerField(min_value=1, max_value=1)
     tableMarkdown = serializers.CharField(max_length=MAX_MARKDOWN_CHARS, trim_whitespace=False)
@@ -212,7 +228,9 @@ class InvestigationQueryResultSerializer(StrictContractSerializer):
     preferredView = serializers.ChoiceField(choices=("table", "chart"), default="table")
     isEmpty = serializers.BooleanField(default=False)
     chartUnavailableReason = serializers.CharField(required=False, allow_null=True)
-    queryLinks = serializers.ListField(child=serializers.JSONField(), required=False, default=list)
+    queryLinks = serializers.ListField(
+        child=InvestigationQueryLinkSerializer(), required=False, default=list
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs["preferredView"] == "chart" and attrs.get("chart") is None:

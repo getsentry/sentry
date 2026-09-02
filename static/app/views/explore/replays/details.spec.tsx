@@ -84,15 +84,15 @@ describe('ReplayDetails', () => {
     expect(
       screen.queryByText("You don't have access to this feature")
     ).not.toBeInTheDocument();
-    // Should render the replay details page content
-    expect(screen.getByText('Session Replay')).toBeInTheDocument();
+    // Should render the replay identifier in the standard page-title crumb.
+    expect(screen.getByText('test-rep')).toBeInTheDocument();
     // Should fetch replay data
     expect(mockUseLoadReplayReader).toHaveBeenCalled();
   });
 
-  it('renders pagination chevrons and a copy action in the replay crumb (flag on)', () => {
+  it('renders pagination chevrons and a copy action in the replay crumb', () => {
     const organization = OrganizationFixture({
-      features: ['session-replay', 'ui-migration-breadcrumbs'],
+      features: ['session-replay'],
     });
 
     render(<ReplayDetails />, {

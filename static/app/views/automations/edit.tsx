@@ -19,13 +19,18 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  type DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
+  createCondition,
   AutomationBuilderContext,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
@@ -106,21 +111,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return getAutomationFormData(automation);
   }, [automation]);
 
-  const initialState = useMemo((): AutomationBuilderState | undefined => {
-    if (!automation) {
-      return undefined;
-    }
-    return {
-      triggers: automation.triggers
-        ? automation.triggers
-        : {
-            id: 'when',
-            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-            conditions: [],
-          },
-      actionFilters: assignSubfilterIds(automation.actionFilters),
-    };
-  }, [automation]);
+  const initialState = useMemo(() => getInitialState(automation), [automation]);
 
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer(initialState);
@@ -265,4 +256,34 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       </AutomationFormProvider>
     </FullHeightFormDeprecated>
   );
+}
+
+function getInitialState(automation: Automation): AutomationBuilderState | undefined {
+  if (!automation) {
+    return undefined;
+  }
+
+  return {
+    triggers: getInitialTriggers(automation.triggers),
+    actionFilters: assignSubfilterIds(automation.actionFilters),
+  };
+}
+
+function getInitialTriggers(triggers: DataConditionGroup | null): DataConditionGroup {
+  if (!triggers) {
+    return {
+      id: 'when',
+      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      conditions: [createCondition(DataConditionType.EVERY_EVENT)],
+    };
+  }
+
+  if (triggers.conditions.length === 0) {
+    return {
+      ...triggers,
+      conditions: [createCondition(DataConditionType.EVERY_EVENT)],
+    };
+  }
+
+  return triggers;
 }

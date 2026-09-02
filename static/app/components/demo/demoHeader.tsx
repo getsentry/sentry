@@ -2,6 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -17,8 +19,6 @@ import {
 import {initDemoMode} from 'sentry/utils/demoMode/utils';
 import {useApi} from 'sentry/utils/useApi';
 
-const DEMO_HEADER_HEIGHT_PX = 70;
-
 export function DemoHeader() {
   const api = useApi();
 
@@ -33,24 +33,43 @@ export function DemoHeader() {
   const extraSearchParams = extraQueryParameter();
 
   return (
-    <Wrapper>
+    <Wrapper
+      height={{zero: '54px', '3xl': '70px'}}
+      justify="between"
+      align="center"
+      paddingRight="2xl"
+      gap="3xl"
+      background="primary"
+      whiteSpace="nowrap"
+      borderBottom="primary"
+    >
       <StyledLogoSentry />
-      <DocsButton
-        onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
-        href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-        external
-      >
-        {t('Documentation')}
-      </DocsButton>
-      <NewRequestDemoBtn
-        onClick={() =>
-          trackAnalytics('growth.demo_click_request_demo', {organization: null})
-        }
-        href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-        external
-      >
-        {t('Request a Demo')}
-      </NewRequestDemoBtn>
+      <Container display={{zero: 'none', '2xl': 'block'}}>
+        {containerProps => (
+          <LinkButton
+            {...containerProps}
+            onClick={() => trackAnalytics('growth.demo_click_docs', {organization: null})}
+            href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+            external
+          >
+            {t('Documentation')}
+          </LinkButton>
+        )}
+      </Container>
+      <Container display={{zero: 'none', xl: 'block'}}>
+        {containerProps => (
+          <LinkButton
+            {...containerProps}
+            onClick={() =>
+              trackAnalytics('growth.demo_click_request_demo', {organization: null})
+            }
+            href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+            external
+          >
+            <Text uppercase>{t('Request a Demo')}</Text>
+          </LinkButton>
+        )}
+      </Container>
       <FreeTrialButton
         variant="primary"
         onClick={() => {
@@ -86,25 +105,8 @@ export function DemoHeader() {
 }
 
 // Note many of the colors don't come from the theme as they come from the marketing site
-const Wrapper = styled('div')`
-  display: flex;
-  height: ${DEMO_HEADER_HEIGHT_PX}px;
-  justify-content: space-between;
-
-  align-items: center;
-  padding-right: ${p => p.theme.space['2xl']};
-  gap: ${p => p.theme.space['3xl']};
-  background-color: ${p => p.theme.tokens.background.primary};
-  white-space: nowrap;
-
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+const Wrapper = styled(Flex)`
   z-index: ${p => p.theme.zIndex.sidebarPanel - 1};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    height: 54px;
-    margin-left: 0;
-  }
-
   box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.05);
 `;
 
@@ -124,27 +126,13 @@ const FreeTrialTextShort = styled('span')`
 
 const FreeTrialTextLong = styled('span')``;
 
-const NewRequestDemoBtn = styled(LinkButton)`
-  text-transform: uppercase;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
-const DocsButton = styled(LinkButton)`
-  text-transform: uppercase;
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    display: none;
-  }
-`;
-
 const FreeTrialButton = styled(Button)`
   text-transform: uppercase;
 
   .short-text {
     display: none;
   }
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     ${FreeTrialTextLong} {
       display: none;
     }

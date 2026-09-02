@@ -196,6 +196,7 @@ def test_spec_simple_query_count() -> None:
     spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
+    assert spec.mri == "c:spans/on_demand@none"
     assert spec.field_to_extract is None
     assert spec.op == "sum"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
@@ -205,6 +206,7 @@ def test_spec_simple_query_distribution() -> None:
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec._metric_type == "d"
+    assert spec.mri == "d:spans/on_demand@none"
     assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}

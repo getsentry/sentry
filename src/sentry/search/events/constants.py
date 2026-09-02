@@ -484,29 +484,7 @@ METRIC_PERCENTILES = {
 }
 
 CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")
-METRIC_FUNCTION_LIST_BY_TYPE = {
-    "generic_distribution": [
-        "apdex",
-        "avg",
-        "p50",
-        "p75",
-        "p90",
-        "p95",
-        "p99",
-        "p100",
-        "max",
-        "min",
-        "sum",
-        "percentile",
-        "http_error_count",
-        "http_error_rate",
-    ],
-    "generic_set": [
-        "count_miserable",
-        "user_misery",
-        "count_unique",
-    ],
-}
+
 
 # The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
 # for now

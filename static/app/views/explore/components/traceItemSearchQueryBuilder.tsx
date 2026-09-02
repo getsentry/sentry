@@ -9,6 +9,7 @@ import {
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
+import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
@@ -36,6 +37,7 @@ export type TraceItemSearchQueryBuilderProps = {
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
+  disableFullWidthFilterKeyMenu?: SearchQueryBuilderProps['disableFullWidthFilterKeyMenu'];
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
@@ -44,10 +46,12 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
+  invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
+  showSearchIcon?: SearchQueryBuilderProps['showSearchIcon'];
 } & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -84,7 +88,14 @@ function getTraceItemFieldDefinitionFunction(
   tags: TagCollection
 ): FieldDefinitionGetter {
   return (key, options) => {
-    return getFieldDefinition(key, typeMap[itemType], options?.kind ?? tags[key]?.kind);
+    // Array membership keys carry a `[*]` suffix (eg. `foo[*]`); strip it so the
+    // field definition resolves to the attribute's stored backend key.
+    const baseKey = stripArrayMembershipOperator(key);
+    return getFieldDefinition(
+      baseKey,
+      typeMap[itemType],
+      options?.kind ?? tags[baseKey]?.kind
+    );
   };
 }
 
@@ -125,6 +136,7 @@ export function useTraceItemSearchQueryBuilderProps({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
   const {selection} = usePageFilters();
@@ -238,6 +250,7 @@ export function useTraceItemSearchQueryBuilderProps({
       disabled,
       onCaseInsensitiveClick,
       invalidFilterKeys,
+      invalidMessages,
     }),
     [
       asyncFilterKeyRegistryQueryKey,
@@ -257,6 +270,7 @@ export function useTraceItemSearchQueryBuilderProps({
       getTraceItemAttributeValues,
       initialQuery,
       invalidFilterKeys,
+      invalidMessages,
       itemType,
       matchKeySuggestions,
       namespace,
@@ -313,6 +327,9 @@ export function TraceItemSearchQueryBuilder({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
+  showSearchIcon,
+  disableFullWidthFilterKeyMenu,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -351,9 +368,17 @@ export function TraceItemSearchQueryBuilder({
     allowedAttributeKeys,
     datetime,
     invalidFilterKeys,
+    invalidMessages,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilder
+      autoFocus={autoFocus}
+      showSearchIcon={showSearchIcon}
+      disableFullWidthFilterKeyMenu={disableFullWidthFilterKeyMenu}
+      {...searchQueryBuilderProps}
+    />
+  );
 }
 
 function useFunctionTags(

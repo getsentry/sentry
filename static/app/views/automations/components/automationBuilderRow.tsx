@@ -13,6 +13,7 @@ interface RowProps {
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
+  hideDeleteButton?: boolean;
   warningMessages?: string[];
 }
 
@@ -21,20 +22,23 @@ export function AutomationBuilderRow({
   children,
   hasError,
   errorMessage,
+  hideDeleteButton,
   warningMessages = [],
 }: RowProps) {
   return (
     <Stack gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
-        <DeleteButton
-          aria-label={t('Delete row')}
-          size="sm"
-          icon={<IconDelete />}
-          variant="transparent"
-          onClick={onDelete}
-          className="delete-row"
-        />
+        {!hideDeleteButton && (
+          <DeleteButton
+            aria-label={t('Delete row')}
+            size="sm"
+            icon={<IconDelete />}
+            variant="transparent"
+            onClick={onDelete}
+            className="delete-row"
+          />
+        )}
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       {warningMessages.length > 0 && (

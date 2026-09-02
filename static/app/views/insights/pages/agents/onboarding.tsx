@@ -6,6 +6,7 @@ import {PlatformIcon} from 'platformicons';
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -172,7 +173,7 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
                 <HeaderText>
                   <Title>{t('Monitor AI Agents')}</Title>
                   <SubTitle>
@@ -203,8 +204,10 @@ function OnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 <Setup>{children}</Setup>
@@ -546,14 +549,6 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
-`;
-
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -597,14 +592,9 @@ const Arcade = styled('iframe')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

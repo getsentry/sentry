@@ -5,6 +5,7 @@ import responses
 from requests import PreparedRequest, Request
 from responses.matchers import header_matcher, query_string_matcher
 
+from sentry.integrations.jira.client import STATUS_SEARCH_MAX_PAGES, STATUS_SEARCH_PAGE_SIZE
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -111,3 +112,120 @@ class JiraClientTest(TestCase):
                 uri=self.jira_client.SERVER_INFO_URL, method=method, query_params=params
             ),
         }
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_get_project_statuses_default_no_pagination(
+        self, mock_finalize: mock.MagicMock
+    ) -> None:
+        """Without paginate=True, we make a single (200-capped) request and return it raw."""
+        body = {"values": [{"id": "1", "name": "Status 1"}], "isLast": True}
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/statuses/search",
+            body=json.dumps(body),
+            status=200,
+            content_type="application/json",
+        )
+
+        result = self.jira_client.get_project_statuses("99999")
+
+        assert result == body
+        assert len(responses.calls) == 1
+        assert "startAt" not in responses.calls[0].request.url
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_get_project_statuses_single_page(self, mock_finalize: mock.MagicMock) -> None:
+        statuses = [{"id": str(i), "name": f"Status {i}"} for i in range(5)]
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/statuses/search",
+            body=json.dumps({"values": statuses, "isLast": True}),
+            status=200,
+            content_type="application/json",
+        )
+
+        result = self.jira_client.get_project_statuses("10001", paginate=True)
+
+        assert result == {"values": statuses}
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_get_project_statuses_multiple_pages(self, mock_finalize: mock.MagicMock) -> None:
+        page1 = [{"id": str(i), "name": f"Status {i}"} for i in range(STATUS_SEARCH_PAGE_SIZE)]
+        page2 = [
+            {"id": str(i), "name": f"Status {i}"}
+            for i in range(STATUS_SEARCH_PAGE_SIZE, STATUS_SEARCH_PAGE_SIZE + 50)
+        ]
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/statuses/search",
+            body=json.dumps({"values": page1, "isLast": False}),
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/statuses/search",
+            body=json.dumps({"values": page2, "isLast": True}),
+            status=200,
+            content_type="application/json",
+        )
+
+        result = self.jira_client.get_project_statuses("10001", paginate=True)
+
+        assert result == {"values": page1 + page2}
+        assert len(responses.calls) == 2
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_get_project_statuses_page_cap(self, mock_finalize: mock.MagicMock) -> None:
+        full_page = [{"id": str(i), "name": f"Status {i}"} for i in range(STATUS_SEARCH_PAGE_SIZE)]
+        for _ in range(STATUS_SEARCH_MAX_PAGES):
+            responses.add(
+                method=responses.GET,
+                url="https://example.atlassian.net/rest/api/2/statuses/search",
+                body=json.dumps({"values": full_page, "isLast": False}),
+                status=200,
+                content_type="application/json",
+            )
+
+        result = self.jira_client.get_project_statuses("10001", paginate=True)
+
+        assert len(result["values"]) == STATUS_SEARCH_PAGE_SIZE * STATUS_SEARCH_MAX_PAGES
+        assert len(responses.calls) == STATUS_SEARCH_MAX_PAGES
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_get_project_statuses_stops_on_short_page(self, mock_finalize: mock.MagicMock) -> None:
+        """Even if isLast is not set, a short page stops pagination."""
+        short_page = [{"id": "1", "name": "Status 1"}]
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/statuses/search",
+            body=json.dumps({"values": short_page}),
+            status=200,
+            content_type="application/json",
+        )
+
+        result = self.jira_client.get_project_statuses("10001", paginate=True)
+
+        assert result == {"values": short_page}
+        assert len(responses.calls) == 1

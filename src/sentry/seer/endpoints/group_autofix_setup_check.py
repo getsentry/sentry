@@ -5,7 +5,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -20,8 +20,10 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import (
     has_project_connected_repos,
+    is_free_cohort_org,
 )
 from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.utils import runs_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -43,7 +45,9 @@ def get_autofix_integration_setup_problems(
     # Iterate through all organization integrations to find one with an active integration
     for organization_integration in organization_integrations:
         integration = integration_service.get_integration(
-            organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
+            organization_integration_id=organization_integration.id,
+            status=ObjectStatus.ACTIVE,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
         if integration:
             installation = integration.get_installation(organization_id=organization.id)
@@ -94,12 +98,22 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        has_autofix_quota: bool = quotas.backend.check_seer_quota(
-            org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
-        )
+        # Free cohort orgs have no subscription — quota check always fails. Return hasAutofixQuota
+        # True only when a run exists (so they see results), False otherwise (shows paywall).
+        is_free_cohort = is_free_cohort_org(org)
+        if is_free_cohort:
+            # Night shift can go through either the regular autofix path (source="autofix") or
+            # the RCA feature path (source="autofix_rca") depending on the organizations:autofix-rca-in-seer.
+            has_autofix_quota = (
+                runs_for_group(group.id, "autofix").exists()
+                or runs_for_group(group.id, "autofix_rca").exists()
+            )
+        else:
+            has_autofix_quota = quotas.backend.check_seer_quota(
+                org_id=org.id, data_category=DataCategory.SEER_AUTOFIX
+            )
 
         seer_repos_linked = False
-        # Check if org has github integration and is on seat-based tier.
         if integration_check is None:
             try:
                 seer_repos_linked = has_project_connected_repos(org, group.project)

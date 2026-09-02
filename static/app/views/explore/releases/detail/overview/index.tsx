@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
 
+import {Container, Grid} from '@sentry/scraps/layout';
+
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -305,49 +307,71 @@ function ReleaseOverview() {
           {isReleaseArchived(release) && (
             <ReleaseArchivedNotice onRestore={() => handleRestore(refetchData)} />
           )}
-          <ReleaseDetailsPageFilters>
-            <EnvironmentPageFilter />
-            <TimeRangeSelector
-              relative={period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)}
-              start={start ?? null}
-              end={end ?? null}
-              utc={utc ?? null}
-              onChange={handleDateChange}
-              menuTitle={t('Filter Time Range')}
-              trigger={triggerProps => (
-                <TimeRangeSelectTrigger {...triggerProps}>
-                  {defaultDateTimeSelected ? releaseBoundsLabel : triggerProps.children}
-                </TimeRangeSelectTrigger>
+          <Grid
+            columns={{zero: 'auto', md: 'minmax(0, max-content) 1fr'}}
+            gap="xl"
+            marginBottom="xl"
+          >
+            <Container width={{zero: '100%', md: 'max-content'}}>
+              {containerProps => (
+                <EnvironmentPageFilter
+                  {...containerProps}
+                  triggerProps={{style: {width: '100%'}}}
+                />
               )}
-              relativeOptions={({defaultOptions, arbitraryOptions}) =>
-                releaseBounds.type === 'ancient'
-                  ? {...defaultOptions, ...arbitraryOptions}
-                  : {
-                      [RELEASE_PERIOD_KEY]: (
-                        <Fragment>
-                          {releaseBoundsLabel}
-                          <br />
-                          <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
-                            <DateTime date={releaseBounds.releaseStart} />
-                            –<DateTime date={releaseBounds.releaseEnd} />
-                          </ReleaseBoundsDescription>
-                        </Fragment>
-                      ),
-                      ...defaultOptions,
-                      ...arbitraryOptions,
-                    }
-              }
-              defaultPeriod={
-                releaseBounds.type === 'ancient' ? '90d' : RELEASE_PERIOD_KEY
-              }
-              defaultAbsolute={{
-                start: moment(releaseBounds.releaseStart).subtract(1, 'hour').toDate(),
-                end: releaseBounds.releaseEnd
-                  ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
-                  : undefined,
-              }}
-            />
-          </ReleaseDetailsPageFilters>
+            </Container>
+            <Container width={{zero: '100%', md: 'max-content'}}>
+              {containerProps => (
+                <TimeRangeSelector
+                  {...containerProps}
+                  relative={
+                    period ?? (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)
+                  }
+                  start={start ?? null}
+                  end={end ?? null}
+                  utc={utc ?? null}
+                  onChange={handleDateChange}
+                  menuTitle={t('Filter Time Range')}
+                  trigger={triggerProps => (
+                    <TimeRangeSelectTrigger {...triggerProps} style={{width: '100%'}}>
+                      {defaultDateTimeSelected
+                        ? releaseBoundsLabel
+                        : triggerProps.children}
+                    </TimeRangeSelectTrigger>
+                  )}
+                  relativeOptions={({defaultOptions, arbitraryOptions}) =>
+                    releaseBounds.type === 'ancient'
+                      ? {...defaultOptions, ...arbitraryOptions}
+                      : {
+                          [RELEASE_PERIOD_KEY]: (
+                            <Fragment>
+                              {releaseBoundsLabel}
+                              <br />
+                              <ReleaseBoundsDescription primary={defaultDateTimeSelected}>
+                                <DateTime date={releaseBounds.releaseStart} />
+                                –<DateTime date={releaseBounds.releaseEnd} />
+                              </ReleaseBoundsDescription>
+                            </Fragment>
+                          ),
+                          ...defaultOptions,
+                          ...arbitraryOptions,
+                        }
+                  }
+                  defaultPeriod={
+                    releaseBounds.type === 'ancient' ? '90d' : RELEASE_PERIOD_KEY
+                  }
+                  defaultAbsolute={{
+                    start: moment(releaseBounds.releaseStart)
+                      .subtract(1, 'hour')
+                      .toDate(),
+                    end: releaseBounds.releaseEnd
+                      ? moment(releaseBounds.releaseEnd).add(1, 'hour').toDate()
+                      : undefined,
+                  }}
+                />
+              )}
+            </Container>
+          </Grid>
           {(hasDiscover || hasPerformance || hasHealthData) && (
             <DemoTourElement
               id={DemoTourStep.RELEASES_CHART}
@@ -543,17 +567,6 @@ function getTransactionsListSort(location: Location): {
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selectedSort, sortOptions};
 }
-
-const ReleaseDetailsPageFilters = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, max-content) 1fr;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
-`;
 
 const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   font-size: ${p => p.theme.font.size.sm};

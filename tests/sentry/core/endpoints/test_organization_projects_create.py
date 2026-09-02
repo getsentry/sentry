@@ -17,6 +17,8 @@ from sentry.models.team import Team
 from sentry.signals import project_created
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Workflow
 
 
 class OrganizationProjectsCreateTest(APITestCase):
@@ -188,7 +190,10 @@ class OrganizationProjectsCreateTest(APITestCase):
         assert project.name == project.slug == self.p1
         assert project.slug
 
-        assert Rule.objects.filter(project=project).exists()
+        assert not Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+        ).exists()
 
     @with_feature(["organizations:team-roles"])
     def test_without_default_rules(self) -> None:

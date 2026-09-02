@@ -44,10 +44,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         super().setUp()
 
         self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
-            TransactionMRI.DURATION.value: "distribution",
-            TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
-            "g:transactions/test_gauge@none": "gauge",
         }
         self.metrics: Mapping[str, Literal["counter", "set", "distribution"]] = {
             SessionMRI.RAW_DURATION.value: "distribution",
@@ -99,12 +96,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     value,
                 )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_basic_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
             ),
@@ -136,6 +134,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_basic_bulk_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=None,
@@ -153,7 +152,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
             )
@@ -162,7 +161,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             Timeseries(
                 metric=Metric(
                     public_name=None,
-                    mri=TransactionMRI.USER.value,
+                    mri="s:transactions/user@none",
                 ),
                 aggregate="uniq",
             )
@@ -193,12 +192,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_groupby_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5, 0.99],
@@ -233,12 +233,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_filters_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5],
@@ -271,12 +272,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert rows[0]["aggregate_value"] in ([0], 0)
         assert rows[1]["aggregate_value"] in ([6.0], 6)
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_complex_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5],
@@ -312,12 +314,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert rows[1]["aggregate_value"] in ([6.0], 6)
         assert rows[1]["transaction"] == "transaction_0"
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_totals(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
                 filters=[Condition(Column("status_code"), Op.EQ, "200")],
@@ -346,12 +349,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert rows[0]["aggregate_value"] == 7.0
         assert rows[1]["aggregate_value"] == 8.0
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_meta_data_in_response(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
                 filters=[Condition(Column("status_code"), Op.EQ, "200")],
@@ -381,6 +385,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
             "transaction": 9223372036854776020,
         }
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_bad_query(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
@@ -409,12 +414,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         with pytest.raises(InvalidParams):
             run_query(request)
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_interval_with_totals(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
                 filters=[Condition(Column("status_code"), Op.EQ, "200")],
@@ -440,12 +446,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 6
         assert result["totals"]["aggregate_value"] == 8.0
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_automatic_granularity(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="max",
             ),
@@ -499,6 +506,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert request.dataset == "metrics"
         assert len(result["data"]) == 10
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_gauges(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
@@ -662,6 +670,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert any(data_point["release"] == "release_even" for data_point in result["data"])
         assert any(data_point["project_id"] == self.project.id for data_point in result["data"])
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_failure_rate(self) -> None:
         query = MetricsQuery(
             query=Formula(
@@ -669,7 +678,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 [
                     Timeseries(
                         metric=Metric(
-                            mri=TransactionMRI.DURATION.value,
+                            mri="d:transactions/duration@millisecond",
                         ),
                         aggregate="count",
                         filters=[
@@ -686,7 +695,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                     ),
                     Timeseries(
                         metric=Metric(
-                            mri=TransactionMRI.DURATION.value,
+                            mri="d:transactions/duration@millisecond",
                         ),
                         aggregate="count",
                     ),
@@ -712,12 +721,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 10
         assert result["totals"]["aggregate_value"] == 1.0
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_aggregate_aliases(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="p95",
             ),
@@ -751,12 +761,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_dataset_correctness(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="quantiles",
                 aggregate_params=[0.5, 0.99],
@@ -794,6 +805,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
                 ).isoformat()
             )
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_resolve_all_mris(self) -> None:
         for mri in [
             "d:transactions/sentry.event_manager.save@second",
@@ -849,9 +861,10 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         result = run_query(request)
         assert len(result["data"]) == 1
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_formulas_with_scalar_formulas(self) -> None:
         query = MetricsQuery(
-            query=f"sum({TransactionMRI.DURATION.value}) + (24 * 3600)",
+            query=f"sum({'d:transactions/duration@millisecond'}) + (24 * 3600)",
             start=self.hour_ago,
             end=self.now,
             rollup=Rollup(interval=60, granularity=60),
@@ -873,12 +886,13 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         for row in result["data"]:
             assert row["aggregate_value"] >= 86400
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_extrapolated_generic_metrics(self) -> None:
         query = MetricsQuery(
             query=Timeseries(
                 metric=Metric(
                     "transaction.duration",
-                    TransactionMRI.DURATION.value,
+                    "d:transactions/duration@millisecond",
                 ),
                 aggregate="sum",
                 filters=[
@@ -935,10 +949,7 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
         super().setUp()
 
         self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
-            TransactionMRI.DURATION.value: "distribution",
-            TransactionMRI.USER.value: "set",
             TransactionMRI.COUNT_PER_ROOT_PROJECT.value: "counter",
-            "g:transactions/test_gauge@none": "gauge",
         }
         self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self.hour_ago = self.now - timedelta(hours=1)
@@ -972,15 +983,11 @@ class MQLMetaTest(TestCase, BaseMetricsTestCase):
 
     def test_fetch_metric_mris(self) -> None:
         metric_mris = fetch_metric_mris(self.org_id, [self.project.id], UseCaseID.TRANSACTIONS)
-        assert len(metric_mris) == 1
-        assert len(metric_mris[self.project.id]) == 4
         assert metric_mris[self.project.id] == [
             "c:transactions/count_per_root_project@none",
-            "s:transactions/user@none",
-            "g:transactions/test_gauge@none",
-            "d:transactions/duration@millisecond",
         ]
 
+    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
     def test_fetch_metric_tag_keys(self) -> None:
         tag_keys = fetch_metric_tag_keys(
             self.org_id, [self.project.id], UseCaseID.TRANSACTIONS, "g:transactions/test_gauge@none"

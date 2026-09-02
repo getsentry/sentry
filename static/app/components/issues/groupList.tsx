@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  type ReactNode,
-} from 'react';
+import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -28,29 +21,11 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GroupListHeader} from './groupListHeader';
-
-export const RELATED_ISSUES_BOOLEAN_QUERY_ERROR =
-  'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search';
-
-export type TimePeriodType = {
-  display: ReactNode;
-  end: string;
-  label: string;
-  period: string;
-  start: string;
-  /**
-   * The start/end were chosen from the period and not the user
-   */
-  usingPeriod: boolean;
-  custom?: boolean;
-  utc?: boolean;
-};
 
 export type GroupListColumn =
   | 'graph'
@@ -70,7 +45,6 @@ type Props = {
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -97,7 +71,6 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
   staleTime?: number;
@@ -132,8 +105,6 @@ export function GroupList({
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
-  renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
   staleTime = 0,
@@ -238,7 +209,6 @@ export function GroupList({
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
-    error: queryError,
     refetch,
   } = useQuery({
     ...issuesQueryOptions,
@@ -296,19 +266,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const errorDetail = hasLogicBoolean
-    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
-    : (() => {
-        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          return detail;
-        }
-        if (detail?.message) {
-          return detail.message;
-        }
-        return (queryError as RequestError | undefined)?.message ?? null;
-      })();
-  const errorData = errorDetail ? {detail: errorDetail} : null;
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -340,10 +297,6 @@ export function GroupList({
   const columns = withColumns;
 
   if (hasError) {
-    if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, refetch);
-    }
-
     return <LoadingError onRetry={refetch} />;
   }
 
@@ -391,7 +344,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

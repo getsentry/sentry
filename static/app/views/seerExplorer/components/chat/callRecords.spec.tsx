@@ -1,12 +1,9 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
   callRecordDetail,
   callRecordLabel,
   callRecordStatus,
-  callRecordLink,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
@@ -54,6 +51,27 @@ function apiRecord(overrides?: Partial<CallRecord>): CallRecord {
   };
 }
 
+/**
+ * A block whose tool calls are still running: no results yet, so only in-flight reporting shows.
+ */
+function inFlightBlock(toolCallIds: string[], overrides: Partial<Block> = {}): Block {
+  return {
+    id: 'tool-1',
+    message: {
+      role: 'tool_use',
+      content: null,
+      tool_calls: toolCallIds.map(id => ({
+        id,
+        function: 'sentry_api_execute',
+        args: '{"code":"..."}',
+      })),
+    },
+    timestamp: '2024-01-01T00:01:00Z',
+    loading: true,
+    ...overrides,
+  };
+}
+
 describe('call record rendering', () => {
   it('renders a row per call using the title seer shipped', () => {
     const block = codeModeBlock([
@@ -78,9 +96,9 @@ describe('call record rendering', () => {
     expect(screen.queryByText(/Used sentry_api_execute tool/)).not.toBeInTheDocument();
   });
 
-  it('drops a record with no title rather than showing its route', () => {
-    // The surviving row's expansion legitimately shows a route, so assert on the row count:
-    // the titleless record contributes nothing rather than falling back to its path.
+  it('reports a record with no title rather than deleting it', () => {
+    // Given a generic label rather than its route, but reported: a record vanishing for want of
+    // wording is how a whole endpoint disappears the day it is added.
     const block = codeModeBlock([
       apiRecord({title: undefined, path: '/api/0/dropped/{thing_id}/'}),
       apiRecord({id: 2, title: 'List Your Organizations'}),
@@ -88,7 +106,103 @@ describe('call record rendering', () => {
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('List Your Organizations')).toBeInTheDocument();
-    expect(screen.queryByText(/dropped/)).not.toBeInTheDocument();
+    expect(screen.getByText('Sentry API request')).toBeInTheDocument();
+  });
+
+  it('keeps the request details on a described api row', () => {
+    // The description leads the row, but an api call's own request is what makes that claim
+    // checkable — swapping it for the generated title would lose the literal URL and the body.
+    const record = apiRecord({
+      llm_description: 'Working out which org owns the failing project',
+      resolved_path: '/api/0/organizations/acme/',
+    });
+
+    expect(callRecordDetail(record)).toEqual({
+      request: 'GET /api/0/organizations/acme/',
+      body: null,
+    });
+  });
+
+  it('falls back to the title for a described row that ran no request', () => {
+    const record: CallRecord = {
+      id: 1,
+      parent: null,
+      kind: 'lib',
+      name: 'bash',
+      title: 'Running command grep -rn retry in getsentry/sentry',
+      llm_description: 'Checking whether the retry ceiling changed',
+    };
+
+    expect(callRecordDetail(record)).toEqual({
+      request: 'Running command grep -rn retry in getsentry/sentry',
+      body: null,
+    });
+  });
+
+  it('leads with what the agent said the call was for', () => {
+    const block = codeModeBlock([
+      apiRecord({
+        title: 'Retrieve an Organization',
+        llm_description: 'Working out which org owns the failing project',
+      }),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Working out which org owns the failing project')
+    ).toBeInTheDocument();
+  });
+
+  it('keeps a described composite helper instead of only its requests', () => {
+    // Without a description the children say more and the parent is dropped. With one, the parent
+    // says what the operation was *for*, which none of the requests underneath can.
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_issue_details',
+        title: 'Getting enriched issue details for issue 4521',
+        llm_description: 'Working out which span makes checkout slow',
+      },
+      apiRecord({id: 2, parent: 1, title: 'Retrieve an Issue'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Working out which span makes checkout slow')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Retrieve an Issue')).not.toBeInTheDocument();
+  });
+
+  it('drops an undescribed composite helper in favour of its requests', () => {
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_issue_details',
+        title: 'Getting enriched issue details for issue 4521',
+      },
+      apiRecord({id: 2, parent: 1, title: 'Retrieve an Issue'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieve an Issue')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Getting enriched issue details for issue 4521')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a note in the order it was written', () => {
+    const block = codeModeBlock([
+      apiRecord({id: 1, title: 'Retrieve an Organization'}),
+      {id: 2, parent: null, kind: 'note', llm_description: 'Comparing the two traces'},
+      apiRecord({id: 3, title: 'List Your Organizations'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Comparing the two traces')).toBeInTheDocument();
   });
 
   it('links a record that identifies a navigable resource', () => {
@@ -101,14 +215,14 @@ describe('call record rendering', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByRole('link', {name: /Retrieve an Issue/})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View issue'})).toHaveAttribute(
       'href',
       expect.stringContaining('/issues/139458447/')
     );
   });
 
-  describe('a row that both expands and navigates', () => {
-    /** An api call with a destination *and* a request to show — both affordances on one row. */
+  describe('a row with a link and visible request detail', () => {
+    /** An api call with a destination *and* a request to show — both present on one row. */
     function linkable(): CallRecord {
       return apiRecord({
         path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
@@ -118,20 +232,15 @@ describe('call record rendering', () => {
       });
     }
 
-    it('keeps the link out of the disclosure button', () => {
+    it('renders the link chip separately from the title', () => {
       render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
 
-      // An anchor inside a button is invalid HTML, and it leaves expand and navigate sharing one
-      // click target and one tab stop.
-      const link = screen.getByRole('link', {name: /Retrieve an Issue/});
-      const expander = screen.getByRole('button', {name: /Retrieve an Issue/});
-      expect(expander).not.toContainElement(link);
+      expect(screen.getByRole('button', {name: 'View issue'})).toBeInTheDocument();
+      expect(screen.getByText('Retrieve an Issue')).toBeInTheDocument();
     });
 
-    it('still expands to the request it made', async () => {
+    it('shows the request detail without needing to expand', () => {
       render(<BlockComponent block={codeModeBlock([linkable()])} blockIndex={0} />);
-
-      await userEvent.click(screen.getByRole('button', {name: /Retrieve an Issue/}));
 
       expect(
         screen.getByText('GET /api/0/organizations/acme/issues/139458447/')
@@ -171,14 +280,51 @@ describe('call record rendering', () => {
     expect(screen.queryByText('Retrieving details')).not.toBeInTheDocument();
   });
 
-  it('keeps a lib row that made no api calls of its own', () => {
-    // code_search never touches the transport, so its row is the only trace it leaves.
+  it('keeps get_span_details over its less-specific trace child', () => {
+    // The only HTTP call under get_span_details is the trace endpoint. The lib row carries span_id
+    // and is the better destination, so the child is suppressed rather than the parent.
     const block = codeModeBlock([
-      {id: 1, parent: null, kind: 'lib', name: 'code_search'},
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_span_details',
+        title: 'Retrieving span abc in trace def',
+        params: {trace_id: 'def', span_id: 'abc'},
+      },
+      apiRecord({
+        id: 2,
+        parent: 1,
+        path: '/api/0/organizations/{organization_id_or_slug}/trace/{trace_id}/',
+        path_params: {organization_id_or_slug: 'acme', trace_id: 'def'},
+        title: 'Retrieving waterfall for trace def',
+      }),
     ]);
     render(<BlockComponent block={block} blockIndex={0} />);
 
-    expect(screen.getByText('Searched code')).toBeInTheDocument();
+    expect(screen.getByText('Retrieving span abc in trace def')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Retrieving waterfall for trace def')
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps a lib row that made no api calls of its own', () => {
+    // code_search never touches the transport, so its row is the only trace it leaves. Seer titles
+    // it, as it does every call — nothing in the frontend renames a row.
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'code_search',
+        title: 'Searching code in repository getsentry/sentry',
+      },
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Searching code in repository getsentry/sentry')
+    ).toBeInTheDocument();
   });
 
   it('renders calls from separate tool calls the same as calls from one', () => {
@@ -307,15 +453,17 @@ describe('callRecordStatus', () => {
 });
 
 describe('callRecordLabel', () => {
-  it('prefers a registered handler over the shipped title', () => {
-    const label = callRecordLabel({
-      id: 1,
-      kind: 'lib',
-      name: 'code_search',
-      title: 'Should not win',
-    });
-
-    expect(label).toBe('Searched code');
+  // Only the title. A rule in `links.tsx` may name the row instead, and where that wins over the
+  // shipped title is settled in `links.spec.tsx` — not here.
+  it('reports the shipped title verbatim, whatever the call was', () => {
+    expect(
+      callRecordLabel({
+        id: 1,
+        kind: 'lib',
+        name: 'code_search',
+        title: 'Ran a code search',
+      })
+    ).toBe('Ran a code search');
   });
 
   it('uses the shipped title when no handler matches', () => {
@@ -330,150 +478,6 @@ describe('callRecordLabel', () => {
 
   it('treats a blank title as absent', () => {
     expect(callRecordLabel(apiRecord({title: '   '}))).toBeNull();
-  });
-});
-
-/** The destination a record links to, or null — the shape these cases assert on. */
-function urlFor(...args: Parameters<typeof callRecordLink>) {
-  return callRecordLink(...args)?.url ?? null;
-}
-
-describe('callRecordLink', () => {
-  const organization = OrganizationFixture();
-
-  it('builds an issue URL from an issue_id path param', () => {
-    const url = urlFor(
-      apiRecord({path_params: {organization_id_or_slug: 'acme', issue_id: '42'}}),
-      organization
-    );
-
-    expect(url).not.toBeNull();
-  });
-
-  it('scopes an org-less path to the organization', () => {
-    // A bare `/issues/42/` only resolves under a customer domain, so it 404s on a plain host.
-    const url = urlFor(apiRecord({path_params: {issue_id: '42'}}), organization);
-
-    expect(url).toEqual(
-      expect.objectContaining({
-        pathname: `/organizations/${organization.slug}/issues/42/`,
-      })
-    );
-  });
-
-  it('does not double-prefix a path that is already org-scoped', () => {
-    const url = urlFor(
-      apiRecord({
-        path: '/api/0/organizations/{organization_id_or_slug}/replays/{replay_id}/',
-        path_params: {organization_id_or_slug: 'acme', replay_id: 'r1'},
-      }),
-      organization
-    );
-
-    expect(JSON.stringify(url)).not.toContain('/organizations/acme/organizations/');
-  });
-
-  it('prefers the event URL when a record names both an issue and an event', () => {
-    const url = urlFor(
-      apiRecord({
-        path_params: {issue_id: '42', event_id: 'abc123'},
-      }),
-      organization
-    );
-
-    expect(JSON.stringify(url)).toContain('abc123');
-  });
-
-  it('returns null when only scope params are present', () => {
-    // organization/project slugs say where a call went, not what it points at.
-    expect(
-      urlFor(
-        apiRecord({
-          path_params: {organization_id_or_slug: 'acme', project_id_or_slug: 'web'},
-        }),
-        organization
-      )
-    ).toBeNull();
-  });
-
-  it('returns null when a record has no path params', () => {
-    expect(urlFor(apiRecord({path_params: undefined}), organization)).toBeNull();
-  });
-
-  describe('only the route its own subject', () => {
-    // Without this, get_issue_details' three requests all link to the issue page — three rows
-    // pointing at the same place, which reads as arbitrary.
-    const issueRoutes = [
-      ['/api/0/issues/{issue_id}/', true],
-      ['/api/0/issues/{issue_id}/events/latest/', false],
-      ['/api/0/issues/{issue_id}/tags/', false],
-    ] as const;
-
-    it.each(issueRoutes)('%s links: %s', (path, shouldLink) => {
-      const url = urlFor(apiRecord({path, path_params: {issue_id: '54'}}), organization);
-
-      expect(url === null).toBe(!shouldLink);
-    });
-
-    it('gives one link across a lib call and its children', () => {
-      const linked = issueRoutes
-        .map(([path]) =>
-          urlFor(apiRecord({path, path_params: {issue_id: '54'}}), organization)
-        )
-        .filter(Boolean);
-
-      expect(linked).toHaveLength(1);
-    });
-  });
-  describe('api-only aliases', () => {
-    // The API resolves `latest`/`oldest`/`recommended` server-side, but the UI route needs a
-    // concrete id — linking the alias straight through produces a dead page.
-    it('does not link an event alias as if it were an event id', () => {
-      const url = urlFor(
-        apiRecord({
-          path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/{event_id}/',
-          path_params: {
-            organization_id_or_slug: 'sentry',
-            issue_id: '54',
-            event_id: 'latest',
-          },
-        }),
-        organization
-      );
-
-      expect(JSON.stringify(url)).not.toContain('latest');
-    });
-
-    it('falls back to the issue when the event is an alias', () => {
-      const url = urlFor(
-        apiRecord({path_params: {issue_id: '54', event_id: 'latest'}}),
-        organization
-      );
-
-      expect(url).toEqual(
-        expect.objectContaining({
-          pathname: `/organizations/${organization.slug}/issues/54/`,
-        })
-      );
-    });
-
-    it.each(['latest', 'oldest', 'recommended'])('rejects %s as an event id', alias => {
-      const url = urlFor(
-        apiRecord({path_params: {issue_id: '54', event_id: alias}}),
-        organization
-      );
-
-      expect(JSON.stringify(url)).not.toContain(alias);
-    });
-
-    it('still links a real event id', () => {
-      const url = urlFor(
-        apiRecord({path_params: {issue_id: '54', event_id: 'abc123'}}),
-        organization
-      );
-
-      expect(JSON.stringify(url)).toContain('abc123');
-    });
   });
 });
 
@@ -621,5 +625,52 @@ describe('live call rendering', () => {
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('In-flight row')).toBeInTheDocument();
+  });
+});
+
+describe('in-flight progress', () => {
+  it('shows work as it happens for a running tool call', () => {
+    const block = inFlightBlock(['call-1'], {
+      progress: [{token: 'call-1', progress: 1, message: 'Retrieving issue 4521'}],
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieving issue 4521')).toBeInTheDocument();
+  });
+
+  it('reports both calls when two are in flight at once', () => {
+    // The block-level mirror could not say which outstanding call its records belonged to, so it
+    // showed them on neither — the agent looked hung while it worked. An event names its own call.
+    const block = inFlightBlock(['call-1', 'call-2'], {
+      progress: [
+        {
+          token: 'call-1',
+          progress: 1,
+          message: 'Searching the filesystem for retry logic',
+        },
+        {
+          token: 'call-2',
+          progress: 1,
+          message: 'Querying telemetry for the p95 regression',
+        },
+      ],
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Searching the filesystem for retry logic')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Querying telemetry for the p95 regression')
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the block mirror when a seer sends no progress', () => {
+    const block = inFlightBlock(['call-1'], {
+      live_calls: [apiRecord({title: 'Retrieve an Organization'})],
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieve an Organization')).toBeInTheDocument();
   });
 });

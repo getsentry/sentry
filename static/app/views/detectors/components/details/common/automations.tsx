@@ -1,13 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -62,6 +61,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
 }
 
 function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
+  const getPaginationCaption = useGetPaginationCaption();
   const [cursor, setCursor] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const onSearch = useCallback((query: string) => {
@@ -95,19 +95,18 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell data-column-name="action-filters">
-          {t('Actions')}
-        </SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTableWithColumns
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell data-column-name="action-filters">
+            {t('Actions')}
+          </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {isPending && <Skeletons numberOfRows={AUTOMATIONS_PER_PAGE} />}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error />}
       {isSuccess && automations?.length === 0 && (
         <SimpleTable.Empty>
           {searchQuery ? t('No matching alerts found') : emptyMessage}

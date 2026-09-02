@@ -42,6 +42,22 @@ describe('Settings Breadcrumb Dropdown', () => {
     expect(screen.queryByText('foo')).not.toBeInTheDocument();
   });
 
+  it('renders a crumb without a menu as non-interactive content', () => {
+    render(
+      <BreadcrumbDropdown
+        value={undefined}
+        route={{path: '/', name: 'root'}}
+        options={[]}
+        name={<a href="/settings/">The Crumb</a>}
+        hasMenu={false}
+        onCrumbSelect={selectMock}
+      />
+    );
+
+    expect(screen.getByRole('link', {name: 'The Crumb'})).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('stays open when hovered over crumb and then into dropdown menu', async () => {
     createWrapper();
     await userEvent.hover(screen.getByText('The Crumb'));

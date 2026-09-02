@@ -79,14 +79,10 @@ interface SegmentedControlItemProps<Value extends string> {
   tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
 }
 
-interface SegmentedControlProps<Value extends string> extends Omit<
-  RadioGroupProps,
-  'value' | 'defaultValue' | 'onChange' | 'isDisabled'
-> {
+interface SegmentedControlProps<Value extends string> {
   children: CollectionChildren<Value>;
   onChange: (value: Value) => void;
   value: Value;
-  disabled?: RadioGroupProps['isDisabled'];
   priority?: Priority;
   size?: FormSize;
 }
@@ -98,7 +94,6 @@ export function SegmentedControl<Value extends string>({
   onChange,
   size = 'md',
   priority = 'default',
-  disabled,
   ...props
 }: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
@@ -112,7 +107,6 @@ export function SegmentedControl<Value extends string>({
     value,
     onChange: onChange as (value: string) => void,
     orientation: 'horizontal',
-    isDisabled: disabled,
   } satisfies RadioGroupProps;
 
   const state = useRadioGroupState(ariaProps);
@@ -138,7 +132,7 @@ export function SegmentedControl<Value extends string>({
             prevKey={option.prevKey}
             value={String(option.key)}
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            isDisabled={option.props.disabled || disabled}
+            isDisabled={option.props.disabled}
             state={state}
             size={size}
             priority={priority}

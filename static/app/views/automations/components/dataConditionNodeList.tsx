@@ -144,6 +144,10 @@ export function DataConditionNodeList({
     ];
   }, [dataConditionHandlers, handlerGroup, state.triggers.conditions]);
 
+  const shouldHideDeleteButton =
+    handlerGroup === DataConditionHandlerGroupType.WORKFLOW_TRIGGER &&
+    conditions.length === 1;
+
   return (
     <Fragment>
       {conditions.map(condition => {
@@ -152,6 +156,7 @@ export function DataConditionNodeList({
         return (
           <AutomationBuilderRow
             key={condition.id}
+            hideDeleteButton={shouldHideDeleteButton}
             onDelete={() => onDeleteRow(condition.id)}
             hasError={conflictingConditions?.has(condition.id) || !!error}
             errorMessage={error}

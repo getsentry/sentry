@@ -14,7 +14,7 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
+import {IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
@@ -23,9 +23,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
-import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
-import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -42,10 +39,9 @@ interface Props {
    * showing detector name.
    */
   single?: boolean;
-  summary?: UptimeSummary | null;
 }
 
-export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}: Props) {
+export function OverviewRow({uptimeDetector, timeWindowConfig, single}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({
     project_id: uptimeDetector.projectId,
@@ -93,29 +89,10 @@ export function OverviewRow({summary, uptimeDetector, timeWindowConfig, single}:
             <IconTimer />
             {t('Checked every %s', getDuration(subscription.intervalSeconds))}
           </Flex>
-          {summary === null ? null : summary === undefined ? (
-            <Fragment>
-              <Placeholder width="60px" height="1lh" />
-              <Placeholder width="40px" height="1lh" />
-            </Fragment>
-          ) : (
-            <Fragment>
-              <Flex gap="xs" align="center">
-                <IconStats />
-                <UptimePercent
-                  size="xs"
-                  summary={summary}
-                  note={t(
-                    'The percent uptime of this monitor in the selected time period.'
-                  )}
-                />
-              </Flex>
-              <Flex gap="xs" align="center">
-                <IconClock />
-                <UptimeDuration size="xs" summary={summary} />
-              </Flex>
-            </Fragment>
-          )}
+          <Fragment>
+            <Placeholder width="60px" height="1lh" />
+            <Placeholder width="40px" height="1lh" />
+          </Fragment>
         </DetailsLine>
         <div>{!uptimeDetector.enabled && <Tag variant="muted">{t('Disabled')}</Tag>}</div>
       </Details>

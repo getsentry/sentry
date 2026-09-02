@@ -5,10 +5,11 @@ from xml.etree import ElementTree
 
 import pytest
 
-from sentry.issues.formatting.formatter import MarkdownFormatter, XmlFormatter
+from sentry.issues.formatting.formatter import MarkdownFormatter, SectionFn, XmlFormatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT
 from sentry.issues.formatting.models import (
     Breadcrumb,
+    CspDetails,
     EventObject,
     EvidenceSpan,
     ExceptionDetails,
@@ -22,7 +23,10 @@ from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     EVENT_SECTIONS_WITH_USER,
     breadcrumbs_section,
+    contexts_section,
+    csp_section,
     detection_context_section,
+    evidence_section,
     exceptions_section,
     format_issue,
     message_section,
@@ -287,6 +291,51 @@ def test_user_only_present_fields() -> None:
     assert "ID" not in out
 
 
+def test_contexts_renders_groups_and_skips_type() -> None:
+    event = EventObject(
+        title="t",
+        contexts={
+            "browser": {"type": "browser", "name": "Chrome", "version": "28"},
+            "os": {"type": "os", "name": "Windows"},
+        },
+    )
+    out = contexts_section(event, MD, LIMITS_DEFAULT)
+    assert "## Contexts" in out
+    assert "browser\nname: Chrome\nversion: 28" in out
+    assert "os\nname: Windows" in out
+    assert "type:" not in out  # the redundant per-context type key is dropped
+
+
+def test_csp_section() -> None:
+    event = EventObject(
+        title="t",
+        csp=CspDetails(
+            effective_directive="img-src", blocked_uri="blob", document_uri="https://x.com"
+        ),
+    )
+    out = csp_section(event, MD, LIMITS_DEFAULT)
+    assert "## CSP" in out
+    assert "**Blocked:** blob" in out
+    assert "**Directive:** img-src" in out
+    assert "**Document:** https://x.com" in out
+
+
+def test_evidence_section() -> None:
+    event = EventObject(
+        title="t",
+        evidence=[("Regression", "duration increased"), ("Transaction", "POST /oauth/token")],
+    )
+    out = evidence_section(event, MD, LIMITS_DEFAULT)
+    assert "## Evidence" in out
+    assert "**Regression:** duration increased" in out
+    assert "**Transaction:** POST /oauth/token" in out
+
+
+@pytest.mark.parametrize("section", [csp_section, evidence_section, contexts_section])
+def test_section_empty_renders_nothing(section: SectionFn) -> None:
+    assert section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
+
+
 def test_threads_only_with_stacktrace() -> None:
     with_st = ThreadDetails(
         name="main", crashed=True, stacktrace=Stacktrace(frames=[Frame(function="f", line_no=1)])
@@ -410,8 +459,9 @@ def test_unadaptable_payload_renders_nothing() -> None:
 def test_event_sections_order() -> None:
     names = [s.__name__ for s in EVENT_SECTIONS]
     assert names[0] == "title_section"
-    assert names[-1] == "tags_section"
+    assert names[-1] == "tags_section"  # user and contexts are opt-in, so they aren't here
     assert "exceptions_section" in names
+    assert [s.__name__ for s in EVENT_SECTIONS_WITH_USER][-1] == "contexts_section"
 
 
 def test_user_identifiers_are_opt_in() -> None:
@@ -421,12 +471,31 @@ def test_user_identifiers_are_opt_in() -> None:
     assert user_section in EVENT_SECTIONS_WITH_USER
     # opting in changes nothing else about the render order
     assert [s.__name__ for s in EVENT_SECTIONS] == [
-        s.__name__ for s in EVENT_SECTIONS_WITH_USER if s is not user_section
+        s.__name__ for s in EVENT_SECTIONS_WITH_USER if s not in (user_section, contexts_section)
     ]
 
     data = {"title": "t", "user": {"email": "someone@example.com", "ipAddress": "203.0.113.7"}}
     assert "someone@example.com" not in format_issue(data)
     assert "someone@example.com" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
+
+
+def test_context_identifiers_are_opt_in() -> None:
+    # contexts is an open-ended mapping that carries device and session ids, so it follows the
+    # same rule as user_section rather than riding along in the default list
+    assert contexts_section not in EVENT_SECTIONS
+    assert contexts_section in EVENT_SECTIONS_WITH_USER
+
+    data = {
+        "title": "t",
+        "contexts": {
+            "device": {"name": "Phone", "device_unique_identifier": "F1D3-9C2A"},
+            "replay": {"replay_id": "abc123"},
+        },
+    }
+    out = format_issue(data)
+    assert "F1D3-9C2A" not in out
+    assert "abc123" not in out
+    assert "F1D3-9C2A" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
 
 
 def test_bare_stacktrace_entry_renders() -> None:
@@ -523,3 +592,30 @@ def test_capping_a_rendered_body_keeps_the_first_piece() -> None:
         event, MD, dataclasses.replace(LIMITS_DEFAULT, max_exceptions_chars=10)
     )
     assert "E: " + "v" * 200 in out
+
+
+def test_evidence_section_is_capped() -> None:
+    # evidenceDisplay carries whatever pairs an occurrence defines, so it needs a cap like the
+    # other open-ended sections rather than rendering unbounded
+    event = EventObject(title="t", evidence=[("Regression", "x" * 10_000)])
+    out = evidence_section(event, MD, LIMITS_DEFAULT)
+    assert "... (truncated)" in out
+    assert len(out) < 6_000  # max_evidence_chars=5_000, plus the surrounding block
+
+
+def test_contexts_render_key_value_pairs() -> None:
+    event = EventObject(title="t", contexts={"browser": {"type": "browser", "name": "Chrome"}})
+    out = contexts_section(event, XmlFormatter(), LIMITS_DEFAULT)
+    assert "name: Chrome" in out
+    assert "type: browser" not in out  # the redundant echo is dropped
+
+
+def test_evidence_truncation_never_splits_markup() -> None:
+    # the body is a join of rendered <name>value</name> pieces, so a mid-way slice would leave
+    # an unclosed tag
+    event = EventObject(title="t", evidence=[("regression", "x" * 200), ("other", "y" * 200)])
+    for cap in range(20, 400):
+        out = evidence_section(
+            event, XmlFormatter(), dataclasses.replace(LIMITS_DEFAULT, max_evidence_chars=cap)
+        )
+        ElementTree.fromstring(out)  # raises if a tag was split

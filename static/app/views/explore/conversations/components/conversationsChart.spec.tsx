@@ -22,7 +22,7 @@ describe('ConversationsChart', () => {
       body: {
         timeSeries: [
           TimeSeriesFixture({
-            yAxis: 'sum(gen_ai.cost.total_tokens)',
+            yAxis: 'count_unique(gen_ai.conversation.id)',
             meta: {valueType: 'number', valueUnit: null, interval: 1_800_000},
           }),
         ],
@@ -30,37 +30,8 @@ describe('ConversationsChart', () => {
     });
   });
 
-  it('fetches the cost timeseries by default', async () => {
+  it('fetches the conversation count timeseries by default', async () => {
     render(<ConversationsChart />, {organization});
-
-    await waitFor(() => {
-      expect(timeseriesRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/events-timeseries/`,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: ['sum(gen_ai.cost.total_tokens)'],
-            query: 'has:gen_ai.conversation.id gen_ai.operation.type:ai_client',
-          }),
-        })
-      );
-    });
-
-    expect(screen.getByRole('button', {name: 'Cost'})).toBeInTheDocument();
-  });
-
-  it('switches the visualization via the title dropdown', async () => {
-    const {router} = render(<ConversationsChart />, {organization});
-
-    await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Individual Chats'}));
-
-    await waitFor(() => {
-      expect(router.location.query.chartVisualization).toBe('chats');
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Individual Chats'})
-    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(timeseriesRequest).toHaveBeenCalledWith(
@@ -73,12 +44,39 @@ describe('ConversationsChart', () => {
         })
       );
     });
+
+    expect(screen.getByRole('button', {name: 'Conversation Count'})).toBeInTheDocument();
+  });
+
+  it('switches the visualization via the title dropdown', async () => {
+    const {router} = render(<ConversationsChart />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Conversation Count'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Cost'}));
+
+    await waitFor(() => {
+      expect(router.location.query.chartVisualization).toBe('cost');
+    });
+
+    expect(await screen.findByRole('button', {name: 'Cost'})).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(timeseriesRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            yAxis: ['sum(gen_ai.cost.total_tokens)'],
+            query: 'has:gen_ai.conversation.id gen_ai.operation.type:ai_client',
+          }),
+        })
+      );
+    });
   });
 
   it('fetches the total messages timeseries', async () => {
     render(<ConversationsChart />, {organization});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Cost'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Conversation Count'}));
     await userEvent.click(screen.getByRole('option', {name: 'Total Messages'}));
 
     await waitFor(() => {
@@ -136,8 +134,7 @@ describe('ConversationsChart', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            query:
-              '(has:gen_ai.conversation.id gen_ai.operation.type:ai_client) and (gen_ai.agent.name:my-agent)',
+            query: '(has:gen_ai.conversation.id) and (gen_ai.agent.name:my-agent)',
           }),
         })
       );
@@ -208,8 +205,8 @@ describe('ConversationsChart', () => {
     const href = alertItem.getAttribute('href') ?? '';
     expect(href).toContain('/monitors/new/settings');
     expect(href).toContain('detectorType=metric_issue');
-    expect(href).toContain('aggregate=sum');
-    expect(href).toContain('gen_ai.cost.total_tokens');
+    expect(href).toContain('aggregate=count_unique');
+    expect(href).toContain('gen_ai.conversation.id');
   });
 
   it('disables "Add to Dashboard" without the dashboards-edit feature', async () => {
@@ -242,8 +239,8 @@ describe('ConversationsChart', () => {
             widgetType: WidgetType.SPANS,
             queries: [
               expect.objectContaining({
-                aggregates: ['sum(gen_ai.cost.total_tokens)'],
-                conditions: 'has:gen_ai.conversation.id gen_ai.operation.type:ai_client',
+                aggregates: ['count_unique(gen_ai.conversation.id)'],
+                conditions: 'has:gen_ai.conversation.id',
               }),
             ],
           }),

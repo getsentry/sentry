@@ -166,7 +166,7 @@ export function AggregateFlamegraphTreeTable({
   }, [frameFilter, rootNodes, treeView]);
 
   const {colorMap} = useMemo(() => {
-    return theme.COLORS.STACK_TO_COLOR(
+    return theme.COLORS.stackToColor(
       flamegraph.frames,
       theme.COLORS.COLOR_MAPS['by symbol name'],
       theme.COLORS.COLOR_BUCKET,

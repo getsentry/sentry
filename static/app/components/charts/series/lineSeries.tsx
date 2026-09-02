@@ -2,7 +2,7 @@ import 'echarts/lib/chart/line';
 
 import type {LineSeriesOption} from 'echarts';
 
-export function LineSeries(props: LineSeriesOption): LineSeriesOption {
+export function lineSeries(props: LineSeriesOption): LineSeriesOption {
   return {
     showSymbol: false,
     // @TODO(jonasbadalic): this used to be defined on the theme, but

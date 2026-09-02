@@ -1,0 +1,108 @@
+---
+title: Chip
+description: A compact chonky-embossed token for search filters and standalone values.
+category: display
+source: '@sentry/scraps/chip'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chip/chip.tsx
+---
+
+import {Chip} from '@sentry/scraps/chip';
+import {Flex} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chip');
+
+The `Chip` renders a compact filter token — `property operator value` — or a
+standalone value. It's presentation only: it holds no filter state, so the
+caller owns the values and any dismiss behavior.
+
+## Composition
+
+`value` is required. Add `property` and `operator` to render a full filter
+token, or pass `value` alone for a standalone token.
+
+- Default (editable filter) — `property` + `operator` + `value`; the value is emphasized in accent.
+- `readonly` — the value reads as secondary and the dismiss affordance is suppressed; use for a non-interactive summary.
+- `value` only — just the value, in primary; use for a standalone token.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip property="browser" operator="is" value="Chrome" />
+    <Chip readonly property="browser" operator="is" value="Chrome" />
+    <Chip value="Chrome" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip property="browser" operator="is" value="Chrome" />
+<Chip readonly property="browser" operator="is" value="Chrome" />
+<Chip value="Chrome" />
+```
+
+## Interactive sections
+
+Compose the primitives when individual sections need to be interactive
+(click-to-edit, remove). Each section renders inert text until you give it an
+`onClick`, at which point it becomes a focusable button. `Chip.Dismiss` is always
+a button and stops its click from bubbling to the chip.
+
+By default (`focus="auto"`) `Chip.Root` manages a roving tabindex: a single tab
+stop enters the chip and <kbd>←</kbd>/<kbd>→</kbd>/<kbd>Home</kbd>/<kbd>End</kbd>
+move between sections. Pass `focus="manual"` when an outer system (e.g. the
+search query builder grid) already owns focus — sections then defer entirely to
+the props you spread onto them.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip.Root size="sm">
+      <Chip.Property onClick={() => {}}>browser</Chip.Property>
+      <Chip.Operator onClick={() => {}}>is</Chip.Operator>
+      <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+      <Chip.Dismiss onClick={() => {}} />
+    </Chip.Root>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip.Root size="sm">
+  <Chip.Property onClick={editKey}>browser</Chip.Property>
+  <Chip.Operator onClick={editOperator}>is</Chip.Operator>
+  <Chip.Value onClick={editValue}>Chrome</Chip.Value>
+  <Chip.Dismiss onClick={remove} />
+</Chip.Root>
+```
+
+## Sizes
+
+Available sizes are `xs`, `sm`, and `md` (default).
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip size="md" property="chip" operator="is" value="md" />
+    <Chip size="sm" property="chip" operator="is" value="sm" />
+    <Chip size="xs" property="chip" operator="is" value="xs" />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip size="md" property="chip" operator="is" value="md" />
+<Chip size="sm" property="chip" operator="is" value="sm" />
+<Chip size="xs" property="chip" operator="is" value="xs" />
+```
+
+## Dismissable
+
+Pass `onDismiss` to render a trailing ✕ button. Omit it for a static chip.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip property="browser" operator="is" value="Chrome" onDismiss={() => {}} />
+    <Chip value="Chrome" onDismiss={() => {}} />
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip property="browser" operator="is" value="Chrome" onDismiss={() => removeFilter()} />
+```

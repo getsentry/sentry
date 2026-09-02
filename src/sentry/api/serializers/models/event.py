@@ -558,7 +558,10 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         frame_data = [frame.get("data") for frame_list in frame_lists for frame in frame_list]
 
         unique_resolution_methods = {
-            frame.get("resolved_with") for frame in frame_data if frame is not None
+            resolved_with
+            for frame in frame_data
+            if frame is not None
+            if (resolved_with := frame.get("resolved_with")) is not None
         }
 
         return list(unique_resolution_methods)

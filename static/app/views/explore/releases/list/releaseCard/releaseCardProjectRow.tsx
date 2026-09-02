@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -38,9 +39,9 @@ import {
   AdoptionStageColumn,
   CrashFreeRateColumn,
   DisplaySmallCol,
+  getReleaseProjectColumns,
   NewIssuesColumn,
   ReleaseProjectColumn,
-  ReleaseProjectsLayout,
 } from '.';
 
 const CRASH_FREE_DANGER_THRESHOLD = 98;
@@ -111,8 +112,13 @@ export function ReleaseCardProjectRow({
       : null;
 
   return (
-    <ProjectRow data-test-id="release-card-project-row">
-      <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+    <PanelItem css={cssTheme => ({padding: `${cssTheme.space.md} ${cssTheme.space.xl}`})}>
+      <Grid
+        columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
+        gap="0 md"
+        align="center"
+        width="100%"
+      >
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
@@ -255,17 +261,10 @@ export function ReleaseCardProjectRow({
             </LinkButton>
           </GuideAnchor>
         </ViewColumn>
-      </ReleaseProjectsLayout>
-    </ProjectRow>
+      </Grid>
+    </PanelItem>
   );
 }
-
-const ProjectRow = styled(PanelItem)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
 
 const StyledPlaceholder = styled(Placeholder)`
   height: 15px;

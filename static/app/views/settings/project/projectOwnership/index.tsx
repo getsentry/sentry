@@ -124,7 +124,9 @@ export default function ProjectOwnership() {
   const ownershipMutationOptions = {
     mutationFn: (data: Partial<z.infer<typeof ownershipSchema>>) =>
       fetchMutation({
-        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
         method: 'PUT',
         data,
       }),
@@ -151,7 +153,6 @@ export default function ProjectOwnership() {
         </Access>
       )}
       <Button
-        type="button"
         size="md"
         icon={<IconEdit />}
         variant="primary"

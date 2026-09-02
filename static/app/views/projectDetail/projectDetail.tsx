@@ -6,7 +6,6 @@ import {Flex, Grid, Stack, Container} from '@sentry/scraps/layout';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -40,7 +39,6 @@ import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
 import {ProjectCharts} from './projectCharts';
 import {ProjectFilters} from './projectFilters';
 import {ProjectIssues} from './projectIssues';
-import {ProjectLatestAlerts} from './projectLatestAlerts';
 import {ProjectLatestReleases} from './projectLatestReleases';
 import {ProjectQuickLinks} from './projectQuickLinks';
 import {ProjectTeamAccess} from './projectTeamAccess';
@@ -274,14 +272,6 @@ export function ProjectDetail() {
               </Layout.Main>
               <Layout.Side>
                 <ProjectTeamAccess organization={organization} project={project} />
-                <Feature features="incidents" organization={organization}>
-                  <ProjectLatestAlerts
-                    organization={organization}
-                    projectSlug={params.projectId}
-                    location={location}
-                    isProjectStabilized={isProjectStabilized}
-                  />
-                </Feature>
                 <ProjectLatestReleases
                   organization={organization}
                   projectSlug={params.projectId}

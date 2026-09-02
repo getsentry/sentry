@@ -30,7 +30,7 @@ export function ScmProjectDetailsCore({
   teamSlug,
 }: ScmProjectDetailsCoreProps) {
   return (
-    <Grid width="100%" columns={{'screen:sm': '1fr', 'screen:md': '1fr 1fr'}} gap="xl">
+    <Grid width="100%" columns={{zero: '1fr', '3xl': '1fr 1fr'}} gap="xl">
       <Stack gap="md">
         <Container>
           <Heading as="h4">{t('Project name')}</Heading>
@@ -71,7 +71,7 @@ export function ScmProjectDetailsCore({
             />
             <Container>
               <Text variant="muted" density="comfortable" size="sm">
-                {t('Set who owns alerts for this project')}
+                {t('This team can access the project and receive alerts')}
               </Text>
             </Container>
           </Stack>

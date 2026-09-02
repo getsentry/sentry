@@ -14,6 +14,7 @@ from sentry.integrations.github.pull_request_status import (
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
     AggregateReviewStatus,
+    FailedCheck,
     PullRequestFileSummary,
     PullRequestStatusRequest,
     PullRequestStatusResult,
@@ -125,6 +126,156 @@ def test_extract_checks(state: str, expected: AggregateChecksStatus | None) -> N
 def test_extract_review(decision: str, expected: AggregateReviewStatus | None) -> None:
     result = extract_pull_request_status_from_response(response(review_decision=decision))
     assert result.review == expected
+
+
+def test_query_reads_individual_check_contexts() -> None:
+    assert "contexts(first: 100)" in PULL_REQUEST_STATUS_FRAGMENT
+
+
+def test_query_reads_check_run_urls() -> None:
+    # detailsUrl points at the external run for a CheckRun; targetUrl for a legacy status.
+    assert "detailsUrl" in PULL_REQUEST_STATUS_FRAGMENT
+    assert "targetUrl" in PULL_REQUEST_STATUS_FRAGMENT
+
+
+def test_extract_failed_checks() -> None:
+    result = extract_pull_request_status_from_response(
+        response(
+            {
+                "state": "FAILURE",
+                "contexts": {
+                    "nodes": [
+                        {
+                            "__typename": "CheckRun",
+                            "name": "build (3.12)",
+                            "conclusion": "FAILURE",
+                            "detailsUrl": "https://github.com/getsentry/sentry/runs/1",
+                        },
+                        {
+                            "__typename": "CheckRun",
+                            "name": "lint",
+                            "conclusion": "SUCCESS",
+                            "detailsUrl": "https://github.com/getsentry/sentry/runs/2",
+                        },
+                        {
+                            "__typename": "CheckRun",
+                            "name": "deploy",
+                            "conclusion": "TIMED_OUT",
+                            "detailsUrl": "https://github.com/getsentry/sentry/runs/3",
+                        },
+                        {
+                            "__typename": "CheckRun",
+                            "name": "setup",
+                            "conclusion": "STARTUP_FAILURE",
+                            "detailsUrl": None,
+                        },
+                        {
+                            "__typename": "CheckRun",
+                            "name": "approval",
+                            "conclusion": "ACTION_REQUIRED",
+                            "detailsUrl": "https://github.com/getsentry/sentry/runs/5",
+                        },
+                        # CANCELLED maps to neither pass nor fail, matching the rollup mapping.
+                        {"__typename": "CheckRun", "name": "optional", "conclusion": "CANCELLED"},
+                        {"__typename": "CheckRun", "name": "running", "conclusion": None},
+                        {
+                            "__typename": "StatusContext",
+                            "context": "ci/legacy",
+                            "state": "FAILURE",
+                            "targetUrl": "https://jenkins.example/legacy",
+                        },
+                        {
+                            "__typename": "StatusContext",
+                            "context": "ci/error",
+                            "state": "ERROR",
+                            "targetUrl": None,
+                        },
+                        {
+                            "__typename": "StatusContext",
+                            "context": "ci/ok",
+                            "state": "SUCCESS",
+                            "targetUrl": "https://jenkins.example/ok",
+                        },
+                    ]
+                },
+            }
+        )
+    )
+
+    assert result.failed_checks == (
+        FailedCheck(name="build (3.12)", url="https://github.com/getsentry/sentry/runs/1"),
+        FailedCheck(name="deploy", url="https://github.com/getsentry/sentry/runs/3"),
+        FailedCheck(name="setup", url=None),
+        FailedCheck(name="approval", url="https://github.com/getsentry/sentry/runs/5"),
+        FailedCheck(name="ci/legacy", url="https://jenkins.example/legacy"),
+        FailedCheck(name="ci/error", url=None),
+    )
+
+
+def test_extract_failed_checks_drops_non_http_urls() -> None:
+    # Check URLs come straight from provider/CI data; a javascript:/data: link must
+    # not survive to be rendered as an anchor href by a consumer.
+    result = extract_pull_request_status_from_response(
+        response(
+            {
+                "state": "FAILURE",
+                "contexts": {
+                    "nodes": [
+                        {
+                            "__typename": "CheckRun",
+                            "name": "xss",
+                            "conclusion": "FAILURE",
+                            "detailsUrl": "javascript:alert(document.cookie)",
+                        },
+                        {
+                            "__typename": "StatusContext",
+                            "context": "legacy-xss",
+                            "state": "FAILURE",
+                            "targetUrl": "data:text/html,<script>alert(1)</script>",
+                        },
+                    ]
+                },
+            }
+        )
+    )
+
+    assert result.failed_checks == (
+        FailedCheck(name="xss", url=None),
+        FailedCheck(name="legacy-xss", url=None),
+    )
+
+
+def test_extract_failed_checks_skips_partial_nodes() -> None:
+    result = extract_pull_request_status_from_response(
+        response(
+            {
+                "state": "FAILURE",
+                "contexts": {
+                    "nodes": [
+                        None,
+                        {"__typename": "CheckRun", "conclusion": "FAILURE"},
+                        {"__typename": "StatusContext", "state": "ERROR"},
+                        {"__typename": "SomethingNew", "name": "mystery"},
+                        {"__typename": "CheckRun", "name": "mypy", "conclusion": "FAILURE"},
+                    ]
+                },
+            }
+        )
+    )
+
+    assert result.failed_checks == (FailedCheck(name="mypy", url=None),)
+
+
+@pytest.mark.parametrize(
+    "contexts",
+    (None, {"nodes": None}, {"nodes": []}),
+    ids=("no_contexts", "no_nodes", "empty_nodes"),
+)
+def test_extract_failed_checks_without_nodes(contexts: dict[str, Any] | None) -> None:
+    result = extract_pull_request_status_from_response(
+        response({"state": "FAILURE", "contexts": contexts})
+    )
+    assert result.failed_checks == ()
 
 
 def test_extract_reads_checks_and_review_from_one_response() -> None:

@@ -22,6 +22,28 @@ describe('SortableHeaderCell', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('renders a link to the sort target when given to', () => {
+    render(<SortableHeaderCell to="/sorted/">Duration</SortableHeaderCell>);
+
+    expect(screen.getByRole('link', {name: 'Duration'})).toHaveAttribute(
+      'href',
+      '/sorted/'
+    );
+  });
+
+  it('calls onSort when the link is clicked', async () => {
+    const onSort = jest.fn();
+    render(
+      <SortableHeaderCell onSort={onSort} to="/sorted/">
+        Duration
+      </SortableHeaderCell>
+    );
+
+    await userEvent.click(screen.getByRole('link', {name: 'Duration'}));
+
+    expect(onSort).toHaveBeenCalledTimes(1);
+  });
+
   it('renders no indicator when the column is not sorted', () => {
     render(<SortableHeaderCell onSort={jest.fn()}>Duration</SortableHeaderCell>);
 

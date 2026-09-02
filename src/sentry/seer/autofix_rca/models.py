@@ -4,9 +4,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-# Keep models in sync with src/seer/automation/features/autofix_rca/models.py in Seer
+from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
 
-FEATURE_ID = "autofix_rca"
+# Keep models in sync with src/seer/automation/features/autofix/models.py in Seer
+
+FEATURE_ID = "autofix"
+# In-flight runs started before the rename still deliver and persist this id.
+LEGACY_FEATURE_ID = "autofix_rca"
 
 
 class AutofixRCATweaks(BaseModel):
@@ -27,4 +31,5 @@ class AutofixRCAPayload(BaseModel):
     short_id: str
     title: str
     culprit: str
+    on_completion_hook: OnCompletionHookDefinition
     tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)

@@ -22,38 +22,45 @@ type RelativeUnitsMapping = Record<
   {
     convertToDaysMultiplier: number;
     label: (num: number) => string;
-    momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
   }
 >;
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
-const STATS_PERIOD_REGEX = /^(\d+)([mhdw])$/;
+const STATS_PERIOD_REGEX = /^(\d+)([smhdw])$/;
+const RELATIVE_PERIOD_REGEX = /^(\d+)([mhdw])$/;
+
+const PERIOD_UNIT_TO_MOMENT_UNIT: Record<
+  PeriodUnit,
+  moment.unitOfTime.DurationConstructor
+> = {
+  s: 'seconds',
+  m: 'minutes',
+  h: 'hours',
+  d: 'days',
+  w: 'weeks',
+};
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   m: {
     label: (num: number) => tn('Last minute', 'Last %s minutes', num),
     searchKey: t('minutes'),
-    momentUnit: 'minutes',
     convertToDaysMultiplier: 1 / (60 * 24),
   },
   h: {
     label: (num: number) => tn('Last hour', 'Last %s hours', num),
     searchKey: t('hours'),
-    momentUnit: 'hours',
     convertToDaysMultiplier: 1 / 24,
   },
   d: {
     label: (num: number) => tn('Last day', 'Last %s days', num),
     searchKey: t('days'),
-    momentUnit: 'days',
     convertToDaysMultiplier: 1,
   },
   w: {
     label: (num: number) => tn('Last week', 'Last %s weeks', num),
     searchKey: t('weeks'),
-    momentUnit: 'weeks',
     convertToDaysMultiplier: 7,
   },
 };
@@ -67,6 +74,19 @@ const parseStatsPeriodString = (statsPeriodString: string) => {
 
   if (result === null) {
     throw new Error('Invalid stats period');
+  }
+
+  const value = parseInt(result[1]!, 10);
+  const unit = result[2] as PeriodUnit;
+
+  return {unit, value};
+};
+
+const parseRelativePeriodString = (relativePeriodString: string) => {
+  const result = RELATIVE_PERIOD_REGEX.exec(relativePeriodString);
+
+  if (result === null) {
+    throw new Error('Invalid relative period');
   }
 
   const value = parseInt(result[1]!, 10);
@@ -95,7 +115,7 @@ export function parseStatsPeriod(
 ): {end: string; start: string} {
   const {value, unit} = parseStatsPeriodString(statsPeriod);
 
-  const momentUnit = SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.momentUnit;
+  const momentUnit = PERIOD_UNIT_TO_MOMENT_UNIT[unit];
 
   const format = outputFormat === null ? undefined : outputFormat;
 
@@ -128,7 +148,7 @@ export function getRelativeSummary(
       return defaultRelativePeriodString;
     }
 
-    const {value, unit} = parseStatsPeriodString(relative);
+    const {value, unit} = parseRelativePeriodString(relative);
 
     return SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label(value);
   } catch {
@@ -314,12 +334,12 @@ export const timeRangeAutoCompleteFilter = function (
  */
 export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
   // If arbitraryPeriod is invalid
-  if (!arbitraryPeriod || !STATS_PERIOD_REGEX.exec(arbitraryPeriod)) {
+  if (!arbitraryPeriod || !RELATIVE_PERIOD_REGEX.exec(arbitraryPeriod)) {
     return {};
   }
 
   // Get the custom period label ("8D" --> "8 Days")
-  const {value, unit} = parseStatsPeriodString(arbitraryPeriod);
+  const {value, unit} = parseRelativePeriodString(arbitraryPeriod);
   return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label(value)};
 }
 
@@ -332,8 +352,10 @@ export function getSortedRelativePeriods(
 ) {
   const entries = Object.entries(relativePeriods);
 
-  const validPeriods = entries.filter(([period]) => !!STATS_PERIOD_REGEX.exec(period));
-  const invalidPeriods = entries.filter(([period]) => !STATS_PERIOD_REGEX.exec(period));
+  const validPeriods = entries.filter(([period]) => !!RELATIVE_PERIOD_REGEX.exec(period));
+  const invalidPeriods = entries.filter(
+    ([period]) => !RELATIVE_PERIOD_REGEX.exec(period)
+  );
 
   const sortedValidPeriods = validPeriods.sort((a, b) => {
     const [periodA] = a;

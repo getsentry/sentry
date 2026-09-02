@@ -1,12 +1,13 @@
 import logging
-from typing import Any, cast
+from dataclasses import dataclass
+from typing import Any, Protocol, cast
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.api.utils import get_date_range_from_params
@@ -16,9 +17,13 @@ from sentry.data_export.writers import OutputMode
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.columns import ColumnDefinitions
+from sentry.search.eap.constants import SUPPORTED_TRACE_ITEM_TYPE_MAP
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
+from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
     EAPResponse,
     FieldsACL,
@@ -28,21 +33,78 @@ from sentry.search.eap.types import (
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
-from sentry.snuba.rpc_dataset_common import TableQuery
+from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.utils.snuba_rpc import export_logs_rpc
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_TRACE_ITEM_DATASETS = {
-    "spans": Spans,
-    "logs": OurLogs,
-}
 
-DEFINITIONS_MAP = {
-    Spans: SPAN_DEFINITIONS,
-    OurLogs: OURLOG_DEFINITIONS,
+def _spans_config(
+    *, use_aggregate_conditions: bool, disable_extrapolation: bool
+) -> SearchResolverConfig:
+    return SearchResolverConfig(
+        auto_fields=True,
+        use_aggregate_conditions=use_aggregate_conditions,
+        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+        disable_aggregate_extrapolation=disable_extrapolation,
+    )
+
+
+def _logs_config(
+    *, use_aggregate_conditions: bool, disable_extrapolation: bool
+) -> SearchResolverConfig:
+    # Logs have never forwarded disable_extrapolation; preserved as-is so extracting these
+    # builders stays behaviour-neutral.
+    return SearchResolverConfig(use_aggregate_conditions=use_aggregate_conditions)
+
+
+def _trace_metrics_config(
+    *, use_aggregate_conditions: bool, disable_extrapolation: bool
+) -> SearchResolverConfig:
+    return TraceMetricsSearchResolverConfig(
+        metric=None,
+        use_aggregate_conditions=use_aggregate_conditions,
+        auto_fields=True,
+        disable_aggregate_extrapolation=disable_extrapolation,
+    )
+
+
+class ConfigBuilder(Protocol):
+    def __call__(
+        self, *, use_aggregate_conditions: bool, disable_extrapolation: bool
+    ) -> SearchResolverConfig: ...
+
+
+@dataclass(frozen=True, kw_only=True)
+class TraceItemExportDataset:
+    scoped_dataset: type[RPCBase]
+    definitions: ColumnDefinitions
+    trace_item_type: SupportedTraceItemType
+    build_config: ConfigBuilder
+
+
+SUPPORTED_TRACE_ITEM_DATASETS = {
+    "spans": TraceItemExportDataset(
+        scoped_dataset=Spans,
+        definitions=SPAN_DEFINITIONS,
+        trace_item_type=SupportedTraceItemType.SPANS,
+        build_config=_spans_config,
+    ),
+    "logs": TraceItemExportDataset(
+        scoped_dataset=OurLogs,
+        definitions=OURLOG_DEFINITIONS,
+        trace_item_type=SupportedTraceItemType.LOGS,
+        build_config=_logs_config,
+    ),
+    "tracemetrics": TraceItemExportDataset(
+        scoped_dataset=TraceMetrics,
+        definitions=TRACE_METRICS_DEFINITIONS,
+        trace_item_type=SupportedTraceItemType.TRACEMETRICS,
+        build_config=_trace_metrics_config,
+    ),
 }
 
 
@@ -74,37 +136,20 @@ class ExploreProcessor:
             self.snuba_params.environments = self.environments
 
         dataset: str = explore_query["dataset"]
-        self.scoped_dataset = SUPPORTED_TRACE_ITEM_DATASETS[dataset]
-        self.trace_item_type = (
-            TraceItemType.TRACE_ITEM_TYPE_SPAN
-            if dataset == "spans"
-            else TraceItemType.TRACE_ITEM_TYPE_LOG
-        )
-        self._supported_trace_item_type = (
-            SupportedTraceItemType.LOGS
-            if self.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
-            else SupportedTraceItemType.SPANS
-        )
+        export_dataset = SUPPORTED_TRACE_ITEM_DATASETS[dataset]
+        self.scoped_dataset = export_dataset.scoped_dataset
+        self._supported_trace_item_type = export_dataset.trace_item_type
+        self.trace_item_type = SUPPORTED_TRACE_ITEM_TYPE_MAP[self._supported_trace_item_type]
 
-        use_aggregate_conditions = explore_query.get("allowAggregateConditions", "1") == "1"
-        disable_extrapolation = explore_query.get("disableAggregateExtrapolation", "0") == "1"
-
-        if self.scoped_dataset == OurLogs:
-            self.config = SearchResolverConfig(
-                use_aggregate_conditions=use_aggregate_conditions,
-            )
-        else:
-            self.config = SearchResolverConfig(
-                auto_fields=True,
-                use_aggregate_conditions=use_aggregate_conditions,
-                fields_acl=FieldsACL(functions={"time_spent_percentage"}),
-                disable_aggregate_extrapolation=disable_extrapolation,
-            )
+        self.config = export_dataset.build_config(
+            use_aggregate_conditions=explore_query.get("allowAggregateConditions", "1") == "1",
+            disable_extrapolation=explore_query.get("disableAggregateExtrapolation", "0") == "1",
+        )
 
         self.search_resolver = SearchResolver(
             params=self.snuba_params,
             config=self.config,
-            definitions=DEFINITIONS_MAP[self.scoped_dataset],
+            definitions=export_dataset.definitions,
         )
 
         equations = explore_query.get("equations", [])

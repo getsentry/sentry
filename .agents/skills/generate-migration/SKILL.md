@@ -85,25 +85,58 @@ For large tables, set `is_post_deployment = True` on the migration as index crea
 
 ### Deleting Columns
 
-1. Make column nullable (`null=True`) if not already
-2. Remove all code references
-3. Replace `RemoveField` with `SafeRemoveField(..., deletion_action=DeletionAction.MOVE_TO_PENDING)`
-4. Deploy, then create second migration with `SafeRemoveField(..., deletion_action=DeletionAction.DELETE)`
+Deleting takes two migrations. Write both up front, but they must be **two separate PRs**, with phase 2 stacked on top off phase 1 so its migration depends on it. Say clearly that **phase 2 can't merge until phase 1 has deployed** — merging them together drops the column while old code is still running.
+
+**Phase 1 — `MOVE_TO_PENDING`**
+
+Run `makemigrations` twice, in this order. Once the field is off the model Django can't generate the `AlterField` anymore, so doing it the other way around means silently shipping without it.
+
+1. With the field **still on the model**, edit it in place: `db_constraint=False` if it's an FK, `null=True` if it's not nullable and has no `db_default`. Run `makemigrations` to get the `AlterField`.
+2. Remove the field and every code reference to it, then `makemigrations` again. Replace the generated `RemoveField` with `SafeRemoveField(..., deletion_action=DeletionAction.MOVE_TO_PENDING)` — this drops the Django state, not the column.
+3. Hand-merge both into one migration. Example:
+
+```python
+operations = [
+    migrations.AlterField(
+        model_name="testmodel",
+        name="project",
+        field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+            db_constraint=False,
+            null=True,
+            on_delete=django.db.models.deletion.CASCADE,
+            to="sentry.project",
+        ),
+    ),
+    SafeRemoveField(
+        model_name="testmodel", name="project", deletion_action=DeletionAction.MOVE_TO_PENDING
+    ),
+]
+```
+
+**Phase 2 — `DELETE`** (second PR, merges after phase 1 deploys)
+
+`makemigrations <app> --empty`, then the same `SafeRemoveField` with `deletion_action=DeletionAction.DELETE`. Nothing else in the PR.
 
 ### Removing a Model (and eventually its table)
 
-Two-phase process — the `historical_silo_assignments` entry must be added in phase 1.
+Dropping a table takes two migrations. Write both up front, but they must be **two separate PRs**, with phase 2 stacked on top off phase 1 so its migration depends on it. Say clearly that **phase 2 can't merge until phase 1 has deployed** — merging them together drops the table while old code is still running.
 
-**Phase 1 — Remove the model class (`MOVE_TO_PENDING`)**
+**First, check for inbound FKs.** If other tables have foreign keys pointing at this one, those columns need their own "Deleting Columns" pass, and both of its phases must be deployed before this model's phase 1 can merge.
 
-1. Remove all code references
-2. Replace `DeleteModel` with `SafeDeleteModel(..., deletion_action=DeletionAction.MOVE_TO_PENDING)`
-3. Add the table to `historical_silo_assignments` in `src/sentry/db/router.py` (or `getsentry/db/router.py` for getsentry models). Pick the silo the model used — usually `SiloMode.CELL`.
-4. Deploy
+**Phase 1 — `MOVE_TO_PENDING`**
 
-**Phase 2 — Drop the table (`DELETE`)**
+Run `makemigrations` twice, in this order. Once the model is gone Django can't generate the `AlterField`s anymore, so doing it the other way around means silently shipping without them.
 
-After phase 1 has deployed, create a second migration with `SafeDeleteModel(..., deletion_action=DeletionAction.DELETE)`. Leave the historical entry in place — the table-drop migration relies on it to resolve the silo.
+1. On each of the model's **outbound** FK fields, add `db_constraint=False` (`null=True` instead for a `HybridCloudForeignKey`), then `makemigrations` for the `AlterField` operations.
+2. Remove the model and all code references, `makemigrations` again, and replace the generated `DeleteModel` with `SafeDeleteModel(..., deletion_action=DeletionAction.MOVE_TO_PENDING)`.
+3. Merge both into one migration, `AlterField`s first.
+4. Add the table to `historical_silo_assignments` in `src/sentry/db/router.py` (or `getsentry/db/router.py`). Pick the silo the model used — usually `SiloMode.CELL`.
+
+Dropping the constraints is not optional. The tables survive until phase 2, but Django no longer knows about them, so it can't cascade into them — a delete on a surviving parent table will fail on the leftover constraint. When removing **several** models at once, also drop the constraints _between_ the pending-deletion tables, so phase 2's `DROP TABLE` order doesn't matter.
+
+**Phase 2 — `DELETE`** (second PR, merges after phase 1 deploys)
+
+`makemigrations <app> --empty`, then the same `SafeDeleteModel` with `deletion_action=DeletionAction.DELETE`. Leave the `historical_silo_assignments` entry in place — the table-drop migration needs it to resolve the silo.
 
 ### Renaming Columns/Tables
 

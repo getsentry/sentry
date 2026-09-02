@@ -78,10 +78,10 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 name="buildNumber",
                 description=(
                     "Current build number. Accepts a plain integer (e.g. 42) or a "
-                    "version string of two to three period-separated integers (e.g. "
-                    "1.2.3), each up to 6 digits — the format used by build "
-                    "identifiers such as Apple's CFBundleVersion. Either this or "
-                    "mainBinaryIdentifier must be provided when buildVersion is set."
+                    "version string of two or more period-separated integers (e.g. "
+                    "1.2.3), each up to 6 digits. Groups beyond the third are "
+                    "dropped. Either this or mainBinaryIdentifier must be provided "
+                    "when buildVersion is set."
                 ),
                 required=False,
                 type={"oneOf": [{"type": "integer"}, {"type": "string"}]},
