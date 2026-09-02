@@ -266,8 +266,8 @@ function makeSlotConsumer<T extends Slot>(options: {
 
     const bridges = state[name]?.contextBridges;
     if (bridges) {
-      content = bridges
-        .toReversed()
+      content = [...bridges]
+        .reverse()
         .reduce(
           (children, bridge) => (
             <bridge.context value={bridge.value}>{children}</bridge.context>
