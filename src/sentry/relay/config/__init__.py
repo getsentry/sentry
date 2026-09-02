@@ -48,7 +48,6 @@ from sentry.utils.tracing import start_span
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
     "organizations:continuous-profiling-perfetto",
-    "organizations:profiling",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
