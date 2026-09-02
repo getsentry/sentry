@@ -90,5 +90,10 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 `;
 
 const StyledTrigger = styled(OverlayTrigger.Button)`
+  --button-lift: 0px;
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
+
+  &:hover {
+    --button-lift: 0px;
+  }
 `;
