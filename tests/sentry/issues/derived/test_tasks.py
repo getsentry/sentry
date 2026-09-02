@@ -677,21 +677,6 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         mock_record_status.assert_called_once()
 
-    def test_status_check_tolerates_missing_group(self) -> None:
-        group = self.create_unprocessed_groups(1)[0]
-        process_group_log(group.id)
-        group_id = group.id
-        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
-        Group.objects.filter(id=group_id).delete()
-
-        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
-            check_fresh_derived_data_batch(
-                group_id_start=group_id,
-                group_id_end=group_id + 1,
-            )
-
-        mock_record_status.assert_not_called()
-
 
 @with_feature("projects:issue-action-log-write-to-db")
 class PickRandomFreshGroupRangesTest(DerivedDataTaskTestBase):

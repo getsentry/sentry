@@ -600,7 +600,6 @@ def check_fresh_derived_data_batch(
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
     from sentry.issues.models.groupderiveddata import GroupDerivedData
-    from sentry.models.group import Group
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
     task_state = current_task()
@@ -626,24 +625,19 @@ def check_fresh_derived_data_batch(
     )
 
     status_check_enabled = options.get("issues.derived.status-consistency-check-enabled")
-    groups_by_id: dict[int, Group] = {}
     project_should_check: dict[int, bool] = {}
-    if status_check_enabled:
-        groups_by_id = {
-            group.id: group
-            for group in Group.objects.filter(id__gte=group_id_start, id__lt=group_id_end)
-        }
-
     derived_rows = GroupDerivedData.objects.filter(
         pipeline_hash=PIPELINE.pipeline_hash,
         group_id__gte=group_id_start,
         group_id__lt=group_id_end,
     ).order_by("group_id")
+    if status_check_enabled:
+        derived_rows = derived_rows.select_related("group")
     start = time.monotonic()
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     for derived in derived_rows.iterator():
         if status_check_enabled:
-            record_batch_status_consistency(derived, groups_by_id, project_should_check)
+            record_batch_status_consistency(derived, derived.group, project_should_check)
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             result = check_derived_data(

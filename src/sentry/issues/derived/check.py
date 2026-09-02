@@ -89,13 +89,10 @@ def record_status_consistency(
 
 def record_batch_status_consistency(
     derived: GroupDerivedData,
-    groups_by_id: dict[int, Group],
+    group: Group,
     project_should_check: dict[int, bool],
 ) -> None:
     """Observe status consistency for one derived row during a batch check."""
-    group = groups_by_id.get(derived.group_id)
-    if group is None:
-        return
     project_id = group.project_id
     if project_id not in project_should_check:
         try:
