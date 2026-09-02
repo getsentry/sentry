@@ -175,10 +175,13 @@ def _do_preprocess_event(
     # event as-is instead of re-running teapot (the `.nv-gpudmp` isn't reloaded)
     # and dropping the enrichment. The feature flag is checked here (project
     # already loaded), not in the task; the load-shed killswitch drops the routing
-    # (event still saves via the normal path) if the pool is overwhelmed.
+    # (event still saves via the normal path) if the pool is overwhelmed. Order
+    # matters: this runs on every event, so the cheap `has_attachments` bool, the
+    # feature flag, and the killswitch gate first and short-circuit before
+    # `is_gpu_crash_event`, which scans the attachment list — that scan only runs
+    # for the handful of feature-enabled orgs, not the full ingest firehose.
     if (
         has_attachments
-        and is_gpu_crash_event(data)
         and features.has("organizations:gpu-crash-symbolication", project.organization)
         and not killswitch_matches_context(
             "store.load-shed-gpu-crash-projects",
@@ -188,6 +191,7 @@ def _do_preprocess_event(
                 "platform": data.get("platform") or "null",
             },
         )
+        and is_gpu_crash_event(data)
     ):
         symbolicate_gpu_crash_event.delay(
             cache_key=cache_key,
