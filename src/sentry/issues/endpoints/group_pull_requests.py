@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from datetime import datetime
 from typing import TypedDict, cast
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q, Subquery
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -28,6 +29,7 @@ from sentry.integrations.source_code_management.pull_request_status_batch import
 from sentry.integrations.source_code_management.status_check import PullRequestStatusResult
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
+from sentry.models.grouphistory import RESOLVED_STATUSES, GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -35,6 +37,18 @@ from sentry.models.repository import Repository
 logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 5
+
+_ISSUE_STATE_HISTORY_STATUSES = (
+    GroupHistoryStatus.ONGOING,
+    *RESOLVED_STATUSES,
+    GroupHistoryStatus.IGNORED,
+    GroupHistoryStatus.UNIGNORED,
+    GroupHistoryStatus.REGRESSED,
+    GroupHistoryStatus.ESCALATING,
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
+    GroupHistoryStatus.ARCHIVED_FOREVER,
+    GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET,
+)
 
 
 class ProviderPullRequestResponse(TypedDict, total=False):
@@ -44,6 +58,7 @@ class ProviderPullRequestResponse(TypedDict, total=False):
 
 
 class GroupPullRequestsResponse(TypedDict):
+    latestRegressionAt: datetime | None
     pullRequests: list[LinkedPullRequestResponse]
 
 
@@ -68,6 +83,36 @@ def _get_valid_group_pull_request_links(group: Group, organization_id: int) -> l
         )
         .filter(Exists(valid_pull_requests))
         .order_by("-datetime")[:DEFAULT_LIMIT]
+    )
+
+
+def _get_latest_regression_at(group: Group) -> datetime | None:
+    previous_status = (
+        GroupHistory.objects.filter(
+            group_id=OuterRef("group_id"),
+            status__in=_ISSUE_STATE_HISTORY_STATUSES,
+        )
+        .filter(
+            Q(date_added__lt=OuterRef("date_added"))
+            | Q(date_added=OuterRef("date_added"), id__lt=OuterRef("id"))
+        )
+        .order_by("-date_added", "-id")
+        .values("status")[:1]
+    )
+
+    return (
+        GroupHistory.objects.filter(
+            group_id=group.id,
+            status__in=(GroupHistoryStatus.REGRESSED, GroupHistoryStatus.ONGOING),
+        )
+        .alias(previous_status=Subquery(previous_status))
+        .filter(
+            Q(status=GroupHistoryStatus.REGRESSED)
+            | Q(status=GroupHistoryStatus.ONGOING, previous_status__in=RESOLVED_STATUSES)
+        )
+        .order_by("-date_added", "-id")
+        .values_list("date_added", flat=True)
+        .first()
     )
 
 
@@ -153,7 +198,9 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
         organization_id = group.project.organization_id
         group_links = _get_valid_group_pull_request_links(group, organization_id)
         if not group_links:
-            return Response({"pullRequests": []})
+            return Response({"latestRegressionAt": None, "pullRequests": []})
+
+        latest_regression_at = _get_latest_regression_at(group)
 
         pull_request_ids = [link.linked_id for link in group_links]
         pull_requests_by_id = PullRequest.objects.filter(
@@ -208,6 +255,9 @@ class GroupPullRequestsEndpoint(GroupEndpoint):
             ),
         )
 
-        response: GroupPullRequestsResponse = {"pullRequests": pull_request_responses}
+        response: GroupPullRequestsResponse = {
+            "latestRegressionAt": latest_regression_at,
+            "pullRequests": pull_request_responses,
+        }
 
         return Response(response)

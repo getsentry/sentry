@@ -1,13 +1,4 @@
-import 'echarts/lib/component/grid';
-import 'echarts/lib/component/graphic';
-import 'echarts/lib/component/toolbox';
-import 'echarts/lib/component/brush';
-import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
-import 'zrender/lib/svg/svg';
-// Canvas backend. Explicit so `renderer: 'canvas'` never silently relies on
-// another module importing the full `echarts` bundle.
-import 'zrender/lib/canvas/canvas';
 
 import {useEffect, useId, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
@@ -29,8 +20,33 @@ import type {
   YAXisComponentOption,
 } from 'echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {AriaComponent} from 'echarts/components';
+import {
+  BarChart,
+  CustomChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  TreemapChart,
+} from 'echarts/charts';
+import {
+  AriaComponent,
+  AxisPointerComponent,
+  BrushComponent,
+  DataZoomInsideComponent,
+  GraphicComponent,
+  GridComponent,
+  LegendComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
+  MarkPointComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from 'echarts/components';
 import * as echarts from 'echarts/core';
+import {LegacyGridContainLabel} from 'echarts/features';
+import {CanvasRenderer, SVGRenderer} from 'echarts/renderers';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
@@ -85,7 +101,34 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
   }
 };
 
-echarts.use(AriaComponent);
+// Keep registrations explicit so importing a small API such as `connect` never
+// pulls in ECharts' all-inclusive, side-effectful entry point. The legacy grid
+// layout preserves the containLabel behavior from the previous full import.
+echarts.use([
+  AriaComponent,
+  AxisPointerComponent,
+  BarChart,
+  BrushComponent,
+  CanvasRenderer,
+  CustomChart,
+  DataZoomInsideComponent,
+  GraphicComponent,
+  GridComponent,
+  HeatmapChart,
+  LegacyGridContainLabel,
+  LegendComponent,
+  LineChart,
+  MarkAreaComponent,
+  MarkLineComponent,
+  MarkPointComponent,
+  PieChart,
+  ScatterChart,
+  SVGRenderer,
+  ToolboxComponent,
+  TooltipComponent,
+  TreemapChart,
+  VisualMapComponent,
+]);
 
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;

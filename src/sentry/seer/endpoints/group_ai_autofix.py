@@ -64,10 +64,12 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
+from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
@@ -616,6 +618,10 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
+                    # Off the fetched row, not is_pr_iteration_paused: polled every second.
+                    "pr_iteration_paused": (
+                        run is not None and get_run_extra(run, PAUSED_EXTRA) is not None
+                    ),
                     "warnings": warnings,
                 }
             }

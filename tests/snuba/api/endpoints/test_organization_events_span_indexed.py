@@ -5904,6 +5904,54 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_semver_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test@3.0.1")
+        release_2 = self.create_release(version="test@3.0.2")
+        release_3 = self.create_release(version="test@3.0.3")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.1",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.2",
+            },
+        ]
+
     def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test1@1.2.1")
         release_2 = self.create_release(version="test2@1.2.1")
@@ -6027,6 +6075,54 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "id": span2["span_id"],
                 "project.name": self.project.slug,
                 "release": "test@1.2.3+122",
+            },
+        ]
+
+    def test_semver_build_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test@3.0.0+501")
+        release_2 = self.create_release(version="test@3.0.0+502")
+        release_3 = self.create_release(version="test@3.0.0+503")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+501",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+503",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+502",
             },
         ]
 

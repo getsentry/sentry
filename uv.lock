@@ -995,6 +995,19 @@ http2 = [
 ]
 
 [[package]]
+name = "httpunk"
+version = "0.2.2"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.2.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:d32eab46351972ae65c0182027cbaef88fe59420b90614bdd6fa0c310de00cdb" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.2.2-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bd2bb32c6508d4fea3f59e299c41e1d58c337c695c4a7e999e4def4def202c67" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.2.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1ed595e8dc0bc9e25c6f9186b3065d0546d4d528ca16bfa0715f71955e4d2a9a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.2.2-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:2d7cbf096dc6cf468760e98c95a7e0b710b02510a0010ca1ae96bbe6ee4b739a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.2.2-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:dc2aa765a98ddf9d700177711d8dee9b2c78606b57915353e12238de61479d51" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/httpunk-0.2.2-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6caa7f2669cd4c14c51075dd2a9d83cee999aeb88c9c9a8f7f0157d25d2d57b7" },
+]
+
+[[package]]
 name = "httpx"
 version = "0.28.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1614,6 +1627,17 @@ wheels = [
 ]
 
 [[package]]
+name = "punkreq"
+version = "0.2.0"
+source = { registry = "https://pypi.devinfra.sentry.io/simple" }
+dependencies = [
+    { name = "httpunk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+]
+wheels = [
+    { url = "https://pypi.devinfra.sentry.io/wheels/punkreq-0.2.0-py3-none-any.whl", hash = "sha256:7826ee6f8238244769c41d2c6fc560128710c8ee180fe4e4c8ee59a96698278f" },
+]
+
+[[package]]
 name = "pyasn1"
 version = "0.6.4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2148,7 +2172,6 @@ dependencies = [
     { name = "grpc-google-iam-v1", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "grpcio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "hiredis", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "httpx", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "iso3166", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "jsonschema", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "lxml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2169,6 +2192,7 @@ dependencies = [
     { name = "protobuf", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "psutil", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "psycopg2-binary", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
+    { name = "punkreq", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pycountry", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pyjwt", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2317,7 +2341,6 @@ requires-dist = [
     { name = "grpc-google-iam-v1", specifier = ">=0.13.1" },
     { name = "grpcio", specifier = ">=1.71.2" },
     { name = "hiredis", specifier = ">=2.3.2" },
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "iso3166", specifier = ">=2.1.1" },
     { name = "jsonschema", specifier = ">=4.20.0" },
     { name = "lxml", specifier = ">=6.1.0" },
@@ -2338,6 +2361,7 @@ requires-dist = [
     { name = "protobuf", specifier = ">=5.29.6" },
     { name = "psutil", specifier = ">=5.9.7" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "punkreq", specifier = ">=0.2.0" },
     { name = "pycountry", specifier = ">=17.5.14" },
     { name = "pydantic", specifier = ">=1.10.26,<2" },
     { name = "pyjwt", specifier = ">=2.13.0" },
@@ -2360,7 +2384,7 @@ requires-dist = [
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.2.0" },
     { name = "sentry-ophio", specifier = ">=1.1.3" },
-    { name = "sentry-options", specifier = ">=1.2.7" },
+    { name = "sentry-options", specifier = ">=1.2.8" },
     { name = "sentry-protos", specifier = ">=0.64.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.28" },
@@ -2531,12 +2555,12 @@ wheels = [
 
 [[package]]
 name = "sentry-options"
-version = "1.2.7"
+version = "1.2.8"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.7-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:ac4ec6449a95d45a1640747f19e93220e5d52179c1fd3ff424b4fe395322f491" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.7-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4d9d45949da55f030a26cb4cb5df814e77bd641a98ef861ce0799b220eebca84" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.7-cp311-abi3-manylinux_2_31_aarch64.whl", hash = "sha256:aca91bbc5d6bae010d648f8166e35ad1c974e0648f6e63124959f537fa06f02f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.8-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:3597fc6144b4bd2601c2d67b27ad0785ef1ddd5e7e56aee4d651c3bc2c6fd451" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.8-cp311-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:74727b70efb5c3f05a7027c47b46a6ee7e25224ae9a4a45142b3228c86d7b44c" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_options-1.2.8-cp311-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:823fe8ff5e8bbd58b7548eea83c5d9c1811537c2985127de86ba8fe3ea35f858" },
 ]
 
 [[package]]

@@ -13,6 +13,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
+import type {IntegrationIssueConfig} from 'sentry/types/integrations';
 
 jest.mock('sentry/actionCreators/indicator');
 import {
@@ -27,7 +28,8 @@ describe('ExternalIssueForm', () => {
   const integration = GitHubIntegrationFixture({externalIssues: []});
   const organization = OrganizationFixture();
 
-  let formConfig!: any;
+  let formConfig!: Pick<IntegrationIssueConfig, 'createIssueConfig' | 'linkIssueConfig'> &
+    Record<string, unknown>;
 
   const closeModal = jest.fn();
   const onChange = jest.fn();
@@ -123,6 +125,86 @@ describe('ExternalIssueForm', () => {
           })
         );
       });
+    });
+
+    it('prefetches repository, assignee, and label options before they are opened', async () => {
+      formConfig = {
+        createIssueConfig: [
+          {
+            label: 'Repository',
+            required: true,
+            type: 'select',
+            name: 'repo',
+            default: 'my-org/my-repo',
+            choices: [['my-org/my-repo', 'my-repo']],
+            url: '/search',
+            prefetch: true,
+            updatesForm: true,
+          },
+          {
+            label: 'Assignee',
+            required: false,
+            type: 'select',
+            name: 'assignee',
+            choices: [],
+            url: '/search',
+            prefetch: true,
+            dependsOn: ['repo'],
+          },
+          {
+            label: 'Labels',
+            required: false,
+            type: 'select',
+            name: 'labels',
+            multiple: true,
+            choices: [],
+            url: '/search',
+            prefetch: true,
+            dependsOn: ['repo'],
+          },
+        ],
+      };
+      const repoRequest = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
+        body: [{value: 'my-org/my-repo', label: 'my-repo'}],
+      });
+      const assigneeRequest = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'assignee',
+            query: '',
+            repo: 'my-org/my-repo',
+          }),
+        ],
+        body: [{value: 'octocat', label: 'octocat'}],
+      });
+      const labelsRequest = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'labels',
+            query: '',
+            repo: 'my-org/my-repo',
+          }),
+        ],
+        body: [{value: 'bug', label: 'bug'}],
+      });
+
+      await renderComponent();
+
+      await waitFor(() => {
+        expect(repoRequest).toHaveBeenCalled();
+        expect(assigneeRequest).toHaveBeenCalled();
+        expect(labelsRequest).toHaveBeenCalled();
+      });
+      expect(repoRequest).toHaveBeenCalledTimes(1);
+      expect(assigneeRequest).toHaveBeenCalledTimes(1);
+      expect(labelsRequest).toHaveBeenCalledTimes(1);
+
+      await userEvent.click(screen.getByRole('textbox', {name: 'Assignee'}));
+      expect(await screen.findByText('octocat')).toBeInTheDocument();
     });
 
     it('should submit the form and close the modal on success', async () => {
