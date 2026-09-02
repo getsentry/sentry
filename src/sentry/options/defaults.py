@@ -4371,6 +4371,14 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# When enabled, check_fresh_derived_data_batch also observes status consistency
+# for projects where derived data should cover full history.
+register(
+    "issues.derived.status-consistency-check-enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Kill switch for Objectstore Debug Files migration
 register(

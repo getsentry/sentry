@@ -1,3 +1,4 @@
+import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -11,7 +12,10 @@ from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group, GroupStatus
+from sentry.utils import metrics
 from sentry.workflow_engine.caches.mapping import CacheMapping
+
+logger = logging.getLogger(__name__)
 
 _GROUP_STATUS_TO_DERIVED_STATUS = {
     GroupStatus.UNRESOLVED: IssueStatus.OPEN,
@@ -40,6 +44,45 @@ def check_status_consistency(group: Group, derived: GroupDerivedData) -> StatusI
         return None
 
     return StatusInconsistency(derived=derived_status, actual=actual_status)
+
+
+def record_status_consistency(
+    group: Group, derived: GroupDerivedData, *, source: str
+) -> StatusInconsistency | None:
+    """Record a metric/log for a status consistency check.
+
+    Returns the inconsistency when one is found, otherwise ``None``.
+    """
+    inconsistency = check_status_consistency(group, derived)
+    if inconsistency is None:
+        metrics.incr(
+            "issues.status_reconciliation.checked",
+            sample_rate=1.0,
+            tags={"result": "aligned", "source": source},
+        )
+        return None
+
+    metrics.incr(
+        "issues.status_reconciliation.checked",
+        sample_rate=1.0,
+        tags={
+            "result": "diverged",
+            "derived_status": inconsistency.derived.value,
+            "actual_status": inconsistency.actual.value,
+            "source": source,
+        },
+    )
+    logger.info(
+        "issues.status_reconciliation.diverged",
+        extra={
+            "group_id": group.id,
+            "project_id": group.project_id,
+            "derived_status": inconsistency.derived.value,
+            "actual_status": inconsistency.actual.value,
+            "source": source,
+        },
+    )
+    return inconsistency
 
 
 @dataclass(frozen=True)
