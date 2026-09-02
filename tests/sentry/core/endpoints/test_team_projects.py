@@ -226,6 +226,26 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             status_code=403,
         )
 
+    def test_integration_token_with_project_read_cannot_create_project(self) -> None:
+        # Integration access simulates membership of every team. The unchanged POST
+        # scope map rejects a read-only token before that membership is consulted.
+        organization = self.create_organization(flags=0)
+        team = self.create_team(organization=organization)
+        internal_integration = self.create_internal_integration(
+            name="read-only", organization=organization, scopes=("project:read",)
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        self.get_error_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=403,
+        )
+
     @with_feature({"organizations:team-roles": False})
     def test_team_admin_can_create_project_when_member_creation_disabled_without_team_roles(
         self,
