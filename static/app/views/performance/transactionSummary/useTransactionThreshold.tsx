@@ -1,15 +1,15 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect} from 'react';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
@@ -29,6 +29,11 @@ export interface TransactionThreshold {
   openThresholdModal: () => void;
 }
 
+interface ThresholdResponse {
+  metric: TransactionThresholdMetric;
+  threshold: number;
+}
+
 /**
  * Loads the response time threshold that applies to a transaction and exposes a
  * modal for editing it. Shared by every entry point that offers the control, so
@@ -40,71 +45,73 @@ export function useTransactionThreshold({
   transactionName,
   onChangeThreshold,
 }: UseTransactionThresholdProps): TransactionThreshold {
-  const api = useApi();
   const {openModal} = useModal();
   const {projects} = useProjects();
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [transactionThreshold, setTransactionThreshold] = useState<number>();
-  const [transactionThresholdMetric, setTransactionThresholdMetric] =
-    useState<TransactionThresholdMetric>();
+  const queryClient = useQueryClient();
 
   const project = useEventViewProject(projects, eventView);
 
+  // A transaction-level override wins when one exists. Most transactions do not
+  // have one, so the 404 is the expected path rather than a failure — never
+  // retry, just fall through to the project default.
+  const overrideOptions = apiOptions.as<ThresholdResponse>()(
+    '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/',
+    {
+      path: project ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query: project ? {project: project.id, transaction: transactionName} : undefined,
+      staleTime: 0,
+    }
+  );
+  const overrideQuery = useQuery({...overrideOptions, retry: false});
+
+  const projectOptions = apiOptions.as<ThresholdResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+    {
+      path: project
+        ? {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}
+        : skipToken,
+      query: project ? {project: project.id} : undefined,
+      staleTime: 0,
+    }
+  );
+  const projectThresholdQuery = useQuery({
+    ...projectOptions,
+    // Gate the fetch rather than the path, so the cache key stays addressable
+    // for invalidation instead of collapsing to the unresolved URL template.
+    enabled: projectOptions.enabled && overrideQuery.isError,
+    retry: false,
+  });
+
+  // Failing to read the project default is a genuine error, unlike the missing
+  // override above.
+  const projectThresholdError = projectThresholdQuery.error;
   useEffect(() => {
-    if (!defined(project)) {
+    if (!projectThresholdError) {
       return;
     }
-    const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
+    const thresholdMessage =
+      projectThresholdError instanceof RequestError
+        ? projectThresholdError.responseJSON?.threshold
+        : undefined;
+    addErrorMessage(
+      typeof thresholdMessage === 'string'
+        ? thresholdMessage
+        : getRequestErrorUserMessage(
+            projectThresholdError,
+            t('Failed to load transaction threshold settings.')
+          )
+    );
+  }, [projectThresholdError]);
 
-    setIsLoading(true);
+  const threshold = overrideQuery.data ?? projectThresholdQuery.data;
 
-    // A transaction-level override is preferred; when there is none the project
-    // default applies, so the 404 is expected rather than an error.
-    api
-      .requestPromise(transactionThresholdUrl, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          project: project.id,
-          transaction: transactionName,
-        },
-      })
-      .then(([data]) => {
-        setIsLoading(false);
-        setTransactionThreshold(data.threshold);
-        setTransactionThresholdMetric(data.metric);
-      })
-      .catch(() => {
-        const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-        api
-          .requestPromise(projectThresholdUrl, {
-            method: 'GET',
-            includeAllArgs: true,
-            query: {
-              project: project.id,
-            },
-          })
-          .then(([data]) => {
-            setIsLoading(false);
-            setTransactionThreshold(data.threshold);
-            setTransactionThresholdMetric(data.metric);
-          })
-          .catch(err => {
-            setIsLoading(false);
-            const thresholdMessage =
-              err instanceof RequestError ? err.responseJSON?.threshold : undefined;
-            const message =
-              typeof thresholdMessage === 'string'
-                ? thresholdMessage
-                : getRequestErrorUserMessage(
-                    err,
-                    t('Failed to load transaction threshold settings.')
-                  );
-            addErrorMessage(message);
-          });
-      });
-  }, [api, project, organization.slug, transactionName]);
+  // Stay loading across the handover to the project default, otherwise the
+  // trigger flickers enabled for a render between the two requests.
+  const isLoading =
+    overrideQuery.isLoading || (overrideQuery.isError && projectThresholdQuery.isPending);
+
+  const overrideUrl = overrideOptions.queryKey[0];
+  const projectThresholdUrl = projectOptions.queryKey[0];
 
   const openThresholdModal = useCallback(() => {
     openModal(
@@ -114,12 +121,14 @@ export function useTransactionThreshold({
           organization={organization}
           transactionName={transactionName}
           eventView={eventView}
-          transactionThreshold={transactionThreshold}
-          transactionThresholdMetric={transactionThresholdMetric}
-          onApply={(threshold, metric) => {
-            setTransactionThreshold(threshold);
-            setTransactionThresholdMetric(metric);
-            onChangeThreshold?.(threshold, metric);
+          transactionThreshold={threshold?.threshold}
+          transactionThresholdMetric={threshold?.metric}
+          onApply={(newThreshold, metric) => {
+            // The modal writes the threshold itself, so refetch rather than
+            // patching the cache by hand.
+            queryClient.invalidateQueries({queryKey: [overrideUrl]});
+            queryClient.invalidateQueries({queryKey: [projectThresholdUrl]});
+            onChangeThreshold?.(newThreshold, metric);
           }}
         />
       ),
@@ -130,8 +139,10 @@ export function useTransactionThreshold({
     organization,
     transactionName,
     eventView,
-    transactionThreshold,
-    transactionThresholdMetric,
+    threshold,
+    queryClient,
+    overrideUrl,
+    projectThresholdUrl,
     onChangeThreshold,
   ]);
 
