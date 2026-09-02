@@ -13,6 +13,7 @@ from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -186,12 +187,15 @@ class BaseRequestParser(ABC):
     def get_response_from_webhookpayload(
         self,
         cells: list[Cell],
-        identifier: int | str | None = None,
+        mailbox: MailboxName | None = None,
         integration_id: int | None = None,
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
+
+        A provider that resolved nothing to key its mailbox on falls back to its
+        own webhook identifier, which puts every one of its payloads in one mailbox.
         """
         shed_response = self.get_shed_response(integration_id=integration_id)
         if shed_response is not None:
@@ -200,14 +204,12 @@ class BaseRequestParser(ABC):
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or self.webhook_identifier.value
+        target = mailbox or MailboxName(self.provider, str(self.webhook_identifier.value))
         # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,
-                cell=cell.name,
-                provider=self.provider,
-                identifier=shard_identifier,
+                mailbox=target.in_cell(cell.name),
                 integration_id=integration_id,
                 request=self.request,
             )
@@ -281,34 +283,37 @@ class BaseRequestParser(ABC):
             return {}
         return body if isinstance(body, dict) else {}
 
-    def get_mailbox_identifier(
+    def get_mailbox(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
+    ) -> MailboxName:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
+
+        The cell is left for the fanout to add -- one mailbox is built for all of
+        them.
         """
-        identifier = self._bucketed_mailbox_identifier(integration, data)
-        event_type = self._mailbox_event_type(data)
-        return f"{identifier}:{event_type}" if event_type else identifier
+        return self._bucketed(
+            MailboxName(
+                provider=self.provider,
+                subject=str(integration.id),
+                event_type=self._mailbox_event_type(data),
+            ),
+            data,
+        )
 
-    def _bucketed_mailbox_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """The mailbox identifier up to the bucket, before any event-type suffix.
-
-        A payload carrying a bucket key is bucketed; one without falls back to the
-        integration-level mailbox."""
+    def _bucketed(self, mailbox: MailboxName, data: dict[str, Any]) -> MailboxName:
+        """`mailbox` in a bucket, or unchanged where the payload carries no key to
+        bucket it on."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
-            return str(integration.id)
+            return mailbox
 
-        bucket_number = mailbox_bucket_id % self.mailbox_bucket_count
         self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
-        return f"{integration.id}:{bucket_number}"
+        return mailbox.in_bucket(mailbox_bucket_id % self.mailbox_bucket_count)
 
     def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
         """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""

@@ -49,7 +49,7 @@ class JiraServerRequestParser(BaseRequestParser):
 
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, data),
+            mailbox=self.get_mailbox(integration, data),
             integration_id=integration.id,
         )
 

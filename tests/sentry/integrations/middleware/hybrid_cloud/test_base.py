@@ -142,7 +142,7 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
 
-    def test_get_mailbox_identifier_buckets_whenever_a_key_exists(self) -> None:
+    def test_get_mailbox_buckets_whenever_a_key_exists(self) -> None:
         class BucketedParser(ExampleRequestParser):
             def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
                 return 177
@@ -152,7 +152,7 @@ class BaseRequestParserTest(TestCase):
         )
         parser = BucketedParser(self.request, self.response_handler)
 
-        assert parser.get_mailbox_identifier(integration, {}) == f"{integration.id}:77"
+        assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}:77"
 
     def test_bucket_key_at_coerces_or_falls_back(self) -> None:
         at = BaseRequestParser.bucket_key_at
@@ -381,7 +381,7 @@ class BaseRequestParserTest(TestCase):
         )
         parser = BucketingRequestParser(self.request, self.response_handler)
 
-        assert parser.get_mailbox_identifier(integration, {}) == str(integration.id)
+        assert str(parser.get_mailbox(integration, {})) == f"test_provider:{integration.id}"
 
         mock_incr.assert_any_call(
             "hybridcloud.webhookpayload.mailbox_routing",
@@ -397,7 +397,8 @@ class BaseRequestParserTest(TestCase):
         parser = BucketingRequestParser(self.request, self.response_handler)
 
         assert (
-            parser.get_mailbox_identifier(integration, {"bucket_id": 101}) == f"{integration.id}:1"
+            str(parser.get_mailbox(integration, {"bucket_id": 101}))
+            == f"test_provider:{integration.id}:1"
         )
 
         mock_incr.assert_any_call(
