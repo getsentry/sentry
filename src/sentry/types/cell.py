@@ -263,7 +263,6 @@ def generate_monolith_cell_directory() -> CellDirectory:
     )
     locality = Locality(
         name=cell.name,
-        category=RegionCategory.MULTI_TENANT,
         cells=frozenset([cell.name]),
         new_org_cell=cell.name,
         visible=cell.visible,
@@ -277,7 +276,6 @@ def _parse_locality_config(
     for config_value in locality_config:
         yield Locality(
             name=config_value["name"],
-            category=RegionCategory(config_value["category"]),
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
