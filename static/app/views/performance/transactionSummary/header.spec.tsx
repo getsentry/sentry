@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -31,8 +31,8 @@ function initializeData(opts?: InitialOpts) {
     features: features ?? [],
   });
 
-  act(() => ProjectsStore.loadInitialData([project]));
-  act(() => TeamStore.loadInitialData(teams, false, null));
+  ProjectsStore.loadInitialData([project]);
+  TeamStore.loadInitialData(teams, false, null);
 
   const router = RouterFixture({
     location: {
@@ -59,12 +59,9 @@ function initializeData(opts?: InitialOpts) {
 
 // The header renders into TopBar slots, so the bar has to be mounted alongside
 // it for the breadcrumbs and title to appear.
-function renderHeader({
-  project,
-  organization,
-  router,
-  eventView,
-}: ReturnType<typeof initializeData>) {
+function renderHeader(data = initializeData()) {
+  const {project, organization, router, eventView} = data;
+
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
@@ -108,13 +105,13 @@ describe('Performance > Transaction Summary Header', () => {
   });
 
   it('should render', async () => {
-    renderHeader(initializeData());
+    renderHeader();
 
     expect(await screen.findByRole('tab', {name: 'Overview'})).toBeInTheDocument();
   });
 
   it('renders the transaction as the page title, below its parent crumb', async () => {
-    renderHeader(initializeData());
+    renderHeader();
 
     expect(
       await screen.findByRole('link', {name: 'Transaction Summary'})
@@ -125,7 +122,7 @@ describe('Performance > Transaction Summary Header', () => {
   });
 
   it('offers the star and threshold actions from the title menu', async () => {
-    renderHeader(initializeData());
+    renderHeader();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Transaction Actions'})
@@ -144,7 +141,7 @@ describe('Performance > Transaction Summary Header', () => {
     // TeamStore is global and already holds teams here, but `hasMore` leaves
     // `loadedUserTeams` false — so the list is not yet known to be complete.
     // Holding the response open pins that state.
-    act(() => TeamStore.loadInitialData(data.teams, true, null));
+    TeamStore.loadInitialData(data.teams, true, null);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-teams/',
       body: data.teams,
