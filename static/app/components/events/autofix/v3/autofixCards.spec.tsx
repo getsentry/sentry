@@ -1555,6 +1555,39 @@ describe('ArtifactCard', () => {
       expect(screen.getByRole('button', {name: 'Re-run step'})).toBeDisabled();
     });
 
+    it('disables reset when PR iteration is paused', async () => {
+      const autofix: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {'org/repo': makePR()},
+          pr_iteration_paused: true,
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: manualPrIterationOrganization}
+      );
+
+      const resetButton = screen.getByRole('button', {name: 'Re-run step'});
+      expect(resetButton).toBeDisabled();
+
+      await userEvent.hover(resetButton);
+      expect(
+        await screen.findByText('PR iteration has been stopped for this Autofix run')
+      ).toBeInTheDocument();
+    });
+
     it('keeps reset enabled with the feature flag even when PRs exist', () => {
       const autofix: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,

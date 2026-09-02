@@ -16,6 +16,7 @@ interface ArtifactCardProps {
   allowReset?: boolean;
   onCopy?: () => void;
   onReset?: () => void;
+  resetTooltip?: string;
 }
 
 export function ArtifactCard({
@@ -25,6 +26,7 @@ export function ArtifactCard({
   onCopy,
   allowReset,
   onReset,
+  resetTooltip,
 }: ArtifactCardProps) {
   return (
     <Container border="primary" radius="md" padding="lg" background="primary">
@@ -38,7 +40,12 @@ export function ArtifactCard({
                   variant="transparent"
                   icon={<IconRefresh size="xs" />}
                   aria-label={t('Re-run step')}
-                  tooltipProps={{title: t('Re-run step')}}
+                  tooltipProps={{
+                    title: resetTooltip ?? t('Re-run step'),
+                    // Disabled buttons swallow pointer events; drop skipWrapper
+                    // so the tooltip can hang off a wrapper instead.
+                    skipWrapper: resetTooltip ? false : undefined,
+                  }}
                   onClick={onReset}
                   disabled={!onReset}
                 />
