@@ -13,7 +13,7 @@ where the warnings are implemented since this API returns the list of missing sc
 
 import logging
 from collections.abc import Mapping
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 from sentry import options
 
@@ -45,6 +45,29 @@ def _quantify_github_app_permissions(
     return {scope: PERMISSION_LEVELS[level] for scope, level in permissions.items()}
 
 
+def _get_missing_github_app_permissions(
+    actual_permissions: Mapping[str, str], required_permissions: Mapping[str, str]
+) -> list[MissingGithubAppPermission]:
+    required = _quantify_github_app_permissions(required_permissions)
+    actual = _quantify_github_app_permissions(actual_permissions)
+
+    missing_permissions: list[MissingGithubAppPermission] = []
+    for scope, required_level in required.items():
+        actual_level = actual.get(scope)
+        if actual_level is None or actual_level < required_level:
+            missing_permissions.append(
+                {
+                    "expected": {"scope": scope, "level": required_level},
+                    "actual": (
+                        {"scope": scope, "level": actual_level}
+                        if actual_level is not None
+                        else None
+                    ),
+                }
+            )
+    return missing_permissions
+
+
 def has_github_app_permissions(
     metadata: Mapping[str, Any], required_permissions: Mapping[str, str]
 ) -> bool:
@@ -53,12 +76,9 @@ def has_github_app_permissions(
         return False
 
     try:
-        required = _quantify_github_app_permissions(required_permissions)
-        actual = _quantify_github_app_permissions(cast(Mapping[str, str], permissions))
+        return not _get_missing_github_app_permissions(permissions, required_permissions)
     except KeyError:
         return False
-
-    return all(actual.get(scope, 0) >= level for scope, level in required.items())
 
 
 def get_missing_github_app_permissions(
@@ -68,12 +88,17 @@ def get_missing_github_app_permissions(
     if not required_permissions:
         return None
 
-    try:
-        expected_permissions = _quantify_github_app_permissions(
-            cast(Mapping[str, str], required_permissions)
+    actual_permissions = metadata.get("permissions")
+    if not isinstance(required_permissions, Mapping) or not isinstance(actual_permissions, Mapping):
+        logger.error(
+            "github_permissions.malformed_permissions",
+            extra={"required": required_permissions, "actual": actual_permissions},
         )
-        actual_permissions = _quantify_github_app_permissions(
-            cast(Mapping[str, str], metadata.get("permissions", {}))
+        return None
+
+    try:
+        missing_permissions = _get_missing_github_app_permissions(
+            actual_permissions, required_permissions
         )
     except KeyError:
         # If either dict has an unknown permission level, don't enforce anything.
@@ -82,23 +107,6 @@ def get_missing_github_app_permissions(
             extra={"required": required_permissions, "actual": metadata.get("permissions")},
         )
         return None
-
-    missing_permissions: list[MissingGithubAppPermission] = []
-
-    for scope, expected_level in expected_permissions.items():
-        actual_level = actual_permissions.get(scope)
-
-        if actual_level is None or actual_level < expected_level:
-            missing_permissions.append(
-                {
-                    "expected": {"scope": scope, "level": expected_level},
-                    "actual": (
-                        {"scope": scope, "level": actual_level}
-                        if actual_level is not None
-                        else None
-                    ),
-                }
-            )
 
     return missing_permissions or None
 

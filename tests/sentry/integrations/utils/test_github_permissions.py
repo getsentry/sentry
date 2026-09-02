@@ -40,6 +40,7 @@ from sentry.testutils.helpers.options import override_options
                 }
             ],
         ),
+        ({"contents": "write"}, None, None),
         (
             {"contents": "admin", "pull_requests": "write", "issues": "read"},
             {"contents": "write", "pull_requests": "write", "issues": "read"},

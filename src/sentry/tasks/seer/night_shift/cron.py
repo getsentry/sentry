@@ -24,6 +24,9 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.github_permissions import has_github_app_permissions
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -31,10 +34,7 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
-from sentry.seer.autofix.github_perms import (
-    GITHUB_PR_WRITE_PERMISSIONS,
-    get_github_integration_ids_with_permissions,
-)
+from sentry.seer.autofix.github_perms import GITHUB_PR_WRITE_PERMISSIONS
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
@@ -711,11 +711,25 @@ def _get_eligible_projects(
         for project_integration_ids in github_integration_ids_by_project.values()
         for integration_id in project_integration_ids
     }
-    writable_github_integration_ids = get_github_integration_ids_with_permissions(
-        organization_id=organization.id,
-        integration_ids=github_integration_ids,
-        required_permissions=GITHUB_PR_WRITE_PERMISSIONS,
+    github_integrations = (
+        integration_service.get_integrations(
+            integration_ids=list(github_integration_ids),
+            organization_id=organization.id,
+            status=ObjectStatus.ACTIVE,
+            org_integration_status=ObjectStatus.ACTIVE,
+            providers=[
+                IntegrationProviderSlug.GITHUB.value,
+                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+            ],
+        )
+        if github_integration_ids
+        else []
     )
+    writable_github_integration_ids = {
+        integration.id
+        for integration in github_integrations
+        if has_github_app_permissions(integration.metadata, GITHUB_PR_WRITE_PERMISSIONS)
+    }
 
     is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
 
