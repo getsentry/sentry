@@ -60,6 +60,7 @@ export type WidgetBuilderSearchBarProps = {
 
 export type SearchBarDataProviderProps = {
   pageFilters: PageFilters;
+  filterKeySearch?: string;
   widgetQuery?: WidgetQuery;
 };
 

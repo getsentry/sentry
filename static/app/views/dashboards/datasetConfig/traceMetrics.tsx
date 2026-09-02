@@ -242,16 +242,28 @@ function useTraceMetricsSearchScope() {
 export {formatTraceMetricsFunction};
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
-  props: Pick<SearchBarDataProviderProps, 'pageFilters'>
+  props: Pick<SearchBarDataProviderProps, 'filterKeySearch' | 'pageFilters'>
 ): SearchBarData {
-  const {pageFilters} = props;
+  const {filterKeySearch, pageFilters} = props;
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'string', HiddenTraceMetricSearchFields);
+    useTraceMetricItemAttributes(
+      {search: filterKeySearch},
+      'string',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'number', HiddenTraceMetricSearchFields);
+    useTraceMetricItemAttributes(
+      {search: filterKeySearch},
+      'number',
+      HiddenTraceMetricSearchFields
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'boolean', HiddenTraceMetricSearchFields);
+    useTraceMetricItemAttributes(
+      {search: filterKeySearch},
+      'boolean',
+      HiddenTraceMetricSearchFields
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

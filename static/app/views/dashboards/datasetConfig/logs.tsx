@@ -157,19 +157,31 @@ function LogsSearchBar({
 }
 
 function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
+    useLogItemAttributes(
+      {enabled: isLogsEnabled(organization), search: filterKeySearch},
+      'string'
+    );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
+    useLogItemAttributes(
+      {enabled: isLogsEnabled(organization), search: filterKeySearch},
+      'number'
+    );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
+    useLogItemAttributes(
+      {enabled: isLogsEnabled(organization), search: filterKeySearch},
+      'boolean'
+    );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useLogItemAttributes(
-      {enabled: isLogsEnabled(organization) && supportsArrays},
+      {
+        enabled: isLogsEnabled(organization) && supportsArrays,
+        search: filterKeySearch,
+      },
       'array'
     );
 

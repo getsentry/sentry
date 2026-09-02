@@ -152,22 +152,31 @@ const INTERNAL_ERROR_COUNT_FIELD =
   'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
+      {
+        enabled: organization.features.includes('visibility-explore-view'),
+        search: filterKeySearch,
+      },
       'string'
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
+      {
+        enabled: organization.features.includes('visibility-explore-view'),
+        search: filterKeySearch,
+      },
       'number'
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
+      {
+        enabled: organization.features.includes('visibility-explore-view'),
+        search: filterKeySearch,
+      },
       'boolean'
     );
 
