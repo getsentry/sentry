@@ -194,20 +194,12 @@ class GithubSearchTest(APITestCase):
     @responses.activate
     def test_prefetches_assignee_results(self) -> None:
         responses.add(
-            responses.POST,
-            self.graphql_url,
-            json={
-                "data": {
-                    "repository": {
-                        "results": {
-                            "nodes": [
-                                {"login": "octocat", "name": "The Octocat"},
-                                {"login": "github-actions[bot]", "name": None},
-                            ]
-                        }
-                    }
-                }
-            },
+            responses.GET,
+            self.base_url + "/repos/test/example/assignees",
+            json=[
+                {"login": "octocat", "name": "The Octocat"},
+                {"login": "github-actions[bot]", "name": None},
+            ],
         )
 
         resp = self.client.get(
@@ -221,9 +213,6 @@ class GithubSearchTest(APITestCase):
             {"value": "octocat", "label": "The Octocat (@octocat)"},
             {"value": "github-actions[bot]", "label": "github-actions[bot]"},
         ]
-        request_body = orjson.loads(responses.calls[0].request.body)
-        assert "\n        name\n" in request_body["query"]
-        assert request_body["variables"]["search"] == ""
 
     @responses.activate
     def test_searches_assignees(self) -> None:
@@ -257,13 +246,9 @@ class GithubSearchTest(APITestCase):
     @responses.activate
     def test_prefetches_label_results(self) -> None:
         responses.add(
-            responses.POST,
-            self.graphql_url,
-            json={
-                "data": {
-                    "repository": {"results": {"nodes": [{"name": "bug"}, {"name": "enhancement"}]}}
-                }
-            },
+            responses.GET,
+            self.base_url + "/repos/test/example/labels",
+            json=[{"name": "bug"}, {"name": "enhancement"}],
         )
 
         resp = self.client.get(
@@ -276,8 +261,6 @@ class GithubSearchTest(APITestCase):
             {"value": "bug", "label": "bug"},
             {"value": "enhancement", "label": "enhancement"},
         ]
-        request_body = orjson.loads(responses.calls[0].request.body)
-        assert request_body["variables"]["search"] == ""
 
     @responses.activate
     def test_searches_labels(self) -> None:
