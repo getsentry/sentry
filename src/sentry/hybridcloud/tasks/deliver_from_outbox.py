@@ -148,12 +148,17 @@ def schedule_outbox_model(
     for shard in deepest_shards:
         if int(shard["depth"]) < DEEP_SHARD_LOG_THRESHOLD:
             break
+        shard_key = {column: shard[column] for column in outbox_model.sharding_columns}
+        category_breakdown = outbox_model.get_shard_category_breakdown(shard_key)
+        top_category = category_breakdown[0]["category"] if category_breakdown else None
         logger.warning(
             "deliver_from_outbox.deep_shard",
             extra={
                 **metrics_tags,
                 **shard,
-                "category": OutboxCategory(int(shard["category"])).name,
+                "category": (
+                    OutboxCategory(top_category).name if top_category is not None else None
+                ),
             },
         )
 

@@ -406,21 +406,18 @@ class OutboxBase(Model):
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:
         """
         Queries all outbox shards for their total depth, aggregated by their
-        sharding columns as specified by the outbox class implementation, and
-        by category.
+        sharding columns as specified by the outbox class implementation.
 
         :param limit: Limits the query to the top N rows with the greatest shard
         depth. If limit is None, the entire set of rows will be returned.
-        :return: A list of dictionaries, containing shard depths, category, and
-        shard relevant column values.
+        :return: A list of dictionaries, containing shard depths and shard
+        relevant column values.
         """
         if limit is not None:
             assert limit > 0, "Limit must be a positive integer if specified"
 
         base_depth_query = (
-            cls.objects.values(*cls.sharding_columns, "category")
-            .annotate(depth=Count("*"))
-            .order_by("-depth")
+            cls.objects.values(*cls.sharding_columns).annotate(depth=Count("*")).order_by("-depth")
         )
 
         if limit is not None:
@@ -434,12 +431,33 @@ class OutboxBase(Model):
             shard_information = {
                 shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
             }
-            shard_information["category"] = shard_row["category"]
             shard_information["depth"] = shard_row["depth"]
             aggregated_shard_information.append(shard_information)
 
         return aggregated_shard_information
 >>>>>>> 1e1810e4 (feat(hybridcloud): Add per-category and silo/type tags to outbox SLO metrics)
+
+    @classmethod
+    def get_shard_category_breakdown(cls, shard_key: Mapping[str, int]) -> list[dict[str, int]]:
+        """
+        For a single shard (identified by its sharding column values), returns
+        depth broken down by category, ordered by depth descending. Intended
+        for enriching logging about a shard already known to be deep -- a
+        shard's sharding columns combined with category is too high
+        cardinality for a metric tag.
+
+        :param shard_key: A mapping of sharding column name to value, as
+        returned by get_shard_depths_descending.
+        :return: A list of dictionaries with "category" and "depth" keys,
+        ordered by depth descending.
+        """
+        rows = (
+            cls.objects.filter(**shard_key)
+            .values("category")
+            .annotate(depth=Count("*"))
+            .order_by("-depth")
+        )
+        return [{"category": row["category"], "depth": row["depth"]} for row in rows]
 
     @classmethod
     def get_category_depths(cls) -> dict[int, int]:
