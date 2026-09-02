@@ -103,22 +103,9 @@ type IterationFeedback = ParsedFeedback & {
   status: FeedbackStatus;
 };
 
-const HTML_TAG = /<\/?([a-zA-Z][a-zA-Z0-9-]*)(?:\s[^<>]*)?\/?>/g;
-
-// `Optional<int>` and `<Flex>` are prose, not markup, but the plain-text pass
-// below would strip them as unknown tags. Escape everything the browser doesn't
-// know as a real element so it survives as text.
-function escapeNonHtmlTags(text: string): string {
-  return text.replace(HTML_TAG, (tag, name: string) =>
-    document.createElement(name) instanceof HTMLUnknownElement
-      ? tag.replace('<', '&lt;')
-      : tag
-  );
-}
-
 // Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
 function toPlainText(text: string): string {
-  return markdownToPlainText(escapeNonHtmlTags(text)).replace(/\s+/g, ' ').trim();
+  return markdownToPlainText(text).replace(/\s+/g, ' ').trim();
 }
 
 function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {

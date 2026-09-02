@@ -1110,39 +1110,6 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText(/eyJ2ZXJzaW9u/)).not.toBeInTheDocument();
     });
 
-    it('keeps angle-bracketed prose that is not real markup', () => {
-      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
-        ...mockAutofix,
-        runState: {
-          run_id: 123,
-          blocks: [],
-          status: 'completed',
-          updated_at: '2026-01-01T00:00:00Z',
-          queued_feedback: [
-            {
-              text: 'Wrap it in <Flex minWidth="0"> and return Optional<int>',
-              source: {type: 'user-ui'},
-            },
-          ],
-        },
-      };
-
-      render(
-        <CodeChangesCard
-          groupId="1"
-          autofix={autofixWithQueued}
-          section={makeSection('code_changes', 'completed', [
-            [makePatch('org/repo', 'src/app.py')],
-          ])}
-        />,
-        {organization: prIterationOrganization}
-      );
-
-      expect(
-        screen.getByText('Wrap it in <Flex minWidth="0"> and return Optional<int>')
-      ).toBeInTheDocument();
-    });
-
     it('collapses a long comment into a disclosure', async () => {
       const longText = `Timeouts abort the upload batch. ${'x'.repeat(400)} End of comment.`;
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
