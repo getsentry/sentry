@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Sequence
 from dataclasses import asdict
 from logging import Logger
 from typing import TYPE_CHECKING, cast
@@ -8,7 +9,10 @@ from typing import TYPE_CHECKING, cast
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluations.workflow import ProcessWorkflowsResult
+from sentry.workflow_engine.processors.evaluations.workflow import (
+    ProcessWorkflowsResult,
+    WorkflowEvaluationArtifact,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -23,14 +27,22 @@ def _is_sampled() -> bool:
     return random.random() < sample_rate
 
 
-def should_log(organization: Organization, result: ProcessWorkflowsResult) -> bool:
+def should_log(
+    organization: Organization,
+    result: ProcessWorkflowsResult | Sequence[WorkflowEvaluationArtifact],
+) -> bool:
     if features.has("organizations:workflow-engine-log-evaluations", organization):
         return True
 
+    workflow_ids = (
+        result.evaluations
+        if isinstance(result, ProcessWorkflowsResult)
+        else {artifact.workflow_id for artifact in result}
+    )
     target_workflow_ids = cast(
         list[int], options.get("workflow_engine.evaluation_log_target_workflow_ids")
     )
-    if any(workflow_id in result.evaluations for workflow_id in target_workflow_ids):
+    if any(workflow_id in workflow_ids for workflow_id in target_workflow_ids):
         return True
     return _is_sampled()
 
@@ -76,7 +88,7 @@ def emit_workflow_evaluation_logs(
     logger: Logger,
     *,
     organization: Organization,
-    result: ProcessWorkflowsResult,
+    result: ProcessWorkflowsResult | Sequence[WorkflowEvaluationArtifact],
     log_prefix: str = WORKFLOW_EVALUATION_LOG_PREFIX,
 ) -> bool:
     """
@@ -87,11 +99,14 @@ def emit_workflow_evaluation_logs(
     if not should_log(organization, result):
         return False
 
-    artifacts = (
-        [asdict(evaluation.to_artifact()) for evaluation in result.evaluations.values()]
-        if result.evaluations
-        else [result.to_artifact()]
-    )
+    if isinstance(result, ProcessWorkflowsResult):
+        artifacts = (
+            [asdict(evaluation.to_artifact()) for evaluation in result.evaluations.values()]
+            if result.evaluations
+            else [result.to_artifact()]
+        )
+    else:
+        artifacts = [asdict(artifact) for artifact in result]
     _emit_evaluation_artifacts(
         logger,
         organization_id=organization.id,

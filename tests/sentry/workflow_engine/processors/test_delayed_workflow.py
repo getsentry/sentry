@@ -56,6 +56,11 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
+from sentry.workflow_engine.processors.evaluations import (
+    EvaluationPhase,
+    EvaluationType,
+    WorkflowEvaluationOutcome,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -724,6 +729,7 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
             self.event_data,
             self.condition_group_results,
             self.dcg_to_slow_conditions,
+            project_id=self.project.id,
         )
 
         # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
@@ -736,6 +742,16 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
                 },  # WHEN DCG passed so we have the passing if dcg here. IF DCG with slow condition did not pass
             }
         )
+        assert len(eval_result.artifacts) == 2
+        artifact = eval_result.artifacts[0]
+        assert artifact.evaluation_type == EvaluationType.WORKFLOW
+        assert artifact.evaluation_phase == EvaluationPhase.DELAYED
+        assert artifact.workflow_id == self.workflow1.id
+        assert artifact.project_id == self.project.id
+        assert artifact.event_id == "test-event-1"
+        assert artifact.group_id == self.group1.id
+        assert artifact.outcome == WorkflowEvaluationOutcome.ACTIONS_TRIGGERED
+        assert len(artifact.filter_evaluations) == 1
 
     def test_missing_query_result_excludes_group(self) -> None:
         existing_query = UniqueConditionQuery(
