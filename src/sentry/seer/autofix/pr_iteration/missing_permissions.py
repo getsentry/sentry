@@ -36,8 +36,14 @@ from typing import Any
 
 from django.utils import timezone
 
+from sentry import analytics
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
+from sentry.constants import ObjectStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
@@ -168,6 +174,34 @@ def get_blocking_permissions(
         ),
     )
     return missing_by_repo
+
+
+def _record_comment_posted(
+    organization_id: int,
+    repo_name: str,
+    integration_id: int,
+    log_ctx: PrIterationLogContext,
+) -> None:
+    repository_id = (
+        Repository.objects.filter(
+            organization_id=organization_id,
+            name=repo_name,
+            status=ObjectStatus.ACTIVE,
+        )
+        .values_list("id", flat=True)
+        .first()
+    )
+    try:
+        analytics.record(
+            AiAutofixPrIterationMissingPermissionsEvent(
+                action="comment_posted",
+                organization_id=organization_id,
+                integration_id=integration_id,
+                repository_id=repository_id,
+            )
+        )
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.missing_permissions.analytics_failed")
 
 
 def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> None:
@@ -304,6 +338,8 @@ def post_missing_permissions_comment(
             missing_scopes=info.missing_scopes,
             pr_id=pr_id,
         )
+
+    _record_comment_posted(organization.id, repo_name, integration_id, log_ctx)
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.commented",

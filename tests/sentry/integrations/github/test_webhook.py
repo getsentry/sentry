@@ -23,6 +23,9 @@ from fixtures.github import (
     push_event_with_commit_authors,
 )
 from sentry import options
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
@@ -57,6 +60,7 @@ from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -426,6 +430,34 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
             "contents": "write",
             "pull_requests": "write",
         }
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_records_permissions_accepted_analytics(self, get_jwt: MagicMock) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={
+                "access_token": "old-token",
+                "expires_at": future_expires.isoformat(),
+                "permissions": {"contents": "read"},
+            },
+        )
+        self._add_refresh_response()
+
+        with assert_analytics_events(
+            [
+                AiAutofixPrIterationMissingPermissionsEvent(
+                    action="permissions_accepted",
+                    organization_id=self.organization.id,
+                    integration_id=integration.id,
+                )
+            ]
+        ):
+            assert self._post() == 204
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
