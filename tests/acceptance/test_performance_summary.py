@@ -65,4 +65,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         with self.feature(FEATURES):
             self.browser.get(self.path)
             self.page.wait_until_loaded()
+            # The threshold action lives in the page title's actions menu.
+            self.browser.click('[aria-label="Transaction Actions"]')
             self.browser.click('[data-test-id="set-transaction-threshold"]')
+            self.browser.wait_until('[role="dialog"]')

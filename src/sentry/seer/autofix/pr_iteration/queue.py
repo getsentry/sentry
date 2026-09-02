@@ -8,9 +8,11 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
-from sentry.utils.redis import redis_clusters
+from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
+
+drain_list = load_redis_script("utils/drain_list.lua")
 
 _QUEUE_TTL_SECONDS = 60 * 60 * 24
 _REDIS_CLUSTER = "default"
@@ -42,19 +44,20 @@ def try_enqueue_autofix_feedback(
     decision = feedback.source.should_queue(run_state)
 
     if decision.ok:
+        item = QueuedAutofixFeedback(
+            organization_id=organization_id,
+            group_id=group_id,
+            feedback=feedback,
+            referrer=referrer,
+            actor_user_id=actor_user_id,
+        )
+
         redis = redis_clusters.get(_REDIS_CLUSTER)
         key = _feedback_queue_key(run_id)
-        redis.rpush(
-            key,
-            QueuedAutofixFeedback(
-                organization_id=organization_id,
-                group_id=group_id,
-                feedback=feedback,
-                referrer=referrer,
-                actor_user_id=actor_user_id,
-            ).json(),
-        )
-        redis.expire(key, _QUEUE_TTL_SECONDS)
+        with redis.pipeline() as pipe:
+            pipe.rpush(key, item.json())
+            pipe.expire(key, _QUEUE_TTL_SECONDS)
+            pipe.execute()
 
     # One log name for both branches, emitted after the push so ``queued`` means
     # the feedback is actually in Redis: ``outcome`` says which way it went and
@@ -102,12 +105,7 @@ def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
 
 
 def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
-    redis = redis_clusters.get(_REDIS_CLUSTER)
-    key = _feedback_queue_key(run_id)
-    items: list[QueuedAutofixFeedback] = []
+    client = redis_clusters.get(_REDIS_CLUSTER)
+    raw_items = drain_list([_feedback_queue_key(run_id)], [], client)
 
-    while raw_item := redis.lpop(key):
-        if (item := _parse_queued_item(raw_item)) is not None:
-            items.append(item)
-
-    return items
+    return [item for item in (_parse_queued_item(raw) for raw in raw_items) if item is not None]

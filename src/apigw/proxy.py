@@ -2,11 +2,12 @@ import asyncio
 import time
 from collections import defaultdict
 from typing import Any, AsyncIterator
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
-import httpx
 import prometheus_client
+import punkreq
 from emmett55 import Pipe, current, response
+from punkreq.asyncio import Client
 
 from . import app
 from .circuitbreaker import (
@@ -29,7 +30,7 @@ RESPONSE_HEADERS_FILTERED = {
 }
 
 
-class RequestyBodyHttpxGlue(httpx._types.AsyncByteStream):
+class RequestBodyGlue(punkreq.AsyncByteStream):
     __slots__ = ["_body"]
 
     def __init__(self, body: Any):
@@ -50,13 +51,15 @@ class ResponseCookieGlue:
         return f"set-cookie: {self._raw}"
 
 
-proxy_client = httpx.AsyncClient(
-    limits=httpx.Limits(
+proxy_client = Client(
+    limits=punkreq.Limits(
         keepalive_expiry=app.config.proxy.client_keepalive_timeout,
         max_connections=app.config.proxy.client_max_connections,
         max_keepalive_connections=app.config.proxy.client_keepalive_max_connections,
     ),
-    timeout=httpx.Timeout(5.0, read=60.0),
+    timeout=punkreq.Timeout(connect=5.0, read=60.0, pool=5.0, total=None),
+    follow_redirects=False,
+    http2=False,
 )
 circuitbreakers = CircuitBreakerManager()
 
@@ -110,7 +113,7 @@ class ProxyTimeoutPipe(Pipe):
 
 def build_proxied_url(target: str, path: str) -> str:
     url = urljoin(target, path)
-    if httpx.URL(target)._uri_reference.netloc != httpx.URL(url)._uri_reference.netloc:
+    if urlsplit(target).netloc != urlsplit(url).netloc:
         abort_with_json(400, {"error": "apigateway", "detail": "Bad request"})
     return url
 
@@ -121,7 +124,7 @@ def build_proxied_headers(
     rv = []
     forwarded_added = False
     client_host = request._scope.client.rsplit(":", 1)[0]
-    server_host = httpx.URL(target)._uri_reference.netloc
+    server_host = urlsplit(target).netloc
     if pass_host:
         server_host = request.host or server_host
     rv.append(("host", server_host))
@@ -147,23 +150,33 @@ def build_proxied_cell_headers(request: Any, target: str) -> list[tuple[str, str
     return rv
 
 
+def _headers_declare_body(headers: list[tuple[str, str]]) -> bool:
+    for key, val in headers:
+        if key == "transfer-encoding":
+            return True
+        if key == "content-length" and val not in ("", "0"):
+            return True
+    return False
+
+
 def build_proxied_request(
-    client: httpx.AsyncClient,
+    client: Client,
     url: str,
     method: str,
     headers: list[tuple[str, str]],
     params: dict[str, Any],
     content: Any,
     timeout: Any,
-) -> httpx.Request:
-    #: manually construct the request to avoid `httpx` headers/content encoding
-    return httpx.Request(
+) -> punkreq.Request:
+    #: manually construct the request to keep headers verbatim
+    stream = RequestBodyGlue(content) if _headers_declare_body(headers) else None
+    return punkreq.Request(
         method,
         url,
         params=params,
         headers=headers,
-        stream=RequestyBodyHttpxGlue(content),
-        extensions={"timeout": (httpx.Timeout(timeout) if timeout else client.timeout).as_dict()},
+        stream=stream,
+        timeout=punkreq.Timeout(client.timeout, total=timeout) if timeout else client.timeout,
     )
 
 
@@ -173,7 +186,7 @@ def get_cell_address(cell: Cell) -> str:
     return cell.address
 
 
-def adapt_response(presp: httpx.Response) -> Any:
+def adapt_response(presp: punkreq.Response) -> Any:
     response.status = presp.status_code
     headers: dict[str, list[str]] = defaultdict(list)
     cookies: list[str] = []
@@ -189,7 +202,7 @@ def adapt_response(presp: httpx.Response) -> Any:
     response.cookies = {
         f"_proxied{idx}": ResponseCookieGlue(val) for idx, val in enumerate(cookies)
     }
-    return response.stream(presp.aiter_raw(CHUNK_SIZE))
+    return response.stream(presp.iter_raw(CHUNK_SIZE))
 
 
 async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = None) -> Any:
@@ -210,25 +223,25 @@ async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = N
                     timeout=timeout,
                 )
                 ProxyLatencyPipe.track(cell.name)
-                resp = await proxy_client.send(req, stream=True, follow_redirects=False)
+                resp = await proxy_client.send(req, follow_redirects=False)
                 if resp.status_code >= 502:
                     circuitbreaker.incr_failures()
                 return await adapt_response(resp)
             except asyncio.CancelledError:
                 metric_abort.labels(route=request.name, target=cell.name).inc()
                 raise
-            except httpx.NetworkError:
+            except punkreq.NetworkError:
                 metric_failed.labels(route=request.name, target=cell.name).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(
                     503, {"error": "apigateway", "detail": "Downstream service unavailable"}
                 )
-            except httpx.TimeoutException:
+            except punkreq.TimeoutException:
                 metric_timeout.labels(route=request.name, target=cell.name).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(504, {"error": "apigateway", "detail": "Downstream timeout"})
-            except httpx.RequestError:
-                app.log.exception("APIGateway(cell) httpx request error")
+            except punkreq.RequestError:
+                app.log.exception("APIGateway(cell) upstream request error")
                 metric_failed.labels(route=request.name, target=cell.name).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(502, {"error": "apigateway", "detail": "Downstream error"})
@@ -255,18 +268,18 @@ async def proxy_control_request(request: Any) -> Any:
             timeout=app.config.proxy.timeout,
         )
         ProxyLatencyPipe.track("control")
-        resp = await proxy_client.send(req, stream=True, follow_redirects=False)
+        resp = await proxy_client.send(req, follow_redirects=False)
         return await adapt_response(resp)
     except asyncio.CancelledError:
         metric_abort.labels(route=request.name, target="control").inc()
         raise
-    except httpx.NetworkError:
+    except punkreq.NetworkError:
         metric_failed.labels(route=request.name, target="control").inc()
         abort_with_json(503, {"error": "apigateway", "detail": "Downstream service unavailable"})
-    except httpx.TimeoutException:
+    except punkreq.TimeoutException:
         metric_timeout.labels(route=request.name, target="control").inc()
         abort_with_json(504, {"error": "apigateway", "detail": "Downstream timeout"})
-    except httpx.RequestError:
-        app.log.exception("APIGateway(control) httpx request error")
+    except punkreq.RequestError:
+        app.log.exception("APIGateway(control) upstream request error")
         metric_failed.labels(route=request.name, target="control").inc()
         abort_with_json(502, {"error": "apigateway", "detail": "Downstream error"})

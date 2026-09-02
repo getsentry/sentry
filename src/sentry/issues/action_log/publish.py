@@ -144,7 +144,7 @@ def publish_action(
         return
 
     use_dedicated_outbox = in_rollout_group(
-        "issues.action_log.dedicated_outbox_rollout_rate", group_id
+        "issues.action_log.dedicated_outbox_rollout_rate", str(group_id)
     )
     outbox_model = GroupActionLogOutbox if use_dedicated_outbox else CellOutbox
     metrics.incr(
