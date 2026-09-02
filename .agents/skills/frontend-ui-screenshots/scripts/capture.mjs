@@ -1,201 +1,19 @@
 #!/usr/bin/env node
 
 /* eslint-disable import/no-nodejs-modules -- This skill helper is a Node.js CLI. */
-import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
+import {parseArgs} from 'node:util';
 
 const requireFromRepo = createRequire(path.join(process.cwd(), 'package.json'));
 
-function usage(message) {
-  if (message) {
-    process.stderr.write(`${message}\n\n`);
-  }
-  process.stderr.write(`Usage:
-  capture.mjs discover [--base-ref origin/master]
-  capture.mjs capture --plan <path> [--cdp-url http://127.0.0.1:9222]
-`);
-  process.exit(message ? 1 : 0);
-}
+// This helper deliberately does not decide what deserves a screenshot. The agent
+// reads the diff and builds a plan; this script only performs repeatable safety
+// validation, browser capture, and before/after composition.
 
-function parseArgs(argv) {
-  const [command, ...rest] = argv;
-  const options = {};
-  for (let index = 0; index < rest.length; index++) {
-    const item = rest[index];
-    if (!item.startsWith('--')) {
-      usage(`Unexpected argument: ${item}`);
-    }
-    const key = item.slice(2);
-    const value = rest[index + 1];
-    if (!value || value.startsWith('--')) {
-      usage(`Missing value for --${key}`);
-    }
-    options[key] = value;
-    index++;
-  }
-  return {command, options};
-}
-
-function git(args) {
-  return execFileSync('git', args, {encoding: 'utf8'}).trim();
-}
-
-const FRONTEND_EXTENSION = /\.(css|js|jsx|scss|ts|tsx)$/;
-const TEST_FILE = /\.spec\./;
-const STOP_WORDS = new Set([
-  'and',
-  'are',
-  'as',
-  'const',
-  'data',
-  'else',
-  'false',
-  'for',
-  'from',
-  'function',
-  'if',
-  'let',
-  'null',
-  'number',
-  'return',
-  'string',
-  'that',
-  'the',
-  'this',
-  'true',
-  'undefined',
-  'with',
-]);
-
-function normalizeToken(token) {
-  let normalized = token.toLowerCase();
-  if (normalized === 'img') {
-    return 'image';
-  }
-  if (normalized.startsWith('padd')) {
-    return 'pad';
-  }
-  if (normalized.endsWith('ies')) {
-    normalized = `${normalized.slice(0, -3)}y`;
-  } else if (normalized.endsWith('s') && normalized.length > 4) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized;
-}
-
-function tokens(value) {
-  return (value.match(/[A-Za-z][A-Za-z0-9]*/g) ?? [])
-    .map(normalizeToken)
-    .filter(token => token.length > 1 && !STOP_WORDS.has(token));
-}
-
-function findDocumentation(file) {
-  const directory = path.dirname(file);
-  if (!fs.existsSync(directory)) {
-    return [];
-  }
-  return fs
-    .readdirSync(directory)
-    .filter(name => name.endsWith('.mdx') || name.endsWith('.stories.tsx'))
-    .map(name => path.join(directory, name));
-}
-
-function scoreMdxSections(documentation, diff) {
-  const diffFrequency = new Map();
-  for (const token of tokens(diff)) {
-    diffFrequency.set(token, (diffFrequency.get(token) ?? 0) + 1);
-  }
-
-  const text = fs.readFileSync(documentation, 'utf8');
-  const headings = [...text.matchAll(/^##\s+(.+)$/gm)];
-  return headings
-    .map((match, index) => {
-      const title = match[1].trim();
-      const body = text.slice(match.index, headings[index + 1]?.index ?? text.length);
-      const titleTokens = new Set(tokens(title));
-      const evidence = [];
-      let score = 0;
-      for (const token of new Set(tokens(`${title} ${body}`))) {
-        const frequency = diffFrequency.get(token) ?? 0;
-        if (!frequency) {
-          continue;
-        }
-        const weight = Math.min(frequency, 10) * (titleTokens.has(token) ? 3 : 1);
-        score += weight;
-        evidence.push({token, frequency, weight});
-      }
-      return {
-        title,
-        score,
-        evidence: evidence.sort((left, right) => right.weight - left.weight).slice(0, 8),
-      };
-    })
-    .sort((left, right) => right.score - left.score);
-}
-
-function classify(documentation) {
-  return documentation.length > 0 ? 'story' : 'product';
-}
-
-function responsiveEvidence(diff) {
-  return [
-    ...new Set(
-      Array.from(
-        diff.matchAll(
-          /@container|container-(?:name|type)|containerName|useContainerQuery|useResizeObserver|breakpoint|mediaQueries|screen:(?:mobile|tablet|desktop|small|medium|large)/gi
-        ),
-        match => match[0]
-      )
-    ),
-  ];
-}
-
-function discover(baseRef) {
-  const baseSha = git(['merge-base', 'HEAD', baseRef]);
-  const changedOutput = git(['diff', '--name-only', baseSha, '--', 'static']);
-  const untrackedOutput = git([
-    'ls-files',
-    '--others',
-    '--exclude-standard',
-    '--',
-    'static',
-  ]);
-  const changedFiles = [...new Set(`${changedOutput}\n${untrackedOutput}`.split('\n'))]
-    .filter(Boolean)
-    .filter(file => FRONTEND_EXTENSION.test(file));
-  const untracked = new Set(untrackedOutput.split('\n').filter(Boolean));
-  const visualFiles = changedFiles.filter(file => !TEST_FILE.test(file));
-  const changes = visualFiles.map(file => {
-    const diff = untracked.has(file)
-      ? fs.readFileSync(file, 'utf8')
-      : git(['diff', '--unified=0', baseSha, '--', file]);
-    const documentation = findDocumentation(file);
-    const mdx = documentation.find(candidate => candidate.endsWith('.mdx'));
-    const sections = mdx ? scoreMdxSections(mdx, diff) : [];
-    const confidence =
-      sections.length === 1 ||
-      (sections[1] &&
-        sections[0].score > 0 &&
-        sections[0].score >= sections[1].score * 1.5)
-        ? 'high'
-        : 'review';
-    return {
-      file,
-      suggestedMode: classify(documentation),
-      documentation,
-      suggestedSection: sections[0]?.title ?? null,
-      confidence,
-      sectionScores: sections,
-      responsiveEvidence: responsiveEvidence(diff),
-    };
-  });
-  process.stdout.write(
-    `${JSON.stringify({baseRef, baseSha, changedFiles, changes}, null, 2)}\n`
-  );
-}
+// Plan validation and customer-data guardrails ---------------------------------
 
 function assertObject(value, description) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -287,6 +105,8 @@ function safeName(value) {
     .replace(/^-|-$/g, '');
 }
 
+// Browser state -----------------------------------------------------------------
+
 async function setTheme(page, theme) {
   const toLight = page.getByRole('button', {name: 'Switch to Light Mode'});
   const toDark = page.getByRole('button', {name: 'Switch to Dark Mode'});
@@ -342,6 +162,8 @@ async function runActions(page, actions, assertLocation) {
   }
 }
 
+// Story captures use the section around an accessible heading. Product captures
+// intentionally keep the viewport so reviewers can see modal/drawer surroundings.
 async function storySectionClip(page, headingName) {
   const heading = page.getByRole('heading', {name: headingName, exact: true});
   await heading.first().waitFor({state: 'visible', timeout: 10000});
@@ -397,7 +219,7 @@ async function resolveTarget(page, target) {
 
 async function validateImages(page, target) {
   const locator = target.locator?.locator('img') ?? page.locator('img');
-  await locator.evaluateAll((images, clip) => {
+  const states = await locator.evaluateAll(async (images, clip) => {
     const selected = clip
       ? images.filter(image => {
           const box = image.getBoundingClientRect();
@@ -409,7 +231,7 @@ async function validateImages(page, target) {
           );
         })
       : images;
-    return Promise.all(
+    await Promise.all(
       selected.map(
         image =>
           image.complete ||
@@ -420,19 +242,6 @@ async function validateImages(page, target) {
           })
       )
     );
-  }, target.clip);
-  const states = await locator.evaluateAll((images, clip) => {
-    const selected = clip
-      ? images.filter(image => {
-          const box = image.getBoundingClientRect();
-          return (
-            box.right >= clip.x &&
-            box.left <= clip.x + clip.width &&
-            box.bottom >= clip.y &&
-            box.top <= clip.y + clip.height
-          );
-        })
-      : images;
     return selected.map(image => ({
       alt: image.alt,
       complete: image.complete,
@@ -447,6 +256,8 @@ async function validateImages(page, target) {
     );
   }
 }
+
+// Output ------------------------------------------------------------------------
 
 async function takeScreenshot(page, target, outputPath) {
   if (target.clip) {
@@ -484,6 +295,8 @@ async function compose(page, beforePath, afterPath, outputPath, theme) {
   });
   await page.locator('#comparison').screenshot({path: outputPath});
 }
+
+// Capture pipeline --------------------------------------------------------------
 
 async function capture(planPath, cdpUrl) {
   const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
@@ -605,14 +418,15 @@ async function capture(planPath, cdpUrl) {
   }
 }
 
-const {command, options} = parseArgs(process.argv.slice(2));
-if (command === 'discover') {
-  discover(options['base-ref'] ?? 'origin/master');
-} else if (command === 'capture') {
-  if (!options.plan) {
-    usage('capture requires --plan');
-  }
-  await capture(options.plan, options['cdp-url'] ?? 'http://127.0.0.1:9222');
-} else {
-  usage(command ? `Unknown command: ${command}` : undefined);
+// Entrypoint --------------------------------------------------------------------
+
+const {values: options} = parseArgs({
+  options: {
+    plan: {type: 'string'},
+    'cdp-url': {type: 'string', default: 'http://127.0.0.1:9222'},
+  },
+});
+if (!options.plan) {
+  throw new Error('Usage: capture.mjs --plan <path> [--cdp-url <localhost URL>]');
 }
+await capture(options.plan, options['cdp-url']);
