@@ -22,7 +22,7 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import options
-from sentry.objectstore import get_attachments_session, get_internal_download_url
+from sentry.objectstore import UsecaseId, get_internal_download_url, get_session
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy
 
@@ -143,7 +143,7 @@ class TeapotClient:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
 
-        session = get_attachments_session(self.project.organization_id, self.project.id)
+        session = get_session(UsecaseId.ATTACHMENTS, self.project)
         body: dict[str, Any] = {
             "event_id": self.event_id,
             "project_id": str(self.project.id),

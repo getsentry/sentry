@@ -106,7 +106,7 @@ def mock_objectstore() -> Iterator[mock.Mock]:
     # teapot presigns each attachment via objectstore.get_internal_download_url.
     get_url = mock.Mock(side_effect=lambda _session, key: f"http://objectstore/{key}?sig=abc")
     with (
-        mock.patch("sentry.lang.native.teapot.get_attachments_session", return_value=mock.Mock()),
+        mock.patch("sentry.lang.native.teapot.get_session", return_value=mock.Mock()),
         mock.patch("sentry.lang.native.teapot.get_internal_download_url", get_url),
     ):
         yield get_url
