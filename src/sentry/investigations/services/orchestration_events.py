@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import APIException
 
@@ -12,6 +13,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationRun,
 )
+from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.utils import json
 
 MAX_ORCHESTRATION_EVENT_BYTES = 1024 * 1024
@@ -65,7 +67,7 @@ def deliver_orchestration_event(
         try:
             run = (
                 InvestigationOrchestrationRun.objects.select_for_update(of=("self",))
-                .select_related("investigation")
+                .select_related("investigation", "seer_run")
                 .get(
                     investigation_id=event["investigation_id"],
                     investigation__organization_id=organization_id,
@@ -76,15 +78,29 @@ def deliver_orchestration_event(
                 {"event": "Investigation run was not found."}
             ) from error
 
-        if run.seer_run_id is not None and run.seer_run_id != event["run_id"]:
+        if run.seer_run is not None and run.seer_run.seer_run_state_id != event["run_id"]:
             raise serializers.ValidationError({"event": "Run ID does not match."})
-        if run.seer_run_id is None:
-            if InvestigationOrchestrationRun.objects.filter(seer_run_id=event["run_id"]).exists():
+        if run.seer_run is None:
+            # Seer can emit its first event before Sentry has committed the run id
+            # its create call returned, so adopt the id from the event. get_or_create
+            # keeps this idempotent with the dispatch path, whichever wins.
+            seer_run, _ = SeerRun.objects.get_or_create(
+                seer_run_state_id=event["run_id"],
+                defaults={
+                    "organization_id": organization_id,
+                    "type": SeerRunType.INVESTIGATION,
+                    "user_id": run.investigation.created_by_id,
+                    "last_triggered_at": timezone.now(),
+                },
+            )
+            if seer_run.organization_id != organization_id:
+                raise serializers.ValidationError({"event": "Run ID does not match."})
+            if InvestigationOrchestrationRun.objects.filter(seer_run=seer_run).exists():
                 raise InvestigationOrchestrationEventConflict("Run ID is already in use.")
-            run.seer_run_id = event["run_id"]
+            run.seer_run = seer_run
             try:
                 with transaction.atomic(using=database):
-                    run.save(update_fields=["seer_run_id", "date_updated"])
+                    run.save(update_fields=["seer_run", "date_updated"])
             except IntegrityError as error:
                 raise InvestigationOrchestrationEventConflict(
                     "Run ID is already in use."

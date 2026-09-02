@@ -36,6 +36,7 @@ from sentry.seer.endpoints.seer_rpc import (
     has_repo_code_mappings,
     refresh_monitoring_provider_token,
 )
+from sentry.seer.models.run import SeerRunType
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
@@ -1168,7 +1169,11 @@ class TestSeerRpcViewerContextAuth(APITestCase):
             "notebookRevision": 0,
         }
         run.refresh_from_db()
-        assert run.seer_run_id == 42
+        # Seer's id lives on the mirror row, adopted from the event.
+        assert run.seer_run is not None
+        assert run.seer_run.seer_run_state_id == 42
+        assert run.seer_run.type == SeerRunType.INVESTIGATION.value
+        assert run.seer_run.organization_id == organization.id
         assert run.last_event_sequence == 0
         stored = InvestigationOrchestrationEvent.objects.get(
             orchestration_run=run,

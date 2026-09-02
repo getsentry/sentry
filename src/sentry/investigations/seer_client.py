@@ -189,7 +189,8 @@ def dispatch_investigation_orchestration_command(
 ) -> InvestigationCommandResponse:
     investigation = command.orchestration_run.investigation
     _validate_viewer_organization(viewer_context, investigation.organization_id)
-    seer_run_id = command.orchestration_run.seer_run_id
+    seer_run = command.orchestration_run.seer_run
+    seer_run_id = seer_run.seer_run_state_id if seer_run is not None else None
     if seer_run_id is None:
         raise SeerApiError("Investigation has no Seer run", 409)
     body: dict[str, Any] = {
@@ -213,11 +214,16 @@ def dispatch_investigation_orchestration_command(
 
 
 def get_investigation_orchestration_run(
-    seer_run_id: int,
+    run: InvestigationOrchestrationRun,
     *,
     viewer_context: SeerViewerContext,
     connection_pool: HTTPConnectionPool | None = None,
 ) -> InvestigationRunResponse:
+    _validate_viewer_organization(viewer_context, run.investigation.organization_id)
+    seer_run = run.seer_run
+    seer_run_id = seer_run.seer_run_state_id if seer_run is not None else None
+    if seer_run_id is None:
+        raise SeerApiError("Investigation has no Seer run", 409)
     response = _get(
         f"/v1/automation/investigations/{seer_run_id}",
         viewer_context=viewer_context,
