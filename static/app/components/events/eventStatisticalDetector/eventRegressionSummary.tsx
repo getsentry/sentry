@@ -1,25 +1,17 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
-
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {
-  DisplayModes,
-  transactionSummaryRouteWithQuery,
-} from 'sentry/views/performance/transactionSummary/utils';
 
 interface EventRegressionSummaryProps {
   event: Event;
@@ -27,11 +19,9 @@ interface EventRegressionSummaryProps {
 }
 
 export function EventRegressionSummary({event, group}: EventRegressionSummaryProps) {
-  const organization = useOrganization();
-
   const data = useMemo(
-    () => getKeyValueListData(organization, group.issueType, event),
-    [organization, event, group.issueType]
+    () => getKeyValueListData(group.issueType, event),
+    [event, group.issueType]
   );
 
   if (!defined(data)) {
@@ -63,7 +53,6 @@ export function keyValueListDataToMarkdownLines(data: KeyValueListData): string[
 }
 
 export function getKeyValueListData(
-  organization: Organization,
   issueType: IssueType,
   event: Event
 ): KeyValueListData | null {
@@ -73,43 +62,6 @@ export function getKeyValueListData(
   }
 
   switch (issueType) {
-    case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
-      const target = transactionSummaryRouteWithQuery({
-        organization,
-        transaction: evidenceData.transaction,
-        query: {},
-        trendFunction: 'p95',
-        projectID: event.projectID,
-        display: DisplayModes.TREND,
-      });
-      return [
-        {
-          key: 'endpoint',
-          subject: t('Endpoint Name'),
-          value: evidenceData.transaction,
-          actionButton: (
-            <LinkButton size="xs" to={target}>
-              {t('View Transaction')}
-            </LinkButton>
-          ),
-        },
-        {
-          key: 'duration change',
-          subject: t('Change in Duration'),
-          value: formatDurationChange(
-            evidenceData.aggregateRange1 / 1e3,
-            evidenceData.aggregateRange2 / 1e3,
-            evidenceData.trendDifference,
-            evidenceData.trendPercentage
-          ),
-        },
-        {
-          key: 'regression date',
-          subject: t('Approx. Start Time'),
-          value: formatBreakpoint(evidenceData.breakpoint),
-        },
-      ];
-    }
     case IssueType.PROFILE_FUNCTION_REGRESSION: {
       return [
         {

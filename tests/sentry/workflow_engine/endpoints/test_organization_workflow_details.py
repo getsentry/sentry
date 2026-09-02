@@ -5,6 +5,7 @@ import responses
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.auth.access import SystemAccess
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -94,7 +95,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         }
         validator = WorkflowValidator(
             data=self.valid_workflow,
-            context={"organization": self.organization, "request": self.make_request()},
+            context={
+                "organization": self.organization,
+                "request": self.make_request(),
+                "access": SystemAccess(),
+            },
         )
         validator.is_valid(raise_exception=True)
         self.workflow = validator.create(validator.validated_data)
@@ -108,6 +113,102 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             {"name": "assigneeId", "value": "3"},
         ]
 
+    def test_team_admin_can_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_success_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Updated Workflow"},
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name == "Updated Workflow"
+
+    def test_team_contributor_cannot_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
+
+    def test_team_admin_cannot_update_detached_workflow(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
+
+    def test_team_admin_cannot_update_workflow_with_mixed_project_access(self) -> None:
+        accessible_detector = self.create_detector(project=self.project)
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(
+            organization=self.organization,
+            teams=[other_team],
+        )
+        inaccessible_detector = self.create_detector(project=other_project)
+        self.create_detector_workflow(workflow=self.workflow, detector=accessible_detector)
+        self.create_detector_workflow(workflow=self.workflow, detector=inaccessible_detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data={**self.valid_workflow, "name": "Unauthorized update"},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.name != "Unauthorized update"
+
     def test_simple(self) -> None:
         self.valid_workflow["name"] = "Updated Workflow"
         response = self.get_success_response(
@@ -117,6 +218,22 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         assert response.status_code == 200
         assert updated_workflow.name == "Updated Workflow"
+
+    def test_update_rejects_non_object_actions(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [None],
+            }
+        ]
+
+        self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
 
     def test_all_projects_workflow_requires_org_write(self) -> None:
         detector = ensure_default_all_projects_detector(self.organization.id)
@@ -357,7 +474,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
 
         validator = WorkflowValidator(
             data=workflow_with_conditions,
-            context={"organization": self.organization, "request": self.make_request()},
+            context={
+                "organization": self.organization,
+                "request": self.make_request(),
+                "access": SystemAccess(),
+            },
         )
         validator.is_valid(raise_exception=True)
         workflow = validator.create(validator.validated_data)
@@ -1382,6 +1503,59 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
+
+    def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.workflow.id)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status == ObjectStatus.PENDING_DELETION
+
+    def test_team_contributor_cannot_delete_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
+
+    def test_team_admin_cannot_delete_detached_workflow(self) -> None:
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(self.organization.slug, self.workflow.id, status_code=403)
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.status != ObjectStatus.PENDING_DELETION
 
     def test_simple(self) -> None:
         with outbox_runner():

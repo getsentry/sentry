@@ -93,7 +93,7 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     row = (
         GroupDerivedData.objects.filter(group_id=candidate.group_id)
         .values_list("id", "generated_at")
-        .first()
+        .get_or_none()
     )
 
     if row is None:

@@ -30,7 +30,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     3. Reduce the messages to find the latest timestamp to process
     4. Fetch all segments are two minutes or older and expire the keys so they
        aren't reprocessed
-    5. Produce segments to buffered-segments topic
+    5. Spawn a process_segment task for each flushed segment
     """
 
     def __init__(

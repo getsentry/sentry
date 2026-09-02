@@ -39,7 +39,7 @@ const mockHandleAddMultipleQueriesToDashboard = jest.mocked(
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'incidents'],
+    features: ['tracemetrics-enabled'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
@@ -296,9 +296,7 @@ describe('useSaveAsMetricItems', () => {
     );
   });
 
-  it('disables the alert option with an upsell tooltip when metric alerts are unavailable', () => {
-    const orgWithoutAlerts = OrganizationFixture({features: ['tracemetrics-enabled']});
-
+  it('enables the alert option when there are aggregates', () => {
     const encodedMetricQuery = encodeMetricQueryParams({
       metric: {name: 'metric.a', type: 'counter'},
       queryParams: new ReadableQueryParams({
@@ -324,17 +322,16 @@ describe('useSaveAsMetricItems', () => {
     );
 
     const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(orgWithoutAlerts),
+      wrapper: createWrapper(),
       initialProps: {interval: '5m'},
     });
 
     const alertItem = result.current.find(item => item.key === 'create-alert') as
-      | {children: unknown[]; disabled: boolean; tooltip: string | undefined}
+      | {children: unknown[]; disabled: boolean}
       | undefined;
 
-    expect(alertItem?.disabled).toBe(true);
-    expect(alertItem?.tooltip).toBe('Monitors are not available on your current plan.');
-    expect(alertItem?.children).toEqual([]);
+    expect(alertItem?.disabled).toBe(false);
+    expect(alertItem?.children).toHaveLength(1);
   });
 
   it('formats alerts submenu labels for equations', () => {

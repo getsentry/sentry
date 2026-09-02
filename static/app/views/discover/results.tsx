@@ -67,8 +67,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {generateQueryWithTag} from 'sentry/utils/queryString';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {generateQueryWithTag, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -1490,29 +1489,23 @@ function DiscoverPageFilters({
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature && (
-                <GuideAnchor target="create_alert_from_discover">
-                  <CreateAlertFromViewButton
-                    eventView={buttonEventView}
-                    organization={organization}
-                    projects={projects}
-                    onClick={() => {
-                      trackAnalytics('discover_v2.create_alert_clicked', {
-                        organization,
-                        status: 'success',
-                      });
-                    }}
-                    referrer="discover"
-                    size="sm"
-                    data-test-id="discover2-create-from-discover"
-                    alertType={alertType}
-                  />
-                </GuideAnchor>
-              )
-            }
-          </Feature>
+          <GuideAnchor target="create_alert_from_discover">
+            <CreateAlertFromViewButton
+              eventView={buttonEventView}
+              organization={organization}
+              projects={projects}
+              onClick={() => {
+                trackAnalytics('discover_v2.create_alert_clicked', {
+                  organization,
+                  status: 'success',
+                });
+              }}
+              referrer="discover"
+              size="sm"
+              data-test-id="discover2-create-from-discover"
+              alertType={alertType}
+            />
+          </GuideAnchor>
         )}
         <DiscoverContextMenu
           organization={organization}

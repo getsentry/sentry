@@ -106,7 +106,7 @@ def test_update_uses_canonical_state_key(service: OnboardingProgressService) -> 
         service, user_id=1, organization_id=2, client_run_id="browser-session"
     )
 
-    updated, changed = service.update(
+    updated, changed, _ = service.update(
         token=token,
         user_id=1,
         organization_id=2,
@@ -121,13 +121,13 @@ def test_update_uses_canonical_state_key(service: OnboardingProgressService) -> 
 
 def test_duplicate_update_is_idempotent(service: OnboardingProgressService) -> None:
     _, token = create_run(service, user_id=1, organization_id=2, client_run_id="browser-session")
-    first, first_changed = service.update(
+    first, first_changed, _ = service.update(
         token=token,
         user_id=1,
         organization_id=2,
         update=ProgressUpdate(stage=Stage.CONNECT_MCP, status=StageStatus.COMPLETED),
     )
-    duplicate, duplicate_changed = service.update(
+    duplicate, duplicate_changed, _ = service.update(
         token=token,
         user_id=1,
         organization_id=2,

@@ -202,7 +202,6 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         >
           <Button
             data-test-id="setup-replays-btn"
-            type="button"
             onClick={() => activateSidebar()}
             variant="primary"
             disabled={disabled}

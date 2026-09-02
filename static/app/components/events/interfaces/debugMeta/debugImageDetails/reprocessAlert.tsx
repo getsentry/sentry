@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 enum ReprocessableEventReason {
   // It can have many reasons. The event is too old to be reprocessed (very unlikely!)
@@ -45,7 +46,10 @@ export function ReprocessAlert({
   const checkEventReprocessable = useCallback(async () => {
     try {
       const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projSlug}/events/${eventId}/reprocessable/`
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/reprocessable/',
+          {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projSlug, eventId}}
+        )
       );
       setReprocessableEvent(response);
     } catch {

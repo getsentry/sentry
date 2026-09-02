@@ -9,11 +9,14 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     GithubCheckSuiteEvent,
 )
+from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
 CAP_EXHAUSTED_PATH = "sentry.seer.autofix.pr_iteration.cap_exhausted"
-FLAG = "organizations:autofix-pr-iteration-cap-assign"
+PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
+FLAG = CAP_ASSIGN_FLAG
 
 RUN_ID = 67890
 REPO_NAME = "owner/repo"
@@ -152,6 +155,25 @@ class AssignUserForExhaustedCapTest(TestCase):
 
         mock_actions.update_issue.assert_not_called()
         mock_actions.create_pull_request_comment.assert_not_called()
+
+    @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
+    def test_skips_paused_run(self, mock_actions: MagicMock, _mock_cap: MagicMock) -> None:
+        pause_pr_iteration(
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
+
+        with self.feature(FLAG), patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
+            assign_user_for_exhausted_cap(_event(), self._resolved())
+
+        mock_actions.get_pull_request.assert_not_called()
+        mock_actions.update_issue.assert_not_called()
+        mock_actions.create_pull_request_comment.assert_not_called()
+        assert self._marker() is None
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.paused.blocked", tags={"gate": "cap_exhausted"}
+        )
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     def test_skips_when_no_seer_run_row(

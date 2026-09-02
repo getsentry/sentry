@@ -1,4 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -28,6 +29,7 @@ export interface RawCounts {
 
 interface UseRawCountsOptions {
   dataset: DiscoverDatasets;
+  datetime?: StatsPeriodRange;
   enabled?: boolean;
   normalModeExtrapolated?: boolean;
   query?: string;
@@ -36,6 +38,7 @@ interface UseRawCountsOptions {
 
 export function useRawCounts({
   dataset,
+  datetime,
   enabled,
   selection,
   query,
@@ -51,7 +54,7 @@ export function useRawCounts({
     dataset,
     project: effectiveSelection.projects,
     environment: effectiveSelection.environments,
-    ...normalizeDateTimeParams(effectiveSelection.datetime),
+    ...(datetime ?? normalizeDateTimeParams(effectiveSelection.datetime)),
     field: [count],
     disableAggregateExtrapolation: '1',
     query,

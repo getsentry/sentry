@@ -6,9 +6,7 @@ import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
   function TrackingWrapper({children}: {children: React.ReactNode}) {
-    return (
-      <TrackingContextProvider value={() => tracking}>{children}</TrackingContextProvider>
-    );
+    return <TrackingContextProvider value={tracking}>{children}</TrackingContextProvider>;
   }
 
   return {tracking, ...render(ui, {additionalWrapper: TrackingWrapper})};

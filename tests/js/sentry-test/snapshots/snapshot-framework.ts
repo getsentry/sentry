@@ -5,7 +5,7 @@ import {Tooltip as mockTooltip} from 'sentry-test/snapshots/mocks/tooltip';
 // eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {lightTheme} from 'sentry/utils/theme/theme';
 
-import {closeBrowser, takeSnapshot} from './snapshot';
+import {closeBrowser, takeSnapshot, type SnapshotInteraction} from './snapshot';
 import type {SnapshotTestMetadata} from './snapshot-image-metadata';
 
 // Tooltip portals to document.body, unavailable under SSR; mock globally.
@@ -19,7 +19,10 @@ type BreakpointName = keyof typeof BREAKPOINT_WIDTHS;
 
 type SnapshotViewport = BreakpointName | number | {width: number; height?: number};
 
-type SnapshotTestInput = SnapshotTestMetadata & {viewport?: SnapshotViewport};
+type SnapshotTestInput = SnapshotTestMetadata & {
+  interaction?: SnapshotInteraction;
+  viewport?: SnapshotViewport;
+};
 
 interface SnapshotDetails {
   displayName: string;
@@ -91,7 +94,7 @@ function snapshotTest(
   renderFn: () => ReactElement,
   metadata: SnapshotTestInput = {}
 ): void {
-  const {viewport: viewportInput, ...restMetadata} = metadata;
+  const {viewport: viewportInput, interaction, ...restMetadata} = metadata;
 
   const resolved = viewportInput ? resolveViewport(viewportInput) : undefined;
 
@@ -122,6 +125,7 @@ function snapshotTest(
       metadata: restMetadata,
       viewport: resolved ? {width: resolved.width, height: resolved.height} : undefined,
       viewportLabel: resolved?.label,
+      interaction,
     });
   });
 }

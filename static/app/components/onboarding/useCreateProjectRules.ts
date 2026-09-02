@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -19,16 +20,21 @@ export function useCreateProjectRules() {
   const organization = useOrganization();
   return useMutation<IssueAlertRule, RequestError, Variables>({
     mutationFn: ({projectSlug, name, conditions, actions, actionMatch, frequency}) => {
-      return api.requestPromise(`/projects/${organization.slug}/${projectSlug}/rules/`, {
-        method: 'POST',
-        data: {
-          name,
-          conditions,
-          actions,
-          actionMatch,
-          frequency,
-        },
-      });
+      return api.requestPromise(
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        }),
+        {
+          method: 'POST',
+          data: {
+            name,
+            conditions,
+            actions,
+            actionMatch,
+            frequency,
+          },
+        }
+      );
     },
   });
 }

@@ -1,6 +1,7 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
@@ -11,26 +12,19 @@ import {
 } from '@sentry/scraps/table';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {getAriaSort} from 'sentry/components/tables/sortableHeaderCell';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
-  Body,
-  Grid,
-  GridBodyCell,
   GridBodyCellStatic,
-  GridHead,
-  GridHeadCell,
   GridHeadCellStatic,
-  GridRow,
-  GridStatus,
   Header,
   HeaderButtonContainer,
   HeaderTitle,
 } from './styles';
-import type {GridColumnOrder, GridColumnSortBy, GridData} from './types';
+import type {GridColumnOrder, GridData} from './types';
 
 export type * from './types';
 
@@ -39,10 +33,8 @@ export {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED};
 type GridEditableProps<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
-  SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
 > = {
   columnOrder: Order[];
-  columnSortBy: SortBy[];
   data: DataRow[];
 
   /**
@@ -62,7 +54,7 @@ type GridEditableProps<
    * in these buttons and updating props to the GridEditable instance.
    */
   headerButtons?: () => React.ReactNode;
-  height?: CSSProperties['height'];
+  height?: CSS['height'];
 
   highlightedRowKey?: number;
 
@@ -87,8 +79,9 @@ type GridEditableProps<
    * based on this 3 main props.
    *
    * - `columnOrder` determines the columns to show, from left to right
-   * - `columnSortBy` tells each header cell which sort state to announce; the
-   *   sort itself is still performed by the parent component
+   * - `grid.getColumnSort` tells each header cell how to offer sorting and
+   *   which direction to announce; the sort itself is still performed by the
+   *   parent component
    */
   title?: ReactNode;
 };
@@ -96,8 +89,7 @@ type GridEditableProps<
 export function GridEditable<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
-  SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
->(props: GridEditableProps<DataRow, Order, SortBy>) {
+>(props: GridEditableProps<DataRow, Order>) {
   const {
     'aria-label': ariaLabel,
     bodyStyle,
@@ -124,9 +116,9 @@ export function GridEditable<
       props.columnOrder.map(column => ({
         key: String(column.key),
         resizable,
-        width: column.width,
+        width: grid.staticColumnWidths?.[String(column.key)] ?? column.width,
       })),
-    [props.columnOrder, resizable]
+    [grid.staticColumnWidths, props.columnOrder, resizable]
   );
 
   const onColumnResize = (columnIndex: number, width: number) => {
@@ -142,7 +134,7 @@ export function GridEditable<
       : [];
 
     return (
-      <GridRow data-test-id="grid-head-row">
+      <DataTable.Row data-test-id="grid-head-row">
         {prependColumns &&
           props.columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
@@ -150,47 +142,53 @@ export function GridEditable<
               {item}
             </GridHeadCellStatic>
           ))}
-        {props.columnOrder.map((column, i) => (
-          <GridHeadCell
-            aria-sort={getAriaSort(
-              props.columnSortBy.find(sort => sort.key === column.key)?.order
-            )}
-            columnIndex={i}
-            data-test-id="grid-head-cell"
-            key={`${i}.${String(column.key)}`}
-            isFirst={i === 0}
-          >
-            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-          </GridHeadCell>
-        ))}
-      </GridRow>
+        {props.columnOrder.map((column, i) => {
+          const columnSort = grid.getColumnSort?.(column, i);
+
+          return (
+            <DataTable.HeadCell
+              align={columnSort?.align}
+              columnIndex={i}
+              data-test-id="grid-head-cell"
+              key={`${i}.${String(column.key)}`}
+              isFirst={i === 0}
+              onSort={columnSort?.onSort}
+              replace={columnSort?.replace}
+              sort={columnSort?.direction}
+              to={columnSort?.to}
+            >
+              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+            </DataTable.HeadCell>
+          );
+        })}
+      </DataTable.Row>
     );
   }
 
   const renderGridBody = () => {
     if (error) {
       return (
-        <GridStatus>
+        <DataTable.Status>
           <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-        </GridStatus>
+        </DataTable.Status>
       );
     }
 
     if (isLoading) {
       return (
-        <GridStatus>
+        <DataTable.Status>
           <LoadingIndicator />
-        </GridStatus>
+        </DataTable.Status>
       );
     }
 
     if (!data || data.length === 0) {
       return (
-        <GridStatus>
+        <DataTable.Status>
           {props.emptyMessage ?? (
             <EmptyState title={t('No results found for your query')} />
           )}
-        </GridStatus>
+        </DataTable.Status>
       );
     }
 
@@ -203,7 +201,7 @@ export function GridEditable<
       : [];
 
     return (
-      <GridRow
+      <DataTable.Row
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
@@ -223,13 +221,13 @@ export function GridEditable<
           </GridBodyCellStatic>
         ))}
         {props.columnOrder.map((col, i) => (
-          <GridBodyCell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
+          <DataTable.Cell data-test-id="grid-body-cell" key={`${String(col.key)}${i}`}>
             {grid.renderBodyCell
               ? grid.renderBodyCell(col, dataRow, row, i)
               : dataRow[col.key as string]}
-          </GridBodyCell>
+          </DataTable.Cell>
         ))}
-      </GridRow>
+      </DataTable.Row>
     );
   };
 
@@ -245,8 +243,8 @@ export function GridEditable<
             )}
           </Header>
         )}
-        <Body style={bodyStyle} showVerticalScrollbar={scrollable}>
-          <Grid
+        <DataTable.Frame style={bodyStyle} showVerticalScrollbar={scrollable}>
+          <DataTable.Grid
             aria-label={ariaLabel}
             columns={columns}
             data-test-id="grid-editable"
@@ -257,10 +255,10 @@ export function GridEditable<
             prependColumnWidths={grid.prependColumnWidths}
             scrollable={scrollable}
           >
-            <GridHead sticky={stickyHeader}>{renderGridHead()}</GridHead>
+            <DataTable.Head sticky={stickyHeader}>{renderGridHead()}</DataTable.Head>
             <Table.Body>{renderGridBody()}</Table.Body>
-          </Grid>
-        </Body>
+          </DataTable.Grid>
+        </DataTable.Frame>
       </Profiler>
     </Fragment>
   );

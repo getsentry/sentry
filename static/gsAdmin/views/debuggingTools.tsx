@@ -11,6 +11,7 @@ import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Group} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 
 import {PageHeader} from 'admin/components/pageHeader';
@@ -39,7 +40,9 @@ function IssueOwnerDebbuging() {
     }
 
     const data = await api.requestPromise(
-      `/organizations/${organizationSlug}/debugging/issue-owners/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/debugging/issue-owners/', {
+        path: {organizationIdOrSlug: organizationSlug},
+      }),
       {
         method: 'GET',
         query: {projectSlug, stacktracePath},
@@ -170,7 +173,9 @@ function IssueEscalatingDebugging() {
 
     const expand = ['forecast'];
     const data: IssueDetailsResponse = await api.requestPromise(
-      `/organizations/${organizationSlug}/issues/${groupId}/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+        path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
+      }),
       {
         method: 'GET',
         query: {expand},

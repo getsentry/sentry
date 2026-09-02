@@ -19,7 +19,7 @@ from sentry.preprod.snapshots.zip_tasks import (
 )
 from sentry.testutils.cases import TestCase
 
-SESSION_TARGET = "sentry.preprod.snapshots.zip_tasks.get_preprod_session"
+SESSION_TARGET = "sentry.preprod.snapshots.zip_tasks.get_session"
 
 
 def _manifest_bytes() -> bytes:

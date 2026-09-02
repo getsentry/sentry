@@ -12,12 +12,6 @@ import {t, tct} from 'sentry/locale';
 import {installSnippetBlock} from './utils';
 
 function getServerConfigSnippet(params: DocsParams) {
-  const logsConfig = params.isLogsSelected
-    ? `
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-    : '';
-
   const performanceConfig = params.isPerformanceSelected
     ? `
   // Define how likely traces are sampled. Adjust this value in production,
@@ -35,18 +29,12 @@ Sentry.init({
     // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
     // userInfo: false,
     // httpBodies: [],
-  },${logsConfig}${performanceConfig}
+  },${performanceConfig}
 });
 `;
 }
 
 function getClientConfigSnippet(params: DocsParams) {
-  const logsConfig = params.isLogsSelected
-    ? `
-  // Enable logs to be sent to Sentry
-  enableLogs: true,`
-    : '';
-
   // Build integrations array based on selected features
   const integrations = [];
   if (params.isPerformanceSelected) {
@@ -89,7 +77,7 @@ Sentry.init({
     // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
     // userInfo: false,
     // httpBodies: [],
-  },${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
+  },${integrationsConfig}${performanceConfig}${replaySampleRates}
 });
 `;
 }

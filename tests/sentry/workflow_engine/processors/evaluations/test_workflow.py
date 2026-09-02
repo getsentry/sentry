@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from unittest import mock
 
 from sentry.testutils.cases import TestCase
@@ -12,6 +13,8 @@ from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluation,
     DataConditionGroupEvaluation,
     DeferredWorkflowEvaluationResult,
+    EvaluationPhase,
+    EvaluationType,
     ProcessWorkflowsResult,
     WorkflowEvaluation,
     WorkflowEvaluationOutcome,
@@ -86,7 +89,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             evaluations=evaluations or {},
             outcome=outcome,
             project_id=self.project.id,
-            group_id=self.event.group.id,
+            group_id=self.group.id,
             event_id=self.event.event_id,
             detector_id=self.detector.id,
             detector_type=self.detector.type,
@@ -97,40 +100,40 @@ class TestWorkflowEvaluationArtifact(TestCase):
             triggered=True, error=ConditionError(msg="evaluation failed")
         )
 
-        assert evaluation.to_artifact() == {
+        assert asdict(evaluation.to_artifact()) == {
             "triggered": True,
             "error": "evaluation failed",
+            "evaluation_type": EvaluationType.WORKFLOW,
+            "evaluation_phase": EvaluationPhase.INITIAL,
             "workflow_id": 10,
             "detector_id": self.detector.id,
             "detector_type": self.detector.type,
             "project_id": self.project.id,
             "event_id": self.event.event_id,
-            "group_id": self.event.group.id,
+            "group_id": self.group.id,
             "outcome": WorkflowEvaluationOutcome.ERROR,
-            "result_type": "actions",
             "triggered_action_ids": [],
             "deferred": None,
-            "trigger_group_evaluation": {
+            "trigger_evaluation": {
                 "triggered": True,
                 "error": "evaluation failed",
-                "logic_type": DataConditionGroup.Type.ANY,
+                "logic_type": DataConditionGroup.Type.ANY.value,
                 "result": True,
                 "condition_evaluations": [],
             },
-            "filter_group_evaluations": [],
+            "filter_evaluations": [],
         }
 
     def test_to_artifact_includes_deferred_conditions(self) -> None:
         evaluation = self._build_evaluation(deferred=True)
 
-        artifact = evaluation.to_artifact()
+        artifact = asdict(evaluation.to_artifact())
 
-        assert artifact["result_type"] == "deferred"
         assert artifact["outcome"] == WorkflowEvaluationOutcome.DEFERRED
         assert artifact["deferred"] == {
-            "delayed_when_group_id": 20,
-            "delayed_if_group_ids": [30],
-            "passing_if_group_ids": [40],
+            "trigger_group_id": 20,
+            "filter_group_ids": [30],
+            "passing_filter_group_ids": [40],
         }
 
     def test_deferred_outcome_takes_precedence_over_error(self) -> None:
@@ -160,6 +163,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
     def test_condition_artifact_excludes_raw_input_data(self) -> None:
         condition = self.create_data_condition()
+        condition.update(comparison={"value": 10, "interval": "1h"})
         evaluation = DataConditionEvaluation(
             condition=condition,
             result=True,
@@ -167,11 +171,12 @@ class TestWorkflowEvaluationArtifact(TestCase):
             data={"email": "user@example.com"},
         )
 
-        artifact = evaluation.to_artifact()
+        artifact = asdict(evaluation.to_artifact())
 
         assert artifact == {
             "triggered": True,
             "error": None,
+            "comparison": '{"interval":"1h","value":10}',
             "condition_id": condition.id,
             "condition_type": condition.type,
             "input_type": "dict",
@@ -189,7 +194,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
             data="production",
         )
 
-        assert evaluation.to_artifact()["input"] == "production"
+        assert evaluation.to_artifact().input == "production"
 
     def test_emitter_always_logs_with_feature_enabled(self) -> None:
         evaluation = self._build_evaluation()
@@ -269,7 +274,10 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
         mock_sentry_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.evaluation",
-            attributes={**evaluation.to_artifact(), "organization_id": self.organization.id},
+            attributes={
+                **asdict(evaluation.to_artifact()),
+                "organization_id": self.organization.id,
+            },
         )
         mock_logger.info.assert_not_called()
 
@@ -312,12 +320,15 @@ class TestWorkflowEvaluationArtifact(TestCase):
         mock_logger.info.assert_called_once_with(
             "workflow_engine.process_workflows.evaluation",
             extra={
+                "evaluation_type": EvaluationType.WORKFLOW,
+                "evaluation_phase": EvaluationPhase.INITIAL,
                 "outcome": WorkflowEvaluationOutcome.NO_WORKFLOWS,
                 "project_id": self.project.id,
-                "group_id": self.event.group.id,
+                "group_id": self.group.id,
                 "event_id": self.event.event_id,
                 "detector_id": self.detector.id,
                 "detector_type": self.detector.type,
+                "error": None,
                 "organization_id": self.organization.id,
             },
         )

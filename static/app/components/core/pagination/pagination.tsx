@@ -5,9 +5,9 @@ import type {Query} from 'history';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconChevron} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
 import {defined} from 'sentry/utils/defined';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -49,6 +49,7 @@ export function Pagination({
   caption,
   disabled = false,
 }: Props) {
+  const {t} = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const defaultCursorHandler = useCallback<CursorHandler>(
@@ -103,34 +104,38 @@ export function Pagination({
   );
 }
 
-/**
- * Returns a formatted pagination caption like "1-25 of 100"
- */
-export function getPaginationCaption({
-  cursor,
-  limit,
-  pageLength,
-  total,
-}: {
+type PaginationCaptionProps = {
   cursor: string | string[] | undefined | null;
   limit: number;
   pageLength: number;
   total: number;
-}): React.ReactNode {
-  if (pageLength === 0) {
-    return '';
-  }
+};
 
-  const currentCursor = parseCursor(cursor);
-  const offset = currentCursor?.offset ?? 0;
-  const start = offset * limit + 1;
-  const end = start + pageLength - 1;
+/**
+ * Returns a function that formats a pagination caption like "1-25 of 100".
+ */
+export function useGetPaginationCaption() {
+  const {tct} = useTranslation();
 
-  return tct('[start]-[end] of [total]', {
-    start: start.toLocaleString(),
-    end: end.toLocaleString(),
-    total: total.toLocaleString(),
-  });
+  return useCallback(
+    ({cursor, limit, pageLength, total}: PaginationCaptionProps): React.ReactNode => {
+      if (pageLength === 0) {
+        return '';
+      }
+
+      const currentCursor = parseCursor(cursor);
+      const offset = currentCursor?.offset ?? 0;
+      const start = offset * limit + 1;
+      const end = start + pageLength - 1;
+
+      return tct('[start]-[end] of [total]', {
+        start: start.toLocaleString(),
+        end: end.toLocaleString(),
+        total: total.toLocaleString(),
+      });
+    },
+    [tct]
+  );
 }
 
 const PaginationCaption = styled('span')`

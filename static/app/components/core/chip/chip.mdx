@@ -41,6 +41,39 @@ token, or pass `value` alone for a standalone token.
 <Chip value="Chrome" />
 ```
 
+## Interactive sections
+
+Compose the primitives when individual sections need to be interactive
+(click-to-edit, remove). Each section renders inert text until you give it an
+`onClick`, at which point it becomes a focusable button. `Chip.Dismiss` is always
+a button and stops its click from bubbling to the chip.
+
+By default (`focus="auto"`) `Chip.Root` manages a roving tabindex: a single tab
+stop enters the chip and <kbd>←</kbd>/<kbd>→</kbd>/<kbd>Home</kbd>/<kbd>End</kbd>
+move between sections. Pass `focus="manual"` when an outer system (e.g. the
+search query builder grid) already owns focus — sections then defer entirely to
+the props you spread onto them.
+
+<Storybook.Demo>
+  <Flex gap="md" align="center" wrap="wrap">
+    <Chip.Root size="sm">
+      <Chip.Property onClick={() => {}}>browser</Chip.Property>
+      <Chip.Operator onClick={() => {}}>is</Chip.Operator>
+      <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
+      <Chip.Dismiss onClick={() => {}} />
+    </Chip.Root>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Chip.Root size="sm">
+  <Chip.Property onClick={editKey}>browser</Chip.Property>
+  <Chip.Operator onClick={editOperator}>is</Chip.Operator>
+  <Chip.Value onClick={editValue}>Chrome</Chip.Value>
+  <Chip.Dismiss onClick={remove} />
+</Chip.Root>
+```
+
 ## Sizes
 
 Available sizes are `xs`, `sm`, and `md` (default).

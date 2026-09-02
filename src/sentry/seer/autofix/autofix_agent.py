@@ -36,7 +36,11 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import (
+    ITERATION_FLAG,
+    MANUAL_FLAG,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
@@ -506,7 +510,9 @@ def trigger_autofix_agent(
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
+    iteration_id: int | None = None,
     allow_free_cohort: bool = False,
+    skip_quota: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -518,20 +524,31 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by night shift to bypass
             quota for free cohort orgs. Not exposed via the API.
+        skip_quota: Bypass SEER_AUTOFIX quota checks and usage recording for a
+            new run.
     """
     # check billing quota for triggering a new autofix run
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
-        skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
-        if not skip_quota:
+        skip_quota_check = skip_quota or (
+            allow_free_cohort and is_free_cohort_org(group.organization)
+        )
+        if not skip_quota_check:
             has_budget: bool = quotas.backend.check_seer_quota(
                 org_id=group.organization.id,
                 data_category=DataCategory.SEER_AUTOFIX,
             )
             if not has_budget:
                 raise NoSeerQuotaException()
+
+    # If autofix-should-run-repo-checks is enabled,
+    # we should force bash tools on as it is dependent on bash tools
+    enable_bash_tools = enable_bash_tools or (
+        referrer == AutofixReferrer.NIGHT_SHIFT
+        and features.has("organizations:autofix-should-run-repo-checks", group.organization)
+    )
 
     use_seer_rca_feature = features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
@@ -546,6 +563,8 @@ def trigger_autofix_agent(
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
+            user=user,
+            enable_bash_tools=enable_bash_tools,
         )
         feature_run_id = feature_run.seer_run_state_id
         if feature_run_id is None:
@@ -576,9 +595,9 @@ def trigger_autofix_agent(
     # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
     # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
     # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(
-        "organizations:autofix-pr-iteration", group.organization
-    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
+    pr_iteration_enabled = features.has(ITERATION_FLAG, group.organization) or features.has(
+        MANUAL_FLAG, group.organization
+    )
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -611,9 +630,7 @@ def trigger_autofix_agent(
         group,
         user_context,
         run_state=run_state,
-        should_run_repo_checks=features.has(
-            "organizations:autofix-should-run-repo-checks", group.organization
-        ),
+        should_run_repo_checks=enable_bash_tools,
     )
     prompt_metadata = {
         "step": step.value,
@@ -631,6 +648,9 @@ def trigger_autofix_agent(
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
+
+    if iteration_id is not None:
+        prompt_metadata["iteration_id"] = str(iteration_id)
 
     if step == AutofixStep.ROOT_CAUSE:
         base_shas = _build_base_shas_metadata(group, referrer)
@@ -658,10 +678,11 @@ def trigger_autofix_agent(
         )
         run_id = run.seer_run_state_id
 
-        # Make sure to log billing event for seer autofix whenever a new run is started
-        quotas.backend.record_seer_run(
-            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-        )
+        if not skip_quota:
+            # Make sure to log billing event for seer autofix whenever a new run is started
+            quotas.backend.record_seer_run(
+                group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+            )
     else:
         run = client.continue_run(
             run_id=run_id,
@@ -689,10 +710,6 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
     """
     Get the current state of an agent-based autofix run for a group.
 
-    Args:
-        organization: The organization
-        group_id: The group ID to get state for
-
     Returns:
         SeerRunState if a run exists, None otherwise
     """
@@ -702,13 +719,7 @@ def get_autofix_agent_state(organization: Organization, group_id: int) -> SeerRu
         category_key="autofix",
         category_value=str(group_id),
     )
-
-    runs = client.get_runs(category_key="autofix", category_value=str(group_id))
-    if not runs:
-        return None
-
-    # Return the most recent run's state
-    return client.get_run(runs[0].run_id)
+    return client.fetch_latest_run_state(group_id=group_id)
 
 
 def generate_autofix_handoff_prompt(
@@ -732,6 +743,18 @@ def generate_autofix_handoff_prompt(
             )
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+
+    parts.append(
+        " ".join(
+            [
+                "When you open a pull request, write a description that briefly explains the root",
+                "cause and the solution at a high level, so a reviewer can understand the change",
+                "without reading the diff. Base it on the changes you actually implemented, not on",
+                "the proposed solution below. Keep it to a few sentences. State in the description",
+                "that this pull request was triggered by a Seer handoff from Sentry.",
+            ]
+        )
+    )
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -886,7 +909,7 @@ def trigger_coding_agent_handoff(
         user_id=user_id,
         prompt=prompt,
         repos=[repo],
-        branch_name_base=group.title or "seer",
+        branch_name_base=f"seer/{group.title}" if group.title else "seer/fix",
         auto_create_pr=auto_create_pr,
         issue_short_id=short_id,
         issue_url=issue_url,
@@ -920,7 +943,7 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
-def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+def should_open_autofix_pr_as_draft(organization: Organization) -> bool:
     """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
     return features.has(REVIEW_REQUEST_FLAG, organization)
 
@@ -961,7 +984,7 @@ def trigger_push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group, run_id),
-        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
         author=author,
@@ -1002,9 +1025,12 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration-manual", group.organization):
+    if features.has(MANUAL_FLAG, group.organization):
         lines.append(
-            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+            # One command per line, and one `<sub>` tag per line: a blank line
+            # would close the tag and leave the next line full size.
+            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
         )
 
     seer_run = SeerRun.objects.filter(

@@ -8,8 +8,7 @@ from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 
 from sentry import features
-from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.utils import (
+from sentry.ai_monitoring.conversation_titles import (
     ConversationTitleSpanData,
     clamp_conversation_id_for_storage,
     clamp_user_message,
@@ -19,9 +18,9 @@ from sentry.ai_monitoring.utils import (
     generate_conversation_title,
     span_source_timestamp,
 )
+from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
@@ -77,6 +76,8 @@ def generate_ai_conversation_title(
 
     # Skip Seer if we already have a title from an earlier-or-equal span.
     existing = qs.first()
+    if existing is not None:
+        existing.save(update_fields=["date_updated"])
     if (
         existing is not None
         and existing.title_source_timestamp is not None
@@ -85,9 +86,7 @@ def generate_ai_conversation_title(
         metrics.incr("ai_monitoring.conversation_title.skip", tags={"reason": "later_or_equal_ts"})
         return
 
-    title = generate_conversation_title(
-        first_user_message, viewer_context=SeerViewerContext(organization_id=organization.id)
-    )
+    title = generate_conversation_title(first_user_message, organization)
     stored_conversation_id = clamp_conversation_id_for_storage(conversation_id)
 
     # Update an existing row only if this span is still the earliest.

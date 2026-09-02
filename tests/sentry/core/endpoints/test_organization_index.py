@@ -289,14 +289,12 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Locality(
                 name="us",
                 cells=frozenset(["us", "us2"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="us2",
                 visible=True,
             ),
             Locality(
                 name="de",
                 cells=frozenset(["de"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de",
                 visible=True,
             ),
@@ -339,7 +337,6 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
             Locality(
                 name="ja",
                 cells=frozenset(["ja"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="ja",
                 visible=False,
             ),
@@ -349,6 +346,7 @@ class OrganizationsCreateControlTest(OrganizationIndexTest, HybridCloudTestMixin
                 category=RegionCategory.SINGLE_TENANT,
                 new_org_cell="acme",
                 visible=True,
+                signup_visible=False,
             ),
         ]
         with get_test_env_directory().swap_state(cells, localities):

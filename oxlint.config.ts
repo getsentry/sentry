@@ -31,6 +31,9 @@ const restrictedThemeImportPattern = {
     "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
 };
 
+const CSS_TYPES_MESSAGE =
+  "Use the matching property from the CSS type exported by @sentry/scraps/cssTypes, for example CSS['width'].";
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -75,7 +78,7 @@ const restrictedImportPaths = [
   },
   {
     name: 'react-select',
-    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+    message: "Use '@sentry/scraps/select' instead.",
   },
   {
     name: 'qs',
@@ -495,6 +498,7 @@ const config = defineConfig({
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
+    '@sentry/no-redundant-default-argument': 'error',
     '@sentry/no-static-translations': 'error',
     '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-styled-shortcut': 'error',
@@ -676,9 +680,6 @@ const config = defineConfig({
           'FlamegraphWarnings\\.spec\\.tsx$',
           'FlamegraphWarnings\\.tsx$',
           'FormSearch\\.tsx$',
-          'GridEditableEmptyData\\.tsx$',
-          'GridEditableError\\.tsx$',
-          'GridEditableLoading\\.tsx$',
           'IssueListCacheStore\\.tsx$',
           'IssueStreamHeaderLabel\\.tsx$',
           'NoProjectEmptyState\\.tsx$',
@@ -1127,6 +1128,43 @@ const config = defineConfig({
               },
             ],
           },
+          // Keep the temporary Sentry allowance above, but do not allow
+          // scraps to import the legacy locale module. Use useTranslation()
+          // from the scraps translation context instead.
+          {
+            from: {
+              element: {
+                type: 'scraps',
+              },
+            },
+            disallow: {
+              to: {
+                file: {
+                  categories: 'sentry-locale',
+                },
+              },
+            },
+            message:
+              'Scraps components must use useTranslation() instead of importing from sentry/locale',
+          },
+          // Track Scraps interactions through the injected tracking context
+          // instead of coupling components to Sentry's analytics module.
+          {
+            from: {
+              element: {
+                type: 'scraps',
+              },
+            },
+            disallow: {
+              to: {
+                file: {
+                  path: 'static/app/utils/analytics.tsx',
+                },
+              },
+            },
+            message:
+              'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
+          },
         ],
       },
     ],
@@ -1285,6 +1323,16 @@ const config = defineConfig({
         selector:
           'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
         message: 'Do not use IIFEs inside JSX.',
+      },
+      {
+        selector:
+          "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
+        message: CSS_TYPES_MESSAGE,
+      },
+      {
+        selector:
+          "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
+        message: CSS_TYPES_MESSAGE,
       },
       {
         selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
@@ -1608,7 +1656,13 @@ const config = defineConfig({
         'no-restricted-imports': [
           'error',
           {
-            patterns: [restrictedThemeImportPattern],
+            patterns: [
+              restrictedThemeImportPattern,
+              {
+                group: ['csstype', 'csstype/*'],
+                message: CSS_TYPES_MESSAGE,
+              },
+            ],
             // The core component package owns this dependency.
             paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
           },

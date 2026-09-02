@@ -144,11 +144,9 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         }
         # Race-safe: the lookup kwargs match the unique constraints, so a losing
         # concurrent INSERT is caught by update_or_create rather than 500ing.
-        # Metric context is always org-level for now (project-scoped context is
-        # not supported yet), so it is never scoped to a specific project.
+        # Metric context is always org-level; per-project context is not supported.
         context, created = TraceItemAttributeValueContext.objects.update_or_create(
             organization=organization,
-            project=None,
             item_type=TraceItemTypes.get_id_for_type_name(
                 SupportedTraceItemType.TRACEMETRICS.value
             ),

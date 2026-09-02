@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import {t} from 'sentry/locale';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
@@ -14,13 +12,10 @@ export function FeedbackActivitySection(props: Props) {
 
   const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const handleCommentChange = useCallback(
-    (activity: GroupActivity[]) => {
-      updateCached([feedbackItem.id], {activity});
-      invalidateCached([feedbackItem.id]);
-    },
-    [updateCached, invalidateCached, feedbackItem.id]
-  );
+  function handleActivityChange(activity: GroupActivity[]) {
+    updateCached([feedbackItem.id], {activity});
+    invalidateCached([feedbackItem.id]);
+  }
 
   const filteredActivity = feedbackItem.activity.filter(
     a => a.type !== GroupActivityType.FIRST_SEEN
@@ -29,9 +24,7 @@ export function FeedbackActivitySection(props: Props) {
   return (
     <ActivitySection
       group={{...feedbackItem, activity: filteredActivity}}
-      onCommentCreated={handleCommentChange}
-      onCommentDeleted={handleCommentChange}
-      onCommentEdited={handleCommentChange}
+      onActivityChange={handleActivityChange}
       variant="standalone"
       placeholder={t(
         'Add details or updates to this feedback, visible only to your organization. \nTag users with @, or teams with #'

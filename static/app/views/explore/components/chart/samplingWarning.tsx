@@ -3,8 +3,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconWarning} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import type {SamplingWarningReason} from 'sentry/views/explore/utils';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface SamplingWarningProps {
   reason: SamplingWarningReason;
@@ -12,7 +12,7 @@ interface SamplingWarningProps {
 }
 
 export function SamplingWarning({yAxis, reason}: SamplingWarningProps) {
-  const name = parseFunction(yAxis)?.name ?? yAxis;
+  const name = parseConditionalAggregate(yAxis)?.name ?? yAxis;
   const nameNode = (
     <Text as="span" monospace>
       {name}

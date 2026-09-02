@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_ai_conversations import (
+from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
     _get_first_input_message,
     _get_last_output,
 )
@@ -123,26 +123,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             == f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
         )
 
-    def do_request(self, query=None, features=None, **kwargs):
-        if features is None:
-            features = ["organizations:gen-ai-conversations"]
-
+    def do_request(self, query=None, **kwargs):
         query = query or {}
 
-        with self.feature(features):
-            return self.client.get(
-                reverse(
-                    self.view,
-                    kwargs={"organization_id_or_slug": self.organization.slug},
-                ),
-                query,
-                format="json",
-                **kwargs,
-            )
-
-    def test_no_feature(self) -> None:
-        response = self.do_request(features=[])
-        assert response.status_code == 404
+        return self.client.get(
+            reverse(
+                self.view,
+                kwargs={"organization_id_or_slug": self.organization.slug},
+            ),
+            query,
+            format="json",
+            **kwargs,
+        )
 
     def test_no_project(self) -> None:
         response = self.do_request()
@@ -181,7 +173,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=4),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             description="Customer Support Agent",
             agent_name="Customer Support Agent",
             trace_id=trace_id,
@@ -213,7 +205,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             description="Response Generator",
             agent_name="Response Generator",
             trace_id=trace_id,
@@ -345,7 +337,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=3),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             description="Research Agent",
             agent_name="Research Agent",
             trace_id=trace_id_1,
@@ -367,7 +359,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             description="Summarization Agent",
             agent_name="Summarization Agent",
             trace_id=trace_id_2,
@@ -583,7 +575,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 conversation_id=conversation_id,
                 timestamp=timestamp,
                 op="gen_ai.invoke_agent",
-                operation_type="invoke_agent",
+                operation_type="agent",
                 description=agent_name,
                 agent_name=agent_name,
                 trace_id=trace_id,
@@ -733,12 +725,12 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
-        # Only invoke_agent and tool spans, no ai_client spans with input/output
+        # Only agent and tool spans, no ai_client spans with input/output
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             agent_name="Test Agent",
             trace_id=trace_id,
         )
@@ -1352,7 +1344,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             agent_name="Test Agent",
             trace_id=trace_id,
         )
@@ -1375,7 +1367,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_tokens_only_counted_from_ai_client_spans(self) -> None:
         """Test that tokens and costs are only counted from ai_client spans, not agent spans.
 
-        This prevents double counting when both agent spans (invoke_agent) and their
+        This prevents double counting when both agent spans and their
         child ai_client spans have token/cost data.
         """
         now = before_now(days=24).replace(microsecond=0)
@@ -1387,7 +1379,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             conversation_id=conversation_id,
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.invoke_agent",
-            operation_type="invoke_agent",
+            operation_type="agent",
             description="Test Agent",
             agent_name="Test Agent",
             trace_id=trace_id,
@@ -1648,7 +1640,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.data[0]["title"] == "Higher project id title"
 
     @patch(
-        "sentry.api.endpoints.organization_ai_conversations.fetch_conversation_titles",
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.fetch_conversation_titles",
         side_effect=Exception("metadata unavailable"),
     )
     def test_title_lookup_failure_does_not_break_list(

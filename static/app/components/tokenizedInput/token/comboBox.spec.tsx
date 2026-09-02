@@ -49,4 +49,42 @@ describe('ComboBox', () => {
       value: 'foo',
     });
   });
+
+  it('does not open the menu when there are no options', async () => {
+    const onOpenChange = jest.fn();
+    render(
+      <ComboBoxWrapper
+        filterValue=""
+        inputLabel="combobox"
+        inputValue=""
+        items={[]}
+        onOpenChange={onOpenChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox'));
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(true);
+  });
+
+  it('does not open the menu when every option is filtered out', async () => {
+    const onOpenChange = jest.fn();
+    render(
+      <ComboBoxWrapper
+        filterValue="nomatch"
+        inputLabel="combobox"
+        inputValue="nomatch"
+        items={['foo', 'bar', 'qux'].map(item => ({
+          key: item,
+          label: item,
+          value: item,
+        }))}
+        onOpenChange={onOpenChange}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('combobox'));
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(true);
+  });
 });

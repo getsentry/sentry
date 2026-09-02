@@ -5,11 +5,10 @@ import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -62,6 +61,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
   const org = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const getPaginationCaption = useGetPaginationCaption();
 
   const cursor =
     typeof location.query.cursor === 'string' ? location.query.cursor : undefined;
@@ -105,11 +105,7 @@ export function AutomationHistoryList({automationId, query}: Props) {
         }
       >
         {isLoading && <Skeletons />}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {!isLoading && !isError && fireHistory.length === 0 && (
           <SimpleTable.Empty>{t('No history found')}</SimpleTable.Empty>
         )}

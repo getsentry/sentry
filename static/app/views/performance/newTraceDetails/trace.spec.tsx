@@ -19,8 +19,11 @@ import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
+import * as analytics from 'sentry/utils/analytics';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTraceError,
@@ -553,8 +556,10 @@ async function simpleTestSetup() {
 
 async function completeTestSetup({
   organization,
+  rootMeasurements,
 }: {
   organization?: ReturnType<typeof OrganizationFixture>;
+  rootMeasurements?: TraceFullDetailed['measurements'];
 } = {}) {
   mockPerformanceSubscriptionDetailsResponse();
   mockProjectDetailsResponse();
@@ -570,6 +575,7 @@ async function completeTestSetup({
           project_slug: 'project_slug',
           start_timestamp: start,
           timestamp: start + 2,
+          measurements: rootMeasurements,
           children: [
             makeTransaction({
               event_id: '1',
@@ -770,7 +776,7 @@ async function completeTestSetup({
     printVirtualizedList(virtualizedContainer);
     throw e;
   }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
+  return {...value, start, virtualizedContainer, virtualizedScrollContainer};
 }
 
 const DRAWER_TABS_TEST_ID = 'trace-drawer-tab';
@@ -1000,6 +1006,180 @@ describe('trace view', () => {
 
     expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+  });
+
+  it('selects and zooms to a vital pill source node on click', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
+    const {start} = await completeTestSetup({
+      rootMeasurements: {lcp: {value: 500, unit: 'millisecond'}},
+    });
+    const vitalPill = (await screen.findAllByText('LCP')).find(element =>
+      element.classList.contains('TraceIndicatorLabel')
+    );
+
+    expect(vitalPill).toBeDefined();
+    analyticsSpy.mockClear();
+    zoomSpy.mockClear();
+
+    await userEvent.click(vitalPill!);
+
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'TransactionID: 0'
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
+      organization: expect.objectContaining({slug: 'org-slug'}),
+    });
+    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 525], {padding: false});
+  });
+
+  it('selects and zooms to a summary vital pill source node on click', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const zoomSpy = jest.spyOn(VirtualizedViewManager.prototype, 'onZoomIntoSpace');
+    const {start} = await completeTestSetup({
+      rootMeasurements: {lcp: {value: 500, unit: 'millisecond'}},
+    });
+    mockTransactionDetailsResponse('2');
+    await userEvent.click(await screen.findByText('transaction-name-2'));
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'TransactionID: 2'
+    );
+
+    const vitalPill = await screen.findByRole('button', {name: /LCP/});
+
+    analyticsSpy.mockClear();
+    zoomSpy.mockClear();
+
+    await userEvent.click(vitalPill);
+
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'TransactionID: 0'
+    );
+    expect(analyticsSpy).toHaveBeenCalledWith('trace.trace_layout.zoom_to_fill', {
+      organization: expect.objectContaining({slug: 'org-slug'}),
+    });
+    expect(zoomSpy).toHaveBeenCalledWith([start * 1e3, 525], {padding: false});
+    expect(window.location.search).not.toContain('zoomToNode');
+    expect(window.location.search).not.toContain('zoomToTimestamp');
+    expect(window.location.search).not.toContain('zoomToVital');
+  });
+
+  it('reveals a hidden vital pill source node on click', async () => {
+    const start = Date.now() / 1e3;
+    const organization = OrganizationFixture({features: ['trace-spans-format']});
+    const vitalSpanDescription = 'standalone LCP span';
+
+    mockPerformanceSubscriptionDetailsResponse();
+    mockProjectDetailsResponse();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace/trace-id/',
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'root-transaction',
+          op: 'pageload',
+          description: 'root transaction',
+          start_timestamp: start,
+          end_timestamp: start + 2,
+          is_transaction: true,
+          additional_attributes: {
+            'tags[performance.timeOrigin,number]': start,
+          },
+          children: [
+            makeEAPSpan({
+              event_id: 'lcp-span',
+              op: 'ui.webvital.lcp',
+              description: vitalSpanDescription,
+              start_timestamp: start + 0.5,
+              end_timestamp: start + 0.6,
+              measurements: {'measurements.lcp': 500},
+            }),
+          ],
+        }),
+        makeEAPSpan({
+          event_id: 'second-transaction',
+          op: 'http.server',
+          description: 'second transaction',
+          start_timestamp: start,
+          end_timestamp: start + 1,
+          is_transaction: true,
+          children: Array.from({length: 100}, (_, index) =>
+            makeEAPSpan({
+              event_id: `second-transaction-span-${index}`,
+              start_timestamp: start,
+              end_timestamp: start + 0.1,
+            })
+          ),
+        }),
+        makeEAPSpan({
+          event_id: 'third-transaction',
+          op: 'http.server',
+          description: 'third transaction',
+          start_timestamp: start,
+          end_timestamp: start + 1,
+          is_transaction: true,
+        }),
+      ]),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-meta/trace-id/',
+      body: {
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 104,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+      },
+    });
+    for (const itemId of ['root-transaction', 'lcp-span']) {
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
+        body: {
+          itemId,
+          links: null,
+          meta: {},
+          timestamp: new Date(start * 1e3).toISOString(),
+          attributes: [],
+        },
+      });
+    }
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+    mockTraceRootFacets();
+    mockEventsResponse();
+
+    render(<TraceView />, {initialRouterConfig, organization});
+
+    const rootTransaction = await screen.findByText('root transaction');
+    expect(screen.queryByText(vitalSpanDescription)).not.toBeInTheDocument();
+
+    await userEvent.click(rootTransaction);
+    await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+    await waitFor(() => {
+      expect(screen.queryByTestId('trace-drawer-title')).not.toBeInTheDocument();
+    });
+
+    const vitalPill = (await screen.findAllByText('LCP')).find(element =>
+      element.classList.contains('TraceIndicatorLabel')
+    );
+    expect(vitalPill).toBeDefined();
+
+    await userEvent.click(vitalPill!);
+
+    const vitalSpanRow = (await screen.findByText(vitalSpanDescription)).closest(
+      VISIBLE_TRACE_ROW_SELECTOR
+    );
+    expect(vitalSpanRow).toHaveAttribute('tabindex', '0');
+    expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+      'SpanID: lcp-span'
+    );
   });
 
   describe('pageload', () => {

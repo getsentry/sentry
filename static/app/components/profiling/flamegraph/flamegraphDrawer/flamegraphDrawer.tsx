@@ -182,7 +182,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawerImpl(
         <ProfilingDetailsListItem>
           <FrameDrawerLabel>
             <Checkbox
-              size="sm"
               checked={recursion === 'collapsed'}
               onChange={handleRecursionChange}
             />

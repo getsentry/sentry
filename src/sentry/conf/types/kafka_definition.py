@@ -63,8 +63,11 @@ class Topic(Enum):
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_ITEMS = "snuba-items"
     EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
+    # Nothing produces to or consumes this topic anymore -- segments go straight
+    # to process_segment_task. It stays registered because the schema still
+    # describes the payload the flusher hands to that task, and because
+    # getsentry asserts a cluster mapping exists for it.
     BUFFERED_SEGMENTS = "buffered-segments"
-    BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
     TASKWORKER = "taskworker"
     TASKWORKER_CONTROL = "taskworker-control"
 

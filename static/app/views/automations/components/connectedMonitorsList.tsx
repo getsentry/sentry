@@ -5,9 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -90,6 +89,7 @@ export function ConnectedMonitorsList({
   workflowId,
   ...props
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
   const emptySelection = defined(detectorIds) && detectorIds.length === 0;
@@ -152,11 +152,7 @@ export function ConnectedMonitorsList({
             }
           />
         )}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}

@@ -233,7 +233,7 @@ export default Storybook.story('DropdownMenu', story => {
         </p>
         <Flex direction="row" gap="md" align="start">
           <DropdownMenu triggerLabel="Small" items={items} size="sm" />
-          <DropdownMenu triggerLabel="Medium" items={items} size="md" />
+          <DropdownMenu triggerLabel="Medium" items={items} />
         </Flex>
       </Fragment>
     );

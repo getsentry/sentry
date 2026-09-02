@@ -106,26 +106,6 @@ describe('javascript-angular onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enableLogs to true', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedOptions: {
-        configType: AngularConfigType.APP,
-      },
-      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
-    });
-
-    expect(
-      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
-    ).toBeInTheDocument();
-
-    // When logs are selected, import statement should appear in verify section too
-    expect(
-      screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
-      )
-    ).toHaveLength(3);
-  });
-
   it('shows Logging Integrations in next steps when logs is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedOptions: {

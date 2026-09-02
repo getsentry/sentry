@@ -11,6 +11,7 @@ import {noDynamicTranslations} from './noDynamicTranslations.ts';
 import {noFlagComments} from './noFlagComments.ts';
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
+import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
 import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
 import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
@@ -29,6 +30,7 @@ export const rules = {
   'no-flag-comments': noFlagComments,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
+  'no-redundant-default-argument': noRedundantDefaultArgument,
   'no-relative-import-paths': noRelativeImportPaths,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,

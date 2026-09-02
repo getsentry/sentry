@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.constants import LOG_LEVELS
@@ -60,6 +60,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
@@ -756,6 +757,23 @@ class GroupSerializerBase(Serializer, ABC):
         org_id: int, groups: Sequence[Group]
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
         from sentry.integrations.base import IntegrationFeatures
+
+        # The cross-silo issue tracking lookups below will never have results
+        # without GroupLink rows, skip the lookup in that case.
+        if groups and features.has(
+            "organizations:issue-annotations-skip-integration-fetch",
+            groups[0].project.organization,
+        ):
+            has_linked_issues = GroupLink.objects.filter(
+                group_id__in=[group.id for group in groups],
+                linked_type=GroupLink.LinkedType.issue,
+            ).exists()
+            metrics.incr(
+                "group.annotations.integration_fetch",
+                tags={"outcome": "fetched" if has_linked_issues else "skipped"},
+            )
+            if not has_linked_issues:
+                return []
 
         integration_annotations = []
         # find all the integration installs that have issue tracking

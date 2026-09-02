@@ -1,64 +1,75 @@
 from __future__ import annotations
 
+import threading
 from unittest import mock
+from uuid import UUID, uuid4
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, close_old_connections
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockDependency,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationRun,
     InvestigationProject,
     InvestigationSourceType,
-    InvestigationStatus,
 )
+from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
+    InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
-    _resolve_breached_metric_source,
-    archive_investigation,
     create_block,
     create_manual_investigation,
     create_template_investigation,
     delete_block,
+    duplicate_investigation,
+    investigation_legacy_source_key,
     lock_investigation,
+    resolve_investigation_source,
     update_investigation,
 )
-from sentry.testutils.cases import TestCase
+from sentry.investigations.services.orchestration import (
+    accept_orchestration_command,
+    create_agentic_manual_investigation,
+)
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 TEMPLATE_KWARGS = {
     "organization": mock.sentinel.organization,
     "user_id": 1,
     "template_key": "breached_metric",
     "template_version": 1,
-    "source_ref": {},
+    "source": {},
     "supplied_parameters": {},
     "accessible_project_ids": set(),
 }
 
 
 def test_template_creation_retries_revision_uniqueness_collisions() -> None:
-    created = mock.sentinel.investigation
+    created = (mock.sentinel.investigation, True)
     with mock.patch(
         "sentry.investigations.services.investigations._create_template_investigation",
         side_effect=[IntegrityError(), created],
     ) as create:
         result = create_template_investigation(**TEMPLATE_KWARGS)
 
-    assert result is created
+    assert result == created
     assert create.call_count == 2
 
 
 def test_template_creation_succeeds_without_a_collision() -> None:
-    created = mock.sentinel.investigation
+    created = (mock.sentinel.investigation, True)
     with mock.patch(
         "sentry.investigations.services.investigations._create_template_investigation",
         return_value=created,
     ) as create:
         result = create_template_investigation(**TEMPLATE_KWARGS)
 
-    assert result is created
+    assert result == created
     assert create.call_count == 1
 
 
@@ -164,62 +175,142 @@ class DeleteBlockStalenessTest(TestCase):
 
 
 class BreachedMetricSourceRefTest(TestCase):
+    def test_accepts_serialized_source_fields_and_uses_the_resolved_source(self) -> None:
+        source_ref = {"groupId": "1", "openPeriodId": "2"}
+        resolved = BreachedMetricSource(
+            project_id=self.project.id,
+            dataset="errors",
+            source={
+                "type": "metric_open_period",
+                "ref": source_ref,
+                "snapshot": {"monitor": {"name": "Resolved monitor"}},
+            },
+        )
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_breached_metric_sources",
+            return_value={(1, 2): resolved},
+        ):
+            result = resolve_investigation_source(
+                organization=self.organization,
+                source={
+                    "type": "metric_open_period",
+                    "ref": source_ref,
+                    "revision": 3,
+                    "snapshot": {"monitor": {"name": "Caller-supplied monitor"}},
+                },
+                accessible_project_ids={self.project.id},
+            )
+
+        assert result == resolved
+
     def test_out_of_range_ids_are_treated_as_a_missing_source(self) -> None:
         with pytest.raises(InvestigationSourceNotFound):
-            _resolve_breached_metric_source(
+            resolve_investigation_source(
                 organization=self.organization,
-                source_ref={"groupId": str(I64_MAX + 1), "openPeriodId": "1"},
+                source={
+                    "type": "metric_open_period",
+                    "ref": {"groupId": str(I64_MAX + 1), "openPeriodId": "1"},
+                },
                 accessible_project_ids={self.project.id},
             )
 
     def test_non_positive_ids_are_treated_as_a_missing_source(self) -> None:
         with pytest.raises(InvestigationSourceNotFound):
-            _resolve_breached_metric_source(
+            resolve_investigation_source(
                 organization=self.organization,
-                source_ref={"groupId": "0", "openPeriodId": "1"},
+                source={
+                    "type": "metric_open_period",
+                    "ref": {"groupId": "0", "openPeriodId": "1"},
+                },
                 accessible_project_ids={self.project.id},
             )
 
 
-class ConcurrentModificationTest(TestCase):
-    def lineage_pair(self) -> tuple[Investigation, Investigation]:
-        first = create_manual_investigation(
+class SourceTransitionCompatibilityTest(TestCase):
+    def test_template_creation_reuses_and_backfills_a_legacy_active_investigation(self) -> None:
+        source_ref = {"groupId": "1", "openPeriodId": "2"}
+        snapshot = {"monitor": {"name": "Checkout errors"}}
+        resolved_source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": source_ref,
+            "snapshot": snapshot,
+        }
+        legacy = self.create_investigation(
             organization=self.organization,
-            user_id=self.user.id,
-            title="First",
-            project_ids=[],
-            filters={},
+            created_by=self.user,
+            title="Legacy",
+            template_key="breached_metric",
+            template_version=1,
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source_ref,
+            source_key=investigation_legacy_source_key(resolved_source),
+            source_revision=1,
+            filters={"breachedMetric": snapshot},
         )
-        second = create_manual_investigation(
-            organization=self.organization,
-            user_id=self.user.id,
-            title="Second",
-            project_ids=[],
-            filters={},
+        resolved = BreachedMetricSource(
+            project_id=self.project.id,
+            dataset="errors",
+            source=resolved_source,
         )
-        for revision, investigation in enumerate((first, second), start=1):
-            Investigation.objects.filter(id=investigation.id).update(
-                source_type=InvestigationSourceType.BREACHED_METRIC,
-                source_key="lineage",
-                source_revision=revision,
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_investigation_source",
+            return_value=resolved,
+        ):
+            investigation, created = create_template_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                template_key="breached_metric",
+                template_version=1,
+                source={"type": "metric_open_period", "ref": source_ref},
+                supplied_parameters={},
+                accessible_project_ids={self.project.id},
             )
-            investigation.refresh_from_db()
-        return first, second
 
-    def test_cascade_archive_bumps_sibling_versions(self) -> None:
-        """
-        Siblings are archived by a bulk update, so without a version bump a
-        client holding a stale reference would still pass the optimistic lock.
-        """
-        first, second = self.lineage_pair()
-        before = second.version
+        assert not created
+        assert investigation.id == legacy.id
+        investigation.refresh_from_db()
+        assert investigation.source == resolved.source
+        assert investigation.lineage_key is not None
+        assert Investigation.objects.count() == 1
 
-        archive_investigation(investigation=first, expected_version=first.version)
+    def test_filter_updates_and_manual_duplicates_do_not_expose_the_legacy_snapshot(self) -> None:
+        snapshot = {"monitor": {"name": "Checkout errors"}}
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": snapshot,
+        }
+        investigation = self.create_investigation(
+            organization=self.organization,
+            created_by=self.user,
+            source=source,
+            lineage_key="lineage-key",
+            source_type=InvestigationSourceType.BREACHED_METRIC,
+            source_ref=source["ref"],
+            source_key=investigation_legacy_source_key(source),
+            source_revision=1,
+            filters={"breachedMetric": snapshot},
+        )
 
-        second.refresh_from_db()
-        assert second.status == InvestigationStatus.ARCHIVED
-        assert second.version == before + 1
+        updated = update_investigation(
+            investigation=investigation,
+            expected_version=investigation.version,
+            fields={"filters": {"environment": ["production"]}},
+            project_ids=None,
+        )
+        duplicate = duplicate_investigation(investigation=updated, user_id=self.user.id)
 
+        assert updated.filters == {
+            "environment": ["production"],
+            "breachedMetric": snapshot,
+        }
+        assert duplicate.source == {}
+        assert duplicate.filters == {"environment": ["production"]}
+
+
+class ConcurrentModificationTest(TestCase):
     def test_locking_a_deleted_investigation_is_a_missing_source(self) -> None:
         """A concurrent delete should not surface as an unhandled 500."""
         investigation = create_manual_investigation(
@@ -276,3 +367,100 @@ class UpdateFieldAllowlistTest(TestCase):
 
         assert updated.title == "Renamed"
         assert updated.filters == {"environment": ["prod"]}
+
+
+class OrchestrationControlServiceTest(TestCase):
+    def test_agentic_creation_rolls_back_the_entire_aggregate(self) -> None:
+        investigation_count = Investigation.objects.count()
+        project_link_count = InvestigationProject.objects.count()
+
+        with (
+            mock.patch.object(
+                InvestigationOrchestrationRun.objects, "create", side_effect=RuntimeError
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            create_agentic_manual_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                title=None,
+                source={"type": "manual", "prompt": "Investigate latency"},
+                project_ids=[self.project.id],
+                filters={},
+            )
+
+        assert Investigation.objects.count() == investigation_count
+        assert InvestigationProject.objects.count() == project_link_count
+        assert not InvestigationOrchestrationRun.objects.exists()
+
+    def test_command_acceptance_rolls_back_command_and_version_together(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        with (
+            mock.patch.object(InvestigationOrchestrationRun, "save", side_effect=RuntimeError),
+            pytest.raises(RuntimeError),
+        ):
+            accept_orchestration_command(
+                investigation=investigation,
+                request_id=uuid4(),
+                expected_workflow_version=1,
+                command_type="cancel",
+                payload={},
+                actor_id=self.user.id,
+            )
+
+        run.refresh_from_db()
+        assert run.workflow_version == 1
+        assert not InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).exists()
+
+
+class OrchestrationCommandConcurrencyTest(TransactionTestCase):
+    def test_only_one_command_is_accepted_for_a_workflow_version(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        barrier = threading.Barrier(2, timeout=10)
+
+        def submit(request_id: UUID, reason: str) -> str:
+            close_old_connections()
+            barrier.wait()
+            try:
+                accept_orchestration_command(
+                    investigation=investigation,
+                    request_id=request_id,
+                    expected_workflow_version=1,
+                    command_type="cancel",
+                    payload={"reason": reason},
+                    actor_id=self.user.id,
+                )
+                return "accepted"
+            except InvestigationConflictError:
+                return "conflict"
+            finally:
+                close_old_connections()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+            outcomes = [
+                future.result(timeout=15)
+                for future in (
+                    executor.submit(submit, uuid4(), "first"),
+                    executor.submit(submit, uuid4(), "second"),
+                )
+            ]
+
+        run.refresh_from_db()
+        assert sorted(outcomes) == ["accepted", "conflict"]
+        assert run.workflow_version == 2
+        assert InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).count() == 1

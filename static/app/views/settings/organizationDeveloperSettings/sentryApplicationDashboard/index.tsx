@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -21,9 +21,11 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {RequestLog} from './requestLog';
 
@@ -97,6 +99,11 @@ function SentryApplicationDashboard() {
   }
   const showInstallData = app.status === 'published';
   const showComponentInteractions = Boolean(app.schema?.elements);
+  const canViewRequestLogs =
+    app.status === 'internal' ||
+    organization.access.includes('org:admin') ||
+    organization.access.includes('org:integrations') ||
+    isActiveSuperuser();
 
   return (
     <div>
@@ -115,7 +122,19 @@ function SentryApplicationDashboard() {
       {showComponentInteractions ? (
         <ComponentInteractionsSection appSlug={appSlug} timeRange={timeRange} />
       ) : null}
-      <RequestLog app={app} />
+      {canViewRequestLogs ? (
+        <RequestLog app={app} />
+      ) : (
+        <Stack gap="md">
+          <Heading as="h5">{t('Request Log')}</Heading>
+          <OrganizationPermissionAlert
+            access={['org:integrations']}
+            message={t(
+              'Only organization admins and members with integration management access can view the request log.'
+            )}
+          />
+        </Stack>
+      )}
     </div>
   );
 }

@@ -375,13 +375,17 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
     def test_send_threaded_ephemeral_message_success(self, mock_chat_ephemeral: MagicMock) -> None:
-        self.installation.send_threaded_ephemeral_message(
+        slack_response = MagicMock()
+        mock_chat_ephemeral.return_value = slack_response
+
+        response = self.installation.send_threaded_ephemeral_message(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             renderable=self.slack_renderable,
             slack_user_id=self.slack_user_id,
         )
 
+        assert response is slack_response
         mock_chat_ephemeral.assert_called_once_with(
             channel=self.channel_id,
             thread_ts=self.thread_ts,

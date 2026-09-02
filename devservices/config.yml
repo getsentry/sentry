@@ -157,8 +157,6 @@ x-sentry-service-config:
     # Spans and performance monitoring
     process-spans:
       description: Kafka consumer for processing spans data
-    process-segments:
-      description: Kafka consumer for processing performance segments
     # Metrics-related consumers
     ingest-metrics:
       description: Kafka consumer for processing metrics data
@@ -223,7 +221,6 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
         process-spans,
         ingest-occurrences,
-        process-segments,
         taskbroker,
         taskbroker-sentry,
         taskworker,
@@ -359,7 +356,6 @@ x-sentry-service-config:
         post-process-forwarder-issue-platform,
         post-process-forwarder-transactions,
         postgres,
-        process-segments,
         process-spans,
         relay,
         symbolicator,
@@ -391,7 +387,6 @@ x-sentry-service-config:
         ingest-occurrences,
         objectstore,
         process-spans,
-        process-segments,
         ingest-metrics,
         ingest-generic-metrics,
         uptime-checker,
@@ -433,8 +428,6 @@ x-programs:
     command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   process-spans:
     command: sentry run consumer process-spans --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  process-segments:
-    command: sentry run consumer process-segments --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   uptime-results:
     command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-metrics:
