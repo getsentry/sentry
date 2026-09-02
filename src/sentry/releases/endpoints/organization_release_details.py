@@ -1,6 +1,6 @@
 import sentry_sdk
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -61,12 +61,12 @@ class InvalidSortException(Exception):
     pass
 
 
-@extend_schema_serializer(exclude_fields=["headCommits", "status"])
 class OrganizationReleaseSerializer(ReleaseSerializer):
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,
         allow_null=False,
+        help_text="Deprecated, use `commits`. Head commits to associate with the release.",
     )
     refs = ListField(
         child=ReleaseHeadCommitSerializer(),
