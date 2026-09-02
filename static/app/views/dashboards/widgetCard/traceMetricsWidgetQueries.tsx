@@ -3,11 +3,13 @@ import {useCallback, useState} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
+import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 
@@ -19,6 +21,24 @@ import {useGenericWidgetQueries} from './genericWidgetQueries';
 
 type SeriesResult = EventsTimeSeriesResponse;
 type TableResult = EventsTableData;
+
+const INVESTIGATIONS_METRIC_PREFIX = 'investigations.';
+
+function getSamplingMode(widget: Widget) {
+  // Investigations emits sparse operational metrics, so normal downsampling can hide
+  // an entire series even when the underlying events are present.
+  const containsInvestigationsMetric = widget.queries.some(query =>
+    query.aggregates.some(aggregate =>
+      extractTraceMetricFromColumn(explodeFieldString(aggregate))?.name.startsWith(
+        INVESTIGATIONS_METRIC_PREFIX
+      )
+    )
+  );
+
+  return containsInvestigationsMetric
+    ? SAMPLING_MODE.HIGH_ACCURACY
+    : SAMPLING_MODE.NORMAL;
+}
 
 type TraceMetricsWidgetQueriesProps = {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
@@ -117,7 +137,7 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     onDataFetched,
     onDataFetchStart,
     afterFetchSeriesData,
-    samplingMode: SAMPLING_MODE.NORMAL,
+    samplingMode: getSamplingMode(widget),
     selection,
     widgetInterval,
     yBuckets,

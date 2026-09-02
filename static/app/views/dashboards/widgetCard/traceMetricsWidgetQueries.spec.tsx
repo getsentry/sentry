@@ -38,6 +38,7 @@ describe('traceMetricsWidgetQueries', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
+      match: [MockApiClient.matchQuery({sampling: 'NORMAL'})],
       body: {
         timeSeries: [
           {
@@ -80,5 +81,61 @@ describe('traceMetricsWidgetQueries', () => {
     );
 
     expect(await screen.findByText('low:30:true:partial')).toBeInTheDocument();
+  });
+
+  it('uses highest accuracy sampling for investigations metrics', async () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          aggregates: ['sum(value, investigations.execution.completed, counter, none)'],
+          fields: ['sum(value, investigations.execution.completed, counter, none)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      match: [MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY'})],
+      body: {
+        timeSeries: [
+          {
+            yAxis: 'sum(value, investigations.execution.completed, counter, none)',
+            meta: {
+              interval: 3600000,
+              valueType: 'integer',
+              valueUnit: null,
+              dataScanned: 'full',
+            },
+            values: [
+              {
+                timestamp: 1,
+                value: 14,
+                confidence: 'high',
+                sampleCount: 14,
+                sampleRate: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    render(
+      <TraceMetricsWidgetQueries widget={widget} dashboardFilters={{}}>
+        {({confidence, sampleCount, isSampled, dataScanned}) => (
+          <div>
+            {confidence}:{sampleCount}:{String(isSampled)}:{dataScanned}
+          </div>
+        )}
+      </TraceMetricsWidgetQueries>
+    );
+
+    expect(await screen.findByText('high:14:false:full')).toBeInTheDocument();
   });
 });
