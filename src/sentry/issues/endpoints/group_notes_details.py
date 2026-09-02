@@ -214,17 +214,16 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 if original_comment_log_action is not None:
                     # editing a note doesn't update its COMMENT entry (instead it
                     # appends a separate COMMENT_EDIT entry), so patch in the fresh
-                    # text we just published to GALE; the Activity is used only for
-                    # the id below.
+                    # text we just published to GALE. The serializer resolves `id`
+                    # back to the Activity id from the entry's comment_id, matching
+                    # the flag-off contract so clients can edit/delete via note_id.
                     original_comment_log_action.data = {
                         **original_comment_log_action.data,
                         "text": payload.get("text"),
                     }
-                    serialized = serialize(original_comment_log_action, request.user)
-                    # Return the Activity id as `id`, matching the flag-off
-                    # contract so clients can edit/delete via note_id.
-                    serialized["id"] = str(note.id)
-                    return Response(serialized, status=200)
+                    return Response(
+                        serialize(original_comment_log_action, request.user), status=200
+                    )
 
             return Response(serialize(note, request.user), status=200)
 
