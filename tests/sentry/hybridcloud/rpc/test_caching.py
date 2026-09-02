@@ -151,7 +151,7 @@ def test_caching_function_equal_length() -> None:
     assert first.id == user.id
     assert first.username == user.username
 
-    cached = get_active_user_long_basekey(user.id, True)
+    cached = get_active_user_equal(user.id, "a" * (32 - id_len - 6))
     assert cached
     assert cached.id == user.id
 
