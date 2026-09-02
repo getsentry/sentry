@@ -143,6 +143,7 @@ def rekey_external_issues(
         return 0
 
     rekeyed = 0
+    already_applied = 0
 
     for stale in stale_issues:
         log_context = {
@@ -177,6 +178,7 @@ def rekey_external_issues(
 
             if not applied:
                 logger.info("external_issue.rekey.already_applied", extra=log_context)
+                already_applied += 1
                 continue
             if survivor_id is not None:
                 log_context["merged_into_external_issue_id"] = survivor_id
@@ -184,5 +186,11 @@ def rekey_external_issues(
         logger.info("external_issue.rekey.applied", extra=log_context)
         rekeyed += 1
 
-    _record_rekey_outcome(integration, "applied" if rekeyed else "failed")
+    if rekeyed:
+        outcome = "applied"
+    else:
+        # Losing the race to a concurrent delivery is the same outcome as finding the row
+        # already at the new key; only a reconciliation that raised is a failure.
+        outcome = "already_at_new_key" if already_applied else "failed"
+    _record_rekey_outcome(integration, outcome)
     return rekeyed

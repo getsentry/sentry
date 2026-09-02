@@ -191,7 +191,8 @@ class RekeyExternalIssuesTest(TestCase):
         assert stale.key == "PLATFORM-45"
         assert self._linked_group_ids(stale) == {moved_group.id}
 
-    def test_does_not_count_rekey_completed_by_another_delivery(self) -> None:
+    @patch("sentry.integrations.utils.external_issue_key.metrics.incr")
+    def test_does_not_count_rekey_completed_by_another_delivery(self, incr: MagicMock) -> None:
         self.create_integration_external_issue(
             group=self.create_group(), integration=self.integration, key="APP-123"
         )
@@ -218,6 +219,9 @@ class RekeyExternalIssuesTest(TestCase):
             ),
         ):
             assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 0
+
+        # Losing the race is not a failure: the rename it describes did happen.
+        assert self._rekey_outcomes(incr) == ["already_at_new_key"]
 
     def test_merge_drops_duplicate_group_links(self) -> None:
         # The same group linked to both keys: GroupLink is unique on
