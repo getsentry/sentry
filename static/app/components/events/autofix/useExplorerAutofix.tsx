@@ -154,6 +154,7 @@ interface GithubPrCommentFeedbackSource {
 
 interface GithubPrReviewCommentFeedbackSource {
   type: 'github-pr-review-comment';
+  author_is_bot?: boolean;
   comment?: {html_url?: string; user?: {login: string}};
   // The review this inline comment was submitted as part of. Shared with the
   // review body's `review_id` so the UI can group a review's body and its inline
@@ -534,6 +535,36 @@ export function isLastStepPrIteration(runState: ExplorerAutofixState | null): bo
   return defined(lastBlock) && isPrIterationBlock(lastBlock);
 }
 
+function parseBlockFeedback(raw: string | undefined): RawFeedback[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+}
+
+// True when the last pr_iteration was driven only by failing check suites.
+// Bot reviews and human feedback (user-ui, comments) do not count.
+function lastPrIterationIsCheckSuite(blocks: Block[], start: number): boolean {
+  const items = blocks
+    .slice(start)
+    .flatMap(block => parseBlockFeedback(block.message.metadata?.feedback));
+  return items.length > 0 && items.every(item => item.source?.type === 'check-suite');
+}
+
+/**
+ * If the run died on a CI-driven PR iteration after a successful earlier
+ * step, drop that iteration and present the run as completed so the last
+ * good code changes stay on screen.
+ *
+ * Manual failures (user-ui, GitHub comments/reviews — including bots) and a
+ * failed PR push are left as `error`. A run whose only step is the failed
+ * iteration is also left alone — there is nothing earlier to fall back to.
+ */
 export function hideErroredPrIteration(
   runState: ExplorerAutofixState | null
 ): ExplorerAutofixState | null {
@@ -559,6 +590,10 @@ export function hideErroredPrIteration(
   }
 
   if (start === null || start === 0) {
+    return runState;
+  }
+
+  if (!lastPrIterationIsCheckSuite(blocks, start)) {
     return runState;
   }
 

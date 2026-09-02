@@ -722,14 +722,19 @@ describe('isLastStepPrIteration', () => {
 
 describe('hideErroredPrIteration', () => {
   let blockId = 0;
-  function block(step?: string): Block {
+  function block(step?: string, feedback?: Record<PropertyKey, unknown>): Block {
     return {
       id: `hide-block-${blockId++}`,
       timestamp: '2026-01-01T00:00:00Z',
       message: {
         content: 'hello',
         role: 'assistant',
-        metadata: step ? {step} : undefined,
+        metadata: step
+          ? {
+              step,
+              ...(feedback ? {feedback: JSON.stringify(feedback)} : {}),
+            }
+          : undefined,
       },
     };
   }
@@ -745,8 +750,44 @@ describe('hideErroredPrIteration', () => {
     };
   }
 
-  it('drops the errored pr_iteration and presents the run as completed', () => {
-    const blocks = [block('code_changes'), block('pr_iteration'), block(undefined)];
+  it('leaves a failed bot-review pr_iteration untouched', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {
+        text: 'coverage dropped',
+        source: {type: 'github-pr-review-body', author_is_bot: true, review_id: 1},
+      }),
+    ];
+    const runState = state(blocks, 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('leaves a failed manual pr_iteration untouched', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {text: 'please fix', source: {type: 'user-ui'}}),
+      block(undefined),
+    ];
+    const runState = state(blocks, 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('drops a failed automated pr_iteration', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {
+        text: 'CI failed',
+        source: {
+          type: 'check-suite',
+          app_name: 'GitHub Actions',
+          event: {
+            check_suite: {head_sha: 'abc', id: 1},
+            repository: {html_url: 'https://github.com/org/repo'},
+          },
+        },
+      }),
+      block(undefined),
+    ];
     expect(hideErroredPrIteration(state(blocks, 'error'))).toEqual(
       state([blocks[0]!], 'completed')
     );
@@ -768,8 +809,21 @@ describe('hideErroredPrIteration', () => {
     expect(hideErroredPrIteration(runState)).toBe(runState);
   });
 
-  it('hides an errored iteration whose earlier pull request pushed fine', () => {
-    const blocks = [block('code_changes'), block('pr_iteration')];
+  it('hides a failed automated iteration whose earlier pull request pushed fine', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {
+        text: 'CI failed',
+        source: {
+          type: 'check-suite',
+          app_name: 'GitHub Actions',
+          event: {
+            check_suite: {head_sha: 'abc', id: 1},
+            repository: {html_url: 'https://github.com/org/repo'},
+          },
+        },
+      }),
+    ];
     const runState = {
       ...state(blocks, 'error'),
       repo_pr_states: {
