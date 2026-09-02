@@ -20,7 +20,11 @@ export function RequiredOrganizationSso({
   return (
     <Stack align="center" gap="md">
       <Container width="100%">
-        <OrganizationAuth authOrganization={authOrganization} onClear={onClear} />
+        <OrganizationAuth
+          authOrganization={authOrganization}
+          hideClearButton
+          onClear={onClear}
+        />
       </Container>
       <Flex width="100%" align="center" justify="between">
         <Button
