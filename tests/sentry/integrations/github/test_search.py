@@ -196,7 +196,18 @@ class GithubSearchTest(APITestCase):
         responses.add(
             responses.POST,
             self.graphql_url,
-            json={"data": {"repository": {"results": {"nodes": [{"login": "octocat"}]}}}},
+            json={
+                "data": {
+                    "repository": {
+                        "results": {
+                            "nodes": [
+                                {"login": "octocat", "name": "The Octocat"},
+                                {"login": "github-actions[bot]", "name": None},
+                            ]
+                        }
+                    }
+                }
+            },
         )
 
         resp = self.client.get(
@@ -207,9 +218,11 @@ class GithubSearchTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data == [
             {"value": "", "label": "Unassigned"},
-            {"value": "octocat", "label": "octocat"},
+            {"value": "octocat", "label": "The Octocat (@octocat)"},
+            {"value": "github-actions[bot]", "label": "github-actions[bot]"},
         ]
         request_body = orjson.loads(responses.calls[0].request.body)
+        assert "\n        name\n" in request_body["query"]
         assert request_body["variables"]["search"] == ""
 
     @responses.activate
@@ -217,7 +230,13 @@ class GithubSearchTest(APITestCase):
         responses.add(
             responses.POST,
             self.graphql_url,
-            json={"data": {"repository": {"results": {"nodes": [{"login": "target-user"}]}}}},
+            json={
+                "data": {
+                    "repository": {
+                        "results": {"nodes": [{"login": "target-user", "name": "Target User"}]}
+                    }
+                }
+            },
         )
 
         resp = self.client.get(
@@ -226,7 +245,7 @@ class GithubSearchTest(APITestCase):
         )
 
         assert resp.status_code == 200
-        assert resp.data == [{"value": "target-user", "label": "target-user"}]
+        assert resp.data == [{"value": "target-user", "label": "Target User (@target-user)"}]
         request_body = orjson.loads(responses.calls[0].request.body)
         assert "assignableUsers" in request_body["query"]
         assert request_body["variables"] == {

@@ -393,8 +393,20 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         except Exception as e:
             self.raise_error(e)
 
-        users = tuple((user["login"], user["login"]) for user in response)
-        return users if query else (("", "Unassigned"),) + users
+        users = []
+        for user in response:
+            login = user["login"]
+            name = user.get("name")
+            display_name = name.strip() if isinstance(name, str) else ""
+            label = (
+                f"{display_name} (@{login})"
+                if display_name and display_name.casefold() != login.casefold()
+                else login
+            )
+            users.append((login, label))
+
+        user_choices = tuple(users)
+        return user_choices if query else (("", "Unassigned"),) + user_choices
 
     def get_repo_labels(
         self, owner: str, repo: str, page_number_limit: int | None = None

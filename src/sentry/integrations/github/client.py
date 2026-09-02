@@ -83,6 +83,7 @@ query SearchAssignableUsers($owner: String!, $name: String!, $search: String!) {
     results: assignableUsers(first: 100, query: $search) {
       nodes {
         login
+        name
       }
     }
   }
