@@ -1,6 +1,6 @@
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -48,19 +48,12 @@ export function WelcomeAgentSetup({
     : t('Help me setup Sentry');
 
   return (
-    <Grid
-      columns={{'screen:xs': '1fr', 'screen:md': 'repeat(2, 1fr)'}}
-      gap="2xl"
-      width="100%"
-      align="stretch"
-      position="relative"
-    >
+    <Stack gap="2xl" width="100%" position="relative" align="center">
       <AnimatePresence initial={false} mode="popLayout">
         {run && isAgentConnected ? (
           <MotionContainer
             key="progress"
             width="100%"
-            alignSelf="start"
             initial={{opacity: 0, scale: 1.1}}
             animate={{opacity: 1, scale: 1}}
             exit={{opacity: 0, scale: 0.9}}
@@ -74,7 +67,6 @@ export function WelcomeAgentSetup({
           <MotionContainer
             key="setup"
             width="100%"
-            height="100%"
             initial={{opacity: 0}}
             animate={{opacity: 1, scale: 1}}
             exit={{opacity: 0, scale: 0.9}}
@@ -88,45 +80,11 @@ export function WelcomeAgentSetup({
         )}
       </AnimatePresence>
 
-      <Grid
-        columns={{'screen:xs': '1fr', 'screen:md': 'max-content 1fr'}}
-        gap="2xl"
-        align="stretch"
-      >
-        <Grid
-          columns={{'screen:xs': '1fr max-content 1fr', 'screen:md': 'none'}}
-          rows={{'screen:xs': 'none', 'screen:md': '1fr max-content 1fr'}}
-          align={{'screen:xs': 'center', 'screen:md': 'stretch'}}
-          justifyItems={{'screen:xs': 'stretch', 'screen:md': 'center'}}
-          gap="md"
-        >
-          <SeparatorRule />
-          <Text variant="muted" size="sm" bold uppercase>
-            {t('or')}
-          </Text>
-          <SeparatorRule />
-        </Grid>
+      <Text variant="muted" size="md" bold uppercase>
+        {t('or')}
+      </Text>
 
-        <ManualSetupCard
-          isAgentConnected={isAgentConnected}
-          onSetupInBrowser={onSetupInBrowser}
-        />
-      </Grid>
-    </Grid>
-  );
-}
-
-/**
- * One of the two rules flanking the "or" label. It draws as a horizontal line
- * while the two setup paths stack, and turns vertical once they sit side by
- * side. The grid stretches it along the line's axis and centers it on the
- * other, so a single border edge is all the rule needs.
- */
-function SeparatorRule() {
-  return (
-    <Container
-      borderTop={{'screen:xs': 'secondary', 'screen:md': 'none'}}
-      borderLeft={{'screen:xs': 'none', 'screen:md': 'secondary'}}
-    />
+      <ManualSetupCard onSetupInBrowser={onSetupInBrowser} />
+    </Stack>
   );
 }
