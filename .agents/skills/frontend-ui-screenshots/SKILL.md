@@ -20,7 +20,7 @@ Use these defaults unless the user asks for broader coverage:
 
 - Use only the synthetic `demo` organization through `demo.dev.getsentry.net`, including Scraps routes. Stop if an interaction leaves the planned local origin or, for stories, the Scraps route.
 - Do not capture `sentry.sentry.io/_admin` or any admin page backed by real Sentry data. Admin UI evidence is out of scope for now; a future workflow must run Sentry locally with synthetic or mock data.
-- Explicit invocation authorizes replacing this skill's screenshot table in the current PR description. Do not publish anywhere else.
+- Explicit invocation authorizes replacing this skill's marked screenshot table in the current PR description, or in file-level review comments when the user requests them. Do not publish anywhere else.
 - Use the dedicated localhost-only Chrome profile in [references/chrome-setup.md](references/chrome-setup.md).
 - Capture PNG at device scale factor 2. Wait for fonts and lazy-loaded images; reject broken images.
 - Preserve the user's worktree. Put the merge-base build in a temporary detached worktree and remove only that worktree and its server afterward.
@@ -28,11 +28,11 @@ Use these defaults unless the user asks for broader coverage:
 ## Workflow
 
 1. Confirm `gh pr view` resolves the current branch's PR. Before the first upload, complete the one-time setup in [references/github-setup.md](references/github-setup.md). Stop before capture if there is no current PR.
-2. Inspect the merge-base diff, including uncommitted and untracked frontend files. Ignore `.spec.*` files as capture targets, but use them as route and interaction evidence. Search beside changed files for MDX and stories, responsive declarations, import parents, and route registrations.
+2. Inspect the merge-base diff, including uncommitted and untracked frontend files. Ignore `.spec.*` files as capture targets, but use them as route and interaction evidence. Search beside changed files for MDX and stories, responsive declarations, import parents, and route registrations. Map every visually changed surface to evidence or state why it cannot be captured; one convenient story is not coverage for an unrelated multi-file diff.
 3. Choose one of two paths:
    - `product`: visit the demo route, reproduce the state with safe accessible actions, and retain surrounding context. Do not submit mutations.
    - `story`: capture the diff-relevant section or, when no section clearly wins, the useful variation gallery.
-4. Confirm the inferred target in the browser. Prefer product context when a story cannot demonstrate the actual behavior. Add any feature flag referenced by the render path to the plan; the helper preserves and restores existing overrides.
+4. Confirm the inferred target in the browser. For Scraps, use the registered canonical path (for example `/scraps/principles/icons/`), never the internal `?name=<source-file>` loader URL. Prefer product context when a story cannot demonstrate the actual behavior. Add any feature flag referenced by the render path to the plan; the helper preserves and restores existing overrides.
 5. State the inferred path, route/story, state, themes, viewport widths, and supporting diff evidence before capture.
 6. Keep the current dev-ui running and note its actual port. Create a detached merge-base worktree, then start its dev-ui with `SENTRY_WEBPACK_PROXY_PORT=7998 pnpm dev-ui`. If that port is occupied, use the automatically selected port and report both actual URLs. Reuse `node_modules` only when dependency manifests match; otherwise sync the base worktree.
 7. Write a deterministic plan using [references/capture-plan.md](references/capture-plan.md), then run from the current worktree root:
@@ -41,13 +41,21 @@ Use these defaults unless the user asks for broader coverage:
 node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifacts/ui-capture/plan.json
 ```
 
-8. Inspect every Before/After pair. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior.
-9. Publish the accepted pairs and clean up locally:
+8. Inspect every Before/After pair. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior. At matched container widths, treat unexplained changes in column count, visible labels, counts, wrapping, or content as possible regressions: investigate and fix or explain them before publishing. For responsive changes, verify the rendered query-container content box at the exact boundary pixels, not only the viewport size.
+9. Publish the accepted pairs:
 
 ```bash
 node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs --manifest .artifacts/ui-capture/<name>/manifest.json
 ```
 
-The publisher replaces its marked Before/After table in the current PR description, verifies the returned body, then deletes only the local directory containing that manifest. If upload or PR editing fails, retain the artifacts and report how to retry.
+By default, the publisher replaces its marked Before/After table in the current PR description. When the user wants evidence beside a changed file, publish one manifest per file:
+
+```bash
+node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs \
+  --manifest .artifacts/ui-capture/<name>/manifest.json \
+  --comment-path static/app/path/to/component.tsx
+```
+
+File mode creates or replaces the skill's marked file-level review comment without changing the PR description. In either mode, the publisher verifies the returned body and retains the local artifacts so a reviewer-requested correction can reuse the unaffected images. If upload or PR editing fails, report how to retry. Remove capture artifacts only when the user asks or confirms the evidence is accepted.
 
 After publication, stop only the merge-base dev-ui process started for the capture and remove its temporary worktree. Do not stop either persistent browser profile or the current dev-ui.

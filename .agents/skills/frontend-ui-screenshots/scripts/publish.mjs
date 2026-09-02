@@ -25,7 +25,7 @@ function resolveCurrentPullRequest() {
     'pr',
     'view',
     '--json',
-    'number,url,body,headRefName',
+    'number,url,body,headRefName,headRefOid',
   ]);
   const repository = runJson('gh', ['repo', 'view', '--json', 'nameWithOwner']);
   return {...pullRequest, repository: repository.nameWithOwner};
@@ -214,8 +214,59 @@ function updatePullRequest(pullRequest, uploads) {
   return updated.html_url;
 }
 
+function updateFileComment(pullRequest, uploads, commentPath) {
+  const comments = runJson('gh', [
+    'api',
+    `repos/${pullRequest.repository}/pulls/${pullRequest.number}/comments?per_page=100`,
+  ]);
+  const body = renderTable(uploads);
+  const existing = comments.find(
+    comment => comment.path === commentPath && comment.body?.includes(MARKER_START)
+  );
+  const updated = existing
+    ? runJson(
+        'gh',
+        [
+          'api',
+          '--method',
+          'PATCH',
+          `repos/${pullRequest.repository}/pulls/comments/${existing.id}`,
+          '--input',
+          '-',
+        ],
+        {input: JSON.stringify({body})}
+      )
+    : runJson(
+        'gh',
+        [
+          'api',
+          '--method',
+          'POST',
+          `repos/${pullRequest.repository}/pulls/${pullRequest.number}/comments`,
+          '--input',
+          '-',
+        ],
+        {
+          input: JSON.stringify({
+            body,
+            commit_id: pullRequest.headRefOid,
+            path: commentPath,
+            subject_type: 'file',
+          }),
+        }
+      );
+  const missing = uploads
+    .flatMap(upload => [upload.before, upload.after])
+    .filter(url => !updated.body?.includes(url));
+  if (missing.length) {
+    throw new Error('GitHub did not return the complete file screenshot comment');
+  }
+  return updated.html_url;
+}
+
 const {values: options} = parseArgs({
   options: {
+    'comment-path': {type: 'string'},
     'dry-run': {type: 'boolean'},
     login: {type: 'boolean'},
     manifest: {type: 'string'},
@@ -228,12 +279,21 @@ if (options.login) {
   const {captureDirectory, pairs} = readManifest(options.manifest);
   if (options['dry-run']) {
     process.stdout.write(
-      `${JSON.stringify({pairs, pullRequest: pullRequest.url}, null, 2)}\n`
+      `${JSON.stringify(
+        {
+          commentPath: options['comment-path'],
+          pairs,
+          pullRequest: pullRequest.url,
+        },
+        null,
+        2
+      )}\n`
     );
     process.exit(0);
   }
   const uploads = await uploadImages(pullRequest, pairs);
-  const pullRequestUrl = updatePullRequest(pullRequest, uploads);
-  fs.rmSync(captureDirectory, {recursive: true});
-  process.stdout.write(`Updated ${pullRequestUrl}\nRemoved ${captureDirectory}\n`);
+  const pullRequestUrl = options['comment-path']
+    ? updateFileComment(pullRequest, uploads, options['comment-path'])
+    : updatePullRequest(pullRequest, uploads);
+  process.stdout.write(`Updated ${pullRequestUrl}\nRetained ${captureDirectory}\n`);
 }
