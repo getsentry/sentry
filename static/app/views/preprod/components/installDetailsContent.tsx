@@ -250,6 +250,7 @@ export function InstallDetailsContent({
                 {installDetails.platform === 'apple' ? (
                   <LinkButton
                     href={deviceInstallUrl}
+                    external
                     variant="primary"
                     size="md"
                     style={{width: '100%'}}
