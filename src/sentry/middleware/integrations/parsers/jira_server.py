@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
 from django.http import HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
@@ -32,22 +31,24 @@ class JiraServerRequestParser(BaseRequestParser):
             logger.info("%s.no_integration", self.provider, extra={"error": str(e)})
             return HttpResponse(status=status.HTTP_200_OK)
 
+        data = self.get_request_body()
+
+        # We only process webhooks with changelogs. Above the org and cell lookups a
+        # dropped payload never needs; below the token lookup so the log can name it.
+        if not data.get("changelog"):
+            logger.info("missing-changelog", extra={"integration_id": integration.id})
+            return HttpResponse(status=status.HTTP_200_OK)
+
+        shed_response = self.get_shed_response(integration_id=integration.id)
+        if shed_response is not None:
+            return shed_response
+
         organizations = self.get_organizations_from_integration(integration=integration)
 
         if len(organizations) == 0:
             return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
         cells = self.get_cells_from_organizations(organizations=organizations)
-
-        try:
-            data = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            data = {}
-
-        # We only process webhooks with changelogs
-        if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": integration.id})
-            return HttpResponse(status=status.HTTP_200_OK)
 
         return self.get_response_from_webhookpayload(
             cells=cells,

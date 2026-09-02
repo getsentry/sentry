@@ -1,3 +1,6 @@
+import {lazy} from 'react';
+
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   defineSeerEmbed,
@@ -7,6 +10,8 @@ import {IconDashboard} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+const LazyDashboardBlock = lazy(() => import('./dashboardBlock'));
 
 function DashboardLink({id, title}: EmbedOutput<'dashboard'>) {
   const organization = useOrganization();
@@ -23,7 +28,10 @@ function DashboardLink({id, title}: EmbedOutput<'dashboard'>) {
 
 export const Dashboard = defineSeerEmbed({
   name: 'dashboard',
-  render(props) {
+  render(props, level) {
+    if (level === 'block') {
+      return <LazyLoad LazyComponent={LazyDashboardBlock} {...props} />;
+    }
     return <DashboardLink {...props} />;
   },
 });

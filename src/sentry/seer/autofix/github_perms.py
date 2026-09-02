@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from collections.abc import Collection, Iterable, Iterator
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from sentry.constants import ObjectStatus
@@ -14,7 +14,6 @@ from sentry.integrations.utils.github_permissions import (
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import SEER_GITHUB_PROVIDERS
-from sentry.utils import json
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import MemoryBlock, SeerRunState, ToolCall
@@ -25,12 +24,15 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class MissingGithubPermissions:
     integration: RpcIntegration
-    repo_id: int
     # Empty when the installation has every required permission.
     missing_scopes: list[str]
+    # Set when this was resolved from a Repository row, so callers can log an id
+    # instead of the repo's full name.
+    repository_id: int | None = None
 
     @property
     def installation_id(self) -> str:
+        """GitHub App installation id (Integration.external_id)."""
         return str(self.integration.external_id)
 
     @property
@@ -46,9 +48,7 @@ class MissingGithubPermissions:
         )
 
 
-def get_github_missing_permissions(
-    integration_id: int, repo_id: int
-) -> MissingGithubPermissions | None:
+def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissions | None:
     """Required GitHub App permissions the installation for `integration_id` is
     missing. Returns None if the integration no longer exists."""
     integration = integration_service.get_integration(integration_id=integration_id)
@@ -58,7 +58,6 @@ def get_github_missing_permissions(
     missing = get_missing_github_app_permissions(integration.metadata)
     return MissingGithubPermissions(
         integration=integration,
-        repo_id=repo_id,
         missing_scopes=[permission["expected"]["scope"] for permission in (missing or [])],
     )
 
@@ -66,15 +65,6 @@ def get_github_missing_permissions(
 # Key set in a tool result's ToolLink.params when the tool call errored (mirrors
 # seer's ERROR_KEY in seer.automation.explorer.models).
 _TOOL_ERROR_KEY = "is_error"
-
-
-def blocks_have_failed_tool_call(blocks: Iterable[MemoryBlock]) -> bool:
-    """True if any tool call in the given blocks errored (ToolLink.params[is_error])."""
-    for block in blocks:
-        for link in block.tool_links or []:
-            if link is not None and link.params.get(_TOOL_ERROR_KEY) is True:
-                return True
-    return False
 
 
 def _failed_tool_calls(block: MemoryBlock) -> Iterator[ToolCall]:
@@ -98,158 +88,74 @@ def _failed_tool_calls(block: MemoryBlock) -> Iterator[ToolCall]:
             yield call
 
 
-def _repo_name_from_tool_call(call: ToolCall) -> str | None:
-    """The repo a tool call targeted, from its `repo_name` arg (None if absent)."""
-    try:
-        args = json.loads(call.args)
-    except (json.JSONDecodeError, TypeError):
-        return None
-
-    if not isinstance(args, dict):
-        return None
-
-    repo_name = args.get("repo_name")
-    return repo_name if isinstance(repo_name, str) and repo_name else None
-
-
-def repos_with_failed_tool_calls(blocks: Iterable[MemoryBlock]) -> set[str]:
-    """Repo names that a failed tool call in the given blocks was made against.
-
-    Answers: "the tool calls that failed were made against what repo?"
-
-    Limitation: a failure is only attributed to a repo when the tool call carries
-    a `repo_name` arg. Errored tool responses drop their metadata (params is just
-    {is_error: True}), so we recover the repo from the call args instead — which
-    only works for repo-scoped tools. That's fine here: we're building this for
-    the PR context tools (summarize_failed_ci_logs, get_pr_*), which all take
-    `repo_name` as a required arg. A failed non-repo tool yields no repo.
-    """
-    repos: set[str] = set()
+def failed_tool_calls(blocks: Iterable[MemoryBlock]) -> list[ToolCall]:
+    """Tool calls in ``blocks`` whose matching tool link is marked ``is_error``."""
+    calls: list[ToolCall] = []
     for block in blocks:
-        for call in _failed_tool_calls(block):
-            repo_name = _repo_name_from_tool_call(call)
-            if repo_name:
-                repos.add(repo_name)
-    return repos
+        calls.extend(_failed_tool_calls(block))
+    return calls
 
 
-def get_out_of_date_github_permissions(
-    organization: Organization, blocks: Sequence[MemoryBlock]
+def get_blocked_pr_iteration_permissions(
+    organization: Organization, state: SeerRunState, *, has_actionable_feedback: bool
 ) -> dict[str, MissingGithubPermissions]:
+    """Repos whose open PR we are refusing to iterate on for missing permissions.
+
+    Deliberately narrow, because the warning tells the user we wanted to fix
+    their CI and could not:
+
+    * ``has_actionable_feedback`` — feedback we would have consumed is sitting
+      in the run's queue. Without it there is nothing we were going to do, so a
+      missing permission is not yet costing the user anything.
+    * a repo only counts once its PR exists (``pr_number``); before that there
+      is no CI for us to have failed to fix.
+
+    Mirrors what ``block_iteration_for_missing_permissions`` gates on, so the
+    warning appears exactly when an iteration is actually blocked.
     """
-    An objective of this function is to only return repos that we know we should
-    notify on, since we likely ran into a failure with the github app permissions for that
-    repo.
+    if not has_actionable_feedback:
+        return {}
 
-    We don't want to surface out of date github permissions for a repo that we didn't
-    fail a tool call on, since we don't want to comment on the PR if we don't have a
-    good reason to.
+    repo_names = [
+        repo_name
+        for repo_name, pr_state in state.repo_pr_states.items()
+        if pr_state.pr_number is not None
+    ]
+    if not repo_names:
+        return {}
 
-    This is only relevant when it comes to notifying the user that there are out of date
-    github app permissions by commenting on the PR.
+    return get_missing_permissions_by_repo(organization, repo_names)
 
-    Pseudocode:
 
-        repos = {}
-        # 1. Which repos did a failed tool call target? (repos_with_failed_tool_calls)
-        for block in blocks:
-            for call in block.tool_calls:
-                if not call.failed:
-                    continue
-                repo = json.loads(call.args).get("repo_name")
-
-                # all the tools we care about commenting on, have the repo name as an arg
-                # so we should only hit this case if the tool call is unrelated to github app
-                # perms
-                if repo:
-                    repos.add(repo)
-
-        if not repos:
-            return {}
-
-        # 2. Map those repo names to their GitHub integration (org-scoped, active).
-        for (repo, integration_id) in Repository.filter(org, github, active, name in repos):
-            # 3. Ask GitHub which required app permissions that install is missing.
-            perms = get_github_missing_permissions(integration_id, repo_id)
-            if perms.missing_scopes:
-                result[repo] = perms
-
-        return result
+def get_missing_permissions_by_repo(
+    organization: Organization, repo_names: Collection[str]
+) -> dict[str, MissingGithubPermissions]:
+    """Map each of `repo_names` whose GitHub App install is missing a required
+    permission to what it is missing. Repos with a complete install, no active
+    org-scoped GitHub repository row, or no integration are absent.
     """
-    repo_names = repos_with_failed_tool_calls(blocks)
     if not repo_names:
         return {}
 
     # Org-scoped so a run can only surface permissions for repos in its own org.
-    repo_integration_ids = (
+    repos = (
         Repository.objects.filter(
             organization_id=organization.id,
             provider__in=SEER_GITHUB_PROVIDERS,
-            name__in=repo_names,
+            name__in=list(repo_names),
             status=ObjectStatus.ACTIVE,
         )
         .order_by("name", "integration_id")
-        .values_list("id", "name", "integration_id")
+        .values_list("name", "id", "integration_id")
     )
 
     missing_by_repo: dict[str, MissingGithubPermissions] = {}
-    for repo_id, repo_name, integration_id in repo_integration_ids:
+    for repo_name, repository_id, integration_id in repos:
         if not isinstance(integration_id, int):
             continue
 
-        perms = get_github_missing_permissions(integration_id, repo_id)
+        perms = get_github_missing_permissions(integration_id)
         if perms is not None and perms.missing_scopes:
-            missing_by_repo[repo_name] = perms
+            missing_by_repo[repo_name] = replace(perms, repository_id=repository_id)
 
     return missing_by_repo
-
-
-def comment_on_out_of_date_github_permissions(
-    organization: Organization,
-    state: SeerRunState,
-    missing_by_repo: Mapping[str, MissingGithubPermissions],
-) -> list[str]:
-    """Post an issue comment on each repo's PR explaining that the GitHub App
-    installation is missing permissions Seer needs, linking the user to accept
-    them. Returns the repo names a comment was successfully posted for.
-    """
-    commented: list[str] = []
-    for repo_name, info in missing_by_repo.items():
-        pr_state = state.repo_pr_states.get(repo_name)
-        if pr_state is None or pr_state.pr_number is None:
-            continue
-
-        integration = info.integration
-        url = info.installation_url
-        if url is None:
-            logger.error(
-                "autofix.permissions_comment.no_installation_url",
-                extra={
-                    "run_id": state.run_id,
-                    "organization_id": organization.id,
-                    "repo_id": info.repo_id,
-                    "integration_id": integration.id,
-                    "account_type": integration.metadata.get("account_type"),
-                },
-            )
-            continue
-
-        body = (
-            "⚠️ **Seer needs additional GitHub permissions**\n\n"
-            "A Seer autofix tool failed because the Sentry GitHub App installation is "
-            "missing permissions. For the best experience using Seer, please review and "
-            f"accept the updated permissions: {url}"
-        )
-        try:
-            client = integration.get_installation(organization_id=organization.id).get_client()
-            client.create_comment(repo_name, str(pr_state.pr_number), {"body": body})
-        except Exception:
-            logger.exception(
-                "autofix.permissions_comment.post_failed",
-                extra={"organization_id": organization.id, "repo_name": repo_name},
-            )
-            continue
-
-        commented.append(repo_name)
-
-    return commented

@@ -11,6 +11,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   OnboardingContextProvider,
@@ -612,6 +613,38 @@ describe('ScmMessaging', () => {
   });
 
   describe('exclusive mode (activeRow)', () => {
+    const exclusiveSlackSetup: ScmMessagingSetup = {
+      mode: 'selected',
+      providerKey: 'slack',
+      integrationId: 'slack-1',
+      channelId: 'C123',
+      channelName: '#alerts',
+    };
+
+    function mockExclusiveSlackProviders() {
+      mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/',
+        body: slackIntegration,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channel-validate/',
+        body: {valid: true},
+        match: [MockApiClient.matchQuery({channel: '#alerts'})],
+      });
+    }
+
+    function StatefulMessaging({initial}: {initial: ScmMessagingSetup}) {
+      const [setup, setSetup] = useState(initial);
+      return (
+        <ScmMessaging
+          messagingSetup={setup}
+          onMessagingSetupChange={setSetup}
+          selectedPlatform={selectedPlatform}
+        />
+      );
+    }
+
     it('entering configuring mode hides sibling rows and the footer; Cancel restores them', async () => {
       mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
       MockApiClient.addMockResponse({
@@ -646,44 +679,88 @@ describe('ScmMessaging', () => {
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
     });
 
-    it('entering removing mode hides sibling rows and the footer; Cancel restores them', async () => {
-      const slackSetup: ScmMessagingSetup = {
-        mode: 'selected',
-        providerKey: 'slack',
-        integrationId: 'slack-1',
-        channelId: 'C123',
-        channelName: '#alerts',
-      };
-      mockProviderQueries([slackIntegration, discordIntegration, msteamsIntegration]);
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/slack-1/',
-        body: slackIntegration,
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/integrations/slack-1/channel-validate/',
-        body: {valid: true},
-      });
-
-      renderMessaging(jest.fn(), slackSetup);
+    it('a saved destination hides sibling rows and keeps the footer', async () => {
+      mockExclusiveSlackProviders();
+      renderMessaging(jest.fn(), exclusiveSlackSetup);
 
       expect(await screen.findByText('slack')).toBeInTheDocument();
-      expect(screen.getByText('discord')).toBeInTheDocument();
-      expect(screen.getByText('msteams')).toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+      );
+    });
+
+    it('saving a destination from the picker keeps siblings hidden and restores the footer', async () => {
+      mockExclusiveSlackProviders();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {
+          results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'channel'}],
+        },
+      });
+
+      render(<StatefulMessaging initial={{mode: 'unconfigured'}} />);
+
+      expect(await screen.findByText('discord')).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: /Choose destination for slack/})
+      );
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
+
+      await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+
+      // activeRow clears after save; selected setup keeps siblings hidden and
+      // brings the footer back.
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
+      );
+    });
+
+    it('Cancel from removing keeps siblings hidden and restores the footer', async () => {
+      mockExclusiveSlackProviders();
+      renderMessaging(jest.fn(), exclusiveSlackSetup);
+
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
 
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
-      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set up later'})
       ).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+      expect(screen.queryByText('msteams')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+    });
+
+    it('confirming Remove restores sibling rows and the footer', async () => {
+      mockExclusiveSlackProviders();
+      render(<StatefulMessaging initial={exclusiveSlackSetup} />);
+
+      expect(await screen.findByText('slack')).toBeInTheDocument();
+      expect(screen.queryByText('discord')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: /Remove/}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+
       expect(await screen.findByText('discord')).toBeInTheDocument();
       expect(screen.getByText('msteams')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Continue'})).not.toBeInTheDocument();
     });
 
     it('clears stale removing activeRow when the destination is cleared externally', async () => {

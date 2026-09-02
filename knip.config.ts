@@ -24,8 +24,6 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'static/app/components/seer/autofixChatContext.tsx',
-  // TODO: Remove when wired into the connect repository modal
-  'static/app/components/connectRepository/**/*.{ts,tsx}',
   'static/app/components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'static/app/views/authV2/authLogin/**/*.{ts,tsx}',
@@ -77,6 +75,7 @@ const config: KnipConfig = {
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
+        'zrender', // used in echarts
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.

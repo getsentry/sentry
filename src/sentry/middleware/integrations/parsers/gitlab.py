@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
 from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
@@ -65,6 +64,11 @@ class GitlabRequestParser(BaseRequestParser):
         if isinstance(maybe_http_response, HttpResponseBase):
             return maybe_http_response
 
+        # Shed before the lookups: provider-wide conditions do not need the integration.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         try:
             integration = self.get_integration_from_request()
             if not integration:
@@ -77,14 +81,9 @@ class GitlabRequestParser(BaseRequestParser):
         if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
-        try:
-            data = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            data = {}
-
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, data),
+            identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
             integration_id=integration.id,
         )
 
@@ -98,6 +97,13 @@ class GitlabRequestParser(BaseRequestParser):
         if not project_id:
             return None
         return project_id
+
+    def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
+        """Reads the body's `object_kind`, not the `X-Gitlab-Event` header the
+        endpoint dispatches on, whose values contain spaces.
+        """
+        object_kind = data.get("object_kind")
+        return object_kind if isinstance(object_kind, str) else None
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:

@@ -217,6 +217,7 @@ export const useSeerExplorer = () => {
                 ...prev,
                 session: {
                   ...prev.session,
+                  failure_reason: null,
                   status: 'processing',
                   updated_at: new Date().toISOString(),
                 },
@@ -296,6 +297,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -358,6 +360,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },

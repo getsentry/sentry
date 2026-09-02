@@ -7,7 +7,11 @@ from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
-from sentry.preprod.vcs.markdown_utils import escape_markdown, escape_markdown_code
+from sentry.preprod.vcs.markdown_utils import (
+    escape_markdown,
+    escape_markdown_code,
+    format_commit_sha_markdown,
+)
 
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
@@ -201,7 +205,6 @@ def _format_solo_table(
 
 _SOLO_MESSAGE = "Snapshot diffs will appear when we have a base upload to compare against. Make sure to upload snapshots from your main branch."
 _WAITING_MESSAGE = "Waiting for base snapshots to finish uploading. This comment will update automatically within ~10 minutes or fail."
-_MISSING_BASE_MESSAGE = "No base snapshots found to compare against. Make sure snapshots are uploaded from your main branch."
 
 
 def _format_solo_comment(
@@ -240,7 +243,12 @@ def format_missing_base_snapshot_pr_comment(
     snapshot_metrics_map: dict[int, PreprodSnapshotMetrics],
     *,
     project: Project,
+    base_sha: str,
+    base_repo_url: str | None = None,
 ) -> str:
-    return _format_solo_comment(
-        artifacts, snapshot_metrics_map, _MISSING_BASE_MESSAGE, project=project
+    base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
+    message = (
+        f"No base snapshot found for {base_sha_markdown}. "
+        "Make sure snapshots are uploaded from your main branch."
     )
+    return _format_solo_comment(artifacts, snapshot_metrics_map, message, project=project)

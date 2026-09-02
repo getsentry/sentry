@@ -2,9 +2,11 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, type ReactNode} from 
 import styled from '@emotion/styled';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -12,7 +14,7 @@ import {
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
-import {IconClose} from 'sentry/icons';
+import {IconClose, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -226,6 +228,15 @@ export function SeerExplorerContent({
     sessionData.owner_user_id.toString() !== user.id;
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
+  const retryTarget = useMemo(() => {
+    for (let index = blocks.length - 1; index >= 0; index--) {
+      const block = blocks[index];
+      if (block?.message.role === 'user' && block.message.content?.trim()) {
+        return {insertIndex: index, query: block.message.content};
+      }
+    }
+    return null;
+  }, [blocks]);
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isAgentWriteApprovalPending =
@@ -468,6 +479,14 @@ export function SeerExplorerContent({
     closeMenu();
   };
 
+  const handleRetry = useCallback(() => {
+    if (!retryTarget || readOnly) {
+      return;
+    }
+    sendMessage(retryTarget.query, retryTarget.insertIndex);
+    userScrolledUpRef.current = false;
+  }, [readOnly, retryTarget, sendMessage]);
+
   // - Scroll effects ---------------------------------------------------------
 
   useEffect(() => {
@@ -685,13 +704,33 @@ export function SeerExplorerContent({
             </Fragment>
           )}
         </BlocksContainer>
+        {isTimedOut && (
+          <Container padding="0 xl">
+            <Alert
+              variant="warning"
+              trailingItems={
+                retryTarget &&
+                !readOnly && (
+                  <Alert.Button
+                    variant="secondary"
+                    icon={<IconRefresh />}
+                    onClick={handleRetry}
+                  >
+                    {t('Retry')}
+                  </Alert.Button>
+                )
+              }
+            >
+              <Text>{t('Response timed out.')}</Text>
+            </Alert>
+          </Container>
+        )}
         <InputSection
           blocks={blocks}
           enabled={!readOnly}
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
-          isTimedOut={isTimedOut}
           onCreatePR={createPR}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}

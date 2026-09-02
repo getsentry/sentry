@@ -16,7 +16,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {
   DiffTableChangeAmountCell,
-  DiffTableHeaderRow,
+  DiffTableHeader,
   DiffTableWithColumns,
   ITEMS_PER_PAGE,
   type DiffTableSort,
@@ -125,30 +125,7 @@ export function SizeCompareItemDiffTable({
     <Stack gap="md">
       <DiffTableWithColumns
         columns={tableHeaders}
-        header={
-          <DiffTableHeaderRow>
-            {tableHeaders.map(header => (
-              <SimpleTable.HeaderCell
-                key={header.key}
-                handleSortClick={
-                  header.key
-                    ? () =>
-                        setSort({
-                          field: header.key,
-                          kind:
-                            sort?.field === header.key && sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc',
-                        })
-                    : undefined
-                }
-                sort={sort && sort?.field === header.key ? sort.kind : undefined}
-              >
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </DiffTableHeaderRow>
-        }
+        header={<DiffTableHeader headers={tableHeaders} onSort={setSort} sort={sort} />}
       >
         {sortedDiffItems.length === 0 && (
           <SimpleTable.Empty>

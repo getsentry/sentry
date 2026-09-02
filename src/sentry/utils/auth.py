@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL: str | None = None
+# Path suffixes that are static assets, not app destinations
+_STATIC_LOGIN_REDIRECT_SUFFIXES = frozenset({".js", ".css", ".map"})
 
 MFA_SESSION_KEY = "mfa"
 REACT_AUTH_COOKIE = "sentry_react_auth"
@@ -220,12 +222,32 @@ def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     return login_redirect
 
 
+def _path_is_static_asset_redirect(path: str) -> bool:
+    """True if path is a static/asset URL that should never be a redirect destination."""
+    # Strip trailing slashes so `/foo.js.map/` still matches suffixes.
+    normalized = path.lower().rstrip("/") or "/"
+    basename = normalized.rsplit("/", 1)[-1]
+
+    static_prefixes = settings.ANONYMOUS_STATIC_PREFIXES
+    for prefix in static_prefixes:
+        prefix_norm = prefix.lower()
+        prefix_root = prefix_norm.rstrip("/")
+        if normalized == prefix_root or normalized.startswith(prefix_norm):
+            return True
+
+    last_dot = basename.rfind(".")
+    extension = basename[last_dot:] if last_dot != -1 else ""
+    return extension in _STATIC_LOGIN_REDIRECT_SUFFIXES
+
+
 def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> bool:
     if not url:
         return False
     if url.startswith(get_login_url()):
         return False
     parsed_url = urlparse(url)
+    if _path_is_static_asset_redirect(parsed_url.path or ""):
+        return False
     url_host = parsed_url.netloc
     base_hostname = settings.SENTRY_BASE_HOSTNAME
     if url_host.endswith(f".{base_hostname}"):

@@ -51,6 +51,27 @@ function apiRecord(overrides?: Partial<CallRecord>): CallRecord {
   };
 }
 
+/**
+ * A block whose tool calls are still running: no results yet, so only in-flight reporting shows.
+ */
+function inFlightBlock(toolCallIds: string[], overrides: Partial<Block> = {}): Block {
+  return {
+    id: 'tool-1',
+    message: {
+      role: 'tool_use',
+      content: null,
+      tool_calls: toolCallIds.map(id => ({
+        id,
+        function: 'sentry_api_execute',
+        args: '{"code":"..."}',
+      })),
+    },
+    timestamp: '2024-01-01T00:01:00Z',
+    loading: true,
+    ...overrides,
+  };
+}
+
 describe('call record rendering', () => {
   it('renders a row per call using the title seer shipped', () => {
     const block = codeModeBlock([
@@ -75,9 +96,9 @@ describe('call record rendering', () => {
     expect(screen.queryByText(/Used sentry_api_execute tool/)).not.toBeInTheDocument();
   });
 
-  it('drops a record with no title rather than showing its route', () => {
-    // The surviving row's expansion legitimately shows a route, so assert on the row count:
-    // the titleless record contributes nothing rather than falling back to its path.
+  it('reports a record with no title rather than deleting it', () => {
+    // Given a generic label rather than its route, but reported: a record vanishing for want of
+    // wording is how a whole endpoint disappears the day it is added.
     const block = codeModeBlock([
       apiRecord({title: undefined, path: '/api/0/dropped/{thing_id}/'}),
       apiRecord({id: 2, title: 'List Your Organizations'}),
@@ -85,7 +106,103 @@ describe('call record rendering', () => {
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('List Your Organizations')).toBeInTheDocument();
-    expect(screen.queryByText(/dropped/)).not.toBeInTheDocument();
+    expect(screen.getByText('Sentry API request')).toBeInTheDocument();
+  });
+
+  it('keeps the request details on a described api row', () => {
+    // The description leads the row, but an api call's own request is what makes that claim
+    // checkable — swapping it for the generated title would lose the literal URL and the body.
+    const record = apiRecord({
+      llm_description: 'Working out which org owns the failing project',
+      resolved_path: '/api/0/organizations/acme/',
+    });
+
+    expect(callRecordDetail(record)).toEqual({
+      request: 'GET /api/0/organizations/acme/',
+      body: null,
+    });
+  });
+
+  it('falls back to the title for a described row that ran no request', () => {
+    const record: CallRecord = {
+      id: 1,
+      parent: null,
+      kind: 'lib',
+      name: 'bash',
+      title: 'Running command grep -rn retry in getsentry/sentry',
+      llm_description: 'Checking whether the retry ceiling changed',
+    };
+
+    expect(callRecordDetail(record)).toEqual({
+      request: 'Running command grep -rn retry in getsentry/sentry',
+      body: null,
+    });
+  });
+
+  it('leads with what the agent said the call was for', () => {
+    const block = codeModeBlock([
+      apiRecord({
+        title: 'Retrieve an Organization',
+        llm_description: 'Working out which org owns the failing project',
+      }),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Working out which org owns the failing project')
+    ).toBeInTheDocument();
+  });
+
+  it('keeps a described composite helper instead of only its requests', () => {
+    // Without a description the children say more and the parent is dropped. With one, the parent
+    // says what the operation was *for*, which none of the requests underneath can.
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_issue_details',
+        title: 'Getting enriched issue details for issue 4521',
+        llm_description: 'Working out which span makes checkout slow',
+      },
+      apiRecord({id: 2, parent: 1, title: 'Retrieve an Issue'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Working out which span makes checkout slow')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Retrieve an Issue')).not.toBeInTheDocument();
+  });
+
+  it('drops an undescribed composite helper in favour of its requests', () => {
+    const block = codeModeBlock([
+      {
+        id: 1,
+        parent: null,
+        kind: 'lib',
+        name: 'get_issue_details',
+        title: 'Getting enriched issue details for issue 4521',
+      },
+      apiRecord({id: 2, parent: 1, title: 'Retrieve an Issue'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieve an Issue')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Getting enriched issue details for issue 4521')
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a note in the order it was written', () => {
+    const block = codeModeBlock([
+      apiRecord({id: 1, title: 'Retrieve an Organization'}),
+      {id: 2, parent: null, kind: 'note', llm_description: 'Comparing the two traces'},
+      apiRecord({id: 3, title: 'List Your Organizations'}),
+    ]);
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Comparing the two traces')).toBeInTheDocument();
   });
 
   it('links a record that identifies a navigable resource', () => {
@@ -508,5 +625,52 @@ describe('live call rendering', () => {
     render(<BlockComponent block={block} blockIndex={0} />);
 
     expect(screen.getByText('In-flight row')).toBeInTheDocument();
+  });
+});
+
+describe('in-flight progress', () => {
+  it('shows work as it happens for a running tool call', () => {
+    const block = inFlightBlock(['call-1'], {
+      progress: [{token: 'call-1', progress: 1, message: 'Retrieving issue 4521'}],
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieving issue 4521')).toBeInTheDocument();
+  });
+
+  it('reports both calls when two are in flight at once', () => {
+    // The block-level mirror could not say which outstanding call its records belonged to, so it
+    // showed them on neither — the agent looked hung while it worked. An event names its own call.
+    const block = inFlightBlock(['call-1', 'call-2'], {
+      progress: [
+        {
+          token: 'call-1',
+          progress: 1,
+          message: 'Searching the filesystem for retry logic',
+        },
+        {
+          token: 'call-2',
+          progress: 1,
+          message: 'Querying telemetry for the p95 regression',
+        },
+      ],
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(
+      screen.getByText('Searching the filesystem for retry logic')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Querying telemetry for the p95 regression')
+    ).toBeInTheDocument();
+  });
+
+  it('falls back to the block mirror when a seer sends no progress', () => {
+    const block = inFlightBlock(['call-1'], {
+      live_calls: [apiRecord({title: 'Retrieve an Organization'})],
+    });
+    render(<BlockComponent block={block} blockIndex={0} />);
+
+    expect(screen.getByText('Retrieve an Organization')).toBeInTheDocument();
   });
 });

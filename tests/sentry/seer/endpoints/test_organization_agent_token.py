@@ -1161,6 +1161,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         # A well-formed nonexistent identifier still exercises authentication, endpoint
         # scopes, URL conversion, and the outer resource permission boundary.
         opaque_values = {
+            "conversation_id": uuid4().hex,
             "external_issue_id": "1",
             "profile_id": uuid4().hex,
             "snapshot_id": "1",
@@ -1275,6 +1276,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "GroupAutofixEndpoint": "organizations:gen-ai-features",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
+            "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
             "OrganizationProfilingFlamegraphEndpoint": "organizations:profiling",
             "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
@@ -1561,6 +1563,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
+            ("OrganizationGroupSearchViewsEndpoint", "POST"): {
+                "name": "Permission Matrix Issue View",
+                "query": "is:unresolved",
+                "querySort": "date",
+                "projects": [self.project.id],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
+            },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
             ("ProjectReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
             ("ProjectReleaseFilesEndpoint", "POST"): {

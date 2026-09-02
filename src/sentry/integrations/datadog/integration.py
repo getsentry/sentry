@@ -12,11 +12,7 @@ from rest_framework.fields import CharField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
-from sentry.identity.datadog.provider import (
-    DATADOG_VALID_SITES,
-    MCP_ENDPOINT_PATH,
-    mcp_base_url_for_site,
-)
+from sentry.identity.datadog.provider import MCP_ENDPOINT_PATH, mcp_base_url_for_site
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -25,7 +21,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.datadog.client import validate_datadog_credentials
+from sentry.integrations.datadog.client import DATADOG_VALID_SITES, validate_datadog_credentials
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -191,12 +187,12 @@ class DatadogIntegrationProvider(IntegrationProvider):
         api_key = config["api_key"]
         app_key = config["app_key"]
         site = config["site"]
-        user = validate_datadog_credentials(api_key, app_key, site)
+        org_uuid = validate_datadog_credentials(api_key, app_key, site)
         credentials: DatadogCredentials = {"api_key": api_key, "app_key": app_key, "site": site}
 
         assert self.pipeline.organization is not None
         external_id = hashlib.sha256(
-            f"{self.pipeline.organization.id}:{user['org_uuid']}".encode()
+            f"{self.pipeline.organization.id}:{org_uuid}".encode()
         ).hexdigest()
 
         return {

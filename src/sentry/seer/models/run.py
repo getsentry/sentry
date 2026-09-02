@@ -98,6 +98,49 @@ class SeerRun(DefaultFieldsModel):
 
 
 @cell_silo_model
+class SeerRunPrIteration(DefaultFieldsModel):
+    """One PR iteration of a Seer run, and what analytics knows about it so far.
+
+    A row is opened when an iteration's first feedback item is queued and
+    deleted when its row is emitted, so a surviving row is an iteration that has
+    not been recorded yet. It hangs off the run rather than living in
+    ``SeerRun.extras`` so that writing to it never locks the run itself, and so
+    concurrent iterations never contend with each other.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="pr_iterations"
+    )
+    # The analytics row being accumulated, in the shape the event expects. The
+    # row's own id names the iteration: it travels with the agent request, so
+    # the completion hook can find this row from the run state alone.
+    data = models.JSONField(db_default={}, default=dict)
+    # Set once, by the drain that hands this iteration to the agent.
+    triggered = models.BooleanField(db_default=False, default=False)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerrunpriteration"
+        indexes = [
+            # The sweep ages rows by last write; it cannot afford a scan of a
+            # table that carries a row per in-flight iteration.
+            models.Index(fields=["date_updated"]),
+        ]
+        constraints = [
+            # Only an enqueue onto an empty queue opens a row, so one waits at most.
+            models.UniqueConstraint(
+                fields=["seer_run"],
+                condition=models.Q(triggered=False),
+                name="uniq_seerrunpriteration_waiting",
+            ),
+        ]
+
+    __repr__ = sane_repr("seer_run_id")
+
+
+@cell_silo_model
 class SeerRunPullRequest(DefaultFieldsModel):
     """Links a Seer run to a pull request it opened.
 

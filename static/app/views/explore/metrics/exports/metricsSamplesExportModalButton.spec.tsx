@@ -129,6 +129,12 @@ describe('MetricsSamplesExportModalButton', () => {
     });
   });
 
+  it('asks the server export for the accuracy the table escalates to', async () => {
+    const queryInfo = await submitExport();
+
+    expect(queryInfo.sampling).toBe('HIGHEST_ACCURACY');
+  });
+
   it('counts rows with the export query when the user has narrowed the search', async () => {
     renderButton();
 

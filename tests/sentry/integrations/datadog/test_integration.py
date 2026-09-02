@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 import responses
 
-from sentry.identity.datadog.provider import DATADOG_VALID_SITES
+from sentry.integrations.datadog.client import DATADOG_VALID_SITES
 from sentry.integrations.datadog.integration import (
     DatadogIntegration,
     DatadogIntegrationProvider,
@@ -15,9 +15,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
-MCP_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+CURRENT_USER_URL = "https://api.datadoghq.com/api/v2/current_user"
 
 
 def test_frontend_datadog_sites_match_backend() -> None:
@@ -31,13 +30,12 @@ def test_frontend_datadog_sites_match_backend() -> None:
     assert frontend_sites == set(DATADOG_VALID_SITES)
 
 
-def _mock_whoami(whoami: dict[str, Any]) -> None:
-    responses.add(responses.POST, MCP_URL, status=200, headers={"mcp-session-id": "sess-1"})
+def _mock_current_user(org_uuid: str) -> None:
     responses.add(
-        responses.POST,
-        MCP_URL,
+        responses.GET,
+        CURRENT_USER_URL,
         status=200,
-        json={"result": {"contents": [{"text": json.dumps(whoami)}]}},
+        json={"data": {"relationships": {"org": {"data": {"id": org_uuid}}}}},
     )
 
 
@@ -60,7 +58,7 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
 
     @responses.activate
     def test_build_integration_validates_and_stores_metadata(self) -> None:
-        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+        _mock_current_user("org-123")
 
         result = self._provider().build_integration(self._state())
 
@@ -83,7 +81,7 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
 
     @responses.activate
     def test_build_integration_raises_on_invalid_credentials(self) -> None:
-        responses.add(responses.POST, MCP_URL, status=403, json={"error": "forbidden"})
+        responses.add(responses.GET, CURRENT_USER_URL, status=403, json={"errors": ["forbidden"]})
 
         with pytest.raises(IntegrationConfigurationError):
             self._provider().build_integration(self._state())
@@ -161,7 +159,7 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
             metadata={"api_key": "old-api", "app_key": "old-app", "site": "datadoghq.com"},
         )
         installation = integration.get_installation(organization_id=self.organization.id)
-        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+        _mock_current_user("org-123")
 
         installation.update_organization_config(
             {"api_key": "new-api", "app_key": "new-app", "site": "datadoghq.com"}
@@ -184,7 +182,7 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
             metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
         )
         installation = integration.get_installation(organization_id=self.organization.id)
-        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+        _mock_current_user("org-123")
 
         installation.update_organization_config({"site": "datadoghq.com"})
 
@@ -202,17 +200,11 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
             metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
         )
         installation = integration.get_installation(organization_id=self.organization.id)
-        eu_url = "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
-        responses.add(responses.POST, eu_url, status=200, headers={"mcp-session-id": "sess-1"})
         responses.add(
-            responses.POST,
-            eu_url,
+            responses.GET,
+            "https://api.datadoghq.eu/api/v2/current_user",
             status=200,
-            json={
-                "result": {
-                    "contents": [{"text": json.dumps({"user_uuid": "u-1", "org_uuid": "org-123"})}]
-                }
-            },
+            json={"data": {"relationships": {"org": {"data": {"id": "org-123"}}}}},
         )
 
         installation.update_organization_config({"site": "datadoghq.eu"})

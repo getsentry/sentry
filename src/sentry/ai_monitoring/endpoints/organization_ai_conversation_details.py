@@ -1,21 +1,30 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
-from sentry.ai_monitoring.utils import fetch_conversation_title
+from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
@@ -23,16 +32,45 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
+from sentry.utils import metrics
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
 type SpanRow = dict[str, Any]
+type SpanKey = tuple[str, str]
 
 MAX_RETENTION_DAYS = 30
+MAX_PARENT_REPAIR_DEPTH = 5
 
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
+
+AI_CONVERSATION_ID_PARAM = OpenApiParameter(
+    name="conversation_id",
+    location="path",
+    required=True,
+    type=str,
+    description="Conversation ID recorded in `gen_ai.conversation.id`.",
+)
+
+AI_CONVERSATION_DETAILS_PER_PAGE_PARAM = OpenApiParameter(
+    name="per_page",
+    location="query",
+    required=False,
+    type=int,
+    description="Number of spans to return per page. Defaults to 100; maximum is 1,000.",
+)
+
+PARENT_SPAN_ATTRIBUTES = [
+    "span_id",
+    "trace",
+    "parent_span",
+    "span.op",
+    "span.name",
+    "gen_ai.operation.type",
+    "gen_ai.conversation.id",
+]
 
 AI_CONVERSATION_ATTRIBUTES = [
     "span_id",
@@ -84,15 +122,47 @@ class AIConversationDetailsResponse(TypedDict):
     spans: list[dict[str, Any]]
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def get(self, request: Request, organization: Organization, conversation_id: str) -> Response:
-        if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
-            return Response(status=404)
+    @extend_schema(
+        operation_id="retrieveOrganizationAIConversation",
+        summary="Retrieve an Organization's AI Conversation",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            AI_CONVERSATION_ID_PARAM,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            CursorQueryParam,
+            AI_CONVERSATION_DETAILS_PER_PAGE_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "RetrieveOrganizationAIConversationResponse", AIConversationDetailsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization, conversation_id: str
+    ) -> Response[AIConversationDetailsResponse] | Response[DetailResponse] | Response[None]:
+        """Return spans recorded for one AI conversation in start-time order.
 
+        **Experimental:** This API is under active development and may change.
+
+        Message, tool, and response attributes contain their recorded string values.
+        Without an explicit range, Sentry widens the search across available retention.
+        A missing conversation returns an empty `spans` list.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -104,15 +174,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         if has_explicit_range:
             if snuba_params.start and snuba_params.start < max_retention_cutoff:
-                return Response(
-                    {"detail": f"start time cannot be older than {MAX_RETENTION_DAYS} days"},
-                    status=400,
+                error = DetailResponse(
+                    detail=f"start time cannot be older than {MAX_RETENTION_DAYS} days"
                 )
+                return Response(error, status=400)
             if snuba_params.end and snuba_params.end < max_retention_cutoff:
-                return Response(
-                    {"detail": f"end time cannot be older than {MAX_RETENTION_DAYS} days"},
-                    status=400,
+                error = DetailResponse(
+                    detail=f"end time cannot be older than {MAX_RETENTION_DAYS} days"
                 )
+                return Response(error, status=400)
 
         with handle_query_errors():
             if has_explicit_range:
@@ -123,11 +193,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 )
 
             def data_fn(offset: int, limit: int) -> list[SpanRow]:
-                spans = self._fetch_spans(resolved_params, conversation_id, offset, limit)
-                self._annotate_issues(spans, resolved_params, organization)
-                return spans
+                return self._fetch_spans(resolved_params, conversation_id, offset, limit)
 
             def on_results(spans: list[SpanRow]) -> AIConversationDetailsResponse:
+                self._repair_parent_links(spans, resolved_params, conversation_id)
+                self._annotate_issues(spans, resolved_params, organization)
                 return {
                     "conversationId": conversation_id,
                     "title": self._resolve_title(conversation_id, spans, organization),
@@ -262,6 +332,126 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             if bucket:
                 span["errors"] = bucket["errors"]
                 span["occurrences"] = bucket["occurrences"]
+
+    def _is_gen_ai_span(self, span: Mapping[str, Any]) -> bool:
+        if span.get("gen_ai.operation.type"):
+            return True
+        return any(
+            isinstance(value := span.get(field), str) and value.startswith("gen_ai.")
+            for field in ("span.op", "span.name")
+        )
+
+    def _span_key(self, span: Mapping[str, Any], id_field: str = "span_id") -> SpanKey | None:
+        trace_id = span.get("trace")
+        span_id = span.get(id_field)
+        if not isinstance(trace_id, str) or not isinstance(span_id, str) or not span_id:
+            return None
+        return trace_id, span_id
+
+    def _fetch_parent_spans(
+        self,
+        snuba_params: SnubaParams,
+        parent_keys: Collection[SpanKey],
+    ) -> dict[SpanKey, SpanRow]:
+        if not parent_keys:
+            return {}
+
+        requested_keys = set(parent_keys)
+        query_string = " OR ".join(
+            f"({build_escaped_term_filter('trace', [trace_id])} "
+            f"{build_escaped_term_filter('span_id', [span_id])})"
+            for trace_id, span_id in sorted(requested_keys)
+        )
+        result = Spans.run_table_query(
+            params=snuba_params,
+            query_string=query_string,
+            selected_columns=PARENT_SPAN_ATTRIBUTES,
+            orderby=[],
+            offset=0,
+            limit=len(requested_keys),
+            referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+
+        return {
+            key: row
+            for row in result.get("data", [])
+            if (key := self._span_key(row)) in requested_keys
+        }
+
+    def _repair_parent_links(
+        self, spans: list[SpanRow], snuba_params: SnubaParams, conversation_id: str
+    ) -> None:
+        anchors: set[SpanKey] = set()
+        for span in spans:
+            if span.get("gen_ai.conversation.id") != conversation_id or not self._is_gen_ai_span(
+                span
+            ):
+                continue
+            if (key := self._span_key(span)) is not None:
+                anchors.add(key)
+
+        pending: dict[SpanKey, tuple[SpanRow, SpanKey, set[SpanKey]]] = {}
+        for span in spans:
+            child_key = self._span_key(span)
+            parent_key = self._span_key(span, "parent_span")
+            if (
+                child_key is not None
+                and parent_key is not None
+                and parent_key != child_key
+                and parent_key not in anchors
+                and span.get("gen_ai.conversation.id") == conversation_id
+                and self._is_gen_ai_span(span)
+            ):
+                pending[child_key] = (span, parent_key, {child_key})
+
+        cache: dict[SpanKey, SpanRow] = {}
+        fetched_keys: set[SpanKey] = set()
+        for depth in range(1, MAX_PARENT_REPAIR_DEPTH + 1):
+            if not pending:
+                break
+
+            missing_keys = {parent_key for _, parent_key, _ in pending.values()} - fetched_keys
+            fetched_keys.update(missing_keys)
+            try:
+                cache.update(self._fetch_parent_spans(snuba_params, missing_keys))
+            except Exception:
+                logger.exception("Failed to repair AI conversation span parents")
+                return
+            next_pending: dict[SpanKey, tuple[SpanRow, SpanKey, set[SpanKey]]] = {}
+
+            for child_key, (child, parent_key, visited) in pending.items():
+                parent = cache.get(parent_key)
+                if parent is None:
+                    continue
+
+                repair_depth = depth
+                if parent.get("gen_ai.conversation.id") == conversation_id and self._is_gen_ai_span(
+                    parent
+                ):
+                    ancestor_key = parent_key
+                else:
+                    next_ancestor_key = self._span_key(parent, "parent_span")
+                    repair_depth += 1
+                    visited = visited | {parent_key}
+                    if next_ancestor_key is None or next_ancestor_key in visited:
+                        continue
+                    if repair_depth > MAX_PARENT_REPAIR_DEPTH:
+                        metrics.incr("ai_monitoring.conversation_details.parent_repair_max_depth")
+                        continue
+                    if next_ancestor_key not in anchors:
+                        next_pending[child_key] = (child, next_ancestor_key, visited)
+                        continue
+                    ancestor_key = next_ancestor_key
+
+                if child.get("parent_span") != ancestor_key[1]:
+                    child["parent_span"] = ancestor_key[1]
+                    metrics.distribution(
+                        "ai_monitoring.conversation_details.parent_repair_depth", repair_depth
+                    )
+
+            pending = next_pending
 
     @trace
     def _fetch_spans(

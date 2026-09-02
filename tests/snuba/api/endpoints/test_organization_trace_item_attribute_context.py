@@ -1,3 +1,4 @@
+from unittest import mock
 from uuid import uuid4
 
 from django.urls import reverse
@@ -9,6 +10,9 @@ from sentry.explore.models import (
 )
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import snuba_rpc
+
+TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class OrganizationTraceItemAttributeContextEndpointTest(
@@ -272,6 +276,59 @@ class OrganizationTraceItemAttributeContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "not found" in response.data["detail"]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_accepts_attribute_beyond_the_attribute_name_limit(self) -> None:
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz_custom_attr"] = "value"
+        self.store_attribute(**tags)
+
+        response = self.do_request(
+            "zz_custom_attr",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        assert response.status_code == 201, response.data
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    @mock.patch(
+        "sentry.search.eap.utils.snuba_rpc.attribute_names_rpc",
+        wraps=snuba_rpc.attribute_names_rpc,
+    )
+    def test_accepts_an_attribute_whose_name_many_others_contain(
+        self, mock_attribute_names_rpc: mock.MagicMock
+    ) -> None:
+        tags = {f"a_my_tag_{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT * 2)}
+        tags["my_tag"] = "value"
+        self.store_attribute(**tags)
+
+        response = self.do_request(
+            "my_tag",
+            {
+                "dataset": "spans",
+                "attributeType": "string",
+                "brief": "My custom attribute",
+            },
+        )
+
+        offsets = [
+            call.args[0].page_token.offset for call in mock_attribute_names_rpc.call_args_list
+        ]
+        assert offsets == [
+            offset * TRUNCATED_ATTRIBUTE_NAME_LIMIT for offset in range(len(offsets))
+        ]
+        assert len(offsets) > 1
+        assert response.status_code == 201, response.data
 
     def test_ignores_time_range_filter(self) -> None:
         # The attribute was last seen well outside the narrow requested window.
