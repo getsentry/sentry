@@ -3,6 +3,7 @@ from typing import TypeVar
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.github.integration import GitHubIntegration, build_repository_query
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.integration import Integration
@@ -124,7 +125,7 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
                 choices = installation.search_allowed_assignees(repo, query)
             else:
                 choices = installation.search_repo_labels(repo, query)
-        except IntegrationError as error:
+        except (IntegrationError, InvalidIdentity) as error:
             if installation.is_broken_integration_error(error) == "rate_limited":
                 return Response({"detail": "Rate limit exceeded"}, status=429)
             return Response({"detail": "Unable to fetch options from GitHub"}, status=400)

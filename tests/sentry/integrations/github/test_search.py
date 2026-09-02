@@ -260,6 +260,18 @@ class GithubSearchTest(APITestCase):
         assert resp.data == {"detail": "Rate limit exceeded"}
 
     @responses.activate
+    def test_searches_assignees_invalid_identity(self) -> None:
+        responses.add(responses.POST, self.graphql_url, status=401)
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "target", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Unable to fetch options from GitHub"}
+
+    @responses.activate
     def test_prefetches_label_results(self) -> None:
         responses.add(
             responses.GET,
