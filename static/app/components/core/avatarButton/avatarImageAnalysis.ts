@@ -48,7 +48,7 @@ export function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
   return 'fill';
 }
 
-export function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
+function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   try {
     const canvas = document.createElement('canvas');
     canvas.width = SAMPLE_SIZE;
@@ -174,7 +174,7 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
   return `#${toHex(dominant.r)}${toHex(dominant.g)}${toHex(dominant.b)}`;
 }
 
-export function sampleAvatarColor(
+function sampleAvatarColor(
   img: HTMLImageElement
 ): {chonk: string | null; style: 'fill' | 'padded'} | null {
   const data = readPixels(img);
@@ -188,7 +188,7 @@ export function sampleAvatarColor(
   };
 }
 
-export function loadImageElement(src: string): Promise<HTMLImageElement | null> {
+function loadImageElement(src: string): Promise<HTMLImageElement | null> {
   return new Promise(resolve => {
     const img = new Image();
     img.onload = () => resolve(img);
@@ -216,7 +216,7 @@ export function toPageOriginIfSameHost(url: string): string {
   }
 }
 
-export async function fetchAvatarColor(
+async function fetchAvatarColor(
   url: string
 ): Promise<ReturnType<typeof sampleAvatarColor> | null> {
   let objectUrl: string | undefined;
