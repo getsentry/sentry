@@ -22,6 +22,7 @@ export const RowFrame = styled(Container)`
     border-bottom-right-radius: ${p => p.theme.radius.md};
   }
 
+  /* Keep in sync with SnapshotVariantContainer's separator in snapshotFrames.tsx. */
   &[data-separator] {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }

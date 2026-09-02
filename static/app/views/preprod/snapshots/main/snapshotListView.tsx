@@ -236,6 +236,23 @@ function isGroupedRow(row: ListRow): boolean {
   return row.kind === 'header' || !row.isUngrouped;
 }
 
+// Where a row sits in its group's continuous bordered frame. A grouped group's
+// top border is carried by its header row, so a grouped first card is not a top.
+export function rowFrameEdges(row: ListRow): {
+  frameBottom: boolean;
+  frameTop: boolean;
+  separator: boolean;
+} {
+  if (row.kind === 'header') {
+    return {frameTop: true, frameBottom: false, separator: false};
+  }
+  return {
+    frameTop: row.isFirstInGroup && row.isUngrouped,
+    frameBottom: row.isLastInGroup,
+    separator: !row.isLastInGroup,
+  };
+}
+
 export interface SnapshotListViewHandle {
   scrollToGroup: (itemKey: string) => void;
 }
@@ -554,6 +571,8 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   const activeRow = activeRowItem ? rows[activeRowItem.index] : undefined;
   const activeItemKey = activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null;
   const activeGroupName = activeItemKey === null ? null : (activeRow?.groupName ?? null);
+  // A large group's last row is often outside the overscan window, so its bound
+  // is an estimate until measured; the sticky bottom self-corrects once near it.
   const measurements = virtualizer.measurementsCache;
   const activeGroupBounds = (() => {
     if (activeItemKey === null) {
@@ -624,24 +643,20 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       <Container position="relative" width="100%" style={{height: totalSize}}>
         {virtualItems.map(vi => {
           const row = rows[vi.index]!;
-          const isTop =
-            row.kind === 'header' ||
-            (row.kind === 'card' && row.isFirstInGroup && row.isUngrouped);
-          const isBottom = row.kind === 'card' && row.isLastInGroup;
-          const isSeparator = row.kind === 'card' && !row.isLastInGroup;
+          const {frameTop, frameBottom, separator} = rowFrameEdges(row);
           return (
             <RowPositioner
               key={vi.key}
               data-index={vi.index}
-              data-last-in-group={isBottom ? '' : undefined}
+              data-last-in-group={frameBottom ? '' : undefined}
               ref={virtualizer.measureElement}
               style={{transform: `translateY(${vi.start}px)`}}
             >
               <RowFrame
                 overflow="hidden"
-                data-frame-top={isTop ? '' : undefined}
-                data-frame-bottom={isBottom ? '' : undefined}
-                data-separator={isSeparator ? '' : undefined}
+                data-frame-top={frameTop ? '' : undefined}
+                data-frame-bottom={frameBottom ? '' : undefined}
+                data-separator={separator ? '' : undefined}
               >
                 {row.kind === 'header' ? (
                   <SnapshotGroupHeader name={row.groupName} />
@@ -784,6 +799,12 @@ const RowPositioner = styled('div')`
   top: 0;
   left: 0;
   right: 0;
-  padding-bottom: ${p => p.theme.space.xl};
   contain: layout paint;
+
+  /* Only the last row of a group carries the inter-group gap, matching the
+   * ROW_PADDING_BOTTOM added to its estimated height in buildRows. Padding every
+   * row would break the group's continuous bordered frame. */
+  &[data-last-in-group] {
+    padding-bottom: ${p => p.theme.space.xl};
+  }
 `;

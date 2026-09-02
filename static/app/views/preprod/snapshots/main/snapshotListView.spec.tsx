@@ -131,6 +131,9 @@ describe('SnapshotListView', () => {
     // Frame edges are pure styling hooks with no ARIA role; query the DOM directly.
     expect(document.querySelectorAll('[data-frame-top]')).toHaveLength(1); // header row
     expect(document.querySelectorAll('[data-frame-bottom]')).toHaveLength(1); // last card row
+    // The inter-group gap is gated to the last row only; padding every row would
+    // break the group's continuous bordered frame.
+    expect(document.querySelectorAll('[data-last-in-group]')).toHaveLength(1);
   });
 
   it('renders no group header for ungrouped items', () => {
