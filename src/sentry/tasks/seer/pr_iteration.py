@@ -9,6 +9,7 @@ from typing import Any, NamedTuple
 from uuid import uuid4
 
 import sentry_sdk
+from django.utils import timezone
 from scm import actions as scm_actions
 from scm.errors import ResourceNotFound, SCMError
 from scm.helpers import iter_all_pages
@@ -61,6 +62,15 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
+from sentry.seer.autofix.pr_iteration.details_store import (
+    count_iterations_before,
+    remove_iterations_before,
+)
+from sentry.seer.autofix.pr_iteration.emit import (
+    discard_pr_iteration_details,
+    record_pr_iteration_counts,
+    trigger_pr_iteration_details,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -420,6 +430,18 @@ def consume_queued_autofix_feedback(
             raise
 
 
+def _discard_iteration(
+    log_ctx: PrIterationLogContext, run_id: int, organization_id: int, iteration_id: int | None
+) -> None:
+    if iteration_id is not None:
+        discard_pr_iteration_details(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=organization_id,
+            iteration_id=iteration_id,
+        )
+
+
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -452,8 +474,14 @@ def _drain_queued_autofix_feedback(
         )
         return
 
+    # Claim before the pop, so feedback arriving mid-drain opens its own row.
+    iteration_id = trigger_pr_iteration_details(
+        log_ctx=log_ctx, run_id=run_id, organization_id=organization_id
+    )
+
     queued_items = pop_queued_autofix_feedback(run_id)
     if not queued_items:
+        _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
@@ -514,6 +542,8 @@ def _drain_queued_autofix_feedback(
             queued_count=len(queued_items),
             dropped=dropped,
         )
+        # The drain popped the queue, so this iteration will never run.
+        _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return
 
     referrer = _get_feedback_referrer(consumable_items)
@@ -533,6 +563,19 @@ def _drain_queued_autofix_feedback(
         actor_user_id=actor_user_id,
     )
 
+    if iteration_id is not None:
+        record_pr_iteration_counts(
+            log_ctx=log_ctx,
+            run_id=run_id,
+            organization_id=organization_id,
+            iteration_id=iteration_id,
+            referrer=referrer.value,
+            feedback_count=len(feedback_items),
+            queued_count=len(queued_items),
+            dropped_count=len(dropped),
+            automated_feedback_count=sum(1 for item in feedback_items if item.source.is_automated),
+        )
+
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
         trigger_autofix_agent(
@@ -544,6 +587,7 @@ def _drain_queued_autofix_feedback(
             feedback=feedback_items,
             actor_user_id=actor_user_id,
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
+            iteration_id=iteration_id,
         )
     except (
         PrIterationNoPullRequestException,
@@ -558,6 +602,8 @@ def _drain_queued_autofix_feedback(
             trigger_id=trigger_id,
             trigger_source=trigger_source,
         )
+        # The drain popped the queue, so this iteration will never run.
+        _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         return
 
     log_ctx.info(
@@ -1602,3 +1648,37 @@ def trigger_pr_iteration_from_review(
     logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)
 
     return None
+
+
+# How long an iteration row may sit untouched before it is discarded. A row
+# survives this long only when the iteration never reached a completion hook, so
+# nothing is emitted for it; this just keeps the table to iterations in flight.
+STALE_DETAILS_AGE = timedelta(hours=24)
+
+# Rows deleted per pass, oldest first. The sweep is a backstop, not the main
+# path, so it stays small and runs often.
+STALE_DETAILS_BATCH_SIZE = 100
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.sweep_pr_iteration_details",
+    namespace=seer_tasks,
+    processing_deadline_duration=120,
+)
+def sweep_pr_iteration_details() -> None:
+    """Discard iteration rows left behind by iterations that never completed."""
+    cutoff = timezone.now() - STALE_DETAILS_AGE
+    backlog = count_iterations_before(cutoff)
+    metrics.gauge("autofix.pr_iteration.details.backlog", backlog)
+
+    discarded = remove_iterations_before(cutoff, STALE_DETAILS_BATCH_SIZE)
+    for triggered, count in discarded.items():
+        metrics.incr(
+            "autofix.pr_iteration.details.discarded",
+            amount=count,
+            tags={"triggered": triggered},
+        )
+    logger.info(
+        "autofix.pr_iteration.details.sweep",
+        extra={"discarded": sum(discarded.values()), "backlog": backlog},
+    )

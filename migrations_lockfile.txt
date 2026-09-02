@@ -33,7 +33,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0032_add_extras_to_seer_run_milestone
+seer: 0033_seer_run_pr_iteration
 
 sentry: 1160_create_deletion_watermark
 

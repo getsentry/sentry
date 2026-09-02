@@ -510,6 +510,7 @@ def trigger_autofix_agent(
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
+    iteration_id: int | None = None,
     allow_free_cohort: bool = False,
 ) -> SeerRun:
     """
@@ -642,6 +643,9 @@ def trigger_autofix_agent(
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
+
+    if iteration_id is not None:
+        prompt_metadata["iteration_id"] = str(iteration_id)
 
     if step == AutofixStep.ROOT_CAUSE:
         base_shas = _build_base_shas_metadata(group, referrer)

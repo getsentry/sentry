@@ -39,6 +39,7 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import failed_tool_calls
+from sentry.seer.autofix.pr_iteration.emit import complete_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -866,6 +867,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # we want to consume queued feedback _after_ we know changes have been pushed
                 # because some feedback in the queue could be filtered out
                 cls._consume_queued_feedback(log_ctx, organization, run_id)
+
+            complete_pr_iteration_details(
+                log_ctx=log_ctx,
+                run_state=state,
+                organization_id=organization.id,
+                pushed_changes=pushed,
+            )
             return
 
         if stopping_point is None or reached_stopping_point:
