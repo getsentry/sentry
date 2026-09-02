@@ -9,7 +9,6 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -241,9 +240,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:gen-ai-conversations", organization, actor=request.user):
-            return Response(status=404)
-
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -533,7 +529,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 if trace_id:
                     traces_by_conversation[conv_id].add(trace_id)
 
-                if row.get("gen_ai.operation.type") == "invoke_agent":
+                if row.get("gen_ai.operation.type") == "agent":
                     agent_name = row.get("gen_ai.agent.name", "")
                     if agent_name:
                         flows_by_conversation[conv_id].append(agent_name)

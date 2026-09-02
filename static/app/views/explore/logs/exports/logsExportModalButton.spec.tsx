@@ -54,6 +54,7 @@ describe('LogsExportModalButton', () => {
         isLoading={false}
         queryInfo={queryInfo}
         supportsAllColumns
+        supportsLocalDownload={false}
         tableData={tableData}
         title="Logs Export"
       />,
