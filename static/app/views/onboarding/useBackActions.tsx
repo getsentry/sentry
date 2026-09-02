@@ -47,7 +47,7 @@ export function useBackActions({
       }
 
       if (preserveOnboardingState) {
-        onboardingContext.setCreatedProjectSlug(undefined);
+        onboardingContext.setCreatedProject(undefined);
       } else {
         onboardingContext.resetOnboarding();
       }

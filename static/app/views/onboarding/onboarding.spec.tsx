@@ -755,7 +755,10 @@ describe('Onboarding', () => {
         JSON.stringify({
           selectedPlatform: nextJsPlatform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          createdProjectSlug: 'javascript-nextjs',
+          createdProject: {
+            slug: 'javascript-nextjs',
+            messagingSelection: undefined,
+          },
           messagingSetup: selectedMessagingSetup,
           agentSetupProjectBaseline: {
             organizationId: scmOrganization.id,
@@ -1137,7 +1140,10 @@ describe('Onboarding', () => {
           JSON.stringify({
             selectedPlatform: nextJsPlatform,
             selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProjectSlug: nextJsProject.slug,
+            createdProject: {
+              slug: nextJsProject.slug,
+              messagingSelection: undefined,
+            },
           })
         );
 
@@ -1190,6 +1196,10 @@ describe('Onboarding', () => {
       const initialContext = {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProject: {
+          slug: nextJsProject.slug,
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1221,8 +1231,8 @@ describe('Onboarding', () => {
       const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
       expect(stored.selectedPlatform).toBeDefined();
       expect(stored.selectedFeatures).toBeDefined();
-      // createdProjectSlug should be cleared so the user can re-create
-      expect(stored.createdProjectSlug).toBeUndefined();
+      // createdProject should be cleared so the user can re-create
+      expect(stored.createdProject).toBeUndefined();
       expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
     });
 
@@ -1313,7 +1323,10 @@ describe('Onboarding', () => {
         }),
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: 'javascript-nextjs',
+        createdProject: {
+          slug: 'javascript-nextjs',
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1336,7 +1349,7 @@ describe('Onboarding', () => {
       // Derived state should be cleared
       expect(stored.selectedPlatform).toBeUndefined();
       expect(stored.selectedFeatures).toBeUndefined();
-      expect(stored.createdProjectSlug).toBeUndefined();
+      expect(stored.createdProject).toBeUndefined();
       // Integration and repo should be preserved
       expect(stored.selectedIntegration).toBeDefined();
       expect(stored.selectedRepository).toBeDefined();
