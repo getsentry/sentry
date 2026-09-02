@@ -244,6 +244,22 @@ class GithubSearchTest(APITestCase):
         }
 
     @responses.activate
+    def test_searches_assignees_rate_limit(self) -> None:
+        responses.add(
+            responses.POST,
+            self.graphql_url,
+            json={"errors": [{"type": "RATE_LIMITED"}]},
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "assignee", "query": "target", "repo": "test/example"},
+        )
+
+        assert resp.status_code == 429
+        assert resp.data == {"detail": "Rate limit exceeded"}
+
+    @responses.activate
     def test_prefetches_label_results(self) -> None:
         responses.add(
             responses.GET,
@@ -290,6 +306,29 @@ class GithubSearchTest(APITestCase):
             "name": "example",
             "search": "integrations",
         }
+
+    @responses.activate
+    def test_searches_labels_missing_repository(self) -> None:
+        responses.add(
+            responses.POST,
+            self.graphql_url,
+            json={
+                "errors": [
+                    {
+                        "type": "NOT_FOUND",
+                        "message": "Could not resolve to a Repository with the requested name.",
+                    }
+                ]
+            },
+        )
+
+        resp = self.client.get(
+            self.url,
+            data={"field": "labels", "query": "bug", "repo": "test/missing"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.data == {"detail": "Unable to fetch options from GitHub"}
 
     def test_rejects_invalid_repo_when_prefetching_fields(self) -> None:
         resp = self.client.get(

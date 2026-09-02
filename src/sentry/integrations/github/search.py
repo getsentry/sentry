@@ -12,7 +12,7 @@ from sentry.integrations.source_code_management.metrics import (
     SourceCodeSearchEndpointHaltReason,
 )
 from sentry.integrations.source_code_management.search import SourceCodeSearchEndpoint
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
@@ -111,17 +111,22 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
             return Response({"detail": "Invalid repository"}, status=400)
 
         assert isinstance(installation, self.installation_class)
-        if not query:
-            # TODO: Use GraphQL for preloads after validating these queries across supported
-            # GHES versions.
-            if field == "assignee":
-                choices = installation.get_allowed_assignees(repo, PAGE_LIMIT)
+        try:
+            if not query:
+                # TODO: Use GraphQL for preloads after validating these queries across supported
+                # GHES versions.
+                if field == "assignee":
+                    choices = installation.get_allowed_assignees(repo, PAGE_LIMIT)
+                else:
+                    owner, repo_name = repo.split("/", 1)
+                    choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
+            elif field == "assignee":
+                choices = installation.search_allowed_assignees(repo, query)
             else:
-                owner, repo_name = repo.split("/", 1)
-                choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
-        elif field == "assignee":
-            choices = installation.search_allowed_assignees(repo, query)
-        else:
-            choices = installation.search_repo_labels(repo, query)
+                choices = installation.search_repo_labels(repo, query)
+        except IntegrationError as error:
+            if installation.is_broken_integration_error(error) == "rate_limited":
+                return Response({"detail": "Rate limit exceeded"}, status=429)
+            return Response({"detail": "Unable to fetch options from GitHub"}, status=400)
 
         return Response([{"label": label, "value": value} for value, label in choices])
