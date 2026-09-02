@@ -63,16 +63,19 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                     "sentry_sa_email": _SENTRY_SA,
                     "customer_sa_email": customer_sa,
                     "projects": project_ids,
-                    "connection_status": "unverified",
-                    "project_statuses": [
-                        {
-                            "gcp_project_id": project_id,
-                            "connection_status": "unverified",
-                            "error_detail": None,
-                        }
-                        for project_id in project_ids
-                    ],
-                    "last_verified_at": None,
+                    "connection_health": {
+                        "status": "unverified",
+                        "last_checked_at": None,
+                        "error_detail": None,
+                        "resources": [
+                            {
+                                "resource_id": project_id,
+                                "status": "unverified",
+                                "error_detail": None,
+                            }
+                            for project_id in project_ids
+                        ],
+                    },
                 }
             },
         )
@@ -276,15 +279,17 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
         assert response.data["projects"][0]["errorDetail"] == ("Cloud Trace: IAM roles not granted")
 
         config = self._config()
-        assert config["connection_status"] == "permission_denied"
-        assert config["project_statuses"] == [
+        health = config["connection_health"]
+        assert health["status"] == "permission_denied"
+        assert health["error_detail"] is None
+        assert health["resources"] == [
             {
-                "gcp_project_id": "proj-a",
-                "connection_status": "permission_denied",
+                "resource_id": "proj-a",
+                "status": "permission_denied",
                 "error_detail": "Cloud Trace: IAM roles not granted",
             }
         ]
-        assert config["last_verified_at"] is not None
+        assert health["last_checked_at"] is not None
         assert config["customer_sa_email"] == _CUSTOMER_SA
         assert config["sentry_sa_email"] == _SENTRY_SA
 
@@ -324,15 +329,17 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
         assert response.data["projects"][0]["errorDetail"] is None
 
         config = self._config()
-        assert config["connection_status"] == "connected"
-        assert config["project_statuses"] == [
+        health = config["connection_health"]
+        assert health["status"] == "connected"
+        assert health["error_detail"] is None
+        assert health["resources"] == [
             {
-                "gcp_project_id": "proj-a",
-                "connection_status": "connected",
+                "resource_id": "proj-a",
+                "status": "connected",
                 "error_detail": None,
             }
         ]
-        assert config["last_verified_at"] is not None
+        assert health["last_checked_at"] is not None
 
     @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
     @patch(_PATCH_VERIFY, return_value=_denied_result())
@@ -348,7 +355,7 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                 gcp_project_ids=["proj-a"],
             )
 
-        assert self._config()["connection_status"] == "unverified"
+        assert self._config()["connection_health"]["status"] == "unverified"
 
     @patch(_PATCH_SA_EMAIL, return_value=_SENTRY_SA)
     @patch(_PATCH_VERIFY, return_value=_denied_result())
@@ -364,4 +371,4 @@ class OrganizationMonitoringProviderVerifyConnectionTest(APITestCase):
                 gcp_project_ids=["proj-a"],
             )
 
-        assert self._config()["connection_status"] == "unverified"
+        assert self._config()["connection_health"]["status"] == "unverified"

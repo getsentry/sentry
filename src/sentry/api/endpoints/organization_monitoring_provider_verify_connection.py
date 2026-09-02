@@ -29,6 +29,7 @@ from sentry.integrations.gcp.utils import resolve_project_error_detail
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.seer.agent.monitoring_providers import ConnectionHealth
 from sentry.shared_integrations.exceptions import IntegrationError
 
 logger = logging.getLogger(__name__)
@@ -87,21 +88,22 @@ def _record_verification_result(
     if set(config.get("projects", [])) != set(verified["gcp_project_ids"]):
         return
 
+    connection_health: ConnectionHealth = {
+        "status": result["connection_status"],
+        "last_checked_at": timezone.now().isoformat(),
+        "error_detail": result.get("error_detail"),
+        "resources": [
+            {
+                "resource_id": project["gcp_project_id"],
+                "status": project["connection_status"],
+                "error_detail": project.get("error_detail"),
+            }
+            for project in result["projects"]
+        ],
+    }
     integration_service.update_organization_integration(
         org_integration_id=org_integration.id,
-        config={
-            **config,
-            "connection_status": result["connection_status"],
-            "project_statuses": [
-                {
-                    "gcp_project_id": project["gcp_project_id"],
-                    "connection_status": project["connection_status"],
-                    "error_detail": project.get("error_detail"),
-                }
-                for project in result["projects"]
-            ],
-            "last_verified_at": timezone.now().isoformat(),
-        },
+        config={**config, "connection_health": connection_health},
     )
 
 
