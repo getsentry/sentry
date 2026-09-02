@@ -111,7 +111,7 @@ export function SpansTable({
   const [lastResolvedTable, setLastResolvedTable] = useState<ResolvedSpanTable | null>(
     resolvedTable ? {...resolvedTable, fields} : null
   );
-  const rolledBackResultRef = useRef<SpansTableResult['result'] | null>(null);
+  const rolledBackErrorRef = useRef<SpansTableResult['result']['error']>(null);
 
   if (
     resolvedTable &&
@@ -154,15 +154,15 @@ export function SpansTable({
       !result.isError ||
       !lastResolvedTable ||
       addedFields.length === 0 ||
-      rolledBackResultRef.current === result
+      rolledBackErrorRef.current === result.error
     ) {
       return;
     }
 
-    rolledBackResultRef.current = result;
+    rolledBackErrorRef.current = result.error;
     setFields([...lastResolvedTable.fields], {replace: true});
     addErrorMessage(t('Failed to add column'));
-  }, [addedFields, lastResolvedTable, result, setFields]);
+  }, [addedFields, lastResolvedTable, result.error, result.isError, setFields]);
 
   const meta = useMemo(
     () =>
