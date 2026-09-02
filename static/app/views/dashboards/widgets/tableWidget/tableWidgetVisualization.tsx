@@ -441,10 +441,6 @@ function StarColumnHeader({columnKey}: {columnKey: string}) {
   );
 }
 
-/**
- * Fills the header cell so the star centers over the star buttons below it,
- * which are wider than the star they contain.
- */
 const StarColumnTooltip = styled(StyledTooltip)`
   flex: 1;
 `;
