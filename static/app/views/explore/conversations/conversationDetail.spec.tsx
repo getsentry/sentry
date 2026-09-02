@@ -297,11 +297,16 @@ describe('ConversationDetailPage summary errors', () => {
     expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
 
     // Linked issues resolve to the issue stream across all projects.
-    const errorsLink = screen.getByRole('link', {name: /1/});
-    const href = errorsLink.getAttribute('href')!;
-    expect(href).toContain('/organizations/org-slug/issues/');
-    expect(href).toContain(encodeURIComponent('issue.id:[42]'));
-    expect(href).toContain('project=-1');
+    const errorsLink = screen.getByRole('link', {name: '1'});
+    expect(errorsLink).toHaveAttribute(
+      'href',
+      expect.stringContaining('/organizations/org-slug/issues/')
+    );
+    expect(errorsLink).toHaveAttribute(
+      'href',
+      expect.stringContaining(encodeURIComponent('issue.id:[42]'))
+    );
+    expect(errorsLink).toHaveAttribute('href', expect.stringContaining('project=-1'));
   });
 
   it('links the errors count to the traces explorer for span-status errors with no linked issue', async () => {
@@ -320,10 +325,12 @@ describe('ConversationDetailPage summary errors', () => {
     expect(await screen.findByTestId('conversation-error-icon')).toBeInTheDocument();
 
     // Span-status-only errors fall back to the traces explorer.
-    const errorsLink = screen.getByRole('link', {name: /1/});
-    const href = errorsLink.getAttribute('href')!;
-    expect(href).toContain('/traces/');
-    expect(href).toContain(encodeURIComponent('span.status:[internal_error,error]'));
-    expect(href).not.toContain('/issues/');
+    const errorsLink = screen.getByRole('link', {name: '1'});
+    expect(errorsLink).toHaveAttribute('href', expect.stringContaining('/traces/'));
+    expect(errorsLink).toHaveAttribute(
+      'href',
+      expect.stringContaining(encodeURIComponent('span.status:[internal_error,error]'))
+    );
+    expect(errorsLink).not.toHaveAttribute('href', expect.stringContaining('/issues/'));
   });
 });
