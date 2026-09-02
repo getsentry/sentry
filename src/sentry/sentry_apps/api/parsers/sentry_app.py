@@ -109,7 +109,7 @@ class URLField(serializers.URLField):
         "popularity": "Internal ranking value used to order integrations in the directory.",
         "isDisabled": "Set by Sentry when an integration is disabled; not client-settable.",
         "features": "Set through the integration's own configuration flow rather than this endpoint.",
-        "status": "Publication state, moved by Sentry's review process rather than by clients.",
+        "status": "Only applied for elevated Sentry staff; ignored for everyone else.",
     }
 )
 class SentryAppParser(Serializer):

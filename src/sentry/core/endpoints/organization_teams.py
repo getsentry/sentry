@@ -1,6 +1,6 @@
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -48,11 +48,11 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
-@extend_schema_serializer(deprecate_fields=["name"])
 @sentry_schema_serializer(
     omit_from_public_schema={
         "idp_provisioned": "Set by SCIM and identity-provider provisioning, not by API clients.",
-    }
+    },
+    deprecate_fields=["name"],
 )
 class TeamPostSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(
