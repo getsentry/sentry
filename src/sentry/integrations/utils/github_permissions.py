@@ -13,7 +13,7 @@ where the warnings are implemented since this API returns the list of missing sc
 
 import logging
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from sentry import options
 
@@ -45,6 +45,22 @@ def _quantify_github_app_permissions(
     return {scope: PERMISSION_LEVELS[level] for scope, level in permissions.items()}
 
 
+def has_github_app_permissions(
+    metadata: Mapping[str, Any], required_permissions: Mapping[str, str]
+) -> bool:
+    permissions = metadata.get("permissions")
+    if not isinstance(permissions, Mapping):
+        return False
+
+    try:
+        required = _quantify_github_app_permissions(required_permissions)
+        actual = _quantify_github_app_permissions(cast(Mapping[str, str], permissions))
+    except KeyError:
+        return False
+
+    return all(actual.get(scope, 0) >= level for scope, level in required.items())
+
+
 def get_missing_github_app_permissions(
     metadata: Mapping[str, Any],
 ) -> list[MissingGithubAppPermission] | None:
@@ -53,8 +69,12 @@ def get_missing_github_app_permissions(
         return None
 
     try:
-        expected_permissions = _quantify_github_app_permissions(required_permissions)
-        actual_permissions = _quantify_github_app_permissions(metadata.get("permissions", {}))
+        expected_permissions = _quantify_github_app_permissions(
+            cast(Mapping[str, str], required_permissions)
+        )
+        actual_permissions = _quantify_github_app_permissions(
+            cast(Mapping[str, str], metadata.get("permissions", {}))
+        )
     except KeyError:
         # If either dict has an unknown permission level, don't enforce anything.
         logger.error(

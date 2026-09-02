@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.agent.client_models import (
     MemoryBlock,
@@ -13,9 +14,11 @@ from sentry.seer.agent.client_models import (
     ToolResult,
 )
 from sentry.seer.autofix.github_perms import (
+    GITHUB_PR_WRITE_PERMISSIONS,
     MissingGithubPermissions,
     failed_tool_calls,
     get_blocked_pr_iteration_permissions,
+    get_github_integration_ids_with_permissions,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -75,6 +78,42 @@ def test_failed_tool_calls_aggregates_across_blocks() -> None:
         _block(calls=[("u", "org/repo-b", True)]),
     ]
     assert [call.function for call in failed_tool_calls(blocks)] == ["t", "u"]
+
+
+class GetGithubIntegrationIdsWithPermissionsTest(TestCase):
+    def test_returns_only_active_installations_with_required_permissions(self) -> None:
+        healthy = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="healthy",
+            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+        )
+        missing = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="missing",
+            metadata={"permissions": {"contents": "read", "pull_requests": "write"}},
+        )
+        inactive = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="inactive",
+            status=ObjectStatus.DISABLED,
+            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+        )
+        inactive_for_org = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="inactive-for-org",
+            oi_params={"status": ObjectStatus.DISABLED},
+            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+        )
+
+        assert get_github_integration_ids_with_permissions(
+            organization_id=self.organization.id,
+            integration_ids={healthy.id, missing.id, inactive.id, inactive_for_org.id},
+            required_permissions=GITHUB_PR_WRITE_PERMISSIONS,
+        ) == {healthy.id}
 
 
 class GetBlockedPrIterationPermissionsTest(TestCase):

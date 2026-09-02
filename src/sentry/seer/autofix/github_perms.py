@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.github_permissions import (
     get_github_permissions_update_url,
     get_missing_github_app_permissions,
+    has_github_app_permissions,
 )
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -19,6 +21,8 @@ if TYPE_CHECKING:
     from sentry.seer.agent.client_models import MemoryBlock, SeerRunState, ToolCall
 
 logger = logging.getLogger(__name__)
+
+GITHUB_PR_WRITE_PERMISSIONS = {"contents": "write", "pull_requests": "write"}
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,34 @@ def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissi
         integration=integration,
         missing_scopes=[permission["expected"]["scope"] for permission in (missing or [])],
     )
+
+
+def get_github_integration_ids_with_permissions(
+    *,
+    organization_id: int,
+    integration_ids: Collection[int],
+    required_permissions: Mapping[str, str],
+) -> set[int]:
+    """Return active GitHub integrations associated with the organization that
+    have all required permissions."""
+    if not integration_ids:
+        return set()
+
+    integrations = integration_service.get_integrations(
+        integration_ids=list(set(integration_ids)),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        providers=[
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ],
+    )
+    return {
+        integration.id
+        for integration in integrations
+        if has_github_app_permissions(integration.metadata, required_permissions)
+    }
 
 
 # Key set in a tool result's ToolLink.params when the tool call errored (mirrors
