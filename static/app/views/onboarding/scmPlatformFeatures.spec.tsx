@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
@@ -58,7 +59,7 @@ jest.mock('sentry/data/platforms', () => {
 });
 
 interface StateOverrides {
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   selectedFeatures?: ProductSolution[];
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
@@ -69,12 +70,7 @@ function defaultProps(state: StateOverrides = {}) {
     selectedRepository: state.selectedRepository,
     selectedPlatform: state.selectedPlatform,
     selectedFeatures: state.selectedFeatures,
-    createdProject: state.createdProjectSlug
-      ? {
-          slug: state.createdProjectSlug,
-          messagingSelection: undefined,
-        }
-      : undefined,
+    createdProject: state.createdProject,
     deferProjectCreation: false,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
@@ -815,7 +811,7 @@ describe('ScmPlatformFeatures', () => {
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: existingProject.slug,
+        createdProject: {slug: existingProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 
@@ -851,7 +847,7 @@ describe('ScmPlatformFeatures', () => {
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: stalePythonProject.slug,
+        createdProject: {slug: stalePythonProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 

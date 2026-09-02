@@ -43,11 +43,10 @@ interface UseScmProjectCreationOptions {
    */
   createdProject: CreatedProject | undefined;
   /**
-   * Persists the created project: slug and destination in one update, so a
-   * reload can never restore one without the other. Called immediately after
-   * the project POST succeeds and before repository linking or completion, so
-   * the duplicate-prevention handoff to SDK setup is never skipped by a later
-   * failure.
+   * Persists the created project (onboarding session state). Called
+   * immediately after the project POST succeeds and before repository linking
+   * or completion, so the duplicate-prevention handoff to SDK setup is never
+   * skipped by a later failure.
    */
   onCreatedProjectChange: (createdProject: CreatedProject) => void;
   selectedRepository: Repository | undefined;

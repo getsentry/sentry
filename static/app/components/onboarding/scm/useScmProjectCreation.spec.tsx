@@ -93,8 +93,6 @@ describe('useScmProjectCreation', () => {
         }),
       })
     );
-    // Slug and destination are persisted in one update, so a later reuse
-    // check never sees a slug without the destination it was created for.
     expect(onCreatedProjectChange).toHaveBeenCalledWith({
       slug: 'python',
       messagingSelection: undefined,
@@ -281,6 +279,31 @@ describe('useScmProjectCreation', () => {
       expect(onCreatedProjectChange).toHaveBeenCalledWith({
         slug: createdProject.slug,
         messagingSelection: stagedSelection,
+      });
+      expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({reused: false}));
+    });
+
+    it('creates a new project when a destination is staged after Set up later', async () => {
+      const createRequest = mockCreateProject();
+      const onCreatedProjectChange = jest.fn();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({
+        createdProject: {slug: createdProject.slug, messagingSelection: undefined},
+        onCreatedProjectChange,
+      });
+
+      await act(() =>
+        result.current.createOrReuseProject({
+          platform: pythonPlatform,
+          stagedSelection: savedSelection,
+          onSuccess,
+        })
+      );
+
+      expect(createRequest).toHaveBeenCalledTimes(1);
+      expect(onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: createdProject.slug,
+        messagingSelection: savedSelection,
       });
       expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({reused: false}));
     });
