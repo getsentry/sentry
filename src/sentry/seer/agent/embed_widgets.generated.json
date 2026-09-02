@@ -532,7 +532,7 @@
   },
   {
     "name": "monitor",
-    "description": "The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, or mobile build detector). Use the detector ID exactly as the monitors API returns it. Include the API-provided name when available. Inline: renders a compact link. Block: loads the live monitor and renders its type-specific details. For error monitors, statsPeriod scopes the unresolved issue list. Never use a markdown link for monitor references.",
+    "description": "The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, or mobile build detector). Use the detector ID exactly as the monitors API returns it. Include the API-provided name when available. Inline: renders a compact link. Block: loads the live monitor and renders its type-specific configuration/rules. Never use a markdown link for monitor references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -545,11 +545,6 @@
         "name": {
           "type": "string",
           "minLength": 1
-        },
-        "statsPeriod": {
-          "description": "For error monitors only, the relative time range for unresolved issues, e.g. \"1h\", \"24h\", or \"14d\". Defaults to \"24h\".",
-          "type": "string",
-          "pattern": "^\\d+[smhdw]$"
         }
       },
       "required": ["id"],
