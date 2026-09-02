@@ -64,34 +64,46 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
     return aggregation_value
 
 
+def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
+    """
+    Normalize a Snuba/EAP aggregate to float | None.
+
+    Subscription and comparison queries can return None, empty strings, or other
+    non-numeric values for some aggregates (e.g. max/min with no matching rows).
+    Callers should skip the update when this returns None rather than doing type
+    checks later.
+    """
+    if value is None:
+        return 0.0 if none_defaults_to_zero else None
+
+    if isinstance(value, bool):
+        # bool is a subclass of int; treat explicitly before numeric checks.
+        return float(value)
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    # Snuba occasionally returns empty/non-numeric strings for max/min-style
+    # aggregates when no matching rows exist. Skip those updates rather than
+    # crashing in math.isnan() or coercing to 0 (which can false-trigger alerts).
+    if isinstance(value, str):
+        if value.strip() == "":
+            return None
+        try:
+            return float(value)
+        except ValueError:
+            return None
+
+    return None
+
+
 def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float | None:
     aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
     # In some cases Snuba can return a None value for an aggregation. This means
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
     # the update in the future.
-    if aggregation_value is None:
-        return 0.0
-
-    if isinstance(aggregation_value, bool):
-        # bool is a subclass of int; treat explicitly before numeric checks.
-        return float(aggregation_value)
-
-    if isinstance(aggregation_value, (int, float)):
-        return float(aggregation_value)
-
-    # Snuba occasionally returns empty/non-numeric strings for max/min-style
-    # aggregates when no matching rows exist. Skip those updates rather than
-    # crashing in math.isnan() or coercing to 0 (which can false-trigger alerts).
-    if isinstance(aggregation_value, str):
-        if aggregation_value.strip() == "":
-            return None
-        try:
-            return float(aggregation_value)
-        except ValueError:
-            return None
-
-    return None
+    return coerce_aggregation_value(aggregation_value, none_defaults_to_zero=True)
 
 
 def get_eap_aggregation_value(
@@ -133,7 +145,7 @@ def get_eap_aggregation_value(
             },
         )
         return None
-    return comparison_aggregate
+    return coerce_aggregation_value(comparison_aggregate)
 
 
 def get_aggregation_value(
@@ -192,7 +204,7 @@ def get_aggregation_value(
             },
         )
         return None
-    return comparison_aggregate
+    return coerce_aggregation_value(comparison_aggregate)
 
 
 def get_comparison_aggregation_value(

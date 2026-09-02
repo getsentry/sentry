@@ -111,3 +111,10 @@ class GetAggregationValueHelperTest(TestCase):
         from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
 
         assert get_aggregation_value_helper(self._update("not-a-number")) is None
+
+    def test_bool_values(self) -> None:
+        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
+
+        assert get_aggregation_value_helper(self._update(True)) == 1.0
+        assert get_aggregation_value_helper(self._update(False)) == 0.0
+
