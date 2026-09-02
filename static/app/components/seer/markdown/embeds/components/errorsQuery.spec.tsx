@@ -2,6 +2,10 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
+jest.mock('sentry/components/charts/baseChart', () => ({
+  BaseChart: jest.fn(() => null),
+}));
+
 function renderEmbed({
   name,
   data,
@@ -47,6 +51,7 @@ describe('errors query embeds', () => {
       'href',
       expect.stringContaining('/explore/discover/results/')
     );
+    expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -93,6 +98,10 @@ describe('errors query embeds', () => {
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
+    // Grouping fields (title, project) remain alongside the aggregate, so
+    // the table still renders instead of a chart.
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.queryByTestId('seer-chart-content')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -104,6 +113,51 @@ describe('errors query embeds', () => {
             sort: '-count_unique_user',
             statsPeriod: '1h',
             yAxis: 'count()',
+          }),
+        })
+      );
+    });
+  });
+
+  it('renders a chart instead of a table when every aggregate field is a function call', async () => {
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [1_700_000_000, [{count: 5}]],
+          [1_700_003_600, [{count: 8}]],
+        ],
+      },
+    });
+
+    renderEmbed({
+      name: 'errorsQueryAggregate',
+      data: {
+        query: 'event.type:error',
+        fields: ['count()'],
+        statsPeriod: '1h',
+        title: 'Error count',
+      },
+    });
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    // The table's own fetch is skipped entirely in chart mode.
+    expect(eventsRequest).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:error',
+            statsPeriod: '1h',
+            yAxis: ['count()'],
           }),
         })
       );
