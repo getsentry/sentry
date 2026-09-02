@@ -71,6 +71,26 @@ def get_active_user(user_id: int, is_active: bool) -> RpcUser | None:
     return None
 
 
+@back_with_silo_cache(
+    base_key="this-base-key-is-quite-long-and-will-overflow", silo_mode=SiloMode.CELL, t=RpcUser
+)
+def get_active_user_long_basekey(user_id: int, is_active: bool) -> RpcUser | None:
+    results = user_service.get_many(filter=dict(user_ids=[user_id], is_active=is_active))
+    if len(results):
+        return results[0]
+    return None
+
+
+@back_with_silo_cache(
+    base_key="this-base-key-is-32-chars-loonng", silo_mode=SiloMode.CELL, t=RpcUser
+)
+def get_active_user_equal(user_id: int, padding: str) -> RpcUser | None:
+    results = user_service.get_many(filter=dict(user_ids=[user_id]))
+    if len(results):
+        return results[0]
+    return None
+
+
 @django_db_all(transaction=True)
 def test_caching_function_multiple_parameters() -> None:
     cache.clear()
@@ -102,6 +122,38 @@ def test_caching_function_multiple_parameters() -> None:
 
     assert get_active_user.key_from(user.id, True) != get_active_user.key_from(user.id, False)
     assert get_active_user.key_from(user.id, True) != get_active_user.key_from(user.id + 1, True)
+
+
+@django_db_all(transaction=True)
+def test_caching_function_long_base_key() -> None:
+    cache.clear()
+    user = Factories.create_user()
+
+    first = get_active_user_long_basekey(user.id, True)
+    assert first
+    assert first.id == user.id
+    assert first.username == user.username
+
+    cached = get_active_user_long_basekey(user.id, True)
+    assert cached
+    assert cached.id == user.id
+
+
+@django_db_all(transaction=True)
+def test_caching_function_equal_length() -> None:
+    cache.clear()
+    user = Factories.create_user()
+    id_len = len(str(user.id))
+
+    # 6 accounts for :[,""]
+    first = get_active_user_equal(user.id, "a" * (32 - id_len - 6))
+    assert first
+    assert first.id == user.id
+    assert first.username == user.username
+
+    cached = get_active_user_long_basekey(user.id, True)
+    assert cached
+    assert cached.id == user.id
 
 
 @django_db_all(transaction=True)
