@@ -290,6 +290,7 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
+
 /**
  * Whether a single integration installation is running an outdated app and
  * should surface an "Update Now" prompt. Checked per-workspace so that, e.g.,
