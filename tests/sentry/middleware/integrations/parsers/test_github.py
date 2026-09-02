@@ -256,7 +256,7 @@ class GithubRequestParserTest(TestCase):
                 "installation": {"id": "1"},
                 "issue": {"id": "1"},
                 "action": "deleted",
-                "repository": {"id": "1"},
+                "repository": {"id": 1},
             },
             content_type="application/json",
             headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
