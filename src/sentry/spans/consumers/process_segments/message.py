@@ -83,6 +83,8 @@ EVIDENCE_SPAN_DATA_KEYS = frozenset(
         "http.request.request_start",
         "http.request.response_start",
         "http.response_content_length",
+        "sentry.category",
+        "sentry.group",
         "url",
     )
 )
