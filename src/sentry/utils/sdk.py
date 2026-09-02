@@ -342,6 +342,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
+    sdk_options["trace_lifecycle"] = "stream"
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
@@ -404,8 +405,6 @@ def configure_sdk():
         integrations.append(ThreadingIntegration())
     else:
         disabled_integrations.append(ThreadingIntegration())
-
-    sdk_options["trace_lifecycle"] = "stream"
 
     dsn = dsns.sentry_mirror if dsns.sentry_mirror else dsns.sentry4sentry
 
