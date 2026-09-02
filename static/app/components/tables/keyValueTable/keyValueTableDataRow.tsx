@@ -1,14 +1,11 @@
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-
-import {Flex} from '@sentry/scraps/layout';
 
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 
-import {useKeyValueTableContext} from './context';
-import {PreformattedValue, Value, ValueLink} from './value';
+import {Value, ValueLink} from './value';
 
 export interface KeyValueTableDataRowProps {
   /**
@@ -56,74 +53,21 @@ export function KeyValueTableDataRow({
   expandLeft,
   ...props
 }: KeyValueTableDataRowProps) {
-  const context = useKeyValueTableContext();
   const {
     subject,
     subjectNode,
-    subjectIcon,
-    subjectDataTestId,
     value: itemValue,
     action = {},
     actionButton,
     actionButtonAlwaysVisible,
-    isContextData,
-    isMultiValue,
   } = item;
 
-  const isList = context.variant === 'list';
   const hasErrors = errors.length > 0;
   const hasSuffix = !!(hasErrors || actionButton);
 
-  const valueProps = {
-    value: itemValue,
-    meta,
-    subjectIcon,
-    isContextData: isContextData || context.isContextData,
-    raw: context.raw,
-    disableFormattedData,
-  };
-
-  const dataComponent = isList ? (
-    <PreformattedValue {...valueProps} />
-  ) : (
-    <Value {...valueProps} />
+  const dataComponent = (
+    <Value value={itemValue} meta={meta} disableFormattedData={disableFormattedData} />
   );
-
-  const linkedValue =
-    !disableLink && defined(action?.link) ? (
-      <ValueLink to={action.link}>{dataComponent}</ValueLink>
-    ) : (
-      dataComponent
-    );
-
-  const value =
-    isList && isMultiValue && Array.isArray(itemValue) ? (
-      <MultiValue values={itemValue} />
-    ) : (
-      linkedValue
-    );
-
-  if (isList) {
-    return (
-      <tr>
-        <td className="key">{subject}</td>
-        <td className="val" data-test-id={subjectDataTestId}>
-          <ListValue>
-            {actionButton ? (
-              <ListValueWithButton>
-                {value}
-                <Flex align="start" height="100%">
-                  {actionButton}
-                </Flex>
-              </ListValueWithButton>
-            ) : (
-              value
-            )}
-          </ListValue>
-        </td>
-      </tr>
-    );
-  }
 
   return (
     <RowWrapper
@@ -141,7 +85,13 @@ export function KeyValueTableDataRow({
         hasErrors={hasErrors}
         hasEmptySubject={subjectNode === null}
       >
-        <ValueWrapper hasSuffix={hasSuffix}>{value}</ValueWrapper>
+        <ValueWrapper hasSuffix={hasSuffix}>
+          {!disableLink && defined(action?.link) ? (
+            <ValueLink to={action.link}>{dataComponent}</ValueLink>
+          ) : (
+            dataComponent
+          )}
+        </ValueWrapper>
         {hasSuffix && (
           <div>
             {hasErrors && <AnnotatedTextErrors errors={errors} />}
@@ -157,48 +107,33 @@ export function KeyValueTableDataRow({
   );
 }
 
-function MultiValue({values}: {values: readonly React.ReactNode[]}) {
-  return values.map((value, index) => <PreformattedValue key={index} value={value} />);
-}
+type RowState = {hasErrors: boolean; isSuspectFlag: boolean};
 
-const RowWrapper = styled('div')<{
-  hasErrors: boolean;
-  isSuspectFlag: boolean;
-  expandLeft?: boolean;
-}>`
+const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Theme}) => {
+  const [content, tint] = hasErrors
+    ? [theme.colors.red500, theme.colors.red100]
+    : isSuspectFlag
+      ? [theme.colors.yellow500, theme.colors.yellow100]
+      : [theme.tokens.content.secondary, null];
+
+  return css`
+    color: ${content};
+    box-shadow: inset 0 0 0 1px ${tint ?? 'transparent'};
+    background-color: ${tint ?? theme.tokens.background.primary};
+    &:nth-child(odd) {
+      background-color: ${tint ?? theme.tokens.background.secondary};
+    }
+  `;
+};
+
+const RowWrapper = styled('div')<RowState & {expandLeft?: boolean}>`
   display: grid;
   grid-template-columns: ${p => (p.expandLeft ? '2fr 0.8fr' : 'subgrid')};
   grid-column: span 2;
   column-gap: ${p => p.theme.space.lg};
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   border-radius: 4px;
-  color: ${p =>
-    p.hasErrors
-      ? p.theme.colors.red500
-      : p.isSuspectFlag
-        ? p.theme.colors.yellow500
-        : p.theme.tokens.content.secondary};
-  box-shadow: inset 0 0 0 1px
-    ${p =>
-      p.hasErrors
-        ? p.theme.colors.red100
-        : p.isSuspectFlag
-          ? p.theme.colors.yellow100
-          : 'transparent'};
-  background-color: ${p =>
-    p.hasErrors
-      ? p.theme.colors.red100
-      : p.isSuspectFlag
-        ? p.theme.colors.yellow100
-        : p.theme.tokens.background.primary};
-  &:nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors
-        ? p.theme.colors.red100
-        : p.isSuspectFlag
-          ? p.theme.colors.yellow100
-          : p.theme.tokens.background.secondary};
-  }
+  ${rowStateStyles};
 
   .invisible {
     visibility: hidden;
@@ -247,34 +182,4 @@ const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>
         visibility: visible;
       }
     `}
-`;
-
-const ListValue = styled('div')`
-  pre {
-    && {
-      word-break: break-all;
-    }
-  }
-  pre > pre {
-    display: inline-block;
-  }
-`;
-
-const ListValueWithButton = styled('div')`
-  display: grid;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  font-size: ${p => p.theme.font.size.sm};
-  background: ${p => p.theme.tokens.background.secondary};
-  padding: ${p => p.theme.space.md} 10px;
-  margin: ${p => p.theme.space['2xs']} 0;
-  border-radius: ${p => p.theme.radius.md};
-  pre {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr max-content;
-  }
 `;

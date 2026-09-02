@@ -49,7 +49,7 @@ describe('KeyValueTable', () => {
 
     it.snapshot.each<'error' | 'warning'>(['error', 'warning'])(
       'inline-%s',
-      type => (
+      (type: 'error' | 'warning') => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 400}}>
             <KeyValueTable>
@@ -59,7 +59,7 @@ describe('KeyValueTable', () => {
           </div>
         </ThemeProvider>
       ),
-      type => ({tags: {area: 'core', variant: 'inline', type: String(type)}})
+      (type: 'error' | 'warning') => ({tags: {area: 'core', variant: 'inline', type}})
     );
 
     it.snapshot(
@@ -150,7 +150,9 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <KeyValueTableDataRow item={contentItems[0]!.item} />
+            <KeyValueTableDataRow
+              item={{key: 'string', subject: 'string', value: 'A plain string value.'}}
+            />
           </div>
         </ThemeProvider>
       ),

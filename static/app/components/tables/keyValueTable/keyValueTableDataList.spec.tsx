@@ -98,4 +98,14 @@ describe('KeyValueTableDataList', () => {
     expect(cells[0]).toHaveTextContent('a');
     expect(cells[1]).toHaveTextContent('null');
   });
+
+  it('renders null when an item omits its value', () => {
+    const data = [{key: 'a', subject: 'a'}];
+
+    render(<KeyValueTableDataList data={data} />);
+
+    const cells = screen.getAllByRole('cell');
+    expect(cells[0]).toHaveTextContent('a');
+    expect(cells[1]).toHaveTextContent('null');
+  });
 });
