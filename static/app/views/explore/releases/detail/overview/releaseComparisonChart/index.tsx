@@ -1133,7 +1133,7 @@ export function ReleaseComparisonChart({
           {key: 'releases', width: 'minmax(min-content, 1fr)'},
           {key: 'release', width: 'minmax(min-content, 1fr)'},
           {key: 'change', width: 'minmax(min-content, 1fr)'},
-          {key: 'expanders', visible: withExpanders, width: '75px'},
+          ...(withExpanders ? [{key: 'expanders', width: '75px'}] : []),
         ]}
         header={
           <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
