@@ -37,6 +37,8 @@ type TraceItemAttributeKeyOptions = Pick<
   substringMatch?: string;
 };
 
+const ATTRIBUTE_SUBSTRING_SEARCH_STALE_TIME = 30_000;
+
 interface TraceItemAttributeKeysOptions {
   organization: Organization;
   selection: PageFilters;
@@ -53,7 +55,7 @@ interface TraceItemAttributeKeysOptions {
 export function traceItemAttributeKeysOptions({
   organization,
   selection,
-  staleTime = 0,
+  staleTime,
   traceItemType,
   type = ['string', 'number', 'boolean', 'array'],
   projects,
@@ -67,6 +69,8 @@ export function traceItemAttributeKeysOptions({
     (defined(projects) ? projects.map(project => project.id) : selection.projects);
 
   const substringMatch = search || undefined;
+  const resolvedStaleTime =
+    staleTime ?? (substringMatch ? ATTRIBUTE_SUBSTRING_SEARCH_STALE_TIME : 0);
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const attributeType =
     Array.isArray(type) && !supportsArrays
@@ -86,7 +90,7 @@ export function traceItemAttributeKeysOptions({
     '/organizations/$organizationIdOrSlug/trace-items/attributes/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      staleTime,
+      staleTime: resolvedStaleTime,
       query: options,
     }
   );

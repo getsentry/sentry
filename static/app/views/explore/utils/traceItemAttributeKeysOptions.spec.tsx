@@ -99,6 +99,25 @@ describe('traceItemAttributeKeysOptions', () => {
     );
   }
 
+  it('keeps substring search responses fresh for 30 seconds by default', async () => {
+    const request = addAttributeKeysMock({
+      substringMatch: 'foo',
+      body: [makeAttribute('foo.bar')],
+    });
+    const options = traceItemAttributeKeysOptions({
+      organization,
+      selection,
+      traceItemType: TraceItemDataset.LOGS,
+      search: 'foo',
+    });
+
+    await queryClient.fetchQuery(options);
+    await queryClient.fetchQuery(options);
+
+    expect(options.staleTime).toBe(30_000);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it('reuses a fresh cached empty response from a shorter prefix', async () => {
     const prefixRequest = addAttributeKeysMock({substringMatch: 'fo', body: []});
     const longerRequest = addAttributeKeysMock({
