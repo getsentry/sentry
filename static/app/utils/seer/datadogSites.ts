@@ -14,10 +14,3 @@ export const DATADOG_SITE_VALUES = DATADOG_SITES.map(site => site.value) as [
   string,
   ...string[],
 ];
-
-export function datadogOrgSettingsUrl(
-  site: string,
-  page: 'api-keys' | 'application-keys'
-): string {
-  return `https://app.${site}/organization-settings/${page}`;
-}

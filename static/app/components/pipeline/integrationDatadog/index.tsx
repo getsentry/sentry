@@ -14,11 +14,14 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
-import {
-  DATADOG_SITES,
-  DATADOG_SITE_VALUES,
-  datadogOrgSettingsUrl,
-} from 'sentry/utils/seer/datadogSites';
+import {DATADOG_SITES, DATADOG_SITE_VALUES} from 'sentry/utils/seer/datadogSites';
+
+function datadogOrgSettingsUrl(
+  site: string,
+  page: 'api-keys' | 'application-keys'
+): string {
+  return `https://app.${site}/organization-settings/${page}`;
+}
 
 const credentialsSchema = z.object({
   apiKey: z.string().min(1, t('API key is required')),
