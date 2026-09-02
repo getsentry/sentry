@@ -17,7 +17,7 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs
+from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs, schedule_outbox_model
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
@@ -368,16 +368,26 @@ class CellOutboxTest(TestCase):
             assert outbox.select_coalesced_messages().count() == 1
             assert len(list(CellOutbox.find_scheduled_shards())) == 2
 
+            saved_tags = {
+                "category": "ORGANIZATION_MEMBER_UPDATE",
+                "silo": "region",
+                "type": "CellOutbox",
+            }
             expected = [
-                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
-                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
-                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
-                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
-                call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+                call("outbox.saved", 1, tags=saved_tags),
+                call("outbox.saved", 1, tags=saved_tags),
+                call("outbox.saved", 1, tags=saved_tags),
+                call("outbox.saved", 1, tags=saved_tags),
+                call("outbox.saved", 1, tags=saved_tags),
                 call(
                     "outbox.processed",
                     2,
-                    tags={"category": "ORGANIZATION_MEMBER_UPDATE", "synchronous": 1},
+                    tags={
+                        "category": "ORGANIZATION_MEMBER_UPDATE",
+                        "synchronous": 1,
+                        "silo": "region",
+                        "type": "CellOutbox",
+                    },
                 ),
             ]
             assert mock_metrics.incr.mock_calls == expected
@@ -642,18 +652,21 @@ class OutboxAggregationTest(TestCase):
                 shard_identifier=2,
                 cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
+                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=7,
             ),
             dict(
                 shard_identifier=1,
                 cell_name="eu",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
+                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=4,
             ),
             dict(
                 shard_identifier=3,
                 cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
+                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=1,
             ),
         ]
@@ -665,6 +678,7 @@ class OutboxAggregationTest(TestCase):
                 shard_identifier=2,
                 cell_name="us",
                 shard_scope=OutboxScope.AUDIT_LOG_SCOPE.value,
+                category=OutboxCategory.AUDIT_LOG_EVENT.value,
                 depth=7,
             )
         ]
@@ -676,3 +690,60 @@ class OutboxAggregationTest(TestCase):
 
     def test_total_count(self) -> None:
         assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1
+
+    def test_get_category_depths(self) -> None:
+        ControlOutbox(
+            cell_name="us",
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=99,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=999999,
+            payload={"foo": "bar"},
+        ).save()
+
+        assert ControlOutbox.get_category_depths() == {
+            OutboxCategory.AUDIT_LOG_EVENT.value: 12,
+            OutboxCategory.ORGANIZATION_UPDATE.value: 1,
+        }
+
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_category_shard_depth_gauge(self, mock_metrics: Mock) -> None:
+        ControlOutbox(
+            cell_name="us",
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=99,
+            category=OutboxCategory.ORGANIZATION_UPDATE,
+            object_identifier=999999,
+            payload={"foo": "bar"},
+        ).save()
+
+        schedule_outbox_model(
+            silo_mode=SiloMode.CONTROL,
+            outbox_model=ControlOutbox,
+            drain_task=Mock(),
+        )
+
+        gauge_calls_by_category = {
+            gauge_call.kwargs["tags"]["category"]: gauge_call
+            for gauge_call in mock_metrics.gauge.mock_calls
+            if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.category_shard_depth"
+        }
+
+        assert gauge_calls_by_category[OutboxCategory.AUDIT_LOG_EVENT.name].kwargs == dict(
+            value=12,
+            tags={
+                "silo": "control",
+                "type": "ControlOutbox",
+                "category": OutboxCategory.AUDIT_LOG_EVENT.name,
+            },
+            sample_rate=1.0,
+        )
+        assert gauge_calls_by_category[OutboxCategory.ORGANIZATION_UPDATE.name].kwargs == dict(
+            value=1,
+            tags={
+                "silo": "control",
+                "type": "ControlOutbox",
+                "category": OutboxCategory.ORGANIZATION_UPDATE.name,
+            },
+            sample_rate=1.0,
+        )
