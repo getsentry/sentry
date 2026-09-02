@@ -9,9 +9,10 @@ import {
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
-import type {ReleaseProject} from 'sentry/types/release';
+import {type ReleaseProject, ReleaseComparisonChartType} from 'sentry/types/release';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ReleaseComparisonChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart';
+import {ReleaseEventsChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart/releaseEventsChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const organization = OrganizationFixture();
@@ -233,5 +234,45 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         })
       );
     });
+  });
+
+  it.each([
+    [ReleaseComparisonChartType.FAILURE_RATE, 2],
+    [ReleaseComparisonChartType.TRANSACTION_COUNT, 1],
+  ])('queries the spans dataset for the %s timeseries', async (chartType, callCount) => {
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {data: []},
+    });
+
+    render(
+      <ReleaseEventsChart
+        release={release}
+        project={project}
+        chartType={chartType}
+        value={null}
+        diff={null}
+        period="14d"
+      />,
+      {
+        organization,
+        initialRouterConfig,
+      }
+    );
+
+    await waitFor(() => {
+      expect(eventsStatsRequest).toHaveBeenCalledTimes(callCount);
+    });
+
+    for (const [, options] of eventsStatsRequest.mock.calls) {
+      expect(options).toEqual(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: DiscoverDatasets.SPANS,
+            query: expect.stringContaining('is_transaction:true'),
+          }),
+        })
+      );
+    }
   });
 });
