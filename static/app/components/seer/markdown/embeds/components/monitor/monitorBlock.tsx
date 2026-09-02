@@ -1,12 +1,10 @@
-import {lazy, type ComponentType} from 'react';
+import type {ComponentType} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
 import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/error';
@@ -33,12 +31,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
-const LazyDetectorDetailsOpenPeriodIssues = lazy(async () => {
-  const {DetectorDetailsOpenPeriodIssues} =
-    await import('sentry/views/detectors/components/details/common/openPeriodIssues');
-  return {default: DetectorDetailsOpenPeriodIssues};
-});
-
 const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> = {
   error: IconIssues,
   metric_issue: IconGraph,
@@ -47,15 +39,6 @@ const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> 
   preprod_size_analysis: IconMobile,
   issue_stream: IconTimer,
 };
-
-/**
- * Error and project monitors already lead with the issues they group, so the
- * shared ongoing-issue section would only repeat them.
- */
-const TYPES_WITHOUT_ONGOING_ISSUES: ReadonlySet<Detector['type']> = new Set([
-  'error',
-  'issue_stream',
-]);
 
 function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
@@ -72,24 +55,16 @@ function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) 
  * Adding a monitor type is a new file under `monitorTypes/`, plus a case here
  * and an icon above -- keep the type-specific rendering out of this file.
  */
-function MonitorTypeContent({
-  detector,
-  hasOngoingIssue,
-  statsPeriod,
-}: {
-  detector: Detector;
-  hasOngoingIssue: boolean;
-  statsPeriod?: string;
-}) {
+function MonitorBlockContent({detector}: {detector: Detector}) {
   switch (detector.type) {
     case 'error':
-      return <ErrorMonitor id={detector.id} statsPeriod={statsPeriod} />;
+      return <ErrorMonitor />;
     case 'metric_issue':
       return <MetricMonitor detector={detector} />;
     case 'monitor_check_in_failure':
-      return <CronMonitor detector={detector} hasOngoingIssue={hasOngoingIssue} />;
+      return <CronMonitor detector={detector} />;
     case 'uptime_domain_failure':
-      return <UptimeMonitor detector={detector} hasOngoingIssue={hasOngoingIssue} />;
+      return <UptimeMonitor detector={detector} />;
     case 'preprod_size_analysis':
       return <MobileBuildMonitor detector={detector} />;
     case 'issue_stream':
@@ -100,45 +75,7 @@ function MonitorTypeContent({
   }
 }
 
-function MonitorBlockContent({
-  detector,
-  statsPeriod,
-}: {
-  detector: Detector;
-  statsPeriod?: string;
-}) {
-  const hasOngoingIssue =
-    Boolean(detector.latestGroup) && !TYPES_WITHOUT_ONGOING_ISSUES.has(detector.type);
-
-  if (!hasOngoingIssue) {
-    return (
-      <MonitorTypeContent
-        detector={detector}
-        hasOngoingIssue={hasOngoingIssue}
-        statsPeriod={statsPeriod}
-      />
-    );
-  }
-
-  return (
-    <Stack gap="md">
-      <ErrorBoundary mini>
-        <LazyLoad
-          LazyComponent={LazyDetectorDetailsOpenPeriodIssues}
-          detector={detector}
-        />
-      </ErrorBoundary>
-      <Stack.Separator />
-      <MonitorTypeContent
-        detector={detector}
-        hasOngoingIssue={hasOngoingIssue}
-        statsPeriod={statsPeriod}
-      />
-    </Stack>
-  );
-}
-
-export default function MonitorBlock({id, name, statsPeriod}: EmbedOutput<'monitor'>) {
+export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
   const organization = useOrganization();
   const href = makeMonitorDetailsPathname(organization.slug, id);
   const {
@@ -171,7 +108,7 @@ export default function MonitorBlock({id, name, statsPeriod}: EmbedOutput<'monit
         ) : isError || !detector ? (
           <Text variant="muted">{t('Unable to load monitor details.')}</Text>
         ) : (
-          <MonitorBlockContent detector={detector} statsPeriod={statsPeriod} />
+          <MonitorBlockContent detector={detector} />
         )}
       </Stack>
     </Container>

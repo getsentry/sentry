@@ -390,20 +390,12 @@ export const SEER_EMBED_SCHEMAS = {
       'or mobile build detector). Use the detector ID exactly as the monitors API returns it. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: loads the live monitor and renders its type-specific details. ' +
-      'For error monitors, statsPeriod scopes the unresolved issue list. ' +
+      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
       name: z.string().min(1).optional(),
-      statsPeriod: z
-        .string()
-        .regex(/^\d+[smhdw]$/)
-        .optional()
-        .describe(
-          'For error monitors only, the relative time range for unresolved issues, e.g. "1h", "24h", or "14d". Defaults to "24h".'
-        ),
     }),
     examples: [
       {

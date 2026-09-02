@@ -1,35 +1,13 @@
-import {lazy} from 'react';
+import {Text} from '@sentry/scraps/text';
 
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {LazyLoad} from 'sentry/components/lazyLoad';
-
-const LazyGroupList = lazy(async () => {
-  const {GroupList} = await import('sentry/components/issues/groupList');
-  return {default: GroupList};
-});
+import {t} from 'sentry/locale';
 
 /**
- * Error monitors have no configuration worth previewing, so the unresolved
- * issues they group are the whole body.
+ * Error monitors have no configuration/rules of their own to preview -- they
+ * group issues rather than define thresholds.
  */
-export function ErrorMonitor({id, statsPeriod}: {id: string; statsPeriod?: string}) {
+export function ErrorMonitor() {
   return (
-    <ErrorBoundary mini>
-      <LazyLoad
-        LazyComponent={LazyGroupList}
-        queryParams={{
-          query: `is:unresolved detector:${id}`,
-          statsPeriod: statsPeriod ?? '24h',
-          limit: 5,
-        }}
-        numPlaceholderRows={3}
-        withChart={false}
-        withColumns={[]}
-        withHeader={false}
-        withPagination={false}
-        canSelectGroups={false}
-        useFilteredStats={false}
-      />
-    </ErrorBoundary>
+    <Text variant="muted">{t('Error monitors do not support block previews.')}</Text>
   );
 }

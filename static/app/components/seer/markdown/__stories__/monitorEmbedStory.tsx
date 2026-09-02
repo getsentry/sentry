@@ -46,7 +46,6 @@ export function MonitorEmbedStory() {
             data={{
               id: detector.id,
               name: detector.name,
-              ...(detector.type === 'error' ? {statsPeriod: '24h'} : {}),
             }}
           />
         ))
