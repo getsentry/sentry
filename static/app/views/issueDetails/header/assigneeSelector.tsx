@@ -135,9 +135,10 @@ export function GroupHeaderAssigneeSelector({
       assignmentDetails={assignmentDetails}
       showLabel={showLabel}
       useOwnerAssignmentDetails={false}
-      additionalMenuFooterItems={
+      additionalMenuFooterItems={({closeOverlay}) => (
         <MenuComponents.CTAButton
           onClick={() => {
+            closeOverlay();
             openIssueOwnershipRuleModal({
               project,
               organization,
@@ -150,7 +151,7 @@ export function GroupHeaderAssigneeSelector({
         >
           {t('Ownership')}
         </MenuComponents.CTAButton>
-      }
+      )}
     />
   );
 }

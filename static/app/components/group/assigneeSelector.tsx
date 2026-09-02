@@ -33,7 +33,9 @@ interface AssigneeSelectorProps {
     assignedActor: AssignableEntity | null,
     options?: HandleAssignOptions
   ) => void;
-  additionalMenuFooterItems?: React.ReactNode;
+  additionalMenuFooterItems?:
+    | React.ReactNode
+    | ((props: {closeOverlay: () => void}) => React.ReactNode);
   assignmentDetails?: AssignmentDetails;
   memberList?: User[];
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
