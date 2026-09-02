@@ -221,6 +221,25 @@ function validateUrl(value, targetKind) {
   return url;
 }
 
+function assertCaptureLocation(page, targetKind, stage) {
+  const current = new URL(page.url());
+  if (current.pathname.startsWith('/auth/login/')) {
+    throw new Error(`${stage} redirected to login; refresh the dedicated Chrome session`);
+  }
+  if (targetKind === 'story') {
+    if (
+      current.hostname !== 'sentry.dev.getsentry.net' ||
+      !current.pathname.startsWith('/scraps/')
+    ) {
+      throw new Error(`${stage} left local Scraps: ${current.href}`);
+    }
+    return;
+  }
+  if (current.hostname !== 'demo.dev.getsentry.net') {
+    throw new Error(`${stage} left the synthetic demo organization: ${current.href}`);
+  }
+}
+
 function validatePlan(plan) {
   assertObject(plan, 'Plan');
   assertObject(plan.target, 'Plan target');
@@ -292,14 +311,17 @@ async function setTheme(page, theme) {
   await page.emulateMedia({colorScheme: theme});
 }
 
-async function runActions(page, actions) {
+async function runActions(page, actions, assertLocation) {
   for (const action of actions ?? []) {
     if (action.kind === 'wait') {
       await page.waitForTimeout(action.ms ?? 500);
+      assertLocation();
       continue;
     }
     if (action.kind === 'press') {
       await page.keyboard.press(action.key);
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      assertLocation();
       continue;
     }
     const locator = action.label
@@ -315,6 +337,8 @@ async function runActions(page, actions) {
     } else if (action.kind === 'fill') {
       await locator.fill(action.value);
     }
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
+    assertLocation();
   }
 }
 
@@ -525,21 +549,12 @@ async function capture(planPath, cdpUrl) {
           await page.emulateMedia({colorScheme: theme});
           await page.goto(expectedUrl.href, {waitUntil: 'domcontentloaded'});
           await page.waitForTimeout(plan.settleMs ?? 1200);
-          if (page.url().includes('/auth/login/')) {
-            throw new Error(
-              `${version} redirected to login; refresh the dedicated Chrome session`
-            );
-          }
-          if (
-            plan.target.kind !== 'story' &&
-            new URL(page.url()).hostname !== 'demo.dev.getsentry.net'
-          ) {
-            throw new Error(
-              `${version} left the demo organization hostname: ${page.url()}`
-            );
-          }
+          const assertLocation = () =>
+            assertCaptureLocation(page, plan.target.kind, version);
+          assertLocation();
           await setTheme(page, theme);
-          await runActions(page, plan.actions);
+          assertLocation();
+          await runActions(page, plan.actions, assertLocation);
           const target = await resolveTarget(page, plan.target);
           await page.waitForTimeout(plan.afterActionMs ?? 500);
           await page.evaluate(() => document.fonts.ready);
@@ -552,6 +567,7 @@ async function capture(planPath, cdpUrl) {
             outputDirectory,
             `${version}-${safeName(viewport.name)}-${theme}-2x.png`
           );
+          assertLocation();
           await takeScreenshot(page, target, screenshotPath);
           paths[version] = screenshotPath;
         }
