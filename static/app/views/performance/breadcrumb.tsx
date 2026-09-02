@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import type {LinkProps} from '@sentry/scraps/link';
 
 import type {Crumb} from 'sentry/components/breadcrumbs';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
@@ -43,16 +44,24 @@ export function getTransactionSummaryParentCrumbs({
     return [];
   }
 
+  const to = transactionSummaryRouteWithQuery({
+    organization,
+    transaction: transaction.name,
+    projectID: transaction.project,
+    query: location.query,
+    view,
+  });
+
   return [
     {
       label: t('Transaction Summary'),
-      to: transactionSummaryRouteWithQuery({
-        organization,
-        transaction: transaction.name,
-        projectID: transaction.project,
-        query: location.query,
-        view,
-      }),
+      to: {
+        ...to,
+        // `transactionSummaryRouteWithQuery` forwards most page filters but not
+        // `utc`, which would silently reinterpret an absolute range in local
+        // time. Merge the selection in the way `preservePageFilters` used to.
+        query: {...extractSelectionParameters(location.query), ...to.query},
+      },
     },
   ];
 }
