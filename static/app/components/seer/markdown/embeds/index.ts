@@ -1,5 +1,5 @@
 import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
-import {Alert} from './components/alert';
+import {Alert} from './components/alert/alert';
 import {Autofix, AutofixRef} from './components/autofix';
 import {Chart} from './components/chart';
 import {Dashboard} from './components/dashboard';

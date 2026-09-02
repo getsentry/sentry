@@ -2,10 +2,9 @@ import type {ComponentType} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   DetectorPreview,
@@ -13,36 +12,22 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/detectorPreview';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconGlobe, IconGraph, IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t, tn} from 'sentry/locale';
-import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationActionSummary} from 'sentry/views/automations/components/automationActionSummary';
-import {ConditionsPanel} from 'sentry/views/automations/components/conditionsPanel';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
-type AlertKind = EmbedOutput<'alert'>['kind'];
+type DetectorAlertKind = Exclude<EmbedOutput<'alert'>['kind'], 'issue'>;
 
-function alertAutomationApiOptions(organizationSlug: string, automationId: string) {
-  return apiOptions.as<Automation>()(
-    '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, workflowId: automationId},
-      staleTime: 30_000,
-    }
-  );
-}
-
-function alertDetectorApiOptions(organizationSlug: string, detectorId: string) {
+function detectorAlertApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
     {
@@ -52,10 +37,8 @@ function alertDetectorApiOptions(organizationSlug: string, detectorId: string) {
   );
 }
 
-function getAlertKindLabel(kind: AlertKind) {
+function getDetectorAlertLabel(kind: DetectorAlertKind) {
   switch (kind) {
-    case 'issue':
-      return t('Issue alert');
     case 'metric':
       return t('Metric alert');
     case 'uptime':
@@ -68,10 +51,8 @@ function getAlertKindLabel(kind: AlertKind) {
   }
 }
 
-function getAlertKindIcon(kind: AlertKind): ComponentType<SVGIconProps> {
+function getDetectorAlertIcon(kind: DetectorAlertKind): ComponentType<SVGIconProps> {
   switch (kind) {
-    case 'issue':
-      return IconSiren;
     case 'metric':
       return IconGraph;
     case 'uptime':
@@ -80,7 +61,7 @@ function getAlertKindIcon(kind: AlertKind): ComponentType<SVGIconProps> {
       return IconClock;
     default:
       unreachable(kind);
-      return IconSiren;
+      return IconGraph;
   }
 }
 
@@ -89,110 +70,6 @@ function isAlertDetector(detector: Detector): detector is PreviewableDetector {
     detector.type === 'metric_issue' ||
     detector.type === 'uptime_domain_failure' ||
     detector.type === 'monitor_check_in_failure'
-  );
-}
-
-function AutomationAlertPreview({automation}: {automation: Automation}) {
-  return (
-    <Stack gap="md">
-      <Grid columns={{'2xs': 'minmax(0, 1fr)', sm: 'repeat(4, minmax(0, 1fr))'}} gap="md">
-        <Stack gap="xs">
-          <Text size="sm" variant="muted">
-            {t('Environment')}
-          </Text>
-          <Text>{automation.environment || t('All environments')}</Text>
-        </Stack>
-        <Stack gap="xs">
-          <Text size="sm" variant="muted">
-            {t('Throttling')}
-          </Text>
-          <Text>
-            {automation.config.frequency
-              ? getDuration(automation.config.frequency * 60)
-              : t('Every trigger')}
-          </Text>
-        </Stack>
-        <Stack gap="xs">
-          <Text size="sm" variant="muted">
-            {t('Last triggered')}
-          </Text>
-          <Text>
-            {automation.lastTriggered ? (
-              <TimeSince date={automation.lastTriggered} />
-            ) : (
-              t('Never')
-            )}
-          </Text>
-        </Stack>
-        <Stack gap="xs">
-          <Text size="sm" variant="muted">
-            {t('Connected monitors')}
-          </Text>
-          <Text>{tn('%s monitor', '%s monitors', automation.detectorIds.length)}</Text>
-        </Stack>
-      </Grid>
-      <Stack.Separator />
-      <Stack gap="sm">
-        <Heading as="h4" size="xs">
-          {t('Conditions and actions')}
-        </Heading>
-        <ErrorBoundary mini>
-          <ConditionsPanel
-            triggers={automation.triggers}
-            actionFilters={automation.actionFilters}
-          />
-        </ErrorBoundary>
-      </Stack>
-    </Stack>
-  );
-}
-
-function IssueAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
-  const organization = useOrganization();
-  const href = makeAutomationDetailsPathname(organization.slug, id);
-  const {
-    data: automation,
-    isError,
-    isPending,
-  } = useQuery({
-    ...alertAutomationApiOptions(organization.slug, id),
-    retry: false,
-  });
-
-  return (
-    <Container
-      background="primary"
-      border="primary"
-      containerType="inline-size"
-      padding="md"
-      radius="md"
-    >
-      <Stack gap="md">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <ResourceLink
-            icon={IconSiren}
-            href={href}
-            title={automation?.name ?? name ?? t('Alert %s', id)}
-          />
-          {automation ? (
-            <Tag variant={automation.enabled ? 'success' : 'muted'}>
-              {t(
-                '%s - %s',
-                getAlertKindLabel(kind),
-                automation.enabled ? t('Enabled') : t('Disabled')
-              )}
-            </Tag>
-          ) : null}
-        </Flex>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError || !automation ? (
-          <Text variant="muted">{t('Unable to load alert details.')}</Text>
-        ) : (
-          <AutomationAlertPreview automation={automation} />
-        )}
-      </Stack>
-    </Container>
   );
 }
 
@@ -252,7 +129,7 @@ function DetectorAlertPreview({detector}: {detector: PreviewableDetector}) {
   );
 }
 
-function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
+export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
   const organization = useOrganization();
   const href = makeMonitorDetailsPathname(organization.slug, id);
   const {
@@ -260,10 +137,10 @@ function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
     isError,
     isPending,
   } = useQuery({
-    ...alertDetectorApiOptions(organization.slug, id),
+    ...detectorAlertApiOptions(organization.slug, id),
     retry: false,
   });
-  const Icon = getAlertKindIcon(kind);
+  const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
 
   return (
     <Container
@@ -284,7 +161,7 @@ function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
             <Tag variant={detector.enabled ? 'success' : 'muted'}>
               {t(
                 '%s - %s',
-                getAlertKindLabel(kind),
+                getDetectorAlertLabel(kind as DetectorAlertKind),
                 detector.enabled ? t('Enabled') : t('Disabled')
               )}
             </Tag>
@@ -303,13 +180,5 @@ function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
         )}
       </Stack>
     </Container>
-  );
-}
-
-export default function AlertBlock(props: EmbedOutput<'alert'>) {
-  return props.kind === 'issue' ? (
-    <IssueAlertBlock {...props} />
-  ) : (
-    <DetectorAlertBlock {...props} />
   );
 }
