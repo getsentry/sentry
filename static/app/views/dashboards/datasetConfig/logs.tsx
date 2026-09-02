@@ -14,6 +14,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -166,17 +167,29 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     isLoading: isFetchingFilterKeys,
     secondaryAliases: stringSecondaryAliases,
   } = useLogItemAttributes(
-    {enabled: isLogsEnabled(organization), search: filterKeySearch},
+    {
+      enabled: isLogsEnabled(organization),
+      search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+    },
     'string'
   );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useLogItemAttributes(
-      {enabled: isLogsEnabled(organization), search: filterKeySearch},
+      {
+        enabled: isLogsEnabled(organization),
+        search: filterKeySearch,
+        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+      },
       'number'
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes(
-      {enabled: isLogsEnabled(organization), search: filterKeySearch},
+      {
+        enabled: isLogsEnabled(organization),
+        search: filterKeySearch,
+        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+      },
       'boolean'
     );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
@@ -184,6 +197,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
       {
         enabled: isLogsEnabled(organization) && supportsArrays,
         search: filterKeySearch,
+        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
       },
       'array'
     );

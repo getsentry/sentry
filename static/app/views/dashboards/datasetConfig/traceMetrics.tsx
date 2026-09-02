@@ -19,6 +19,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -251,19 +252,19 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
     isLoading: isFetchingFilterKeys,
     secondaryAliases: stringSecondaryAliases,
   } = useTraceMetricItemAttributes(
-    {search: filterKeySearch},
+    {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
     'string',
     HiddenTraceMetricSearchFields
   );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {search: filterKeySearch},
+      {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {search: filterKeySearch},
+      {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
       'boolean',
       HiddenTraceMetricSearchFields
     );

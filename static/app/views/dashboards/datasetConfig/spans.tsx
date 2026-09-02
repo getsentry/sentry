@@ -33,6 +33,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -163,6 +164,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     {
       enabled: organization.features.includes('visibility-explore-view'),
       search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
     },
     'string'
   );
@@ -171,6 +173,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
       {
         enabled: organization.features.includes('visibility-explore-view'),
         search: filterKeySearch,
+        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
       },
       'number'
     );
@@ -179,6 +182,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
       {
         enabled: organization.features.includes('visibility-explore-view'),
         search: filterKeySearch,
+        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
       },
       'boolean'
     );
