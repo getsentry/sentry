@@ -537,7 +537,7 @@ export function isLastStepPrIteration(runState: ExplorerAutofixState | null): bo
 export function hideErroredPrIteration(
   runState: ExplorerAutofixState | null
 ): ExplorerAutofixState | null {
-  if (!runState || runState.status !== 'error') {
+  if (runState?.status !== 'error') {
     return runState;
   }
 
