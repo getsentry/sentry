@@ -5,7 +5,7 @@ description: Capture high-quality before-and-after screenshots for Sentry fronte
 
 # Frontend UI Screenshots
 
-Produce reviewable evidence of the UI affected by the current frontend diff. Infer where the change renders and how to reach it; never require a CSS selector.
+Produce reviewable evidence of the UI affected by the current frontend diff. Infer where the change renders and how to reach it.
 
 ## Options
 
@@ -28,7 +28,7 @@ Infer these unless the user overrides them:
 
 ## Workflow
 
-1. Run `node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs discover`. Default to the merge base with `origin/master`. Ignore test-only changes as capture targets, but use tests as route and interaction evidence.
+1. Inspect the merge-base diff with Git, including uncommitted and untracked frontend files. Ignore `.spec.*` files as capture targets, but use them as route and interaction evidence. Search beside changed files for MDX and stories, and inspect the diff for responsive or container-query declarations.
 2. Choose one of two paths:
    - `story`: a changed Scraps primitive or component has useful visual documentation. Capture the diff-relevant section or, when no section clearly wins, its useful variation gallery.
    - `product`: the change needs real application context. This includes pages, forms, navigation, modals, popovers, and drawers. These are product states, not separate modes: visit the demo route, reproduce the state with inferred accessible actions, and capture the viewport so its relationship to surrounding UI remains visible.
@@ -38,10 +38,10 @@ Infer these unless the user overrides them:
 6. Write a deterministic plan under `.artifacts/ui-capture/` and run:
 
 ```bash
-node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs capture --plan .artifacts/ui-capture/plan.json
+node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifacts/ui-capture/plan.json
 ```
 
-A story plan uses `"target":{"kind":"story","heading":"Image Avatars"}`; omit `heading` to capture its main gallery. A product plan uses `"target":{"kind":"product"}` plus accessible `click`, `fill`, `press`, or `wait` actions. Use `themes` and concrete `viewports` derived from the selected options. Do not put selectors in a plan.
+A story plan uses `"target":{"kind":"story","heading":"Image Avatars"}`; omit `heading` to capture its main gallery. A product plan uses `"target":{"kind":"product"}` plus accessible `click`, `fill`, `press`, or `wait` actions. Use `themes` and concrete `viewports` derived from the selected options.
 
 7. Inspect every comparison. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior. Report clickable artifact paths and any limitation.
 8. Stop port 7998 and remove the temporary worktree. Do not stop port 7999 or delete the persistent Chrome profile.

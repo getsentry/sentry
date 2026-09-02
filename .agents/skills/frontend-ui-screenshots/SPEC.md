@@ -22,7 +22,6 @@ Both merge-base and head run locally, on ports 7998 and 7999, and use the same p
 ## Non-negotiable constraints
 
 - Product captures use only `demo.dev.getsentry.net`; revalidate after every interaction and immediately before capture. Scraps uses local fixtures on `sentry.dev.getsentry.net`.
-- No user-provided CSS selector is required or accepted.
 - Authentication state and browser-profile contents never enter Git.
 - Uploading images or changing a PR requires separate authorization.
 - Broken or unresolved lazy images, login redirects, loading states, and mismatched before/after state invalidate a capture.
