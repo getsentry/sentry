@@ -163,8 +163,8 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
         }
 
 
-# Add new organization flags to RpcOrganizationFlags first, only add them here after
-# they have been replicated via Organization.handle_async_replication logic
+# Only flags that `serialize_organization_mapping_flags` populates belong here; anything else
+# silently reads as its default. Declare new organization flags on `RpcOrganizationFlags` below.
 class RpcOrganizationMappingFlags(RpcModel):
     early_adopter: bool = False
     require_2fa: bool = False
@@ -172,14 +172,15 @@ class RpcOrganizationMappingFlags(RpcModel):
     enhanced_privacy: bool = False
     disable_shared_issues: bool = False
     disable_new_visibility_features: bool = False
-    require_email_verification: bool = False
-    codecov_access: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False
     disable_member_invite: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
+    require_email_verification: bool = False
+    codecov_access: bool = False
+
     def as_int(self) -> int:
         # Must maintain the same order as the ORM's `Organization.flags` fields
         return flags_to_bits(

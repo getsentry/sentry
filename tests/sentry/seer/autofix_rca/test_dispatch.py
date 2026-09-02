@@ -19,9 +19,14 @@ class TestTriggerAutofixRCAFeature(TestCase):
 
     def test_dispatches_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+        expected_context = {"org_slug": self.organization.slug, "all_org_projects": []}
 
         with (
             patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
+            patch(
+                "sentry.seer.autofix_rca.dispatch.collect_user_org_context",
+                return_value=expected_context,
+            ) as mock_collect_context,
             patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
@@ -56,13 +61,16 @@ class TestTriggerAutofixRCAFeature(TestCase):
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.
         assert payload["on_completion_hook"] == {
-            "module_path": AutofixOnCompletionHook.get_module_path()
+            "module_path": AutofixOnCompletionHook.get_module_path(),
+            "call_on_failure": False,
         }
         assert run_kwargs["extras"] == {
             "referrer": AutofixReferrer.NIGHT_SHIFT.value,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
+        assert run_kwargs["user_org_context"] == expected_context
+        mock_collect_context.assert_called_once_with(None, self.group.organization)
 
         # A new run consumes Seer autofix budget.
         mock_quotas.backend.record_seer_run.assert_called_once()

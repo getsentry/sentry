@@ -65,6 +65,9 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.permissions import (
+    enforce_workflow_creation_permissions,
+)
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -104,7 +107,7 @@ parse_workflow_query = partial(base_parse_search_query, config=workflow_search_c
 class OrganizationWorkflowPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        "POST": ["org:write", "org:admin", "alerts:write"],
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
         "PUT": ["org:write", "org:admin", "alerts:write"],
         "DELETE": ["org:write", "org:admin", "alerts:write"],
     }
@@ -360,6 +363,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             context={"organization": organization, "request": request},
         )
         validator.is_valid(raise_exception=True)
+        enforce_workflow_creation_permissions(
+            request,
+            organization,
+            validator.validated_data.get("detector_ids"),
+        )
         workflow = validator.create(validator.validated_data)
         return Response(
             serialize(workflow, request.user, WorkflowSerializer()),

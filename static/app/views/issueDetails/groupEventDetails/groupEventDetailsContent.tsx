@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, lazy, useMemo, useRef} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -22,7 +22,6 @@ import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalD
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
-import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
@@ -52,6 +51,7 @@ import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
@@ -88,6 +88,12 @@ import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/si
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+
+const LazyEventViewHierarchy = lazy(() =>
+  import('sentry/components/events/eventViewHierarchy').then(module => ({
+    default: module.EventViewHierarchy,
+  }))
+);
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -349,7 +355,12 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
-      <EventViewHierarchy event={event} project={project} />
+      <LazyLoad
+        LazyComponent={LazyEventViewHierarchy}
+        event={event}
+        project={project}
+        loadingFallback={null}
+      />
       <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />

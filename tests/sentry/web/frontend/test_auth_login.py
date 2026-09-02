@@ -31,7 +31,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.auth_login import AuthLoginView, additional_context
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -49,6 +49,17 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
+
+    def test_renders_legacy_login_banner(self) -> None:
+        banner = 'Banner message <a href="https://example.com">Learn more</a>.'
+        with mock.patch.object(
+            additional_context,
+            "_callbacks",
+            {lambda request: {"login_banner_legacy_html": banner}},
+        ):
+            response = self.client.get(self.path)
+
+        assert banner.encode() in response.content
 
     def test_renders_react_template_with_cookie(self) -> None:
         self.client.cookies["sentry_react_auth"] = "1"

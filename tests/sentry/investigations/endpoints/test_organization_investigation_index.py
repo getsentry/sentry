@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationOrchestrationRun,
     InvestigationSourceType,
     InvestigationStatus,
 )
@@ -59,6 +60,63 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert [item["title"] for item in response.data] == ["Checkout follow-up"]
         assert response.data[0]["blockCount"] == 0
         assert response.data[0]["isFavorited"] is False
+
+    def test_create_agentic_manual_investigation_awaiting_a_prompt(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "title": "Checkout investigation",
+                "source": {"type": "manual", "seed": {"release": "example-release"}},
+                "projectIds": [self.project.id],
+                "filters": {"environment": ["production"]},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        assert "mode" not in response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        assert run.source == {
+            "type": "manual",
+            "projectScope": {"type": "investigation"},
+            "seed": {"release": "example-release"},
+        }
+        assert run.schema_version == 1
+        assert run.workflow_version == 1
+        assert run.generation == 1
+        assert run.notebook_revision == 0
+        assert run.projection["report"]["revision"] == 0
+        assert run.projection["pendingInput"]["missingFields"] == ["prompt"]
+        assert run.projection["broadScan"]["status"] == "blocked"
+
+    def test_create_agentic_manual_investigation_without_a_time_range_starts_scan(self) -> None:
+        response = self.client.post(
+            self.collection_url,
+            data={"source": {"type": "manual", "prompt": "Investigate checkout latency"}},
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        run = InvestigationOrchestrationRun.objects.get(investigation_id=response.data["id"])
+        assert run.phase == "broad_scan"
+        assert run.status == "pending"
+        assert run.projection["pendingInput"] is None
+        assert run.projection["broadScan"]["status"] == "queued"
+
+    def test_agentic_creation_rejects_an_inaccessible_project_atomically(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+
+        response = self.client.post(
+            self.collection_url,
+            data={
+                "source": {"type": "manual", "prompt": "Investigate latency"},
+                "projectIds": [foreign_project.id],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert not InvestigationOrchestrationRun.objects.exists()
 
     def test_list_includes_summary_when_projects_are_accessible(self) -> None:
         investigation = self.create_investigation(

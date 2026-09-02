@@ -139,6 +139,10 @@ describe('AuthLogin', () => {
     expect(screen.getByRole('button', {name: 'SSO'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Account Settings'})).toHaveAttribute(
+      'href',
+      'https://sentry.io/settings/account/'
+    );
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
@@ -306,8 +310,8 @@ describe('AuthLogin', () => {
       githubLoginLink: '',
       googleLoginLink: '',
       hasNewsletter: false,
-      loginBanner:
-        'Try agent monitoring. <a href="https://example.com/agents">Learn more</a>.',
+      loginBannerMarkdown:
+        'Try agent monitoring. [Learn more](https://example.com/agents).',
       pendingMfa: null,
       serverHostname: 'sentry.example.com',
       vstsLoginLink: '',
@@ -344,6 +348,7 @@ describe('AuthLogin', () => {
     expect(await screen.findByRole('heading', {name: 'Sign in to Sentry'})).toBeVisible();
     expect(screen.queryByRole('link', {name: 'Learn more'})).not.toBeInTheDocument();
   });
+
   it('replaces organization lookup with the organization context', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
@@ -371,24 +376,43 @@ describe('AuthLogin', () => {
         warnings: [],
       },
     });
-
     const {router} = render(<AuthLogin />, {
       initialRouterConfig: {
-        location: {pathname: '/auth/login/acme/'},
+        location: {pathname: '/auth/login/'},
         route: '/auth/login/:orgSlug?/',
       },
     });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Organization SSO'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Organization Slug'}),
+      'acme'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Locate'}));
 
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Organization SSO'})
     ).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'SSO'})).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.queryByText('or')).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByTestId('more-information'));
+    expect(
+      await screen.findByText(
+        'This organization requires SSO authentication. You may still log in with an email and password to access other organizations and account settings.'
+      )
+    ).toBeVisible();
 
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Clear organization login context'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Wrong organization'}));
     expect(router.location.pathname).toBe('/auth/login/');
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Organization SSO'})).toBeVisible()
+    );
+    expect(
+      screen.queryByRole('textbox', {name: 'Organization Slug'})
+    ).not.toBeInTheDocument();
   });
 
   it('performs a full-page navigation after password authentication', async () => {
@@ -585,7 +609,9 @@ describe('AuthLogin', () => {
     });
     await userEvent.click(await screen.findByRole('button', {name: 'Back to Login'}));
     await waitFor(() => expect(cancelRequest).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible()
+    );
     await waitFor(() => expect(configRefetch).toHaveBeenCalledTimes(1));
     await userEvent.click(screen.getByRole('button', {name: 'Organization SSO'}));
     await userEvent.type(

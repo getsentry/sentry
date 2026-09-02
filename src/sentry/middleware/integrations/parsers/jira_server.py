@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
 from django.http import HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
@@ -32,10 +31,7 @@ class JiraServerRequestParser(BaseRequestParser):
             logger.info("%s.no_integration", self.provider, extra={"error": str(e)})
             return HttpResponse(status=status.HTTP_200_OK)
 
-        try:
-            data = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            data = {}
+        data = self.get_request_body()
 
         # We only process webhooks with changelogs. Above the org and cell lookups a
         # dropped payload never needs; below the token lookup so the log can name it.

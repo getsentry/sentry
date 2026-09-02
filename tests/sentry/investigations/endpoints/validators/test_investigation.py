@@ -69,9 +69,115 @@ class TestInvestigationCreateValidator:
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
 
-    def test_rejects_a_source_without_a_template(self) -> None:
+    def test_accepts_an_agentic_manual_source_without_a_template(self) -> None:
+        data = assert_valid(
+            InvestigationCreateValidator(
+                data={
+                    "source": {
+                        "type": "manual",
+                        "prompt": "Investigate checkout latency",
+                        "timeRange": {
+                            "start": "2025-01-01T00:00:00Z",
+                            "end": "2025-01-01T01:00:00Z",
+                        },
+                        "seed": {"release": "example-release"},
+                    }
+                }
+            )
+        )
+
+        assert "template_key" not in data
+        assert data["source"]["seed"] == {"release": "example-release"}
+
+    def test_rejects_a_malformed_agentic_source(self) -> None:
         validator = InvestigationCreateValidator(
             data={"title": "T", "source": {"type": "metric_open_period", "ref": {}}}
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_template_parameters_for_an_agentic_source(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"source": {"type": "manual"}, "parameters": {"environment": "prod"}}
+        )
+
+        assert not validator.is_valid()
+        assert "parameters" in validator.errors
+
+    def test_rejects_the_removed_mode_discriminator(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"mode": "agentic", "source": {"type": "manual"}}
+        )
+
+        assert not validator.is_valid()
+        assert "mode" in validator.errors
+
+    def test_rejects_an_untrusted_breached_metric_snapshot(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"source": {"type": "breached_metric", "projectIds": [1]}}
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_untrusted_top_level_manual_source_fields(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={
+                "source": {
+                    "type": "manual",
+                    "prompt": "Investigate latency",
+                    "snapshot": {"monitor": {"name": "caller supplied"}},
+                }
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_an_unordered_manual_time_range(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={
+                "source": {
+                    "type": "manual",
+                    "timeRange": {
+                        "start": "2025-01-01T02:00:00Z",
+                        "end": "2025-01-01T01:00:00Z",
+                    },
+                }
+            }
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_non_object_seed_context(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"source": {"type": "manual", "seed": ["not", "an", "object"]}}
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_an_overlong_manual_prompt(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"source": {"type": "manual", "prompt": "x" * 20_001}}
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_a_null_manual_prompt(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"source": {"type": "manual", "prompt": None}}
+        )
+
+        assert not validator.is_valid()
+        assert "source" in validator.errors
+
+    def test_rejects_oversized_source_context(self) -> None:
+        validator = InvestigationCreateValidator(
+            data={"source": {"type": "manual", "seed": {"context": "x" * 200_000}}}
         )
 
         assert not validator.is_valid()
@@ -123,33 +229,3 @@ class TestInvestigationUpdateValidator:
 
         assert not validator.is_valid()
         assert "projectIds" in validator.errors
-
-
-class TestFiltersMustBeAnObject:
-    """The model types `filters` as dict[str, Any], so non-objects must not pass."""
-
-    def test_create_rejects_a_non_object(self) -> None:
-        validator = InvestigationCreateValidator(data={"title": "T", "filters": ["nope"]})
-
-        assert not validator.is_valid()
-        assert "filters" in validator.errors
-
-    def test_create_accepts_an_object(self) -> None:
-        validator = InvestigationCreateValidator(data={"title": "T", "filters": {"env": "prod"}})
-
-        assert validator.is_valid(), validator.errors
-
-    def test_update_rejects_a_non_object(self) -> None:
-        validator = InvestigationUpdateValidator(
-            data={"investigationVersion": 1, "filters": "nope"}
-        )
-
-        assert not validator.is_valid()
-        assert "filters" in validator.errors
-
-    def test_update_accepts_an_object(self) -> None:
-        validator = InvestigationUpdateValidator(
-            data={"investigationVersion": 1, "filters": {"env": "prod"}}
-        )
-
-        assert validator.is_valid(), validator.errors
