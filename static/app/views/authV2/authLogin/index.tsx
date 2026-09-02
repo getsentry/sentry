@@ -299,10 +299,17 @@ export default function AuthLogin() {
           </AnimatePresence>
         </LoginContainer>
 
-        {loginConfig?.loginBannerMarkdown && (
-          <Alert variant="muted">
-            <MarkedText text={loginConfig.loginBannerMarkdown} inline />
-          </Alert>
+        {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
+          <Stack width="100%" gap="md">
+            {loginConfig.warning && (
+              <Alert variant="warning">{loginConfig.warning}</Alert>
+            )}
+            {loginConfig.loginBannerMarkdown && (
+              <Alert variant="muted">
+                <MarkedText text={loginConfig.loginBannerMarkdown} inline />
+              </Alert>
+            )}
+          </Stack>
         )}
       </Stack>
     </Fragment>

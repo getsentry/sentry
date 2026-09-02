@@ -64,6 +64,33 @@ class GithubRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
+    def test_forwarding_reads_each_routing_table_once(self) -> None:
+        """Counting queries is the only way to catch a caller reintroducing a round
+        trip, since nothing about the response changes when it does."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data={"installation": {"id": "1"}, "repository": {"id": 123}},
+            content_type="application/json",
+            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+
+        def reads_of(table: str) -> int:
+            return len([q for q in queries.captured_queries if f'FROM "{table}"' in q["sql"]])
+
+        assert reads_of("sentry_integration") == 1
+        assert reads_of("sentry_organizationintegration") == 1
+        assert reads_of("sentry_organizationmapping") == 1
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
     def test_routing_no_organization_integration_found(self) -> None:
         integration = self.get_integration()
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationIntegration))):
