@@ -47,6 +47,10 @@ const formSchema = z.object({
     .refine(value => value !== null, 'Please select a data category.'),
 });
 
+const defaultValues: z.input<typeof formSchema> = {
+  dataCategory: null,
+};
+
 function DeleteBillingMetricHistoryModal({
   onSuccess,
   organization,
@@ -86,7 +90,7 @@ function DeleteBillingMetricHistoryModal({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {dataCategory: null as number | null},
+    defaultValues,
     validators: {onDynamic: formSchema},
     onSubmit: ({value}) => {
       const data = formSchema.parse(value);
