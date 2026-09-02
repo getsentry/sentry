@@ -19,9 +19,12 @@ from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import (
     Action,
+    DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     DetectorWorkflow,
     Workflow,
+    WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
@@ -621,6 +624,13 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             role="member",
             organization=self.organization,
         )
+        self.team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=self.team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
         self.basic_condition = [
             {
                 "type": Condition.EQUAL.value,
@@ -643,6 +653,51 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             {"name": "teamId", "value": "1"},
             {"name": "assigneeId", "value": "3"},
         ]
+
+    def _workflow_creation_model_counts(self) -> tuple[int, int, int, int, int, int, int]:
+        return (
+            Workflow.objects.count(),
+            DataConditionGroup.objects.count(),
+            DataCondition.objects.count(),
+            Action.objects.count(),
+            WorkflowDataConditionGroup.objects.count(),
+            DataConditionGroupAction.objects.count(),
+            DetectorWorkflow.objects.count(),
+        )
+
+    def _assert_create_rejected_without_writes(
+        self, data: dict[str, Any], status_code: int = 403
+    ) -> None:
+        model_counts = self._workflow_creation_model_counts()
+        workflow_data = {
+            **self.valid_workflow,
+            "triggers": {
+                "logicType": "any",
+                "conditions": self.basic_condition,
+            },
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": self.basic_condition,
+                    "actions": [
+                        {
+                            "type": Action.Type.EMAIL,
+                            "config": {"targetType": "issue_owners"},
+                            "data": {"fallthroughType": "ActiveMembers"},
+                        }
+                    ],
+                }
+            ],
+            **data,
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            raw_data=workflow_data,
+            status_code=status_code,
+        )
+
+        assert self._workflow_creation_model_counts() == model_counts
 
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
@@ -1101,6 +1156,82 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 2
 
+    def test_team_admin_can_create_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data={**self.valid_workflow, "detectorIds": [detector.id]},
+        )
+
+        assert response.status_code == 201
+        assert DetectorWorkflow.objects.filter(
+            workflow_id=response.data["id"], detector=detector
+        ).exists()
+
+    def test_team_contributor_cannot_create_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.member_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [detector.id]})
+
+    def test_team_admin_cannot_create_workflow_for_another_teams_detector(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(
+            organization=self.organization,
+            teams=[other_team],
+        )
+        detector = self.create_detector(project=other_project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [detector.id]})
+
+    def test_team_admin_cannot_create_workflow_with_mixed_project_access(self) -> None:
+        accessible_detector = self.create_detector(project=self.project)
+        other_team = self.create_team(organization=self.organization)
+        other_project = self.create_project(
+            organization=self.organization,
+            teams=[other_team],
+        )
+        inaccessible_detector = self.create_detector(project=other_project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes(
+            {"detectorIds": [accessible_detector.id, inaccessible_detector.id]}
+        )
+
+    def test_team_admin_cannot_create_detached_workflow(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes({})
+
+    def test_team_admin_cannot_create_workflow_with_cross_organization_detector(self) -> None:
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+        detector = self.create_detector(project=other_project)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(user=self.team_admin_user)
+
+        self._assert_create_rejected_without_writes({"detectorIds": [detector.id]}, status_code=400)
+
+    def test_organization_alert_writer_can_create_detached_workflow(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(user=self.member_user)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        assert not DetectorWorkflow.objects.filter(workflow_id=response.data["id"]).exists()
+
     @mock.patch("sentry.workflow_engine.endpoints.validators.utils.create_audit_entry")
     def test_create_workflow_connected_to_error_detector(self, mock_audit: mock.MagicMock) -> None:
         """
@@ -1154,16 +1285,11 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_create_workflow_with_all_projects_detector_requires_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
 
         self.organization.update_option("sentry:alerts_member_write", True)
         self.login_as(user=self.member_user)
 
-        self.get_error_response(
-            self.organization.slug,
-            raw_data=workflow_data,
-            status_code=403,
-        )
+        self._assert_create_rejected_without_writes({"detectorIds": [all_projects_detector.id]})
 
     def test_create_workflow_with_invalid_detector_ids(self) -> None:
         workflow_data = {
