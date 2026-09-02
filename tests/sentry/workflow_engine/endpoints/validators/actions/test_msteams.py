@@ -63,15 +63,19 @@ class TestMSTeamsActionValidator(TestCase):
         }
 
     @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
-    def test_validate__badsyntax_team_configuration(
-        self, mock_find_channel_id: mock.MagicMock
-    ) -> None:
+    def test_validate__badsyntax_channel(self, mock_find_channel_id: mock.MagicMock) -> None:
         mock_find_channel_id.side_effect = ApiInvalidRequestError(
             '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
         )
 
         validator = BaseActionValidator(
-            data=self.valid_data,
+            data={
+                **self.valid_data,
+                "config": {
+                    "targetType": "specific",
+                    "targetDisplay": "19%3A81337ff5270f4f52a00d16e812c90dff%40",
+                },
+            },
             context={"organization": self.organization},
         )
 
@@ -81,8 +85,8 @@ class TestMSTeamsActionValidator(TestCase):
             "all": [
                 ErrorDetail(
                     string=(
-                        "Microsoft Teams rejected this team configuration. "
-                        "Reinstall the integration and try again."
+                        'The channel or user "19%3A81337ff5270f4f52a00d16e812c90dff%40" '
+                        "could not be found in the msteams Team."
                     ),
                     code="invalid",
                 )
