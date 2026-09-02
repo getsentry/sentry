@@ -1,4 +1,5 @@
 import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
+import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -134,14 +135,84 @@ describe('AgenticProgressList', () => {
     );
 
     expect(screen.getByText('Created 2 projects')).toBeInTheDocument();
-    expect(screen.getByText('Agent Connected')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
-      )
-    ).toBeInTheDocument();
     expect(screen.getByText(/Last update/)).toBeInTheDocument();
     expect(screen.getByText('ID:Lg1iSt2qeQ')).toBeInTheDocument();
     await waitFor(() => expect(projectsRequest).toHaveBeenCalled());
+  });
+
+  it('collapses into a summary and hands back the first issue once complete', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [ProjectFixture({slug: 'react-frontend'})],
+    });
+    const issueRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/4815162342/',
+      body: GroupFixture({
+        id: '4815162342',
+        metadata: {type: 'TypeError', value: 'x is not a function'},
+      }),
+    });
+
+    render(
+      <AgenticProgress
+        run={AgenticProgressRunFixture({
+          runStatus: 'completed',
+          stages: [
+            {
+              stage: 'create_project',
+              status: 'completed',
+              eventNote: null,
+              extra: {projectSlugs: ['react-frontend']},
+            },
+            {
+              stage: 'receive_verification_error',
+              status: 'completed',
+              eventNote: null,
+              extra: {issueIds: ['4815162342']},
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText('Setup complete')).toBeInTheDocument();
+    expect(await screen.findByText('react-frontend')).toBeInTheDocument();
+    // The stages collapse away rather than standing as nine finished rows.
+    expect(screen.queryByText('Confirm test error')).not.toBeInTheDocument();
+
+    expect(await screen.findByText('Check out your first issue')).toBeInTheDocument();
+    expect(screen.getByText('TypeError')).toBeInTheDocument();
+    expect(screen.getByText('x is not a function')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/4815162342/?referrer=onboarding-agentic-first-issue'
+    );
+    expect(issueRequest).toHaveBeenCalled();
+  });
+
+  it('leaves the issue card out when the run completed without one', () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [ProjectFixture({slug: 'react-frontend'})],
+    });
+
+    render(
+      <AgenticProgress
+        run={AgenticProgressRunFixture({
+          runStatus: 'completed',
+          stages: [
+            {
+              stage: 'receive_verification_error',
+              status: 'skipped',
+              eventNote: null,
+              extra: null,
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText('Setup complete')).toBeInTheDocument();
+    expect(screen.queryByText('Check out your first issue')).not.toBeInTheDocument();
   });
 });

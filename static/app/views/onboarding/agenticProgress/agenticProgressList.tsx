@@ -6,11 +6,11 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
-  IconBot,
   IconCircle,
   IconCircleCheckmark,
   IconCircleDashed,
@@ -19,7 +19,9 @@ import {
   IconPieHalf,
 } from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
+import {useProjects} from 'sentry/utils/useProjects';
 
+import {FirstIssueCard} from './firstIssueCard';
 import type {AgenticProgressRun} from './types';
 
 type AgenticProgressStageState = AgenticProgressRun['stages'][number];
@@ -263,9 +265,9 @@ export function AgenticProgressList({
   header?: React.ReactNode;
 }) {
   return (
-    <Stack width="100%" border="muted" radius="lg" overflow="hidden" gap="0">
+    <Stack width="100%" border="primary" radius="lg" overflow="hidden" gap="0">
       {header ? (
-        <Container padding="lg" borderBottom="muted">
+        <Container padding="xl" borderBottom="muted">
           {header}
         </Container>
       ) : null}
@@ -281,31 +283,32 @@ export function AgenticProgressList({
   );
 }
 
-function AgenticProgressHeader({
+/**
+ * Run metadata. It sits below the card rather than inside it: the card is the
+ * list of stages, and this is a caption on the run as a whole.
+ */
+function AgenticProgressMeta({
+  isComplete,
   onboardingCode,
   updatedAt,
 }: {
+  isComplete: boolean;
   onboardingCode: string | undefined;
   updatedAt: string;
 }) {
+  // Nothing left to caption once the run is done: the timestamp was there to
+  // show the stream was live, and the dot to show it was still arriving.
+  if (isComplete && !onboardingCode) {
+    return null;
+  }
+
   return (
-    <Stack gap="md">
-      <Flex align="center" gap="sm">
-        <IconBot size="md" variant="secondary" />
-        <Text variant="muted" size="sm" bold uppercase>
-          {t('Agent Connected')}
-        </Text>
-      </Flex>
-      <Text variant="muted" density="comfortable">
-        {t(
-          'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
-        )}
-      </Text>
-      <Flex align="center" justify="between" gap="md" marginTop="sm">
+    // The id holds the right edge in both states, so it does not jump across
+    // when the timestamp beside it goes away.
+    <Flex align="center" justify={isComplete ? 'end' : 'between'} gap="md">
+      {isComplete ? null : (
         <Flex align="center" gap="sm">
-          <Flex width="16px" align="center" justify="center" flexShrink={0}>
-            <StatusIndicator variant="accent" />
-          </Flex>
+          <StatusIndicator variant="accent" />
           <Text size="sm" variant="muted">
             {tct('Last update [time]', {
               time: (
@@ -318,19 +321,58 @@ function AgenticProgressHeader({
             })}
           </Text>
         </Flex>
-        {onboardingCode ? (
-          <RunId size="sm" variant="muted" monospace>
-            {t('ID:%s', onboardingCode)}
-          </RunId>
-        ) : null}
-      </Flex>
-    </Stack>
+      )}
+      {onboardingCode ? (
+        <RunId size="sm" variant="muted" monospace>
+          {t('ID:%s', onboardingCode)}
+        </RunId>
+      ) : null}
+    </Flex>
   );
 }
 
 const RunId = styled(Text)`
   opacity: 0.6;
 `;
+
+/**
+ * The finished run, collapsed. Nine rows all reading "Done" say no more than
+ * one row does, so what survives the collapse is the outcome and what it
+ * produced — the projects the agent created.
+ */
+function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
+  const {projects} = useProjects({slugs: projectSlugs});
+  // A single project is named outright; past that, the list's avatars and its
+  // count carry it, since a row of full badges would not fit.
+  const soleProjectSlug = projectSlugs.length === 1 ? projectSlugs[0] : undefined;
+  const soleProject = soleProjectSlug
+    ? (projects.find(project => project.slug === soleProjectSlug) ?? {
+        slug: soleProjectSlug,
+      })
+    : undefined;
+
+  return (
+    <Flex
+      width="100%"
+      border="primary"
+      radius="lg"
+      padding="lg"
+      gap="md"
+      align="center"
+      justify="between"
+    >
+      <Flex align="center" gap="md">
+        <IconCircleCheckmark size="md" variant="success" />
+        <Text bold>{t('Setup complete')}</Text>
+      </Flex>
+      {soleProject ? (
+        <ProjectBadge project={soleProject} avatarSize={16} disableLink />
+      ) : projectSlugs.length ? (
+        <CreatedProjects projectSlugs={projectSlugs} />
+      ) : null}
+    </Flex>
+  );
+}
 
 function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
   return (
@@ -352,21 +394,68 @@ export function AgenticProgress({
 }) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
+  const verificationStage = run.stages.find(
+    stage => stage.stage === 'receive_verification_error'
+  );
+  // The agent reports every issue the verification error grouped into; the
+  // first is the one it sent, and the one worth handing back.
+  const firstIssueId = verificationStage?.extra?.issueIds?.[0];
+  const isComplete = run.runStatus === 'completed';
 
+  // The metadata is bundled with the list rather than left to each caller, so
+  // anything rendering a run — the welcome step, the stories — gets both.
   return (
-    <AgenticProgressList
-      header={
-        <AgenticProgressHeader
-          onboardingCode={onboardingCode}
-          updatedAt={run.updatedAt}
-        />
-      }
-      stages={run.stages}
-      extraContentByStage={
-        projectSlugs.length
-          ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}
-          : undefined
-      }
-    />
+    <Stack width="100%" gap="md">
+      {/* popLayout takes the outgoing list out of flow so the summary occupies
+          the slot while the two cross-fade, leaving the caller's own layout
+          animation to tween the height the collapse frees up. */}
+      <AnimatePresence initial={false} mode="popLayout">
+        {isComplete ? (
+          <MotionContainer
+            key="summary"
+            width="100%"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+          >
+            <AgenticProgressSummary projectSlugs={projectSlugs} />
+          </MotionContainer>
+        ) : (
+          <MotionContainer
+            key="list"
+            width="100%"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+          >
+            <AgenticProgressList
+              stages={run.stages}
+              extraContentByStage={
+                projectSlugs.length
+                  ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}
+                  : undefined
+              }
+            />
+          </MotionContainer>
+        )}
+      </AnimatePresence>
+      {isComplete && firstIssueId ? (
+        // Delayed past the collapse so the issue arrives as the next thing to
+        // look at rather than as part of the swap.
+        <MotionContainer
+          width="100%"
+          initial={{opacity: 0, y: 8}}
+          animate={{opacity: 1, y: 0}}
+          transition={{delay: 0.15, duration: 0.25, ease: 'easeOut'}}
+        >
+          <FirstIssueCard issueId={firstIssueId} />
+        </MotionContainer>
+      ) : null}
+      <AgenticProgressMeta
+        isComplete={isComplete}
+        onboardingCode={onboardingCode}
+        updatedAt={run.updatedAt}
+      />
+    </Stack>
   );
 }
