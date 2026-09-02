@@ -6,7 +6,7 @@ from uuid import UUID, uuid5
 import orjson
 from django.conf import settings
 from pydantic import BaseModel, Field, StrictBool, StrictInt, ValidationError
-from urllib3 import BaseHTTPResponse, HTTPConnectionPool
+from urllib3 import BaseHTTPResponse
 
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
@@ -113,10 +113,9 @@ def _post(
     body: dict[str, Any],
     *,
     viewer_context: SeerViewerContext,
-    connection_pool: HTTPConnectionPool | None = None,
 ) -> dict[str, Any]:
     response = make_signed_seer_api_request(
-        connection_pool or investigation_connection_pool,
+        investigation_connection_pool,
         path,
         body=orjson.dumps(body),
         viewer_context=viewer_context,
@@ -128,10 +127,9 @@ def _get(
     path: str,
     *,
     viewer_context: SeerViewerContext,
-    connection_pool: HTTPConnectionPool | None = None,
 ) -> dict[str, Any]:
     response = make_signed_seer_api_request(
-        connection_pool or investigation_connection_pool,
+        investigation_connection_pool,
         path,
         body=b"",
         method="GET",
@@ -152,7 +150,6 @@ def create_investigation_orchestration_run(
     run: InvestigationOrchestrationRun,
     *,
     viewer_context: SeerViewerContext,
-    connection_pool: HTTPConnectionPool | None = None,
 ) -> InvestigationRunResponse:
     _validate_viewer_organization(viewer_context, run.investigation.organization_id)
     body: dict[str, Any] = {
@@ -176,7 +173,6 @@ def create_investigation_orchestration_run(
         "/v1/automation/investigations",
         body,
         viewer_context=viewer_context,
-        connection_pool=connection_pool,
     )
     return _validate_run_response(response)
 
@@ -185,7 +181,6 @@ def dispatch_investigation_orchestration_command(
     command: InvestigationOrchestrationCommand,
     *,
     viewer_context: SeerViewerContext,
-    connection_pool: HTTPConnectionPool | None = None,
 ) -> InvestigationCommandResponse:
     investigation = command.orchestration_run.investigation
     _validate_viewer_organization(viewer_context, investigation.organization_id)
@@ -208,7 +203,6 @@ def dispatch_investigation_orchestration_command(
         f"/v1/automation/investigations/{seer_run_id}/commands",
         body,
         viewer_context=viewer_context,
-        connection_pool=connection_pool,
     )
     return _validate_command_response(response)
 
@@ -217,7 +211,6 @@ def get_investigation_orchestration_run(
     run: InvestigationOrchestrationRun,
     *,
     viewer_context: SeerViewerContext,
-    connection_pool: HTTPConnectionPool | None = None,
 ) -> InvestigationRunResponse:
     _validate_viewer_organization(viewer_context, run.investigation.organization_id)
     seer_run = run.seer_run
@@ -227,6 +220,5 @@ def get_investigation_orchestration_run(
     response = _get(
         f"/v1/automation/investigations/{seer_run_id}",
         viewer_context=viewer_context,
-        connection_pool=connection_pool,
     )
     return _validate_run_response(response)

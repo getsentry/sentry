@@ -21,10 +21,12 @@ from sentry.testutils.cases import TestCase
 
 class InvestigationOrchestrationSeerClientTest(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="investigation-protocol-test-secret")
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool")
     @mock.patch("sentry.investigations.seer_client.get_monitoring_provider_connections")
     def test_create_and_command_use_the_protocol_contract(
         self,
         get_connections: mock.Mock,
+        pool: mock.Mock,
     ) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
@@ -61,7 +63,6 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
             organization_id=self.organization.id,
             user_id=self.user.id,
         )
-        pool = mock.Mock()
         pool.host = "seer"
         pool.port = 9091
         pool.scheme = "http"
@@ -92,17 +93,14 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         created = create_investigation_orchestration_run(
             run,
             viewer_context=viewer_context,
-            connection_pool=pool,
         )
         replayed = create_investigation_orchestration_run(
             run,
             viewer_context=viewer_context,
-            connection_pool=pool,
         )
         accepted = dispatch_investigation_orchestration_command(
             command,
             viewer_context=viewer_context,
-            connection_pool=pool,
         )
 
         assert created == {"runId": 8128, "created": True, "projection": {}}
@@ -155,7 +153,6 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
             dispatch_investigation_orchestration_command(
                 command,
                 viewer_context=viewer_context,
-                connection_pool=pool,
             )
 
     def test_create_rejects_a_mismatched_viewer_organization(self) -> None:
