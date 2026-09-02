@@ -6,6 +6,7 @@ import pytest
 from sentry.issues.formatting.formatter import (
     Code,
     Field,
+    Formatter,
     Group,
     JsonFormatter,
     MarkdownFormatter,
@@ -181,3 +182,46 @@ def test_every_format_sees_the_same_sections() -> None:
     for out in rendered.values():
         assert "boom" in out and "GET /x" in out and "KeyError: b" in out
     assert set(json.loads(rendered["json"])) == {"title", "http_request", "exception"}
+
+
+def _many_fields_section(model: EventObject, limits: object) -> Section | None:
+    # what evidence_section builds from occurrence.evidenceDisplay: an open-ended field list
+    # bounded only by the group cap
+    return Section(
+        title="Evidence",
+        groups=(
+            Group(
+                items=tuple(Field(f"k{i}", "v" * 20) for i in range(50)),
+                max_item_chars=100,
+            ),
+        ),
+    )
+
+
+def test_json_applies_the_item_cap_to_fields_not_just_text() -> None:
+    # capping only the free text would let an open-ended field list grow unbounded in json
+    # while the text formats bound it, so asking for a different format would change how much
+    # data a caller gets
+    event = EventObject(title="t")
+    rendered = {
+        fmt: fmt.render(event, [_many_fields_section], LIMITS_DEFAULT)
+        for fmt in (MarkdownFormatter(), XmlFormatter(), JsonFormatter())
+    }
+    kept = json.loads(rendered[next(f for f in rendered if isinstance(f, JsonFormatter))])
+    assert len(kept["evidence"]) < 50  # dropped whole pairs rather than keeping all of them
+
+    # the cap is a character budget, so every format lands in the same envelope. Item counts
+    # differ slightly because the per-item syntax costs differ (markdown spends 8 characters
+    # on "**k0:** " that json does not), which is fine; an unbounded format is not.
+    for out in rendered.values():
+        assert len(out) < 2 * 100
+
+
+@pytest.mark.parametrize(
+    "fmt,expected",
+    [(MarkdownFormatter(), ""), (XmlFormatter(), ""), (JsonFormatter(), "{}")],
+)
+def test_empty_render_is_valid_for_the_requested_format(fmt: Formatter, expected: str) -> None:
+    # an empty json render still has to parse: callers json.loads the content, and the no-run
+    # autofix GET takes this path routinely
+    assert fmt.render(EventObject(title="t"), [], LIMITS_DEFAULT) == expected

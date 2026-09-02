@@ -371,5 +371,7 @@ def format_issue(
         model = event_response_to_model(data)
     except Exception:
         logger.exception("formatter.adapter_failed")
-        return ""
+        # same as the per-section handler: degrade to an empty render, but one the requested
+        # format can actually parse
+        return formatter.join([])
     return formatter.render(model, sections, limits)

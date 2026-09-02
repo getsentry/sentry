@@ -115,6 +115,13 @@ class Text:
 Item = Union[Field, Code, Text]
 
 
+def _item_cost(item: Item) -> int:
+    """Roughly what one item costs in the rendered output, for the drop-whole-items caps."""
+    if isinstance(item, Field):
+        return len(item.key) + len(item.value) + 2
+    return len(item.text) + 1
+
+
 @dataclass(frozen=True)
 class Group:
     """One sub-block of a section: a single exception, a single thread, or the whole body of a
@@ -281,23 +288,24 @@ class JsonFormatter(Formatter):
         return json.dumps({slug(section.title): payload})
 
     def render_group_object(self, group: Group) -> dict[str, Any]:
+        # drop whole items once the cap is hit, across every item kind. Capping only the free
+        # text would leave an open-ended field list (evidence builds one from
+        # occurrence.evidenceDisplay) unbounded in json while the text formats bound it.
+        items = [i for i in group.items if not (isinstance(i, Text) and not i.text)]
+        cap = group.max_item_chars if group.max_item_chars is not None else group.max_chars
+        if cap is not None:
+            items = _keep_within(items, [_item_cost(i) for i in items], cap)
+
         fields: dict[str, Any] = {}
         text: list[str] = []
         code: list[str] = []
-        for item in group.items:
+        for item in items:
             if isinstance(item, Field):
                 fields[slug(item.key)] = item.value
             elif isinstance(item, Code):
                 code.append(item.text)
-            elif item.text:
+            else:
                 text.append(item.text)
-
-        cap = group.max_item_chars if group.max_item_chars is not None else group.max_chars
-        if cap is not None and text:
-            # only the free-text runs are open-ended enough to need the cap; fields and code
-            # are already bounded by the section that built them
-            costs = [len(line) + 1 for line in text]
-            text = _keep_within(text, costs, cap)
 
         obj: dict[str, Any] = dict(fields)
         if text:

@@ -81,10 +81,12 @@ def format_autofix(
     Takes ``consumer`` to satisfy the adapter signature; the autofix body is the same for the UI
     and for API clients, so nothing varies on it yet.
     """
+    fmt = get_formatter(format)
     autofix = data.get("autofix")
     if not autofix:  # no autofix run on this issue yet
-        return ""
-    fmt = get_formatter(format)
+        # empty has to be valid for the format asked for: "" for the text formats, "{}" for
+        # json. A caller that json.loads the content hits this on every no-run autofix GET.
+        return fmt.join([])
     artifacts = _artifacts(autofix)
     sections = [
         _root_cause(artifacts.get("root_cause")),
