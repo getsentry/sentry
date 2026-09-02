@@ -331,7 +331,7 @@ describe('SpansTable', () => {
       ).not.toBeInTheDocument();
     });
 
-    const pendingResult = makeQueryResult([firstRow]);
+    const pendingResult = makeQueryResult([]);
     Object.assign(pendingResult, {
       isFetching: true,
       isPlaceholderData: true,

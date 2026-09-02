@@ -125,7 +125,7 @@ export function SpansTable({
   const canRetainLastResolvedTable = lastResolvedTable?.identityKey === tableIdentityKey;
   const isLoadingDifferentTable = result.isPlaceholderData && !canRetainLastResolvedTable;
   const displayedData =
-    !result.isPending && !isLoadingDifferentTable && result.data
+    !result.isPending && !result.isPlaceholderData && result.data
       ? result.data
       : canRetainLastResolvedTable
         ? lastResolvedTable.data
