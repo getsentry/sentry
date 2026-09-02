@@ -57,20 +57,28 @@ slow forwarding yields to other tasks
 """
 
 
-RELEASE_MARGIN = datetime.timedelta(seconds=30)
+CELL_REQUEST_TIMEOUT = 12
+"""Connect and read timeout, each, for one delivery request to a cell."""
+
+REQUEST_BOUND = datetime.timedelta(seconds=2 * CELL_REQUEST_TIMEOUT + 2)
 """
-How long before its claim's deadline a drain stops delivering and releases the
-unworked tail back to the mailbox. Covers the requests still in flight at the
-stop (each bounded by CELL_REQUEST_TIMEOUT for connect and read) plus the final
-delete flush, so the release lands while the claim still holds.
+The longest a delivery request can take and still come back: the connect and
+read timeouts back to back, plus slack for the thread to hand the result over.
+A request still in flight past it is stuck — the read timeout is per socket
+read, so a cell that keeps trickling bytes outruns it — and is not waited for.
 """
 
-CELL_REQUEST_TIMEOUT = 12
+SETTLE_ALLOWANCE = datetime.timedelta(seconds=4)
 """
-Connect and read timeout, each, for one delivery request to a cell. Twice this
-must stay under RELEASE_MARGIN, or a request started just ahead of the
-soft-stop carries the drain past its claim's deadline into rows another
-dispatcher may already own.
+What a drain keeps back from its claim's deadline for the delete flush and the
+release UPDATE once it has stopped waiting on requests.
+"""
+
+RELEASE_MARGIN = REQUEST_BOUND + SETTLE_ALLOWANCE
+"""
+How long before its claim's deadline a drain stops delivering and releases the
+unworked tail back to the mailbox: long enough to wait out the requests in
+flight at the stop, then settle, so the release lands while the claim holds.
 """
 
 
@@ -981,6 +989,7 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
         deleter,
         worker_threads=worker_threads,
         delivery_tags=delivery_tags,
+        settle_by=claim.valid_until - SETTLE_ALLOWANCE,
         # A drain killed mid-request leaves no result to reschedule on, so the
         # record would be retried at every claim horizon until it is stale. A
         # strict provider's record head-blocks its mailbox all that while, so
@@ -1039,7 +1048,17 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
                 else:
                     logger.debug("deliver_webhook.delivery_complete", extra=extra)
                 break
-            pool.wait_one()
+            if not pool.wait_one():
+                # Every request in flight has outrun REQUEST_BOUND: the cell is
+                # not answering. Stop rather than feed it more, and leave the
+                # tail parked under the claim instead of releasing it — a
+                # dispatcher would only send the next drain into the same cell.
+                logger.warning(
+                    "deliver_webhook.cell_unresponsive",
+                    extra={**extra, "in_flight": pool.in_flight},
+                )
+                pool.wind_down(reason="stuck", patience=0)
+                break
             if pool.unexpected is not None:
                 pool.wind_down(reason="error")
                 break
@@ -1070,10 +1089,12 @@ class _DeliveryPool:
         *,
         worker_threads: int,
         delivery_tags: Mapping[str, str],
+        settle_by: datetime.datetime,
         spends_attempt_on_submit: bool,
     ) -> None:
         self._deleter = deleter
         self._delivery_tags = delivery_tags
+        self._settle_by = settle_by
         self._spends_attempt_on_submit = spends_attempt_on_submit
         self._capacity = worker_threads
         self._executor = ContextPropagatingThreadPoolExecutor(max_workers=worker_threads)
@@ -1095,17 +1116,28 @@ class _DeliveryPool:
     def idle(self) -> bool:
         return not self._in_flight
 
+    @property
+    def in_flight(self) -> int:
+        return len(self._in_flight)
+
     def submit(self, record: WebhookPayload) -> None:
         if self._spends_attempt_on_submit:
             record.schedule_next_attempt()
         self._in_flight[self._executor.submit(deliver_message, record)] = record
 
-    def wait_one(self) -> None:
-        """Block until at least one request finishes, then handle every result that is in."""
-        done, _ = wait(self._in_flight, return_when=FIRST_COMPLETED)
+    def wait_one(self) -> bool:
+        """
+        Block until a request finishes, then handle every result that is in.
+        False when none finished inside REQUEST_BOUND: every request in flight
+        was already running when the wait began, so all of them are now stuck.
+        """
+        done, _ = wait(
+            self._in_flight, timeout=REQUEST_BOUND.total_seconds(), return_when=FIRST_COMPLETED
+        )
         self._handle(done)
+        return bool(done)
 
-    def wind_down(self, *, reason: str) -> int | None:
+    def wind_down(self, *, reason: str, patience: float | None = None) -> int | None:
         """
         Stop delivering: cancel the requests that have not started, wait out the
         ones that have, and handle their results. Returns the lowest cancelled id
@@ -1117,22 +1149,50 @@ class _DeliveryPool:
         cancelled id is below them all. Rows above it that were worked are
         settled by then, so the release's `schedule_for` match passes them by.
 
-        The wait is what RELEASE_MARGIN has to cover, so its length is recorded
-        under `reason` whenever there was something to wait for.
+        The wait lasts at most `patience` seconds — by default REQUEST_BOUND,
+        or what is left before `settle_by`, whichever is shorter — and is
+        recorded under `reason` whenever there was something to wait for.
+        Requests still running after that are abandoned (`_abandon`), and the
+        executor is shut down without joining their threads.
         """
         cancelled_ids = [record.id for future, record in self._in_flight.items() if future.cancel()]
         self._in_flight = {
             future: record for future, record in self._in_flight.items() if not future.cancelled()
         }
         if self._in_flight:
+            if patience is None:
+                remaining = (self._settle_by - timezone.now()).total_seconds()
+                patience = max(0.0, min(REQUEST_BOUND.total_seconds(), remaining))
             with metrics.timer(
                 "hybridcloud.deliver_webhooks.drain.wind_down",
                 tags={**self._delivery_tags, "reason": reason},
             ):
-                done, _ = wait(self._in_flight)
+                done, stuck = wait(self._in_flight, timeout=patience)
             self._handle(done)
-        self._executor.shutdown()
+            self._abandon(stuck)
+        self._executor.shutdown(wait=False)
         return min(cancelled_ids, default=None)
+
+    def _abandon(self, stuck: Iterable[Future[tuple[WebhookPayload, Exception | None]]]) -> None:
+        """
+        Give up on requests the drain will not wait for. Each counts as a failed
+        attempt: the record goes into its retry backoff, so a request that never
+        answers cannot be retried at every claim horizon until the record is
+        stale. Its thread finishes on its own; nothing reads the result, so a
+        late success is redelivered once after the backoff.
+        """
+        for future in stuck:
+            record = self._in_flight.pop(future)
+            self.failed += 1
+            # Unsampled: rare, and each one is a request the cell never answered.
+            metrics.incr(
+                "hybridcloud.deliver_webhooks.delivery",
+                tags={**self._delivery_tags, "outcome": "abandoned"},
+                sample_rate=1.0,
+            )
+            logger.warning("deliver_webhook.abandoned", extra=record.as_dict())
+            if not self._spends_attempt_on_submit:
+                record.schedule_next_attempt()
 
     def _handle(self, done: Iterable[Future[tuple[WebhookPayload, Exception | None]]]) -> None:
         for future in done:

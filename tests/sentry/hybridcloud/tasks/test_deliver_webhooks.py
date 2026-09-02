@@ -19,6 +19,7 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     DRAIN_LOCK_TTL,
     MAX_MAILBOX_DRAIN,
     RELEASE_MARGIN,
+    SETTLE_ALLOWANCE,
     SLOW_DELIVERY_THRESHOLD,
     Dispatcher,
     _claim_and_dispatch,
@@ -2615,6 +2616,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
                 deliver_webhooks._PayloadDeleter(batched=False),
                 worker_threads=2,
                 delivery_tags={**UNATTRIBUTED, "provider": "github"},
+                settle_by=timezone.now() + BATCH_SCHEDULE_OFFSET,
                 spends_attempt_on_submit=False,
             )
             for record in records:
@@ -2644,6 +2646,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
                 deliver_webhooks._PayloadDeleter(batched=False),
                 worker_threads=1,
                 delivery_tags=tags,
+                settle_by=timezone.now() + BATCH_SCHEDULE_OFFSET,
                 spends_attempt_on_submit=False,
             )
             pool.submit(record)
@@ -2656,6 +2659,92 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             if call[0][0] == "hybridcloud.deliver_webhooks.drain.wind_down"
         ]
         assert [call[1]["tags"] for call in timers] == [{**tags, "reason": "deadline"}]
+
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_wind_down_abandons_a_request_it_cannot_wait_out(self, mock_metrics: MagicMock) -> None:
+        # The settle deadline bounds the wait: a request still running at it is
+        # given up on — rescheduled into its backoff, its row kept — while the
+        # sibling that answered is deleted, and the call returns without joining
+        # the stuck thread.
+        stuck, answered = create_payloads(2, "github:123", provider="github")
+        release = threading.Event()
+        self.addCleanup(release.set)
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            if payload.id == stuck.id:
+                release.wait()
+            return (payload, None)
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            pool = deliver_webhooks._DeliveryPool(
+                deliver_webhooks._PayloadDeleter(batched=False),
+                worker_threads=2,
+                delivery_tags={**UNATTRIBUTED, "provider": "github"},
+                settle_by=timezone.now() + timedelta(seconds=0.3),
+                spends_attempt_on_submit=False,
+            )
+            pool.submit(stuck)
+            pool.submit(answered)
+            pool.wind_down(reason="deadline")
+
+        assert pool.delivered == 1
+        assert pool.failed == 1
+        assert not WebhookPayload.objects.filter(id=answered.id).exists()
+        stuck.refresh_from_db()
+        assert stuck.attempts == 1
+        assert stuck.schedule_for > timezone.now()
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC)[-1] == {
+            **UNATTRIBUTED,
+            "provider": "github",
+            "outcome": "abandoned",
+        }
+
+    @override_cells(cell_config)
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 2})
+    @patch.object(deliver_webhooks, "REQUEST_BOUND", timedelta(seconds=0.3))
+    def test_unresponsive_cell_stops_the_drain_without_releasing(self) -> None:
+        # Nothing answering inside the request bound means the cell is down: the
+        # in-flight records go into their backoff and the drain stops. The tail
+        # stays under the claim rather than being released — a release would
+        # only send the next drain straight into the same cell.
+        records = create_payloads(4, "github:123", provider="github")
+        valid_until = timezone.now() + BATCH_SCHEDULE_OFFSET
+        WebhookPayload.objects.filter(id__in=[r.id for r in records]).update(
+            schedule_for=valid_until
+        )
+        release = threading.Event()
+        self.addCleanup(release.set)
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            release.wait()
+            return (payload, None)
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            drain_mailbox(
+                records[0].id,
+                claimed_count=4,
+                valid_until=valid_until.timestamp(),
+                mailbox="github:123",
+            )
+
+        for record in records[:2]:
+            record.refresh_from_db()
+            assert record.attempts == 1
+            assert record.schedule_for > valid_until
+        for record in records[2:]:
+            record.refresh_from_db()
+            assert record.attempts == 0
+            assert record.schedule_for == valid_until
+
+    def test_release_margin_covers_the_wait_and_the_settle(self) -> None:
+        # The soft-stop must leave room for a full request bound plus the flush
+        # and release, or a drain stopping on time still overshoots its claim.
+        assert RELEASE_MARGIN == deliver_webhooks.REQUEST_BOUND + SETTLE_ALLOWANCE
+        assert (
+            deliver_webhooks.REQUEST_BOUND.total_seconds()
+            > 2 * deliver_webhooks.CELL_REQUEST_TIMEOUT
+        )
 
 
 @control_silo_test
