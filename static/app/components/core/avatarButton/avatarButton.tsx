@@ -58,11 +58,7 @@ export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButto
   );
 }
 
-const RADIUS_BY_SIZE: Record<
-  NonNullable<ButtonProps['size']>,
-  'xs' | 'sm' | 'md' | 'lg'
-> = {
-  zero: 'xs',
+const RADIUS_BY_SIZE: Record<AvatarButtonSize, 'sm' | 'md' | 'lg'> = {
   xs: 'sm',
   sm: 'md',
   md: 'lg',
@@ -75,7 +71,7 @@ function AvatarContainer({
   size,
 }: {
   children: React.ReactNode;
-  size: NonNullable<ButtonProps['size']>;
+  size: AvatarButtonSize;
   chonk?: string;
   padded?: boolean;
 }) {
@@ -85,7 +81,7 @@ function AvatarContainer({
       height="100%"
       overflow="hidden"
       border="primary"
-      radius={RADIUS_BY_SIZE[size] ?? 'xs'}
+      radius={RADIUS_BY_SIZE[size]}
       padding={padded ? 'xs' : '0'}
       background={padded ? 'primary' : undefined}
       position="relative"
