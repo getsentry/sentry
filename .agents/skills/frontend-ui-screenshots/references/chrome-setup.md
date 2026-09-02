@@ -15,7 +15,7 @@ open -na "Google Chrome" --args \
 
 In that Chrome window:
 
-1. Install the Sentry Cookie Sync extension.
+1. Install the [Sentry Cookie Sync extension](https://github.com/getsentry/cookie-sync) by following its repository instructions.
 2. Authenticate to Sentry manually. Never ask the developer to paste credentials into an agent conversation or terminal command.
 3. Open `https://demo.dev.getsentry.net:7999/`, sync cookies, and confirm the demo organization renders.
 
