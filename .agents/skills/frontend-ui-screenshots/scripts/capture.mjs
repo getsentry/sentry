@@ -44,7 +44,7 @@ function git(args) {
 }
 
 const FRONTEND_EXTENSION = /\.(css|js|jsx|scss|ts|tsx)$/;
-const TEST_FILE = /(\.spec\.|\.test\.|__tests__)/;
+const TEST_FILE = /\.spec\./;
 const STOP_WORDS = new Set([
   'and',
   'are',
