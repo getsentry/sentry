@@ -996,13 +996,23 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
         while True:
             extra = {**claim.log_context, "delivered": pool.delivered}
             if claim.lapsed(log_key="deliver_webhook.delivery_deadline", extra=extra):
+                pool.wind_down(reason="lapsed")
                 break
             if claim.nearing_deadline():
                 # Settle and flush before releasing, so a request that completes
                 # late cannot land on a row another dispatcher has since claimed,
                 # and no delivered row is released ahead of its delete.
-                lowest_cancelled = pool.wind_down()
+                lowest_cancelled = pool.wind_down(reason="deadline")
                 deleter.flush()
+                overshoot = (timezone.now() - claim.valid_until).total_seconds()
+                if overshoot >= 0:
+                    # The in-flight requests outran RELEASE_MARGIN: the rows have
+                    # been claimable again since the deadline, so anything settled
+                    # after it may have been delivered twice.
+                    logger.warning(
+                        "deliver_webhook.release_overshoot",
+                        extra={**claim.log_context, "overshoot_seconds": overshoot},
+                    )
                 claim.release_remainder(
                     frontier if lowest_cancelled is None else lowest_cancelled,
                     extra={**claim.log_context, "delivered": pool.delivered},
@@ -1031,6 +1041,7 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
                 break
             pool.wait_one()
             if pool.unexpected is not None:
+                pool.wind_down(reason="error")
                 break
             if pool.failed > 0 and not skip_on_failure:
                 # For providers that require strict ordering, stop on the first
@@ -1038,7 +1049,7 @@ def _drain_mailbox(claim: _MailboxClaim) -> None:
                 # The failed record has already been rescheduled.
                 break
     finally:
-        pool.wind_down()
+        pool.wind_down(reason="exception")
         deleter.flush()
     if pool.unexpected is not None:
         raise pool.unexpected
@@ -1094,7 +1105,7 @@ class _DeliveryPool:
         done, _ = wait(self._in_flight, return_when=FIRST_COMPLETED)
         self._handle(done)
 
-    def wind_down(self) -> int | None:
+    def wind_down(self, *, reason: str) -> int | None:
         """
         Stop delivering: cancel the requests that have not started, wait out the
         ones that have, and handle their results. Returns the lowest cancelled id
@@ -1105,13 +1116,21 @@ class _DeliveryPool:
         the unsubmitted ones sit past everything submitted, so the lowest
         cancelled id is below them all. Rows above it that were worked are
         settled by then, so the release's `schedule_for` match passes them by.
+
+        The wait is what RELEASE_MARGIN has to cover, so its length is recorded
+        under `reason` whenever there was something to wait for.
         """
         cancelled_ids = [record.id for future, record in self._in_flight.items() if future.cancel()]
         self._in_flight = {
             future: record for future, record in self._in_flight.items() if not future.cancelled()
         }
-        done, _ = wait(self._in_flight)
-        self._handle(done)
+        if self._in_flight:
+            with metrics.timer(
+                "hybridcloud.deliver_webhooks.drain.wind_down",
+                tags={**self._delivery_tags, "reason": reason},
+            ):
+                done, _ = wait(self._in_flight)
+            self._handle(done)
         self._executor.shutdown()
         return min(cancelled_ids, default=None)
 

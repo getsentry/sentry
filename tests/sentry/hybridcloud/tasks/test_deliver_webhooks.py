@@ -2619,11 +2619,43 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             )
             for record in records:
                 pool.submit(record)
-            lowest_cancelled = pool.wind_down()
+            lowest_cancelled = pool.wind_down(reason="deadline")
 
         assert lowest_cancelled == records[2].id
         assert pool.delivered == 2
         assert set(WebhookPayload.objects.values_list("id", flat=True)) == {records[2].id}
+
+    @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_wind_down_records_how_long_it_waited(self, mock_metrics: MagicMock) -> None:
+        # RELEASE_MARGIN is sized to this wait, so every wind-down that had
+        # something to wait for reports its length under the reason it stopped —
+        # and one with nothing in flight reports nothing, or the no-op winds
+        # down in every drain's `finally` would bury the real ones.
+        record = create_payloads(1, "github:123", provider="github")[0]
+        tags = {**UNATTRIBUTED, "provider": "github"}
+
+        def deliver(payload: WebhookPayload) -> tuple[WebhookPayload, Exception | None]:
+            time.sleep(0.1)
+            return (payload, None)
+
+        with patch.object(deliver_webhooks, "deliver_message", side_effect=deliver):
+            pool = deliver_webhooks._DeliveryPool(
+                deliver_webhooks._PayloadDeleter(batched=False),
+                worker_threads=1,
+                delivery_tags=tags,
+                spends_attempt_on_submit=False,
+            )
+            pool.submit(record)
+            pool.wind_down(reason="deadline")
+            pool.wind_down(reason="exception")
+
+        timers = [
+            call
+            for call in mock_metrics.timer.call_args_list
+            if call[0][0] == "hybridcloud.deliver_webhooks.drain.wind_down"
+        ]
+        assert [call[1]["tags"] for call in timers] == [{**tags, "reason": "deadline"}]
 
 
 @control_silo_test
