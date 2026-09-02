@@ -614,9 +614,7 @@ const config = defineConfig({
       },
     ],
     'react/require-render-return': 'error',
-    // Use the upstream rule below. Oxlint's native rule mistakes callbacks for
-    // React components and rewrites their function semantics.
-    'react/function-component-definition': 'off',
+    'react/function-component-definition': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
     'react/no-did-mount-set-state': 'error',
@@ -1375,7 +1373,6 @@ const config = defineConfig({
     ],
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     'react-js/no-deprecated': ['error'],
-    'react-js/function-component-definition': ['error'],
     'react-js/jsx-curly-brace-presence': [
       'error',
       {
