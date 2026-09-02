@@ -254,6 +254,26 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         return queryset
 
+    def _get_workflows_for_mutation(
+        self, request: Request, organization: Organization
+    ) -> tuple[QuerySet[Workflow], list[Workflow]]:
+        """Return the complete set of workflows that the request is allowed to mutate."""
+        queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
+
+        if not workflows:
+            return queryset, workflows
+
+        if raw_idlist := request.GET.getlist("id"):
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            if requested_ids != {workflow.id for workflow in workflows}:
+                raise PermissionDenied
+
+        if not can_edit_workflows(workflows, request):
+            raise PermissionDenied
+
+        return queryset, workflows
+
     @extend_schema(
         operation_id="listOrganizationWorkflows",
         summary="Fetch Alerts",
@@ -436,22 +456,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
-        queryset = self.filter_workflows(request, organization)
-        workflows = list(queryset)
+        queryset, workflows = self._get_workflows_for_mutation(request, organization)
 
         if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
-
-        if raw_idlist:
-            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
-            if requested_ids != {workflow.id for workflow in workflows}:
-                raise PermissionDenied
-
-        if not can_edit_workflows(workflows, request):
-            raise PermissionDenied
 
         with transaction.atomic(router.db_for_write(Workflow)):
             # We update workflows individually to ensure post_save signals are called
@@ -504,22 +515,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        queryset = self.filter_workflows(request, organization)
-        workflows = list(queryset)
+        _, workflows = self._get_workflows_for_mutation(request, organization)
 
         if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
-
-        if raw_idlist:
-            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
-            if requested_ids != {workflow.id for workflow in workflows}:
-                raise PermissionDenied
-
-        if not can_edit_workflows(workflows, request):
-            raise PermissionDenied
 
         for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):
