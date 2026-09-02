@@ -54,7 +54,7 @@ from sentry.issues.constants import (
     get_issue_tsdb_group_model,
 )
 from sentry.issues.derived.check import record_status_consistency
-from sentry.issues.derived.gate import derived_should_be_correct
+from sentry.issues.derived.gate import derived_should_be_correct, should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -342,9 +342,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
-            if features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
-            ):
+            if should_serve_action_log_activity(group.project, request.user):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
                     # swap action log data in under the activity name

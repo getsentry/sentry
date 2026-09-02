@@ -2,6 +2,7 @@ import datetime
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -105,9 +106,10 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
-    @with_feature("projects:issue-action-log-activity")
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_reads_from_gale(self) -> None:
         group = self.group
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         self.create_group_action_log_entry(
             group=group,
@@ -130,9 +132,10 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["data"]["text"] == "hello world"
         assert response.data[0]["data"]["comment_id"] == 123
 
-    @with_feature("projects:issue-action-log-activity")
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_reads_from_gale_with_edits(self) -> None:
         group = self.group
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         unedited = self.create_group_action_log_entry(
             group=group,
@@ -210,6 +213,7 @@ class GroupNoteCreateTest(APITestCase):
     @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_returns_gale(self) -> None:
         group = self.group
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         self.login_as(user=self.user)
 

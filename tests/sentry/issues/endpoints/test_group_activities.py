@@ -1,4 +1,5 @@
 from sentry.issues.action_log.types import ActionSource, GroupActionType, GroupActorType
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -44,9 +45,10 @@ class GroupActivitiesEndpointTest(APITestCase):
         assert "activity" in response.data
         assert len(response.data["activity"]) == 5
 
-    @with_feature("projects:issue-action-log-activity")
+    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
     def test_endpoint_with_group_action_log_entries(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         for i in range(0, 4):
             GroupActionLogEntry.objects.create(
