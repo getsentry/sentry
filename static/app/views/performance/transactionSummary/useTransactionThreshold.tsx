@@ -24,7 +24,10 @@ interface UseTransactionThresholdProps {
 }
 
 export interface TransactionThreshold {
-  /** True while the current threshold is being read; the trigger should be disabled. */
+  /**
+   * True while the threshold cannot be read or written — either the project has
+   * not resolved yet or a request is in flight. The trigger should be disabled.
+   */
   isLoading: boolean;
   openThresholdModal: () => void;
 }
@@ -110,10 +113,16 @@ export function useTransactionThreshold({
     ? projectThresholdQuery.data
     : overrideQuery.data;
 
-  // Stay loading across the handover to the project default, otherwise the
-  // trigger flickers enabled for a render between the two requests.
+  // Both queries are disabled until the project resolves, and a disabled query
+  // reports `isLoading: false` — so the project has to be checked separately or
+  // the trigger opens a modal that cannot write anything.
+  //
+  // Staying loading across the handover to the project default also keeps the
+  // trigger from flickering enabled for a render between the two requests.
   const isLoading =
-    overrideQuery.isLoading || (overrideQuery.isError && projectThresholdQuery.isPending);
+    !project ||
+    overrideQuery.isLoading ||
+    (overrideQuery.isError && projectThresholdQuery.isPending);
 
   const overrideUrl = overrideOptions.queryKey[0];
   const projectThresholdUrl = projectOptions.queryKey[0];

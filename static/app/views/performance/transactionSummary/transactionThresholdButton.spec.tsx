@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -125,6 +126,28 @@ describe('TransactionThresholdButton', () => {
 
     expect(screen.getByRole('spinbutton')).toHaveValue(800);
     expect(screen.getByText('Largest Contentful Paint')).toBeInTheDocument();
+  });
+
+  it('stays disabled until the project has loaded', async () => {
+    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      method: 'GET',
+      body: {threshold: '800', metric: 'lcp'},
+    });
+    // Projects are fetched in parallel with the organization, so the page can
+    // render before the store is populated.
+    ProjectsStore.reset();
+
+    renderComponent(eventView, organization, onChangeThreshold);
+
+    const button = screen.getByRole('button', {name: 'Settings'});
+    expect(button).toBeDisabled();
+    expect(getTransactionThresholdMock).not.toHaveBeenCalled();
+
+    act(() => ProjectsStore.loadInitialData([project]));
+
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the project default after the override is reset', async () => {
