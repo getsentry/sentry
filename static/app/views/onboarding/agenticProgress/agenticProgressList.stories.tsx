@@ -6,6 +6,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
+import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 
 import {AgenticProgress} from './agenticProgressList';
 import type {AgenticProgressRun} from './types';
@@ -44,6 +45,10 @@ const pendingStages: AgenticProgressStageState[] = [
 ];
 
 const createdProjectSlugs = ['react-frontend', 'python-backend'];
+// The issue the story's run reports back. Storybook has no group to resolve it
+// against, so the completed run's issue card stays out — driving the run to a
+// terminal state with the shape the agent actually sends is the point here.
+const verificationIssueIds = ['4815162342'];
 
 export default Storybook.story('Agentic Onboarding Progress', story => {
   story('All states', () => (
@@ -109,7 +114,53 @@ export default Storybook.story('Agentic Onboarding Progress', story => {
   ));
 
   story('Interactive progress', () => <InteractiveProgressStory />);
+
+  story('Connecting an agent', () => <AgentConnectionStory />);
 });
+
+/**
+ * The welcome step's own composition, driven by a toggle rather than a real
+ * agent. Rendering WelcomeAgentSetup itself (not a copy of its markup) is what
+ * makes this useful for the setup card to progress list transition: the card
+ * swap, the box resizing between the two heights, and the manual path
+ * collapsing are all the components' own, so what happens here is what happens
+ * in onboarding.
+ */
+function AgentConnectionStory() {
+  const [isAgentConnected, setIsAgentConnected] = useState(false);
+
+  return (
+    <StoryFrame>
+      <Stack gap="2xl" align="start">
+        <Button onClick={() => setIsAgentConnected(connected => !connected)}>
+          {isAgentConnected ? 'Disconnect agent' : 'Connect agent'}
+        </Button>
+        <Container width="100%" maxWidth="480px">
+          <WelcomeAgentSetup
+            isAgentConnected={isAgentConnected}
+            onboardingCode="Lg1iSt2qeQ"
+            onCopyCommand={() => {}}
+            onSetupInBrowser={() => {}}
+            run={makeAgenticProgressRun({
+              sequence: 3,
+              stages: pendingStages.map(stage =>
+                stage.stage === 'analyze_project'
+                  ? {
+                      ...stage,
+                      status: 'completed',
+                      eventNote: 'Detected a React application using Vite.',
+                    }
+                  : stage.stage === 'create_project'
+                    ? {...stage, status: 'active'}
+                    : stage
+              ),
+            })}
+          />
+        </Container>
+      </Stack>
+    </StoryFrame>
+  );
+}
 
 const terminalStatuses = new Set(['completed', 'skipped', 'bypassed', 'failed']);
 
@@ -152,6 +203,15 @@ function InteractiveProgressStory() {
               status,
               eventNote: noteForStatus(status),
               extra: {projectSlugs: createdProjectSlugs},
+            };
+          }
+
+          if (stage.stage === 'receive_verification_error' && status === 'completed') {
+            return {
+              ...stage,
+              status,
+              eventNote: noteForStatus(status),
+              extra: {issueIds: verificationIssueIds},
             };
           }
 
