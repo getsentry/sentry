@@ -378,9 +378,7 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hasLogsEnabled: bo
         : '40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px'};
 
     [data-column='envs'],
-    [data-column='last-visited'],
-    [data-column='created'],
-    [data-column='stars'] {
+    [data-column='last-visited'] {
       display: none;
     }
   }
@@ -391,8 +389,6 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hasLogsEnabled: bo
 
     [data-column='envs'],
     [data-column='last-visited'],
-    [data-column='created'],
-    [data-column='stars'],
     [data-column='created-by'],
     [data-column='project'],
     [data-column='dataset'] {
