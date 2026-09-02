@@ -6,6 +6,7 @@ import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {getNextSort} from 'sentry/components/tables/getNextSort';
@@ -151,6 +152,7 @@ export function AutomationListTable({
 
   return (
     <AutomationsSimpleTable
+      columns={AUTOMATION_COLUMNS}
       header={
         canEditAutomations && selected.size === 0 ? (
           <SimpleTable.HeaderRow key="header">
@@ -163,21 +165,17 @@ export function AutomationListTable({
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
-            <HeaderCell
-              data-column-name="last-triggered"
-              sort={sort}
-              sortKey="lastTriggered"
-            >
+            <HeaderCell columnKey="last-triggered" sort={sort} sortKey="lastTriggered">
               {t('Last Triggered')}
             </HeaderCell>
-            <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
+            <HeaderCell columnKey="action" sort={sort} sortKey="actions">
               {t('Actions')}
             </HeaderCell>
-            <HeaderCell data-column-name="projects" sort={sort}>
+            <HeaderCell columnKey="projects" sort={sort}>
               {t('Projects')}
             </HeaderCell>
             <HeaderCell
-              data-column-name="connected-monitors"
+              columnKey="connected-monitors"
               sort={sort}
               sortKey="connectedDetectors"
             >
@@ -250,47 +248,22 @@ const StyledFlex = styled(Flex)`
   padding: ${p => p.theme.size.sm};
 `;
 
+const AUTOMATION_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: {zero: '1fr', sm: '2.5fr', '4xl': 'minmax(0, 3fr)'}},
+  {
+    key: 'last-triggered',
+    visible: {zero: false, '3xl': true},
+    width: 'minmax(160px, 1fr)',
+  },
+  {key: 'action', visible: {zero: false, xl: true}, width: '1fr'},
+  {key: 'projects', visible: {zero: false, sm: true}, width: '1fr'},
+  {
+    key: 'connected-monitors',
+    visible: {zero: false, '4xl': true},
+    width: '1fr',
+  },
+];
+
 const AutomationsSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr;
-
   margin-bottom: ${p => p.theme.space.xl};
-
-  [data-column-name='last-triggered'],
-  [data-column-name='action'],
-  [data-column-name='projects'],
-  [data-column-name='connected-monitors'] {
-    display: none;
-  }
-
-  @container (min-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 2.5fr 1fr;
-
-    [data-column-name='projects'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 2.5fr 1fr 1fr;
-
-    [data-column-name='action'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
-
-    [data-column-name='last-triggered'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
-
-    [data-column-name='connected-monitors'] {
-      display: flex;
-    }
-  }
 `;

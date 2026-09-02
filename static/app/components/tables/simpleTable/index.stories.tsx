@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
@@ -208,21 +209,21 @@ export default Storybook.story('SimpleTable', story => {
     return (
       <Fragment>
         <p>
-          Set custom widths for columns by styling SimpleTable with{' '}
-          <code>grid-template-columns</code>.
-        </p>
-        <p>
-          You can also hide columns by targeting the column in css, usually with a{' '}
-          <Storybook.JSXProperty name="data-*" value="string" />
-          attribute. This is useful for creating responsive tables.
+          Set custom widths for columns with the{' '}
+          <Storybook.JSXProperty name="columns" value="TableColumnConfig[]" /> prop. Both{' '}
+          <code>width</code> and <code>visible</code> accept responsive values keyed by
+          container breakpoint, which is how a table sheds columns as it narrows. A hidden
+          column loses its track, and cells name their column with{' '}
+          <Storybook.JSXProperty name="column" value="string" />.
         </p>
         <p>This table has 4 columns, but will hide some as it gets narrower.</p>
-        <SizingWindowContainer>
-          <SimpleTableWithHiddenColumns
+        <Storybook.Demo resizable>
+          <SimpleTable
+            columns={responsiveColumns}
             header={
               <SimpleTable.HeaderRow>
                 {headers.map(header => (
-                  <SimpleTable.HeaderCell key={header.key} data-column-name={header.key}>
+                  <SimpleTable.HeaderCell key={header.key} columnKey={header.key}>
                     {header.label}
                   </SimpleTable.HeaderCell>
                 ))}
@@ -233,16 +234,14 @@ export default Storybook.story('SimpleTable', story => {
               <SimpleTable.Row key={row.name}>
                 <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
                 <SimpleTable.RowCell>{row.monitors.length} monitors</SimpleTable.RowCell>
-                <SimpleTable.RowCell data-column-name="action">
-                  {row.action}
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell data-column-name="lastTriggered">
+                <SimpleTable.RowCell columnKey="action">{row.action}</SimpleTable.RowCell>
+                <SimpleTable.RowCell columnKey="lastTriggered">
                   <TimeAgoCell date={row.lastTriggered} />
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             ))}
-          </SimpleTableWithHiddenColumns>
-        </SizingWindowContainer>
+          </SimpleTable>
+        </Storybook.Demo>
       </Fragment>
     );
   });
@@ -318,26 +317,13 @@ const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 1fr 1fr 1fr;
 `;
 
-const SizingWindowContainer = styled(Storybook.SizingWindow)`
-  container-type: inline-size;
-`;
-
-const SimpleTableWithHiddenColumns = styled(SimpleTable)`
-  grid-template-columns: 2fr min-content auto 256px;
-
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 2fr min-content auto;
-
-    [data-column-name='action'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 2fr min-content;
-
-    [data-column-name='lastTriggered'] {
-      display: none;
-    }
-  }
-`;
+const responsiveColumns: TableColumnConfig[] = [
+  {key: 'name', width: '2fr'},
+  {key: 'monitors', width: 'min-content'},
+  {key: 'action', visible: {zero: false, lg: true}, width: 'auto'},
+  {
+    key: 'lastTriggered',
+    visible: {zero: false, '2xs': true},
+    width: {zero: 'auto', lg: '256px'},
+  },
+];

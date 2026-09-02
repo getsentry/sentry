@@ -6,6 +6,7 @@ import type {Location} from 'history';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -172,7 +173,8 @@ class UsageTable extends Component<Props> {
     }
 
     return (
-      <StyledSimpleTable
+      <SimpleTable
+        columns={USAGE_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             {headers.map((header, i) => (
@@ -186,7 +188,7 @@ class UsageTable extends Component<Props> {
           <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
         )}
         {!isLoading && usageStats.map(s => this.renderTableRow(s))}
-      </StyledSimpleTable>
+      </SimpleTable>
     );
   }
 }
@@ -203,12 +205,17 @@ function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
 // eslint-disable-next-line @sentry/no-default-exports
 export default UsageTableWithHooks;
 
-const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: repeat(7, auto);
-  @container (min-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr repeat(6, minmax(0, auto));
-  }
-`;
+const STAT_COLUMN_WIDTH = {zero: 'auto', xl: 'minmax(0, auto)'};
+
+const USAGE_COLUMNS: TableColumnConfig[] = [
+  {key: 'project', width: {zero: 'auto', xl: '1fr'}},
+  {key: 'total', width: STAT_COLUMN_WIDTH},
+  {key: 'accepted', width: STAT_COLUMN_WIDTH},
+  {key: 'filtered', width: STAT_COLUMN_WIDTH},
+  {key: 'rateLimited', width: STAT_COLUMN_WIDTH},
+  {key: 'invalid', width: STAT_COLUMN_WIDTH},
+  {key: 'actions', width: STAT_COLUMN_WIDTH},
+];
 
 const cellStatStyle = css`
   display: flex;

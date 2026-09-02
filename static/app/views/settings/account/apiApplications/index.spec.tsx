@@ -9,6 +9,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
@@ -16,6 +18,7 @@ jest.mock('sentry/utils/demoMode');
 
 describe('ApiApplications', () => {
   beforeEach(() => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1600);
     MockApiClient.clearMockResponses();
   });
 
@@ -25,7 +28,11 @@ describe('ApiApplications', () => {
       body: [],
     });
 
-    render(<ApiApplications />);
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
@@ -40,7 +47,11 @@ describe('ApiApplications', () => {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications />);
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(requestMock).toHaveBeenCalled();
@@ -62,7 +73,11 @@ describe('ApiApplications', () => {
       body: [apiApp],
     });
 
-    render(<ApiApplications />);
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('Adjusted Shrimp')).toBeInTheDocument();
@@ -78,7 +93,11 @@ describe('ApiApplications', () => {
       body: [ApiApplicationFixture()],
     });
 
-    render(<ApiApplications />);
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
 
     expect(
       await screen.findByText("You haven't created any applications yet.")
@@ -101,7 +120,11 @@ describe('ApiApplications', () => {
       method: 'POST',
     });
 
-    const {router} = render(<ApiApplications />);
+    const {router} = render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -150,7 +173,11 @@ describe('ApiApplications', () => {
       method: 'POST',
     });
 
-    const {router} = render(<ApiApplications />);
+    const {router} = render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -194,7 +221,11 @@ describe('ApiApplications', () => {
       method: 'DELETE',
     });
 
-    render(<ApiApplications />);
+    render(
+      <Container containerType="inline-size">
+        <ApiApplications />
+      </Container>
+    );
     renderGlobalModal();
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 

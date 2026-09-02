@@ -38,7 +38,7 @@ const columns = [
   <Table.Head>
     <Table.Row>
       {columns.map(column => (
-        <Table.HeadCell column={column.key} key={column.key}>
+        <Table.HeadCell columnKey={column.key} key={column.key}>
           {column.key}
         </Table.HeadCell>
       ))}
@@ -78,6 +78,38 @@ Omit it to size the column with `minmax(minimumColumnWidth, auto)`, and set `res
 
 Widths are uncontrolled by default, and the component tracks them per column key.
 Pass `onColumnResize` to control them instead, which is how `GridEditable` persists widths to the URL.
+
+## Responsive Columns
+
+`width` and `visible` both accept responsive values, so a table can resize and shed columns as its container narrows.
+Keys are container breakpoints on the `theme.container` scale, and both resolve mobile-first, like every other responsive prop.
+
+A column whose `visible` resolves to `false` loses its track entirely, so the remaining columns divide the full width.
+Cells name their column with `column`, which is how a cell is hidden along with its track.
+
+```jsx
+const columns = [
+  {key: 'transaction', width: {zero: 'minmax(0, 1fr)', '3xl': 260}},
+  {key: 'browser', visible: {zero: false, '3xl': true}, width: 160},
+  {key: 'count'},
+];
+
+<Table columns={columns}>
+  <Table.Head>
+    <Table.Row>
+      {columns.map(column => (
+        <Table.HeadCell columnKey={column.key} key={column.key}>
+          {column.key}
+        </Table.HeadCell>
+      ))}
+    </Table.Row>
+  </Table.Head>
+  ...
+</Table>;
+```
+
+These resolve in JS rather than as `@container` rules, because the grid template is an inline style that a stylesheet rule would lose to.
+They read the nearest ancestor query container, so the table needs one above it — product views get theirs from `ContentStack`.
 
 ## Status Rows
 

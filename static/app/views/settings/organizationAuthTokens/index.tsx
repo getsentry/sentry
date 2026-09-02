@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -35,10 +34,10 @@ type RevokeTokenQueryVariables = {
 };
 
 const TOKEN_COLUMNS: TableColumnConfig[] = [
-  {key: 'token', width: 'auto'},
-  {key: 'created', width: 'auto'},
-  {key: 'lastAccess', width: 'auto'},
-  {key: 'actions', width: 'auto'},
+  {key: 'token', width: {zero: '1fr', xl: 'auto'}},
+  {key: 'created', visible: {zero: false, xl: true}, width: 'auto'},
+  {key: 'lastAccess', visible: {zero: false, xl: true}, width: 'auto'},
+  {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 
 export const makeFetchOrgAuthTokensForOrgQueryKey = ({
@@ -199,14 +198,20 @@ function OrganizationAuthTokensIndex() {
             }
           />
 
-          <ResponsiveSimpleTable
+          <SimpleTable
             columns={TOKEN_COLUMNS}
             header={
               <SimpleTable.HeaderRow>
-                <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell>{t('Last access')}</SimpleTable.HeaderCell>
-                <SimpleTable.HeaderCell />
+                <SimpleTable.HeaderCell columnKey="token">
+                  {t('Token')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="created">
+                  {t('Created')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="lastAccess">
+                  {t('Last access')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="actions" />
               </SimpleTable.HeaderRow>
             }
           >
@@ -230,7 +235,7 @@ function OrganizationAuthTokensIndex() {
                 revokeToken={hasAccess ? handleRevokeToken : undefined}
               />
             )}
-          </ResponsiveSimpleTable>
+          </SimpleTable>
         </Fragment>
       )}
     </Access>
@@ -240,20 +245,5 @@ function OrganizationAuthTokensIndex() {
 export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
   return `${tokenPrefix}************${tokenLastCharacters}`;
 }
-
-const ResponsiveSimpleTable = styled(SimpleTable)`
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr 1fr;
-
-    /* Hide the "Created" and "Last access" columns; the flat nth-child(4n + x)
-       form this replaced counted cells across the whole grid. */
-    [role='columnheader']:nth-child(2),
-    [role='columnheader']:nth-child(3),
-    [role='cell']:nth-child(2),
-    [role='cell']:nth-child(3) {
-      display: none;
-    }
-  }
-`;
 
 export default OrganizationAuthTokensIndex;

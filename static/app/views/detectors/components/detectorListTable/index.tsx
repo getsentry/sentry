@@ -6,7 +6,6 @@ import {
   useState,
   type ComponentProps,
 } from 'react';
-import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQueryState} from 'nuqs';
@@ -16,6 +15,7 @@ import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 import {Button} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   GridLineLabels,
@@ -174,9 +174,11 @@ export function DetectorListTable({
   return (
     <Container containerType="inline-size">
       <DetectorListSimpleTable
-        hasVisualization={hasVisualization}
-        isVisualizationExpanded={isVisualizationExpanded}
-        additionalColumns={additionalColumns}
+        columns={makeDetectorColumns({
+          additionalColumns,
+          hasVisualization,
+          isVisualizationExpanded,
+        })}
         header={
           selected.size === 0 ? (
             <SimpleTable.HeaderRow>
@@ -189,17 +191,17 @@ export function DetectorListTable({
                   <span>{t('Name')}</span>
                 </Flex>
               </HeaderCell>
-              <HeaderCell data-column-name="type" divider sortKey="type">
+              <HeaderCell columnKey="type" divider sortKey="type">
                 {t('Type')}
               </HeaderCell>
-              <HeaderCell data-column-name="last-issue" divider sortKey="latestGroup">
+              <HeaderCell columnKey="last-issue" divider sortKey="latestGroup">
                 {t('Last Issue')}
               </HeaderCell>
-              <HeaderCell data-column-name="assignee" divider>
+              <HeaderCell columnKey="assignee" divider>
                 {t('Assignee')}
               </HeaderCell>
               <HeaderCell
-                data-column-name="connected-automations"
+                columnKey="connected-automations"
                 divider
                 sortKey="connectedWorkflows"
               >
@@ -210,16 +212,18 @@ export function DetectorListTable({
               ))}
               {hasVisualization && detectors.length > 0 && (
                 <VisualizationHeaderCell
-                  data-column-name="visualization"
+                  columnKey="visualization"
                   ref={elementRef}
-                  role="columnheader"
                   scope="col"
                 >
                   <GridLineLabels timeWindowConfig={timeWindowConfig} />
                 </VisualizationHeaderCell>
               )}
               {hasVisualization && (
-                <VisualizationExpandButtonCell role="columnheader" scope="col">
+                <VisualizationExpandButtonCell
+                  columnKey="visualization-expand"
+                  scope="col"
+                >
                   <Button
                     size="xs"
                     variant="transparent"
@@ -315,219 +319,67 @@ export function DetectorListTable({
   );
 }
 
-type ColumnNames =
-  | 'name'
-  | 'type'
-  | 'assignee'
-  | 'last-issue'
-  | 'connected-automations'
-  | 'visualization';
-
-function makeGridSizes(additionalColumns: MonitorListAdditionalColumn[]) {
-  const additionalColumnSizes = additionalColumns
-    .map(col => col.columnWidth ?? 'auto')
-    .join(' ');
-
-  return css`
-    --detector-table-name: 2fr;
-    --detector-table-type: 90px;
-    --detector-table-assignee: 90px;
-    --detector-table-last-issue: 1.5fr;
-    --detector-table-connected-automations: 110px;
-
-    /* Table visualization has two columns to account for the expand button */
-    --detector-table-visualization: ${additionalColumnSizes} 3fr max-content;
-  `;
-}
-
-function makeGridTemplate(columns: ColumnNames[]) {
-  return `grid-template-columns:
-    ${columns.map(col => `var(--detector-table-${col})`).join('\n    ')};`;
-}
-
-const gridDefinitions = (
-  p: {theme: Theme},
-  additionalColumns: MonitorListAdditionalColumn[]
-) => {
-  return css`
-    ${makeGridSizes(additionalColumns)};
-
-    @container (min-width: ${p.theme.container.sm}) {
-      ${makeGridTemplate(['name', 'type'])}
-
-      [data-column-name='type'] {
-        display: flex;
-      }
-    }
-
-    @container (min-width: ${p.theme.container.xl}) {
-      ${makeGridTemplate(['name', 'type', 'assignee'])}
-
-      [data-column-name='assignee'] {
-        display: flex;
-      }
-    }
-
-    @container (min-width: ${p.theme.container['3xl']}) {
-      ${makeGridTemplate(['name', 'type', 'last-issue', 'assignee'])}
-
-      [data-column-name='last-issue'] {
-        display: flex;
-      }
-    }
-
-    @container (min-width: ${p.theme.container['4xl']}) {
-      ${makeGridTemplate([
-        'name',
-        'type',
-        'last-issue',
-        'assignee',
-        'connected-automations',
-      ])}
-
-      [data-column-name='connected-automations'] {
-        display: flex;
-      }
-    }
-
-    @container (min-width: ${p.theme.container['5xl']}) {
-      ${makeGridTemplate([
-        'name',
-        'type',
-        'last-issue',
-        'assignee',
-        'connected-automations',
-      ])}
-    }
-  `;
-};
-
-// When there is a visualization, prioritize showing it over other columns
-const gridDefinitionsWithVisualization = (
-  p: {theme: Theme},
-  additionalColumns: MonitorListAdditionalColumn[]
-) => {
-  const additionalColumnDisplay = additionalColumns.map(
-    col => css`
-      [data-column-name='${col.id}'] {
-        display: flex;
-      }
-    `
-  );
-
-  return css`
-    ${makeGridSizes(additionalColumns)};
-
-    @container (min-width: ${p.theme.container.xl}) {
-      ${makeGridTemplate(['name', 'visualization'])}
-
-      [data-column-name='visualization'] {
-        display: block;
-      }
-
-      ${additionalColumnDisplay}
-    }
-
-    @container (min-width: ${p.theme.container['3xl']}) {
-      ${makeGridTemplate(['name', 'assignee', 'visualization'])}
-
-      [data-column-name='assignee'] {
-        display: flex;
-      }
-    }
-
-    @container (min-width: ${p.theme.container['4xl']}) {
-      ${makeGridTemplate(['name', 'last-issue', 'assignee', 'visualization'])}
-
-      [data-column-name='last-issue'] {
-        display: flex;
-      }
-    }
-
-    @container (min-width: ${p.theme.container['5xl']}) {
-      ${makeGridTemplate([
-        'name',
-        'last-issue',
-        'assignee',
-        'connected-automations',
-        'visualization',
-      ])}
-
-      [data-column-name='connected-automations'] {
-        display: flex;
-      }
-    }
-  `;
-};
-
-// When visualization is expanded, only show name and visualization
-const gridDefinitionsWithVisualizationExpanded = (
-  p: {theme: Theme},
-  additionalColumns: MonitorListAdditionalColumn[]
-) => {
-  const additionalColumnDisplay = additionalColumns.map(
-    col => css`
-      [data-column-name='${col.id}'] {
-        display: flex;
-      }
-    `
-  );
-
-  return css`
-    ${makeGridSizes(additionalColumns)};
-
-    @container (min-width: ${p.theme.container.xl}) {
-      ${makeGridTemplate(['name', 'visualization'])}
-
-      [data-column-name='visualization'] {
-        display: block;
-      }
-
-      ${additionalColumnDisplay}
-    }
-  `;
-};
-
-const DetectorListSimpleTable = styled(SimpleTable)<{
+function makeDetectorColumns({
+  additionalColumns,
+  hasVisualization,
+  isVisualizationExpanded,
+}: {
   additionalColumns: MonitorListAdditionalColumn[];
   hasVisualization: boolean;
   isVisualizationExpanded: boolean;
-}>`
-  grid-template-columns: 1fr;
+}): TableColumnConfig[] {
+  // Every column the rows render needs an entry, including the ones this mode
+  // never shows: the shell hides a column's cells only for columns it knows
+  // about, so leaving one out lets its cells claim a track.
+  if (!hasVisualization) {
+    return [
+      {key: 'name', width: {zero: '1fr', sm: '2fr'}},
+      {key: 'type', visible: {zero: false, sm: true}, width: '90px'},
+      {key: 'last-issue', visible: {zero: false, '3xl': true}, width: '1.5fr'},
+      {key: 'assignee', visible: {zero: false, xl: true}, width: '90px'},
+      {key: 'connected-automations', visible: {zero: false, '4xl': true}, width: '110px'},
+      ...additionalColumns.map(column => ({key: column.id, visible: false})),
+    ];
+  }
+
+  // The visualization is two tracks: the chart, then the expand button that
+  // overlays its trailing edge.
+  const visualizationColumns: TableColumnConfig[] = [
+    ...additionalColumns.map(column => ({
+      key: column.id,
+      visible: {zero: false, xl: true},
+      width: column.columnWidth ?? 'auto',
+    })),
+    {key: 'visualization', visible: {zero: false, xl: true}, width: '3fr'},
+    {key: 'visualization-expand', visible: {zero: false, xl: true}, width: 'max-content'},
+  ];
+
+  // An expanded visualization takes every column the name does not need; an
+  // unexpanded one still outranks the detail columns, which come back at their
+  // own breakpoints.
+  if (isVisualizationExpanded) {
+    return [
+      {key: 'name', width: {zero: '1fr', xl: '2fr'}},
+      {key: 'type', visible: false},
+      {key: 'last-issue', visible: false},
+      {key: 'assignee', visible: false},
+      {key: 'connected-automations', visible: false},
+      ...visualizationColumns,
+    ];
+  }
+
+  return [
+    {key: 'name', width: {zero: '1fr', xl: '2fr'}},
+    {key: 'type', visible: false},
+    {key: 'last-issue', visible: {zero: false, '4xl': true}, width: '1.5fr'},
+    {key: 'assignee', visible: {zero: false, '3xl': true}, width: '90px'},
+    {key: 'connected-automations', visible: {zero: false, '5xl': true}, width: '110px'},
+    ...visualizationColumns,
+  ];
+}
+
+const DetectorListSimpleTable = styled(SimpleTable)`
   overflow: clip;
-
-  [data-column-name='type'],
-  [data-column-name='last-issue'],
-  [data-column-name='assignee'],
-  [data-column-name='connected-automations'],
-  [data-column-name='visualization'] {
-    display: none;
-  }
-
-  ${p =>
-    p.additionalColumns.map(
-      col => css`
-        [data-column-name='${col.id}'] {
-          display: none;
-        }
-      `
-    )}
-
-  ${p => {
-    if (p.isVisualizationExpanded) {
-      return gridDefinitionsWithVisualizationExpanded(p, p.additionalColumns);
-    }
-    if (p.hasVisualization) {
-      return gridDefinitionsWithVisualization(p, p.additionalColumns);
-    }
-    return gridDefinitions(p, p.additionalColumns);
-  }}
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    [data-column-name='visualization'] {
-      grid-column: -3 / -1;
-    }
-  }
 `;
 
 const GridLineOverlayRow = styled(SimpleTable.Row)`
@@ -556,23 +408,19 @@ const PositionedGridLineOverlay = styled(GridLineOverlay)`
   }
 `;
 
-const VisualizationHeaderCell = styled('th')`
+const VisualizationHeaderCell = styled(Table.HeadCell)`
   grid-column: -3 / -1;
   border-left: 1px solid ${p => p.theme.tokens.border.secondary};
   min-height: 50px;
   min-width: 0;
 `;
 
-const VisualizationExpandButtonCell = styled('th')`
+const VisualizationExpandButtonCell = styled(Table.HeadCell)`
   grid-row: 1;
   grid-column: -1;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
-  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 4;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 `;

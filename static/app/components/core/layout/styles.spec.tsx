@@ -1,4 +1,3 @@
-import {type ReactNode, useRef} from 'react';
 import {css} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -9,11 +8,12 @@ import {
   screen,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {assert} from 'sentry/types/utils';
 import type {BreakpointSize} from 'sentry/utils/theme';
 
 import {
-  ContainerQueryProvider,
   getBorder,
   rc,
   useActiveBreakpoint,
@@ -549,28 +549,16 @@ describe('useContainerBreakpoint', () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
   };
 
-  // The hook reads the nearest query container's size from context, so render
-  // the probe inside a ContainerQueryProvider whose measured element reports the
-  // faked width.
   function BreakpointProbe() {
     const breakpoint = useContainerBreakpoint();
     return <div>breakpoint:{breakpoint}</div>;
-  }
-
-  function Container({children}: {children: ReactNode}) {
-    const ref = useRef<HTMLDivElement>(null);
-    return (
-      <ContainerQueryProvider elementRef={ref}>
-        <div ref={ref}>{children}</div>
-      </ContainerQueryProvider>
-    );
   }
 
   it('resolves the largest breakpoint the container width satisfies', () => {
     // Container scale: xl = 768px, 2xl = 896px -> 800px resolves to xl.
     setClientWidth(800);
     render(
-      <Container>
+      <Container containerType="inline-size">
         <BreakpointProbe />
       </Container>
     );
@@ -580,7 +568,7 @@ describe('useContainerBreakpoint', () => {
   it('falls back to zero when the container is narrower than the smallest breakpoint', () => {
     setClientWidth(0);
     render(
-      <Container>
+      <Container containerType="inline-size">
         <BreakpointProbe />
       </Container>
     );

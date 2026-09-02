@@ -1122,7 +1122,19 @@ export function ReleaseComparisonChart({
       </ChartPanel>
       <ChartTable
         data-test-id="release-comparison-table"
-        withExpanders={withExpanders}
+        columns={[
+          {
+            key: 'description',
+            width: {
+              zero: 'minmax(min-content, 1fr)',
+              '4xl': 'minmax(400px, auto)',
+            },
+          },
+          {key: 'releases', width: 'minmax(min-content, 1fr)'},
+          {key: 'release', width: 'minmax(min-content, 1fr)'},
+          {key: 'change', width: 'minmax(min-content, 1fr)'},
+          {key: 'expanders', visible: withExpanders, width: '75px'},
+        ]}
         header={
           <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
@@ -1186,25 +1198,9 @@ const Change = styled('div')<{color?: string}>`
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'withExpanders',
-})<{withExpanders: boolean}>`
+const ChartTable = styled(SimpleTable)`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-
-  && {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    && {
-      grid-template-columns: minmax(400px, auto) repeat(
-          3,
-          minmax(min-content, 1fr)
-        ) ${p => (p.withExpanders ? '75px' : '')};
-    }
-  }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

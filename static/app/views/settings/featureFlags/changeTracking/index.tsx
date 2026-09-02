@@ -5,6 +5,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -175,14 +176,21 @@ function OrganizationFeatureFlagsChangeTracking() {
           'Look below for a list of the webhooks you have set up with external providers. Note that each provider can only have one associated signing secret.'
         )}
       </TextBlock>
-      <ResponsiveSimpleTable
+      <StyledSimpleTable
+        columns={SECRET_COLUMNS}
         data-test-id="secrets-table"
         header={
           <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell>{t('Provider')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Created by')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell />
+            <SimpleTable.HeaderCell columnKey="provider">
+              {t('Provider')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="created">
+              {t('Created')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="createdBy">
+              {t('Created by')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnKey="actions" />
           </SimpleTable.HeaderRow>
         }
       >
@@ -205,7 +213,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             removeSecret={hasDeleteAccess ? handleRemoveSecret : undefined}
           />
         )}
-      </ResponsiveSimpleTable>
+      </StyledSimpleTable>
 
       <OrganizationFeatureFlagsAuditLogTable />
     </Fragment>
@@ -220,20 +228,13 @@ export default function OrganizationFeatureFlagsChangeTrackingRoute() {
   );
 }
 
-const ResponsiveSimpleTable = styled(SimpleTable)`
-  grid-template-columns: auto auto auto auto;
+const SECRET_COLUMNS: TableColumnConfig[] = [
+  {key: 'provider', width: {zero: '1fr', xl: 'auto'}},
+  {key: 'created', visible: {zero: false, xl: true}, width: 'auto'},
+  {key: 'createdBy', visible: {zero: false, xl: true}, width: 'auto'},
+  {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
+];
 
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr 1fr;
-
-    /* Hide "Created" and "Created by"; the flat nth-child(4n + x) form this
-       replaced counted cells across the whole grid. */
-    [role='columnheader']:nth-child(2),
-    [role='columnheader']:nth-child(3),
-    [role='cell']:nth-child(2),
-    [role='cell']:nth-child(3) {
-      display: none;
-    }
-  }
+const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: ${p => p.theme.space['2xl']};
 `;

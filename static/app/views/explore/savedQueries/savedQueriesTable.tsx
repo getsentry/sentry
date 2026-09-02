@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {Container} from '@sentry/scraps/layout';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -167,39 +169,39 @@ export function SavedQueriesTable({
   }
 
   return (
-    <Container>
+    <Container containerType="inline-size">
       <TableHeading>{title}</TableHeading>
-      <SavedEntityTableWithColumns
-        hasLogsEnabled={hasLogsSavedQueriesEnabled}
+      <SavedEntityTable
+        columns={savedQueryColumns(hasLogsSavedQueriesEnabled)}
         pageSize={perPage}
         isLoading={isLoading}
         header={
           <SavedEntityTable.Header>
-            <SavedEntityTable.HeaderCell data-column="star" />
-            <SavedEntityTable.HeaderCell data-column="name" divider={false}>
+            <SavedEntityTable.HeaderCell columnKey="star" />
+            <SavedEntityTable.HeaderCell columnKey="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.HeaderCell data-column="dataset">
+              <SavedEntityTable.HeaderCell columnKey="dataset">
                 {t('Type')}
               </SavedEntityTable.HeaderCell>
             )}
-            <SavedEntityTable.HeaderCell data-column="project">
+            <SavedEntityTable.HeaderCell columnKey="project">
               {t('Project')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="envs">
+            <SavedEntityTable.HeaderCell columnKey="envs">
               {t('Envs')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="query">
+            <SavedEntityTable.HeaderCell columnKey="query">
               {t('Query')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="created-by">
+            <SavedEntityTable.HeaderCell columnKey="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="last-visited">
+            <SavedEntityTable.HeaderCell columnKey="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="actions" />
+            <SavedEntityTable.HeaderCell columnKey="actions" />
           </SavedEntityTable.Header>
         }
         isEmpty={filteredData.length === 0}
@@ -212,7 +214,7 @@ export function SavedQueriesTable({
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
-            <SavedEntityTable.Cell hasButton data-column="star">
+            <SavedEntityTable.Cell hasButton columnKey="star">
               <SavedEntityTable.CellStar
                 isStarred={starredIds.includes(query.id)}
                 onClick={() =>
@@ -224,7 +226,7 @@ export function SavedQueriesTable({
                 }
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="name">
+            <SavedEntityTable.Cell columnKey="name">
               <SavedEntityTable.CellName
                 to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
               >
@@ -232,17 +234,17 @@ export function SavedQueriesTable({
               </SavedEntityTable.CellName>
             </SavedEntityTable.Cell>
             {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.Cell data-column="dataset">
+              <SavedEntityTable.Cell columnKey="dataset">
                 {getSavedQueryDatasetLabel(query.dataset)}
               </SavedEntityTable.Cell>
             )}
-            <SavedEntityTable.Cell data-column="project">
+            <SavedEntityTable.Cell columnKey="project">
               <SavedEntityTable.CellProjects projects={query.projects} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="envs">
+            <SavedEntityTable.Cell columnKey="envs">
               <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="query">
+            <SavedEntityTable.Cell columnKey="query">
               <StyledExploreParams
                 query={query.query[0].query}
                 visualizes={query.query[0].visualize}
@@ -250,7 +252,7 @@ export function SavedQueriesTable({
                 agent={query.agent}
               />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="created-by">
+            <SavedEntityTable.Cell columnKey="created-by">
               {query.isPrebuilt ? (
                 <Tooltip title="Sentry">
                   <ActivityAvatar type="system" size={20} />
@@ -259,10 +261,10 @@ export function SavedQueriesTable({
                 <UserAvatar user={query.createdBy} hasTooltip />
               ) : null}
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="last-visited">
+            <SavedEntityTable.Cell columnKey="last-visited">
               <SavedEntityTable.CellTimeSince date={query.lastVisited} />
             </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell data-column="actions" hasButton>
+            <SavedEntityTable.Cell columnKey="actions" hasButton>
               <SavedEntityTable.CellActions
                 items={[
                   ...(query.isPrebuilt
@@ -346,53 +348,41 @@ export function SavedQueriesTable({
             </SavedEntityTable.Cell>
           </SavedEntityTable.Row>
         ))}
-      </SavedEntityTableWithColumns>
+      </SavedEntityTable>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Container>
   );
 }
 
-const Container = styled('div')`
-  container-type: inline-size;
-`;
-
-const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hasLogsEnabled: boolean}>`
-  grid-template-areas: 'star name project envs query created-by last-visited actions';
-  grid-template-columns: ${p =>
-    p.hasLogsEnabled
-      ? '40px 20% min-content minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto auto 48px'
-      : '40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto auto 48px'};
-
-  @container (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-areas: 'star name project query created-by actions';
-    grid-template-columns: ${p =>
-      p.hasLogsEnabled
-        ? '40px 20% min-content minmax(auto, 120px) minmax(0, 1fr) auto 48px'
-        : '40px 20%  minmax(auto, 120px) minmax(0, 1fr) auto 48px'};
-
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'] {
-      display: none;
-    }
-  }
-
-  @container (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-areas: 'star name query actions';
-    grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
-
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'],
-    div[data-column='created-by'],
-    div[data-column='project'],
-    div[data-column='dataset'] {
-      display: none;
-    }
-  }
-`;
+function savedQueryColumns(hasLogsEnabled: boolean): TableColumnConfig[] {
+  return [
+    {key: 'star', width: '40px'},
+    {key: 'name', width: {zero: '30%', xl: '20%'}},
+    {
+      key: 'dataset',
+      visible: hasLogsEnabled && {zero: false, xl: true},
+      width: 'min-content',
+    },
+    {
+      key: 'project',
+      visible: {zero: false, xl: true},
+      width: 'minmax(auto, 120px)',
+    },
+    {
+      key: 'envs',
+      visible: {zero: false, '3xl': true},
+      width: 'minmax(auto, 120px)',
+    },
+    {key: 'query', width: 'minmax(0, 1fr)'},
+    {key: 'created-by', visible: {zero: false, xl: true}, width: 'auto'},
+    {
+      key: 'last-visited',
+      visible: {zero: false, '3xl': true},
+      width: 'auto',
+    },
+    {key: 'actions', width: '48px'},
+  ];
+}
 
 const StyledExploreParams = styled(ExploreParams)`
   overflow: hidden;
