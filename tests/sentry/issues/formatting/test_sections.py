@@ -49,10 +49,8 @@ MD = MarkdownFormatter()
 
 
 def _render(section_fn: SectionFn, model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    """Build a section and render it, mirroring what ``Formatter.render`` does per section.
-
-    Sections return structure now, so a test that wants text goes through the formatter. An
-    empty section is ``None``, which renders as "" the way the old string-returning sections did.
+    """Build a section and render it, as ``Formatter.render`` does per section. A section with
+    nothing to say is ``None``, which renders as "".
     """
     built = section_fn(model, limits)
     return fmt.render_section(built) if built is not None else ""

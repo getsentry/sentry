@@ -1,14 +1,8 @@
 """Renders the event model into text or JSON.
 
-Sections return a structured ``Section`` (see ``sections.py``) describing *what* to render;
-formatters decide *how*. Text formats (markdown, xml) supply the syntax primitives
-(``block``/``field``/``code_block``); the JSON format serializes the same structure instead.
-One section list drives every format, so the data a caller gets is identical whichever
-format they ask for -- only the syntax differs.
-
-Size caps live on the structure rather than in the sections, because the two families apply
-them differently: text formats cut a joined body mid-string, JSON drops whole items so the
-result stays parseable.
+Sections describe *what* to render (``sections.py``); formatters decide *how*. One section
+list drives every format, so only the syntax differs between them. Caps live on the structure
+because the families spend them differently: text cuts a joined body, JSON drops whole items.
 """
 
 from __future__ import annotations
@@ -28,10 +22,8 @@ logger = logging.getLogger(__name__)
 
 _TRUNCATED = "... (truncated)"
 
-# ``sentry.utils.json.dumps`` escapes non-ascii, which would make an accented character cost
-# six against the same cap the text formats spend one on -- international events would lose
-# whole sections that an ascii event of the same size keeps. It also leaves the content string
-# full of \uXXXX for anything that reads it without parsing first.
+# ``sentry.utils.json.dumps`` escapes non-ascii, which would spend six of the cap on a
+# character the text formats spend one on, and leave \uXXXX through the content string.
 _ENCODER = json.JSONEncoder(separators=(",", ":"), ignore_nan=True, ensure_ascii=False)
 
 
@@ -78,11 +70,7 @@ def truncate_items(items: Sequence[str], sep: str, max_chars: int | None) -> str
 
 
 def _keep_within(items: Sequence[Any], costs: Sequence[int], max_chars: int | None) -> list[Any]:
-    """The item-dropping half of ``truncate_items``, for formats that keep structure.
-
-    Mirrors its accounting exactly (first item always kept, separator charged from the second
-    on) so JSON drops at the same boundary the text formats do.
-    """
+    """The item-dropping half of ``truncate_items``, for formats that keep structure."""
     if max_chars is None:
         return list(items)
 
@@ -122,7 +110,7 @@ Item = Union[Field, Code, Text]
 
 
 def _item_cost(item: Item) -> int:
-    """Roughly what one item costs in the rendered output, for the drop-whole-items caps."""
+    """Roughly what an item costs once rendered, for the drop-whole-items caps."""
     if isinstance(item, Field):
         return len(item.key) + len(item.value) + 2
     return len(item.text) + 1
@@ -130,15 +118,13 @@ def _item_cost(item: Item) -> int:
 
 @dataclass(frozen=True)
 class Group:
-    """One sub-block of a section: a single exception, a single thread, or the whole body of a
-    section that has no repeating structure. Items render one per line.
+    """One sub-block: a single exception or thread, or a whole body with no repeating
+    structure. Items render one per line.
     """
 
     items: tuple[Item, ...]
-    # cut the joined body at this many characters (text formats) / drop whole items (JSON)
-    max_chars: int | None = None
-    # drop whole items rather than cutting the join, in both families
-    max_item_chars: int | None = None
+    max_chars: int | None = None  # cut the joined body here
+    max_item_chars: int | None = None  # drop whole items instead
 
 
 @dataclass(frozen=True)
@@ -147,10 +133,8 @@ class Section:
 
     title: str
     groups: tuple[Group, ...] = ()
-    # cut the joined body at this many characters (text formats) / drop whole groups (JSON)
-    max_chars: int | None = None
-    # drop whole groups rather than cutting the join, in both families
-    max_group_chars: int | None = None
+    max_chars: int | None = None  # cut the joined body here
+    max_group_chars: int | None = None  # drop whole groups instead
 
 
 SectionFn = Callable[["EventObject", Limits], Union[Section, None]]
@@ -263,15 +247,13 @@ class XmlFormatter(TextFormatter):
 class JsonFormatter(Formatter):
     """Serializes the section structure instead of rendering it to lines.
 
-    A group becomes an object: fields keyed by their slugged name, bare lines under ``text``,
-    preformatted content under ``code``. A section with one group is that object; a section
-    with several (exceptions, threads) is a list of them, so the repeating shape is visible to
-    a consumer rather than implied by blank lines.
+    A group becomes an object: fields under their slugged name, bare lines under ``text``,
+    preformatted content under ``code``. Sections with several groups (exceptions, threads)
+    become a list, so the repeating shape is visible rather than implied by blank lines.
     """
 
     def join(self, sections: Sequence[str]) -> str:
-        # every entry is already a serialized ``{"key": {...}}`` fragment; merging the parsed
-        # objects keeps section order while producing one top-level object
+        # each entry is a serialized ``{"key": {...}}``; merging keeps section order
         merged: dict[str, Any] = {}
         for part in sections:
             merged.update(json.loads(part))
@@ -294,9 +276,8 @@ class JsonFormatter(Formatter):
         return _ENCODER.encode({slug(section.title): payload})
 
     def render_group_object(self, group: Group) -> dict[str, Any]:
-        # drop whole items once the cap is hit, across every item kind. Capping only the free
-        # text would leave an open-ended field list (evidence builds one from
-        # occurrence.evidenceDisplay) unbounded in json while the text formats bound it.
+        # every item kind, not just text: evidence builds an open-ended field list from
+        # occurrence.evidenceDisplay, which the text formats bound and json otherwise would not
         items = [i for i in group.items if not (isinstance(i, Text) and not i.text)]
         cap = group.max_item_chars if group.max_item_chars is not None else group.max_chars
         if cap is not None:

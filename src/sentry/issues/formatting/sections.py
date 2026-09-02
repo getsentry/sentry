@@ -1,9 +1,6 @@
 """Section functions (each builds one block), the default section order (``EVENT_SECTIONS``),
-and the public ``format_issue`` entry point.
-
-Sections decide *what* goes in a block and how much of it; the formatter decides how that
-renders. A section returns ``None`` when it has nothing to say, so the same list can drive
-every format without each one re-deciding what to include.
+and the public ``format_issue`` entry point. Sections decide what goes in a block and how much
+of it; the formatter decides how it renders. A section with nothing to say returns ``None``.
 """
 
 from __future__ import annotations
@@ -293,10 +290,9 @@ def spans_section(model: EventObject, limits: Limits) -> Section | None:
 def evidence_section(model: EventObject, limits: Limits) -> Section | None:
     if not model.evidence:
         return None
-    # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, so it
-    # needs the same cap the other open-ended sections get.
-    # Cap each value before marking it up -- the item cap always keeps the first piece, so a
-    # single oversized value would otherwise carry the whole section past the cap.
+    # evidenceDisplay is arbitrary-length pairs, so it needs the same cap the other open-ended
+    # sections get. Cap each value first: the item cap always keeps the first piece, so one
+    # oversized value would otherwise carry the section past the cap.
     items = tuple(
         Field(name, truncate(value, limits.max_evidence_chars)) for name, value in model.evidence
     )
@@ -371,7 +367,6 @@ def format_issue(
         model = event_response_to_model(data)
     except Exception:
         logger.exception("formatter.adapter_failed")
-        # same as the per-section handler: degrade to an empty render, but one the requested
-        # format can actually parse
+        # degrade to an empty render the requested format can still parse
         return formatter.join([])
     return formatter.render(model, sections, limits)

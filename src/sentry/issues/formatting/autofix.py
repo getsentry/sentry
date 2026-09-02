@@ -1,8 +1,6 @@
 """Builds the sections for a serialized autofix (Seer Issue Fix) state response, reusing the
 shared formatter. Delivered over REST via ``FormattableResponseMixin`` on the autofix endpoint.
-
-Like the event sections, these describe what to render and let the formatter decide how, so the
-autofix response is available in every format the event response is.
+Like the event sections, these describe what to render and let the formatter decide how.
 """
 
 from __future__ import annotations
@@ -84,8 +82,7 @@ def format_autofix(
     fmt = get_formatter(format)
     autofix = data.get("autofix")
     if not autofix:  # no autofix run on this issue yet
-        # empty has to be valid for the format asked for: "" for the text formats, "{}" for
-        # json. A caller that json.loads the content hits this on every no-run autofix GET.
+        # empty still has to parse: "" for the text formats, "{}" for json
         return fmt.join([])
     artifacts = _artifacts(autofix)
     sections = [
