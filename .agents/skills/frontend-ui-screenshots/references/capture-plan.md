@@ -14,8 +14,7 @@ Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
   "actions": [
     {"kind": "click", "role": "button", "name": "Filters"},
     {"kind": "fill", "label": "Search", "value": "assigned:me"},
-    {"kind": "press", "key": "Enter"},
-    {"kind": "wait", "ms": 500}
+    {"kind": "press", "key": "Enter"}
   ]
 }
 ```
@@ -24,7 +23,7 @@ Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
 
 For a Scraps section, use `"target":{"kind":"story","heading":"Image Avatars"}`. Omit `heading` to capture the whole main story gallery.
 
-Clicks and fills must identify exactly one element by `label` or by `role` and accessible `name`; `exact` defaults to `true`. Use only actions that do not submit or otherwise mutate data. Feature flags are enabled on both local origins for the capture and their previous `feature-flag-overrides` values are restored afterward.
+Clicks and fills must identify exactly one element by `label` or by `role` and accessible `name`. Matching is exact. Use only actions that do not submit or otherwise mutate data. Feature flags are enabled on both local origins for the capture and their previous `feature-flag-overrides` values are restored afterward.
 
 ## Container breakpoints
 
