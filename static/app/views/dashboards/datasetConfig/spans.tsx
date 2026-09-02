@@ -158,7 +158,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
 
   const {
     attributes: stringAttributes,
-    isLoading: isFetchingFilterKeys,
+    isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
   } = useSpanItemAttributes(
     {
@@ -168,24 +168,32 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     },
     'string'
   );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useSpanItemAttributes(
-      {
-        enabled: organization.features.includes('visibility-explore-view'),
-        search: filterKeySearch,
-        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-      },
-      'number'
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useSpanItemAttributes(
-      {
-        enabled: organization.features.includes('visibility-explore-view'),
-        search: filterKeySearch,
-        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-      },
-      'boolean'
-    );
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useSpanItemAttributes(
+    {
+      enabled: organization.features.includes('visibility-explore-view'),
+      search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+    },
+    'number'
+  );
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useSpanItemAttributes(
+    {
+      enabled: organization.features.includes('visibility-explore-view'),
+      search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+    },
+    'boolean'
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

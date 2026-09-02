@@ -164,7 +164,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
 
   const {
     attributes: stringAttributes,
-    isLoading: isFetchingFilterKeys,
+    isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
   } = useLogItemAttributes(
     {
@@ -174,33 +174,47 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     },
     'string'
   );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useLogItemAttributes(
-      {
-        enabled: isLogsEnabled(organization),
-        search: filterKeySearch,
-        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-      },
-      'number'
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useLogItemAttributes(
-      {
-        enabled: isLogsEnabled(organization),
-        search: filterKeySearch,
-        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-      },
-      'boolean'
-    );
-  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
-    useLogItemAttributes(
-      {
-        enabled: isLogsEnabled(organization) && supportsArrays,
-        search: filterKeySearch,
-        staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
-      },
-      'array'
-    );
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useLogItemAttributes(
+    {
+      enabled: isLogsEnabled(organization),
+      search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+    },
+    'number'
+  );
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useLogItemAttributes(
+    {
+      enabled: isLogsEnabled(organization),
+      search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+    },
+    'boolean'
+  );
+  const {
+    attributes: arrayAttributes,
+    isLoading: arrayAttributesLoading,
+    secondaryAliases: arraySecondaryAliases,
+  } = useLogItemAttributes(
+    {
+      enabled: isLogsEnabled(organization) && supportsArrays,
+      search: filterKeySearch,
+      staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+    },
+    'array'
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading ||
+    numberAttributesLoading ||
+    booleanAttributesLoading ||
+    arrayAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({

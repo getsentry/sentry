@@ -249,25 +249,33 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
 
   const {
     attributes: stringAttributes,
-    isLoading: isFetchingFilterKeys,
+    isLoading: stringAttributesLoading,
     secondaryAliases: stringSecondaryAliases,
   } = useTraceMetricItemAttributes(
     {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
     'string',
     HiddenTraceMetricSearchFields
   );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes(
-      {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
-      'number',
-      HiddenTraceMetricSearchFields
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceMetricItemAttributes(
-      {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
-      'boolean',
-      HiddenTraceMetricSearchFields
-    );
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
+    'number',
+    HiddenTraceMetricSearchFields
+  );
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    {search: filterKeySearch, staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME},
+    'boolean',
+    HiddenTraceMetricSearchFields
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
