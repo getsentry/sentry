@@ -83,8 +83,7 @@ export function SpansTable({
   const tableIdentityKey = useMemo(
     () =>
       JSON.stringify([
-        requestIdentityKey,
-        cursor,
+        requestIdentityKey ?? cursor,
         eventView.dataset,
         eventView.end,
         eventView.environment,

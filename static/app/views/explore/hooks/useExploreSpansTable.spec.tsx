@@ -158,6 +158,7 @@ describe('useExploreSpansTable', () => {
     await waitFor(() =>
       expect(result.current.spansTable.result.data).toEqual(initialData)
     );
+    const initialRequestIdentityKey = result.current.spansTable.requestIdentityKey;
 
     act(() => result.current.setFields([...result.current.fields, 'span.custom']));
 
@@ -174,6 +175,7 @@ describe('useExploreSpansTable', () => {
       )
     );
     expect(result.current.spansTable.result.pageLinks).toBe(originalPageLinks);
+    expect(result.current.spansTable.requestIdentityKey).toBe(initialRequestIdentityKey);
   });
 
   it('does not reuse a visible-sample lock after the query changes', async () => {

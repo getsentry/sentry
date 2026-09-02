@@ -155,10 +155,12 @@ describe('SpansTable', () => {
 
   function renderTable({
     features = ['explore-span-item-details'],
+    requestIdentityKey,
     tableResult,
     tableRows = rows,
   }: {
     features?: string[];
+    requestIdentityKey?: string;
     tableResult?: SpansTableResult['result'];
     tableRows?: Array<Record<string, unknown>>;
   } = {}) {
@@ -166,7 +168,7 @@ describe('SpansTable', () => {
       <SpansTable
         booleanTags={{}}
         numberTags={{}}
-        spansTableResult={{eventView, result}}
+        spansTableResult={{eventView, requestIdentityKey, result}}
         stringTags={{}}
         validatedFieldTypes={{'span.custom': FieldValueType.STRING}}
       />
@@ -308,7 +310,14 @@ describe('SpansTable', () => {
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);
 
-    const {rerenderTable, router} = renderTable({tableRows: [firstRow]});
+    const {rerenderTable, router} = renderTable({
+      requestIdentityKey: 'page-two',
+      tableRows: [firstRow],
+    });
+    router.navigate(
+      `/organizations/${organization.slug}/explore/traces/?cursor=0%3A100%3A0`
+    );
+    await waitFor(() => expect(router.location.query.cursor).toBe('0:100:0'));
     await openAttributeActions('span.custom');
     expect(await screen.findByText('custom value')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Add this as table column'));

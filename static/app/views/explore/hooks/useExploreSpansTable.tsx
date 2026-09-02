@@ -191,7 +191,7 @@ export function useExploreSpansTable({
     // Keep the links from the original response so pagination can leave the lock.
     return {
       ...spansTableResult,
-      requestIdentityKey: identityKey,
+      requestIdentityKey: visibleSamples.identityKey,
       result: {
         ...spansTableResult.result,
         pageLinks: visibleSamples.pageLinks,
