@@ -1,46 +1,52 @@
 ---
 name: frontend-ui-screenshots
-description: Capture high-quality before-and-after screenshots for Sentry frontend changes. Use for PR visual evidence, Scraps components, product pages and interactive states, theme checks, and responsive or container-query changes.
+description: Capture before-and-after screenshots for Sentry frontend changes and attach them to the current PR. Use for visual evidence in Scraps or the demo product, including interactive, themed, responsive, and container-query states.
 ---
 
 # Frontend UI Screenshots
 
-Produce reviewable evidence of the UI affected by the current frontend diff. Infer where the change renders and how to reach it.
+Produce reviewable evidence of the UI affected by the current frontend diff. Infer where the change renders and how to reach it; report uncertainty instead of producing misleading evidence.
 
 ## Options
 
-Infer these unless the user overrides them:
+Use these defaults unless the user asks for broader coverage:
 
-- `mode=product|story|auto` (default `product`): use `story` for a changed component with a useful Scraps story; `auto` lets the agent choose.
-- `themes=light|dark|both` (default `light`).
-- `breakpoints=none|auto|all` (default `none`): `none` captures one representative viewport; `auto` uses responsive evidence to select affected breakpoint boundaries; `all` captures all relevant defined breakpoints.
+- Capture the product in light mode at one representative viewport.
+- Use a Scraps story when the user requests one or product context cannot demonstrate a changed primitive honestly.
+- Add dark mode when theme behavior is relevant.
+- When responsive coverage is requested, test both sides of each affected container boundary using the [container breakpoint matrix](references/capture-plan.md#container-breakpoints). Include widths created by consequential product states, such as the Seer Explorer drawer reducing the content container.
 
-When breakpoint coverage is requested, use widths immediately below and above affected container-query boundaries, plus any width needed to reproduce consequential product states such as the Seer Explorer drawer reducing the content container.
+## Boundaries
 
-## Safety and invariants
-
-- Every capture must use the synthetic `demo` organization through `demo.dev.getsentry.net`, including Scraps routes. Validate the location after every interaction and immediately before capture; stop if navigation leaves that hostname.
-- Never publish screenshots automatically. Leave them in `.artifacts/ui-capture/` unless the user separately authorizes posting them.
-- Use the dedicated Chrome profile in [references/chrome-setup.md](references/chrome-setup.md); CDP must bind to localhost.
+- Use only the synthetic `demo` organization through `demo.dev.getsentry.net`, including Scraps routes. Stop if an interaction leaves the planned local origin or, for stories, the Scraps route.
+- Explicit invocation authorizes replacing this skill's screenshot table in the current PR description. Do not publish anywhere else.
+- Use the dedicated localhost-only Chrome profile in [references/chrome-setup.md](references/chrome-setup.md).
 - Capture PNG at device scale factor 2. Wait for fonts and lazy-loaded images; reject broken images.
 - Preserve the user's worktree. Put the merge-base build in a temporary detached worktree and remove only that worktree and its server afterward.
 
 ## Workflow
 
-1. Inspect the merge-base diff with Git, including uncommitted and untracked frontend files. Ignore `.spec.*` files as capture targets, but use them as route and interaction evidence. Search beside changed files for MDX and stories, and inspect the diff for responsive or container-query declarations.
-2. Choose one of two paths:
-   - `story`: a changed Scraps primitive or component has useful visual documentation. Capture the diff-relevant section or, when no section clearly wins, its useful variation gallery.
-   - `product`: the change needs real application context. This includes pages, forms, navigation, modals, popovers, and drawers. These are product states, not separate modes: visit the demo route, reproduce the state with inferred accessible actions, and capture the viewport so its relationship to surrounding UI remains visible.
-3. Infer the target from colocated MDX/stories, tests, import parents and route registrations, accessible labels, and browser verification. Prefer a product capture when a story cannot demonstrate the actual changed behavior. Avoid submitting mutations. If the inspected render path references a frontend feature flag, preserve the existing `feature-flag-overrides` local storage value, enable that flag there before loading both versions, and then verify the target.
-4. State the inferred path, route/story, state, themes, viewport widths, and supporting diff evidence before capture.
-5. Keep the current dev-ui running and note its actual port. Create a detached merge-base worktree, then start its dev-ui with `SENTRY_WEBPACK_PROXY_PORT=7998 pnpm dev-ui`. If that port is occupied, use the automatically selected port and report both actual URLs. Reuse `node_modules` only when dependency manifests match; otherwise sync the base worktree.
-6. Write a deterministic plan under `.artifacts/ui-capture/` and run:
+1. Confirm `gh pr view` resolves the current branch's PR. Before the first upload, complete the one-time setup in [references/github-setup.md](references/github-setup.md). Stop before capture if there is no current PR.
+2. Inspect the merge-base diff, including uncommitted and untracked frontend files. Ignore `.spec.*` files as capture targets, but use them as route and interaction evidence. Search beside changed files for MDX and stories, responsive declarations, import parents, and route registrations.
+3. Choose one of two paths:
+   - `product`: visit the demo route, reproduce the state with safe accessible actions, and retain surrounding context. Do not submit mutations.
+   - `story`: capture the diff-relevant section or, when no section clearly wins, the useful variation gallery.
+4. Confirm the inferred target in the browser. Prefer product context when a story cannot demonstrate the actual behavior. Add any feature flag referenced by the render path to the plan; the helper preserves and restores existing overrides.
+5. State the inferred path, route/story, state, themes, viewport widths, and supporting diff evidence before capture.
+6. Keep the current dev-ui running and note its actual port. Create a detached merge-base worktree, then start its dev-ui with `SENTRY_WEBPACK_PROXY_PORT=7998 pnpm dev-ui`. If that port is occupied, use the automatically selected port and report both actual URLs. Reuse `node_modules` only when dependency manifests match; otherwise sync the base worktree.
+7. Write a deterministic plan using [references/capture-plan.md](references/capture-plan.md), then run from the current worktree root:
 
 ```bash
 node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifacts/ui-capture/plan.json
 ```
 
-A story plan uses `"target":{"kind":"story","heading":"Image Avatars"}`; omit `heading` to capture its main gallery. A product plan uses `"target":{"kind":"product"}` plus accessible `click`, `fill`, `press`, or `wait` actions. Use `themes` and concrete `viewports` derived from the selected options.
+8. Inspect every comparison. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior.
+9. Publish the accepted pairs and clean up locally:
 
-7. Inspect every comparison. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior. Report clickable artifact paths and any limitation.
-8. Restore `feature-flag-overrides` when changed, stop only the merge-base dev-ui process started for the capture, and remove the temporary worktree. Do not stop the current dev-ui or delete the persistent Chrome profile.
+```bash
+node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs --manifest .artifacts/ui-capture/<name>/manifest.json
+```
+
+The publisher replaces its marked Before/After table in the current PR description, verifies the returned body, then deletes only the local directory containing that manifest. If upload or PR editing fails, retain the artifacts and report how to retry.
+
+After publication, stop only the merge-base dev-ui process started for the capture and remove its temporary worktree. Do not stop either persistent browser profile or the current dev-ui.

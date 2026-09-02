@@ -19,7 +19,7 @@ In that Chrome window:
 2. Authenticate to Sentry manually. Never ask the developer to paste credentials into an agent conversation or terminal command.
 3. Open the current dev-ui's actual `https://demo.dev.getsentry.net:<port>/` URL, sync cookies, and confirm the demo organization renders.
 
-The directory persists cookies, extension state, and preferences across restarts. Normal capture runs should start this Chrome automatically and require intervention only when the corporate session expires.
+The directory persists cookies, extension state, and preferences across restarts. Start this Chrome when the verification endpoint is unavailable; manual intervention should otherwise be needed only when the corporate session expires.
 
 ## Verification
 
@@ -33,4 +33,4 @@ If it is unavailable, launch the dedicated Chrome command again. If dev-ui redir
 
 ## Security boundary
 
-Anyone who can reach CDP can control the authenticated browser. Keep the address on `127.0.0.1`, do not expose or forward port 9222, do not use this profile for unrelated websites, and close Chrome to revoke access. Never inspect or print cookies, local storage, authorization headers, passwords, or profile files.
+Anyone who can reach CDP can control the authenticated browser. Keep the address on `127.0.0.1`, do not expose or forward port 9222, do not use this profile for unrelated websites, and close Chrome to revoke access. Never inspect or print cookies, unrelated local storage, authorization headers, passwords, or profile files. The capture helper accesses only `feature-flag-overrides` when a plan requests flags and restores its exact prior value.
