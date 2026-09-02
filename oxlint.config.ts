@@ -621,8 +621,14 @@ const config = defineConfig({
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
     'react/self-closing-comp': 'error',
-    // Use the upstream rule below to preserve escaped string expressions.
-    'react/jsx-curly-brace-presence': 'off',
+    'react/jsx-curly-brace-presence': [
+      'error',
+      {
+        props: 'never',
+        children: 'ignore',
+        propElementValues: 'always',
+      },
+    ],
     'no-array-constructor': 'error',
     'no-unused-expressions': [
       'error',
@@ -1373,14 +1379,6 @@ const config = defineConfig({
     ],
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     'react-js/no-deprecated': ['error'],
-    'react-js/jsx-curly-brace-presence': [
-      'error',
-      {
-        props: 'never',
-        children: 'ignore',
-        propElementValues: 'always',
-      },
-    ],
     'react-js/no-typos': ['error'],
     'react-js/sort-comp': ['error'],
     '@sentry/naming-convention': 'error',
