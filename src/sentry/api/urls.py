@@ -331,6 +331,9 @@ from sentry.investigations.endpoints.organization_investigation_favorite import 
 from sentry.investigations.endpoints.organization_investigation_index import (
     OrganizationInvestigationsIndexEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_orchestration import (
+    OrganizationInvestigationOrchestrationEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_parameters import (
     OrganizationInvestigationParametersEndpoint,
 )
@@ -2477,6 +2480,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
         OrganizationInvestigationsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/orchestration/$",
+        OrganizationInvestigationOrchestrationEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-orchestration",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/$",
