@@ -407,9 +407,12 @@ export function NotificationSettingsByType({notificationType}: Props) {
     if (!fieldDef?.choices) {
       return null;
     }
-    const help = isGroupedByProject(notificationType)
-      ? t('This is the default for all projects.')
-      : t('This is the default for all organizations.');
+    const help =
+      notificationType === 'spikeProtection'
+        ? t('This is the default for all projects under all Organizations.')
+        : isGroupedByProject(notificationType)
+          ? t('This is the default for all projects.')
+          : t('This is the default for all organizations.');
 
     const schema = z.object({[notificationType]: z.string()});
     return (

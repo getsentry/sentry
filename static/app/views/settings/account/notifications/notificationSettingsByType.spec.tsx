@@ -148,6 +148,17 @@ describe('NotificationSettingsByType', () => {
     expect(projectsMock).toHaveBeenCalledTimes(1);
   });
 
+  it('clarifies the Spike Protection notification default scope', async () => {
+    renderComponent({notificationType: 'spikeProtection'});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Spike Protection Notifications'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('This is the default for all projects under all Organizations.')
+    ).toBeInTheDocument();
+  });
+
   it('renders all the quota subcategories', async () => {
     renderComponent({notificationType: 'quota'});
 

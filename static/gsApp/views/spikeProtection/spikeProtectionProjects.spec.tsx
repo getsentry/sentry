@@ -131,6 +131,17 @@ describe('project renders and toggles', () => {
     return {toggle};
   }
 
+  it('explains how to add notification actions', async () => {
+    render(<SpikeProtectionProjects />);
+
+    const projectsHeader = await screen.findByText('Projects');
+    await userEvent.hover(projectsHeader);
+
+    expect(
+      await screen.findByText('Expand a project to add a notification action')
+    ).toBeInTheDocument();
+  });
+
   it('renders projects table even with no projects', async () => {
     const mockGetNoProjects = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,

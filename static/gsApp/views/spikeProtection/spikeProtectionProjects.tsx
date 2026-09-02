@@ -4,10 +4,10 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
@@ -290,7 +290,12 @@ function SpikeProtectionProjects({subscription}: Props) {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>
-              <Text variant="muted">{t('Projects')}</Text>
+              <InfoText
+                variant="muted"
+                title={t('Expand a project to add a notification action')}
+              >
+                {t('Projects')}
+              </InfoText>
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
