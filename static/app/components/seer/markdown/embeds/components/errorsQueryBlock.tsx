@@ -26,6 +26,7 @@ import {ErrorsQueryLink} from './errorsQueryLink';
 import {
   buildErrorsChartQuery,
   buildErrorsEventView,
+  getGroupByFields,
   hasNoGroupBy,
   resolveChartYAxes,
   toChartUnit,
@@ -34,6 +35,10 @@ import {
 } from './errorsQueryUtils';
 
 const ROW_LIMIT = 5;
+
+// Matches the fixed height `ChartContent` renders into, so the chart's
+// loading state doesn't shift the rest of the block when it resolves.
+const CHART_HEIGHT = '220px';
 
 interface ErrorsQueryBlockProps {
   data: ErrorsQueryData;
@@ -84,20 +89,39 @@ function ErrorsQueryChart({
   data,
   eventView,
   fields,
+  hasTable,
+  kind,
 }: {
   data: ErrorsQueryData;
   eventView: ReturnType<typeof buildErrorsEventView>;
   fields: string[];
+  hasTable: boolean;
+  kind: ErrorsQueryKind;
 }) {
   const organization = useOrganization();
-  const yAxisFields = resolveChartYAxes(data, fields);
+
+  // Only a grouped aggregate query has groups to break the timeseries down by.
+  // Event queries chart their total over time, matching the chart Discover
+  // shows above the same results.
+  const groupBy = kind === 'aggregate' ? getGroupByFields(fields) : [];
+  const isTopEvents = groupBy.length > 0;
+
+  const resolvedYAxes = resolveChartYAxes(data, fields, kind);
+  // A top-N response is already keyed by group; asking for more than one
+  // y-axis would nest a second level of keys under each one, so chart the
+  // primary aggregate alone.
+  const yAxisFields = isTopEvents ? resolvedYAxes.slice(0, 1) : resolvedYAxes;
 
   const query = useQuery({
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: buildErrorsChartQuery(eventView, yAxisFields),
+        query: buildErrorsChartQuery(
+          eventView,
+          yAxisFields,
+          isTopEvents ? ROW_LIMIT : undefined
+        ),
         staleTime: 30_000,
       }
     ),
@@ -105,7 +129,11 @@ function ErrorsQueryChart({
   });
 
   if (query.isPending) {
-    return <LoadingIndicator />;
+    return (
+      <Flex align="center" height={CHART_HEIGHT} justify="center" width="100%">
+        <LoadingIndicator />
+      </Flex>
+    );
   }
 
   if (query.isError) {
@@ -125,7 +153,9 @@ function ErrorsQueryChart({
   }));
 
   if (series.every(item => item.data.length === 0)) {
-    return (
+    // When a table follows, its own empty state already says this — drop the
+    // chart rather than repeat the message.
+    return hasTable ? null : (
       <Alert role="alert" variant="muted">
         {t('No matching errors')}
       </Alert>
@@ -150,11 +180,14 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
   const organization = useOrganization();
   const eventView = buildErrorsEventView(data, kind);
   const fields = eventView.getFields();
-  const isChartMode = kind === 'aggregate' && hasNoGroupBy(fields);
+  // An aggregate with no grouping columns collapses to a single row, so the
+  // chart already says everything a table would. Every other query keeps its
+  // table and gains the chart above it.
+  const isChartOnly = kind === 'aggregate' && hasNoGroupBy(fields);
 
   const tableQuery = useQuery({
     ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
-      path: isChartMode ? skipToken : {organizationIdOrSlug: organization.slug},
+      path: isChartOnly ? skipToken : {organizationIdOrSlug: organization.slug},
       query: {
         ...eventView.generateQueryStringObject(),
         per_page: ROW_LIMIT,
@@ -187,9 +220,14 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
           <Tag variant="muted">{kind === 'aggregate' ? t('Aggregate') : t('Events')}</Tag>
         </Flex>
         {data.query ? <ProvidedFormattedQuery query={data.query} /> : null}
-        {isChartMode ? (
-          <ErrorsQueryChart data={data} eventView={eventView} fields={fields} />
-        ) : (
+        <ErrorsQueryChart
+          data={data}
+          eventView={eventView}
+          fields={fields}
+          hasTable={!isChartOnly}
+          kind={kind}
+        />
+        {isChartOnly ? null : (
           <SimpleTable
             columns={columns}
             header={

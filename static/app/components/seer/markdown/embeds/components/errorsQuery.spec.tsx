@@ -6,6 +6,11 @@ jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
 }));
 
+const SERIES = [
+  [1_700_000_000, [{count: 5}]],
+  [1_700_003_600, [{count: 8}]],
+];
+
 function renderEmbed({
   name,
   data,
@@ -20,7 +25,7 @@ function renderEmbed({
 }
 
 describe('errors query embeds', () => {
-  it('previews five error events', async () => {
+  it('previews five error events under a count timeseries', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -31,6 +36,10 @@ describe('errors query embeds', () => {
           timestamp: `2026-08-27T12:0${index}:00Z`,
         })),
       },
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -53,6 +62,10 @@ describe('errors query embeds', () => {
     );
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
 
+    // The chart accompanies the sample rows rather than replacing them.
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -67,6 +80,27 @@ describe('errors query embeds', () => {
         })
       );
     });
+
+    // A non-aggregate query has no aggregate of its own, so it charts a plain
+    // event count over time — ungrouped, so no top-N params.
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'event.type:error',
+            statsPeriod: '24h',
+            yAxis: ['count()'],
+          }),
+        })
+      );
+    });
+    expect(statsRequest).not.toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({topEvents: expect.anything()}),
+      })
+    );
   });
 
   it('previews aggregate results using API field aliases', async () => {
@@ -81,6 +115,10 @@ describe('errors query embeds', () => {
           },
         ],
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {TypeError: {data: SERIES}},
     });
 
     renderEmbed({
@@ -98,10 +136,9 @@ describe('errors query embeds', () => {
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
-    // Grouping fields (title, project) remain alongside the aggregate, so
-    // the table still renders instead of a chart.
+    // Grouping fields (title, project) remain alongside the aggregate, so the
+    // table is still worth rendering — now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(screen.queryByTestId('seer-chart-content')).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -119,6 +156,52 @@ describe('errors query embeds', () => {
     });
   });
 
+  it('charts a grouped aggregate as a top-N breakdown matching the table rows', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{title: 'TypeError', project: 'web', 'count()': 12}]},
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        TypeError: {data: SERIES},
+        ValueError: {data: SERIES},
+      },
+    });
+
+    renderEmbed({
+      name: 'errorsQueryAggregate',
+      data: {
+        query: 'event.type:error',
+        fields: ['title', 'project', 'count()'],
+        sort: '-count',
+        statsPeriod: '24h',
+        title: 'Errors by title',
+      },
+    });
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['title', 'project', 'count()'],
+            orderby: '-count',
+            query: 'event.type:error',
+            statsPeriod: '24h',
+            // One series per group, capped at the five rows the table shows,
+            // with the catch-all "Other" bucket dropped.
+            topEvents: '5',
+            excludeOther: '1',
+            yAxis: ['count()'],
+          }),
+        })
+      );
+    });
+  });
+
   it('renders a chart instead of a table when every aggregate field is a function call', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -126,12 +209,7 @@ describe('errors query embeds', () => {
     });
     const statsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1_700_000_000, [{count: 5}]],
-          [1_700_003_600, [{count: 8}]],
-        ],
-      },
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -147,7 +225,7 @@ describe('errors query embeds', () => {
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    // The table's own fetch is skipped entirely in chart mode.
+    // The table's own fetch is skipped entirely in chart-only mode.
     expect(eventsRequest).not.toHaveBeenCalled();
 
     await waitFor(() => {
@@ -169,6 +247,10 @@ describe('errors query embeds', () => {
       url: '/organizations/org-slug/events/',
       body: {data: []},
     });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: []},
+    });
 
     renderEmbed({
       name: 'errorsQuery',
@@ -178,5 +260,6 @@ describe('errors query embeds', () => {
 
     expect(screen.getByRole('link', {name: 'Error search'})).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
+    expect(statsRequest).not.toHaveBeenCalled();
   });
 });

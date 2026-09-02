@@ -520,8 +520,9 @@ export const SEER_EMBED_SCHEMAS = {
       'Preview individual error events from an errors (Discover) query. ' +
       'Use this for non-aggregate error exploration. ' +
       '`query` uses event search syntax and `fields` are non-aggregate table columns. ' +
-      'Inline renders a link; block renders the first five matching rows. ' +
-      'Provide `yAxes` to chart aggregates on the linked results page.',
+      'Inline renders a link; block renders a timeseries chart above the first ' +
+      'five matching rows. The chart plots the event count over time unless ' +
+      '`yAxes` names other aggregates to plot instead.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -549,8 +550,10 @@ export const SEER_EMBED_SCHEMAS = {
       'Use this when comparing error groups or aggregate values. ' +
       '`query` uses event search syntax. `fields` must include the group-by columns ' +
       'and at least one aggregate function, such as "count()" or "count_unique(user)". ' +
-      'Inline renders a link; block renders the first five grouped rows. ' +
-      'Provide `yAxes` to chart aggregates on the linked results page.',
+      'Inline renders a link; block renders a timeseries chart above the first ' +
+      'five grouped rows, with one series per group. When `fields` names only ' +
+      'aggregates and no group-by columns, the chart replaces the table. ' +
+      'Provide `yAxes` to pick which aggregate is charted.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,

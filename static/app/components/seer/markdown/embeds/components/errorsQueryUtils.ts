@@ -8,6 +8,7 @@ import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 
 export type ErrorsQueryKind = 'aggregate' | 'events';
 export type ErrorsQueryData =
@@ -22,6 +23,9 @@ const DEFAULT_EVENT_FIELDS = [
   'timestamp',
 ];
 const DEFAULT_AGGREGATE_FIELDS = ['title', 'project', 'count()'];
+
+/** Charted when the query has no aggregate of its own to plot. */
+const DEFAULT_Y_AXIS = 'count()';
 
 export function buildErrorsEventView(data: ErrorsQueryData, kind: ErrorsQueryKind) {
   const {
@@ -77,6 +81,14 @@ function isAggregateFieldName(field: string): boolean {
 }
 
 /**
+ * The plain (non-aggregate) columns of a query — for an aggregate query these
+ * are the columns its results are grouped by.
+ */
+export function getGroupByFields(fields: string[]): string[] {
+  return fields.filter(field => !isAggregateFieldName(field));
+}
+
+/**
  * An aggregate errors query has "no group by" when every resolved field is
  * an aggregate function call (no plain grouping columns remain). That
  * collapses the results to a single row today, which reads better as a
@@ -88,27 +100,53 @@ export function hasNoGroupBy(fields: string[]): boolean {
 
 /**
  * Resolves which fields should drive the chart's y-axis: the schema's
- * explicit `yAxes` hint when provided, otherwise the aggregate fields
- * themselves (all of `fields` is aggregate in chart mode).
+ * explicit `yAxes` hint when provided, otherwise the query's own aggregates,
+ * and finally a plain event count for queries that have none (every
+ * non-aggregate query, and aggregates that only named grouping columns).
  */
-export function resolveChartYAxes(data: ErrorsQueryData, fields: string[]): string[] {
-  return data.yAxes?.length ? data.yAxes : fields;
+export function resolveChartYAxes(
+  data: ErrorsQueryData,
+  fields: string[],
+  kind: ErrorsQueryKind
+): string[] {
+  if (data.yAxes?.length) {
+    return data.yAxes;
+  }
+
+  const aggregates = kind === 'aggregate' ? fields.filter(isAggregateFieldName) : [];
+
+  return aggregates.length > 0 ? aggregates : [DEFAULT_Y_AXIS];
 }
 
 /**
  * Builds the query params for the events-stats timeseries request, reusing
  * the same query/page-filter params already built for the events table
  * fetch and swapping in the aggregate fields as the y-axis.
+ *
+ * Passing `topEvents` switches the endpoint into top-N mode: it groups by
+ * `field`, keeps the top N groups by `orderby`, and returns one series per
+ * group. `excludeOther` drops the catch-all bucket so the chart's series are
+ * exactly the rows rendered in the table beneath it.
  */
-export function buildErrorsChartQuery(eventView: EventView, yAxis: string[]): Query {
-  const {
-    field: _field,
-    sort: _sort,
-    widths: _widths,
-    ...rest
-  } = eventView.generateQueryStringObject();
+export function buildErrorsChartQuery(
+  eventView: EventView,
+  yAxis: string[],
+  topEvents?: number
+): Query {
+  const {field, sort, widths: _widths, ...rest} = eventView.generateQueryStringObject();
 
-  return {...rest, yAxis};
+  if (!topEvents) {
+    return {...rest, yAxis};
+  }
+
+  return {
+    ...rest,
+    field,
+    orderby: decodeScalar(sort),
+    topEvents: String(topEvents),
+    excludeOther: '1',
+    yAxis,
+  };
 }
 
 export function toChartUnit(outputType: AggregationOutputType): ChartUnit {
