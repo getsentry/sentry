@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -34,6 +36,23 @@ const DISPLAY_TYPES = {
   bar: DisplayType.BAR,
 } satisfies Record<TimeSeriesVisualization, DisplayType>;
 
+/** Height of the plotting area itself, in px, before any legend. */
+const CHART_HEIGHT = 220;
+
+/**
+ * Height of the box the visualization renders into.
+ *
+ * Both visualizations lay an interactive legend out *inside* that box, as a row
+ * above the plot, as soon as there is more than one series. The ECharts canvas
+ * is sized in pixels and doesn't give that row its space back, so a height
+ * fixed at the plot's leaves the chart spilling out the bottom of the box and
+ * over whatever follows it. Give the legend its own height instead of letting
+ * it eat into the plot's.
+ */
+export function getChartContentHeight(seriesCount: number, legendHeight: number) {
+  return seriesCount > 1 ? CHART_HEIGHT + legendHeight : CHART_HEIGHT;
+}
+
 function getInterval(timestamps: number[]): number {
   const intervals = timestamps
     .slice(1)
@@ -57,7 +76,11 @@ export function ChartContent({
   data: EmbedOutput<'chart'>;
   showHeader?: boolean;
 }) {
+  const theme = useTheme();
   const metadata = UNIT_METADATA[yAxisUnit];
+
+  // `ChartLegend` pins its row to `form.xs.height`.
+  const height = getChartContentHeight(series.length, parseInt(theme.form.xs.height, 10));
 
   const visualizationComponent =
     xAxis === 'category' ? (
@@ -145,7 +168,7 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      <Container data-test-id="seer-chart-content" height="220px" width="100%">
+      <Container data-test-id="seer-chart-content" height={`${height}px`} width="100%">
         {visualizationComponent}
       </Container>
     </Stack>

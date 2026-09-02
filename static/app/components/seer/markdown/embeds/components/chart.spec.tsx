@@ -2,6 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {getChartContentHeight} from 'sentry/components/seer/markdown/embeds/components/chart';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
@@ -163,6 +164,17 @@ describe('Chart embed', () => {
     });
 
     expect(screen.queryByTestId('seer-chart-embed')).not.toBeInTheDocument();
+  });
+
+  // The visualization renders its legend inside this box, so the box has to
+  // grow by that row's height. Otherwise the chart spills out of the bottom and
+  // over whatever follows the embed.
+  it.each([
+    ['a single series has no legend to make room for', 1, 220],
+    ['two series grow the box by the legend row', 2, 248],
+    ['a top-five breakdown grows it by the same one row', 5, 248],
+  ])('%s', (_label, seriesCount, expected) => {
+    expect(getChartContentHeight(seriesCount, 28)).toBe(expected);
   });
 
   it('renders the legacy series name field', () => {

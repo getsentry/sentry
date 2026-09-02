@@ -36,8 +36,10 @@ import {
 
 const ROW_LIMIT = 5;
 
-// Matches the fixed height `ChartContent` renders into, so the chart's
-// loading state doesn't shift the rest of the block when it resolves.
+// Roughly the height `ChartContent` renders into, so the chart's loading state
+// holds the block's shape instead of collapsing it. Exact only for a
+// single-series chart — a legend adds a row we can't know about until the
+// series arrive.
 const CHART_HEIGHT = '220px';
 
 interface ErrorsQueryBlockProps {
