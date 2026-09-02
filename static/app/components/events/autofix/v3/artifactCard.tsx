@@ -4,6 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconRefresh} from 'sentry/icons';
 import {IconCopy} from 'sentry/icons/iconCopy';
@@ -35,20 +36,16 @@ export function ArtifactCard({
           trailingItems={
             <Fragment>
               {allowReset && (
-                <Button
-                  size="xs"
-                  variant="transparent"
-                  icon={<IconRefresh size="xs" />}
-                  aria-label={t('Re-run step')}
-                  tooltipProps={{
-                    title: resetTooltip ?? t('Re-run step'),
-                    // Disabled buttons swallow pointer events; drop skipWrapper
-                    // so the tooltip can hang off a wrapper instead.
-                    skipWrapper: resetTooltip ? false : undefined,
-                  }}
-                  onClick={onReset}
-                  disabled={!onReset}
-                />
+                <Tooltip title={resetTooltip ?? t('Re-run step')}>
+                  <Button
+                    size="xs"
+                    variant="transparent"
+                    icon={<IconRefresh size="xs" />}
+                    aria-label={t('Re-run step')}
+                    onClick={onReset}
+                    disabled={!onReset}
+                  />
+                </Tooltip>
               )}
               <Button
                 size="xs"
