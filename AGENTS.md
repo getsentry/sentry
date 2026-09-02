@@ -79,7 +79,7 @@ Run the `pnpm run typecheck` script. It checks the whole project and does not ac
 #### Linting
 
 ```bash
-pnpm run lint:js                          # all JS/TS (Oxlint)
+pnpm run lint:js                          # all JS/TS
 pnpm run lint:js components/avatar.tsx    # specific file(s)
 pnpm run fix                              # auto-fix
 ```
