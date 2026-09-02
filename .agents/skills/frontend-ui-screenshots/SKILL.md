@@ -33,7 +33,7 @@ When breakpoint coverage is requested, use widths immediately below and above af
    - `product`: the change needs real application context. This includes pages, forms, navigation, modals, popovers, and drawers. These are product states, not separate modes: visit the demo route, reproduce the state with inferred accessible actions, and capture the viewport so its relationship to surrounding UI remains visible.
 3. Infer the target from colocated MDX/stories, tests, import parents and route registrations, accessible labels, and browser verification. Prefer a product capture when a story cannot demonstrate the actual changed behavior. Avoid submitting mutations.
 4. State the inferred path, route/story, state, themes, viewport widths, and supporting diff evidence before capture.
-5. Keep current dev-ui on port 7999. Create a detached merge-base worktree and start its dev-ui on port 7998. Reuse `node_modules` only when dependency manifests match; otherwise sync the base worktree.
+5. Keep the current dev-ui running and note its actual port. Create a detached merge-base worktree, then start its dev-ui with `SENTRY_WEBPACK_PROXY_PORT=7998 pnpm dev-ui`. If that port is occupied, use the automatically selected port and report both actual URLs. Reuse `node_modules` only when dependency manifests match; otherwise sync the base worktree.
 6. Write a deterministic plan under `.artifacts/ui-capture/` and run:
 
 ```bash
@@ -43,4 +43,4 @@ node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifact
 A story plan uses `"target":{"kind":"story","heading":"Image Avatars"}`; omit `heading` to capture its main gallery. A product plan uses `"target":{"kind":"product"}` plus accessible `click`, `fill`, `press`, or `wait` actions. Use `themes` and concrete `viewports` derived from the selected options.
 
 7. Inspect every comparison. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior. Report clickable artifact paths and any limitation.
-8. Stop port 7998 and remove the temporary worktree. Do not stop port 7999 or delete the persistent Chrome profile.
+8. Stop only the merge-base dev-ui process started for the capture and remove the temporary worktree. Do not stop the current dev-ui or delete the persistent Chrome profile.
