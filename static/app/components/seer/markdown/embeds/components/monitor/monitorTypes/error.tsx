@@ -3,8 +3,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 /**
@@ -13,8 +13,13 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
  * the same generic copy rendered by the sidebar of
  * views/detectors/components/details/error/index.tsx.
  */
-export function ErrorMonitor({detector}: {detector: ErrorDetector}) {
-  const organization = useOrganization();
+export function ErrorMonitor({
+  detector,
+  organization,
+}: {
+  detector: ErrorDetector;
+  organization: Organization;
+}) {
   const project = useProjectFromId({project_id: detector.projectId});
 
   return (

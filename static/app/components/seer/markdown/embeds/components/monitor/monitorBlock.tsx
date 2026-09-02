@@ -23,6 +23,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -54,10 +55,16 @@ function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) 
  * Adding a monitor type is a new file under `monitorTypes/`, plus a case here
  * and an icon above -- keep the type-specific rendering out of this file.
  */
-function MonitorBlockContent({detector}: {detector: Detector}) {
+function MonitorBlockContent({
+  detector,
+  organization,
+}: {
+  detector: Detector;
+  organization: Organization;
+}) {
   switch (detector.type) {
     case 'error':
-      return <ErrorMonitor detector={detector} />;
+      return <ErrorMonitor detector={detector} organization={organization} />;
     case 'metric_issue':
       return <MetricMonitor detector={detector} />;
     case 'monitor_check_in_failure':
@@ -108,7 +115,7 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
         ) : isError || !detector ? (
           <Text variant="muted">{t('Unable to load monitor details.')}</Text>
         ) : (
-          <MonitorBlockContent detector={detector} />
+          <MonitorBlockContent detector={detector} organization={organization} />
         )}
       </Stack>
     </Container>

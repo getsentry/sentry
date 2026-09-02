@@ -1,6 +1,7 @@
 import {
   CronDetectorFixture,
   ErrorDetectorFixture,
+  IssueStreamDetectorFixture,
   MetricDetectorFixture,
   PreprodDetectorFixture,
   UptimeDetectorFixture,
@@ -91,5 +92,14 @@ describe('Seer monitor embed', () => {
     expect(await screen.findByText('Measurement:')).toBeInTheDocument();
     expect(screen.getByText('Threshold Type:')).toBeInTheDocument();
     expect(screen.queryByText('Ongoing Issue')).not.toBeInTheDocument();
+  });
+
+  it('renders no configuration for a project monitor', async () => {
+    const detector = IssueStreamDetectorFixture({id: '7', latestGroup: null});
+
+    renderMonitor(detector);
+
+    expect(await screen.findByText('Project')).toBeInTheDocument();
+    expect(screen.queryByText('Rules')).not.toBeInTheDocument();
   });
 });
