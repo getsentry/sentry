@@ -406,10 +406,8 @@ def configure_sdk():
     else:
         disabled_integrations.append(ThreadingIntegration())
 
-    dsn = dsns.sentry_mirror if dsns.sentry_mirror else dsns.sentry4sentry
-
     sentry_sdk.init(
-        dsn=dsn,
+        dsn=dsns.sentry_mirror,
         integrations=integrations,
         disabled_integrations=disabled_integrations,
         **sdk_options,
