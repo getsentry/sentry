@@ -22,6 +22,15 @@ describe('getFieldDefinition attribute search metadata', () => {
     }
   );
 
+  it('keeps the issue-specific description for type', () => {
+    expect(getFieldDefinition(FieldKey.TYPE)?.desc).toBe(
+      'Type of event (Errors, transactions, csp and default)'
+    );
+    expect(getFieldDefinition(FieldKey.TYPE, 'span')?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[FieldKey.TYPE]?.brief
+    );
+  });
+
   it('uses ATTRIBUTE_SEARCH_METADATA briefs and converted types', () => {
     const definition = getFieldDefinition(FieldKey.DEVICE_BATTERY_LEVEL);
 

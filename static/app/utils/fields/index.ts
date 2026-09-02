@@ -214,6 +214,7 @@ type ErrorFieldKey =
   | FieldKey.STATUS
   | FieldKey.SYMBOLICATED_IN_APP
   | FieldKey.TIMES_SEEN
+  | FieldKey.TYPE
   | FieldKey.USER_COUNT
   | FieldKey.UNREAL_CRASH_TYPE;
 
@@ -2003,6 +2004,11 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.NUMBER,
     keywords: ['count'],
   },
+  [FieldKey.TYPE]: {
+    desc: t('Type of event (Errors, transactions, csp and default)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.USER_COUNT]: {
     desc: t('Number of unique users affected'),
     kind: FieldKind.FIELD,
@@ -3344,7 +3350,10 @@ export const getFieldDefinition = (
   const definition = _getFieldFromMappings(type, key, kind);
   if (definition) {
     return mergeAttributeSearchMetadata(key, definition, {
-      keepLocalDescription: type === 'replay' || type === 'feedback',
+      keepLocalDescription:
+        type === 'replay' ||
+        type === 'feedback' ||
+        (type === 'event' && key === FieldKey.TYPE),
     });
   }
 
