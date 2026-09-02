@@ -169,7 +169,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "scrubIPAddresses",
         "groupingConfig",
         "groupingEnhancements",
-        "derivedGroupingEnhancements",
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",

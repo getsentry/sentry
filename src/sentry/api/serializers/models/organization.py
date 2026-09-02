@@ -931,7 +931,6 @@ class OrganizationSerializer(OrganizationSummarySerializer):
     exclude_fields=[
         "availableRoles",
         "genAIConsent",
-        "quota",
         "rollbackEnabled",
         "streamlineOnly",
         "ingestThroughTrustedRelaysOnly",

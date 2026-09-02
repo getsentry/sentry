@@ -595,7 +595,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         )
 
 
-@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
+@extend_schema_serializer(exclude_fields=["thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         max_length=256,

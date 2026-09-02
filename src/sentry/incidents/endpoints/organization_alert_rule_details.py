@@ -139,7 +139,7 @@ def remove_alert_rule(
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
+@extend_schema_serializer(exclude_fields=["thresholdPeriod"])
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     aggregate = serializers.CharField(

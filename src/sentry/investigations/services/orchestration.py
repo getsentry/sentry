@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Max
+from django.utils import timezone
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationOrchestrationCommand,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
     InvestigationSourceType,
@@ -16,16 +20,32 @@ from sentry.investigations.models import (
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
+    InvestigationConflictError,
+    InvestigationSourceNotFound,
+    InvestigationValidationError,
     _create_project_links,
     _legacy_storage_filters,
     investigation_lineage_key,
 )
 from sentry.models.organization import Organization
 
+
+@dataclass(frozen=True)
+class AcceptedOrchestrationCommand:
+    run_id: int | None
+    request_id: UUID
+    duplicate: bool
+    workflow_version: int
+    projection: dict[str, Any]
+
+
 __all__ = [
+    "AcceptedOrchestrationCommand",
+    "accept_orchestration_command",
     "agentic_breached_metric_lineage_key",
     "create_agentic_breached_metric_investigation",
     "create_agentic_manual_investigation",
+    "get_orchestration_projection",
 ]
 
 
@@ -274,3 +294,120 @@ def create_agentic_breached_metric_investigation(
                     return active, False
                 raise
     raise AssertionError("unreachable")
+
+
+def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str, Any]:
+    """Overlay projection JSON with the run's authoritative scalar fields."""
+
+    projection = deepcopy(run.projection)
+    projection.update(
+        {
+            "runId": (
+                str(run.seer_run.seer_run_state_id)
+                if run.seer_run is not None and run.seer_run.seer_run_state_id is not None
+                else None
+            ),
+            "investigationId": str(run.investigation_id),
+            "workflowVersion": run.workflow_version,
+            "generation": run.generation,
+            "phase": run.phase,
+            "status": run.status,
+            "notebookRevision": run.notebook_revision,
+            "heartbeatAt": run.heartbeat_at,
+            "updatedAt": run.date_updated,
+        }
+    )
+    projection["report"]["notebookRevision"] = run.notebook_revision
+    return projection
+
+
+def get_orchestration_projection(investigation: Investigation) -> dict[str, Any]:
+    try:
+        run = InvestigationOrchestrationRun.objects.select_related("seer_run").get(
+            investigation=investigation
+        )
+    except InvestigationOrchestrationRun.DoesNotExist:
+        raise InvestigationSourceNotFound
+    return _serialize_orchestration_run(run)
+
+
+def _command_acceptance(
+    run: InvestigationOrchestrationRun,
+    command: InvestigationOrchestrationCommand,
+    *,
+    duplicate: bool,
+) -> AcceptedOrchestrationCommand:
+    return AcceptedOrchestrationCommand(
+        run_id=(
+            run.seer_run.seer_run_state_id
+            if run.seer_run is not None and run.seer_run.seer_run_state_id is not None
+            else None
+        ),
+        request_id=command.request_id,
+        duplicate=duplicate,
+        workflow_version=run.workflow_version,
+        projection=_serialize_orchestration_run(run),
+    )
+
+
+def accept_orchestration_command(
+    *,
+    investigation: Investigation,
+    request_id: UUID,
+    expected_workflow_version: int,
+    command_type: str,
+    payload: dict[str, Any],
+    actor_id: int,
+) -> AcceptedOrchestrationCommand:
+    with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
+        try:
+            locked_investigation = Investigation.objects.select_for_update().get(
+                id=investigation.id
+            )
+        except Investigation.DoesNotExist:
+            raise InvestigationSourceNotFound
+        if locked_investigation.status == InvestigationStatus.ARCHIVED:
+            raise InvestigationValidationError(
+                {"detail": "Archived investigations do not accept commands."}
+            )
+        try:
+            run = InvestigationOrchestrationRun.objects.select_for_update().get(
+                investigation=locked_investigation
+            )
+        except InvestigationOrchestrationRun.DoesNotExist:
+            raise InvestigationSourceNotFound
+
+        existing = InvestigationOrchestrationCommand.objects.filter(
+            orchestration_run=run, request_id=request_id
+        ).first()
+        if existing is not None:
+            if (
+                existing.expected_workflow_version != expected_workflow_version
+                or existing.type != command_type
+                or existing.payload != payload
+            ):
+                raise InvestigationConflictError(
+                    "Request ID was already used for a different command."
+                )
+            return _command_acceptance(run, existing, duplicate=True)
+
+        if run.workflow_version != expected_workflow_version:
+            raise InvestigationConflictError("Workflow version does not match.")
+
+        resulting_version = run.workflow_version + 1
+        command = InvestigationOrchestrationCommand.objects.create(
+            orchestration_run=run,
+            request_id=request_id,
+            actor_id=actor_id,
+            expected_workflow_version=expected_workflow_version,
+            resulting_workflow_version=resulting_version,
+            type=command_type,
+            payload=deepcopy(payload),
+        )
+        projection = deepcopy(run.projection)
+        projection["workflowVersion"] = resulting_version
+        run.workflow_version = resulting_version
+        run.projection = projection
+        run.date_updated = timezone.now()
+        run.save(update_fields=["workflow_version", "projection", "date_updated"])
+        return _command_acceptance(run, command, duplicate=False)

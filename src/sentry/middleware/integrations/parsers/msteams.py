@@ -83,9 +83,21 @@ class MsTeamsRequestParser(BaseRequestParser):
             )
             return self.get_response_from_control_silo()
 
+        if self._check_if_event_should_be_sync(data=self.request_data):
+            logger.info(
+                "MSTeams event should be handled synchronously, sending to webhook handler",
+                extra={"request_data": self.request_data},
+            )
+            return self.get_response_from_control_silo()
+
+        # Shed before the lookups: provider-wide conditions do not need the integration.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         cells: Sequence[Cell] = []
         try:
-            integration = self.get_integration_from_request()
+            integration = self.integration_for_request()
             if not integration:
                 logger.info(
                     "Could not get integration from request",
@@ -114,13 +126,6 @@ class MsTeamsRequestParser(BaseRequestParser):
                 )
             logger.info("%s.no_cells", self.provider, extra={"path": self.request.path})
             return self.get_default_missing_integration_response()
-
-        if self._check_if_event_should_be_sync(data=self.request_data):
-            logger.info(
-                "MSTeams event should be handled synchronously, sending to webhook handler",
-                extra={"request_data": self.request_data},
-            )
-            return self.get_response_from_control_silo()
 
         logger.info(
             "Scheduling event for request",

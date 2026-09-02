@@ -82,6 +82,23 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
   });
 
+  it('links the configurations crumb to the provider configurations tab', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'Configurations'})).toHaveAttribute(
+      'href',
+      `/settings/${org.slug}/integrations/github/?tab=configurations`
+    );
+  });
+
   it('uses a full domain URL without adding another protocol', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',

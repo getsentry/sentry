@@ -58,6 +58,11 @@ class TestRepoFiles(TestCase):
         source_code_files = filter_source_code_files([".env", "README"])
         assert source_code_files == []
 
+    def test_filter_javascript_module_extensions(self) -> None:
+        files = ["src/module.cjs", "src/module.mts", "src/module.cts"]
+
+        assert filter_source_code_files([*files, "src/module.unsupported"]) == files
+
     def test_should_not_include(self) -> None:
         for file in [
             "static/app/views/organizationRoot.spec.jsx",
