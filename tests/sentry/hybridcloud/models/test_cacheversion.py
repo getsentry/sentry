@@ -18,10 +18,10 @@ def test_increment_version_existing_key() -> None:
     assert original.keyname is None, "no keyname initially"
 
     assert CellCacheVersion.incr_version("hello-world") == 2
-    original.refresh_from_db()
-    assert original.keyname == "hello-world"
-    assert original.key == "hello-world"
-    assert original.version == 2
+    reload = CellCacheVersion.objects.get(id=original.id)
+    assert reload.keyname == "hello-world"
+    assert reload.key == "hello-world"
+    assert reload.version == 2
 
     assert CellCacheVersion.incr_version("hello-world") == 3
     assert CellCacheVersion.incr_version("second-hello") == 1
