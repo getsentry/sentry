@@ -2,7 +2,6 @@ from typing import Any, NotRequired, TypedDict, TypeVar
 
 from django.db import router, transaction
 from rest_framework import serializers
-from rest_framework.exceptions import PermissionDenied
 
 from sentry import audit_log, features, options
 from sentry.api.fields.actor import OwnerActorField
@@ -27,7 +26,6 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     log_alerting_quota_hit,
     remove_items_by_api_input,
     update_owner,
-    validate_detectors_exist_and_have_permissions,
     validate_json_schema,
 )
 from sentry.workflow_engine.models import (
@@ -42,8 +40,6 @@ from sentry.workflow_engine.models.data_condition import Condition
 InputData = dict[str, Any]
 ListInputData = list[InputData]
 ModelType = TypeVar("ModelType", bound=models.Model)
-
-ORGANIZATION_WORKFLOW_WRITE_SCOPES = ("org:write", "org:admin", "alerts:write")
 
 
 class ActionFilterInput(DataConditionGroupInput):
@@ -400,33 +396,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 f"You may not exceed {max_workflows} workflows per organization."
             )
 
-    def _validate_creation_permissions(self, detector_ids: list[int] | None) -> None:
-        """
-        Validate that the user has permission to create a workflow.
-        Users have permission if:
-        - They have the "org:write"/ "org:admin" / "alerts:write" scope, OR
-        - They have access to all of the connected detectors in the request
-        """
-        organization = self.context["organization"]
-        request = self.context["request"]
-        access = self.context.get("access") or request.access
-
-        if any(access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES):
-            return
-
-        if not detector_ids:
-            raise PermissionDenied
-
-        validate_detectors_exist_and_have_permissions(detector_ids, organization, request)
-
     def create(self, validated_value: InputData) -> Workflow:
         condition_group_validator = BaseDataConditionGroupValidator(context=self.context)
         action_validator = BaseActionValidator(context=self.context)
         organization = self.context["organization"]
         request = self.context["request"]
-        detector_ids = validated_value.get("detector_ids")
 
-        self._validate_creation_permissions(detector_ids)
         self._validate_workflow_limits()
 
         with transaction.atomic(router.db_for_write(Workflow)):
@@ -457,6 +432,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 owner_team_id=owner_team_id,
             )
             # connect detectors
+            detector_ids = validated_value.get("detector_ids")
             connect_workflows_to_detectors(request, organization, workflow.id, detector_ids)
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
