@@ -145,9 +145,10 @@ export function isDocIntegration(
 export function isScmProvider(
   provider: IntegrationProvider | null | undefined
 ): boolean {
-  return (
-    provider?.metadata?.features?.some(f => f.featureGate.includes('commits')) ?? false
-  );
+  if (!provider) {
+    return false;
+  }
+  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
 }
 
 export function isExternalActorMapping(
