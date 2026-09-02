@@ -844,6 +844,7 @@ def deliver_feature_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None = None,
     error: str | None = None,
+    prompt_version: str | None = None,
 ) -> None:
     """Dispatch a feature result from Seer to the registered handler."""
     handler = DELIVERY_HANDLERS.get(feature_id)
@@ -859,7 +860,7 @@ def deliver_feature_result(
     except (TypeError, ValueError):
         raise ParseError("Invalid run uuid")
 
-    handler(organization_id, parsed_run_uuid, status, result, error)
+    handler(organization_id, parsed_run_uuid, status, result, error, prompt_version)
 
 
 def get_monitoring_provider_connections(
