@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -13,7 +12,7 @@ export interface ImageProps extends Omit<
 > {
   alt: string;
   src: string;
-  aspectRatio?: CSSProperties['aspectRatio'];
+  aspectRatio?: CSS['aspectRatio'];
   height?: Responsive<CSS['height']>;
   /**
    * Determines if the image should be loaded eagerly or lazily.
