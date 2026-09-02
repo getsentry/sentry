@@ -15,7 +15,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0034_drop_webhookpayload_priority_index
+hybridcloud: 0035_add_cacheversion_keyname
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0033_seer_run_pr_iteration
 
-sentry: 1160_create_deletion_watermark
+sentry: 1161_drop_organizationmapping_require_email_verification_pending
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

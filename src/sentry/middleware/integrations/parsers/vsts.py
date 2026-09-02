@@ -44,7 +44,7 @@ class VstsRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            integration = self.get_integration_from_request()
+            integration = self.integration_for_request()
             if not integration:
                 return self.get_default_missing_integration_response()
 

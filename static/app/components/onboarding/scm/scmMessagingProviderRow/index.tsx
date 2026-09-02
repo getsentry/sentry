@@ -1,17 +1,22 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
-import {IconAdd} from 'sentry/icons/iconAdd';
+import {SCM_MESSAGING_PROVIDER_TOOLTIPS} from 'sentry/components/onboarding/scm/messagingProviders';
+import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
+import {ScmMessagingChannelPicker} from 'sentry/components/onboarding/scm/scmMessagingChannelPicker';
+import type {
+  ScmMessagingActiveRow,
+  ScmMessagingSetup,
+} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -23,47 +28,10 @@ import type {
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {
-  SCM_MESSAGING_PROVIDER_DESCRIPTIONS,
-  SCM_MESSAGING_PROVIDER_TOOLTIPS,
-} from './messagingProviders';
-import type {ScmMessagingProviderKey} from './messagingProviders';
-import {ScmMessagingChannelPicker} from './scmMessagingChannelPicker';
-import type {ScmMessagingActiveRow, ScmMessagingSetup} from './scmMessagingSetup';
-import type {ScmMessagingResolvedProvider} from './useScmMessagingProviders';
-
-/**
- * The visual state of a single provider row. Derived from the resolved provider,
- * the install-flow state machine, and the current messaging setup in session
- * storage.
- */
-type RowVisualState =
-  | 'installable'
-  /**
-   * User lacks org:integrations so they cannot start an installation.
-   * Distinct from 'permission-limited', which describes a tenant-level MS Teams
-   * integration that is ineligible for Issue Alert actions regardless of user scope.
-   */
-  | 'install-forbidden'
-  /** OAuth modal is open / install in progress. */
-  | 'installing'
-  /** Install attempt ended with an error (or was closed after one). */
-  | 'install-error'
-  /** Install confirmed; waiting for the integrations query to re-settle. */
-  | 'loading'
-  /** Active integration exists but is ineligible for Issue Alert actions. */
-  | 'permission-limited'
-  /**
-   * Integration is connected but no destination has been saved yet, and the
-   * user has not explicitly opened the picker.
-   */
-  | 'choose-destination'
-  /** Destination is being configured (channel picker rendered inline). */
-  | 'configuring'
-  /** A destination has been saved to session state. */
-  | 'configured'
-  /** User is confirming a destination removal. */
-  | 'removing';
+import {RowActions} from './action';
+import {openMsTeamsConnectionModal} from './msTeamsConnection';
+import {RowSubtitle} from './subtitle';
+import type {RowVisualState} from './types';
 
 function deriveVisualState({
   resolvedProvider,
@@ -224,6 +192,10 @@ export function ScmMessagingProviderRow({
   });
 
   const handleConnect = useCallback(() => {
+    if (resolvedProvider.providerKey === 'msteams') {
+      openMsTeamsConnectionModal(resolvedProvider.provider);
+      return;
+    }
     startFlow({
       provider: resolvedProvider.provider,
       organization,
@@ -358,188 +330,4 @@ export function ScmMessagingProviderRow({
       </Stack>
     </Container>
   );
-}
-
-function RowSubtitle({
-  visualState,
-  resolvedProvider,
-  messagingSetup,
-}: {
-  messagingSetup: ScmMessagingSetup;
-  resolvedProvider: ScmMessagingResolvedProvider;
-  visualState: RowVisualState;
-}) {
-  if (
-    visualState === 'installable' ||
-    visualState === 'loading' ||
-    visualState === 'installing' ||
-    visualState === 'choose-destination'
-  ) {
-    return (
-      <Text variant="muted" size="sm">
-        {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[resolvedProvider.providerKey]}
-      </Text>
-    );
-  }
-
-  if (visualState === 'install-forbidden') {
-    return (
-      <Stack gap="2xs">
-        <Text variant="muted" size="sm">
-          {SCM_MESSAGING_PROVIDER_DESCRIPTIONS[resolvedProvider.providerKey]}
-        </Text>
-        <Text variant="muted" size="sm">
-          {t('Ask an organization admin to connect %s.', resolvedProvider.provider.name)}
-        </Text>
-      </Stack>
-    );
-  }
-
-  if (visualState === 'permission-limited') {
-    return (
-      <Stack gap="2xs">
-        <Text size="sm">{resolvedProvider.permissionLimitedIntegration?.name}</Text>
-        <Text variant="muted" size="sm">
-          {t(
-            'This Microsoft Teams workspace uses a tenant-level connection and cannot receive issue alerts directly. Reinstall with a team-level connection to enable destinations.'
-          )}
-        </Text>
-      </Stack>
-    );
-  }
-
-  if (visualState === 'configured' && messagingSetup.mode === 'selected') {
-    return (
-      <Flex gap="xs" align="center">
-        <Text size="sm">
-          {
-            resolvedProvider.eligibleIntegrations.find(
-              i => i.id === messagingSetup.integrationId
-            )?.name
-          }
-        </Text>
-        <Text variant="muted" size="sm" aria-hidden>
-          /
-        </Text>
-        <Text size="sm">{messagingSetup.channelName}</Text>
-      </Flex>
-    );
-  }
-
-  if (visualState === 'removing' && messagingSetup.mode === 'selected') {
-    return (
-      <Text variant="muted" size="sm">
-        {t(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )}
-      </Text>
-    );
-  }
-
-  return null;
-}
-
-interface RowActionsProps {
-  onCancelRemoving: () => void;
-  onChooseDestination: () => void;
-  onConfirmRemove: () => void;
-  onConnect: () => void;
-  onEditDestination: () => void;
-  onStartRemoving: () => void;
-  resolvedProvider: ScmMessagingResolvedProvider;
-  visualState: RowVisualState;
-}
-
-function RowActions({
-  visualState,
-  resolvedProvider,
-  onConnect,
-  onChooseDestination,
-  onEditDestination,
-  onStartRemoving,
-  onCancelRemoving,
-  onConfirmRemove,
-}: RowActionsProps) {
-  if (visualState === 'loading' || visualState === 'installing') {
-    return (
-      <Flex justify="center" align="center" style={{minWidth: 88}}>
-        <LoadingIndicator mini style={{margin: 0}} />
-      </Flex>
-    );
-  }
-
-  if (visualState === 'installable') {
-    return (
-      <Button
-        size="sm"
-        icon={<IconAdd size="xs" />}
-        disabled={!resolvedProvider.provider.canAdd}
-        onClick={onConnect}
-        aria-label={t('Connect %s', resolvedProvider.provider.name)}
-      >
-        {t('Connect')}
-      </Button>
-    );
-  }
-
-  if (visualState === 'install-forbidden') {
-    return (
-      <Button
-        size="sm"
-        disabled
-        aria-label={t('Connect %s', resolvedProvider.provider.name)}
-      >
-        {t('Connect')}
-      </Button>
-    );
-  }
-
-  if (visualState === 'permission-limited') {
-    return (
-      <Button size="sm" disabled>
-        {t('Connect')}
-      </Button>
-    );
-  }
-
-  if (visualState === 'choose-destination') {
-    return (
-      <Button
-        size="sm"
-        icon={<IconAdd size="xs" />}
-        onClick={onChooseDestination}
-        aria-label={t('Choose destination for %s', resolvedProvider.provider.name)}
-      >
-        {t('Choose destination')}
-      </Button>
-    );
-  }
-
-  if (visualState === 'configured') {
-    return (
-      <Fragment>
-        <Button size="sm" variant="link" onClick={onEditDestination}>
-          {t('Edit')}
-        </Button>
-        <Button size="sm" variant="link" onClick={onStartRemoving}>
-          {t('Remove')}
-        </Button>
-      </Fragment>
-    );
-  }
-
-  if (visualState === 'removing') {
-    return (
-      <Fragment>
-        <Button size="sm" variant="link" onClick={onCancelRemoving}>
-          {t('Cancel')}
-        </Button>
-        <Button size="sm" variant="danger" onClick={onConfirmRemove}>
-          {t('Remove')}
-        </Button>
-      </Fragment>
-    );
-  }
-
-  return null;
 }

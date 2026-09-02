@@ -304,17 +304,18 @@ describe('AuthLogin', () => {
     }
   });
 
-  it('renders the configured login banner', async () => {
+  it('renders warnings above the configured login banner', async () => {
     const authConfig: AuthConfig = {
       canRegister: true,
       githubLoginLink: '',
       googleLoginLink: '',
       hasNewsletter: false,
-      loginBanner:
-        'Try agent monitoring. <a href="https://example.com/agents">Learn more</a>.',
+      loginBannerMarkdown:
+        'Try agent monitoring. [Learn more](https://example.com/agents).',
       pendingMfa: null,
       serverHostname: 'sentry.example.com',
       vstsLoginLink: '',
+      warning: 'Your session has expired.',
     };
     MockApiClient.addMockResponse({
       url: '/auth/config/',
@@ -323,9 +324,12 @@ describe('AuthLogin', () => {
 
     render(<AuthLogin />);
 
-    expect(await screen.findByRole('link', {name: 'Learn more'})).toHaveAttribute(
-      'href',
-      'https://example.com/agents'
+    const warning = await screen.findByText('Your session has expired.');
+    const bannerLink = screen.getByRole('link', {name: 'Learn more'});
+
+    expect(bannerLink).toHaveAttribute('href', 'https://example.com/agents');
+    expect(warning.compareDocumentPosition(bannerLink)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
     );
   });
 

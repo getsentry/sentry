@@ -195,6 +195,12 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.data["id"] != template_investigation.data["id"]
         assert launched.data["template"] is None
         assert launched.data["source"]["ref"] == source["ref"]
+        assert launched.data["orchestration"] == {
+            "phase": "broad_scan",
+            "status": "pending",
+            "heartbeatAt": None,
+            "notebookRevision": 0,
+        }
         investigation = Investigation.objects.get(id=launched.data["id"])
         assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
         run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
@@ -217,7 +223,13 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         assert candidate.status_code == 200, candidate.data
         assert candidate.data == {
-            "items": [{"status": "view", "investigationId": launched.data["id"]}]
+            "items": [
+                {
+                    "status": "view",
+                    "investigationId": launched.data["id"],
+                    "orchestration": launched.data["orchestration"],
+                }
+            ]
         }
 
         duplicate = self.client.post(self.collection_url, {"source": source}, format="json")

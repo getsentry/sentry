@@ -2640,6 +2640,15 @@ register(
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# How many chained drains a strict provider's mailbox may run per lineage,
+# counting the ordinary dispatch as the first link: at 1 a finished drain never
+# chains, and each increment lets a busy mailbox re-dispatch itself once more
+# before falling back to the scheduler.
+register(
+    "hybridcloud.webhookpayload.max_chain_depth",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Dispatch skip-on-failure providers' mailboxes from their oldest due record
 # instead of gating on the absolute head, so one record in retry backoff cannot
 # hide every due record behind it. Strict-ordering providers keep the gate.

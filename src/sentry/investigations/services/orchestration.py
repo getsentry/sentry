@@ -16,6 +16,7 @@ from sentry.investigations.models import (
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
+    InvestigationSourceNotFound,
     _create_project_links,
     _legacy_storage_filters,
     investigation_lineage_key,
@@ -26,6 +27,7 @@ __all__ = [
     "agentic_breached_metric_lineage_key",
     "create_agentic_breached_metric_investigation",
     "create_agentic_manual_investigation",
+    "get_orchestration_projection",
 ]
 
 
@@ -274,3 +276,38 @@ def create_agentic_breached_metric_investigation(
                     return active, False
                 raise
     raise AssertionError("unreachable")
+
+
+def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str, Any]:
+    """Overlay projection JSON with the run's authoritative scalar fields."""
+
+    projection = deepcopy(run.projection)
+    projection.update(
+        {
+            "runId": (
+                str(run.seer_run.seer_run_state_id)
+                if run.seer_run is not None and run.seer_run.seer_run_state_id is not None
+                else None
+            ),
+            "investigationId": str(run.investigation_id),
+            "workflowVersion": run.workflow_version,
+            "generation": run.generation,
+            "phase": run.phase,
+            "status": run.status,
+            "notebookRevision": run.notebook_revision,
+            "heartbeatAt": run.heartbeat_at,
+            "updatedAt": run.date_updated,
+        }
+    )
+    projection["report"]["notebookRevision"] = run.notebook_revision
+    return projection
+
+
+def get_orchestration_projection(investigation: Investigation) -> dict[str, Any]:
+    try:
+        run = InvestigationOrchestrationRun.objects.select_related("seer_run").get(
+            investigation=investigation
+        )
+    except InvestigationOrchestrationRun.DoesNotExist:
+        raise InvestigationSourceNotFound
+    return _serialize_orchestration_run(run)
