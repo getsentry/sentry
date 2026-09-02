@@ -2,6 +2,7 @@ import {createContext, useContext, useEffect, useMemo, useRef} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  type CreatedProject,
   type ScmMessagingSetup,
   UNCONFIGURED_SCM_MESSAGING_SETUP,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
@@ -19,7 +20,7 @@ type OnboardingContextProps = {
   ) => void;
   setAgenticProgressClientRunId: (clientRunId?: string) => void;
   setAgenticProgressOnboardingCode: (onboardingCode?: string) => void;
-  setCreatedProjectSlug: (slug?: string) => void;
+  setCreatedProject: (createdProject?: CreatedProject) => void;
   setMessagingSetup: (messagingSetup: ScmMessagingSetup) => void;
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
@@ -28,7 +29,7 @@ type OnboardingContextProps = {
   agentSetupProjectBaseline?: OnboardingSessionState['agentSetupProjectBaseline'];
   agenticProgressClientRunId?: string;
   agenticProgressOnboardingCode?: string;
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -44,7 +45,7 @@ type OnboardingSessionState = {
   };
   agenticProgressClientRunId?: string;
   agenticProgressOnboardingCode?: string;
-  createdProjectSlug?: string;
+  createdProject?: CreatedProject;
   messagingSetup?: ScmMessagingSetup;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
@@ -64,8 +65,8 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedRepository: () => {},
   selectedFeatures: undefined,
   setSelectedFeatures: () => {},
-  createdProjectSlug: undefined,
-  setCreatedProjectSlug: () => {},
+  createdProject: undefined,
+  setCreatedProject: () => {},
   messagingSetup: UNCONFIGURED_SCM_MESSAGING_SETUP,
   setMessagingSetup: () => {},
   agentSetupProjectBaseline: undefined,
@@ -111,7 +112,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
         selectedRepository: undefined,
         selectedPlatform: undefined,
         selectedFeatures: undefined,
-        createdProjectSlug: undefined,
+        createdProject: undefined,
       }));
     }
   }, [setOnboarding]);
@@ -134,9 +135,9 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
         setOnboarding(prev => ({...prev, selectedFeatures}));
       },
-      createdProjectSlug: onboarding?.createdProjectSlug,
-      setCreatedProjectSlug: (createdProjectSlug?: string) => {
-        setOnboarding(prev => ({...prev, createdProjectSlug}));
+      createdProject: onboarding?.createdProject,
+      setCreatedProject: (createdProject?: CreatedProject) => {
+        setOnboarding(prev => ({...prev, createdProject}));
       },
       messagingSetup: onboarding?.messagingSetup ?? UNCONFIGURED_SCM_MESSAGING_SETUP,
       setMessagingSetup: (messagingSetup: ScmMessagingSetup) => {
@@ -164,7 +165,7 @@ export function OnboardingContextProvider({children, initialValue}: ProviderProp
           ...prev,
           selectedPlatform: undefined,
           selectedFeatures: undefined,
-          createdProjectSlug: undefined,
+          createdProject: undefined,
         }));
       },
       // Full-flow exits should clear every staged choice explicitly. Do not use

@@ -69,11 +69,16 @@ function defaultProps(state: StateOverrides = {}) {
     selectedRepository: state.selectedRepository,
     selectedPlatform: state.selectedPlatform,
     selectedFeatures: state.selectedFeatures,
-    createdProjectSlug: state.createdProjectSlug,
+    createdProject: state.createdProjectSlug
+      ? {
+          slug: state.createdProjectSlug,
+          messagingSelection: undefined,
+        }
+      : undefined,
     deferProjectCreation: false,
     onPlatformChange: jest.fn(),
     onFeaturesChange: jest.fn(),
-    onProjectCreated: jest.fn(),
+    onCreatedProjectChange: jest.fn(),
     onComplete: jest.fn(),
   };
 }
@@ -647,7 +652,7 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       expect(createRequest).not.toHaveBeenCalled();
-      expect(props.onProjectCreated).not.toHaveBeenCalled();
+      expect(props.onCreatedProjectChange).not.toHaveBeenCalled();
       expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
@@ -691,7 +696,10 @@ describe('ScmPlatformFeatures', () => {
       expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
         product: [ProductSolution.ERROR_MONITORING],
       });
-      expect(props.onProjectCreated).toHaveBeenCalledWith(createdProject.slug);
+      expect(props.onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: createdProject.slug,
+        messagingSelection: undefined,
+      });
     });
 
     it('links selected repository to project after creation', async () => {
