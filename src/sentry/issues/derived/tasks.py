@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from sentry.db.models.manager.base_query_set import BaseQuerySet
     from sentry.issues.derived.processing import GenerationId
     from sentry.issues.derived.promote import PromotionResult
-    from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.models.group import Group
 
 from sentry.tasks.base import instrumented_task
@@ -101,43 +100,6 @@ def _resume_generation_id(
         datetime.fromisoformat(resume_generated_at).replace(tzinfo=timezone.utc),
         resume_pipeline_hash,
     )
-
-
-def _record_batch_status_consistency(
-    derived: GroupDerivedData,
-    groups_by_id: dict[int, Group],
-    project_should_check: dict[int, bool],
-) -> None:
-    """Observe status consistency for one derived row during a batch check."""
-    from sentry.issues.derived.check import record_status_consistency
-    from sentry.issues.derived.gate import derived_should_be_correct
-    from sentry.models.project import Project
-
-    group = groups_by_id.get(derived.group_id)
-    if group is None:
-        return
-    project_id = group.project_id
-    if project_id not in project_should_check:
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-        except Project.DoesNotExist:
-            project_should_check[project_id] = False
-        else:
-            project_should_check[project_id] = derived_should_be_correct(project)
-    if not project_should_check[project_id]:
-        return
-    try:
-        record_status_consistency(group, derived, source="batch_check")
-    except Exception:
-        logger.exception(
-            "check_fresh_derived_data_batch.status_consistency_failed",
-            extra={"group_id": derived.group_id, "project_id": project_id},
-        )
-        metrics.incr(
-            "issues.status_reconciliation.error",
-            sample_rate=1.0,
-            tags={"source": "batch_check"},
-        )
 
 
 @instrumented_task(
@@ -633,6 +595,7 @@ def check_fresh_derived_data_batch(
         CheckInvalidated,
         CheckTimeout,
         check_derived_data,
+        record_batch_status_consistency,
     )
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
@@ -680,7 +643,7 @@ def check_fresh_derived_data_batch(
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     for derived in derived_rows.iterator():
         if status_check_enabled:
-            _record_batch_status_consistency(derived, groups_by_id, project_should_check)
+            record_batch_status_consistency(derived, groups_by_id, project_should_check)
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             result = check_derived_data(

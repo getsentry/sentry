@@ -7,11 +7,13 @@ from uuid import uuid4
 
 from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.derived.framework import Feature, Pipeline
+from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group, GroupStatus
+from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.workflow_engine.caches.mapping import CacheMapping
 
@@ -83,6 +85,39 @@ def record_status_consistency(
         },
     )
     return inconsistency
+
+
+def record_batch_status_consistency(
+    derived: GroupDerivedData,
+    groups_by_id: dict[int, Group],
+    project_should_check: dict[int, bool],
+) -> None:
+    """Observe status consistency for one derived row during a batch check."""
+    group = groups_by_id.get(derived.group_id)
+    if group is None:
+        return
+    project_id = group.project_id
+    if project_id not in project_should_check:
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+        except Project.DoesNotExist:
+            project_should_check[project_id] = False
+        else:
+            project_should_check[project_id] = derived_should_be_correct(project)
+    if not project_should_check[project_id]:
+        return
+    try:
+        record_status_consistency(group, derived, source="batch_check")
+    except Exception:
+        logger.exception(
+            "check_fresh_derived_data_batch.status_consistency_failed",
+            extra={"group_id": derived.group_id, "project_id": project_id},
+        )
+        metrics.incr(
+            "issues.status_reconciliation.error",
+            sample_rate=1.0,
+            tags={"source": "batch_check"},
+        )
 
 
 @dataclass(frozen=True)
