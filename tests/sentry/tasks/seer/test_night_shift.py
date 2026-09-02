@@ -13,6 +13,7 @@ from sentry.models.project import Project
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.autofix.github_perms import GITHUB_PR_WRITE_PERMISSIONS
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
@@ -70,6 +71,25 @@ class NightShiftFixtures(Fixtures):
     """Shared night-shift test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
 
+    def _connect_github_repo(self, project, *, name, external_id, permissions=None):
+        integration = self.create_integration(
+            organization=project.organization,
+            provider="github",
+            external_id=external_id,
+            metadata={
+                "permissions": permissions
+                if permissions is not None
+                else GITHUB_PR_WRITE_PERMISSIONS
+            },
+        )
+        repo = self.create_repo(
+            project=project,
+            provider="github",
+            name=name,
+            integration_id=integration.id,
+        )
+        self.create_seer_project_repository(project=project, repository=repo)
+
     def _make_eligible(
         self,
         project,
@@ -85,23 +105,12 @@ class NightShiftFixtures(Fixtures):
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         project.update_option("sentry:seer_automated_run_stopping_point", stopping_point)
-        integration = self.create_integration(
-            organization=project.organization,
-            provider="github",
-            external_id=f"night-shift-{project.id}",
-            metadata={
-                "permissions": permissions
-                if permissions is not None
-                else {"contents": "write", "pull_requests": "write"}
-            },
-        )
-        repo = self.create_repo(
-            project=project,
-            provider="github",
+        self._connect_github_repo(
+            project,
             name=f"owner/{project.slug}",
-            integration_id=integration.id,
+            external_id=f"night-shift-{project.id}",
+            permissions=permissions,
         )
-        self.create_seer_project_repository(project=project, repository=repo)
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
 
@@ -416,19 +425,11 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # gates at once, so the resulting log call should list both reasons.
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
-        off_integration = self.create_integration(
-            organization=org,
-            provider="github",
-            external_id=f"night-shift-{off.id}",
-            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
-        )
-        off_repo = self.create_repo(
-            project=off,
-            provider="github",
+        self._connect_github_repo(
+            off,
             name="owner/off-repo",
-            integration_id=off_integration.id,
+            external_id=f"night-shift-{off.id}",
         )
-        self.create_seer_project_repository(project=off, repository=off_repo)
 
         # No connected repo.
         self.create_project(organization=org)
@@ -450,19 +451,11 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         org = self.create_organization()
         a = self._make_eligible(self.create_project(organization=org, slug="a"))
         b = self._make_eligible(self.create_project(organization=org, slug="b"))
-        extra_integration = self.create_integration(
-            organization=org,
-            provider="github",
-            external_id=f"night-shift-{b.id}-extra",
-            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
-        )
-        extra = self.create_repo(
-            project=b,
-            provider="github",
+        self._connect_github_repo(
+            b,
             name="owner/b-extra",
-            integration_id=extra_integration.id,
+            external_id=f"night-shift-{b.id}-extra",
         )
-        self.create_seer_project_repository(project=b, repository=extra)
 
         result = _get_eligible_projects(org, "manual")
 

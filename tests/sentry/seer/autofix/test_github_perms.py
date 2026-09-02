@@ -86,7 +86,7 @@ class GetGithubIntegrationIdsWithPermissionsTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="healthy",
-            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+            metadata={"permissions": GITHUB_PR_WRITE_PERMISSIONS},
         )
         missing = self.create_integration(
             organization=self.organization,
@@ -99,14 +99,14 @@ class GetGithubIntegrationIdsWithPermissionsTest(TestCase):
             provider="github",
             external_id="inactive",
             status=ObjectStatus.DISABLED,
-            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+            metadata={"permissions": GITHUB_PR_WRITE_PERMISSIONS},
         )
         inactive_for_org = self.create_integration(
             organization=self.organization,
             provider="github",
             external_id="inactive-for-org",
             oi_params={"status": ObjectStatus.DISABLED},
-            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+            metadata={"permissions": GITHUB_PR_WRITE_PERMISSIONS},
         )
 
         assert get_github_integration_ids_with_permissions(
