@@ -122,7 +122,6 @@ interface TracesTableProps {
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
-  linkToTraceView?: boolean;
   tableWidths?: number[];
 }
 
