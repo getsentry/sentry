@@ -310,8 +310,8 @@ describe('AuthLogin', () => {
       githubLoginLink: '',
       googleLoginLink: '',
       hasNewsletter: false,
-      loginBanner:
-        'Try agent monitoring. <a href="https://example.com/agents">Learn more</a>.',
+      loginBannerMarkdown:
+        'Try agent monitoring. [Learn more](https://example.com/agents).',
       pendingMfa: null,
       serverHostname: 'sentry.example.com',
       vstsLoginLink: '',

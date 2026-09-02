@@ -14,6 +14,7 @@ import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icon
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
@@ -298,12 +299,9 @@ export default function AuthLogin() {
           </AnimatePresence>
         </LoginContainer>
 
-        {loginConfig?.loginBanner && (
+        {loginConfig?.loginBannerMarkdown && (
           <Alert variant="muted">
-            {/* Login banners are trusted server and plugin configuration, matching the legacy template contract. */}
-            <Text as="div" dangerouslySetInnerHTML={{__html: loginConfig.loginBanner}}>
-              {null}
-            </Text>
+            <MarkedText text={loginConfig.loginBannerMarkdown} inline />
           </Alert>
         )}
       </Stack>
