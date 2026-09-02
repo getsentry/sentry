@@ -39,12 +39,14 @@ export function WelcomeAgentSetup({
     stage => stage.stage === 'connect_mcp'
   )?.status;
   const isAgentConnected = connectionStatus !== null && connectionStatus !== undefined;
+  // Built as separate lines rather than one sentence: the code block renders
+  // with `white-space: pre-wrap`, so the breaks survive into what gets copied.
   const prompt = initialization.data?.onboardingCode
-    ? t(
-        'Help me setup sentry for my organization %s [%s]',
-        organization.slug,
-        initialization.data.onboardingCode
-      )
+    ? [
+        t('Help me setup Sentry'),
+        t('Org ID: %s', organization.slug),
+        `[${initialization.data.onboardingCode}]`,
+      ].join('\n')
     : t('Help me setup Sentry');
 
   return (
