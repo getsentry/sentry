@@ -38,8 +38,9 @@ describe('OrganizationAuth', () => {
       'href',
       '/join-request/acme/'
     );
-    expect(ssoButton.closest('form')).toHaveAttribute('method', 'POST');
-    expect(ssoButton.closest('form')).toHaveFormValues({init: '1'});
+    const ssoForm = ssoButton.closest('form');
+    expect(ssoForm).toHaveAttribute('method', 'POST');
+    expect(ssoForm?.querySelector('input[name="init"]')).toHaveValue('1');
 
     const clearButton = screen.getByRole('button', {
       name: 'Clear organization login context',
