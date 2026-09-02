@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -28,13 +28,10 @@ import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import {
-  buildIntegrationAction,
   providerDetails,
+  useIntegrationActionResolver,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
-  getRequestDataFragment,
-  type RequestDataFragment,
-} from 'sentry/views/projectInstall/issueAlertOptions';
+import {getRequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import type {StepProps} from './types';
 
@@ -93,21 +90,18 @@ export function ScmMessaging({
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
-  const getIntegrationAction = useCallback(
-    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
-      if (!shouldCreateRule || messagingSetup.mode !== 'selected') {
-        return;
-      }
-
-      const channelTargetedBy =
-        providerDetails[messagingSetup.providerKey].channelTargetedBy;
-      return buildIntegrationAction({
-        provider: messagingSetup.providerKey,
-        integrationId: messagingSetup.integrationId,
-        channel: messagingSetup[channelTargetedBy],
-      });
-    },
-    [messagingSetup]
+  // This step stores its selection in messagingSetup rather than in the
+  // notification-picker state the create-project flow uses, so map it onto the
+  // shared resolver directly.
+  const getIntegrationAction = useIntegrationActionResolver(
+    messagingSetup.mode === 'selected'
+      ? {
+          provider: messagingSetup.providerKey,
+          integrationId: messagingSetup.integrationId,
+          channel:
+            messagingSetup[providerDetails[messagingSetup.providerKey].channelTargetedBy],
+        }
+      : undefined
   );
 
   const isSubmitting = isCreating || submissionMode !== undefined;

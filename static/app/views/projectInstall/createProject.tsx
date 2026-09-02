@@ -45,7 +45,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {
   MultipleCheckboxOptions,
-  useCreateNotificationAction,
+  useNotificationAction,
   type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
@@ -167,7 +167,7 @@ export function CreateProject() {
       : undefined;
   }, [autoFill, createdProject?.notificationRule?.actions]);
 
-  const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
+  const {getIntegrationAction, notificationProps} = useNotificationAction(
     notificationActionParam
   );
 

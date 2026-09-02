@@ -13,15 +13,13 @@ import type {Project} from 'sentry/types/project';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {useIntegrationActionResolver} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 const MUTATION_KEY = 'create-project-and-rules';
 
 type Variables = {
   alertRuleConfig: Partial<RequestDataFragment>;
-  getIntegrationAction: ReturnType<
-    typeof useCreateNotificationAction
-  >['getIntegrationAction'];
+  getIntegrationAction: ReturnType<typeof useIntegrationActionResolver>;
   platform: OnboardingSelectedSDK;
   projectName: string;
   team?: string;

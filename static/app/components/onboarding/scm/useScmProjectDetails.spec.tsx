@@ -93,7 +93,7 @@ describe('useScmProjectDetails', () => {
   }
 
   beforeEach(() => {
-    // useCreateNotificationAction queries messaging integrations on mount.
+    // The notification picker queries messaging integrations on mount.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [],

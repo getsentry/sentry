@@ -21,7 +21,7 @@ import {
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
-  useCreateNotificationAction,
+  useNotificationAction,
   useScmNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
@@ -145,7 +145,7 @@ describe('MessagingIntegrationAlertRule', () => {
   });
 });
 
-describe('useCreateNotificationAction', () => {
+describe('useNotificationAction', () => {
   const organization = OrganizationFixture();
 
   const slackIntegration = OrganizationIntegrationsFixture({
@@ -181,7 +181,7 @@ describe('useCreateNotificationAction', () => {
   it('defaults provider and integration from the first result on load', async () => {
     addIntegrationsResponse([slackIntegration]);
 
-    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
+    const {result} = renderHookWithProviders(() => useNotificationAction(), {
       organization,
     });
 
@@ -205,10 +205,9 @@ describe('useCreateNotificationAction', () => {
     // Initial load returns one integration.
     addIntegrationsResponse([slackIntegration]);
 
-    const {result, rerender} = renderHookWithProviders(
-      () => useCreateNotificationAction(),
-      {organization}
-    );
+    const {result, rerender} = renderHookWithProviders(() => useNotificationAction(), {
+      organization,
+    });
 
     await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
 
@@ -237,7 +236,7 @@ describe('useCreateNotificationAction', () => {
     focusManager.setFocused(false);
     addIntegrationsResponse([]);
 
-    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
+    const {result} = renderHookWithProviders(() => useNotificationAction(), {
       organization,
     });
 
@@ -276,7 +275,7 @@ describe('useCreateNotificationAction', () => {
     ];
 
     const {result} = renderHookWithProviders(
-      () => useCreateNotificationAction({actions: defaultActions}),
+      () => useNotificationAction({actions: defaultActions}),
       {organization}
     );
 
@@ -328,7 +327,7 @@ describe('useCreateNotificationAction', () => {
     ];
 
     const {result} = renderHookWithProviders(
-      () => useCreateNotificationAction({actions: defaultActions}),
+      () => useNotificationAction({actions: defaultActions}),
       {organization}
     );
 
@@ -360,7 +359,7 @@ describe('useCreateNotificationAction', () => {
     ];
 
     const {result} = renderHookWithProviders(
-      () => useCreateNotificationAction({actions: defaultActions}),
+      () => useNotificationAction({actions: defaultActions}),
       {organization}
     );
 
@@ -398,7 +397,7 @@ describe('useCreateNotificationAction', () => {
     ];
 
     const {result} = renderHookWithProviders(
-      () => useCreateNotificationAction({actions: defaultActions}),
+      () => useNotificationAction({actions: defaultActions}),
       {organization}
     );
 

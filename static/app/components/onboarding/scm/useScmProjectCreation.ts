@@ -13,12 +13,10 @@ import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {useIntegrationActionResolver} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 
-type GetIntegrationAction = ReturnType<
-  typeof useCreateNotificationAction
->['getIntegrationAction'];
+type GetIntegrationAction = ReturnType<typeof useIntegrationActionResolver>;
 
 export interface ScmProjectCreationResult {
   project: Project;

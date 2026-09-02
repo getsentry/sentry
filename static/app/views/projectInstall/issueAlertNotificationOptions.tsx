@@ -208,6 +208,27 @@ export function buildNotificationSelection({
 }
 
 /**
+ * Returns the integration-action resolver for a messaging selection: a
+ * callback that yields the action to include in the workflow created
+ * alongside the project, and no-ops when rule creation is off or the
+ * selection is incomplete. Callers supply the selection from wherever their
+ * flow stores it (picker state, the SCM wizard's session state, etc).
+ */
+export function useIntegrationActionResolver(
+  selection: Partial<NotificationSelection> | undefined
+) {
+  return useCallback(
+    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
+      if (!shouldCreateRule) {
+        return;
+      }
+      return buildIntegrationAction(selection ?? {});
+    },
+    [selection]
+  );
+}
+
+/**
  * Result of resolving the initial notification-picker selection, computed
  * from whatever restore source a caller-specific hook uses (a persisted
  * rule action, a raw stored selection, etc).
@@ -323,28 +344,16 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
     setShouldRenderSetupButton(false);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, resolveRestore]);
 
-  const getIntegrationAction = useCallback(
-    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
-      const isCreatingIntegrationNotification = actions.find(
-        action => action === MultipleCheckboxOptions.INTEGRATION
-      );
-      if (!shouldCreateRule || !isCreatingIntegrationNotification) {
-        return;
-      }
-
-      const integrationAction = buildIntegrationAction({
-        provider,
-        integrationId: integration?.id,
-        channel: channel?.value,
-      });
-      if (!integrationAction) {
-        return;
-      }
-
-      return integrationAction;
-    },
+  // Memoized so the resolver (and anything depending on it) only changes
+  // when the picker selection actually changes.
+  const selection = useMemo(
+    () =>
+      actions.includes(MultipleCheckboxOptions.INTEGRATION)
+        ? buildNotificationSelection({provider, integration, channel})
+        : undefined,
     [actions, provider, integration, channel]
   );
+  const getIntegrationAction = useIntegrationActionResolver(selection);
 
   return {
     getIntegrationAction,
@@ -379,12 +388,12 @@ function getIntegrationId(action: IssueAlertRuleAction): string | undefined {
 }
 
 /**
- * Classic notification-picker adapter: restores the selection by decoding a
+ * Default notification-picker adapter: restores the selection by decoding a
  * persisted `IssueAlertRuleAction` (e.g. from a previously created rule, in
  * the API's flattened action shape). Used by the standalone Create Project
  * page, whose only restore source is a real created rule.
  */
-export function useCreateNotificationAction({
+export function useNotificationAction({
   actions: defaultActions,
 }: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
   const resolveRestore = useCallback<RestoreResolver>(
@@ -461,7 +470,7 @@ export function useScmNotificationAction({
 
       // Named integration not (yet) in the query response: show the setup CTA
       // and don't latch, so this re-resolves after a refetch delivers it
-      // (mirrors the classic decode resolver's guard).
+      // (mirrors the decode resolver's guard in `useNotificationAction`).
       if (!matchedIntegration) {
         return {kind: 'wait'};
       }
