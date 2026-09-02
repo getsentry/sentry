@@ -894,18 +894,7 @@ def create_console_platform_audit_log(
 
 @extend_schema_serializer(
     exclude_fields=[
-        "accountRateLimit",
-        "projectRateLimit",
         "apdexThreshold",
-        "genAIConsent",
-        "defaultAutofixAutomationTuning",
-        "defaultSeerScannerAutomation",
-        "autoOpenPrs",
-        "autoEnableCodeReview",
-        "defaultCodeReviewTriggers",
-        "ingestThroughTrustedRelaysOnly",
-        "enabledConsolePlatforms",
-        "consoleSdkInviteQuota",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):

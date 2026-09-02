@@ -584,7 +584,7 @@ class ContextsValidator(serializers.Serializer):
     trace = TraceContextValidator(required=False)
 
 
-@extend_schema_serializer(exclude_fields=["monitor_config", "contexts"])
+@extend_schema_serializer(exclude_fields=["contexts"])
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
