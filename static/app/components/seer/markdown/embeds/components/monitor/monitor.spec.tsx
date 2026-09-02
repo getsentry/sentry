@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {
   CronDetectorFixture,
   ErrorDetectorFixture,
@@ -101,5 +102,35 @@ describe('Seer monitor embed', () => {
 
     expect(await screen.findByText('Project')).toBeInTheDocument();
     expect(screen.queryByText('Rules')).not.toBeInTheDocument();
+  });
+
+  it('reports and shows an error for an unrecognized detector type', async () => {
+    const captureException = jest.spyOn(Sentry, 'captureException');
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const detector = {
+      ...ErrorDetectorFixture({id: '8', latestGroup: null}),
+      type: 'made_up_type',
+    } as unknown as Detector;
+
+    renderMonitor(detector);
+
+    expect(await screen.findByText('Unsupported monitor type.')).toBeInTheDocument();
+
+    if (process.env.NODE_ENV === 'development') {
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('[Monitor] unknown detector type: made_up_type')
+      );
+      expect(captureException).not.toHaveBeenCalled();
+    } else {
+      expect(captureException).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: '[Monitor] unknown detector type: made_up_type',
+        })
+      );
+    }
+
+    captureException.mockRestore();
+    warn.mockRestore();
   });
 });

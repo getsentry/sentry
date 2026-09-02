@@ -1,4 +1,5 @@
 import type {ComponentType} from 'react';
+import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -51,6 +52,33 @@ function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) 
 }
 
 /**
+ * `unreachable` only guards this at compile time -- if the API ever returns a
+ * detector type this union doesn't know about yet, the switch below would
+ * otherwise fail silently. Report it once per type per page load.
+ */
+const reportedUnknownMonitorTypes = new Set<string>();
+
+function reportUnknownMonitorType(type: string) {
+  if (process.env.NODE_ENV === 'development') {
+    // eslint-disable-next-line no-console
+    console.warn(`[Monitor] unknown detector type: ${type}`);
+    return;
+  }
+
+  if (reportedUnknownMonitorTypes.has(type)) {
+    return;
+  }
+  reportedUnknownMonitorTypes.add(type);
+
+  Sentry.withScope(scope => {
+    scope.setLevel('warning');
+    scope.setTag('monitor.detector_type', type);
+    scope.setFingerprint(['seer-monitor-unknown-detector-type', type]);
+    Sentry.captureException(new Error(`[Monitor] unknown detector type: ${type}`));
+  });
+}
+
+/**
  * Dispatches to the one component that knows how to preview this monitor type.
  * Adding a monitor type is a new file under `monitorTypes/`, plus a case here
  * and an icon above -- keep the type-specific rendering out of this file.
@@ -76,9 +104,11 @@ function MonitorBlockContent({
     case 'issue_stream':
       // Project monitors have no per-detector config to preview.
       return null;
-    default:
-      unreachable(detector);
-      return null;
+    default: {
+      const unhandled = unreachable(detector);
+      reportUnknownMonitorType((unhandled as Detector).type);
+      return <Text variant="danger">{t('Unsupported monitor type.')}</Text>;
+    }
   }
 }
 
@@ -93,7 +123,7 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
     ...monitorDetailsApiOptions(organization.slug, id),
     retry: false,
   });
-  const icon = detector ? MONITOR_TYPE_ICONS[detector.type] : IconTimer;
+  const icon = detector ? (MONITOR_TYPE_ICONS[detector.type] ?? IconTimer) : IconTimer;
 
   return (
     <Container background="primary" border="primary" radius="md" padding="md">
@@ -113,7 +143,7 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
         {isPending ? (
           <LoadingIndicator />
         ) : isError || !detector ? (
-          <Text variant="muted">{t('Unable to load monitor details.')}</Text>
+          <Text variant="danger">{t('Unable to load monitor details.')}</Text>
         ) : (
           <MonitorBlockContent detector={detector} organization={organization} />
         )}
