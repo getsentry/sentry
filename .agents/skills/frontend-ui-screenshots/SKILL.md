@@ -19,7 +19,7 @@ Infer these unless the user overrides them:
 
 ## Safety and invariants
 
-- Product UI must use only the synthetic `demo` organization through `demo.dev.getsentry.net`. Stop if navigation leaves that hostname or resolves to another organization.
+- Product UI must use only the synthetic `demo` organization through `demo.dev.getsentry.net`. Validate the location after every interaction and immediately before capture; stop if navigation leaves that hostname.
 - Scraps may use `sentry.dev.getsentry.net` because it renders local fixtures.
 - Never publish screenshots automatically. Leave them in `.artifacts/ui-capture/` unless the user separately authorizes posting them.
 - Use the dedicated Chrome profile in [references/chrome-setup.md](references/chrome-setup.md); CDP must bind to localhost.
