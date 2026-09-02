@@ -1137,6 +1137,39 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_search_issue_assignees_missing_repository(self, get_jwt) -> None:
+        self.add_graphql_response({"data": {"repository": None}})
+
+        with pytest.raises(ApiError, match="Invalid GitHub GraphQL response"):
+            self.github_client.search_issue_assignees(self.repo.name, "user")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_labels_query_error(self, get_jwt) -> None:
+        self.add_graphql_response(
+            {
+                "errors": [
+                    {
+                        "type": "NOT_FOUND",
+                        "message": "Could not resolve to a Repository with the requested name.",
+                    }
+                ]
+            }
+        )
+
+        with pytest.raises(ApiError, match="Could not resolve to a Repository"):
+            self.github_client.search_issue_labels(self.repo.name, "bug")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_field_rate_limited(self, get_jwt) -> None:
+        self.add_graphql_response({"errors": [{"type": "RATE_LIMITED"}]})
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.search_issue_assignees(self.repo.name, "user")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_pull_request_status(self, get_jwt) -> None:
         self.add_graphql_response(
             {

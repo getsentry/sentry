@@ -71,12 +71,8 @@ export function BillingDetailsPanel({
   }
 
   const taxFieldInfo = getTaxFieldInfo(billingDetails?.countryCode);
-  const balance =
-    subscription.accountBalance < 0
-      ? tct('[credits] credit', {
-          credits: formatCurrency(0 - subscription.accountBalance),
-        })
-      : formatCurrency(subscription.accountBalance);
+  const {accountBalance} = subscription;
+  const isCredit = accountBalance < 0;
 
   return (
     <Flex
@@ -95,11 +91,13 @@ export function BillingDetailsPanel({
           {t('Business address')}
         </Heading>
         {formError && <Alert variant="danger">{formError}</Alert>}
-        {!isEditing && !!subscription.accountBalance && (
+        {!isEditing && !!accountBalance && (
           <Text>
-            {tct('Account balance: [balance]', {
-              balance,
-            })}
+            {isCredit
+              ? tct('Account credits: [amount]', {
+                  amount: formatCurrency(0 - accountBalance),
+                })
+              : tct('Balance due: [amount]', {amount: formatCurrency(accountBalance)})}
           </Text>
         )}
         {isEditing ? (

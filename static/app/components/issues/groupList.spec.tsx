@@ -10,7 +10,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 
-import {GroupList, RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from './groupList';
+import {GroupList} from './groupList';
 
 describe('GroupList', () => {
   const organization = OrganizationFixture();
@@ -80,8 +80,7 @@ describe('GroupList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders custom error when query has boolean logic', async () => {
-    const renderErrorMessage = jest.fn(() => <div>custom error</div>);
+  it('renders error when query has boolean logic', async () => {
     const issuesRequest = MockApiClient.addMockResponse({
       url: issuesUrl,
       method: 'GET',
@@ -92,7 +91,6 @@ describe('GroupList', () => {
       <GroupList
         numPlaceholderRows={1}
         queryParams={{...defaultQueryParams, query: 'foo OR bar'}}
-        renderErrorMessage={renderErrorMessage}
       />,
       {
         organization,
@@ -106,11 +104,7 @@ describe('GroupList', () => {
       }
     );
 
-    expect(await screen.findByText('custom error')).toBeInTheDocument();
-    expect(renderErrorMessage).toHaveBeenCalledWith(
-      {detail: RELATED_ISSUES_BOOLEAN_QUERY_ERROR},
-      expect.any(Function)
-    );
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
     expect(issuesRequest).not.toHaveBeenCalled();
   });
 

@@ -135,7 +135,7 @@ describe('DemoTours', () => {
       const tour = result.current;
 
       act(() => {
-        tour?.startTour(DemoTourStep.RELEASES_LIST);
+        tour?.startTour();
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
@@ -178,14 +178,14 @@ describe('DemoTours', () => {
       const issuesTour = issuesResult.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
+        sidebarTour?.startTour();
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
       expect(mockState[DemoTour.ISSUES].currentStepId).toBeNull();
 
       act(() => {
-        issuesTour?.startTour(DemoTourStep.ISSUES_STREAM);
+        issuesTour?.startTour();
       });
 
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
@@ -220,7 +220,7 @@ describe('DemoTours', () => {
       const sidebarTour = result.current;
 
       act(() => {
-        sidebarTour?.startTour(DemoTourStep.RELEASES_LIST);
+        sidebarTour?.startTour();
       });
       expect(mockState[DemoTour.RELEASES].currentStepId).toBe(DemoTourStep.RELEASES_LIST);
 
