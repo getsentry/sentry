@@ -1,15 +1,18 @@
-import {SpansQueryBlock} from 'sentry/components/seer/markdown/embeds/components/spansQueryBlock';
+import {lazy} from 'react';
+
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 
 import {SpansQueryLink} from './spansQueryLink';
 
+const LazySpansQueryBlock = lazy(() => import('./spansQueryBlock'));
+
 export const SpansQuery = defineSeerEmbed({
   name: 'spansQuery',
   render(props, level) {
-    return level === 'block' ? (
-      <SpansQueryBlock data={props} />
-    ) : (
-      <SpansQueryLink data={props} />
-    );
+    if (level === 'block') {
+      return <LazyLoad LazyComponent={LazySpansQueryBlock} data={props} />;
+    }
+    return <SpansQueryLink data={props} />;
   },
 });
