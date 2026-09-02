@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from enum import StrEnum
 
 from django.db import models
@@ -18,22 +17,11 @@ class CustomInboundFilterConditionType(StrEnum):
 
 
 class CustomInboundFilterDataType(StrEnum):
+    ALL = "all"
     ERROR = "error"
     LOG = "log"
     METRIC = "metric"
-
-
-# The data type each condition reads a field of. A filter targets a single data type,
-# so its conditions must all map to the same one. `release` is absent because every
-# data type carries a release, so it does not tie a filter to one data type.
-DATA_TYPE_BY_CONDITION_TYPE: Mapping[
-    CustomInboundFilterConditionType, CustomInboundFilterDataType
-] = {
-    CustomInboundFilterConditionType.ERROR_TYPE: CustomInboundFilterDataType.ERROR,
-    CustomInboundFilterConditionType.ERROR_MESSAGE: CustomInboundFilterDataType.ERROR,
-    CustomInboundFilterConditionType.LOG_MESSAGE: CustomInboundFilterDataType.LOG,
-    CustomInboundFilterConditionType.METRIC_NAME: CustomInboundFilterDataType.METRIC,
-}
+    SPAN = "span"
 
 
 @cell_silo_model

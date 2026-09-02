@@ -68,7 +68,10 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import (
+    CustomInboundFilter,
+    CustomInboundFilterDataType,
+)
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -508,7 +511,8 @@ class ExhaustiveFixtures(Fixtures):
         CustomInboundFilter.objects.create(
             project=project,
             name=f"custom-inbound-filter-{slug}",
-            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+            data_type=CustomInboundFilterDataType.ALL,
+            conditions=[{"type": "release", "value": ["1.0.0"]}],
         )
 
         # Auth*
