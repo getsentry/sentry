@@ -8,7 +8,7 @@ import sys
 import typing
 from collections.abc import Generator, Mapping, Sequence, Sized
 from types import FrameType
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import sentry_sdk
 from django.conf import settings
@@ -324,7 +324,13 @@ def patch_transport_for_instrumentation(transport, transport_name):
     return transport
 
 
-def _get_sdk_options() -> tuple[SdkConfig, str | None]:
+class Dsns(NamedTuple):
+    sentry4sentry: str | None
+    sentry_saas: str | None
+    sentry_mirror: str | None
+
+
+def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
     sdk_options["max_value_length"] = 100_000
@@ -340,14 +346,21 @@ def _get_sdk_options() -> tuple[SdkConfig, str | None]:
         transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
 
-    return sdk_options, sdk_options.pop("sentry_mirror_dsn", None)
+    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
+    dsns = Dsns(
+        sentry4sentry=sdk_options.pop("dsn", None),
+        sentry_saas=sdk_options.pop("relay_dsn", None),
+        sentry_mirror=sdk_options.pop("sentry_mirror_dsn", None),
+    )
+
+    return sdk_options, dsns
 
 
 def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    sdk_options, dsn = _get_sdk_options()
+    sdk_options, dsns = _get_sdk_options()
     if settings.SPOTLIGHT:
         sdk_options["spotlight"] = (
             settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
@@ -393,6 +406,8 @@ def configure_sdk():
         disabled_integrations.append(ThreadingIntegration())
 
     sdk_options["trace_lifecycle"] = "stream"
+
+    dsn = dsns.sentry_mirror if dsns.sentry_mirror else dsns.sentry4sentry
 
     sentry_sdk.init(
         dsn=dsn,
