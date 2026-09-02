@@ -3,7 +3,7 @@ from typing import Any
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Exists, F, OuterRef, Q
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,15 +50,14 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 
-@extend_schema_serializer(
-    deprecate_fields=["role", "teams"], exclude_fields=["regenerate", "role", "teams"]
-)
 class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]):
     email = AllowedEmailField(
         max_length=75, required=True, help_text="The email address to send the invitation to."
     )
     role = serializers.ChoiceField(
-        choices=roles.get_choices(), default=organization_roles.get_default().id
+        choices=roles.get_choices(),
+        default=organization_roles.get_default().id,
+        help_text="Deprecated, use `orgRole`. The organization-level role to assign.",
     )  # deprecated, use orgRole
     orgRole = serializers.ChoiceField(
         choices=ROLE_CHOICES,
@@ -67,7 +66,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
-        required=False, allow_null=False, default=list
+        required=False,
+        allow_null=False,
+        default=list,
+        help_text="Deprecated, use `teamRoles`. Slugs of teams to add the member to.",
     )  # deprecated, use teamRoles
     teamRoles = serializers.ListField(
         required=False,
@@ -88,7 +90,10 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         required=False,
         help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
     )
-    regenerate = serializers.BooleanField(required=False)
+    regenerate = serializers.BooleanField(
+        required=False,
+        help_text="Reissue the invite token, invalidating any previously sent invite link.",
+    )
 
     def validate_email(self, email: str) -> str:
         users = user_service.get_many_by_email(

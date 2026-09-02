@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
@@ -55,9 +55,10 @@ class OrganizationMemberTeamSerializerResponse(TypedDict):
     teamRole: Literal["contributor", "admin"]
 
 
-@extend_schema_serializer(exclude_fields=["isActive"])
 class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
-    isActive = serializers.BooleanField()
+    isActive = serializers.BooleanField(
+        help_text="Whether the member's team membership is active rather than pending approval.",
+    )
     teamRole = serializers.ChoiceField(
         choices=team_roles.get_descriptions(),
         default=team_roles.get_default().id,
