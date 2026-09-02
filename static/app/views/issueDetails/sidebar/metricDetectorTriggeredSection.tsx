@@ -19,7 +19,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
@@ -462,7 +462,7 @@ function TriggeredConditionDetails({
           </Flex>
         }
       >
-        <KeyValueList
+        <KeyValueTableDataList
           shouldSort={false}
           data={[
             {

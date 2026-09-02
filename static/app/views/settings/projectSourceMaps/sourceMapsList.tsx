@@ -20,7 +20,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -473,7 +473,7 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const StyledKeyValueList = styled(KeyValueList)`
+const StyledKeyValueList = styled(KeyValueTableDataList)`
   && {
     margin-bottom: 0;
   }

@@ -9,7 +9,7 @@ import {
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 
 type SpanEvidencePreviewProps = {
@@ -62,7 +62,7 @@ function SpanEvidencePreviewBody({
   if (evidenceDisplay?.length) {
     return (
       <Container padding="lg lg 0 lg" width="700px" data-test-id="evidence-preview-body">
-        <KeyValueList
+        <KeyValueTableDataList
           data={evidenceDisplay.map(item => ({
             key: item.name,
             subject: item.name,

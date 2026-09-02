@@ -1,5 +1,5 @@
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import type {KeyValueListData} from 'sentry/types/group';
 
 type Props = {
@@ -14,7 +14,7 @@ export function ContextBlock({data, raw = false}: Props) {
 
   return (
     <ErrorBoundary mini>
-      <KeyValueList data={data} raw={raw} isContextData />
+      <KeyValueTableDataList data={data} raw={raw} isContextData />
     </ErrorBoundary>
   );
 }

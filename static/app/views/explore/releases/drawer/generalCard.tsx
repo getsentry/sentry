@@ -6,7 +6,7 @@ import {Count} from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
-import {Card} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import type {ReleaseMeta} from 'sentry/types/release';
@@ -134,7 +134,7 @@ export function GeneralCard({
     },
   ];
 
-  return <Card title={t('General')} contentItems={generalContentItems} />;
+  return <KeyValueTableCard title={t('General')} contentItems={generalContentItems} />;
 }
 
 const TinyPlaceholder = styled(Placeholder)`

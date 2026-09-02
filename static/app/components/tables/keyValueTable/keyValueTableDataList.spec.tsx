@@ -1,15 +1,15 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 
-describe('KeyValueList', () => {
+describe('KeyValueTableDataList', () => {
   it('should render a definition list of key/value pairs', () => {
     const data = [
       {key: 'a', value: 'x', subject: 'a'},
       {key: 'b', value: 'y', subject: 'b'},
     ];
 
-    render(<KeyValueList data={data} />);
+    render(<KeyValueTableDataList data={data} />);
 
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(2);
@@ -29,7 +29,7 @@ describe('KeyValueList', () => {
       {key: 'a', value: 'x', subject: 'a'},
     ];
 
-    render(<KeyValueList data={data} />);
+    render(<KeyValueTableDataList data={data} />);
 
     const rows = screen.getAllByRole('row');
 
@@ -48,7 +48,7 @@ describe('KeyValueList', () => {
       {key: 'a', value: '', subject: 'a'}, // empty string
     ];
 
-    render(<KeyValueList data={data} />);
+    render(<KeyValueTableDataList data={data} />);
 
     const rows = screen.getAllByRole('row');
 
@@ -67,7 +67,7 @@ describe('KeyValueList', () => {
       {key: 'a', value: [3, 2, 1], subject: 'a'},
     ];
 
-    render(<KeyValueList isContextData data={data} />);
+    render(<KeyValueTableDataList isContextData data={data} />);
 
     const rows = screen.getAllByRole('row');
 
@@ -82,7 +82,7 @@ describe('KeyValueList', () => {
   it('should coerce non-strings into strings', () => {
     const data = [{key: 'a', value: false, subject: 'a'}];
 
-    render(<KeyValueList data={data} />);
+    render(<KeyValueTableDataList data={data} />);
 
     const cells = screen.getAllByRole('cell');
     expect(cells[0]).toHaveTextContent('a');
@@ -92,7 +92,7 @@ describe('KeyValueList', () => {
   it("shouldn't blow up on null", () => {
     const data = [{key: 'a', value: null, subject: 'a'}];
 
-    render(<KeyValueList data={data} />);
+    render(<KeyValueTableDataList data={data} />);
 
     const cells = screen.getAllByRole('cell');
     expect(cells[0]).toHaveTextContent('a');

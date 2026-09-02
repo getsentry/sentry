@@ -4,8 +4,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
+  KeyValueTableCard,
+  type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -54,7 +54,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
     return <ExternalLink href={url}>{value}</ExternalLink>;
   };
 
-  const vcsInfoContentItems: KeyValueDataContentProps[] = [
+  const vcsInfoContentItems: KeyValueTableDataRowProps[] = [
     {
       item: {
         key: 'SHA',
@@ -159,7 +159,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
   }
 
   return hasVcsInfo ? (
-    <KeyValueData.Card title="Build Metadata" contentItems={vcsInfoContentItems} />
+    <KeyValueTableCard title="Build Metadata" contentItems={vcsInfoContentItems} />
   ) : (
     <Container
       border="primary"

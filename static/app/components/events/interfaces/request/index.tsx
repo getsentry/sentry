@@ -14,9 +14,11 @@ import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/ut
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-  KeyValueList,
+  KeyValueTableCard,
+  KeyValueTableCardPanel,
+  KeyValueTableCardTitle,
+  KeyValueTableDataList,
+  type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
@@ -77,7 +79,7 @@ function getBodyContent({
       }
 
       return (
-        <KeyValueList
+        <KeyValueTableDataList
           data-test-id="rich-http-content-body-key-value-list"
           data={transformedData}
           isContextData
@@ -102,7 +104,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
       <RequestCardPanel>
-        <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+        <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
       </RequestCardPanel>
     );
@@ -115,7 +117,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
   });
   return (
     <RequestCardPanel>
-      <KeyValueData.Title>{t('Body')}</KeyValueData.Title>
+      <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
       {contentBody}
     </RequestCardPanel>
   );
@@ -251,7 +253,7 @@ function RequestDataCard({
     return null;
   }
 
-  const contentItems: KeyValueDataContentProps[] = [];
+  const contentItems: KeyValueTableDataRowProps[] = [];
 
   if (Array.isArray(data) && data.length > 0) {
     data
@@ -276,7 +278,7 @@ function RequestDataCard({
       mini
       message={tct('There was an error loading data: [title]', {title})}
     >
-      <KeyValueData.Card title={title} contentItems={contentItems} truncateLength={5} />
+      <KeyValueTableCard title={title} contentItems={contentItems} truncateLength={5} />
     </ErrorBoundary>
   );
 }
@@ -307,7 +309,7 @@ function TruncatedPathLink(props: TruncatedPathLinkProps) {
   );
 }
 
-const RequestCardPanel = styled(KeyValueData.CardPanel)`
+const RequestCardPanel = styled(KeyValueTableCardPanel)`
   display: block;
   pre {
     margin: 0;

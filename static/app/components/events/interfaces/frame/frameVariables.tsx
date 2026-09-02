@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import type {StructedEventDataConfig} from 'sentry/components/structuredEventData';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
@@ -106,5 +106,5 @@ export function FrameVariables({data, meta, platform}: Props) {
       }));
   }, [data, meta, platform]);
 
-  return <KeyValueList data={transformedData} />;
+  return <KeyValueTableDataList data={transformedData} />;
 }

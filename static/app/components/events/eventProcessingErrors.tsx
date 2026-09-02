@@ -8,7 +8,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {KeyValueData} from 'sentry/components/tables/keyValueTable';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -68,7 +71,7 @@ function EventErrorCard({
     <div>{title}</div>
   );
 
-  return <KeyValueData.Card contentItems={contentItems} title={titleElement} />;
+  return <KeyValueTableCard contentItems={contentItems} title={titleElement} />;
 }
 
 function EventErrorDescription({error}: {error: ErrorMessage}) {
@@ -128,11 +131,11 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
       sectionKey={SectionKey.PROCESSING_ERROR}
       title={t('Event Processing Errors')}
     >
-      <KeyValueData.Container>
+      <KeyValueTableCardGrid>
         {errors.map((error, idx) => {
           return <EventErrorDescription key={idx} error={error} />;
         })}
-      </KeyValueData.Container>
+      </KeyValueTableCardGrid>
     </FoldSection>
   );
 }

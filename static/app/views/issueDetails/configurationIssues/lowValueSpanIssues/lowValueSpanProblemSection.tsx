@@ -4,7 +4,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {KeyValueData} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -62,7 +62,7 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
         )}
       </Alert>
       <Grid columns="fit-content(50%) 1fr" border="primary" radius="md" padding="sm">
-        <KeyValueData.Content
+        <KeyValueTableDataRow
           disableFormattedData
           item={{
             action: affectedSpanExploreUrl ? {link: affectedSpanExploreUrl} : undefined,
@@ -71,7 +71,7 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
             value: getSpanLabel(evidenceData),
           }}
         />
-        <KeyValueData.Content
+        <KeyValueTableDataRow
           disableFormattedData
           item={{
             key: 'span-count',
@@ -96,7 +96,7 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
         {canViewEstimatedCost && extrapolatedCount !== null && (
           <LowValueSpanEstimatedCost extrapolatedSpanCount={extrapolatedCount} />
         )}
-        <KeyValueData.Content
+        <KeyValueTableDataRow
           disableFormattedData
           item={{
             key: 'average-duration',

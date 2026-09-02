@@ -1,6 +1,6 @@
 import {LinkButton} from '@sentry/scraps/button';
 
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -80,7 +80,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
 
   return (
     <FoldSection title={t('Function Evidence')} sectionKey={SectionKey.EVIDENCE}>
-      <KeyValueList data={keyValueListData} shouldSort={false} />
+      <KeyValueTableDataList data={keyValueListData} shouldSort={false} />
     </FoldSection>
   );
 }

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {defined} from 'sentry/utils/defined';
 
 import type {ViewHierarchyWindow} from '.';
@@ -21,7 +21,7 @@ function DetailsPanel({data, getTitle}: DetailsPanelProps) {
   return (
     <Container>
       {defined(getTitle) && <Title>{getTitle(data)}</Title>}
-      <KeyValueList data={keyValueData} />
+      <KeyValueTableDataList data={keyValueData} />
     </Container>
   );
 }

@@ -17,7 +17,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
-import {KeyValueData} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -188,7 +188,7 @@ function ReplayQueryPreview({
       <Title project={project}>
         {t('Replays matching the following query will be deleted')}
       </Title>
-      <KeyValueData.Card contentItems={contentItems} />
+      <KeyValueTableCard contentItems={contentItems} />
       <Text size="sm" variant="muted">
         All dates and times are in UTC.
       </Text>

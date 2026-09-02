@@ -1,5 +1,5 @@
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -51,7 +51,7 @@ export function EventEvidence({
       title={config.title}
       disableCollapsePersistence={disableCollapsePersistence}
     >
-      <KeyValueList
+      <KeyValueTableDataList
         data={evidenceDisplay.map(item => ({
           subject: item.name,
           key: item.name,

@@ -7,7 +7,7 @@ import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 
 import {KeyValueTableContextProvider} from './context';
-import {Content} from './keyValueDataContent';
+import {KeyValueTableDataRow} from './keyValueTableDataRow';
 
 interface KeyValueTableDataListProps {
   className?: string;
@@ -23,7 +23,7 @@ interface KeyValueTableDataListProps {
   shouldSort?: boolean;
 }
 
-export function KeyValueList({
+export function KeyValueTableDataList({
   data,
   isContextData = false,
   shouldSort = true,
@@ -47,7 +47,11 @@ export function KeyValueList({
       <tbody>
         <KeyValueTableContextProvider value={context}>
           {rows.map((item, index) => (
-            <Content key={`${item.key}-${index}`} item={item} meta={item.meta} />
+            <KeyValueTableDataRow
+              key={`${item.key}-${index}`}
+              item={item}
+              meta={item.meta}
+            />
           ))}
         </KeyValueTableContextProvider>
       </tbody>

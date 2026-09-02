@@ -7,13 +7,16 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
-import {Content, type KeyValueDataContentProps} from './keyValueDataContent';
+import {
+  KeyValueTableDataRow,
+  type KeyValueTableDataRowProps,
+} from './keyValueTableDataRow';
 
-interface KeyValueDataCardProps {
+interface KeyValueTableCardProps {
   /**
    * Rows to be rendered in this card.
    */
-  contentItems: KeyValueDataContentProps[];
+  contentItems: KeyValueTableDataRowProps[];
   /**
    * If true, expands the left side of the cards to take up more space.
    */
@@ -27,18 +30,18 @@ interface KeyValueDataCardProps {
    */
   title?: React.ReactNode;
   /**
-   * Content item length which, when exceeded, displays a 'Show more' option
+   * Row count which, when exceeded, displays a 'Show more' option
    */
   truncateLength?: number;
 }
 
-export function Card({
+export function KeyValueTableCard({
   contentItems,
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
   expandLeft = false,
-}: KeyValueDataCardProps) {
+}: KeyValueTableCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
   if (contentItems.length === 0) {
@@ -54,26 +57,30 @@ export function Card({
     : truncatedItems;
 
   return (
-    <CardPanel>
-      {title && <Title>{title}</Title>}
+    <KeyValueTableCardPanel>
+      {title && <KeyValueTableCardTitle>{title}</KeyValueTableCardTitle>}
       {orderedItems.map((itemProps, index) => (
-        <Content expandLeft={expandLeft} key={String(index)} {...itemProps} />
+        <KeyValueTableDataRow
+          expandLeft={expandLeft}
+          key={String(index)}
+          {...itemProps}
+        />
       ))}
       {contentItems.length > truncateLength && (
         <TruncateWrapper onClick={() => setIsTruncated(!isTruncated)}>
           {isTruncated ? t('Show more...') : t('Show less')}
         </TruncateWrapper>
       )}
-    </CardPanel>
+    </KeyValueTableCardPanel>
   );
 }
 
 /**
  * Conditionally rendered children must return `null` from a wrapping component
- * rather than being rendered as `{condition ? <Card/> : null}`, so they are
+ * rather than being rendered as `{condition ? <KeyValueTableCard/> : null}`, so they are
  * not counted when sizing the columns.
  */
-export function Container({children}: {children: React.ReactNode}) {
+export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
 
@@ -98,7 +105,7 @@ export function Container({children}: {children: React.ReactNode}) {
   );
 }
 
-export const CardPanel = styled(Panel)`
+export const KeyValueTableCardPanel = styled(Panel)`
   padding: ${p => p.theme.space.sm};
   display: grid;
   column-gap: ${p => p.theme.space.lg};
@@ -106,7 +113,7 @@ export const CardPanel = styled(Panel)`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-export const Title = styled('div')`
+export const KeyValueTableCardTitle = styled('div')`
   grid-column: span 2;
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};

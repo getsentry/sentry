@@ -10,7 +10,7 @@ import {defined} from 'sentry/utils/defined';
 import {useKeyValueTableContext} from './context';
 import {PreformattedValue, Value, ValueLink} from './value';
 
-export interface KeyValueDataContentProps {
+export interface KeyValueTableDataRowProps {
   /**
    * Specifies the item to display.
    * - If set, item.subjectNode will override displaying item.subject.
@@ -28,7 +28,7 @@ export interface KeyValueDataContentProps {
    */
   disableLink?: boolean;
   /**
-   * Errors pertaining to content item
+   * Errors pertaining to the item
    */
   errors?: MetaError[];
   /**
@@ -41,12 +41,12 @@ export interface KeyValueDataContentProps {
    */
   isSuspectFlag?: boolean;
   /**
-   * Metadata pertaining to content item
+   * Metadata pertaining to the item
    */
   meta?: Record<string, any>;
 }
 
-export function Content({
+export function KeyValueTableDataRow({
   item,
   meta,
   errors = [],
@@ -55,7 +55,7 @@ export function Content({
   isSuspectFlag = false,
   expandLeft,
   ...props
-}: KeyValueDataContentProps) {
+}: KeyValueTableDataRowProps) {
   const context = useKeyValueTableContext();
   const {
     subject,
@@ -132,8 +132,15 @@ export function Content({
       isSuspectFlag={isSuspectFlag}
       {...props}
     >
-      {subjectNode === undefined ? <Subject>{subject}</Subject> : subjectNode}
-      <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
+      {subjectNode === undefined ? (
+        <KeyValueTableSubject>{subject}</KeyValueTableSubject>
+      ) : (
+        subjectNode
+      )}
+      <KeyValueTableValueSection
+        hasErrors={hasErrors}
+        hasEmptySubject={subjectNode === null}
+      >
         <ValueWrapper hasSuffix={hasSuffix}>{value}</ValueWrapper>
         {hasSuffix && (
           <div>
@@ -145,7 +152,7 @@ export function Content({
             )}
           </div>
         )}
-      </ValueSection>
+      </KeyValueTableValueSection>
     </RowWrapper>
   );
 }
@@ -204,14 +211,14 @@ const RowWrapper = styled('div')<{
   }
 `;
 
-export const Subject = styled('div')`
+export const KeyValueTableSubject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.font.family.mono};
   word-break: break-word;
   min-width: 100px;
 `;
 
-export const ValueSection = styled('div')<{
+export const KeyValueTableValueSection = styled('div')<{
   hasEmptySubject: boolean;
   hasErrors: boolean;
 }>`

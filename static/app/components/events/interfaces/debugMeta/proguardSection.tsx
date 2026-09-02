@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EntryDebugMeta} from 'sentry/types/event';
@@ -33,7 +33,7 @@ export function ProguardSection({data, projectSlug}: ProguardSectionProps) {
       sectionKey={SectionKey.PROGUARD}
       initialCollapse
     >
-      <KeyValueList
+      <KeyValueTableDataList
         data={[
           {
             key: 'uuid',

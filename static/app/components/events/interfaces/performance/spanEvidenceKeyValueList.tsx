@@ -30,7 +30,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
@@ -561,7 +561,7 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueList
+    <KeyValueTableDataList
       shouldSort={false}
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
@@ -653,7 +653,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueList shouldSort={false} data={data} />;
+  return <KeyValueTableDataList shouldSort={false} data={data} />;
 }
 
 const makeTransactionNameRow = (

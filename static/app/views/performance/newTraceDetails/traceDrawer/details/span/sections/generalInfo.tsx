@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {Content} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -231,7 +231,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
     >
       <ContentWrapper>
         {items.map(item => (
-          <Content key={item.key} item={item} />
+          <KeyValueTableDataRow key={item.key} item={item} />
         ))}
       </ContentWrapper>
     </FoldSection>

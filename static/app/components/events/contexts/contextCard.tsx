@@ -13,8 +13,9 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
+  KeyValueTableCard,
+  KeyValueTableDataRow,
+  type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListDataItem} from 'sentry/types/group';
@@ -65,7 +66,7 @@ export function ContextCardContent({
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
 
   return (
-    <KeyValueData.Content
+    <KeyValueTableDataRow
       item={{...item, subject: contextSubject}}
       meta={contextMeta}
       errors={config?.disableErrors ? [] : contextErrors}
@@ -94,9 +95,9 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
     location,
   });
 
-  const contentItems = contextItems.map<KeyValueDataContentProps>(item => {
-    const itemMeta: KeyValueDataContentProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueDataContentProps['errors'] = itemMeta?.['']?.err ?? [];
+  const contentItems = contextItems.map<KeyValueTableDataRowProps>(item => {
+    const itemMeta: KeyValueTableDataRowProps['meta'] = meta?.[item?.key];
+    const itemErrors: KeyValueTableDataRowProps['errors'] = itemMeta?.['']?.err ?? [];
     return {
       item,
       meta: itemMeta,
@@ -105,7 +106,7 @@ export function ContextCard({alias, event, type, project, value = {}}: ContextCa
   });
 
   return (
-    <KeyValueData.Card
+    <KeyValueTableCard
       contentItems={contentItems}
       title={
         <Flex justify="between" align="center">

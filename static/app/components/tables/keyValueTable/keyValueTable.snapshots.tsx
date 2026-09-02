@@ -5,14 +5,17 @@ import {Button} from '@sentry/scraps/button';
 // eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
-import {Card} from './keyValueDataCard';
-import {Content, type KeyValueDataContentProps} from './keyValueDataContent';
-import {KeyValueList} from './keyValueList';
 import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
+import {KeyValueTableCard} from './keyValueTableCard';
+import {KeyValueTableDataList} from './keyValueTableDataList';
+import {
+  KeyValueTableDataRow,
+  type KeyValueTableDataRowProps,
+} from './keyValueTableDataRow';
 
 const themes = {light: lightTheme, dark: darkTheme};
 
-const contentItems: KeyValueDataContentProps[] = [
+const contentItems: KeyValueTableDataRowProps[] = [
   {item: {key: 'string', subject: 'string', value: 'A plain string value.'}},
   {item: {key: 'number', subject: 'number', value: 20481027}},
   {item: {key: 'dict', subject: 'dict', value: {primary: 'alpha', secondary: 2}}},
@@ -64,7 +67,10 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <Card title="Dataset Title" contentItems={contentItems} />
+            <KeyValueTableCard
+              title="Dataset KeyValueTableCardTitle"
+              contentItems={contentItems}
+            />
           </div>
         </ThemeProvider>
       ),
@@ -76,7 +82,11 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <Card title="Truncated" contentItems={contentItems} truncateLength={2} />
+            <KeyValueTableCard
+              title="Truncated"
+              contentItems={contentItems}
+              truncateLength={2}
+            />
           </div>
         </ThemeProvider>
       ),
@@ -88,7 +98,7 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <Card
+            <KeyValueTableCard
               contentItems={[
                 {
                   item: {
@@ -128,7 +138,7 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <Card contentItems={contentItems} expandLeft />
+            <KeyValueTableCard contentItems={contentItems} expandLeft />
           </div>
         </ThemeProvider>
       ),
@@ -140,7 +150,7 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <Content item={contentItems[0]!.item} />
+            <KeyValueTableDataRow item={contentItems[0]!.item} />
           </div>
         </ThemeProvider>
       ),
@@ -152,7 +162,7 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <KeyValueList data={listData} />
+            <KeyValueTableDataList data={listData} />
           </div>
         </ThemeProvider>
       ),
@@ -164,7 +174,7 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <KeyValueList data={listData} isContextData />
+            <KeyValueTableDataList data={listData} isContextData />
           </div>
         </ThemeProvider>
       ),
@@ -176,7 +186,7 @@ describe('KeyValueTable', () => {
       () => (
         <ThemeProvider theme={themes[themeName]}>
           <div style={{padding: 8, width: 500}}>
-            <KeyValueList
+            <KeyValueTableDataList
               shouldSort={false}
               data={[
                 {
