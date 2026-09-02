@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.utils import external_issue_key
@@ -20,6 +20,13 @@ class RekeyExternalIssuesTest(TestCase):
             external_id="jira:123",
             provider="jira",
         )
+
+    def _rekey_outcomes(self, incr: MagicMock) -> list[str]:
+        return [
+            call.kwargs["tags"]["outcome"]
+            for call in incr.call_args_list
+            if call.args and call.args[0] == "integrations.external_issue.rekey"
+        ]
 
     def _linked_group_ids(self, external_issue: ExternalIssue) -> set[int]:
         return set(
@@ -80,6 +87,33 @@ class RekeyExternalIssuesTest(TestCase):
     def test_noop_when_issue_is_not_linked(self) -> None:
         # By far the common case: Jira moves an issue nobody ever linked to Sentry.
         assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 0
+
+    @patch("sentry.integrations.utils.external_issue_key.metrics.incr")
+    def test_reports_a_rename_that_matched_nothing(self, incr: MagicMock) -> None:
+        # Also how a link stranded at a third key by out-of-order moves surfaces.
+        assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 0
+
+        assert self._rekey_outcomes(incr) == ["no_match"]
+
+    @patch("sentry.integrations.utils.external_issue_key.metrics.incr")
+    def test_reports_a_redelivered_rename_separately(self, incr: MagicMock) -> None:
+        self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="PLATFORM-45"
+        )
+
+        assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 0
+
+        assert self._rekey_outcomes(incr) == ["already_at_new_key"]
+
+    @patch("sentry.integrations.utils.external_issue_key.metrics.incr")
+    def test_reports_an_applied_rename(self, incr: MagicMock) -> None:
+        self.create_integration_external_issue(
+            group=self.create_group(), integration=self.integration, key="APP-123"
+        )
+
+        assert rekey_external_issues(self.integration, "APP-123", "PLATFORM-45") == 1
+
+        assert self._rekey_outcomes(incr) == ["applied"]
 
     def test_leaves_other_integrations_alone(self) -> None:
         other_integration = self.create_integration(
