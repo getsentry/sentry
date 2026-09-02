@@ -1,11 +1,12 @@
 import time
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
@@ -129,12 +130,23 @@ their own alerts to be notified of new issues.
 class TeamProjectPermission(TeamPermission):
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin"],
-        # Intentionally lowered: team members can create projects when
-        # allowMemberProjectCreation is enabled on the organization.
-        "POST": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
         "PUT": ["project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+
+    def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
+        if super().has_object_permission(request, view, team):
+            return True
+
+        # Members hold project:read. A member of this team may create a project
+        # on it, matching OrganizationProjectsEndpoint. The handler enforces
+        # disable_member_project_creation so the response carries its message.
+        return (
+            request.method == "POST"
+            and request.access.has_scope("project:read")
+            and request.access.has_team_membership(team)
+        )
 
 
 class AuditData(TypedDict):

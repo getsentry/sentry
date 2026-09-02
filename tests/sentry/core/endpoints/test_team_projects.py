@@ -1,6 +1,8 @@
 from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
+from django.test import override_settings
+
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.core.endpoints.organization_projects import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
@@ -199,31 +201,32 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             status_code=201,
         )
 
-    def test_member_can_create_project_on_any_team_with_open_membership(self) -> None:
-        organization = self.create_organization(flags=1)  # allow_joinleave
-        team = self.create_team(organization=organization)
+    def test_member_cannot_create_project_on_other_team(self) -> None:
         user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=organization, role="member", teams=[])
         self.login_as(user=user)
 
-        self.get_success_response(
-            organization.slug,
-            team.slug,
-            **self.data,
-            status_code=201,
-        )
-
-    def test_member_cannot_create_project_on_other_team(self) -> None:
-        # No team membership means no team role to honor, so team-roles cannot change this.
         organization = self.create_organization(flags=0)
         team = self.create_team(organization=organization)
-        user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=organization, role="member", teams=[])
-        self.login_as(user=user)
+        self.get_error_response(organization.slug, team.slug, **self.data, status_code=403)
+
+        # Open membership grants team access, not team membership.
+        open_organization = self.create_organization(flags=1)  # allow_joinleave
+        open_team = self.create_team(organization=open_organization)
+        self.create_member(user=user, organization=open_organization, role="member", teams=[])
+        self.get_error_response(
+            open_organization.slug, open_team.slug, **self.data, status_code=403
+        )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @override_options({"superuser.read-write.ga-rollout": True})
+    def test_readonly_superuser_cannot_create_project(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
 
         self.get_error_response(
-            organization.slug,
-            team.slug,
+            self.organization.slug,
+            self.team.slug,
             **self.data,
             status_code=403,
         )
