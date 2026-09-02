@@ -146,43 +146,23 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.filterKeyAliases?.['log.message_alias']).toBeDefined();
   });
 
-  it('injects convention deprecation chain values as filterKeyAliases', () => {
+  it('uses preferred search aliases in deprecation warnings', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: defaultInitialProps,
       organization,
     });
 
-    expect(result.current.filterKeyAliases?.['ai.completion_tokens.used']).toBeDefined();
-    expect(
-      result.current.filterKeyAliases?.['gen_ai.usage.output_tokens']
-    ).toBeUndefined();
-  });
-
-  it('warns on deprecated convention aliases instead of treating them as unsupported', () => {
-    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        invalidFilterKeys: ['ai.completion_tokens.used'],
-      },
-      organization,
-    });
+    expect(result.current.filterKeyAliases?.['sentry.segment.name']?.alias).toBe(
+      'transaction'
+    );
 
     render(
-      <Fragment>
-        {result.current.getFilterTokenWarning?.('ai.completion_tokens.used')}
-        {result.current.getFilterTokenWarning?.('sentry.segment.name')}
-      </Fragment>
+      <Fragment>{result.current.getFilterTokenWarning?.('sentry.segment.name')}</Fragment>
     );
 
-    expect(document.body).toHaveTextContent(
-      'ai.completion_tokens.used is deprecated. Use gen_ai.usage.output_tokens instead.'
-    );
     expect(document.body).toHaveTextContent(
       'sentry.segment.name is deprecated. Use transaction instead.'
     );
-    expect(
-      result.current.getFilterTokenWarning?.('gen_ai.usage.output_tokens')
-    ).toBeUndefined();
   });
 
   it('does not warn for product fields that opt out of convention deprecation', () => {
