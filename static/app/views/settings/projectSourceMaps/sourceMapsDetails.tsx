@@ -68,7 +68,7 @@ function ArtifactsTableRow({
 
   return (
     <SimpleTable.Row>
-      <ArtifactColumn>
+      <ArtifactColumn align="stretch" direction="column" justify="center">
         <Flex justify="start" align="center">
           {name || `(${t('empty')})`}
         </Flex>
@@ -385,9 +385,6 @@ const ArtifactColumn = styled(SimpleTable.RowCell)`
   overflow-wrap: break-word;
   word-break: break-all;
   line-height: 140%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const AlignedRightColumn = styled(SimpleTable.RowCell)`

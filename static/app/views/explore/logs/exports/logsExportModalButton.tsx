@@ -35,6 +35,12 @@ type LogsExportModalButtonProps = {
   isLoading: boolean;
   queryInfo: LogsQueryInfo;
   supportsAllColumns: boolean;
+  /**
+   * Whether `tableData` holds the same values the server would export. The
+   * samples table asks the API to truncate long values for display, so it opts
+   * out and every one of its exports goes through the server instead.
+   */
+  supportsLocalDownload: boolean;
   tableData: Array<OurLogsResponseItem | OurLogsAggregateResponseItem>;
   title: string;
   error?: Error | null;
@@ -72,6 +78,7 @@ export function LogsExportModalButton({
   isLoading,
   queryInfo,
   supportsAllColumns,
+  supportsLocalDownload,
   tableData,
   title,
 }: LogsExportModalButtonProps) {
@@ -87,14 +94,16 @@ export function LogsExportModalButton({
     supportsAllColumns,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
-    localRowCount: tableData.length,
-    localDownload: ({format, limit}) =>
-      downloadRows({
-        rows: tableData.slice(0, limit),
-        fields: queryInfo.field,
-        filename: filenameBase,
-        format,
-      }),
+    localRowCount: supportsLocalDownload ? tableData.length : undefined,
+    localDownload: supportsLocalDownload
+      ? ({format, limit}) =>
+          downloadRows({
+            rows: tableData.slice(0, limit),
+            fields: queryInfo.field,
+            filename: filenameBase,
+            format,
+          })
+      : undefined,
     trackExportSubmit: args =>
       trackExploreTableExported({
         ...args,

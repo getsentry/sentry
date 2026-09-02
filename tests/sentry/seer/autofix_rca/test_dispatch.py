@@ -56,7 +56,8 @@ class TestTriggerAutofixRCAFeature(TestCase):
         # Seer persists this hook on the Explorer run so later PR iteration
         # completions continue through the Autofix completion flow.
         assert payload["on_completion_hook"] == {
-            "module_path": AutofixOnCompletionHook.get_module_path()
+            "module_path": AutofixOnCompletionHook.get_module_path(),
+            "call_on_failure": False,
         }
         assert run_kwargs["extras"] == {
             "referrer": AutofixReferrer.NIGHT_SHIFT.value,

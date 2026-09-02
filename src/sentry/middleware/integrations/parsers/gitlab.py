@@ -93,6 +93,13 @@ class GitlabRequestParser(BaseRequestParser):
             return None
         return project_id
 
+    def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
+        """Reads the body's `object_kind`, not the `X-Gitlab-Event` header the
+        endpoint dispatches on, whose values contain spaces.
+        """
+        object_kind = data.get("object_kind")
+        return object_kind if isinstance(object_kind, str) else None
+
     def get_response(self) -> HttpResponseBase:
         if self.view_class == GitlabWebhookEndpoint:
             return self.get_response_from_gitlab_webhook()

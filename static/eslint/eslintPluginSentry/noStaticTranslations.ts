@@ -6,11 +6,12 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',
     docs: {
-      description: 'Require using ATTRIBUTE_METADATA[key].brief pattern in td()',
+      description: 'Require using ATTRIBUTE_SEARCH_METADATA[key].brief in td()',
     },
     schema: [],
     messages: {
-      forbidden: 'td() must use ATTRIBUTE_METADATA[key].brief from @sentry/conventions',
+      forbidden:
+        'td() must use ATTRIBUTE_SEARCH_METADATA[key].brief from @sentry/conventions',
     },
   },
 
@@ -33,18 +34,21 @@ export const noStaticTranslations = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        // Check if it's ATTRIBUTE_METADATA[...].brief
+        // Check if it's ATTRIBUTE_SEARCH_METADATA[...].brief
         if (translationArg.type === 'MemberExpression') {
           const property = translationArg.property;
-          const object = translationArg.object;
+          const object =
+            translationArg.object.type === 'TSNonNullExpression'
+              ? translationArg.object.expression
+              : translationArg.object;
 
           // Must be accessing .brief
           if (property.type === 'Identifier' && property.name === 'brief') {
-            // Object must be ATTRIBUTE_METADATA[...]
+            // Object must be ATTRIBUTE_SEARCH_METADATA[...]
             if (
               object.type === 'MemberExpression' &&
               object.object.type === 'Identifier' &&
-              object.object.name === 'ATTRIBUTE_METADATA'
+              object.object.name === 'ATTRIBUTE_SEARCH_METADATA'
             ) {
               return; // Valid pattern
             }
