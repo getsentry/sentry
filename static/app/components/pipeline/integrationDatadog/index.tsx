@@ -60,7 +60,13 @@ function DatadogCredentialsStep({
         </Text>
         <form.AppField name="site">
           {field => (
-            <field.Layout.Stack label={t('Datadog Site')} required>
+            <field.Layout.Stack
+              label={t('Datadog Site')}
+              hintText={t(
+                'The region your Datadog organization is hosted in, shown in your Datadog URL.'
+              )}
+              required
+            >
               <field.Select
                 value={field.state.value}
                 onChange={value => field.handleChange(value)}
