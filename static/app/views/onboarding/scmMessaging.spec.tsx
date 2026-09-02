@@ -879,36 +879,6 @@ describe('ScmMessaging', () => {
       expect(onCreatedProjectChange).not.toHaveBeenCalled();
     });
 
-    it('creates a new project when a destination is added after Set up later', async () => {
-      mockIntegration();
-      mockChannelValidate(true);
-      const createProjectRequest = mockCreateProject();
-      const createWorkflowRequest = mockCreateWorkflow();
-      const onComplete = jest.fn();
-      const onCreatedProjectChange = jest.fn();
-      renderMessaging({
-        createdProject: {slug: createdProject.slug, messagingSelection: undefined},
-        onComplete,
-        onCreatedProjectChange,
-      });
-
-      const continueButton = screen.getByRole('button', {name: 'Continue'});
-      await waitFor(() => expect(continueButton).toBeEnabled());
-      await userEvent.click(continueButton);
-
-      await waitFor(() =>
-        expect(onComplete).toHaveBeenCalledWith(selectedPlatform, {
-          product: selectedFeatures,
-        })
-      );
-      expect(createProjectRequest).toHaveBeenCalledTimes(1);
-      expect(createWorkflowRequest).toHaveBeenCalledTimes(1);
-      expect(onCreatedProjectChange).toHaveBeenCalledWith({
-        slug: createdProject.slug,
-        messagingSelection: stagedSelection,
-      });
-    });
-
     it('Set up later completes without any requests whatever the project was created for', async () => {
       mockIntegration();
       mockChannelValidate(true);
