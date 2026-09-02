@@ -11,6 +11,7 @@ from sentry.issues.formatting.formatter import (
     JsonFormatter,
     MarkdownFormatter,
     Section,
+    SectionFn,
     Text,
     XmlFormatter,
     slug,
@@ -243,7 +244,7 @@ def test_json_does_not_escape_non_ascii() -> None:
 
 def test_unicode_costs_the_same_against_the_cap_as_ascii() -> None:
     # the cap is a character budget; a format must not count one character as six
-    def section(chars: str):
+    def section(chars: str) -> SectionFn:
         return lambda model, limits: Section(
             title="Evidence",
             groups=tuple(Group(items=(Field(f"k{i}", chars * 10),)) for i in range(20)),
