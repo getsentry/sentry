@@ -1068,6 +1068,116 @@ describe('ArtifactCard', () => {
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
     });
 
+    it('strips markup and markdown syntax from bot comments', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              // Shaped like a real Bugbot comment.
+              text: '<!-- BUGBOT_REVIEW -->\n### Bugbot found <a href="https://cursor.com/open?link=eyJ2ZXJzaW9u">1 issue</a>. **Medium Severity**',
+              source: {
+                type: 'github-pr-comment',
+                comment: {
+                  html_url: 'https://github.com/org/repo/pull/42#issuecomment-1',
+                  user: {login: 'cursor'},
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(
+        screen.getByText('Bugbot found 1 issue. Medium Severity')
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/BUGBOT_REVIEW/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/eyJ2ZXJzaW9u/)).not.toBeInTheDocument();
+    });
+
+    it('collapses a long comment into a disclosure', async () => {
+      const longText = `Timeouts abort the upload batch. ${'x'.repeat(400)} End of comment.`;
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: longText, source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      // Twice over: the summary's clipped preview, plus the still-mounted body.
+      const collapsed = screen.getAllByText(/End of comment\./);
+      expect(collapsed).toHaveLength(2);
+      const preview = collapsed.find(el => el.closest('summary'))!;
+      const body = collapsed.find(el => !el.closest('summary'))!;
+      const details = body.closest('details');
+      expect(details).not.toHaveAttribute('open');
+      expect(body).not.toBeVisible();
+
+      await userEvent.click(preview);
+
+      expect(details).toHaveAttribute('open');
+      expect(body).toBeVisible();
+      expect(screen.getAllByText(/End of comment\./)).toHaveLength(1);
+    });
+
+    it('does not collapse a short comment', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const comment = screen.getByText('Make the button blue');
+      expect(comment).toBeVisible();
+      expect(comment.closest('details')).toBeNull();
+    });
+
     it('groups a review body with its inline comments under a state header', () => {
       const reviewUrl = 'https://github.com/org/repo/pull/42#pullrequestreview-999';
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
