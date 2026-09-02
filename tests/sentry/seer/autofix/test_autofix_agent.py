@@ -916,17 +916,15 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=12345)
 
-        trigger_autofix_agent(
-            group=self.group,
-            step=AutofixStep.ROOT_CAUSE,
-            referrer=AutofixReferrer.UNKNOWN,
-            skip_quota=True,
-        )
+        with patch("sentry.seer.autofix.autofix_agent.features.has", return_value=False):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                skip_quota=True,
+            )
 
-        mock_check_quota.assert_called_once_with(
-            org_id=self.group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
-        )
+        mock_check_quota.assert_not_called()
         mock_record_run.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
