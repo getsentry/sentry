@@ -98,7 +98,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     // This ensures that when React Fast Refresh occurs, the error boundary
     // doesn't persist stale error state after code fixes
     if (process.env.NODE_ENV === 'development') {
-      if (module?.hot) {
+      if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleRetry);
 
         // Reset lazyload state itself on mount / hot replacement
@@ -135,7 +135,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
   componentWillUnmount(): void {
     // Clean up HMR listeners to prevent memory leaks
     if (process.env.NODE_ENV === 'development') {
-      if (module?.hot) {
+      if (typeof module !== 'undefined' && module.hot) {
         module.hot.dispose(this.handleRetry);
       }
     }

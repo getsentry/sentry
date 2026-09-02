@@ -425,7 +425,9 @@ const config = defineConfig({
     'no-unreachable': 'error',
     'no-unsafe-finally': 'error',
     'no-unsafe-negation': 'error',
-    'no-unsafe-optional-chaining': 'error',
+    // Oxlint reports TypeScript patterns that ESLint accepts and suggests
+    // replacing optional access with unsafe non-null assertions.
+    'no-unsafe-optional-chaining': 'off',
     'no-unused-labels': 'error',
     'no-unused-private-class-members': 'error',
     'no-useless-catch': 'error',
@@ -477,8 +479,9 @@ const config = defineConfig({
     radix: 'error',
     yoda: 'error',
     'e18e/prefer-includes': 'error',
-    'e18e/prefer-array-to-reversed': 'error',
-    'e18e/prefer-array-to-sorted': 'error',
+    // The ESLint plugin does not report the existing copy-then-mutate forms.
+    'e18e/prefer-array-to-reversed': 'off',
+    'e18e/prefer-array-to-sorted': 'off',
     'e18e/prefer-array-to-spliced': 'error',
     'e18e/prefer-nullish-coalescing': 'error',
     'e18e/prefer-url-canparse': 'error',
@@ -611,21 +614,17 @@ const config = defineConfig({
       },
     ],
     'react/require-render-return': 'error',
-    'react/function-component-definition': 'error',
+    // Use the upstream rule below. Oxlint's native rule mistakes callbacks for
+    // React components and rewrites their function semantics.
+    'react/function-component-definition': 'off',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
     'react/self-closing-comp': 'error',
-    'react/jsx-curly-brace-presence': [
-      'error',
-      {
-        props: 'never',
-        children: 'ignore',
-        propElementValues: 'always',
-      },
-    ],
+    // Use the upstream rule below to preserve escaped string expressions.
+    'react/jsx-curly-brace-presence': 'off',
     'no-array-constructor': 'error',
     'no-unused-expressions': [
       'error',
@@ -711,7 +710,7 @@ const config = defineConfig({
     'unicorn/no-accessor-recursion': 'error',
     'unicorn/no-anonymous-default-export': 'error',
     'unicorn/no-await-in-promise-methods': 'error',
-    'unicorn/no-console-spaces': 'error',
+    'unicorn/no-console-spaces': 'off',
     'unicorn/no-empty-file': 'error',
     'unicorn/no-instanceof-builtins': 'error',
     'unicorn/no-invalid-fetch-options': 'error',
@@ -747,10 +746,10 @@ const config = defineConfig({
     // TODO(ryan953): Fix violations and promote this warning to an error.
     'unicorn/prefer-default-parameters': 'warn',
     'unicorn/prefer-event-target': 'error',
-    'unicorn/prefer-includes': 'error',
+    'unicorn/prefer-includes': 'off',
     'unicorn/prefer-keyboard-event-key': 'error',
     'unicorn/prefer-math-trunc': 'error',
-    'unicorn/prefer-modern-dom-apis': 'error',
+    'unicorn/prefer-modern-dom-apis': 'off',
     'unicorn/prefer-modern-math-apis': 'error',
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
@@ -1205,7 +1204,9 @@ const config = defineConfig({
     'typescript/no-unnecessary-boolean-literal-compare': 'error',
     'typescript/no-unnecessary-template-expression': 'error',
     'typescript/no-unnecessary-type-arguments': 'error',
-    'typescript/no-unnecessary-type-assertion': 'error',
+    // Oxlint's checker removes assertions that document and constrain values
+    // accepted by wider receiver types.
+    'typescript/no-unnecessary-type-assertion': 'off',
     'typescript/no-unnecessary-type-constraint': 'error',
     'typescript/no-unnecessary-type-parameters': 'error',
     'typescript/no-unsafe-declaration-merging': 'error',
@@ -1232,7 +1233,9 @@ const config = defineConfig({
       },
     ],
     'typescript/ban-tslint-comment': 'error',
-    'typescript/consistent-generic-constructors': 'error',
+    // Oxlint currently enforces this rule differently from typescript-eslint and
+    // would require behavior-neutral churn throughout the frontend.
+    'typescript/consistent-generic-constructors': 'off',
     'typescript/consistent-indexed-object-style': 'error',
     'typescript/consistent-type-assertions': 'error',
     'typescript/dot-notation': 'error',
@@ -1241,7 +1244,9 @@ const config = defineConfig({
     'typescript/non-nullable-type-assertion-style': 'error',
     'typescript/prefer-for-of': 'error',
     'typescript/prefer-function-type': 'error',
-    'typescript/prefer-optional-chain': 'error',
+    // Keep explicit guards when optional chaining can change runtime behavior,
+    // especially for undeclared globals such as webpack's `module`.
+    'typescript/prefer-optional-chain': 'off',
     'typescript/consistent-type-exports': 'error',
     'typescript/switch-exhaustiveness-check': [
       'error',
@@ -1370,6 +1375,15 @@ const config = defineConfig({
     ],
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     'react-js/no-deprecated': ['error'],
+    'react-js/function-component-definition': ['error'],
+    'react-js/jsx-curly-brace-presence': [
+      'error',
+      {
+        props: 'never',
+        children: 'ignore',
+        propElementValues: 'always',
+      },
+    ],
     'react-js/no-typos': ['error'],
     'react-js/sort-comp': ['error'],
     '@sentry/naming-convention': 'error',

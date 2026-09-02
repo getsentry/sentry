@@ -322,7 +322,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
       const parent = spanIdToNode.get(transaction.value?.parent_span_id ?? '');
       // If the parent span does not exist in the span tree, the transaction will remain under the current node
       if (!parent) {
-        if (transaction.parent && !transaction.parent.children.includes(transaction)) {
+        if (transaction.parent?.children.indexOf(transaction) === -1) {
           transaction.parent.children.push(transaction);
         }
         continue;

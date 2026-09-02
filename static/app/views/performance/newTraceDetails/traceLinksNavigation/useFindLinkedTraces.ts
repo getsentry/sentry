@@ -60,7 +60,7 @@ export function useFindAdjacentTrace({
     // attribute content.
     const [_adjacentTraceId, _adjacentTraceSpanId, _adjacentTraceSampledFlag] =
       _hasAdjacentTraceLink
-        ? (_adjacentTraceAttribute!.value as string).split('-') || []
+        ? (_adjacentTraceAttribute?.value as string).split('-') || []
         : [];
 
     return {

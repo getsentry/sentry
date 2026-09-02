@@ -41,7 +41,11 @@ import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
 } from 'sentry/utils/seer/seerProjectSettings';
-import type {AgentIntegration, SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import type {
+  AgentIntegration,
+  AutofixAgentSelectOption,
+  SeerProjectSettingResponse,
+} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -266,7 +270,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         return updateSeerSettings({
-          agentOption: `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::${cursorIntegration.id}`,
+          agentOption:
+            `${CodingAgentProvider.CURSOR_BACKGROUND_AGENT}::${cursorIntegration.id}` as AutofixAgentSelectOption,
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
@@ -283,7 +288,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           user_id: user.id,
         });
         return updateSeerSettings({
-          agentOption: `${CodingAgentProvider.CLAUDE_CODE_AGENT}::${claudeIntegration.id}`,
+          agentOption:
+            `${CodingAgentProvider.CLAUDE_CODE_AGENT}::${claudeIntegration.id}` as AutofixAgentSelectOption,
           stoppingPoint: 'root_cause',
           autoCreatePr: false,
         });
@@ -309,7 +315,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         return Promise.resolve();
       }
       return updateSeerSettings({
-        agentOption: `${setting.agent}::${setting.integrationId}`,
+        agentOption:
+          `${setting.agent}::${setting.integrationId}` as AutofixAgentSelectOption,
         autoCreatePr: value,
       });
     },
@@ -322,7 +329,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         return Promise.resolve();
       }
       return updateSeerSettings({
-        agentOption: `${setting.agent}::${integrationId}`,
+        agentOption: `${setting.agent}::${integrationId}` as AutofixAgentSelectOption,
         autoCreatePr: setting.autoCreatePr ?? false,
       });
     },

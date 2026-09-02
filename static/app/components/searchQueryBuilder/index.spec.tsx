@@ -3251,7 +3251,7 @@ describe('SearchQueryBuilder', () => {
           <SearchQueryBuilder
             {...defaultProps}
             onChange={mockOnChange}
-            initialQuery={String.raw`browser.name:[foo*,bar\*,Chrome]`}
+            initialQuery={'browser.name:[foo*,bar\\*,Chrome]'}
           />
         );
 
@@ -3270,10 +3270,7 @@ describe('SearchQueryBuilder', () => {
 
       it('renders an escaped asterisk with the escape visible in the filter chip', async () => {
         render(
-          <SearchQueryBuilder
-            {...defaultProps}
-            initialQuery={String.raw`browser.name:foo\*`}
-          />
+          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
         );
 
         expect(

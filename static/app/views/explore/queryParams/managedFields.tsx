@@ -192,14 +192,15 @@ function findChangedFields(
   const addedFields = new Set<string>();
   const removedFields = new Set<string>();
 
-  function countFields(counter: Counter, field: string) {
-    const count = counter.get(field) || 0;
-    counter.set(field, count + 1);
-    return counter;
-  }
-
   // TODO: check if we need to distinguish between null and undefined here
   if (defined(writableQueryParams.fields)) {
+    // oxlint-disable-next-line no-inner-declarations -- Match ESLint's handling of block-scoped functions.
+    function countFields(counter: Counter, field: string) {
+      const count = counter.get(field) || 0;
+      counter.set(field, count + 1);
+      return counter;
+    }
+
     const readableFields: Counter = readableQueryParams.fields.reduce(
       countFields,
       new Map()

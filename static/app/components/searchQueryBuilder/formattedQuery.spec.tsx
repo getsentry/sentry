@@ -106,7 +106,7 @@ describe('FormattedQuery', () => {
   });
 
   it('renders an escaped asterisk with the escape visible', () => {
-    render(<FormattedQuery {...defaultProps} query={String.raw`message:foo\*bar`} />);
+    render(<FormattedQuery {...defaultProps} query={'message:foo\\*bar'} />);
 
     expect(screen.getByText('foo\\*bar')).toBeInTheDocument();
   });

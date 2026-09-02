@@ -50,7 +50,7 @@ const getPrismGrammar = (language: string) => {
 
 const splitMultipleTokensByLine = (
   tokens: Array<string | Prism.Token>,
-  types = new Set<string>(['token'])
+  types: Set<string> = new Set(['token'])
 ) => {
   const lines: IntermediateToken[][] = [];
   let currentLine: IntermediateToken[] = [];
@@ -82,7 +82,7 @@ const splitMultipleTokensByLine = (
 // line, no newlines were found.
 const splitTokenContentByLine = (
   token: string | Prism.Token,
-  types = new Set<string>(['token'])
+  types: Set<string> = new Set(['token'])
 ): IntermediateToken[][] => {
   if (typeof token === 'string') {
     const lines: IntermediateToken[][] = [];

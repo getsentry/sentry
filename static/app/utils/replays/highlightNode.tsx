@@ -65,6 +65,7 @@ export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlight
  * Attempt to highlight the node inside of a replay recording
  */
 export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
+  const {wrapper} = replayer;
   const mirror = replayer.getMirror();
 
   const nodes =
@@ -112,7 +113,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
       highlightsBySelector.set(props.selector, {canvas});
     }
 
-    replayer.iframe.before(canvas);
+    wrapper.insertBefore(canvas, replayer.iframe);
   }
 }
 

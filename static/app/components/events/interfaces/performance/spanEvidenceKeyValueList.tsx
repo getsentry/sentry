@@ -723,7 +723,7 @@ function getSpanEvidenceValue(span: Span | null) {
     return span.op;
   }
 
-  if (span.op?.startsWith('db') && span.description) {
+  if (span.op && span.op.startsWith('db') && span.description) {
     return (
       <NoPaddingClippedBox clipHeight={200}>
         <StyledCodeSnippet language="sql">

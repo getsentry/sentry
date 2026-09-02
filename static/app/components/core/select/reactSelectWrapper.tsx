@@ -17,14 +17,12 @@ components.LoadingMessage.defaultProps = undefined;
 // @ts-expect-error remove default props for react 19
 components.LoadingIndicator.defaultProps = undefined;
 
-function ReactSelectWrapperComponent({ref, ...props}: any) {
+const ReactSelectWrapper = function ReactSelectWrapperComponent({ref, ...props}: any) {
   // Reapply default props to the component
   return (
     <ReactSelect {...reactSelectDefaultProps} {...props} ref={ref} menuPlacement="auto" />
   );
-}
-
-const ReactSelectWrapper = ReactSelectWrapperComponent as any as typeof ReactSelect;
+} as any as typeof ReactSelect;
 
 export {ReactSelectWrapper as ReactSelect, components};
 export {createFilter, mergeStyles} from 'react-select';

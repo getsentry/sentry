@@ -262,7 +262,7 @@ export function useVirtualizedTree<T extends TreeLike>(
             (container.firstChild as HTMLElement).style.pointerEvents = 'none';
           });
         } else {
-          (props.scrollContainer!.firstChild as HTMLElement).style.pointerEvents = 'none';
+          (props.scrollContainer?.firstChild as HTMLElement).style.pointerEvents = 'none';
         }
       });
 

@@ -35,7 +35,7 @@ function isCustomTag(key: string): boolean {
 }
 
 export function createOnDemandFilterWarning(warning: React.ReactNode) {
-  return function (key: string) {
+  return (key: string) => {
     const fieldKey = key as FieldKey;
     if (isCustomTag(fieldKey)) {
       return warning;

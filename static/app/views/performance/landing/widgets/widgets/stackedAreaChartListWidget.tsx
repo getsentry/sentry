@@ -67,7 +67,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {organization, InteractiveTitle, fields} = props;
   const {setPageDanger} = usePageAlert();
 
-  const colors = theme.chart.getColorPalette(5).toReversed();
+  const colors = [...theme.chart.getColorPalette(5)].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({

@@ -180,7 +180,7 @@ export function stringifyQueryList(
 
   const queryObj: Record<string, string[]> = {};
   for (const kv of query) {
-    if (kv?.length === 2) {
+    if (kv !== null && kv.length === 2) {
       const [key, value] = kv;
       if (value !== null) {
         if (Array.isArray(queryObj[key])) {
