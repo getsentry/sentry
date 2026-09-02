@@ -171,12 +171,6 @@ export function splitIntoColumns<T>(items: T[], columnCount: number): T[][] {
   return columns;
 }
 
-/**
- * Determine the column count using available space.
- * Note: This is pretty inefficient since it recalculates on resize, but since Tags/Context is
- * rendered in the page contents, modals, and asides, we can't rely on window breakpoint to
- * accurately describe the available space.
- */
 export function useIssueDetailsColumnCount(
   elementRef: RefObject<HTMLElement | null>
 ): number {

@@ -78,11 +78,6 @@ export function KeyValueTableCard({
   );
 }
 
-/**
- * Conditionally rendered children must return `null` from a wrapping component
- * rather than being rendered as `{condition ? <KeyValueTableCard/> : null}`, so they are
- * not counted when sizing the columns.
- */
 export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
