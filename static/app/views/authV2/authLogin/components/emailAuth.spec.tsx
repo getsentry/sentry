@@ -63,12 +63,14 @@ describe('EmailAuth', () => {
     });
     render(<EmailAuth onAuthResult={jest.fn()} />);
 
-    const emailInput = screen.getByRole('textbox', {name: 'Email'});
-    const passwordInput = screen.getByLabelText('Password');
+    const emailInput = screen.getByRole<HTMLInputElement>('textbox', {
+      name: 'Email',
+    });
+    const passwordInput = screen.getByLabelText<HTMLInputElement>('Password');
     const loginButton = screen.getByRole('button', {name: 'Log in to Sentry'});
 
-    emailInput.setAttribute('value', 'user@example.com');
-    passwordInput.setAttribute('value', 'secret');
+    emailInput.value = 'user@example.com';
+    passwordInput.value = 'secret';
     fireEvent.click(loginButton);
 
     await waitFor(() =>
