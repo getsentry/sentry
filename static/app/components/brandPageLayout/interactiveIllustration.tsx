@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useId, useRef, useState} from 'react';
+import {useEffect, useId, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion, useReducedMotion} from 'framer-motion';
 
@@ -360,7 +360,7 @@ function InteractiveIllustrationContent({
           />
         </BubbleMaskLayer>
         {!prefersReducedMotion && (
-          <Fragment>
+          <ArtworkEffectClip $artworkSrc={src}>
             <DistressedArtworkLayer $maskId={bubbleRevealMaskId}>
               <DistressedArtwork
                 src={src}
@@ -391,7 +391,7 @@ function InteractiveIllustrationContent({
                 draggable={false}
               />
             </BubbleMaskLayer>
-          </Fragment>
+          </ArtworkEffectClip>
         )}
         <InteractionSurface
           ref={interactionSurface}
@@ -646,6 +646,22 @@ const BubbleMaskLayer = styled('div')<{$maskId: string}>`
 
 const DistressedArtworkLayer = styled(BubbleMaskLayer)`
   isolation: isolate;
+`;
+
+const ArtworkEffectClip = styled('div')<{$artworkSrc: string}>`
+  position: absolute;
+  inset: 0;
+  /* Keep effects inside the artwork background or its opaque breakout elements. */
+  mask-image:
+    linear-gradient(
+      to right,
+      #fff 0 calc(100% - var(--brand-artwork-right-bleed, 0%)),
+      transparent calc(100% - var(--brand-artwork-right-bleed, 0%))
+    ),
+    url(${p => p.$artworkSrc});
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-composite: add;
 `;
 
 const NoiseTexture = styled('svg')`
