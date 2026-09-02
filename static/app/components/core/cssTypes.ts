@@ -166,6 +166,7 @@ export type CSS = {
     | 'contents'
     | 'none';
   flex:
+    | CssFlexBasis
     | 'none'
     | 'auto'
     | 'initial'
