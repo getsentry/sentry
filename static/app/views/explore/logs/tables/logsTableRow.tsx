@@ -427,6 +427,12 @@ export const LogRowContent = memo(function LogRowContentImpl({
     addSearchFilter({key: filter.key, value: filter.value, negated});
   }
 
+  function exploreSimilarSpansFor(message: string | number) {
+    navigate(
+      getExploreSimilarSpansUrl({message: String(message), organization, selection})
+    );
+  }
+
   const copyCellValue = useMutation({
     mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
       resolveFullCellValue(field, cellValue),
@@ -437,14 +443,8 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const exploreSimilarSpans = useMutation({
     mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
       resolveFullCellValue(field, cellValue),
-    onSuccess: value =>
-      navigate(
-        getExploreSimilarSpansUrl({
-          message: String(value),
-          organization,
-          selection,
-        })
-      ),
+    onSuccess: value => exploreSimilarSpansFor(value),
+    onError: (_error, {cellValue}) => exploreSimilarSpansFor(cellValue),
   });
 
   const filterOnCellValue = useMutation({

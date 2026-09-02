@@ -634,6 +634,39 @@ describe('logsTableRow', () => {
     });
   });
 
+  it('navigates with the truncated message when similar spans cannot load the details', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowDataWithTruncatedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+        showExploreSimilarSpansLink
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow, {delay: null});
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(await screen.findByText('Explore similar spans'));
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([
+        {type: 'logs', query: `message:"${truncatedMessage}"`},
+      ]);
+    });
+  });
+
   it('does not show string filter actions for numeric fields', async () => {
     const numericField = 'custom.duration';
     const numericRowData = LogFixture({
