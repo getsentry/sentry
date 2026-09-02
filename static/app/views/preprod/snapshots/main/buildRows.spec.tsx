@@ -138,5 +138,6 @@ describe('buildRowIndex', () => {
     expect(idx.rowIndexByKey.get('a.png')).toBe(1); // row 0 is the header
     expect(idx.rowIndexByKey.get('b.png')).toBe(2);
     expect(idx.firstRowByItemKey.get('changed:Screens')).toBe(0); // header row
+    expect(idx.lastRowByItemKey.get('changed:Screens')).toBe(2); // last card row
   });
 });
