@@ -12,6 +12,8 @@ import {
   useSecondFactorChallenge,
 } from 'sentry/views/authV2/authLogin/hooks/useSecondFactorAuth';
 
+import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
+
 interface WebAuthn2FAMethodProps {
   isActive: boolean;
   isProcessing: boolean;
@@ -146,8 +148,11 @@ export function WebAuthn2FAMethod({
   }
 
   return (
-    <Text as="p" align="center">
-      {t('Waiting for passkey, biometric, or hardware key authentication...')}
-    </Text>
+    <Stack gap="lg" align="center">
+      <AuthenticatorIconCarousel isActive={isActive} />
+      <Text as="p" align="center">
+        {t('Waiting for passkey, biometric, or hardware key')}
+      </Text>
+    </Stack>
   );
 }

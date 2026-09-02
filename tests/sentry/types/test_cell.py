@@ -205,7 +205,7 @@ class CellDirectoryTest(TestCase):
             cell.validate()
 
     def test_locality_to_url(self) -> None:
-        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
+        locality = Locality("us", frozenset(["us"]), new_org_cell="us")
         with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_LOCAL_CELL=""):
@@ -369,14 +369,12 @@ class CellDirectoryTest(TestCase):
             Locality(
                 name="us",
                 cells=frozenset(["us", "us2"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="us2",
                 visible=True,
             ),
             Locality(
                 name="de",
                 cells=frozenset(["de1", "de2"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de2",
                 visible=True,
             ),
@@ -416,14 +414,12 @@ class CellDirectoryTest(TestCase):
             Locality(
                 name="us",
                 cells=frozenset(["us"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="us",
                 visible=True,
             ),
             Locality(
                 name="de",
                 cells=frozenset(["de"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de",
                 visible=True,
                 signup_visible=False,
@@ -431,7 +427,6 @@ class CellDirectoryTest(TestCase):
             Locality(
                 name="ja",
                 cells=frozenset(["ja"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de",
                 visible=False,
                 signup_visible=True,

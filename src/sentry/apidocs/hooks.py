@@ -33,6 +33,8 @@ _OWNERSHIP_FILE = "api_ownership_stats_dont_modify.json"
 # but do not want to document it
 EXCLUSION_PATH_PREFIXES = [
     "/api/0/monitors/",
+    # Legacy aliases for the documented agents/conversations endpoints.
+    "/api/0/organizations/{organization_id_or_slug}/ai-conversations/",
     # Issue URLS have an expression of group|issue that resolves to `var`
     "/api/0/{var}/{issue_id}/",
 ]

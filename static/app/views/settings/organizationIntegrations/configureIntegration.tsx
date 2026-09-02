@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -35,7 +35,7 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {parseGcpProjectIds} from 'sentry/utils/seer/gcpConnection';
+import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -47,6 +47,7 @@ import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcru
 import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {GcpConnectionStatus} from './gcpConnectionStatus';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
@@ -183,6 +184,8 @@ function ConfigureIntegration() {
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
   const {projects} = useProjects();
+
+  const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -365,14 +368,8 @@ function ConfigureIntegration() {
     const verifyGcpConnection = async () => {
       const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
         .configData;
-      const customerSaEmail = savedConfig?.customer_sa_email;
-      const projectIds = savedConfig?.projects;
-      if (typeof customerSaEmail !== 'string' || typeof projectIds !== 'string') {
-        return;
-      }
-
-      const gcpProjectIds = parseGcpProjectIds(projectIds);
-      if (!customerSaEmail || !gcpProjectIds.length) {
+      const payload = buildGcpVerifyPayload(savedConfig);
+      if (!payload) {
         return;
       }
 
@@ -382,7 +379,7 @@ function ConfigureIntegration() {
           '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),
-        data: {customerSaEmail, gcpProjectIds},
+        data: payload,
       });
     };
 
@@ -403,18 +400,30 @@ function ConfigureIntegration() {
         });
       },
       onSuccess: async () => {
-        // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
-        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
-        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-        await queryClient.invalidateQueries(integrationQueryOptions);
+        const verifiesConnection = provider.key === 'gcp';
+        if (verifiesConnection) {
+          setIsVerifyingGcp(true);
+        }
 
-        if (provider.key === 'gcp') {
-          try {
-            await verifyGcpConnection();
-          } catch (error) {
-            // The save itself succeeded; the connection stays recorded as unverified
-            // and the customer can re-test, so don't report this as a failed save.
-            Sentry.captureException(error);
+        try {
+          // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
+          // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
+          // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
+          await queryClient.invalidateQueries(integrationQueryOptions);
+
+          if (verifiesConnection) {
+            try {
+              await verifyGcpConnection();
+              await queryClient.invalidateQueries(integrationQueryOptions);
+            } catch (error) {
+              // The save itself succeeded; the connection stays recorded as unverified
+              // and the customer can re-test, so don't report this as a failed save.
+              Sentry.captureException(error);
+            }
+          }
+        } finally {
+          if (verifiesConnection) {
+            setIsVerifyingGcp(false);
           }
         }
       },
@@ -422,6 +431,15 @@ function ConfigureIntegration() {
 
     return (
       <Fragment>
+        {provider.key === 'gcp' && (
+          <GcpConnectionStatus
+            configData={integration.configData}
+            organization={organization}
+            isVerifying={isVerifyingGcp}
+            onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
+          />
+        )}
+
         {(integration.configOrganization?.length ?? 0) > 0 && (
           <FieldGroup
             title={

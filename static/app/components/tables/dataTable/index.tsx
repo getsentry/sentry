@@ -1,8 +1,9 @@
-import type {CSSProperties, ReactNode, RefObject} from 'react';
+import type {ReactNode, RefObject} from 'react';
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {
   COL_WIDTH_MINIMUM,
   Table,
@@ -49,7 +50,7 @@ const Grid = styled(Table, {
   shouldForwardProp: prop => prop !== 'fit' && prop !== 'height' && prop !== 'scrollable',
 })<{
   fit?: 'max-content';
-  height?: CSSProperties['height'];
+  height?: CSS['height'];
   scrollable?: boolean;
 }>`
   ${p =>
@@ -66,7 +67,7 @@ const Grid = styled(Table, {
     p.height
       ? css`
           height: 100%;
-          max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+          max-height: ${p.height};
           flex: 1;
           min-height: 0;
 
@@ -252,7 +253,7 @@ function useDataTableProps({
 
 interface DataTableProps
   extends Omit<React.ComponentProps<typeof Frame>, 'height'>, DataTableColumnOptions {
-  height?: CSSProperties['height'];
+  height?: CSS['height'];
   ref?: RefObject<HTMLTableElement | null>;
   scrollable?: boolean;
 }

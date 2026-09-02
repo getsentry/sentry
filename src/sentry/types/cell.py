@@ -37,8 +37,6 @@ class Locality:
     cells: frozenset[str]
     """The set of cell names that belong to this locality."""
 
-    category: RegionCategory
-
     new_org_cell: str
     """The cell within this locality where new organizations are provisioned."""
 
@@ -47,6 +45,9 @@ class Locality:
 
     signup_visible: bool = True
     """Whether or not a locality should be visible for org signup/relocation."""
+
+    category: RegionCategory = RegionCategory.MULTI_TENANT
+    """Deprecated. Visibility is defined via `visible` and `signup_visible`."""
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this locality.
@@ -511,11 +512,7 @@ def find_all_multitenant_locality_names() -> list[str]:
     """
     Return all visible multi-tenant localities.
     """
-    return [
-        loc.name
-        for loc in get_global_directory().localities
-        if loc.category == RegionCategory.MULTI_TENANT and loc.visible
-    ]
+    return [loc.name for loc in get_global_directory().localities if loc.visible]
 
 
 def find_all_signup_locality_names() -> list[str]:
@@ -523,7 +520,5 @@ def find_all_signup_locality_names() -> list[str]:
     Return all locality names that are visible to org signup.
     """
     return [
-        loc.name
-        for loc in get_global_directory().localities
-        if loc.category == RegionCategory.MULTI_TENANT and loc.visible and loc.signup_visible
+        loc.name for loc in get_global_directory().localities if loc.visible and loc.signup_visible
     ]
