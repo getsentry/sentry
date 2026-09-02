@@ -143,6 +143,45 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
 
+    def test_get_mailbox_identifier_buckets_only_above_volume(self) -> None:
+        class BucketedParser(ExampleRequestParser):
+            def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
+                return 177
+
+        integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="test_provider"
+        )
+        parser = BucketedParser(self.request, self.response_handler)
+
+        with patch(
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
+            return_value=False,
+        ):
+            assert parser.get_mailbox_identifier(integration, {}) == str(integration.id)
+        with patch(
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
+            return_value=True,
+        ):
+            assert parser.get_mailbox_identifier(integration, {}) == f"{integration.id}:77"
+
+    def test_get_mailbox_identifier_always_bucket_skips_volume_check(self) -> None:
+        class AlwaysBucketedParser(ExampleRequestParser):
+            always_bucket = True
+
+            def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
+                return 177
+
+        integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="test_provider"
+        )
+        parser = AlwaysBucketedParser(self.request, self.response_handler)
+
+        with patch(
+            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
+        ) as mock_is_limited:
+            assert parser.get_mailbox_identifier(integration, {}) == f"{integration.id}:77"
+        mock_is_limited.assert_not_called()
+
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
     def test_get_response_from_webhookpayload_triggers_drain_per_mailbox(

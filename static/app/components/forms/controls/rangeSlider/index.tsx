@@ -10,6 +10,11 @@ import {SliderAndInputWrapper} from './sliderAndInputWrapper';
 import {SliderLabel} from './sliderLabel';
 
 type SliderProps = {
+  /**
+   * Array of allowed values. Make sure `value` is in this list.
+   * THIS NEEDS TO BE SORTED
+   */
+  allowedValues: number[];
   name: string;
 
   /**
@@ -21,35 +26,14 @@ type SliderProps = {
    */
   value: number | '';
 
-  /**
-   * Array of allowed values. Make sure `value` is in this list.
-   * THIS NEEDS TO BE SORTED
-   */
-  allowedValues?: number[];
-
   'aria-label'?: string;
 
   className?: string;
 
   /**
-   * Render prop for slider's label
-   * Is passed the value as an argument
-   */
-  formatLabel?: (value: number | '') => React.ReactNode;
-
-  /**
    * HTML id of the range input
    */
   id?: string;
-
-  /**
-   * max allowed value, not needed if using `allowedValues`
-   */
-  max?: number;
-  /**
-   * min allowed value, not needed if using `allowedValues`
-   */
-  min?: number;
 
   onChange?: (
     value: SliderProps['value'],
@@ -67,7 +51,6 @@ export function RangeSlider({
   value,
   allowedValues,
   name,
-  formatLabel,
   className,
   onChange,
   ref,
@@ -75,7 +58,7 @@ export function RangeSlider({
   ...props
 }: SliderProps) {
   const [sliderValue, setSliderValue] = useState(
-    allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
+    allowedValues.indexOf(Number(value || 0))
   );
 
   useEffect(() => {
@@ -88,23 +71,18 @@ export function RangeSlider({
       return;
     }
 
-    const newSliderValueIndex = allowedValues?.indexOf(Number(value || 0)) ?? -1;
+    const newSliderValueIndex = allowedValues.indexOf(Number(value || 0));
 
-    // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+    // `sliderValue` represents index to `allowedValues`
     if (newSliderValueIndex > -1) {
       setSliderValue(newSliderValueIndex);
       return;
     }
 
-    setSliderValue(value);
+    setSliderValue(value === '' ? 0 : value);
   }
 
   function getActualValue(newSliderValue: number): number {
-    if (!allowedValues) {
-      return newSliderValue;
-    }
-
-    // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
     return allowedValues[newSliderValue]!;
   }
 
@@ -117,30 +95,11 @@ export function RangeSlider({
     } as React.ChangeEvent<HTMLInputElement>);
   }
 
-  function getSliderData() {
-    if (!allowedValues) {
-      const {min, max} = props;
-      return {
-        min,
-        max,
-        actualValue: sliderValue,
-        displayValue: sliderValue,
-      };
-    }
-
-    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-    const actualValue = allowedValues[sliderValue];
-
-    return {
-      min: 0,
-      max: allowedValues.length - 1,
-      actualValue,
-      displayValue: defined(actualValue) ? actualValue : t('Invalid value'),
-    };
-  }
-
-  const {min, max, actualValue, displayValue} = getSliderData();
-  const labelText = formatLabel?.(actualValue) ?? displayValue;
+  const actualValue = allowedValues[sliderValue];
+  const min = 0;
+  const max = allowedValues.length - 1;
+  const displayValue = defined(actualValue) ? actualValue : t('Invalid value');
+  const labelText = displayValue;
 
   return (
     <div className={className} ref={ref}>
@@ -153,7 +112,7 @@ export function RangeSlider({
           max={max}
           onChange={handleSliderChange}
           value={sliderValue}
-          aria-valuetext={labelText}
+          aria-valuetext={String(labelText)}
           aria-label={props['aria-label']}
           formatOptions={showLabel ? undefined : 'hidden'}
         />

@@ -19,10 +19,11 @@ export function CustomerProjects({orgId}: Props) {
       inPanel
       panelTitle="Projects"
       path={`/_admin/customers/${orgId}/`}
-      endpoint={`${getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      endpoint={getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
         path: {organizationIdOrSlug: orgId},
-      })}?statsPeriod=30d`}
-      defaultParams={{per_page: 10}}
+      })}
+      defaultParams={{per_page: 10, statsPeriod: '30d'}}
+      useQueryString={false}
       hasSearch
       columns={[
         <th key="name">Project</th>,

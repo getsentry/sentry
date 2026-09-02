@@ -21,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services import (
+    agentic_breached_metric_lineage_key,
     investigation_legacy_source_key,
     investigation_lineage_key,
     resolve_investigation_sources,
@@ -68,6 +69,11 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             for source in resolved_sources
             if source is not None
         }
+        agentic_lineage_keys = {
+            agentic_breached_metric_lineage_key(source.source)
+            for source in resolved_sources
+            if source is not None
+        }
         legacy_source_keys = {
             investigation_legacy_source_key(source.source)
             for source in resolved_sources
@@ -78,7 +84,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
                 organization=organization,
                 status=InvestigationStatus.ACTIVE,
             ).filter(
-                Q(lineage_key__in=lineage_keys)
+                Q(lineage_key__in=lineage_keys | agentic_lineage_keys)
                 | Q(
                     template_key=template.key,
                     source_type=InvestigationSourceType.BREACHED_METRIC,
@@ -105,9 +111,13 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             if source is None:
                 items.append({"status": "unavailable"})
                 continue
-            investigation = existing_by_lineage_key.get(
-                investigation_lineage_key(template.key, source.source)
-            ) or existing_by_legacy_source_key.get(investigation_legacy_source_key(source.source))
+            investigation = (
+                existing_by_lineage_key.get(agentic_breached_metric_lineage_key(source.source))
+                or existing_by_lineage_key.get(
+                    investigation_lineage_key(template.key, source.source)
+                )
+                or existing_by_legacy_source_key.get(investigation_legacy_source_key(source.source))
+            )
             if investigation is not None:
                 if investigation.id in viewable_ids:
                     items.append({"status": "view", "investigationId": str(investigation.id)})

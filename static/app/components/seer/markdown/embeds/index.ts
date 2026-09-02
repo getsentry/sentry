@@ -12,6 +12,7 @@ import {LogsQuery} from './components/logsQuery';
 import {MetricsQuery} from './components/metricsQuery';
 import {Monitor} from './components/monitor';
 import {Profile} from './components/profile';
+import {Release} from './components/release';
 import {Replay} from './components/replay';
 import {ReplaysQuery} from './components/replaysQuery';
 import {SavedIssueView} from './components/savedIssueView';
@@ -39,6 +40,7 @@ const embeds = [
   MetricsQuery,
   Monitor,
   Profile,
+  Release,
   Replay,
   ReplaysQuery,
   SavedIssueView,

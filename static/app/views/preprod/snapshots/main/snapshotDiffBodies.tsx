@@ -160,7 +160,7 @@ export const WipeCardBody = memo(function WipeCardBodyImpl({
 }) {
   const naturalHeight = Math.max(headImage.height || 0, baseImage.height || 0);
   const minHeight = naturalHeight
-    ? `${Math.min(Math.max(naturalHeight, WIPE_MIN_HEIGHT), MAX_IMAGE_HEIGHT)}px`
+    ? (`${Math.min(Math.max(naturalHeight, WIPE_MIN_HEIGHT), MAX_IMAGE_HEIGHT)}px` as const)
     : `${WIPE_MIN_HEIGHT}px`;
   return (
     <Flex>

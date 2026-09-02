@@ -395,8 +395,10 @@ export function ResultGrid({
    * component state otherwise. Deriving them keeps the two modes on one code
    * path — only the source of truth differs.
    */
+  // An isolated grid owns its request state. Params that another grid on the
+  // same page wrote to the URL must not leak into it.
   const [localRequest, setLocalRequest] = useState<Request>(() =>
-    buildRequest(location.query, defaultSort)
+    buildRequest({}, defaultSort)
   );
   const request = useQueryString
     ? buildRequest(location.query, defaultSort)
@@ -500,7 +502,7 @@ export function ResultGrid({
     // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
     const queryParams: Record<string, any> = {
       ...defaultParams,
-      ...(useQueryString ? location.query : {}),
+      ...(useQueryString ? location.query : request.query ? {query: request.query} : {}),
       sortBy: request.sortBy,
       cursor: request.cursor,
     };
