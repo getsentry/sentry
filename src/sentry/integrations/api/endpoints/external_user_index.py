@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_CONFLICT, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -48,6 +48,7 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
             201: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
+            409: RESPONSE_CONFLICT,
         },
         examples=IntegrationExamples.EXTERNAL_USER_CREATE,
     )
