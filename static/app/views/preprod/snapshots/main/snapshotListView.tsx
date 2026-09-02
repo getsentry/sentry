@@ -118,6 +118,101 @@ export function isItemUngrouped(item: SidebarItem): boolean {
   return !item.images[0]?.group;
 }
 
+export type ListRow =
+  | {
+      estimatedHeight: number;
+      groupName: string;
+      id: string;
+      itemKey: string;
+      kind: 'header';
+    }
+  | {
+      card: GroupCard;
+      estimatedHeight: number;
+      groupName: string | null;
+      id: string;
+      isFirstInGroup: boolean;
+      isLastInGroup: boolean;
+      isUngrouped: boolean;
+      itemKey: string;
+      kind: 'card';
+    };
+
+function buildItemCards(item: SidebarItem, contentWidth: number): GroupCard[] {
+  const cards: GroupCard[] = [];
+  if (item.type === 'changed' || item.type === 'errored') {
+    const status = item.type === 'errored' ? DiffStatus.ERRORED : DiffStatus.CHANGED;
+    const bannerHeight = status === DiffStatus.ERRORED ? ERRORED_BANNER_HEIGHT : 0;
+    for (const pair of item.pairs) {
+      cards.push({
+        type: 'pair-card',
+        id: `c:${item.key}:${pair.head_image.image_file_name}`,
+        pair,
+        status,
+        estimatedHeight:
+          Math.max(
+            estimateCardHeight(pair.head_image, true, contentWidth),
+            estimateCardHeight(pair.base_image, true, contentWidth)
+          ) + bannerHeight,
+      });
+    }
+  } else if (item.type === 'renamed') {
+    for (const pair of item.pairs) {
+      cards.push({
+        type: 'image-card',
+        id: `c:${item.key}:${pair.head_image.image_file_name}`,
+        image: pair.head_image,
+        copyData: pair,
+        cardType: item.type,
+        estimatedHeight: estimateCardHeight(pair.head_image, false, contentWidth),
+      });
+    }
+  } else {
+    for (const image of item.images) {
+      cards.push({
+        type: 'image-card',
+        id: `c:${item.key}:${image.image_file_name}`,
+        image,
+        cardType: item.type,
+        estimatedHeight: estimateCardHeight(image, false, contentWidth),
+      });
+    }
+  }
+  return cards;
+}
+
+export function buildRows(items: SidebarItem[], contentWidth: number): ListRow[] {
+  const rows: ListRow[] = [];
+  for (const item of items) {
+    const cards = buildItemCards(item, contentWidth);
+    const ungrouped = isItemUngrouped(item);
+    if (!ungrouped) {
+      rows.push({
+        kind: 'header',
+        id: `h:${item.key}`,
+        itemKey: item.key,
+        groupName: item.name,
+        estimatedHeight: SNAPSHOT_GROUP_HEADER_HEIGHT,
+      });
+    }
+    cards.forEach((card, i) => {
+      const isLast = i === cards.length - 1;
+      rows.push({
+        kind: 'card',
+        id: card.id,
+        card,
+        itemKey: item.key,
+        groupName: ungrouped ? null : item.name,
+        isUngrouped: ungrouped,
+        isFirstInGroup: i === 0,
+        isLastInGroup: isLast,
+        estimatedHeight: card.estimatedHeight + (isLast ? ROW_PADDING_BOTTOM : 0),
+      });
+    });
+  }
+  return rows;
+}
+
 function buildGroups(items: SidebarItem[], contentWidth: number): GroupRow[] {
   const groups: GroupRow[] = [];
   for (const item of items) {
