@@ -166,12 +166,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         organization = self.create_organization(flags=0)
         team = self.create_team(organization=organization)
         user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user,
-            organization=organization,
-            role="member",
-            team_roles=[(team, "admin")],
-        )
+        self.create_member(user=user, organization=organization, role="member", teams=[team])
         self.login_as(user=user)
 
         self.get_success_response(
@@ -232,7 +227,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
 
     @with_feature({"organizations:team-roles": False})
-    def test_team_admin_cannot_override_disabled_member_creation_without_team_roles(
+    def test_team_admin_can_create_project_when_member_creation_disabled_without_team_roles(
         self,
     ) -> None:
         organization = self.create_organization(flags=256)
@@ -245,6 +240,29 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             team_roles=[(team, "admin")],
         )
         self.login_as(user=user)
+
+        self.get_success_response(
+            organization.slug,
+            team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+    @with_feature({"organizations:team-roles": False})
+    def test_token_without_team_admin_scope_cannot_bypass_disabled_member_creation(
+        self,
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        token = self.create_user_auth_token(user=user, scope_list=["project:read", "project:write"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
 
         response = self.get_error_response(
             organization.slug,
