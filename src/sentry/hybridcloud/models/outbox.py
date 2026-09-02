@@ -453,6 +453,9 @@ class OutboxBase(Model):
         :return: A list of dictionaries with "category" and "depth" keys,
         ordered by depth descending.
         """
+        assert "shard_scope" in shard_key and "shard_identifier" in shard_key, (
+            "shard_key must include shard_scope and shard_identifier to avoid an unbounded query"
+        )
         rows = (
             cls.objects.filter(**shard_key)
             .values("category")
