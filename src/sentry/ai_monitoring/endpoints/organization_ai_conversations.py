@@ -60,7 +60,7 @@ class UserResponse(TypedDict):
 class AIConversationResponse(TypedDict):
     conversationId: str
     title: str | None
-    projectId: str | None
+    projectId: int | None
     flow: list[str]
     errors: int
     llmCalls: int
@@ -95,15 +95,6 @@ AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
         "span in it matches. Summary fields include all spans in selected projects and time "
         "range, not only matching spans."
     ),
-)
-
-AI_CONVERSATIONS_SAMPLING_MODE_PARAM = OpenApiParameter(
-    name="samplingMode",
-    location="query",
-    required=False,
-    type=str,
-    enum=["NORMAL", "HIGHEST_ACCURACY", "HIGHEST_ACCURACY_FLEX_TIME"],
-    description="Sampling mode for finding conversation IDs. Defaults to `HIGHEST_ACCURACY`.",
 )
 
 AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
@@ -244,7 +235,7 @@ def _build_conversation_response(
     tool_errors: int = 0,
     title: str | None = None,
     generation_duration: float = 0,
-    project_id: str | None = None,
+    project_id: int | None = None,
 ) -> AIConversationResponse:
     return {
         "conversationId": conv_id,
@@ -290,7 +281,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             AI_CONVERSATIONS_QUERY_PARAM,
-            AI_CONVERSATIONS_SAMPLING_MODE_PARAM,
             CursorQueryParam,
             AI_CONVERSATIONS_PER_PAGE_PARAM,
         ],
@@ -638,8 +628,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 conversation["user"] = user_by_conversation.get(conv_id)
                 conversation["toolNames"] = sorted(tool_names_by_conversation.get(conv_id, set()))
                 conversation["toolErrors"] = tool_errors_by_conversation.get(conv_id, 0)
-                project_id = first_project_by_conversation.get(conv_id)
-                conversation["projectId"] = str(project_id) if project_id is not None else None
+                conversation["projectId"] = first_project_by_conversation.get(conv_id)
 
             return project_ids_by_conversation
 
