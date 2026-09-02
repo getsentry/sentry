@@ -13,7 +13,6 @@ result stays parseable.
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 from abc import ABC, abstractmethod
@@ -23,6 +22,7 @@ from typing import Any, Literal, TypedDict, Union
 
 from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +262,7 @@ class JsonFormatter(Formatter):
         merged: dict[str, Any] = {}
         for part in sections:
             merged.update(json.loads(part))
-        return json.dumps(merged, ensure_ascii=False)
+        return json.dumps(merged)
 
     def render_section(self, section: Section) -> str:
         groups = [self.render_group_object(group) for group in section.groups]
@@ -272,13 +272,13 @@ class JsonFormatter(Formatter):
 
         cap = section.max_group_chars if section.max_group_chars is not None else section.max_chars
         if cap is not None:
-            costs = [len(json.dumps(g, ensure_ascii=False)) for g in groups]
+            costs = [len(json.dumps(g)) for g in groups]
             groups = _keep_within(groups, costs, cap)
         if not groups:
             return ""
 
         payload: Any = groups[0] if len(groups) == 1 else groups
-        return json.dumps({slug(section.title): payload}, ensure_ascii=False)
+        return json.dumps({slug(section.title): payload})
 
     def render_group_object(self, group: Group) -> dict[str, Any]:
         fields: dict[str, Any] = {}

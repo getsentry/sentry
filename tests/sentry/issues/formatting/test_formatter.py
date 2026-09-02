@@ -1,5 +1,4 @@
 import functools
-import json
 from xml.etree import ElementTree
 
 import pytest
@@ -19,6 +18,7 @@ from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import (
     EventObject,
 )
+from sentry.utils import json
 
 
 def title_section(model: EventObject, limits: object) -> Section | None:
