@@ -17,7 +17,7 @@ In that Chrome window:
 
 1. Install the [Sentry Cookie Sync extension](https://github.com/getsentry/cookie-sync) by following its repository instructions.
 2. Authenticate to Sentry manually. Never ask the developer to paste credentials into an agent conversation or terminal command.
-3. Open `https://demo.dev.getsentry.net:7999/`, sync cookies, and confirm the demo organization renders.
+3. Open the current dev-ui's actual `https://demo.dev.getsentry.net:<port>/` URL, sync cookies, and confirm the demo organization renders.
 
 The directory persists cookies, extension state, and preferences across restarts. Normal capture runs should start this Chrome automatically and require intervention only when the corporate session expires.
 
