@@ -370,8 +370,8 @@ export const SEER_EMBED_SCHEMAS = {
       'uptime alert, "cron" for a cron alert. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders alert conditions and configured actions, plus monitored data, ' +
-      'ongoing issues, or recent check-ins when applicable. ' +
+      'Block: renders alert conditions and configured actions, plus the ' +
+      'underlying rule configuration for metric, uptime, and cron alerts. ' +
       'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],

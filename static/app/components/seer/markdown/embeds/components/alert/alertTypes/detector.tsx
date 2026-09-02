@@ -6,16 +6,20 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {
-  DetectorPreview,
-  type PreviewableDetector,
-} from 'sentry/components/seer/markdown/embeds/components/detectorPreview';
+import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
+import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
+import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconClock, IconGlobe, IconGraph, IconSiren} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  CronDetector,
+  Detector,
+  MetricDetector,
+  UptimeDetector,
+} from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,6 +30,8 @@ import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames'
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type DetectorAlertKind = Exclude<EmbedOutput<'alert'>['kind'], 'issue'>;
+
+type PreviewableDetector = MetricDetector | UptimeDetector | CronDetector;
 
 function detectorAlertApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
@@ -114,10 +120,24 @@ function DetectorAlertActions({detectorId}: {detectorId: string}) {
   );
 }
 
+function DetectorAlertConfig({detector}: {detector: PreviewableDetector}) {
+  switch (detector.type) {
+    case 'metric_issue':
+      return <MetricMonitor detector={detector} />;
+    case 'uptime_domain_failure':
+      return <UptimeMonitor detector={detector} />;
+    case 'monitor_check_in_failure':
+      return <CronMonitor detector={detector} />;
+    default:
+      unreachable(detector);
+      return null;
+  }
+}
+
 function DetectorAlertPreview({detector}: {detector: PreviewableDetector}) {
   return (
     <Stack gap="md">
-      <DetectorPreview detector={detector} />
+      <DetectorAlertConfig detector={detector} />
       <Stack.Separator />
       <Stack gap="sm">
         <Heading as="h4" size="xs">
