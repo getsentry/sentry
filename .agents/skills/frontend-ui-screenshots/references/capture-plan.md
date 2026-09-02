@@ -47,6 +47,6 @@ Sentry's container scale uses these minimum widths:
 
 Test only affected boundaries unless the user requests the full matrix. For a mobile-first minimum, capture at `N - 1` and `N`; for a `max-width` query, capture at `N` and `N + 1`.
 
-These values are query-container widths, not viewport widths. Choose viewport widths or safe actions—such as opening and resizing the Seer Explorer drawer—that place the query container on both sides of the boundary. Set each viewport's `containerWidth` to the expected rendered width; the helper measures the accessible `container` element in both versions and fails when it differs by more than 1px. The default container locator is `{"role":"main"}`.
+These values are query-container content-box widths, not viewport or border-box widths. Choose viewport widths or safe actions—such as opening and resizing the Seer Explorer drawer—that place the query container on both sides of the boundary. Set each viewport's `containerWidth` to the expected rendered width; the helper measures the accessible `container` element in both versions and fails when it differs by more than 1px. The default container locator is `{"role":"main"}`.
 
 For a nested query container, identify it by an accessible `label` or by `role` and optional accessible `name`. Name each planned viewport for the container width it produces.

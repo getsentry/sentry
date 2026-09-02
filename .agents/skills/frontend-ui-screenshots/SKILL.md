@@ -40,7 +40,7 @@ Use these defaults unless the user asks for broader coverage:
 node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifacts/ui-capture/plan.json
 ```
 
-8. Inspect every comparison. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior.
+8. Inspect every Before/After pair. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior.
 9. Publish the accepted pairs and clean up locally:
 
 ```bash
