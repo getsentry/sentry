@@ -86,7 +86,8 @@ export function AvatarButton({
           round={round}
           padded={false}
           borderColor={
-            avatarChonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
+            avatarChonk ??
+            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
           }
           borderStyle={isSuggested ? 'dashed' : 'solid'}
         >
