@@ -86,7 +86,7 @@ def _read_live_generated_at(group_id: int) -> datetime | None:
     return (
         GroupDerivedData.objects.filter(group_id=group_id)
         .values_list("generated_at", flat=True)
-        .first()
+        .get_or_none()
     )
 
 
@@ -297,7 +297,7 @@ def _log_if_live_cursor_orphaned(group_id: int, derived: GroupDerivedData) -> No
     live_cursor = (
         GroupDerivedData.objects.filter(group_id=group_id)
         .values_list("cursor_date", "cursor_id")
-        .first()
+        .get_or_none()
     )
     if live_cursor is None:
         return
