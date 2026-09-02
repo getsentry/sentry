@@ -106,7 +106,8 @@ def set_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def get_adjusted_factor(org_id: int, source: str) -> float:
+def read_adjusted_factor(org_id: int, source: str) -> float | None:
+    """The stored factor of an organization, or None when it has none stored."""
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 
@@ -122,6 +123,11 @@ def get_adjusted_factor(org_id: int, source: str) -> float:
         "dynamic_sampling.per_org.recalibration.get_adjusted_factor",
         tags={"source": source, "result": "hit" if factor is not None else "miss"},
     )
+    return factor
+
+
+def get_adjusted_factor(org_id: int, source: str) -> float:
+    factor = read_adjusted_factor(org_id, source)
     return 1.0 if factor is None else factor
 
 

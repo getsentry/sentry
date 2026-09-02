@@ -171,6 +171,7 @@ class CellSiloClient(BaseApiClient):
         json: bool = True,
         raw_response: bool = False,
         prefix_hash: str | None = None,
+        timeout: int | None = None,
     ) -> Any:
         """
         Sends a request to the cell silo.
@@ -188,6 +189,7 @@ class CellSiloClient(BaseApiClient):
             json=json,
             allow_text=True,
             raw_response=raw_response,
+            timeout=timeout,
         )
 
     def build_session(self) -> SafeSession:

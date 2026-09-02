@@ -7,7 +7,7 @@ export {
 } from './select';
 
 export {SelectOption} from './option';
-export {ReactSelect, components, createFilter} from './reactSelectWrapper';
+export {components, createFilter} from './reactSelectWrapper';
 export type {
   MultiValueProps,
   OptionsType,

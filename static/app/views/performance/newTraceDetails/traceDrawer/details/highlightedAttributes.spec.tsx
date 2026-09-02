@@ -210,7 +210,9 @@ describe('getHighlightedSpanAttributes', () => {
     const attributes = {
       'gen_ai.operation.type': 'ai_client',
       'gen_ai.usage.input_tokens': '100',
+      'gen_ai.usage.cache_read.input_tokens': '25',
       'gen_ai.usage.output_tokens': '50',
+      'gen_ai.usage.reasoning.output_tokens': '10',
       'gen_ai.usage.total_tokens': '150',
     };
 
@@ -220,5 +222,47 @@ describe('getHighlightedSpanAttributes', () => {
     });
 
     expect(result.find(attr => attr.name === 'Tokens')).toBeDefined();
+  });
+
+  it('should fall back to deprecated token attributes when replacements are unavailable', () => {
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes: {
+        'gen_ai.operation.type': 'ai_client',
+        'gen_ai.usage.input_tokens': '100',
+        'gen_ai.usage.input_tokens.cached': '25',
+        'gen_ai.usage.output_tokens': '50',
+        'gen_ai.usage.output_tokens.reasoning': '10',
+        'gen_ai.usage.total_tokens': '150',
+      },
+    });
+
+    const tokens = result.find(attr => attr.name === 'Tokens');
+    expect(tokens?.value).toEqual(
+      expect.objectContaining({
+        props: expect.objectContaining({
+          cachedTokens: 25,
+          reasoningTokens: 10,
+        }),
+      })
+    );
+  });
+
+  it('should include MCP attributes using their Sentry convention names', () => {
+    const result = getHighlightedSpanAttributes({
+      op: 'mcp.server',
+      spanId: '123',
+      attributes: {
+        'gen_ai.tool.name': 'calculator',
+        'gen_ai.prompt.name': 'summarize',
+        'network.transport': 'stdio',
+      },
+    });
+
+    expect(result).toEqual([
+      {name: 'Tool Name', value: 'calculator'},
+      {name: 'Prompt Name', value: 'summarize'},
+      {name: 'Transport', value: 'stdio'},
+    ]);
   });
 });

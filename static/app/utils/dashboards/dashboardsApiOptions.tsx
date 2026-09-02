@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 
 const MAX_STARRED_DASHBOARDS_IN_NAV = 20;
 
@@ -36,6 +36,19 @@ export function dashboardsApiOptions(
       path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
       ...(query ? {query} : {}),
+    }
+  );
+}
+
+export function dashboardDetailsApiOptions(
+  organization: Organization,
+  dashboardId: string
+) {
+  return apiOptions.as<DashboardDetails>()(
+    '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
+    {
+      path: {organizationIdOrSlug: organization.slug, dashboardId},
+      staleTime: 30_000,
     }
   );
 }

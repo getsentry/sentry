@@ -999,7 +999,6 @@ export default typescript.config([
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      'import/no-duplicates': 'off',
     },
   },
   {

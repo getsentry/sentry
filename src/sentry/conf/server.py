@@ -442,8 +442,6 @@ SENTRY_HYBRIDCLOUD_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
     "CELL": ["sentry.CellOutbox"],
 }
-# Backwards-compatible alias for getsentry, which extends this mapping with UsageOutbox.
-SENTRY_OUTBOX_MODELS = SENTRY_HYBRIDCLOUD_OUTBOX_MODELS
 
 # Do not modify reordering
 # The applications listed first in INSTALLED_APPS have precedence
@@ -985,6 +983,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
@@ -2993,6 +2992,13 @@ SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
+
+# URL of the teapot GPU crash dump symbolication service, derived from the
+# SENTRY_TEAPOT_HOST host:port (the k8s service in SaaS, localhost in dev).
+SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}"
+
+# Shared secret used to sign requests to teapot
+SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
