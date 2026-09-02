@@ -182,6 +182,19 @@ def verify_signature(request) -> bool:
     return True
 
 
+def _is_next_release_error(body: Any) -> bool:
+    """
+    Recognize the 400 the issue update API answers with when the release is not configured.
+
+    The body is whatever that endpoint responded with, and it is not always a mapping: a
+    `ValidationError` raised on a bare string serializes to a list.
+    """
+    if not isinstance(body, dict):
+        return False
+    status_details = body.get("statusDetails")
+    return isinstance(status_details, dict) and bool(status_details.get("inNextRelease"))
+
+
 class MsTeamsEvents(Enum):
     INSTALLATION_UPDATE = "installationUpdate"
     MESSAGE = "message"
@@ -540,10 +553,15 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 # If the user hasn't configured their releases properly, we recieve errors like:
                 # sentry.api.client.ApiError: status=400 body={'statusDetails': {'inNextRelease': [xxx])]}}"
                 # We can mark these as halt
-                elif e.status_code == 400 and e.body.get("statusDetails", {}).get("inNextRelease"):
+                elif e.status_code == 400 and _is_next_release_error(e.body):
                     lifecycle.record_halt(e)
                 elif e.status_code >= 400:
                     lifecycle.record_failure(e)
+                # Answer with the status the API gave us. Leaving `response` unset raised
+                # `UnboundLocalError` instead, so every rejected action came back as a 500 that
+                # the webhook drain treats as retryable, holding the tenant's mailbox behind a
+                # record that can only fail again.
+                response = self.respond(status=e.status_code)
             return response
 
     def _handle_action_submitted(self, request: Request) -> Response:
