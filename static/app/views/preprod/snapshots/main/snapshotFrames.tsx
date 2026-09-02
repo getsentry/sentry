@@ -97,14 +97,9 @@ const SnapshotVariantContainer = styled(Container, {
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-
-  &:first-child > ${SelectedOverlay} {
-    border-top-left-radius: ${p => p.theme.radius.md};
-    border-top-right-radius: ${p => p.theme.radius.md};
-  }
-
-  &:last-child > ${SelectedOverlay} {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-    border-bottom-right-radius: ${p => p.theme.radius.md};
-  }
 `;
+
+// The selection overlay stays square; the enclosing frame (SnapshotCardFrame or
+// the list's RowFrame) clips it to the frame's rounded corners via overflow:
+// hidden, so it always follows the actual frame edge rather than assuming this
+// card is the first/last in its group.

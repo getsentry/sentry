@@ -354,8 +354,13 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       setScrollTop(top);
       const virtualRows = virtualizer.getVirtualItems();
 
+      // Virtualizer offsets are content-relative; the container's top padding
+      // sits above them. Anchor row detection to the same line the sticky header
+      // uses so the sidebar group and progress counter stay in sync with it.
+      const anchor = top - Number.parseFloat(theme.space.xl);
+
       // Topmost visible row defines the active group and the scroll anchor.
-      const topRowItem = virtualRows.find(vi => vi.end > top) ?? virtualRows[0];
+      const topRowItem = virtualRows.find(vi => vi.end > anchor) ?? virtualRows[0];
       visibleRowIdxRef.current = topRowItem?.index ?? 0;
       const topRow = topRowItem ? rowsRef.current[topRowItem.index] : undefined;
       onVisibleGroupChangeRef.current?.(
@@ -366,7 +371,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         const maxScroll = el.scrollHeight - el.clientHeight;
         const progress = maxScroll > 0 ? (top / maxScroll) * 100 : 0;
         const topCardItem = virtualRows.find(
-          vi => vi.end > top && rowsRef.current[vi.index]?.kind === 'card'
+          vi => vi.end > anchor && rowsRef.current[vi.index]?.kind === 'card'
         );
         const topCardRow = topCardItem ? rowsRef.current[topCardItem.index] : undefined;
         const key =
@@ -375,7 +380,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         onScrollProgressRef.current(progress, ordinal);
       }
     });
-  }, [virtualizer]);
+  }, [virtualizer, theme.space.xl]);
 
   useEffect(() => {
     const el = scrollRef.current;
