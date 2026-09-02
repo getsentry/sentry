@@ -182,9 +182,9 @@ function Step(props: StepProps) {
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       {props.trailingItems ? (
         <Flex
-          direction={{'screen:xs': 'column', 'screen:md': 'row'}}
-          align={{'screen:xs': 'start', 'screen:md': 'center'}}
-          paddingLeft={{'screen:xs': 'lg', 'screen:md': '0'}}
+          direction={{zero: 'column', '3xl': 'row'}}
+          align={{zero: 'start', '3xl': 'center'}}
+          paddingLeft={{zero: 'lg', '3xl': '0'}}
           justify="between"
           gap="sm"
           area="heading"

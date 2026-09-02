@@ -291,8 +291,8 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
     <Grid
       {...props}
       columns={{
-        'screen:xs': 'minmax(0, 1fr) auto',
-        'screen:md': 'minmax(580px, 1fr) minmax(0, 256px)',
+        zero: 'minmax(0, 1fr) auto',
+        '3xl': 'minmax(580px, 1fr) minmax(0, 256px)',
       }}
       height="100%"
     />
@@ -323,7 +323,7 @@ const StoryContainer = styled('div')`
   padding-inline: ${p => p.theme.space.xl};
   container-type: inline-size;
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     max-width: 832px;
     margin-inline: auto;
   }
