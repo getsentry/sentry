@@ -71,9 +71,10 @@ export function AddFilter({
     }));
   }, []);
 
-  const filterKeys = selectedDataset
+  const searchBarData = selectedDataset ? getSearchBarData(selectedDataset) : null;
+  const filterKeys = searchBarData
     ? Object.fromEntries(
-        Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
+        Object.entries(searchBarData.getFilterKeys()).filter(
           ([key, value]) =>
             !shouldExcludeTracingKeys(key) &&
             (!value.kind || !UNSUPPORTED_FIELD_KINDS.includes(value.kind))
@@ -123,6 +124,7 @@ export function AddFilter({
             }
           : false
       }
+      loading={Boolean(isSelectingFilterKey && searchBarData?.isFetchingFilterKeys)}
       sizeLimit={50}
       closeOnSelect={false}
       onClose={() => {

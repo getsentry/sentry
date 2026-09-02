@@ -68,6 +68,7 @@ export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
   getTagValues: GetTagValues;
+  isFetchingFilterKeys?: boolean;
 }
 
 /**

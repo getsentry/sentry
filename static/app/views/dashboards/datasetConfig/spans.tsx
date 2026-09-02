@@ -155,14 +155,17 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
   const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useSpanItemAttributes(
-      {
-        enabled: organization.features.includes('visibility-explore-view'),
-        search: filterKeySearch,
-      },
-      'string'
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: isFetchingFilterKeys,
+    secondaryAliases: stringSecondaryAliases,
+  } = useSpanItemAttributes(
+    {
+      enabled: organization.features.includes('visibility-explore-view'),
+      search: filterKeySearch,
+    },
+    'string'
+  );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useSpanItemAttributes(
       {
@@ -198,6 +201,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 

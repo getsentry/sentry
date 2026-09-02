@@ -246,12 +246,15 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
 ): SearchBarData {
   const {filterKeySearch, pageFilters} = props;
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes(
-      {search: filterKeySearch},
-      'string',
-      HiddenTraceMetricSearchFields
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: isFetchingFilterKeys,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    {search: filterKeySearch},
+    'string',
+    HiddenTraceMetricSearchFields
+  );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
       {search: filterKeySearch},
@@ -284,6 +287,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 

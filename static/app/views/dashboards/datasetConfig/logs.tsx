@@ -161,11 +161,14 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const organization = useOrganization();
   const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useLogItemAttributes(
-      {enabled: isLogsEnabled(organization), search: filterKeySearch},
-      'string'
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: isFetchingFilterKeys,
+    secondaryAliases: stringSecondaryAliases,
+  } = useLogItemAttributes(
+    {enabled: isLogsEnabled(organization), search: filterKeySearch},
+    'string'
+  );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useLogItemAttributes(
       {enabled: isLogsEnabled(organization), search: filterKeySearch},
@@ -204,6 +207,7 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
