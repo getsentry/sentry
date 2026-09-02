@@ -7,38 +7,46 @@ export const SAMPLE_SIZE = 12;
 // like borders against their adjacent content.
 export const MIN_EDGE_CONTRAST = 3;
 
+// TS can't prove typed-array index access is defined; this centralizes the
+// single suppression so callers stay clean.
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const px = (data: Uint8ClampedArray, i: number): number => data[i]!;
+
 // Returns 'fill' when the image covers the full frame edge-to-edge, 'padded' otherwise.
 // Each edge check returns 'padded' when every pixel on that edge is transparent (alpha < 128).
 // Pixel (col, row) has its alpha channel at (row * 12 + col) * 4 + 3 in a 12×12 RGBA canvas.
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 export function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
   // oxfmt-ignore
-  if (!(data[3]!>=128   || data[51]!>=128  || data[99]!>=128  ||
-        data[147]!>=128 || data[195]!>=128 || data[243]!>=128 ||
-        data[291]!>=128 || data[339]!>=128 || data[387]!>=128 ||
-        data[435]!>=128 || data[483]!>=128 || data[531]!>=128)) {return 'padded';}
+  if (!(px(data,3)>=128   || px(data,51)>=128  || px(data,99)>=128  ||
+        px(data,147)>=128 || px(data,195)>=128 || px(data,243)>=128 ||
+        px(data,291)>=128 || px(data,339)>=128 || px(data,387)>=128 ||
+        px(data,435)>=128 || px(data,483)>=128 || px(data,531)>=128)) {return 'padded';}
   // oxfmt-ignore
-  if (!(data[47]!>=128  || data[95]!>=128  || data[143]!>=128 ||
-        data[191]!>=128 || data[239]!>=128 || data[287]!>=128 ||
-        data[335]!>=128 || data[383]!>=128 || data[431]!>=128 ||
-        data[479]!>=128 || data[527]!>=128 || data[575]!>=128)) {return 'padded';}
+  if (!(px(data,47)>=128  || px(data,95)>=128  || px(data,143)>=128 ||
+        px(data,191)>=128 || px(data,239)>=128 || px(data,287)>=128 ||
+        px(data,335)>=128 || px(data,383)>=128 || px(data,431)>=128 ||
+        px(data,479)>=128 || px(data,527)>=128 || px(data,575)>=128)) {return 'padded';}
   // oxfmt-ignore
-  if (!(data[3]!>=128  || data[7]!>=128  || data[11]!>=128 ||
-        data[15]!>=128 || data[19]!>=128 || data[23]!>=128 ||
-        data[27]!>=128 || data[31]!>=128 || data[35]!>=128 ||
-        data[39]!>=128 || data[43]!>=128 || data[47]!>=128)) {return 'padded';}
+  if (!(px(data,3)>=128  || px(data,7)>=128  || px(data,11)>=128 ||
+        px(data,15)>=128 || px(data,19)>=128 || px(data,23)>=128 ||
+        px(data,27)>=128 || px(data,31)>=128 || px(data,35)>=128 ||
+        px(data,39)>=128 || px(data,43)>=128 || px(data,47)>=128)) {return 'padded';}
   // oxfmt-ignore
-  if (!(data[531]!>=128 || data[535]!>=128 || data[539]!>=128 ||
-        data[543]!>=128 || data[547]!>=128 || data[551]!>=128 ||
-        data[555]!>=128 || data[559]!>=128 || data[563]!>=128 ||
-        data[567]!>=128 || data[571]!>=128 || data[575]!>=128)) {return 'padded';}
-  if (data[3]! < 128 || data[47]! < 128 || data[531]! < 128 || data[575]! < 128) {
+  if (!(px(data,531)>=128 || px(data,535)>=128 || px(data,539)>=128 ||
+        px(data,543)>=128 || px(data,547)>=128 || px(data,551)>=128 ||
+        px(data,555)>=128 || px(data,559)>=128 || px(data,563)>=128 ||
+        px(data,567)>=128 || px(data,571)>=128 || px(data,575)>=128)) {return 'padded';}
+  if (
+    px(data, 3) < 128 ||
+    px(data, 47) < 128 ||
+    px(data, 531) < 128 ||
+    px(data, 575) < 128
+  ) {
     return 'padded';
   }
 
   return 'fill';
 }
-/* eslint-enable @typescript-eslint/no-non-null-assertion */
 
 export function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   try {
@@ -88,14 +96,12 @@ function saturationOf(r: number, g: number, b: number): number {
 export function dominantColor(data: Uint8ClampedArray): string | null {
   let hasChromatic = false;
   for (let i = 0; i < data.length; i += 4) {
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    if (data[i + 3]! < 128) {
+    if (px(data, i + 3) < 128) {
       continue;
     }
-    const r = data[i]!,
-      g = data[i + 1]!,
-      b = data[i + 2]!;
-    /* eslint-enable @typescript-eslint/no-non-null-assertion */
+    const r = px(data, i),
+      g = px(data, i + 1),
+      b = px(data, i + 2);
     if (saturationOf(r, g, b) >= 0.15) {
       hasChromatic = true;
       break;
@@ -105,14 +111,12 @@ export function dominantColor(data: Uint8ClampedArray): string | null {
   const buckets = new Map<string, {b: number; count: number; g: number; r: number}>();
 
   for (let i = 0; i < data.length; i += 4) {
-    /* eslint-disable @typescript-eslint/no-non-null-assertion */
-    if (data[i + 3]! < 128) {
+    if (px(data, i + 3) < 128) {
       continue;
     }
-    const r = data[i]!,
-      g = data[i + 1]!,
-      b = data[i + 2]!;
-    /* eslint-enable @typescript-eslint/no-non-null-assertion */
+    const r = px(data, i),
+      g = px(data, i + 1),
+      b = px(data, i + 2);
 
     const chromatic = saturationOf(r, g, b) >= 0.15;
     if (hasChromatic && !chromatic) {
