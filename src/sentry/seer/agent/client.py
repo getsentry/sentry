@@ -592,15 +592,23 @@ class SeerAgentClient:
         if agent_run_options is not None:
             resolved_agent_run_options.update(agent_run_options)
 
+        body = SeerFeatureRunRequest(
+            feature_id=feature_id,
+            payload=payload,
+            agent_run_options=resolved_agent_run_options,
+        )
+        # Only for human-triggered runs: this is what attributes the run to its user in
+        # Seer's tracing, and collecting it costs several queries an automated trigger
+        # has no use for. ViewerContext carries ids alone, so without this the run
+        # reports no user at all.
+        if self.user is not None and not isinstance(self.user, AnonymousUser):
+            body["user_org_context"] = collect_user_org_context(self.user, self.organization)
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
             on_run_created=_create_agent_run,
-            body=SeerFeatureRunRequest(
-                feature_id=feature_id,
-                payload=payload,
-                agent_run_options=resolved_agent_run_options,
-            ),
+            body=body,
             viewer_context=self.viewer_context,
             user_id=user_id,
             referrer=referrer,
