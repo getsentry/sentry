@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-import orjson
 from django.http import HttpResponse
 from django.http.response import HttpResponseBase
 from rest_framework import status
@@ -39,10 +38,7 @@ class JiraServerRequestParser(BaseRequestParser):
 
         cells = self.get_cells_from_organizations(organizations=organizations)
 
-        try:
-            data = orjson.loads(self.request.body)
-        except orjson.JSONDecodeError:
-            data = {}
+        data = self.get_request_body()
 
         # We only process webhooks with changelogs
         if not data.get("changelog"):
