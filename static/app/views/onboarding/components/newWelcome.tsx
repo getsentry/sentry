@@ -27,7 +27,10 @@ import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
+import {
+  useWelcomeAgentRun,
+  WelcomeAgentSetup,
+} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
@@ -132,6 +135,9 @@ export function NewWelcomeUI(props: StepProps) {
   // WelcomeAgentSetup initializes the agentic run as soon as it mounts — so
   // there is no separate preload to run first.
   const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
+  const {run, onboardingCode, isAgentConnected} = useWelcomeAgentRun({
+    enabled: showAgentSetup,
+  });
 
   useWelcomeAnalyticsEffect();
 
@@ -219,8 +225,11 @@ export function NewWelcomeUI(props: StepProps) {
                 {...ONBOARDING_WELCOME_STAGGER_ITEM}
               >
                 <WelcomeAgentSetup
+                  isAgentConnected={isAgentConnected}
+                  onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
                   onSetupInBrowser={handleComplete}
+                  run={run}
                 />
               </MotionContainer>
             ) : (

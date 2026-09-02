@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgenticProgress} from 'sentry/views/onboarding/agenticProgress/agenticProgressList';
+import type {AgenticProgressRun} from 'sentry/views/onboarding/agenticProgress/types';
 import {useAgenticProgress} from 'sentry/views/onboarding/agenticProgress/useAgenticProgress';
 import {useAgenticProgressInit} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
 import {
@@ -16,7 +17,36 @@ import {ManualSetupCard} from 'sentry/views/onboarding/components/manualSetupCar
 
 const MotionContainer = motion.create(Container);
 
+/**
+ * Owns the welcome step's agentic run. useAgenticProgressInit keys its query on
+ * a per-hook id until the onboarding context catches up, so exactly one caller
+ * may run it — the step reads the run here and hands it down.
+ */
+export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
+  const initialization = useAgenticProgressInit({enabled});
+  const progress = useAgenticProgress({
+    runId: initialization.data?.runId ?? null,
+    enabled,
+  });
+  const liveRun = progress.data ?? initialization.data;
+  const connectionStatus = liveRun?.stages.find(
+    stage => stage.stage === 'connect_mcp'
+  )?.status;
+  const liveIsConnected = connectionStatus !== null && connectionStatus !== undefined;
+
+  return {
+    run: liveRun,
+    onboardingCode: initialization.data?.onboardingCode,
+    isAgentConnected: liveIsConnected,
+    isSetupComplete: liveRun?.runStatus === 'completed',
+  };
+}
+
 interface WelcomeAgentSetupProps {
+  /**
+   * Whether an agent has reported in. Drives the swap to the run's progress.
+   */
+  isAgentConnected: boolean;
   /**
    * Fired when a command is copied out of one of the code blocks.
    */
@@ -25,27 +55,31 @@ interface WelcomeAgentSetupProps {
    * Leaves the agent path and continues into the step-by-step browser flow.
    */
   onSetupInBrowser: () => void;
+  /**
+   * The step's agentic run, once initialization has returned one.
+   */
+  run: AgenticProgressRun | undefined;
+  /**
+   * The code the agent reports progress against, shown in the copied prompt.
+   */
+  onboardingCode?: string;
 }
 
 export function WelcomeAgentSetup({
+  isAgentConnected,
+  onboardingCode,
   onCopyCommand,
   onSetupInBrowser,
+  run,
 }: WelcomeAgentSetupProps) {
   const organization = useOrganization();
-  const initialization = useAgenticProgressInit({enabled: true});
-  const progress = useAgenticProgress({runId: initialization.data?.runId ?? null});
-  const run = progress.data ?? initialization.data;
-  const connectionStatus = run?.stages.find(
-    stage => stage.stage === 'connect_mcp'
-  )?.status;
-  const isAgentConnected = connectionStatus !== null && connectionStatus !== undefined;
   // Built as separate lines rather than one sentence: the code block renders
   // with `white-space: pre-wrap`, so the breaks survive into what gets copied.
-  const prompt = initialization.data?.onboardingCode
+  const prompt = onboardingCode
     ? [
         t('Help me setup Sentry'),
         t('Org ID: %s', organization.slug),
-        `[${initialization.data.onboardingCode}]`,
+        `[${onboardingCode}]`,
       ].join('\n')
     : t('Help me setup Sentry');
 
@@ -60,10 +94,7 @@ export function WelcomeAgentSetup({
             animate={{opacity: 1, scale: 1}}
             exit={{opacity: 0, scale: 0.9}}
           >
-            <AgenticProgress
-              run={run}
-              onboardingCode={initialization.data?.onboardingCode}
-            />
+            <AgenticProgress run={run} onboardingCode={onboardingCode} />
           </MotionContainer>
         ) : (
           <MotionContainer
@@ -74,7 +105,7 @@ export function WelcomeAgentSetup({
             exit={{opacity: 0, scale: 0.9}}
           >
             <AgentSetupCard
-              onboardingCode={initialization.data?.onboardingCode}
+              onboardingCode={onboardingCode}
               onCopyCommand={onCopyCommand}
               prompt={prompt}
             />
