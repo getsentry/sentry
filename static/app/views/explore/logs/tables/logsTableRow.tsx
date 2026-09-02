@@ -166,13 +166,51 @@ const ALLOWED_CELL_ACTIONS: Actions[] = [
 ];
 const EXPLORE_SIMILAR_SPANS_REFERRER = 'trace-logs-table-similar-spans';
 
+function getExploreSimilarSpansUrl({
+  message,
+  organization,
+  selection,
+}: {
+  message: string;
+  organization: Organization;
+  selection: PageFilters;
+}) {
+  return getExploreUrl({
+    organization,
+    selection: {
+      ...selection,
+      datetime: {
+        period: '24h',
+        start: null,
+        end: null,
+        utc: selection.datetime.utc,
+      },
+    },
+    mode: Mode.SAMPLES,
+    referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
+    crossEvents: [
+      {
+        type: 'logs',
+        query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(message)}"`,
+      },
+    ],
+  });
+}
+
 function getExploreSimilarSpansMenuItems({
   message,
+  onResolveMessage,
   organization,
   selection,
   showExploreSimilarSpansLink,
 }: {
   message: string | number | null | undefined;
+  /**
+   * Set while the untruncated message has not loaded. The item resolves the
+   * message on click rather than linking to a query built from a shortened one,
+   * so it trades the href for correctness only for as long as that lasts.
+   */
+  onResolveMessage: (() => void) | undefined;
   organization: Organization;
   selection: PageFilters;
   showExploreSimilarSpansLink?: boolean;
@@ -187,26 +225,15 @@ function getExploreSimilarSpansMenuItems({
     {
       key: 'explore-similar-spans',
       label: t('Explore similar spans'),
-      to: getExploreUrl({
-        organization,
-        selection: {
-          ...selection,
-          datetime: {
-            period: '24h',
-            start: null,
-            end: null,
-            utc: selection.datetime.utc,
-          },
-        },
-        mode: Mode.SAMPLES,
-        referrer: EXPLORE_SIMILAR_SPANS_REFERRER,
-        crossEvents: [
-          {
-            type: 'logs',
-            query: `${OurLogKnownFieldKey.MESSAGE}:"${escapeDoubleQuotes(messageString)}"`,
-          },
-        ],
-      }),
+      ...(onResolveMessage
+        ? {onAction: onResolveMessage}
+        : {
+            to: getExploreSimilarSpansUrl({
+              message: messageString,
+              organization,
+              selection,
+            }),
+          }),
     },
   ];
 }
@@ -405,6 +432,19 @@ export const LogRowContent = memo(function LogRowContentImpl({
       resolveFullCellValue(field, cellValue),
     onSuccess: value => copyToClipboard(value),
     onError: (_error, {cellValue}) => copyToClipboard(cellValue),
+  });
+
+  const exploreSimilarSpans = useMutation({
+    mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
+      resolveFullCellValue(field, cellValue),
+    onSuccess: value =>
+      navigate(
+        getExploreSimilarSpansUrl({
+          message: String(value),
+          organization,
+          selection,
+        })
+      ),
   });
 
   const filterOnCellValue = useMutation({
@@ -608,6 +648,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
               field === OurLogKnownFieldKey.MESSAGE
                 ? getExploreSimilarSpansMenuItems({
                     message: typeof fullMessage === 'string' ? fullMessage : value,
+                    onResolveMessage:
+                      typeof fullMessage === 'string'
+                        ? undefined
+                        : () =>
+                            exploreSimilarSpans.mutate({cellValue: value ?? '', field}),
                     organization,
                     selection,
                     showExploreSimilarSpansLink,

@@ -506,6 +506,24 @@ describe('logsTableRow', () => {
       ...rowData,
       [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
     };
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithQuotedMessage[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      body: {
+        itemId: rowDataWithQuotedMessage[OurLogKnownFieldKey.ID],
+        links: null,
+        meta: {},
+        timestamp: rowDataWithQuotedMessage[OurLogKnownFieldKey.TIMESTAMP],
+        attributes: Object.entries(rowDataWithQuotedMessage).map(
+          ([k, v]) =>
+            ({
+              name: k,
+              value: v,
+              type: typeof v === 'string' ? 'str' : 'float',
+            }) as TraceItemResponseAttribute
+        ),
+      },
+    });
 
     render(
       <LogRowContent
@@ -525,7 +543,11 @@ describe('logsTableRow', () => {
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
 
-    const link = (await screen.findByText('Explore similar spans')).closest('a')!;
+    const link = await waitFor(() => {
+      const anchor = screen.getByText('Explore similar spans').closest('a');
+      expect(anchor).not.toBeNull();
+      return anchor!;
+    });
     for (const label of ['Copy to clipboard', 'Add to filter', 'Exclude from filter']) {
       const menuItem = await screen.findByText(label);
       expect(menuItem.compareDocumentPosition(link)).toBe(
@@ -580,6 +602,33 @@ describe('logsTableRow', () => {
         .closest('a')!
         .getAttribute('href')!;
       expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
+        {type: 'logs', query: `message:"${fullMessage}"`},
+      ]);
+    });
+  });
+
+  it('resolves the untruncated message when similar spans is clicked before the details load', async () => {
+    const {router} = render(
+      <LogRowContent
+        dataRow={rowDataWithTruncatedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+        showExploreSimilarSpansLink
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow, {delay: null});
+    const messageCell = await screen.findByTestId('log-table-cell-message');
+    await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
+    await userEvent.click(await screen.findByText('Explore similar spans'));
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([
         {type: 'logs', query: `message:"${fullMessage}"`},
       ]);
     });
