@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -28,6 +29,7 @@ import {
   useQueryParamsFields,
   useQueryParamsQuery,
   useQueryParamsSortBys,
+  useSetQueryParamsFields,
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 
@@ -46,6 +48,7 @@ interface SpansTableProps {
 
 interface ResolvedSpanTable {
   data: EventData[];
+  dataUpdatedAt: number;
   fields: readonly string[];
   identityKey: string;
   meta: MetaType;
@@ -63,6 +66,7 @@ export function SpansTable({
   const query = useQueryParamsQuery();
   const cursor = useQueryParamsCursor();
   const sortBys = useQueryParamsSortBys();
+  const setFields = useSetQueryParamsFields();
   const setSortBys = useSetQueryParamsSortBys();
   const organization = useOrganization();
   const canExpandSpanDetails = organization.features.includes(
@@ -93,24 +97,30 @@ export function SpansTable({
       ]),
     [cursor, eventView, query, requestIdentityKey, sortBys]
   );
-  const resolvedTable = useMemo<ResolvedSpanTable | null>(() => {
+  const resolvedTable = useMemo<Omit<ResolvedSpanTable, 'fields'> | null>(() => {
     if (result.isSuccess && !result.isPlaceholderData && result.data) {
       return {
         data: result.data,
-        fields: eventView.fields.map(field => field.field),
+        dataUpdatedAt: result.dataUpdatedAt,
         identityKey: tableIdentityKey,
         meta: result.meta ?? {},
         pageLinks: result.pageLinks,
       };
     }
     return null;
-  }, [eventView.fields, result, tableIdentityKey]);
+  }, [result, tableIdentityKey]);
   const [lastResolvedTable, setLastResolvedTable] = useState<ResolvedSpanTable | null>(
-    resolvedTable
+    resolvedTable ? {...resolvedTable, fields} : null
   );
+  const rolledBackResultRef = useRef<SpansTableResult['result'] | null>(null);
 
-  if (resolvedTable && resolvedTable !== lastResolvedTable) {
-    setLastResolvedTable(resolvedTable);
+  if (
+    resolvedTable &&
+    (resolvedTable.data !== lastResolvedTable?.data ||
+      resolvedTable.dataUpdatedAt !== lastResolvedTable?.dataUpdatedAt ||
+      resolvedTable.identityKey !== lastResolvedTable?.identityKey)
+  ) {
+    setLastResolvedTable({...resolvedTable, fields});
   }
 
   const canRetainLastResolvedTable = lastResolvedTable?.identityKey === tableIdentityKey;
@@ -128,13 +138,32 @@ export function SpansTable({
     (result.isPlaceholderData || result.isError) && canRetainLastResolvedTable
       ? lastResolvedTable.pageLinks
       : result.pageLinks;
+  const addedFields = useMemo(
+    () =>
+      canRetainLastResolvedTable
+        ? fields.filter(field => !lastResolvedTable.fields.includes(field))
+        : [],
+    [canRetainLastResolvedTable, fields, lastResolvedTable]
+  );
   const isRetainedError =
     result.isError && canRetainLastResolvedTable && Boolean(displayedData?.length);
-  const pendingFields = new Set(
-    canRetainLastResolvedTable && (result.isFetching || result.isError)
-      ? fields.filter(field => !lastResolvedTable.fields.includes(field))
-      : []
-  );
+  const isFieldAdditionError = result.isError && addedFields.length > 0;
+  const pendingFields = new Set(result.isFetching ? addedFields : []);
+
+  useEffect(() => {
+    if (
+      !result.isError ||
+      !lastResolvedTable ||
+      addedFields.length === 0 ||
+      rolledBackResultRef.current === result
+    ) {
+      return;
+    }
+
+    rolledBackResultRef.current = result;
+    setFields([...lastResolvedTable.fields], {replace: true});
+    addErrorMessage(t('Failed to add column'));
+  }, [addedFields, lastResolvedTable, result, setFields]);
 
   const meta = useMemo(
     () =>
@@ -248,7 +277,7 @@ export function SpansTable({
           )}
         </DataTable.Body>
       </DataTable>
-      {isRetainedError ? (
+      {isRetainedError && !isFieldAdditionError ? (
         <LoadingError
           message={t('Failed to update span samples')}
           onRetry={() => void result.refetch()}

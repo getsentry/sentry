@@ -13,6 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ResponseMeta} from 'sentry/types/api';
@@ -301,15 +302,25 @@ describe('SpansTable', () => {
     });
   });
 
-  it('retains expanded details while a new column loads or fails', async () => {
+  it('retains expanded details while a new column loads and rolls it back on failure', async () => {
+    const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
     mockSpanDetails(firstRow, [
       {name: 'span.custom', type: 'str', value: 'custom value'},
     ]);
 
-    const {rerenderTable} = renderTable({tableRows: [firstRow]});
+    const {rerenderTable, router} = renderTable({tableRows: [firstRow]});
     await openAttributeActions('span.custom');
     expect(await screen.findByText('custom value')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Add this as table column'));
+
+    router.navigate(
+      `/organizations/${organization.slug}/explore/traces/?field=id&field=span.name&field=span.duration&field=transaction&field=timestamp&field=span.custom`
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('columnheader', {name: 'span.description'})
+      ).not.toBeInTheDocument();
+    });
 
     const pendingResult = makeQueryResult([firstRow]);
     Object.assign(pendingResult, {
@@ -332,9 +343,17 @@ describe('SpansTable', () => {
     });
     rerenderTable(failedResult);
 
+    const table = screen.getByTestId('spans-table');
+    await waitFor(() => {
+      expect(
+        within(table).queryByRole('columnheader', {name: 'span.custom'})
+      ).not.toBeInTheDocument();
+    });
+    expect(addErrorMessage).toHaveBeenCalledWith('Failed to add column');
+    expect(
+      within(table).getByRole('columnheader', {name: 'span.description'})
+    ).toBeInTheDocument();
     expect(screen.getByText('custom value')).toBeInTheDocument();
-    expect(screen.getByText('Failed to update span samples')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 
   it('resets expanded details when the result identity changes', async () => {
