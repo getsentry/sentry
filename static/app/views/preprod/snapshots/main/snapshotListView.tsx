@@ -363,9 +363,9 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       const topRowItem = virtualRows.find(vi => vi.end > anchor) ?? virtualRows[0];
       visibleRowIdxRef.current = topRowItem?.index ?? 0;
       const topRow = topRowItem ? rowsRef.current[topRowItem.index] : undefined;
-      onVisibleGroupChangeRef.current?.(
-        topRow && isGroupedRow(topRow) ? topRow.itemKey : null
-      );
+      // The sidebar highlights whatever item is at the top — grouped or not
+      // (the sticky *header* is what hides for ungrouped items, computed below).
+      onVisibleGroupChangeRef.current?.(topRow?.itemKey ?? null);
 
       if (onScrollProgressRef.current) {
         const maxScroll = el.scrollHeight - el.clientHeight;

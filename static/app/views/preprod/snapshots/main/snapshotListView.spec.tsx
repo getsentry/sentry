@@ -166,6 +166,28 @@ describe('SnapshotListView', () => {
     expect(firstIdx).toBe(0);
   });
 
+  it('reports the visible item key to the sidebar even for ungrouped items', async () => {
+    const onVisibleGroupChange = jest.fn();
+    render(
+      <SnapshotListView
+        items={[
+          {
+            key: 'added:solo',
+            name: 'solo.png',
+            displayName: 'solo.png',
+            type: 'added',
+            images: [image({group: undefined, image_file_name: 'solo.png'})],
+          },
+        ]}
+        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+        onVisibleGroupChange={onVisibleGroupChange}
+      />
+    );
+
+    await waitFor(() => expect(onVisibleGroupChange).toHaveBeenCalled());
+    expect(onVisibleGroupChange).toHaveBeenLastCalledWith('added:solo');
+  });
+
   it('arrow-down selects the next card via onSelectSnapshot', () => {
     const onSelectSnapshot = jest.fn();
     render(
