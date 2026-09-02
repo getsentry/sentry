@@ -532,7 +532,9 @@ def trigger_autofix_agent(
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
-        skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
+        skip_quota_check = skip_quota or (
+            allow_free_cohort and is_free_cohort_org(group.organization)
+        )
         if not skip_quota_check:
             has_budget: bool = quotas.backend.check_seer_quota(
                 org_id=group.organization.id,
