@@ -36,7 +36,7 @@ interface ContainerLayoutProps {
   paddingLeft?: Responsive<SpaceSize>;
   paddingRight?: Responsive<SpaceSize>;
 
-  position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
+  position?: Responsive<CSS['position']>;
 
   inset?: Responsive<CSS['inset']>;
   top?: Responsive<CSS['inset']>;

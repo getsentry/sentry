@@ -150,6 +150,8 @@ type PointerEvents =
 
 type AspectRatio = `${number}/${number}` | `${number}` | 'auto' | Globals;
 
+type Position = Globals | 'static' | 'relative' | 'absolute' | 'fixed' | 'sticky';
+
 export type CSS = {
   alignSelf: SelfAlignment | Globals;
   aspectRatio: AspectRatio;
@@ -201,5 +203,6 @@ export type CSS = {
   minWidth: Width;
   order: CssNumber | Globals;
   pointerEvents: PointerEvents;
+  position: Position;
   width: Width;
 };
