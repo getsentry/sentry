@@ -68,4 +68,10 @@ export type GridData<
     dataRow?: DataRow,
     rowIndex?: number
   ) => React.ReactNode[];
+  /**
+   * CSS grid tracks keyed by column, for columns that should size to their
+   * content rather than to the table's minimum column width. Takes precedence
+   * over the column's own width.
+   */
+  staticColumnWidths?: Record<string, number | string>;
 };
