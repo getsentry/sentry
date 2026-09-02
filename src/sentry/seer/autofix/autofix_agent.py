@@ -524,8 +524,8 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by night shift to bypass
             quota for free cohort orgs. Not exposed via the API.
-        skip_quota: Do not record SEER_AUTOFIX usage after a new run starts.
-            The availability check still applies.
+        skip_quota: Bypass SEER_AUTOFIX quota checks and usage recording for a
+            new run.
     """
     # check billing quota for triggering a new autofix run
     # Free cohort orgs bypass quota only when called from night shift
