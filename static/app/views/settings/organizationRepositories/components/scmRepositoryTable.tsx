@@ -409,7 +409,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
-  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, xl: true});
+  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, '2xl': true});
   const manageRepositoriesLabel = t('Manage repositories');
 
   return (
