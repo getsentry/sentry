@@ -100,6 +100,14 @@ def schedule_batch(
         raise
 
 
+def _category_name(category: int) -> str:
+    try:
+        return OutboxCategory(category).name
+    except ValueError:
+        logger.warning("deliver_from_outbox.unknown_category", extra={"category": category})
+        return f"UNKNOWN_{category}"
+
+
 def schedule_outbox_model(
     *,
     silo_mode: SiloMode,
@@ -156,9 +164,7 @@ def schedule_outbox_model(
             extra={
                 **metrics_tags,
                 **shard,
-                "category": (
-                    OutboxCategory(top_category).name if top_category is not None else None
-                ),
+                "category": (_category_name(top_category) if top_category is not None else None),
             },
         )
 
@@ -178,7 +184,7 @@ def schedule_outbox_model(
             tags={
                 "silo": silo_mode.value.lower(),
                 "type": outbox_model.__name__,
-                "category": OutboxCategory(category).name,
+                "category": _category_name(category),
             },
             sample_rate=1.0,
         )
