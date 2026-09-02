@@ -225,3 +225,36 @@ def test_empty_render_is_valid_for_the_requested_format(fmt: Formatter, expected
     # an empty json render still has to parse: callers json.loads the content, and the no-run
     # autofix GET takes this path routinely
     assert fmt.render(EventObject(title="t"), [], LIMITS_DEFAULT) == expected
+
+
+def _unicode_section(model: EventObject, limits: object) -> Section | None:
+    return Section(title="Tags", groups=(Group(items=(Field("ville", "café ünïcode"),)),))
+
+
+def test_json_does_not_escape_non_ascii() -> None:
+    # escaping would spend six characters of the cap on one accented character, so an
+    # international event would lose sections an ascii event of the same size keeps. It also
+    # leaves \uXXXX in the content string for anything that reads it without parsing.
+    out = JsonFormatter().render(EventObject(title="t"), [_unicode_section], LIMITS_DEFAULT)
+    assert "café ünïcode" in out
+    assert "\\u" not in out
+    assert json.loads(out)["tags"]["ville"] == "café ünïcode"
+
+
+def test_unicode_costs_the_same_against_the_cap_as_ascii() -> None:
+    # the cap is a character budget; a format must not count one character as six
+    def section(chars: str):
+        return lambda model, limits: Section(
+            title="Evidence",
+            groups=tuple(Group(items=(Field(f"k{i}", chars * 10),)) for i in range(20)),
+            max_group_chars=200,
+        )
+
+    event = EventObject(title="t")
+    ascii_kept = len(
+        json.loads(JsonFormatter().render(event, [section("a")], LIMITS_DEFAULT))["evidence"]
+    )
+    accented_kept = len(
+        json.loads(JsonFormatter().render(event, [section("é")], LIMITS_DEFAULT))["evidence"]
+    )
+    assert ascii_kept == accented_kept

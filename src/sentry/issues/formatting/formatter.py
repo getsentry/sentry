@@ -28,6 +28,12 @@ logger = logging.getLogger(__name__)
 
 _TRUNCATED = "... (truncated)"
 
+# ``sentry.utils.json.dumps`` escapes non-ascii, which would make an accented character cost
+# six against the same cap the text formats spend one on -- international events would lose
+# whole sections that an ascii event of the same size keeps. It also leaves the content string
+# full of \uXXXX for anything that reads it without parsing first.
+_ENCODER = json.JSONEncoder(separators=(",", ":"), ignore_nan=True, ensure_ascii=False)
+
 
 def slug(title: str) -> str:
     """Turn a human title (e.g. "HTTP Request") into an xml-safe tag ("http_request")."""
@@ -269,7 +275,7 @@ class JsonFormatter(Formatter):
         merged: dict[str, Any] = {}
         for part in sections:
             merged.update(json.loads(part))
-        return json.dumps(merged)
+        return _ENCODER.encode(merged)
 
     def render_section(self, section: Section) -> str:
         groups = [self.render_group_object(group) for group in section.groups]
@@ -279,13 +285,13 @@ class JsonFormatter(Formatter):
 
         cap = section.max_group_chars if section.max_group_chars is not None else section.max_chars
         if cap is not None:
-            costs = [len(json.dumps(g)) for g in groups]
+            costs = [len(_ENCODER.encode(g)) for g in groups]
             groups = _keep_within(groups, costs, cap)
         if not groups:
             return ""
 
         payload: Any = groups[0] if len(groups) == 1 else groups
-        return json.dumps({slug(section.title): payload})
+        return _ENCODER.encode({slug(section.title): payload})
 
     def render_group_object(self, group: Group) -> dict[str, Any]:
         # drop whole items once the cap is hit, across every item kind. Capping only the free
