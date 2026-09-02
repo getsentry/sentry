@@ -19,7 +19,8 @@ const UNIT_FIELD_VALUE_TYPES = new Set<FieldValueType>([
 
 export function mergeAttributeSearchMetadata(
   key: string,
-  definition: FieldDefinition
+  definition: FieldDefinition,
+  {keepLocalDescription = false}: {keepLocalDescription?: boolean} = {}
 ): FieldDefinition {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];
   if (!metadata) {
@@ -46,7 +47,7 @@ export function mergeAttributeSearchMetadata(
   return {
     ...fromSearch,
     ...definition,
-    desc: fromSearch.desc,
+    desc: keepLocalDescription ? (definition.desc ?? fromSearch.desc) : fromSearch.desc,
     valueType: keepLocalValueType ? definition.valueType : fromSearch.valueType,
     ...(ARRAY_ATTRIBUTE_SEARCH_TYPES.has(metadata.type) ? {kind: FieldKind.ARRAY} : {}),
     ...(keywords.length ? {keywords} : {}),

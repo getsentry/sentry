@@ -2954,6 +2954,13 @@ const REPLAY_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.URL]: {
+    // Replay URL is the visited page, not the deprecated alias of url.full.
+    desc: t('A url visited within the replay'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    deprecated: false,
+  },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
@@ -3155,6 +3162,13 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: true,
   },
+  [FeedbackFieldKey.URL]: {
+    // Feedback URL is the page that triggered the feedback, not url.full.
+    desc: t('URL of the page that the feedback is triggered on'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    deprecated: false,
+  },
 };
 
 function _getFieldFromMappings(
@@ -3329,7 +3343,9 @@ export const getFieldDefinition = (
 ): FieldDefinition | null => {
   const definition = _getFieldFromMappings(type, key, kind);
   if (definition) {
-    return mergeAttributeSearchMetadata(key, definition);
+    return mergeAttributeSearchMetadata(key, definition, {
+      keepLocalDescription: type === 'replay' || type === 'feedback',
+    });
   }
 
   if (type === 'span' || type === 'log' || type === 'tracemetric' || type === 'preprod') {

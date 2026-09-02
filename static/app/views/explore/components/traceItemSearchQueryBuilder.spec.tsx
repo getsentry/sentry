@@ -185,6 +185,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     ).toBeUndefined();
   });
 
+  it('does not warn for product fields that opt out of convention deprecation', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.REPLAYS,
+      },
+      organization,
+    });
+
+    expect(result.current.getFilterTokenWarning?.('url')).toBeUndefined();
+  });
+
   it('merges all secondary alias types into filterKeyAliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {

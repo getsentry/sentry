@@ -105,7 +105,15 @@ function getTraceItemFieldDefinitionFunction(
   };
 }
 
-function getDeprecatedAttributeSearchWarning(key: string) {
+function getDeprecatedAttributeSearchWarning(key: string, itemType: TraceItemDataset) {
+  const fieldDefinitionType = typeMap[itemType];
+  if (
+    fieldDefinitionType &&
+    getFieldDefinition(key, fieldDefinitionType)?.deprecated === false
+  ) {
+    return;
+  }
+
   const replacement = ATTRIBUTE_SEARCH_SECONDARY_ALIASES[key]?.alias;
   if (!replacement) {
     return;
@@ -247,7 +255,8 @@ export function useTraceItemSearchQueryBuilderProps({
       onChange,
       onBlur,
       getFilterTokenWarning: (key: string) =>
-        getFilterTokenWarning?.(key) ?? getDeprecatedAttributeSearchWarning(key),
+        getFilterTokenWarning?.(key) ??
+        getDeprecatedAttributeSearchWarning(key, itemType),
       searchSource,
       filterKeySections,
       getSuggestedFilterKey: getSuggestedAttribute,

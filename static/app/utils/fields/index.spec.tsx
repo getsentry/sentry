@@ -9,6 +9,19 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 
 describe('getFieldDefinition attribute search metadata', () => {
+  it.each([
+    ['replay', 'A url visited within the replay'],
+    ['feedback', 'URL of the page that the feedback is triggered on'],
+  ] as const)(
+    'keeps the product-specific description for %s url',
+    (type, description) => {
+      const definition = getFieldDefinition('url', type);
+
+      expect(definition?.desc).toBe(description);
+      expect(definition?.deprecated).toBe(false);
+    }
+  );
+
   it('uses ATTRIBUTE_SEARCH_METADATA briefs and converted types', () => {
     const definition = getFieldDefinition(FieldKey.DEVICE_BATTERY_LEVEL);
 
