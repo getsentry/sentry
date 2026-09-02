@@ -349,6 +349,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-standardized-markdown-for-llm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Batch latest-event attachment lookups in the issue stream
     manager.add("organizations:issue-stream-batched-latest-event-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
+    # Skip the control-silo integration fetch when annotating groups with no linked issues
+    manager.add("organizations:issue-annotations-skip-integration-fetch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Remove trace and breadcrumbs from issue summary input
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show the "recommended" sort as an option in the issue stream sort dropdown
