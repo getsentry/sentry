@@ -84,6 +84,9 @@ class MetricCallsMixin:
 
 
 DUE_HEAD_OPTIONS = {"hybridcloud.webhookpayload.dispatch_from_due_head": True}
+# The registered default lists every provider the middleware forwards, so tests of
+# the strict-ordering path pin jira out of the allowlist rather than assume it.
+STRICT_JIRA_OPTIONS = {"hybridcloud.webhookpayload.skip_on_failure_providers": ["github"]}
 cell_config_with_gateway = [
     Cell(
         name="us",
@@ -200,10 +203,10 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         backoff.refresh_from_db()
         assert backoff.schedule_for == backoff_schedule
 
-    @override_options(DUE_HEAD_OPTIONS)
+    @override_options({**DUE_HEAD_OPTIONS, **STRICT_JIRA_OPTIONS})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_due_head_strict_provider_still_gated(self, mock_deliver: MagicMock) -> None:
-        # Jira is not skip-on-failure, so the head gate still applies.
+        # A strict-ordering provider keeps the head gate.
         self.create_webhook_payload(
             mailbox_name="jira:123",
             cell_name="us",
@@ -323,6 +326,7 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_schedule_mailbox_with_more_than_batch_size_records(self) -> None:
         responses.add(
             responses.POST, "http://us.testserver/extensions/jira/webhook/", body=ReadTimeout()
@@ -339,8 +343,8 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         with self.tasks():
             schedule_webhook_delivery()
 
-        # First attempt fails. jira is not in the skip-on-failure allowlist so
-        # processing stops after the first message, preserving mailbox ordering.
+        # First attempt fails. jira is pinned strict here, so processing stops
+        # after the first message, preserving mailbox ordering.
         assert len(responses.calls) == 1
         assert WebhookPayload.objects.count() == num_records
         head = WebhookPayload.objects.all().order_by("id").first()
@@ -890,6 +894,7 @@ class DueHeadDepthTest(MetricCallsMixin, TestCase):
             "jira": 1,
         }
 
+    @override_options(STRICT_JIRA_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_depth_counts_mailboxes_that_cannot_dispatch(self, mock_metrics: MagicMock) -> None:
         # An undispatchable mailbox is still backlog worth seeing.
@@ -1075,6 +1080,7 @@ class DrainMailboxTest(TestCase):
         assert WebhookPayload.objects.count() == 0
 
     @override_cells(cell_config)
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_strict_provider_spends_the_attempt_before_the_request(self) -> None:
         # A drain killed mid-request leaves no result to reschedule on. A strict
         # provider's record would head-block its mailbox on every retry at the
@@ -1194,6 +1200,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
         url = "http://us.testserver/extensions/jira/webhook/"
         responses.add(responses.POST, url, status=200, body="")
@@ -1201,8 +1208,8 @@ class DrainMailboxTest(TestCase):
         records = create_payloads(5, "jira:123", provider="jira")
         drain_mailbox(records[0].id, claimed_count=MAX_MAILBOX_DRAIN, valid_until=fresh_deadline())
 
-        # jira is not in the allowlist: processing stops on the first failure
-        # to preserve strict mailbox ordering.
+        # jira is pinned out of the allowlist: processing stops on the first
+        # failure to preserve strict mailbox ordering.
         assert len(responses.calls) == 2
 
         # The failed message and all subsequent messages remain.
@@ -1235,6 +1242,26 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    def test_drain_skip_on_failure_jira(self) -> None:
+        assert_drain_skips_failed_message("jira")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_jira_server(self) -> None:
+        assert_drain_skips_failed_message("jira_server")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_vsts(self) -> None:
+        assert_drain_skips_failed_message("vsts")
+
+    @responses.activate
+    @override_cells(cell_config)
+    def test_drain_skip_on_failure_msteams(self) -> None:
+        assert_drain_skips_failed_message("msteams")
+
+    @responses.activate
+    @override_cells(cell_config)
     @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
     def test_drain_skip_on_failure_in_order(self) -> None:
         # One worker thread delivers in order; skipping past the failure is a
@@ -1261,7 +1288,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config)
-    @override_options({"hybridcloud.webhookpayload.drain_batch_deletes": True})
+    @override_options(
+        {"hybridcloud.webhookpayload.drain_batch_deletes": True, **STRICT_JIRA_OPTIONS}
+    )
     def test_drain_batch_deletes_flush_when_drain_stops_on_failure(self) -> None:
         url = "http://us.testserver/extensions/jira/webhook/"
         responses.add(responses.POST, url, status=200, body="")
@@ -1271,8 +1300,8 @@ class DrainMailboxTest(TestCase):
 
         drain_mailbox(records[0].id, claimed_count=5, valid_until=fresh_deadline())
 
-        # jira requires strict ordering: the drain stops at the failure, but the
-        # two messages delivered before it must still have their rows removed.
+        # jira is pinned strict: the drain stops at the failure, but the two
+        # messages delivered before it must still have their rows removed.
         assert len(responses.calls) == 3
         remaining = set(WebhookPayload.objects.values_list("id", flat=True))
         assert remaining == {records[2].id, records[3].id, records[4].id}
@@ -1848,6 +1877,7 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @override_options(STRICT_JIRA_OPTIONS)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_dropped_payload_does_not_stall_ordered_mailbox(self, mock_metrics: MagicMock) -> None:
         # A drop is terminal, not a retryable failure, so the drain must continue
@@ -2458,6 +2488,7 @@ class StaleClaimTest(MetricCallsMixin, TestCase):
         ]
 
     @override_cells(cell_config)
+    @override_options(STRICT_JIRA_OPTIONS)
     def test_strict_provider_never_delivers_concurrently(self) -> None:
         # Depth never buys a strict-ordering provider a second thread: the next
         # request must not start until the previous one has completed.

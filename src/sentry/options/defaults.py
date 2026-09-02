@@ -2637,6 +2637,10 @@ register(
         "bitbucket",
         "bitbucket_server",
         "gitlab",
+        "jira",
+        "jira_server",
+        "vsts",
+        "msteams",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
