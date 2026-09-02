@@ -56,14 +56,22 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
   overlayColor?: string;
   overlayOpacity?: number;
 }) {
-  const [zoom1, zoom2] = useSyncedD3Zoom({wheelRequiresModifier: true});
+  // Attaching d3-zoom mounts a d3 selection + wheel/pointer listeners per pane.
+  // Defer that until the card is first interacted with so it stays off the
+  // scroll path as cards stream into the virtualized viewport.
+  const [zoomEnabled, setZoomEnabled] = useState(false);
+  const enableZoom = () => setZoomEnabled(true);
+  const [zoom1, zoom2] = useSyncedD3Zoom({
+    wheelRequiresModifier: true,
+    enabled: zoomEnabled,
+  });
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
       ? `${diffImageBaseUrl}${diffImageKey}/`
       : null;
   return (
-    <Container position="relative">
+    <Container position="relative" onPointerEnter={enableZoom} onFocus={enableZoom}>
       <Grid columns="1fr 1fr" gap="0">
         <Stack minWidth="0">
           <Container padding="sm xl">

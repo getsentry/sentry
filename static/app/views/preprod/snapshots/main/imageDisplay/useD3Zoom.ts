@@ -3,6 +3,9 @@ import {select} from 'd3-selection';
 import {zoom, zoomIdentity, type ZoomBehavior, type ZoomTransform} from 'd3-zoom';
 
 interface UseD3ZoomOptions {
+  // When false, the zoom behavior is not attached to the DOM. Lets callers
+  // defer the d3 selection + listener setup until the user first interacts.
+  enabled?: boolean;
   maxScale?: number;
   minScale?: number;
   onTransformChange?: (transform: ZoomTransform) => void;
@@ -25,6 +28,7 @@ export function useD3Zoom({
   maxScale = 10,
   onTransformChange,
   wheelRequiresModifier = false,
+  enabled = true,
 }: UseD3ZoomOptions = {}): UseD3ZoomReturn {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState(zoomIdentity);
@@ -34,7 +38,7 @@ export function useD3Zoom({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) {
+    if (!container || !enabled) {
       return;
     }
 
@@ -63,7 +67,7 @@ export function useD3Zoom({
       select(container).on('.zoom', null);
       zoomBehaviorRef.current = null;
     };
-  }, [minScale, maxScale, wheelRequiresModifier]);
+  }, [minScale, maxScale, wheelRequiresModifier, enabled]);
 
   const zoomIn = useCallback(() => {
     const container = containerRef.current;
