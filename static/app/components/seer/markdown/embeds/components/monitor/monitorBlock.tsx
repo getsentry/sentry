@@ -135,9 +135,10 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
             title={detector?.name ?? name ?? t('Monitor %s', id)}
           />
           {detector ? (
-            <Tag variant={detector.enabled ? 'success' : 'muted'}>
-              {getDetectorTypeLabel(detector.type)}
-            </Tag>
+            <Flex gap="xs">
+              <Tag variant="muted">{getDetectorTypeLabel(detector.type)}</Tag>
+              {!detector.enabled && <Tag variant="muted">{t('Disabled')}</Tag>}
+            </Flex>
           ) : null}
         </Flex>
         {isPending ? (

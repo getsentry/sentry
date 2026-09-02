@@ -104,6 +104,15 @@ describe('Seer monitor embed', () => {
     expect(screen.queryByText('Rules')).not.toBeInTheDocument();
   });
 
+  it('shows a disabled tag separately from the neutral type tag', async () => {
+    const detector = ErrorDetectorFixture({id: '9', latestGroup: null, enabled: false});
+
+    renderMonitor(detector);
+
+    expect(await screen.findByText('Error')).toBeInTheDocument();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
+  });
+
   it('reports and shows an error for an unrecognized detector type', async () => {
     const captureException = jest.spyOn(Sentry, 'captureException');
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
