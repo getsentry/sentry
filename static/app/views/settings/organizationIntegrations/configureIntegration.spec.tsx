@@ -385,7 +385,15 @@ describe('ConfigureIntegration GCP re-verification', () => {
   const integrationId = '1';
   const CUSTOMER_SA = 'gcp-sentry@my-project.iam.gserviceaccount.com';
 
-  function setup({providerKey = 'gcp'}: {providerKey?: string} = {}) {
+  function setup({
+    providerKey = 'gcp',
+    connectionStatus = 'connected',
+    verifyDelay,
+  }: {
+    connectionStatus?: string;
+    providerKey?: string;
+    verifyDelay?: number;
+  } = {}) {
     const organization = OrganizationFixture({
       access: ['org:integrations', 'org:write'],
     });
@@ -415,6 +423,9 @@ describe('ConfigureIntegration GCP re-verification', () => {
       configData: {
         customer_sa_email: CUSTOMER_SA,
         projects: 'project-prod, project-staging',
+        connection_status: connectionStatus,
+        project_statuses: [],
+        last_verified_at: '2026-08-30T00:00:00+00:00',
       },
     });
 
@@ -441,7 +452,17 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const verifyRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/gcp/verify-connection/`,
       method: 'POST',
-      body: {connectionStatus: 'connected', projects: []},
+      asyncDelay: verifyDelay,
+      body: () => {
+        // The endpoint records its result on the integration.
+        storedConfig = {
+          ...storedConfig,
+          connection_status: 'connected',
+          project_statuses: [],
+          last_verified_at: '2026-08-31T00:00:00+00:00',
+        };
+        return {connectionStatus: 'connected', projects: []};
+      },
     });
 
     render(<ConfigureIntegration />, {
@@ -470,6 +491,22 @@ describe('ConfigureIntegration GCP re-verification', () => {
     await userEvent.type(field, value);
     await userEvent.tab();
   }
+
+  it('shows the connection status for a GCP integration', async () => {
+    setup();
+
+    expect(await screen.findByText('Connection Status')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeInTheDocument();
+  });
+
+  it('does not show the connection status for other providers', async () => {
+    setup({providerKey: 'github'});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Customer Service Account'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Connection Status')).not.toBeInTheDocument();
+  });
 
   it('re-runs verification with the saved settings', async () => {
     const {verifyRequest} = setup();
@@ -508,6 +545,30 @@ describe('ConfigureIntegration GCP re-verification', () => {
         })
       )
     );
+  });
+
+  it('shows the newly recorded status after a save', async () => {
+    setup({connectionStatus: 'unverified'});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    // The check runs after the save, so the page has to refresh again to show it.
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+  });
+
+  it('reports the check as running instead of the interim unverified status', async () => {
+    setup({connectionStatus: 'unverified', verifyDelay: 50});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
+
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
   });
 
   it('does not re-run verification for other providers', async () => {

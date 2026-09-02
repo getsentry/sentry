@@ -10,7 +10,11 @@ from django.utils import timezone
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import Investigation, InvestigationSourceType
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationOrchestrationRun,
+    InvestigationSourceType,
+)
 from sentry.investigations.services import investigation_legacy_source_key
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.seer.anomaly_detection.types import (
@@ -158,6 +162,68 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert response.data == {
             "items": [{"status": "view", "investigationId": launched.data["id"]}]
         }
+
+    @mock.patch(
+        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
+    )
+    def test_metric_open_period_launches_agentic_and_candidates_report_its_run(
+        self, schedule_auto_run: mock.Mock
+    ) -> None:
+        group, open_period = self.create_metric_open_period()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+        template_investigation = self.client.post(
+            self.collection_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "source": source,
+            },
+            format="json",
+        )
+        assert template_investigation.status_code == 201, template_investigation.data
+
+        launched = self.client.post(
+            self.collection_url,
+            {"source": source},
+            format="json",
+        )
+
+        assert launched.status_code == 201, launched.data
+        assert launched.data["id"] != template_investigation.data["id"]
+        assert launched.data["template"] is None
+        assert launched.data["source"]["ref"] == source["ref"]
+        investigation = Investigation.objects.get(id=launched.data["id"])
+        assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
+        run = InvestigationOrchestrationRun.objects.get(investigation=investigation)
+        assert run.source["type"] == "breached_metric"
+        assert run.source["projectIds"] == [self.project.id]
+        assert run.source["monitor"] == investigation.source["snapshot"]["monitor"]
+        assert run.source["analysisWindow"] == investigation.source["snapshot"]["analysisWindow"]
+        assert run.source["metricQuery"] == investigation.source["snapshot"]["monitor"]["query"]
+        assert run.source["seed"]["sentrySource"] == investigation.source
+
+        candidate = self.client.post(
+            self.candidates_url,
+            {
+                "templateKey": "breached_metric",
+                "templateVersion": 1,
+                "sources": [source],
+            },
+            format="json",
+        )
+
+        assert candidate.status_code == 200, candidate.data
+        assert candidate.data == {
+            "items": [{"status": "view", "investigationId": launched.data["id"]}]
+        }
+
+        duplicate = self.client.post(self.collection_url, {"source": source}, format="json")
+        assert duplicate.status_code == 200, duplicate.data
+        assert duplicate.data["id"] == launched.data["id"]
+        schedule_auto_run.assert_called_once()
 
     @mock.patch(
         "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"

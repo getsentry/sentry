@@ -9,6 +9,7 @@ from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockDependency,
+    InvestigationOrchestrationRun,
     InvestigationProject,
     InvestigationSourceType,
 )
@@ -25,6 +26,9 @@ from sentry.investigations.services.investigations import (
     lock_investigation,
     resolve_investigation_source,
     update_investigation,
+)
+from sentry.investigations.services.orchestration import (
+    create_agentic_manual_investigation,
 )
 from sentry.testutils.cases import TestCase
 
@@ -357,3 +361,28 @@ class UpdateFieldAllowlistTest(TestCase):
 
         assert updated.title == "Renamed"
         assert updated.filters == {"environment": ["prod"]}
+
+
+class OrchestrationControlServiceTest(TestCase):
+    def test_agentic_creation_rolls_back_the_entire_aggregate(self) -> None:
+        investigation_count = Investigation.objects.count()
+        project_link_count = InvestigationProject.objects.count()
+
+        with (
+            mock.patch.object(
+                InvestigationOrchestrationRun.objects, "create", side_effect=RuntimeError
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            create_agentic_manual_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                title=None,
+                source={"type": "manual", "prompt": "Investigate latency"},
+                project_ids=[self.project.id],
+                filters={},
+            )
+
+        assert Investigation.objects.count() == investigation_count
+        assert InvestigationProject.objects.count() == project_link_count
+        assert not InvestigationOrchestrationRun.objects.exists()
