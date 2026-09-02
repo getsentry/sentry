@@ -406,12 +406,21 @@ def configure_sdk():
     else:
         disabled_integrations.append(ThreadingIntegration())
 
-    sentry_sdk.init(
-        dsn=dsns.sentry_mirror,
-        integrations=integrations,
-        disabled_integrations=disabled_integrations,
-        **sdk_options,
-    )
+    if dsns.sentry_mirror:
+        sentry_sdk.init(
+            dsn=dsns.sentry_mirror,
+            integrations=integrations,
+            disabled_integrations=disabled_integrations,
+            **sdk_options,
+        )
+        return
+
+    internal_project_key = get_project_key()
+    if internal_project_key and internal_project_key.dsn_private:
+        sentry_sdk.init(
+            dsn=internal_project_key.dsn_private,
+            **sdk_options,
+        )
 
 
 def check_tag_for_scope_bleed(
