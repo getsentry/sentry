@@ -246,11 +246,21 @@ class SentryAppParser(Serializer):
             # Reject CR/LF to prevent header injection / request splitting.
             if "\n" in header or "\r" in header:
                 raise ValidationError("Webhook headers cannot contain newlines.")
-            name, separator, _header_value = header.partition(":")
+            name, separator, header_value = header.partition(":")
             name = name.strip()
+            header_value = header_value.strip()
             if not separator or not name:
                 raise ValidationError(
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
+                )
+            # HTTP header fields are latin-1; reject unsupported characters on write.
+            try:
+                name.encode("latin-1")
+                header_value.encode("latin-1")
+            except UnicodeEncodeError:
+                raise ValidationError(
+                    "Webhook header contains unsupported characters and cannot be "
+                    "sent as an HTTP header."
                 )
             if not _HTTP_TOKEN_RE.match(name):
                 raise ValidationError(
