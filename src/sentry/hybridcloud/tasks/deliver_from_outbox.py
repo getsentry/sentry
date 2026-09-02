@@ -181,7 +181,11 @@ def schedule_outbox_model(
         metrics.gauge(
             "deliver_from_outbox.category_shard_depth",
             value=depth,
-            tags={**metrics_tags, "category": _category_name(category)},
+            tags={
+                "silo": silo_mode.value.lower(),
+                "type": outbox_model.__name__,
+                "category": _category_name(category),
+            },
             sample_rate=1.0,
         )
     return scheduled_count
