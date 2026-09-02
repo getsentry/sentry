@@ -69,6 +69,7 @@ export function applySeerWidgetDefaults(widgets: Widget[]): Widget[] {
       ...widget,
       layout,
       limit,
+      queries: widget.queries ?? [],
     };
   });
 }
