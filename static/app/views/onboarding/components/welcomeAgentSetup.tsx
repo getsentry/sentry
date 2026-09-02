@@ -19,6 +19,12 @@ import {ManualSetupCard} from 'sentry/views/onboarding/components/manualSetupCar
 const MotionContainer = motion.create(Container);
 
 /**
+ * Shared by the card swap so the box resizing and the contents cross-fading
+ * finish together, which is what sells them as one card rather than two.
+ */
+const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
+
+/**
  * Owns the welcome step's agentic run. useAgenticProgressInit keys its query on
  * a per-hook id until the onboarding context catches up, so exactly one caller
  * may run it — the step reads the run here and hands it down.
@@ -89,33 +95,49 @@ export function WelcomeAgentSetup({
 
   return (
     <Stack gap="2xl" width="100%" position="relative" align="center">
-      <AnimatePresence initial={false} mode="popLayout">
-        {run && isAgentConnected ? (
-          <MotionContainer
-            key="progress"
-            width="100%"
-            initial={{opacity: 0, scale: 1.1}}
-            animate={{opacity: 1, scale: 1}}
-            exit={{opacity: 0, scale: 0.9}}
-          >
-            <AgenticProgress run={run} onboardingCode={onboardingCode} />
-          </MotionContainer>
-        ) : (
-          <MotionContainer
-            key="setup"
-            width="100%"
-            initial={{opacity: 0}}
-            animate={{opacity: 1, scale: 1}}
-            exit={{opacity: 0, scale: 0.9}}
-          >
-            <AgentSetupCard
-              onboardingCode={onboardingCode}
-              onCopyCommand={onCopyCommand}
-              prompt={prompt}
-            />
-          </MotionContainer>
-        )}
-      </AnimatePresence>
+      {/* Both states occupy one slot inside a box that animates its own height,
+          so the setup card grows into the progress list instead of being
+          swapped for it. popLayout lifts the outgoing card out of flow, letting
+          the incoming one take the slot while the two cross-fade in place —
+          their borders line up, so what reads is a single card changing. */}
+      <MotionContainer
+        layout
+        width="100%"
+        position="relative"
+        transition={CARD_MORPH_TRANSITION}
+      >
+        <AnimatePresence initial={false} mode="popLayout">
+          {run && isAgentConnected ? (
+            <MotionContainer
+              key="progress"
+              layout="position"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={CARD_MORPH_TRANSITION}
+            >
+              <AgenticProgress run={run} onboardingCode={onboardingCode} />
+            </MotionContainer>
+          ) : (
+            <MotionContainer
+              key="setup"
+              layout="position"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={CARD_MORPH_TRANSITION}
+            >
+              <AgentSetupCard
+                onboardingCode={onboardingCode}
+                onCopyCommand={onCopyCommand}
+                prompt={prompt}
+              />
+            </MotionContainer>
+          )}
+        </AnimatePresence>
+      </MotionContainer>
 
       {/* Collapsing the height rather than just fading keeps the card above from
           jumping into the vacated space. */}
