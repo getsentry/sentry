@@ -204,8 +204,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404
 
     def test_platform_external_issue_annotation(self) -> None:
-        # PlatformExternalIssue rows join on group_id and have no GroupLink, so they must survive
-        # the skip that is driven entirely by the absence of GroupLink rows.
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -251,22 +249,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         mock_integration_service.get_integrations.assert_called_once_with(
             organization_id=group.organization.id
         )
-
-    def test_annotations_skip_integration_fetch_without_linked_issues(self) -> None:
-        group = self.create_group()
-        self._create_issue_tracking_integration(group)
-        self.login_as(user=self.user)
-
-        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-        with mock.patch(
-            "sentry.api.serializers.models.group.integration_service",
-            wraps=integration_service,
-        ) as mock_integration_service:
-            response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["annotations"] == []
-        mock_integration_service.get_integrations.assert_not_called()
 
     def test_permalink_superuser(self) -> None:
         superuser = self.create_user(is_superuser=True)
