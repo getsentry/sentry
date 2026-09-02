@@ -369,6 +369,10 @@ export const SEER_EMBED_SCHEMAS = {
       '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
       'uptime alert, "cron" for a cron alert. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders alert conditions and configured actions, plus the ' +
+      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -382,6 +386,14 @@ export const SEER_EMBED_SCHEMAS = {
         data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
+      {
+        label: 'Uptime alert',
+        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+      },
+      {
+        label: 'Cron alert',
+        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+      },
     ],
   },
   monitor: {
