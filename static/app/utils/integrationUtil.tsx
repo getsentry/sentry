@@ -142,8 +142,8 @@ export function isDocIntegration(
  * canonical marker for source-code-management integrations (GitHub, GitLab,
  * Bitbucket, Azure DevOps, and their enterprise/server variants).
  */
-export function isScmProvider(provider: IntegrationProvider): boolean {
-  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
+export function isScmProvider(provider: IntegrationProvider | null | undefined): boolean {
+  return provider?.metadata?.features?.some(f => f.featureGate.includes('commits')) ?? false;
 }
 
 export function isExternalActorMapping(
