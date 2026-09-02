@@ -76,7 +76,7 @@ function getSpanCodeLocation(span: EvidenceSpan): string | null {
   if (!filepath) {
     return null;
   }
-  const lineno = getAttributeValue(data, 'code.line.number', 'number');
+  const lineno = getAttributeValue(data, 'code.line.number', 'number')?.toString();
   const fn = getAttributeValue(data, 'code.function', 'string');
   const location = lineno === undefined ? filepath : `${filepath}:${lineno}`;
   return fn ? `${location} ${fn}` : location;
