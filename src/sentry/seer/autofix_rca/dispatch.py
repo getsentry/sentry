@@ -90,9 +90,10 @@ def trigger_autofix_rca_feature(
         ),
     )
 
-    quotas.backend.record_seer_run(
-        group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-    )
+    if not skip_quota:
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+        )
 
     metrics.incr("autofix_rca.feature.trigger", tags={"referrer": referrer.value})
 
