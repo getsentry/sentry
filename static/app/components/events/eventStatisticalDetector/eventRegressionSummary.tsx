@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
@@ -43,7 +42,7 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
       sectionKey={SectionKey.REGRESSION_SUMMARY}
       title={t('Regression Summary')}
     >
-      <StyledKeyValueList data={data} shouldSort={false} />
+      <KeyValueTableDataList data={data} shouldSort={false} noMargin />
     </FoldSection>
   );
 }
@@ -172,6 +171,3 @@ function formatBreakpoint(breakpoint: number) {
   );
 }
 
-const StyledKeyValueList = styled(KeyValueTableDataList)`
-  margin-bottom: 0 !important;
-`;

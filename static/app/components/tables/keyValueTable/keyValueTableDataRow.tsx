@@ -25,7 +25,7 @@ export interface KeyValueTableDataRowProps {
    */
   disableLink?: boolean;
   /**
-   * Errors pertaining to the item
+   * Errors pertaining to content item
    */
   errors?: MetaError[];
   /**
@@ -38,7 +38,7 @@ export interface KeyValueTableDataRowProps {
    */
   isSuspectFlag?: boolean;
   /**
-   * Metadata pertaining to the item
+   * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
 }

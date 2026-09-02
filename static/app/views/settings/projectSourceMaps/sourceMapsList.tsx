@@ -433,7 +433,7 @@ function SourceMapUploadDetails({
     ];
   }, [sourceMapUpload, showAll, projectId]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return <KeyValueTableDataList data={detailsData} shouldSort={false} noMargin />;
 }
 
 interface SourceMapUploadDeleteButtonProps {
@@ -473,11 +473,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
   );
 }
 
-const StyledKeyValueList = styled(KeyValueTableDataList)`
-  && {
-    margin-bottom: 0;
-  }
-`;
 
 const List = styled('div')`
   display: grid;

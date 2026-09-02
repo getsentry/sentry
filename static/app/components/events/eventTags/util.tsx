@@ -168,6 +168,15 @@ const ISSUE_DETAILS_COLUMN_BREAKPOINTS = [
  * rendered in the page contents, modals, and asides, we can't rely on window breakpoint to
  * accurately describe the available space.
  */
+export function splitIntoColumns<T>(items: T[], columnCount: number): T[][] {
+  const columnSize = Math.ceil(items.length / columnCount);
+  const columns: T[][] = [];
+  for (let i = 0; i < items.length; i += columnSize) {
+    columns.push(items.slice(i, i + columnSize));
+  }
+  return columns;
+}
+
 export function useIssueDetailsColumnCount(
   elementRef: RefObject<HTMLElement | null>
 ): number {

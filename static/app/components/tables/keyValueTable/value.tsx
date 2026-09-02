@@ -53,10 +53,6 @@ export function ContextDataValue({
   );
 }
 
-/**
- * The list surface predates structured data and leans on `<pre>`, which the
- * legacy `table.key-value` stylesheet still targets.
- */
 export function PreformattedValue({
   value = null,
   meta,

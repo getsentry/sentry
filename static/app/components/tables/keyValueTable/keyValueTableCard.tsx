@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {Container as LayoutContainer} from '@sentry/scraps/layout';
 
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {
+  splitIntoColumns,
+  useIssueDetailsColumnCount,
+} from 'sentry/components/events/eventTags/util';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
@@ -14,7 +17,7 @@ import {
 
 interface KeyValueTableCardProps {
   /**
-   * Rows to be rendered in this card.
+   * KeyValueTableDataRowProps items to be rendered in this card.
    */
   contentItems: KeyValueTableDataRowProps[];
   /**
@@ -30,7 +33,7 @@ interface KeyValueTableCardProps {
    */
   title?: React.ReactNode;
   /**
-   * Row count which, when exceeded, displays a 'Show more' option
+   * Content item length which, when exceeded, displays a 'Show more' option
    */
   truncateLength?: number;
 }
@@ -88,19 +91,13 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
     (child: ReactNode) => child !== null && child !== undefined
   );
 
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(cards.length / columnCount);
-  for (let i = 0; i < cards.length; i += columnSize) {
-    columns.push(
-      <LayoutContainer column="span 1" key={i}>
-        {cards.slice(i, i + columnSize)}
-      </LayoutContainer>
-    );
-  }
-
   return (
     <CardGridWrapper columnCount={columnCount} ref={containerRef}>
-      {columns}
+      {splitIntoColumns(cards, columnCount).map((column, index) => (
+        <LayoutContainer column="span 1" key={index}>
+          {column}
+        </LayoutContainer>
+      ))}
     </CardGridWrapper>
   );
 }

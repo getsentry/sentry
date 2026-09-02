@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -61,11 +60,6 @@ export function DebugIdBundleDetails({
     projectId,
   ]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return <KeyValueTableDataList data={detailsData} shouldSort={false} noMargin />;
 }
 
-const StyledKeyValueList = styled(KeyValueTableDataList)`
-  && {
-    margin-bottom: 0;
-  }
-`;

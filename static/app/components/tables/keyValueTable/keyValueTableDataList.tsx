@@ -12,13 +12,8 @@ import {ContextDataValue, PreformattedValue, ValueLink} from './value';
 interface KeyValueTableDataListProps {
   className?: string;
   data?: KeyValueListData;
-  /**
-   * Renders values with the expandable structured event data viewer.
-   */
   isContextData?: boolean;
-  /**
-   * Stringifies values before handing them to the structured event data viewer.
-   */
+  noMargin?: boolean;
   raw?: boolean;
   shouldSort?: boolean;
 }
@@ -28,6 +23,7 @@ export function KeyValueTableDataList({
   isContextData = false,
   shouldSort = true,
   raw = false,
+  noMargin = false,
   className,
   ...props
 }: KeyValueTableDataListProps) {
@@ -38,7 +34,11 @@ export function KeyValueTableDataList({
   const rows = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Table className={classNames('table key-value', className)} {...props}>
+    <Table
+      noMargin={noMargin}
+      className={classNames('table key-value', className)}
+      {...props}
+    >
       <tbody>
         {rows.map((item, index) => (
           <Row
@@ -110,7 +110,10 @@ function Row({
   );
 }
 
-const Table = styled('table')`
+const Table = styled('table')<{noMargin: boolean}>`
+  && {
+    margin-bottom: ${p => (p.noMargin ? 0 : undefined)};
+  }
   > * pre > pre {
     margin: 0 !important;
     padding: 0 !important;

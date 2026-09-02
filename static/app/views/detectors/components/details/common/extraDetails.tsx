@@ -20,14 +20,13 @@ type Props = {
 export function DetectorExtraDetails({children}: Props) {
   return (
     <DetailSection title={t('Details')}>
-      <StyledKeyValueTable>{children}</StyledKeyValueTable>
+      <StyledKeyValueTable noMargin>{children}</StyledKeyValueTable>
     </DetailSection>
   );
 }
 
 const StyledKeyValueTable = styled(KeyValueTable)`
   grid-template-columns: min-content auto;
-  margin-bottom: 0;
 `;
 
 DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
