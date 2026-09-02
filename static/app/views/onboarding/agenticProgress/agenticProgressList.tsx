@@ -1,5 +1,6 @@
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -104,6 +105,35 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const MotionGrid = motion.create(Grid);
+const MotionStack = motion.create(Stack);
+
+/**
+ * Stage rows settle in one after another rather than all at once, so the list
+ * reads as the agent's plan being laid out. Rows are keyed by stage, so this
+ * runs when a row mounts — on the list's first appearance, and again for each
+ * stage the agent reports later — not on every poll.
+ */
+const STAGE_LIST_STAGGER_TRANSITION: MotionProps['transition'] = {
+  staggerChildren: 0.03,
+  delayChildren: 0.04,
+};
+
+// Transform and opacity only: the row's height stays put, so the card's own
+// resize is not fighting the rows arriving.
+const STAGE_ITEM_VARIANTS: MotionProps['variants'] = {
+  initial: {opacity: 0, y: 12},
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      // `bounce` is how far the row overshoots before settling: 0 stops dead,
+      // 1 wobbles. Only the travel springs — a spring on opacity overshoots
+      // past full, which reads as a flicker rather than a bounce.
+      y: {type: 'spring', duration: 0.3, bounce: 0.35},
+      opacity: {duration: 0.12, ease: 'easeOut'},
+    },
+  },
+};
 const MotionContainer = motion.create(Container);
 const MotionTag = motion.create(Tag);
 const MotionText = motion.create(Text);
@@ -159,7 +189,8 @@ function ProgressItem({
         : 'muted';
 
   return (
-    <Grid
+    <MotionGrid
+      variants={STAGE_ITEM_VARIANTS}
       columns="max-content minmax(0, 1fr) max-content"
       rows="auto auto auto"
       align="center"
@@ -251,7 +282,7 @@ function ProgressItem({
           <ExtraContent key="extra-content">{extraContent}</ExtraContent>
         ) : null}
       </AnimatePresence>
-    </Grid>
+    </MotionGrid>
   );
 }
 
@@ -264,8 +295,27 @@ export function AgenticProgressList({
   extraContentByStage?: Partial<Record<AgenticProgressStage, React.ReactNode>>;
   header?: React.ReactNode;
 }) {
+  // An enclosing AnimatePresence with `initial={false}` puts `initial: false` on
+  // PresenceContext, which blocks the mount animation of every motion component
+  // beneath it — so the stagger silently vanishes whenever the list is already
+  // on screen at first paint. Flipping the label after mount makes it an
+  // ordinary animate change, which nothing upstream suppresses.
+  const [hasEntered, setHasEntered] = useState(false);
+  useEffect(() => {
+    setHasEntered(true);
+  }, []);
+
   return (
-    <Stack width="100%" border="primary" radius="lg" overflow="hidden" gap="0">
+    <MotionStack
+      width="100%"
+      border="primary"
+      radius="lg"
+      overflow="hidden"
+      gap="0"
+      initial="initial"
+      animate={hasEntered ? 'animate' : 'initial'}
+      transition={STAGE_LIST_STAGGER_TRANSITION}
+    >
       {header ? (
         <Container padding="xl" borderBottom="muted">
           {header}
@@ -279,7 +329,7 @@ export function AgenticProgressList({
           extraContent={extraContentByStage?.[stage.stage]}
         />
       ))}
-    </Stack>
+    </MotionStack>
   );
 }
 
