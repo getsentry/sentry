@@ -1,7 +1,7 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import type {UseQueryResult} from '@tanstack/react-query';
+import {useMutation, type UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
@@ -389,34 +389,37 @@ export const LogRowContent = memo(function LogRowContentImpl({
       return cellValue;
     }
 
-    let fullValue: TraceItemResponseAttribute['value'] | undefined;
-    try {
-      const attributes =
-        traceItemAttributes ?? (await fetchTraceItemDetails())?.attributes;
-      fullValue = attributes?.find(attribute => attribute.name === field)?.value;
-    } catch {
-      // Falling back to the truncated value beats doing nothing.
-    }
+    const attributes = traceItemAttributes ?? (await fetchTraceItemDetails())?.attributes;
+    const fullValue = attributes?.find(attribute => attribute.name === field)?.value;
 
     return typeof fullValue === 'string' ? fullValue : cellValue;
   }
 
-  async function copyFullCellValue(field: string, cellValue: string | number) {
-    copyToClipboard(await resolveFullCellValue(field, cellValue));
-  }
-
-  async function addFullCellValueFilter(
-    field: string,
-    cellValue: string | number,
-    negated: boolean
-  ) {
-    const filter = getMessageFilter(
-      field,
-      dataRow,
-      await resolveFullCellValue(field, cellValue)
-    );
+  function filterOnValue(field: string, value: string | number, negated: boolean) {
+    const filter = getMessageFilter(field, dataRow, value);
     addSearchFilter({key: filter.key, value: filter.value, negated});
   }
+
+  const copyCellValue = useMutation({
+    mutationFn: ({cellValue, field}: {cellValue: string | number; field: string}) =>
+      resolveFullCellValue(field, cellValue),
+    onSuccess: value => copyToClipboard(value),
+    onError: (_error, {cellValue}) => copyToClipboard(cellValue),
+  });
+
+  const filterOnCellValue = useMutation({
+    mutationFn: ({
+      cellValue,
+      field,
+    }: {
+      cellValue: string | number;
+      field: string;
+      negated: boolean;
+    }) => resolveFullCellValue(field, cellValue),
+    onSuccess: (value, {field, negated}) => filterOnValue(field, value, negated),
+    onError: (_error, {cellValue, field, negated}) =>
+      filterOnValue(field, cellValue, negated),
+  });
 
   const observedTimestamp = traceItemAttributes?.find(
     a => a.name === OurLogKnownFieldKey.OBSERVED_TIMESTAMP_NANOS
@@ -659,13 +662,13 @@ export const LogRowContent = memo(function LogRowContentImpl({
                     handleCellAction={(actions, cellValue) => {
                       switch (actions) {
                         case Actions.ADD:
-                          addFullCellValueFilter(field, cellValue, false);
+                          filterOnCellValue.mutate({cellValue, field, negated: false});
                           break;
                         case Actions.EXCLUDE:
-                          addFullCellValueFilter(field, cellValue, true);
+                          filterOnCellValue.mutate({cellValue, field, negated: true});
                           break;
                         case Actions.COPY_TO_CLIPBOARD:
-                          copyFullCellValue(field, cellValue);
+                          copyCellValue.mutate({cellValue, field});
                           break;
                         case Actions.COPY_LINK: {
                           const logId = String(dataRow[OurLogKnownFieldKey.ID]);

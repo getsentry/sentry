@@ -1120,6 +1120,49 @@ describe('logsTableRow', () => {
     expect(screen.getByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
   });
 
+  it('copies the truncated value when the details request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
+      method: 'GET',
+      statusCode: 500,
+    });
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowDataWithTruncatedMessage}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.hover(logTableRow, {delay: null});
+
+    await userEvent.click(
+      within(screen.getByTestId('log-table-cell-message')).getByRole('button', {
+        name: 'Actions',
+      })
+    );
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+    );
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledWith(truncatedMessage);
+    });
+  });
+
   it('copies the untruncated value when the table value was truncated', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
