@@ -390,13 +390,9 @@ export function ResultGrid({
     return regionUrl ? cells.find(c => c.locality_url === regionUrl) : cells[0];
   });
 
-  /**
-   * The request parameters live in the URL when `useQueryString` is on, and in
-   * component state otherwise. Deriving them keeps the two modes on one code
-   * path — only the source of truth differs.
-   */
-  // An isolated grid owns its request state. Params that another grid on the
-  // same page wrote to the URL must not leak into it.
+  // The request parameters live in the URL when `useQueryString` is on, and in
+  // component state otherwise. Deriving them keeps the two modes on one code
+  // path — only the source of truth differs.
   const [localRequest, setLocalRequest] = useState<Request>(() =>
     buildRequest({}, defaultSort)
   );
@@ -413,10 +409,8 @@ export function ResultGrid({
   });
   const [probe, setProbe] = useState<RegionProbe>(IDLE_PROBE);
 
-  /**
-   * Monotonic token used to discard results from stale region probes (e.g.
-   * when the user switches regions or searches again before probes resolve).
-   */
+  // Monotonic token used to discard results from stale region probes (e.g.
+  // when the user switches regions or searches again before probes resolve).
   const probeTokenRef = useRef(0);
 
   // Transform endpoint to cell-scoped URL if needed
@@ -808,8 +802,6 @@ export function ResultGrid({
         {sortOptions && sortOptions.length > 0 && (
           <SortBy options={sortOptions} value={request.sortBy} path={path} />
         )}
-        {/* The note shares the row of the selectors and stays at the right end. It
-            never renders above the results, so nothing moves while the probe runs. */}
         {probe.probingRegions && <RegionHintNote>Checking other regions…</RegionHintNote>}
         {hasSearch && (
           <Flex align="center" gap="xs" flex="1" minWidth="240px">
