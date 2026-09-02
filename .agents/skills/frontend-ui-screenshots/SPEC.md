@@ -17,6 +17,8 @@ The default options are `mode=product`, `themes=light`, and `breakpoints=none`. 
 
 Discovery uses the current diff, colocated stories/MDX, tests, import parents, route registrations, accessible names, responsive declarations, and rendered-browser verification. Static inference proposes a target; successful rendering confirms it. The agent owns semantic judgment; the script owns repeatable browser mechanics and safety checks.
 
+When the inspected render path references a frontend feature flag, temporarily enable it through the `feature-flag-overrides` local storage value before loading both versions. Preserve and restore the previous value; do not add a separate flag-discovery phase.
+
 Both merge-base and head run locally on separate ports and use the same persistent localhost-CDP Chrome profile. Prefer 7998 for merge-base and the current dev-ui's existing port for head, but record and use the actual ports selected by dev-ui. Captures are PNG at 2× and are written beneath `.artifacts/ui-capture/` with side-by-side comparisons and a manifest.
 
 ## Non-negotiable constraints
