@@ -11,7 +11,7 @@ There are exactly two paths:
 - `story`: a focused Scraps example or useful variation gallery for a documented component.
 - `product`: a demo route after replaying safe, accessible interactions. Pages, forms, modals, drawers, popovers, navigation, and the Seer Explorer drawer are all product states, not special modes. Capture the viewport to retain application context.
 
-The default options are `mode=auto`, `themes=both`, and `breakpoints=auto`. Automatic breakpoint selection expands only when the diff or rendered behavior is responsive. Container-query changes use meaningful widths around affected boundaries, including content widths created by opening adjacent UI such as the Seer Explorer drawer. Explicit `all` and `none` provide broader and minimal coverage respectively.
+The default options are `mode=product`, `themes=light`, and `breakpoints=none`. Story selection, dark-mode coverage, and breakpoint matrices are opt-in. When requested, container-query coverage uses meaningful widths around affected boundaries, including content widths created by opening adjacent UI such as the Seer Explorer drawer.
 
 ## Evidence and mechanics
 
@@ -21,7 +21,7 @@ Both merge-base and head run locally, on ports 7998 and 7999, and use the same p
 
 ## Non-negotiable constraints
 
-- Product captures use only `demo.dev.getsentry.net`; revalidate after every interaction and immediately before capture. Scraps uses local fixtures on `sentry.dev.getsentry.net`.
+- Every capture, including Scraps, uses only `demo.dev.getsentry.net`; revalidate after every interaction and immediately before capture.
 - Authentication state and browser-profile contents never enter Git.
 - Uploading images or changing a PR requires separate authorization.
 - Broken or unresolved lazy images, login redirects, loading states, and mismatched before/after state invalidate a capture.
