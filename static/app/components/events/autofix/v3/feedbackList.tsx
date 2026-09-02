@@ -624,7 +624,9 @@ function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
   }
   const tag = reviewStateTag(item.reviewState);
   return (
-    <Flex align="center" gap="sm" wrap="wrap">
+    // `minWidth="0"` so the nowrap preview inside can't set this row's automatic
+    // minimum size and push past the card.
+    <Flex align="center" gap="sm" wrap="wrap" minWidth="0">
       {tag && <Tag variant={tag.variant}>{tag.label}</Tag>}
       {/* A bare state change has no body — show just the link. */}
       {item.text ? (
