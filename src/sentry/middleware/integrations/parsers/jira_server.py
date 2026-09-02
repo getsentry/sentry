@@ -23,7 +23,6 @@ class JiraServerRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.JIRA_SERVER.value
     webhook_identifier = WebhookProviderIdentifier.JIRA_SERVER
 
-    # `issue.id` barely repeats between payloads; see `mailbox_bucket_count`.
     mailbox_bucket_count = 10
 
     def get_response_from_issue_update_webhook(self) -> HttpResponseBase:
@@ -55,9 +54,7 @@ class JiraServerRequestParser(BaseRequestParser):
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """Only changelog webhooks reach a cell, and each names its issue, so the
-        issue is the axis a Jira Server mailbox splits on.
-        """
+        """Only changelog webhooks reach a cell, and each names its issue."""
         return self.bucket_key_at(data, "issue", "id")
 
     def get_response(self) -> HttpResponseBase:

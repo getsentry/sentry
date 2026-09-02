@@ -160,8 +160,7 @@ class BaseRequestParserTest(TestCase):
         assert at({"issue": {"id": 10237}}, "issue", "id") == 10237
         assert at({"issue": {"id": "10237"}}, "issue", "id") == 10237
 
-        # A key that is missing, nested under a non-object, or not a number leaves the
-        # payload on the integration-level mailbox rather than raising at the modulo.
+        # Anything unusable falls back rather than raising at the modulo.
         assert at({}, "issue", "id") is None
         assert at({"issue": {}}, "issue", "id") is None
         assert at({"issue": "PROJ-1"}, "issue", "id") is None

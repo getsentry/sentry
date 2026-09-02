@@ -72,9 +72,8 @@ class GithubRequestParser(BaseRequestParser):
         return get_github_external_id(event)
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """Payloads carry `repository.id` for every event type that reaches a cell;
-        installation events are handled on control and never get here.
-        """
+        """Every event type that reaches a cell carries `repository.id`; installation
+        events are handled on control and never get here."""
         return self.bucket_key_at(data, "repository", "id")
 
     def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:

@@ -83,9 +83,7 @@ class GitlabRequestParser(BaseRequestParser):
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """Every event kind a cell processes names the project it belongs to, so the
-        project is the axis a GitLab mailbox splits on.
-        """
+        """Every event kind a cell processes names the project it belongs to."""
         return self.bucket_key_at(data, "project", "id")
 
     def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:

@@ -36,7 +36,6 @@ class JiraRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.JIRA.value
     webhook_identifier = WebhookProviderIdentifier.JIRA
 
-    # `issue.id` barely repeats between payloads; see `mailbox_bucket_count`.
     mailbox_bucket_count = 10
 
     control_classes = [

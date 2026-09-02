@@ -22,7 +22,6 @@ class VstsRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.AZURE_DEVOPS.value
     webhook_identifier = WebhookProviderIdentifier.VSTS
 
-    # `resource.workItemId` barely repeats between payloads; see `mailbox_bucket_count`.
     mailbox_bucket_count = 10
 
     cell_view_classes = [WorkItemWebhook]

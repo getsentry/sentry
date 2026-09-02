@@ -80,11 +80,13 @@ class BaseRequestParser(ABC):
     mailbox_bucket_count: ClassVar[int] = 100
     """How many sub-mailboxes `mailbox_bucket_id` is spread over.
 
-    Choose it from the bucket key's cardinality. A key that repeats across payloads --
-    a repository, a project -- already coalesces them onto one mailbox per distinct
-    value, so a high count costs nothing. A key that barely repeats -- an issue, a
-    work item -- puts one payload in a bucket and never returns to it, so a high count
-    buys shallow mailboxes that each still cost a scheduler row and a dispatch slot.
+    Set it from the key's cardinality. A repeating key (a repository) coalesces
+    payloads onto one mailbox per value, so a high count is free. A key that barely
+    repeats (an issue) fills a bucket once and never returns, and every mailbox costs
+    a scheduler row and a dispatch slot.
+
+    A static count is the interim answer; CW-1987 sizes it from a rolling per-
+    integration rate instead. https://linear.app/getsentry/issue/CW-1987
     """
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
@@ -296,8 +298,8 @@ class BaseRequestParser(ABC):
     ) -> str:
         """The mailbox identifier up to the bucket, before any event-type suffix.
 
-        The bucket key is the gate: a payload that carries one is bucketed, and one
-        that does not falls back to the integration-level mailbox."""
+        A payload carrying a bucket key is bucketed; one without falls back to the
+        integration-level mailbox."""
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
@@ -326,11 +328,10 @@ class BaseRequestParser(ABC):
 
     @staticmethod
     def bucket_key_at(data: Mapping[str, Any], *path: str) -> int | None:
-        """Read a bucket key out of `data`, or None when it is absent or not numeric.
+        """Read a bucket key out of `data`, or None if it is missing or not numeric.
 
-        Every provider coerces its key through here so they fail the same way: a key
-        that is missing, nested under a non-object, or not an integer falls back to
-        the integration-level mailbox instead of raising out of the parser.
+        Shared so every provider degrades the same way rather than raising out of the
+        parser on a body it did not expect.
         """
         try:
             return int(get_path(data, *path))
