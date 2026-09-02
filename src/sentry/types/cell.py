@@ -16,6 +16,9 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
+    from sentry.hybridcloud.services.organization_mapping.model import (
+        RpcOrganizationMapping,
+    )
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
@@ -260,7 +263,6 @@ def generate_monolith_cell_directory() -> CellDirectory:
     )
     locality = Locality(
         name=cell.name,
-        category=RegionCategory.MULTI_TENANT,
         cells=frozenset([cell.name]),
         new_org_cell=cell.name,
         visible=cell.visible,
@@ -274,7 +276,6 @@ def _parse_locality_config(
     for config_value in locality_config:
         yield Locality(
             name=config_value["name"],
-            category=RegionCategory(config_value["category"]),
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
@@ -458,6 +459,19 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
                 "cell_name", flat=True
             )
         )
+
+
+def find_cells_for_org_mappings(organizations: Iterable[RpcOrganizationMapping]) -> set[str]:
+    """The cells for organizations whose mappings the caller already holds.
+
+    Same answer as ``find_cells_for_orgs`` without the query — ``cell_name`` is already
+    on the mapping. Monolith keeps the short-circuit because ``SENTRY_FALLBACK_CELL`` is
+    synthetic and appears in no mapping row.
+    """
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {settings.SENTRY_FALLBACK_CELL}
+
+    return {org.cell_name for org in organizations}
 
 
 @control_silo_function

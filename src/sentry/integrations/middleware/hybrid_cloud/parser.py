@@ -33,7 +33,7 @@ from sentry.logging.handlers import SamplingFilter
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
-from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
+from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -98,6 +98,8 @@ class BaseRequestParser(ABC):
         self.response_handler = response_handler
         self._shed_decisions: dict[int | None, bool] = {}
         self._targeted_shed_conditions: KillswitchConfig | None = None
+        self._integration: Integration | None = None
+        self._integration_fetched = False
 
     # Common Helpers
 
@@ -116,6 +118,18 @@ class BaseRequestParser(ABC):
                 raise SiloLimit.AvailabilityError(
                     "Integration Request Parsers should only be run on the control silo."
                 )
+
+    def integration_for_request(self) -> Integration | None:
+        """``get_integration_from_request`` memoized for the life of the parser.
+
+        A parser is built once per request, so its callers share one query and one
+        decrypt of the integration's encrypted metadata. Subclasses override the
+        uncached ``get_integration_from_request``; nothing else should call it.
+        """
+        if not self._integration_fetched:
+            self._integration = self.get_integration_from_request()
+            self._integration_fetched = True
+        return self._integration
 
     def is_json_request(self) -> bool:
         if not self.request.headers:
@@ -438,7 +452,7 @@ class BaseRequestParser(ABC):
         self, integration: Integration | RpcIntegration | None = None
     ) -> list[RpcOrganizationMapping]:
         """
-        Use the get_integration_from_request() method to identify organizations associated with
+        Use the integration_for_request() method to identify organizations associated with
         the integration request.
         """
         with MiddlewareOperationEvent(
@@ -451,24 +465,26 @@ class BaseRequestParser(ABC):
                 }
             )
             if not integration:
-                integration = self.get_integration_from_request()
+                integration = self.integration_for_request()
             if not integration:
                 raise Integration.DoesNotExist()
 
             lifecycle.add_extra("integration_id", integration.id)
 
-            organization_integrations = OrganizationIntegration.objects.filter(
-                integration_id=integration.id,
-                status=ObjectStatus.ACTIVE,
+            # Only the ids are read, so one column beats a COUNT plus a discarded fetch.
+            organization_ids = list(
+                OrganizationIntegration.objects.filter(
+                    integration_id=integration.id,
+                    status=ObjectStatus.ACTIVE,
+                ).values_list("organization_id", flat=True)
             )
 
-            if organization_integrations.count() == 0:
+            if not organization_ids:
                 lifecycle.record_halt(
                     halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
                 )
                 return []
 
-            organization_ids = [oi.organization_id for oi in organization_integrations]
             all_organizations = organization_mapping_service.get_many(
                 organization_ids=organization_ids
             )
@@ -498,7 +514,7 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        cell_names = find_cells_for_orgs([org.id for org in organizations])
+        cell_names = find_cells_for_org_mappings(organizations)
         return sorted([get_cell_by_name(name) for name in cell_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
