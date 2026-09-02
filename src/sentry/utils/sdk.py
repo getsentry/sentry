@@ -313,7 +313,7 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
 class Dsns(NamedTuple):
     sentry4sentry: str | None
     sentry_saas: str | None
-    sentry_mirror: str | None
+    backend: str | None
 
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
@@ -337,7 +337,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
-        sentry_mirror=sdk_options.pop("sentry_mirror_dsn", None),
+        backend=sdk_options.pop("sentry_mirror_dsn", None),
     )
 
     return sdk_options, dsns
@@ -392,9 +392,9 @@ def configure_sdk():
     else:
         disabled_integrations.append(ThreadingIntegration())
 
-    if dsns.sentry_mirror:
+    if dsns.backend:
         sentry_sdk.init(
-            dsn=dsns.sentry_mirror,
+            dsn=dsns.backend,
             integrations=integrations,
             disabled_integrations=disabled_integrations,
             **sdk_options,
