@@ -131,7 +131,8 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
         # and has no per-resource breakdown.
         health = org_integration.config["connection_health"]
         assert health["status"] == "connected"
-        assert health["details"] == []
+        assert health["error_detail"] is None
+        assert health["resources"] == []
         assert health["last_checked_at"]
 
     def test_get_organization_config_and_config_data(self) -> None:

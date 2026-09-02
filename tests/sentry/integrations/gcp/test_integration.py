@@ -89,7 +89,8 @@ class GcpIntegrationTest(TestCase):
             "connection_health": {
                 "status": connection_status,
                 "last_checked_at": "2026-08-01T00:00:00+00:00",
-                "details": [
+                "error_detail": None,
+                "resources": [
                     {
                         "resource_id": project_id,
                         "status": connection_status,
@@ -499,7 +500,8 @@ class GcpIntegrationTest(TestCase):
         )
         health = org_integration.config["connection_health"]
         assert health["status"] == "permission_denied"
-        assert health["details"] == [
+        assert health["error_detail"] is None
+        assert health["resources"] == [
             {
                 "resource_id": "my-gcp-project",
                 "status": "permission_denied",
@@ -535,11 +537,12 @@ class GcpIntegrationTest(TestCase):
         health = org_integration.config["connection_health"]
         assert health["status"] == "error"
         assert health["last_checked_at"] is None
-        assert health["details"] == [
+        assert health["error_detail"] == "Verification failed to run during setup."
+        assert health["resources"] == [
             {
                 "resource_id": "my-gcp-project",
                 "status": "error",
-                "error_detail": "Verification failed to run during setup.",
+                "error_detail": None,
             }
         ]
 
@@ -586,7 +589,8 @@ class GcpIntegrationTest(TestCase):
         health = config["connection_health"]
         assert health["status"] == GCP_STATUS_UNVERIFIED
         assert health["last_checked_at"] is None
-        assert health["details"] == [
+        assert health["error_detail"] is None
+        assert health["resources"] == [
             {
                 "resource_id": "my-gcp-project",
                 "status": GCP_STATUS_UNVERIFIED,
@@ -604,7 +608,7 @@ class GcpIntegrationTest(TestCase):
         config = self._stored_config()
         assert config["projects"] == ["project-prod", "project-staging"]
         health = config["connection_health"]
-        assert [d["resource_id"] for d in health["details"]] == [
+        assert [d["resource_id"] for d in health["resources"]] == [
             "project-prod",
             "project-staging",
         ]
@@ -715,7 +719,7 @@ class GcpIntegrationTest(TestCase):
         health = data["connection_health"]
         assert health["status"] == "connected"
         assert health["last_checked_at"] == "2026-08-01T00:00:00+00:00"
-        assert health["details"] == [
+        assert health["resources"] == [
             {
                 "resource_id": "my-gcp-project",
                 "status": "connected",
@@ -740,8 +744,9 @@ class GcpIntegrationTest(TestCase):
 
         health = data["connection_health"]
         assert health["status"] == GCP_STATUS_UNVERIFIED
-        assert health["details"] == []
+        assert health["resources"] == []
         assert health["last_checked_at"] is None
+        assert health["error_detail"] is None
 
     def test_get_config_data_empty_without_config(self) -> None:
         self._create_installed_integration()

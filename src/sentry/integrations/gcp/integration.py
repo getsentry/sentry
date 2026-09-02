@@ -265,7 +265,8 @@ class GcpIntegration(IntegrationInstallation):
             or {
                 "status": GCP_STATUS_UNVERIFIED,
                 "last_checked_at": None,
-                "details": [],
+                "error_detail": None,
+                "resources": [],
             },
         }
 
@@ -295,7 +296,8 @@ class GcpIntegration(IntegrationInstallation):
         new_config["connection_health"] = {
             "status": GCP_STATUS_UNVERIFIED,
             "last_checked_at": None,
-            "details": [
+            "error_detail": None,
+            "resources": [
                 {
                     "resource_id": project_id,
                     "status": GCP_STATUS_UNVERIFIED,
@@ -372,6 +374,7 @@ class GcpIntegrationProvider(IntegrationProvider):
         )
         verification: GcpVerification | None = extra.get("verification")
         last_verified_at = timezone.now().isoformat() if verification is not None else None
+        connection_error: str | None = None
         if verification is None:
             logger.error(
                 "gcp.post_install_missing_verification",
@@ -380,13 +383,14 @@ class GcpIntegrationProvider(IntegrationProvider):
                     "integration_id": integration.id,
                 },
             )
+            connection_error = "Verification failed to run during setup."
             verification = {
                 "connection_status": "error",
                 "projects": [
                     {
                         "gcp_project_id": project_id,
                         "connection_status": "error",
-                        "error_detail": "Verification failed to run during setup.",
+                        "error_detail": None,
                     }
                     for project_id in extra["projects"]
                 ],
@@ -395,7 +399,8 @@ class GcpIntegrationProvider(IntegrationProvider):
         connection_health: ConnectionHealth = {
             "status": verification["connection_status"],
             "last_checked_at": last_verified_at,
-            "details": [
+            "error_detail": connection_error,
+            "resources": [
                 {
                     "resource_id": project["gcp_project_id"],
                     "status": project["connection_status"],

@@ -38,7 +38,8 @@ class ConnectionHealth(TypedDict):
 
     status: str
     last_checked_at: str | None
-    details: list[ResourceHealth]
+    error_detail: str | None
+    resources: list[ResourceHealth]
 
 
 class OrgMonitoringProvider(abc.ABC):

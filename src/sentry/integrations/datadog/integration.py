@@ -218,7 +218,8 @@ class DatadogIntegrationProvider(IntegrationProvider):
         health: ConnectionHealth = {
             "status": "connected",
             "last_checked_at": timezone.now().isoformat(),
-            "details": [],
+            "error_detail": None,
+            "resources": [],
         }
         config = dict(org_integration.config)
         config["connection_health"] = health
