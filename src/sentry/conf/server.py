@@ -983,6 +983,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
@@ -1225,6 +1226,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Hourly rather than daily: the sweep has to keep pace with inbound PR
         # webhooks, and small frequent batches are gentler than one daily surge.
         "schedule": crontab("20", "*", "*", "*", "*"),
+    },
+    "autofix-sweep-pr-iteration-details": {
+        "task": "seer:sentry.tasks.autofix.sweep_pr_iteration_details",
+        # Hourly: the task discards iteration rows more than a day old, so it
+        # must be regular, not prompt.
+        "schedule": crontab("40", "*", "*", "*", "*"),
     },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
@@ -2991,6 +2998,13 @@ SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
+
+# URL of the teapot GPU crash dump symbolication service, derived from the
+# SENTRY_TEAPOT_HOST host:port (the k8s service in SaaS, localhost in dev).
+SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}"
+
+# Shared secret used to sign requests to teapot
+SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 

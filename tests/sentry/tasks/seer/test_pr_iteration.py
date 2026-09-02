@@ -14,6 +14,8 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
+from sentry.seer.autofix.pr_iteration.details_store import open_iterations
+from sentry.seer.autofix.pr_iteration.emit import open_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
@@ -1513,6 +1515,118 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         self._call()
 
         assert mock_trigger.call_args.kwargs["commit_author"] is None
+
+    def _open_iteration_row(self) -> None:
+        open_pr_iteration_details(
+            log_ctx=PrIterationLogContext(
+                MagicMock(),
+                run_state=self._state(),
+                organization_id=self.organization.id,
+                group_id=self.group.id,
+            ),
+            run_state=self._state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    def _stale_feedback(self) -> tuple[Feedback, MemoryBlock]:
+        stale = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 555, "body": "@sentry stale"})
+        )
+        block = MemoryBlock(
+            id="b1",
+            message=Message(role="assistant", metadata={"feedback": serialize_feedback([stale])}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        return stale, block
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_fully_dropped_drain_closes_its_row(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        stale, block = self._stale_feedback()
+        mock_fetch.return_value = self._state(blocks=[block])
+        mock_pop.return_value = [self._queued(stale)]
+        self._open_iteration_row()
+
+        self._call()
+
+        assert open_iterations(seer_run) == []
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_failing_trigger_closes_its_row(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+        mock_trigger.side_effect = PrIterationNoPullRequestException("no pr")
+        self._open_iteration_row()
+
+        self._call()
+
+        assert open_iterations(seer_run) == []
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_failing_trigger_with_no_row_keeps_the_next_iterations_row(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+
+        # Feedback for the next iteration arrives while the agent call is in flight.
+        def open_next_row_then_fail(*args: object, **kwargs: object) -> None:
+            self._open_iteration_row()
+            raise PrIterationNoPullRequestException("no pr")
+
+        mock_trigger.side_effect = open_next_row_then_fail
+
+        self._call()
+
+        assert len(open_iterations(seer_run)) == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_the_iteration_after_a_dropped_drain_carries_its_own_counts(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        stale, block = self._stale_feedback()
+        mock_fetch.return_value = self._state(blocks=[block])
+        mock_pop.return_value = [self._queued(stale)]
+        self._open_iteration_row()
+        self._call()
+
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._ui_queued()]
+        self._open_iteration_row()
+        self._call()
+
+        (row,) = open_iterations(seer_run)
+        assert mock_trigger.call_args.kwargs["iteration_id"] == row.id
+        assert row.data["feedback_count"] == 1
+        assert row.data["dropped_count"] == 0
 
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):

@@ -72,6 +72,7 @@ from .organization_created import *  # noqa: F401,F403
 from .organization_joined import *  # noqa: F401,F403
 from .organization_removed import *  # noqa: F401,F403
 from .plugin_enabled import *  # noqa: F401,F403
+from .pr_iteration_events import *  # noqa: F401,F403
 from .pr_metrics_events import *  # noqa: F401,F403
 from .project_created import *  # noqa: F401,F403
 from .project_issue_searched import *  # noqa: F401,F403
