@@ -729,6 +729,15 @@ class OutboxAggregationTest(TestCase):
         )
         assert breakdown == []
 
+    def test_get_shard_category_breakdown_requires_full_shard_key(self) -> None:
+        with raises(AssertionError):
+            ControlOutbox.get_shard_category_breakdown(
+                {
+                    "shard_identifier": 99,
+                    "shard_scope": OutboxScope.ORGANIZATION_SCOPE.value,
+                }
+            )
+
     def test_total_count(self) -> None:
         assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1
 
