@@ -220,6 +220,32 @@ class StatusActionTest(APITestCase):
         assert_mock_called_once_with_partial(client_put, data=expected_data)
 
     @responses.activate
+    @patch.object(ApiClient, "put")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rejected_action_answers_with_the_api_status(
+        self, verify: MagicMock, client_put: MagicMock
+    ) -> None:
+        client_put.side_effect = ApiClient.ApiError(403, {"detail": "You do not have permission"})
+
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+
+        # A 5xx here would send the webhook drain into ten retries of a record that can only
+        # fail again, holding everything behind it in the tenant's mailbox.
+        assert resp.status_code == 403, resp.content
+
+    @responses.activate
+    @patch.object(ApiClient, "put")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rejected_action_with_a_non_mapping_body(
+        self, verify: MagicMock, client_put: MagicMock
+    ) -> None:
+        client_put.side_effect = ApiClient.ApiError(400, ["invalid limit"])
+
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="resolved")
+
+        assert resp.status_code == 400, resp.content
+
+    @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_team(self, verify: MagicMock) -> None:
         resp = self.post_webhook(
