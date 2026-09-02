@@ -5,12 +5,13 @@ import {motion} from 'framer-motion';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {AnimatedActivity} from 'sentry/components/animatedActivity';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   type SecondFactorAuthResult,
@@ -156,43 +157,51 @@ export function SecondFactorAuth({
         </Grid>
       </MotionContainer>
 
-      <Flex align="center" justify="between">
-        <Button
-          variant="transparent"
-          size="xs"
-          icon={<IconArrow direction="left" />}
-          busy={cancellation.isPending}
-          disabled={auth.isPending}
-          onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
-        >
-          {t('Back to Login')}
-        </Button>
-        {otherMethods.length > 1 ? (
-          <DropdownMenu
-            size="xs"
-            triggerLabel={t('Use Different Method')}
-            triggerProps={{
-              disabled: isProcessing,
-              size: 'xs',
-              variant: 'transparent',
-            }}
-            items={otherMethods.map(method => ({
-              key: method.id,
-              label: METHOD_LABELS[method.id],
-              onAction: () => selectMethod(method.id),
-            }))}
-          />
-        ) : onlyOtherMethod ? (
+      <Stack gap="3xl">
+        <Flex align="center" justify="between">
           <Button
-            size="xs"
             variant="transparent"
-            disabled={isProcessing}
-            onClick={() => selectMethod(onlyOtherMethod.id)}
+            size="xs"
+            icon={<IconArrow direction="left" />}
+            busy={cancellation.isPending}
+            disabled={auth.isPending}
+            onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
           >
-            {USE_METHOD_LABELS[onlyOtherMethod.id]}
+            {t('Back to Login')}
           </Button>
-        ) : null}
-      </Flex>
+          {otherMethods.length > 1 ? (
+            <DropdownMenu
+              size="xs"
+              triggerLabel={t('Use Different Method')}
+              triggerProps={{
+                disabled: isProcessing,
+                size: 'xs',
+                variant: 'transparent',
+              }}
+              items={otherMethods.map(method => ({
+                key: method.id,
+                label: METHOD_LABELS[method.id],
+                onAction: () => selectMethod(method.id),
+              }))}
+            />
+          ) : onlyOtherMethod ? (
+            <Button
+              size="xs"
+              variant="transparent"
+              disabled={isProcessing}
+              onClick={() => selectMethod(onlyOtherMethod.id)}
+            >
+              {USE_METHOD_LABELS[onlyOtherMethod.id]}
+            </Button>
+          ) : null}
+        </Flex>
+
+        <Text as="p" align="center" size="sm" variant="muted">
+          {tct('Having trouble logging in? [support:Contact support].', {
+            support: <ExternalLink href="https://www.sentry.help/" />,
+          })}
+        </Text>
+      </Stack>
     </Stack>
   );
 }
