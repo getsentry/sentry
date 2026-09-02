@@ -31,6 +31,11 @@ class BitbucketRequestParser(BaseRequestParser):
             logger.info("%s.no_organization_id", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
 
+        # Shed before the lookups: provider-wide conditions do not need the integration.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         try:
             mapping: OrganizationMapping = OrganizationMapping.objects.get(
                 organization_id=organization_id

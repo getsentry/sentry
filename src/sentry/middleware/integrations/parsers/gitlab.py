@@ -64,6 +64,11 @@ class GitlabRequestParser(BaseRequestParser):
         if isinstance(maybe_http_response, HttpResponseBase):
             return maybe_http_response
 
+        # Shed before the lookups: provider-wide conditions do not need the integration.
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         try:
             integration = self.get_integration_from_request()
             if not integration:
