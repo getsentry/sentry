@@ -19,6 +19,7 @@ Use these defaults unless the user asks for broader coverage:
 ## Boundaries
 
 - Use only the synthetic `demo` organization through `demo.dev.getsentry.net`, including Scraps routes. Stop if an interaction leaves the planned local origin or, for stories, the Scraps route.
+- Do not capture `sentry.sentry.io/_admin` or any admin page backed by real Sentry data. Admin UI evidence is out of scope for now; a future workflow must run Sentry locally with synthetic or mock data.
 - Explicit invocation authorizes replacing this skill's screenshot table in the current PR description. Do not publish anywhere else.
 - Use the dedicated localhost-only Chrome profile in [references/chrome-setup.md](references/chrome-setup.md).
 - Capture PNG at device scale factor 2. Wait for fonts and lazy-loaded images; reject broken images.
