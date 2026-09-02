@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Mapping
 from typing import Any
@@ -15,12 +16,15 @@ from sentry.hybridcloud.models.outbox import (
     OutboxBase,
     OutboxFlushError,
 )
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks, hybridcloud_tasks
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -64,6 +68,10 @@ def enqueue_outbox_jobs(
 # relationship between the id space of shard_identifiers and the amount of unique,
 # non coalesced work.
 CONCURRENCY = 5
+
+# Above this depth, a shard is backed up enough that we log which shard it is,
+# since the maximum_shard_depth metric alone doesn't identify it.
+DEEP_SHARD_LOG_THRESHOLD = 10_000
 
 
 def schedule_batch(
@@ -128,7 +136,7 @@ def schedule_outbox_model(
             **task_kwargs,
         )
 
-    deepest_shards = outbox_model.get_shard_depths_descending(limit=1)
+    deepest_shards = outbox_model.get_shard_depths_descending(limit=5)
     max_shard_depth = float(deepest_shards[0]["depth"]) if deepest_shards else 0.0
     metrics.gauge(
         "deliver_from_outbox.maximum_shard_depth",
@@ -137,6 +145,18 @@ def schedule_outbox_model(
         sample_rate=1.0,
     )
 
+    for shard in deepest_shards:
+        if int(shard["depth"]) < DEEP_SHARD_LOG_THRESHOLD:
+            break
+        logger.warning(
+            "deliver_from_outbox.deep_shard",
+            extra={
+                **metrics_tags,
+                **shard,
+                "category": OutboxCategory(int(shard["category"])).name,
+            },
+        )
+
     outbox_count = outbox_model.get_total_outbox_count()
     metrics.gauge(
         "deliver_from_outbox.total_outbox_count",
@@ -144,6 +164,19 @@ def schedule_outbox_model(
         tags=metrics_tags,
         sample_rate=1.0,
     )
+
+    category_depths = outbox_model.get_category_depths()
+    for category, depth in category_depths.items():
+        metrics.gauge(
+            "deliver_from_outbox.category_shard_depth",
+            value=depth,
+            tags={
+                "silo": silo_mode.value.lower(),
+                "type": outbox_model.__name__,
+                "category": OutboxCategory(category).name,
+            },
+            sample_rate=1.0,
+        )
     return scheduled_count
 
 
