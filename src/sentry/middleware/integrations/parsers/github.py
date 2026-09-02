@@ -66,24 +66,16 @@ class GithubRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.GITHUB
     webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
-    always_bucket = True
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
         return get_github_external_id(event)
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """Hash on repository ID to distribute webhooks across sub-mailboxes.
-
-        GitHub webhook payloads include repository.id for most event types.
-        Installation events are routed to control silo and don't reach this path.
+        """Payloads carry `repository.id` for every event type that reaches a cell;
+        installation events are handled on control and never get here.
         """
-        repository = data.get("repository")
-        if isinstance(repository, dict):
-            repo_id = repository.get("id")
-            if isinstance(repo_id, int):
-                return repo_id
-        return None
+        return self.bucket_key_at(data, "repository", "id")
 
     def mailbox_event_type(self, data: Mapping[str, Any]) -> str | None:
         return self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)

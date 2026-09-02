@@ -270,7 +270,7 @@ class GithubRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:issues",
+            mailbox_name=f"github:{integration.id}:1:issues",
             cell_names=[cell.name],
             destination_types={DestinationType.SENTRY_CELL: 1},
         )

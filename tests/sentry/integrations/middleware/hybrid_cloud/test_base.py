@@ -3,7 +3,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.core.cache import cache
 from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from pytest import raises
@@ -143,7 +142,7 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
 
-    def test_get_mailbox_identifier_buckets_only_above_volume(self) -> None:
+    def test_get_mailbox_identifier_buckets_whenever_a_key_exists(self) -> None:
         class BucketedParser(ExampleRequestParser):
             def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
                 return 177
@@ -153,34 +152,22 @@ class BaseRequestParserTest(TestCase):
         )
         parser = BucketedParser(self.request, self.response_handler)
 
-        with patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
-            return_value=False,
-        ):
-            assert parser.get_mailbox_identifier(integration, {}) == str(integration.id)
-        with patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited",
-            return_value=True,
-        ):
-            assert parser.get_mailbox_identifier(integration, {}) == f"{integration.id}:77"
+        assert parser.get_mailbox_identifier(integration, {}) == f"{integration.id}:77"
 
-    def test_get_mailbox_identifier_always_bucket_skips_volume_check(self) -> None:
-        class AlwaysBucketedParser(ExampleRequestParser):
-            always_bucket = True
+    def test_bucket_key_at_coerces_or_falls_back(self) -> None:
+        at = BaseRequestParser.bucket_key_at
 
-            def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
-                return 177
+        assert at({"issue": {"id": 10237}}, "issue", "id") == 10237
+        assert at({"issue": {"id": "10237"}}, "issue", "id") == 10237
 
-        integration = self.create_integration(
-            organization=self.organization, external_id="1", provider="test_provider"
-        )
-        parser = AlwaysBucketedParser(self.request, self.response_handler)
-
-        with patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
-        ) as mock_is_limited:
-            assert parser.get_mailbox_identifier(integration, {}) == f"{integration.id}:77"
-        mock_is_limited.assert_not_called()
+        # A key that is missing, nested under a non-object, or not a number leaves the
+        # payload on the integration-level mailbox rather than raising at the modulo.
+        assert at({}, "issue", "id") is None
+        assert at({"issue": {}}, "issue", "id") is None
+        assert at({"issue": "PROJ-1"}, "issue", "id") is None
+        assert at({"issue": {"id": None}}, "issue", "id") is None
+        assert at({"issue": {"id": "not-a-number"}}, "issue", "id") is None
+        assert at({"issue": {"id": ["10237"]}}, "issue", "id") is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.maybe_trigger_drain")
@@ -389,26 +376,10 @@ class BaseRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
-    def test_mailbox_identifier_under_volume_gate(self, mock_incr: MagicMock) -> None:
-        integration = self.create_integration(
-            organization=self.organization, provider="test_provider", external_id="test_external_id"
-        )
-        parser = BucketingRequestParser(self.request, self.response_handler)
-
-        assert parser.get_mailbox_identifier(integration, {"bucket_id": 101}) == str(integration.id)
-
-        mock_incr.assert_any_call(
-            "hybridcloud.webhookpayload.mailbox_routing",
-            tags={"provider": "test_provider", "bucketed": "false", "reason": "under_volume_gate"},
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch("sentry.integrations.middleware.hybrid_cloud.parser.metrics.incr")
     def test_mailbox_identifier_without_a_bucket_key(self, mock_incr: MagicMock) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="test_provider", external_id="test_external_id"
         )
-        cache.set(f"webhookpayload:test_provider:{integration.id}:use_buckets", 1)
         parser = BucketingRequestParser(self.request, self.response_handler)
 
         assert parser.get_mailbox_identifier(integration, {}) == str(integration.id)
@@ -424,7 +395,6 @@ class BaseRequestParserTest(TestCase):
         integration = self.create_integration(
             organization=self.organization, provider="test_provider", external_id="test_external_id"
         )
-        cache.set(f"webhookpayload:test_provider:{integration.id}:use_buckets", 1)
         parser = BucketingRequestParser(self.request, self.response_handler)
 
         assert (
