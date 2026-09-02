@@ -23,6 +23,8 @@ Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
 
 For a Scraps section, use `"target":{"kind":"story","heading":"Image Avatars"}`. Omit `heading` to capture the whole main story gallery.
 
+Use the canonical Scraps URL shown by its route registration/navigation. Do not use the internal `?name=<source-file>` loader URL: it is not a stable, reviewable route and can render a misleading fallback state.
+
 Clicks and fills must identify exactly one element by `label` or by `role` and accessible `name`. Matching is exact. Use only actions that do not submit or otherwise mutate data. Feature flags are enabled on both local origins for the capture and their previous `feature-flag-overrides` values are restored afterward.
 
 ## Container breakpoints
@@ -45,6 +47,8 @@ Sentry's container scale uses these minimum widths:
 | `5xl`  | 1280px    |
 
 Test only affected boundaries unless the user requests the full matrix. For a mobile-first minimum, capture at `N - 1` and `N`; for a `max-width` query, capture at `N` and `N + 1`.
+
+Also compare the representative Before/After state at the same measured container width. Crossing a breakpoint successfully is insufficient when the migration changes the resulting column count, visibility, wrapping, or content from the behavior being replaced.
 
 These values are query-container content-box widths, not viewport or border-box widths. Choose viewport widths or safe actions—such as opening and resizing the Seer Explorer drawer—that place the query container on both sides of the boundary. Set each viewport's `containerWidth` to the expected rendered width; the helper measures the accessible `container` element in both versions and fails when it differs by more than 1px. The default container locator is `{"role":"main"}`.
 
