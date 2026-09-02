@@ -13,28 +13,13 @@ const FEATURE_FLAGS_BACKUP_KEY = '__sentry_ui_capture_feature_flags__';
 
 // This helper deliberately does not decide what deserves a screenshot. The agent
 // reads the diff and builds a plan; this script only performs repeatable safety
-// validation, browser capture, and before/after composition.
+// validation and browser capture.
 
 // Plan validation and customer-data guardrails ---------------------------------
 
 function assertObject(value, description) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`${description} must be an object`);
-  }
-}
-
-function validateLocatorDescriptor(descriptor, description) {
-  assertObject(descriptor, description);
-  if ('selector' in descriptor) {
-    throw new Error(`${description} must use an accessible role or label`);
-  }
-  const usesLabel = typeof descriptor.label === 'string' && descriptor.label;
-  const usesRole = typeof descriptor.role === 'string' && descriptor.role;
-  if (!usesLabel && !usesRole) {
-    throw new Error(`${description} requires a label or role`);
-  }
-  if (descriptor.exact !== undefined && typeof descriptor.exact !== 'boolean') {
-    throw new Error(`${description} exact must be a boolean`);
   }
 }
 
@@ -109,6 +94,7 @@ function validatePlan(plan) {
   }
   const viewportNames = new Set();
   for (const viewport of plan.viewports ?? []) {
+    assertObject(viewport, 'Viewport');
     if (
       typeof viewport.name !== 'string' ||
       !safeName(viewport.name) ||
@@ -134,45 +120,12 @@ function validatePlan(plan) {
   if (plan.actions !== undefined && !Array.isArray(plan.actions)) {
     throw new Error('Plan actions must be an array');
   }
-  for (const action of plan.actions ?? []) {
-    assertObject(action, 'Action');
-    if (!['click', 'fill', 'press', 'wait'].includes(action.kind)) {
-      throw new Error(`Unsupported action kind: ${action.kind}`);
-    }
-    if ('selector' in action) {
-      throw new Error('CSS selectors are not accepted; use accessible roles or labels');
-    }
-    if (action.exact !== undefined && typeof action.exact !== 'boolean') {
-      throw new Error('Action exact must be a boolean');
-    }
-    if (action.kind === 'wait') {
-      if (!Number.isInteger(action.ms) || action.ms < 0) {
-        throw new Error('Wait actions require a non-negative integer ms');
-      }
-    } else if (action.kind === 'press') {
-      if (typeof action.key !== 'string' || !action.key) {
-        throw new Error('Press actions require a key');
-      }
-    } else {
-      validateLocatorDescriptor(action, `${action.kind} action`);
-      if (!action.label && (typeof action.name !== 'string' || !action.name)) {
-        throw new Error(`${action.kind} actions using a role also require a name`);
-      }
-      if (action.kind === 'fill' && typeof action.value !== 'string') {
-        throw new Error('Fill actions require a string value');
-      }
-    }
-  }
   if (
     plan.featureFlags !== undefined &&
     (!Array.isArray(plan.featureFlags) ||
-      new Set(plan.featureFlags).size !== plan.featureFlags.length ||
       plan.featureFlags.some(flag => typeof flag !== 'string' || !flag))
   ) {
-    throw new Error('Plan featureFlags must contain unique non-empty strings');
-  }
-  if (plan.container !== undefined) {
-    validateLocatorDescriptor(plan.container, 'Plan container');
+    throw new Error('Plan featureFlags must contain non-empty strings');
   }
 }
 
@@ -270,26 +223,53 @@ async function setTheme(page, theme) {
 }
 
 function accessibleLocator(page, descriptor) {
-  return descriptor.label
-    ? page.getByLabel(descriptor.label, {exact: descriptor.exact ?? true})
-    : page.getByRole(descriptor.role, {
-        name: descriptor.name,
-        exact: descriptor.exact ?? true,
-      });
+  assertObject(descriptor, 'Accessible locator');
+  if ('selector' in descriptor) {
+    throw new Error('CSS selectors are not accepted; use an accessible role or label');
+  }
+  if (descriptor.exact !== undefined && typeof descriptor.exact !== 'boolean') {
+    throw new Error('Accessible locator exact must be a boolean');
+  }
+  if (typeof descriptor.label === 'string' && descriptor.label) {
+    return page.getByLabel(descriptor.label, {exact: descriptor.exact ?? true});
+  }
+  if (typeof descriptor.role === 'string' && descriptor.role) {
+    return page.getByRole(descriptor.role, {
+      name: descriptor.name,
+      exact: descriptor.exact ?? true,
+    });
+  }
+  throw new Error('Accessible locators require a label or role');
 }
 
 async function runActions(page, actions, assertLocation) {
   for (const action of actions ?? []) {
+    assertObject(action, 'Action');
     if (action.kind === 'wait') {
-      await page.waitForTimeout(action.ms ?? 500);
+      if (!Number.isInteger(action.ms) || action.ms < 0) {
+        throw new Error('Wait actions require a non-negative integer ms');
+      }
+      await page.waitForTimeout(action.ms);
       assertLocation();
       continue;
     }
     if (action.kind === 'press') {
+      if (typeof action.key !== 'string' || !action.key) {
+        throw new Error('Press actions require a key');
+      }
       await page.keyboard.press(action.key);
       await page.waitForLoadState('domcontentloaded').catch(() => {});
       assertLocation();
       continue;
+    }
+    if (!['click', 'fill'].includes(action.kind)) {
+      throw new Error(`Unsupported action kind: ${action.kind}`);
+    }
+    if (action.kind === 'fill' && typeof action.value !== 'string') {
+      throw new Error('Fill actions require a string value');
+    }
+    if (!action.label && (typeof action.name !== 'string' || !action.name)) {
+      throw new Error(`${action.kind} actions using a role also require a name`);
     }
     const locator = accessibleLocator(page, action);
     if ((await locator.count()) !== 1) {
@@ -315,9 +295,17 @@ async function verifyContainerWidth(page, container, expectedWidth) {
   if ((await locator.count()) !== 1 || !(await locator.isVisible())) {
     throw new Error('Container width target did not resolve to one visible element');
   }
-  const actualWidth = await locator.evaluate(
-    element => element.getBoundingClientRect().width
-  );
+  const actualWidth = await locator.evaluate(element => {
+    const box = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return (
+      box.width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight) -
+      parseFloat(style.borderLeftWidth) -
+      parseFloat(style.borderRightWidth)
+    );
+  });
   if (Math.abs(actualWidth - expectedWidth) > 1) {
     throw new Error(
       `Expected container width ${expectedWidth}px, but rendered ${actualWidth}px`
@@ -415,7 +403,7 @@ async function validateImages(page, target) {
           width: window.innerWidth,
           height: window.innerHeight,
         })));
-  const states = await locator.evaluateAll(async (images, captureRegion) => {
+  const broken = await locator.evaluateAll(async (images, captureRegion) => {
     const selected = captureRegion
       ? images.filter(image => {
           const box = image.getBoundingClientRect();
@@ -427,31 +415,16 @@ async function validateImages(page, target) {
           );
         })
       : images;
-    await Promise.all(
-      selected.map(
-        image =>
-          image.complete ||
-          new Promise(resolve => {
-            image.addEventListener('load', resolve, {once: true});
-            image.addEventListener('error', resolve, {once: true});
-            setTimeout(resolve, 5000);
-          })
-      )
-    );
-    return selected.map(image => ({
-      alt: image.alt,
-      complete: image.complete,
-      naturalWidth: image.naturalWidth,
-      src: image.currentSrc || image.src,
-    }));
+    await Promise.race([
+      Promise.allSettled(selected.map(image => image.decode())),
+      new Promise(resolve => setTimeout(resolve, 5000)),
+    ]);
+    return selected
+      .filter(image => !image.complete || image.naturalWidth === 0)
+      .map(image => image.alt || image.currentSrc || image.src);
   }, region);
-  const broken = states.filter(state => !state.complete || state.naturalWidth === 0);
   if (broken.length) {
-    throw new Error(
-      `Broken images in capture target: ${broken
-        .map(image => image.alt || image.src)
-        .join(', ')}`
-    );
+    throw new Error(`Broken images in capture target: ${broken.join(', ')}`);
   }
 }
 
@@ -465,33 +438,6 @@ async function takeScreenshot(page, target, outputPath) {
   } else {
     await page.screenshot({path: outputPath, fullPage: false});
   }
-}
-
-async function compose(page, beforePath, afterPath, outputPath, theme) {
-  const before = fs.readFileSync(beforePath).toString('base64');
-  const after = fs.readFileSync(afterPath).toString('base64');
-  const background = theme === 'dark' ? '#18171c' : '#ffffff';
-  const foreground = theme === 'dark' ? '#f2f0f5' : '#2b2933';
-  await page.setContent(`
-    <style>
-      * { box-sizing: border-box; }
-      body { margin: 0; background: ${background}; color: ${foreground}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      #comparison { display: flex; gap: 24px; padding: 24px; width: max-content; }
-      .panel { width: max-content; }
-      .label { font-size: 20px; font-weight: 600; margin: 0 0 12px 2px; }
-      img { display: block; max-width: none; border-radius: 6px; }
-    </style>
-    <div id="comparison">
-      <div class="panel"><div class="label">Before</div><img src="data:image/png;base64,${before}"></div>
-      <div class="panel"><div class="label">After</div><img src="data:image/png;base64,${after}"></div>
-    </div>
-  `);
-  await page.locator('#comparison img').evaluateAll(images => {
-    for (const image of images) {
-      image.style.width = `${image.naturalWidth / 2}px`;
-    }
-  });
-  await page.locator('#comparison').screenshot({path: outputPath});
 }
 
 // Capture pipeline --------------------------------------------------------------
@@ -581,24 +527,10 @@ async function capture(planPath, cdpUrl) {
           paths[`${version}ContainerWidth`] = containerWidth;
         }
 
-        const comparisonPath = path.join(
-          outputDirectory,
-          `before-after-${safeName(viewport.name)}-${theme}-2x.png`
-        );
-        await session.send('Emulation.setDeviceMetricsOverride', {
-          width: 2000,
-          height: 1400,
-          deviceScaleFactor: 2,
-          mobile: false,
-          screenWidth: 2000,
-          screenHeight: 1400,
-        });
-        await compose(page, paths.before, paths.after, comparisonPath, theme);
         artifacts.push({
           viewport: viewport.name,
           theme,
           ...paths,
-          comparison: comparisonPath,
         });
       }
     }
