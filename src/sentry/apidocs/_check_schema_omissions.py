@@ -98,7 +98,19 @@ def _class_field_names(cls: ast.ClassDef, classes: dict[str, ast.ClassDef]) -> s
                         and m.targets[0].id == "fields"
                         and isinstance(m.value, (ast.List, ast.Tuple))
                     ):
-                        names.update(e.value for e in m.value.elts if isinstance(e, ast.Constant))
+                        names.update(
+                            e.value
+                            for e in m.value.elts
+                            if isinstance(e, ast.Constant) and isinstance(e.value, str)
+                        )
+                    elif (
+                        isinstance(m, ast.Assign)
+                        and isinstance(m.targets[0], ast.Name)
+                        and m.targets[0].id == "fields"
+                    ):
+                        # Meta.fields = "__all__" (or any non-literal): the field set
+                        # comes from the model, so we cannot enumerate it
+                        names.add("*")
         for base in node.bases:
             bn = _base_name(base)
             if bn in classes:
@@ -119,7 +131,8 @@ def check_file(path: Path) -> tuple[list[Diagnostic], set[str]]:
     except (SyntaxError, UnicodeDecodeError):
         return [], set()
 
-    classes = {n.name: n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
+    # module-level only: ast.walk would let a nested class shadow a top-level one
+    classes = {n.name: n for n in tree.body if isinstance(n, ast.ClassDef)}
     out: list[Diagnostic] = []
     used: set[str] = set()
 
@@ -237,12 +250,12 @@ def main(argv: list[str]) -> int:
     diagnostics: list[Diagnostic] = []
     used: set[str] = set()
     for path in iter_files(roots):
-        d, u = check_file(path)
-        diagnostics.extend(d)
-        used |= u
+        found, matched = check_file(path)
+        diagnostics.extend(found)
+        used |= matched
 
-    for d in diagnostics:
-        sys.stdout.write(f"{d}\n")
+    for diagnostic in diagnostics:
+        sys.stdout.write(f"{diagnostic}\n")
 
     stale = SAFELIST - used
     checked_everything = roots == list(DEFAULT_PATHS)

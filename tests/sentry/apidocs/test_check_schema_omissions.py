@@ -137,3 +137,57 @@ class R(TypedDict):
     )
     assert len(out) == 1
     assert "names no field" in out[0].message
+
+
+def test_meta_fields_all_skips_the_existence_check() -> None:
+    # Meta.fields = "__all__" means the field set comes from the model
+    out = _run(
+        """
+from sentry.apidocs.omissions import sentry_schema_serializer
+from rest_framework import serializers
+
+@sentry_schema_serializer(omit_from_public_schema={"from_model": "Internal."})
+class S(serializers.Serializer):
+    class Meta:
+        fields = "__all__"
+"""
+    )
+    assert out == []
+
+
+def test_meta_fields_list_is_enumerated() -> None:
+    out = _run(
+        """
+from sentry.apidocs.omissions import sentry_schema_serializer
+from rest_framework import serializers
+
+@sentry_schema_serializer(omit_from_public_schema={"ghost": "Internal."})
+class S(serializers.Serializer):
+    class Meta:
+        fields = ["real", "other"]
+"""
+    )
+    assert len(out) == 1
+    assert "names no field" in out[0].message
+
+
+def test_nested_class_does_not_shadow_a_top_level_one() -> None:
+    # `Inner` nested inside Holder must not be mistaken for a base named Inner
+    out = _run(
+        """
+from sentry.apidocs.omissions import sentry_schema_serializer
+from rest_framework import serializers
+
+class Inner(serializers.Serializer):
+    real = serializers.CharField()
+
+class Holder:
+    class Inner(serializers.Serializer):
+        decoy = serializers.CharField()
+
+@sentry_schema_serializer(omit_from_public_schema={"real": "Internal."})
+class S(Inner):
+    pass
+"""
+    )
+    assert out == []
