@@ -724,9 +724,11 @@ describe('Onboarding', () => {
       act(resolveAgenticRunRequest);
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
+      // The manual path and its divider give way to the run's progress.
       expect(
-        screen.getByRole('button', {name: /Set up manually instead/})
-      ).toBeInTheDocument();
+        screen.queryByRole('button', {name: /Set up manually instead/})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('or')).not.toBeInTheDocument();
       expect(
         screen.queryByText('npx @sentry/agent-plugin install')
       ).not.toBeInTheDocument();

@@ -3,6 +3,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgenticProgress} from 'sentry/views/onboarding/agenticProgress/agenticProgressList';
@@ -73,6 +74,9 @@ export function WelcomeAgentSetup({
   run,
 }: WelcomeAgentSetupProps) {
   const organization = useOrganization();
+  // Once an agent reports in, the run's progress is the whole step. Offering the
+  // manual path alongside it would be offering a choice already made.
+  const showsProgress = Boolean(run) && isAgentConnected;
   // Built as separate lines rather than one sentence: the code block renders
   // with `white-space: pre-wrap`, so the breaks survive into what gets copied.
   const prompt = onboardingCode
@@ -113,11 +117,17 @@ export function WelcomeAgentSetup({
         )}
       </AnimatePresence>
 
-      <Text variant="muted" size="md" bold uppercase>
-        {t('or')}
-      </Text>
+      {/* Collapsing the height rather than just fading keeps the card above from
+          jumping into the vacated space. */}
+      <ScmCollapsibleReveal open={!showsProgress}>
+        <Stack gap="2xl" align="center" width="100%">
+          <Text variant="muted" size="md" bold uppercase>
+            {t('or')}
+          </Text>
 
-      <ManualSetupCard onSetupInBrowser={onSetupInBrowser} />
+          <ManualSetupCard onSetupInBrowser={onSetupInBrowser} />
+        </Stack>
+      </ScmCollapsibleReveal>
     </Stack>
   );
 }
