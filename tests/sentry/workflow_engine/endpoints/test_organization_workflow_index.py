@@ -2200,7 +2200,7 @@ class OrganizationWorkflowDeleteProjectAccessTest(
             object_id=self.other_workflow.id,
         ).exists()
 
-    def test_delete_can_delete_workflows_from_accessible_projects(self) -> None:
+    def test_delete_can_edit_workflows_from_accessible_projects(self) -> None:
         """
         Test that users CAN DELETE workflows connected to projects they have access to.
         """

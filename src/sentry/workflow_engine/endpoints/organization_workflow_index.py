@@ -66,6 +66,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.permissions import (
+    can_edit_workflows,
     enforce_workflow_creation_permissions,
 )
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
@@ -74,7 +75,6 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation impo
     DetectorWorkflowMutationValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
-    can_delete_workflows,
     is_workflow_connected_to_all_projects_detector,
     should_include_all_projects_detector_workflows,
 )
@@ -508,7 +508,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             if requested_ids != {workflow.id for workflow in workflows}:
                 raise PermissionDenied
 
-        if not can_delete_workflows(workflows, request):
+        if not can_edit_workflows(workflows, request):
             raise PermissionDenied
 
         for workflow in workflows:

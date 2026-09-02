@@ -28,8 +28,8 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializer,
     WorkflowSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.utils.permissions import can_edit_workflows
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.endpoints.validators.utils import can_delete_workflows
 from sentry.workflow_engine.models import Workflow
 
 
@@ -143,7 +143,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         """
         Deletes an alert.
         """
-        if not can_delete_workflows([workflow], request):
+        if not can_edit_workflows([workflow], request):
             raise PermissionDenied
 
         CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)

@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 # Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
 SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
 USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
-ORGANIZATION_WORKFLOW_WRITE_SCOPES = ("org:write", "org:admin", "alerts:write")
 
 
 def is_system_created_detector(detector: Detector) -> bool:
@@ -128,36 +127,6 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
 
     return request.access.has_any_project_scope(
         detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
-    )
-
-
-def can_delete_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
-    """
-    Determine if the requesting user can delete every workflow in the sequence.
-
-    Organization alert writers can delete organization-level workflows. Otherwise,
-    every workflow must be connected to at least one detector and the user must be
-    able to edit every detector-workflow connection.
-    """
-    workflow_ids = {workflow.id for workflow in workflows}
-    if not workflow_ids:
-        return False
-
-    if any(request.access.has_scope(scope) for scope in ORGANIZATION_WORKFLOW_WRITE_SCOPES):
-        return True
-
-    detector_workflows = list(
-        DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).select_related(
-            "detector", "detector__project"
-        )
-    )
-    connected_workflow_ids = {
-        detector_workflow.workflow_id for detector_workflow in detector_workflows
-    }
-
-    return workflow_ids == connected_workflow_ids and all(
-        can_edit_detector_workflow_connections(detector_workflow.detector, request)
-        for detector_workflow in detector_workflows
     )
 
 
