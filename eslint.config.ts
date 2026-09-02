@@ -95,6 +95,9 @@ const restrictedThemeImportPattern = {
     "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
 };
 
+const CSS_TYPES_MESSAGE =
+  "Use the matching property from the CSS type exported by @sentry/scraps/cssTypes, for example CSS['width'].";
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -395,6 +398,16 @@ export default typescript.config([
           selector:
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
+        },
+        {
+          selector:
+            "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
+          message: CSS_TYPES_MESSAGE,
+        },
+        {
+          selector:
+            "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
+          message: CSS_TYPES_MESSAGE,
         },
         {
           selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
@@ -1103,7 +1116,13 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [restrictedThemeImportPattern],
+          patterns: [
+            restrictedThemeImportPattern,
+            {
+              group: ['csstype', 'csstype/*'],
+              message: CSS_TYPES_MESSAGE,
+            },
+          ],
           // Allow color package only in the components/core directory
           paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
         },

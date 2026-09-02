@@ -5,6 +5,7 @@ from abc import ABC
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
+import orjson
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -76,6 +77,13 @@ class BaseRequestParser(ABC):
 
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
+
+    mailbox_bucket_count: ClassVar[int] = 100
+    """How many sub-mailboxes `mailbox_bucket_id` is spread over.
+
+    Every mailbox costs a scheduler row and a dispatch slot, so splitting past what
+    the volume needs buys queue rows rather than parallelism.
+    """
 
     always_bucket: ClassVar[bool] = False
     """Split every integration's mailbox by `mailbox_bucket_id` instead of waiting
@@ -263,6 +271,16 @@ class BaseRequestParser(ABC):
         )
         return True
 
+    def get_request_body(self) -> dict[str, Any]:
+        """Empty when the body is not a JSON object. A payload that does not parse
+        still has to be queued, so callers fall back to the integration-level mailbox.
+        """
+        try:
+            body = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
+            return {}
+        return body if isinstance(body, dict) else {}
+
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
     ) -> str:
@@ -291,9 +309,7 @@ class BaseRequestParser(ABC):
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
             return str(integration.id)
 
-        # Split high volume integrations into 100 buckets.
-        # 100 is arbitrary but we can't leave it unbounded.
-        bucket_number = mailbox_bucket_id % 100
+        bucket_number = mailbox_bucket_id % self.mailbox_bucket_count
         self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
         return f"{integration.id}:{bucket_number}"

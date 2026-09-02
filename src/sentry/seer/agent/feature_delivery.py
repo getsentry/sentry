@@ -21,6 +21,7 @@ class FeatureDeliveryFn(Protocol):
         status: FeatureRunStatus,
         result: dict[str, Any] | None,
         error: str | None,
+        prompt_version: str | None = None,
     ) -> None: ...
 
 

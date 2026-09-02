@@ -84,7 +84,7 @@ export function Radius() {
             background: theme.tokens.background.transparent.accent.muted,
           }}
           border="accent"
-          radius={token as any}
+          radius={token}
         />
       )}
     />
@@ -100,7 +100,7 @@ export function FontSize() {
       renderToken={({token}) => {
         if (['3xl', '4xl'].includes(token)) {
           return (
-            <Heading as="h4" size={token as any} variant="accent">
+            <Heading as="h4" size={token} variant="accent">
               Aa
             </Heading>
           );
@@ -130,7 +130,7 @@ export function FontWeight() {
       renderToken={({token, value}) => (
         <Text
           size="lg"
-          style={{fontWeight: value as any}}
+          style={{fontWeight: value}}
           monospace={token.startsWith('mono')}
           variant="accent"
         >
@@ -222,7 +222,7 @@ export function ShadowOffset() {
             width: '32px',
             height: '32px',
             background: theme.tokens.background.primary,
-            boxShadow: `${value}`,
+            boxShadow: value,
           }}
           border="accent"
           radius="xs"
