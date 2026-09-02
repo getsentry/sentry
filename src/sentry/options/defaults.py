@@ -429,6 +429,36 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Teapot (GPU crash dump symbolication service)
+register(
+    "teapot.enabled",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Tight timeout: decode is sub-second, so a slow teapot should fail fast.
+register(
+    "teapot.timeout-seconds",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Retries only on transient 5xx; low so a slow teapot can't pile up work.
+register(
+    "teapot.max-attempts",
+    default=2,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# After `error_limit` failures in `error_limit_window`s, skip teapot for
+# `broken_state_duration`s so an outage can't back up the GPU pool.
+register(
+    "teapot.circuit-breaker-config",
+    default={
+        "error_limit_window": 60,
+        "error_limit": 20,
+        "broken_state_duration": 60,
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
 # it break everywhere.
@@ -1553,6 +1583,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "store.load-shed-gpu-crash-projects",
+    type=Any,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "post_process.get-autoassign-owners",
     type=Sequence,
     default=[],
@@ -2530,6 +2566,11 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "hybrid_cloud.read_deletion_watermark_from_postgres",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # List of event IDs to pass through
 register(
@@ -2582,11 +2623,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Providers whose mailbox drains skip a failed message and keep going instead of
-# aborting. Only safe for providers whose cell-side handlers tolerate reordering,
-# since a skipped message is retried after the ones behind it. Aborting is not a
-# strict-ordering guarantee to begin with: drain_mailbox_parallel delivers a whole
-# batch concurrently before it consults this list, and dispatch to it is chosen on
-# backlog depth alone (PARALLEL_DRAIN_THRESHOLD), for every provider.
+# aborting. Also gates concurrent delivery: only these providers' claims deliver
+# on `worker_threads` threads, and only they dispatch from the due head. Only safe for
+# providers whose cell-side handlers tolerate reordering, since a skipped or
+# concurrently delivered message can land after the ones behind it. Providers not
+# listed deliver strictly: one record at a time, in order, stopping on failure.
 register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
@@ -2598,6 +2639,15 @@ register(
         "gitlab",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# How many chained drains a strict provider's mailbox may run per lineage,
+# counting the ordinary dispatch as the first link: at 1 a finished drain never
+# chains, and each increment lets a busy mailbox re-dispatch itself once more
+# before falling back to the scheduler.
+register(
+    "hybridcloud.webhookpayload.max_chain_depth",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Dispatch skip-on-failure providers' mailboxes from their oldest due record
 # instead of gating on the absolute head, so one record in retry backoff cannot
@@ -3569,6 +3619,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "workflow_engine.all_projects_detectors.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "workflow_engine.auto_creation.pull_request_workflow",
     type=Bool,
     default=False,
@@ -4307,7 +4363,8 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Number of random check batches to schedule when there is no stale derived data to heal.
+# Max random check batches heal_stale_derived_data may schedule from leftover
+# heal-max-tasks budget (after any stale regeneration work is scheduled).
 register(
     "issues.derived.check-task-count",
     default=5,

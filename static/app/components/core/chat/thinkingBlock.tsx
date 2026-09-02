@@ -76,19 +76,26 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
   const {t} = useTranslation();
   const elapsed = useElapsedTime(startTime, endTime);
   const isActive = !endTime;
-  const [userExpanded, setUserExpanded] = useState(false);
+  // ponytail: null = no user interaction, falls through to isActive default
+  const [override, setOverride] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!isActive) {
+      setOverride(null);
+    }
+  }, [isActive]);
 
   const titleRef = useRef<HTMLSpanElement>(null);
   const baseTitle = title.replace(/[.…\s]+$/u, '');
   useTextDecodeAnimation(titleRef, baseTitle);
 
-  const isExpanded = isActive || userExpanded;
+  const isExpanded = override ?? isActive;
   const summaryTitle = t('See thinking and tool calls');
 
   return (
     <Disclosure
       expanded={isExpanded}
-      onExpandedChange={setUserExpanded}
+      onExpandedChange={setOverride}
       size="sm"
       variant="outline"
       flex={1}

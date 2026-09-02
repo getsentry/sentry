@@ -258,7 +258,7 @@ const commonTheme = {
   },
 
   ...typography,
-};
+} as const;
 
 export interface SentryTheme extends Omit<
   typeof lightThemeDefinition,
@@ -879,6 +879,7 @@ declare module '@emotion/react' {
 }
 
 export type StrictCSSObject = {
+  // eslint-disable-next-line no-restricted-syntax
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors

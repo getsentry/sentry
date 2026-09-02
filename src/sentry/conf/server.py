@@ -983,6 +983,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
@@ -1225,6 +1226,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Hourly rather than daily: the sweep has to keep pace with inbound PR
         # webhooks, and small frequent batches are gentler than one daily surge.
         "schedule": crontab("20", "*", "*", "*", "*"),
+    },
+    "autofix-sweep-pr-iteration-details": {
+        "task": "seer:sentry.tasks.autofix.sweep_pr_iteration_details",
+        # Hourly: the task discards iteration rows more than a day old, so it
+        # must be regular, not prompt.
+        "schedule": crontab("40", "*", "*", "*", "*"),
     },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
@@ -2992,6 +2999,13 @@ SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
+# URL of the teapot GPU crash dump symbolication service, derived from the
+# SENTRY_TEAPOT_HOST host:port (the k8s service in SaaS, localhost in dev).
+SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}"
+
+# Shared secret used to sign requests to teapot
+SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
+
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
@@ -3092,9 +3106,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
-# Show banners on the login page that are defined in layout.html
-SHOW_LOGIN_BANNER = False
 
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
