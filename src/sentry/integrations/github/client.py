@@ -77,6 +77,30 @@ logger = logging.getLogger("sentry.integrations.github")
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
 
+SEARCH_ASSIGNABLE_USERS_QUERY = """
+query SearchAssignableUsers($owner: String!, $name: String!, $search: String!) {
+  repository(owner: $owner, name: $name) {
+    results: assignableUsers(first: 100, query: $search) {
+      nodes {
+        login
+      }
+    }
+  }
+}
+"""
+
+SEARCH_LABELS_QUERY = """
+query SearchLabels($owner: String!, $name: String!, $search: String!) {
+  repository(owner: $owner, name: $name) {
+    results: labels(first: 100, query: $search) {
+      nodes {
+        name
+      }
+    }
+  }
+}
+"""
+
 # When Github advertises the total page count up front, the pages after the
 # first are fetched concurrently. Bounded to keep the fan-out comfortably under
 # Github's secondary (concurrent request) rate limits.
@@ -179,6 +203,8 @@ class GitHubApiRequestType(StrEnum):
     REFRESH_ACCESS_TOKEN = "refresh_access_token"
     REPO_HOOKS = "repo_hooks"
     SEARCH_ISSUES = "search_issues"
+    SEARCH_ISSUE_ASSIGNEES = "search_issue_assignees"
+    SEARCH_ISSUE_LABELS = "search_issue_labels"
     SEARCH_REPOSITORIES = "search_repositories"
     UPDATE_COMMENT = "update_comment"
     UPDATE_ISSUE_ASSIGNEES = "update_issue_assignees"
@@ -799,6 +825,42 @@ class GitHubBaseClient(
             page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_ASSIGNEES,
         )
+
+    def search_issue_assignees(self, repo: str, query: str) -> list[Any]:
+        return self._search_issue_field(
+            repo,
+            query,
+            graphql_query=SEARCH_ASSIGNABLE_USERS_QUERY,
+            api_request_type=GitHubApiRequestType.SEARCH_ISSUE_ASSIGNEES,
+        )
+
+    def search_issue_labels(self, repo: str, query: str) -> list[Any]:
+        return self._search_issue_field(
+            repo,
+            query,
+            graphql_query=SEARCH_LABELS_QUERY,
+            api_request_type=GitHubApiRequestType.SEARCH_ISSUE_LABELS,
+        )
+
+    def _search_issue_field(
+        self,
+        repo: str,
+        query: str,
+        *,
+        graphql_query: str,
+        api_request_type: GitHubApiRequestType,
+    ) -> list[Any]:
+        owner, repo_name = repo.split("/", 1)
+        response = self.post(
+            path="/graphql",
+            data={
+                "query": graphql_query,
+                "variables": {"owner": owner, "name": repo_name, "search": query},
+            },
+            allow_text=False,
+            api_request_type=api_request_type,
+        )
+        return response["data"]["repository"]["results"]["nodes"]
 
     def _get_with_pagination(
         self,

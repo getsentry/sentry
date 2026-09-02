@@ -386,6 +386,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return (("", "Unassigned"),) + users
 
+    def search_allowed_assignees(self, repo: str, query: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.search_issue_assignees(repo, query)
+        except Exception as e:
+            self.raise_error(e)
+
+        return tuple((user["login"], user["login"]) for user in response)
+
     def get_repo_labels(
         self, owner: str, repo: str, page_number_limit: int | None = None
     ) -> Sequence[tuple[str, str]]:
@@ -407,3 +416,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         )
 
         return labels
+
+    def search_repo_labels(self, repo: str, query: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.search_issue_labels(repo, query)
+        except Exception as e:
+            self.raise_error(e)
+
+        return tuple((label["name"], label["name"]) for label in response)

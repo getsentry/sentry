@@ -100,7 +100,9 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
                 [{"label": i["name"], "value": i["full_name"]} for i in response.get("items", [])]
             )
 
-    def handle_search_field(self, installation: T, field: str, repo: str | None) -> Response | None:
+    def handle_search_field(
+        self, installation: T, field: str, query: str, repo: str | None
+    ) -> Response | None:
         if field not in {"assignee", "labels"}:
             return None
         if not repo:
@@ -110,9 +112,16 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
         assert isinstance(installation, self.installation_class)
         if field == "assignee":
-            choices = installation.get_allowed_assignees(repo, PAGE_LIMIT)
+            choices = (
+                installation.search_allowed_assignees(repo, query)
+                if query
+                else installation.get_allowed_assignees(repo, PAGE_LIMIT)
+            )
         else:
-            owner, repo_name = repo.split("/", 1)
-            choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
+            if query:
+                choices = installation.search_repo_labels(repo, query)
+            else:
+                owner, repo_name = repo.split("/", 1)
+                choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
 
         return Response([{"label": label, "value": value} for value, label in choices])
