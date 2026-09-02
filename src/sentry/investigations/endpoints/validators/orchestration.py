@@ -7,6 +7,7 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
 from sentry.investigations.contracts import StrictContractSerializer
+from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.utils import json
 
 MAX_AGENTIC_SOURCE_BYTES = 200_000
@@ -77,3 +78,89 @@ def validate_agentic_source(source: Any) -> dict[str, Any]:
     if not validator.is_valid():
         raise serializers.ValidationError({"source": validator.errors})
     return source
+
+
+class ProvideInputCommandValidator(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["provide_input"])
+    prompt = serializers.CharField(required=False, max_length=20_000)
+    timeRange = serializers.JSONField(required=False)
+
+    def validate_timeRange(self, value: Any) -> dict[str, str]:
+        return _validate_time_range(value)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if "prompt" not in attrs and "timeRange" not in attrs:
+            raise serializers.ValidationError("prompt or timeRange is required.")
+        return attrs
+
+
+class AddHypothesisCommandValidator(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["add_hypothesis"])
+    statement = serializers.CharField(max_length=300)
+    rationale = serializers.CharField(required=False, allow_null=True, max_length=1_000)
+
+
+class SetHypothesisDispositionCommandValidator(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["set_hypothesis_disposition"])
+    hypothesisId = serializers.CharField(max_length=128)
+    disposition = serializers.ChoiceField(
+        choices=["accepted", "rejected"], required=False, allow_null=True
+    )
+
+
+class SteerCommandValidator(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["steer"])
+    target = serializers.ChoiceField(choices=["workflow", "hypothesis", "report", "block"])
+    targetId = serializers.CharField(required=False, allow_null=True, max_length=128)
+    instruction = serializers.CharField(max_length=4_000)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["target"] in {"hypothesis", "block"} and not attrs.get("targetId"):
+            raise serializers.ValidationError("hypothesis and block steering require targetId.")
+        return attrs
+
+
+class RetryCommandValidator(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["retry"])
+    target = serializers.ChoiceField(choices=["run", "hypothesis", "report"])
+    targetId = serializers.CharField(required=False, allow_null=True, max_length=128)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if attrs["target"] == "hypothesis" and not attrs.get("targetId"):
+            raise serializers.ValidationError("hypothesis retry requires targetId.")
+        return attrs
+
+
+class CancelCommandValidator(StrictContractSerializer):
+    type = serializers.ChoiceField(choices=["cancel"])
+    reason = serializers.CharField(required=False, allow_null=True, max_length=1_000)
+
+
+COMMAND_VALIDATORS: dict[str, type[StrictContractSerializer]] = {
+    "provide_input": ProvideInputCommandValidator,
+    "add_hypothesis": AddHypothesisCommandValidator,
+    "set_hypothesis_disposition": SetHypothesisDispositionCommandValidator,
+    "steer": SteerCommandValidator,
+    "retry": RetryCommandValidator,
+    "cancel": CancelCommandValidator,
+}
+
+
+class InvestigationOrchestrationCommandValidator(StrictCamelSnakeValidator):
+    request_id = serializers.UUIDField()
+    expected_workflow_version = serializers.IntegerField(min_value=1)
+    command = serializers.JSONField()
+
+    def validate_command(self, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Must be an object.")
+        command_type = value.get("type")
+        if not isinstance(command_type, str):
+            raise serializers.ValidationError("type is required.")
+        validator_type = COMMAND_VALIDATORS.get(command_type)
+        if validator_type is None:
+            raise serializers.ValidationError("Unsupported command type.")
+        validator = validator_type(data=value)
+        if not validator.is_valid():
+            raise serializers.ValidationError(validator.errors)
+        return dict(validator.validated_data)

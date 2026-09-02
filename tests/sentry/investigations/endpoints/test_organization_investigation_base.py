@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from django.urls import reverse
 
 from sentry.investigations.models import (
@@ -119,7 +121,25 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             },
         )
 
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
         assert self.client.get(orchestration_url).status_code == 403
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+        assert response.status_code == 403
 
     def test_empty_project_scope_does_not_require_every_organization_project(self) -> None:
         investigation = self.create_investigation(
