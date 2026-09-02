@@ -34,7 +34,7 @@ from sentry_sdk.utils import logger as sdk_error_logger
 from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
 from sentry.utils.tracing import get_current_span, start_span
@@ -308,20 +308,6 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
-
-
-# Patches transport functions to add metrics to improve resolution around events sent to our ingest.
-# Leaving this in to keep a permanent measurement of sdk requests vs ingest.
-def patch_transport_for_instrumentation(transport, transport_name):
-    _send_request = transport._send_request
-    if _send_request:
-
-        def patched_send_request(*args, **kwargs):
-            metrics.incr(f"internal.sent_requests.{transport_name}.events")
-            return _send_request(*args, **kwargs)
-
-        transport._send_request = patched_send_request
-    return transport
 
 
 class Dsns(NamedTuple):
@@ -907,7 +893,6 @@ __all__ = (
     "isolation_scope",
     "make_transport",
     "merge_context_into_scope",
-    "patch_transport_for_instrumentation",
     "isolation_scope",
     "sdk_logger",
     "set_current_event_project",
