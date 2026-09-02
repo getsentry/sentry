@@ -20,7 +20,7 @@ from requests.adapters import Retry
 
 from sentry import options
 from sentry.http import build_session
-from sentry.net.http import SafeSession
+from sentry.net.http import SafeSession, StatelessCookieJar
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -39,11 +39,11 @@ from sentry.utils import metrics
 REQUEST_ATTEMPTS_LIMIT = 10
 CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
 
-# Idle connections a process keeps open per cell. Slots are only taken when a
-# connection is returned, so an oversized pool costs nothing; an undersized one
-# makes every thread past the cap reconnect on each request. Sized above the
-# concurrent deliveries a webhook drain runs.
-CELL_SESSION_POOL_MAXSIZE = 32
+# Idle connections a process keeps open per cell. A thread past the cap still
+# connects, but its connection is closed after use instead of pooled, so this
+# mirrors the most requests one process has in flight to a cell: a webhook
+# drain's `hybridcloud.webhookpayload.worker_threads`.
+CELL_SESSION_POOL_MAXSIZE = 16
 
 
 class SiloClientError(Exception):
@@ -113,14 +113,19 @@ def _new_cell_session(retries: int | None) -> SafeSession:
             status_forcelist=[503],
             allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
         )
-    return build_session(
+    session = build_session(
         is_ipaddress_permitted=validate_cell_ip_address,
         max_retries=max_retries,
         pool_maxsize=CELL_SESSION_POOL_MAXSIZE,
     )
+    session.cookies = StatelessCookieJar()
+    return session
 
 
-_cell_sessions: dict[tuple[str, int | None], SafeSession] = {}
+# Keyed by cell name and whether the session retries; the value records the
+# retry count the session was built with, so a live change to the retries
+# option replaces the session instead of stranding the old one.
+_cell_sessions: dict[tuple[str, bool], tuple[int | None, SafeSession]] = {}
 _cell_sessions_lock = threading.Lock()
 
 
@@ -132,22 +137,34 @@ def get_cell_session(cell: Cell, retries: int | None) -> SafeSession:
     reused: a session closed after one request pools nothing. Threads are
     free to send on it concurrently; urllib3 pools hand out one connection
     per in-flight request. The retry policy is baked into a session's
-    adapter, so each policy gets its own. Cells get their own too, rather than
-    sharing one session's host pools, so a `PoolManager` LRU-evicting a
-    cell's pool cannot quietly bring back per-request connections.
+    adapter, so the retrying and non-retrying clients get separate sessions,
+    and a session built with a stale retry count is closed and rebuilt. Cells
+    get their own too, rather than sharing one session's host pools, so a
+    `PoolManager` LRU-evicting a cell's pool cannot quietly bring back
+    per-request connections.
     """
-    key = (cell.name, retries)
+    key = (cell.name, retries is not None)
+    stale: SafeSession | None = None
     with _cell_sessions_lock:
-        session = _cell_sessions.get(key)
-        if session is None:
-            session = _cell_sessions[key] = _new_cell_session(retries)
+        entry = _cell_sessions.get(key)
+        if entry is None or entry[0] != retries:
+            if entry is not None:
+                stale = entry[1]
+            session = _new_cell_session(retries)
+            _cell_sessions[key] = (retries, session)
+        else:
+            session = entry[1]
+    if stale is not None:
+        # Requests already running on it keep their connection; closing only
+        # empties its pool so nothing new is handed out.
+        stale.close()
     return session
 
 
 def close_cell_sessions() -> None:
     """Close and forget every shared cell session. Tests reset with this."""
     with _cell_sessions_lock:
-        sessions = list(_cell_sessions.values())
+        sessions = [session for _, session in _cell_sessions.values()]
         _cell_sessions.clear()
     for session in sessions:
         session.close()

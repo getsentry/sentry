@@ -563,6 +563,34 @@ class CellSessionTest(TestCase):
             assert plain_policy.allowed_methods is not None
             assert "POST" not in plain_policy.allowed_methods
 
+    def test_changing_the_retries_option_replaces_the_session(self) -> None:
+        with override_cells(self.cell_config):
+            with override_options({"hybridcloud.regionsiloclient.retries": 3}):
+                before = get_cell_session(self.cell, 3)
+            with (
+                override_options({"hybridcloud.regionsiloclient.retries": 5}),
+                patch.object(before, "close", wraps=before.close) as mock_close,
+            ):
+                with CellSiloClient(self.cell, retry=True).borrow_session() as after:
+                    pass
+            assert after is not before
+            assert mock_close.call_count == 1
+            assert _cell_adapter(after, "http://na.testserver").max_retries.total == 5
+            # The non-retrying session is untouched by the option.
+            assert get_cell_session(self.cell, None) is get_cell_session(self.cell, None)
+
+    @responses.activate
+    def test_shared_session_keeps_no_cookies(self) -> None:
+        with override_cells(self.cell_config):
+            responses.add(
+                responses.GET,
+                "http://na.testserver/api/0/imaginary/",
+                json={},
+                headers={"Set-Cookie": "session=abc; Path=/"},
+            )
+            CellSiloClient(self.cell).request("GET", "/api/0/imaginary/")
+            assert not get_cell_session(self.cell, None).cookies
+
     def test_session_pool_is_sized_for_concurrent_deliveries(self) -> None:
         with override_cells(self.cell_config):
             session = get_cell_session(self.cell, None)

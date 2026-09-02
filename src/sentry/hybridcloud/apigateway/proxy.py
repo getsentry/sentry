@@ -6,9 +6,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Generator
-from http.cookiejar import Cookie
 from threading import local
-from typing import Any
 from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
@@ -18,10 +16,10 @@ from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import Session
 from requests import request as external_request
-from requests.cookies import RequestsCookieJar
 from requests.exceptions import ConnectionError, Timeout
 
 from sentry import options
+from sentry.net.http import StatelessCookieJar
 from sentry.objectstore.endpoints.organization import ChunkedEncodingDecoder, get_raw_body
 from sentry.options.rollout import in_random_rollout
 from sentry.silo.util import (
@@ -63,18 +61,10 @@ PROXY_CHUNK_SIZE = 512 * 1024
 _connection = local()
 
 
-class _StatelessCookieJar(RequestsCookieJar):
-    def set_cookie(self, cookie: Cookie, *args: Any, **kwargs: Any) -> None:
-        return None
-
-    def extract_cookies(self, response: Any, request: Any) -> None:
-        return None
-
-
 def _get_connection() -> Session:
     if not hasattr(_connection, "session"):
         session = Session()
-        session.cookies = _StatelessCookieJar()
+        session.cookies = StatelessCookieJar()
         _connection.session = session
     return _connection.session
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import socket
 from collections.abc import Callable
 from functools import partial
+from http.cookiejar import Cookie
 from typing import Any, Optional, cast
 
 from requests import Session as _Session
@@ -13,6 +14,7 @@ from requests.adapters import (
     HTTPAdapter,
     Retry,
 )
+from requests.cookies import RequestsCookieJar
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connectionpool import connection_from_url as _connection_from_url
@@ -206,6 +208,20 @@ class TimeoutAdapter(HTTPAdapter):
 
 
 USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
+
+
+class StatelessCookieJar(RequestsCookieJar):
+    """
+    A cookie jar that keeps nothing, for sessions shared across unrelated
+    requests: a `Set-Cookie` from one response must not ride along on the
+    next request or a redirect.
+    """
+
+    def set_cookie(self, cookie: Cookie, *args: Any, **kwargs: Any) -> None:
+        return None
+
+    def extract_cookies(self, response: Any, request: Any) -> None:
+        return None
 
 
 class Session(_Session):
