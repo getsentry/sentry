@@ -59,8 +59,8 @@ export function AssertionOpGroup({
       // render, in which case we'll just render this as an empty group
       value.operand.op !== UptimeOpType.AND && value.operand.op !== UptimeOpType.OR
       ? {id: value.id, op: UptimeOpType.AND as const, children: []}
-      : value.operand
-    : value;
+      : {...value.operand, children: value.operand.children ?? []}
+    : {...value, children: value.children ?? []};
 
   // Generate a stable ID for new negations only (when toggling from non-negated to negated)
   const [newNotId] = useState(() => uniqueId());
