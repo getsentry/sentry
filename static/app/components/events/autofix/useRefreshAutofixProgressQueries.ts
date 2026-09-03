@@ -16,7 +16,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  *
  * `apiOptions` puts the resolved URL first in the query key, so matching on the
  * URL alone reaches every filter, sort, cursor and expand variant these pages
- * mount. That breadth is deliberate: the panel can't see which page is behind it.
+ * mount. That breadth is deliberate — the panel can't see which page is behind
+ * it — and it does sweep in other readers of the same endpoints, such as the
+ * feedback inbox and the dashboard issue widget. They refetch a list they were
+ * already showing, which is cheaper than working out which one is on screen.
  */
 export function useRefreshAutofixProgressQueries(groupId: string) {
   const queryClient = useQueryClient();
@@ -26,8 +29,9 @@ export function useRefreshAutofixProgressQueries(groupId: string) {
     const path = {organizationIdOrSlug: organization.slug};
 
     const urls = [
-      // Inbox sections and the issue stream, bucketed and sorted on
-      // `issue.progress:`, which each completed step advances.
+      // The inbox sections, bucketed and sorted on `issue.progress:`, which each
+      // completed step advances. Not the legacy issue stream — that reads
+      // through GroupStore and IssueListCacheStore, which this cannot reach.
       getApiUrl('/organizations/$organizationIdOrSlug/issues/', {path}),
       // Counts on the inbox's my / my teams / all tabs.
       getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {path}),

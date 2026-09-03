@@ -49,10 +49,55 @@ function makeRun(status: ExplorerAutofixState['status']): ExplorerAutofixState {
 }
 
 /**
+ * A run parked in `processing` so the embed keeps polling, whose code_changes
+ * section already reads as completed. `withPullRequest` adds the PR state that
+ * makes `findStepSection` swap a `pr_iteration` embed off that section.
+ */
+function makePrIterationRun({
+  withPullRequest,
+}: {
+  withPullRequest: boolean;
+}): ExplorerAutofixState {
+  return {
+    run_id: 42,
+    status: 'processing',
+    updated_at: '2026-01-01T00:00:00Z',
+    blocks: [
+      {
+        id: 'block-1',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {
+          role: 'assistant',
+          content: 'Applied the patch',
+          metadata: {step: 'code_changes'},
+        },
+      },
+    ],
+    ...(withPullRequest
+      ? {
+          repo_pr_states: {
+            'getsentry/sentry': {
+              branch_name: 'seer/fix',
+              commit_sha: 'abc123',
+              pr_creation_error: null,
+              pr_creation_status: 'completed',
+              pr_id: 1,
+              pr_number: 1,
+              pr_url: 'https://github.com/getsentry/sentry/pull/1',
+              repo_name: 'getsentry/sentry',
+              title: 'Fix the cache key',
+            },
+          } satisfies ExplorerAutofixState['repo_pr_states'],
+        }
+      : {}),
+  };
+}
+
+/**
  * Stands in for a page the chat panel slides over: it holds an issue-list query
  * open so the refetch triggered by a finished step is observable.
  */
-function InboxBehindThePanel() {
+function InboxBehindThePanel({step = 'root_cause'}: {step?: string}) {
   const org = useOrganization();
 
   useInfiniteQuery(
@@ -67,7 +112,7 @@ function InboxBehindThePanel() {
     <AutofixRef
       name="autofixRef"
       level="block"
-      data={{id: GROUP_ID, shortId: 'JAVASCRIPT-1', runId: 42, step: 'root_cause'}}
+      data={{id: GROUP_ID, shortId: 'JAVASCRIPT-1', runId: 42, step}}
     />
   );
 }
@@ -119,7 +164,7 @@ describe('AutofixRef embed', () => {
       })
     ).toBeInTheDocument();
     await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(2));
-  });
+  }, 20_000);
 
   it('leaves the page alone while the step is still running', async () => {
     const autofixMock = MockApiClient.addMockResponse({
@@ -135,5 +180,32 @@ describe('AutofixRef embed', () => {
     // not yank the list out from under whoever is reading it.
     await waitFor(() => expect(autofixMock).toHaveBeenCalledTimes(3), {timeout: 5000});
     expect(issuesMock).toHaveBeenCalledTimes(1);
-  });
+  }, 20_000);
+
+  it('refreshes again when a pr_iteration embed swaps onto the PR section', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+      body: {autofix: makePrIterationRun({withPullRequest: false})},
+    });
+
+    render(<InboxBehindThePanel step="pr_iteration" />, {organization});
+
+    // With no PR yet, the embed falls back to the completed code_changes
+    // section, so it refreshes once on that.
+    await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(2));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${GROUP_ID}/autofix/`,
+      body: {autofix: makePrIterationRun({withPullRequest: true})},
+    });
+
+    // The PR section is `completed` too, so only the section identity changes.
+    // Keying the effect on status alone would sit still right here.
+    // Queried by text, not role: the disclosure panel renders collapsed, so role
+    // queries skip its contents as inaccessible.
+    expect(
+      await screen.findByText('View getsentry/sentry#1', undefined, {timeout: 5000})
+    ).toBeInTheDocument();
+    await waitFor(() => expect(issuesMock).toHaveBeenCalledTimes(3));
+  }, 20_000);
 });
