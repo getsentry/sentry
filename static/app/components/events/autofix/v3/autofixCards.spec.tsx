@@ -1068,7 +1068,7 @@ describe('ArtifactCard', () => {
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
     });
 
-    it('strips markup and markdown syntax from bot comments', () => {
+    it('renders a bot comment as markdown, dropping the hidden control marker', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
@@ -1079,7 +1079,7 @@ describe('ArtifactCard', () => {
           queued_feedback: [
             {
               // Shaped like a real Bugbot comment.
-              text: '<!-- BUGBOT_REVIEW -->\n### Bugbot found <a href="https://cursor.com/open?link=eyJ2ZXJzaW9u">1 issue</a>. **Medium Severity**',
+              text: '<!-- BUGBOT_REVIEW -->\n### Bugbot found <a href="https://cursor.com/open?link=eyJ2ZXJzaW9u">1 issue</a>. Medium severity.',
               source: {
                 type: 'github-pr-comment',
                 comment: {
@@ -1103,11 +1103,12 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      expect(
-        screen.getByText('Bugbot found 1 issue. Medium Severity')
-      ).toBeInTheDocument();
+      const heading = screen.getByRole('heading', {level: 3});
+      expect(heading).toHaveTextContent('Bugbot found 1 issue. Medium severity.');
       expect(screen.queryByText(/BUGBOT_REVIEW/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/eyJ2ZXJzaW9u/)).not.toBeInTheDocument();
+
+      const link = screen.getByRole('link', {name: '1 issue'});
+      expect(link).toHaveAttribute('href', 'https://cursor.com/open?link=eyJ2ZXJzaW9u');
     });
 
     it('collapses a long comment into a disclosure', async () => {
