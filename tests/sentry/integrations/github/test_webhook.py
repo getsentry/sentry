@@ -29,6 +29,8 @@ from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
     InstallationRepositoriesEventWebhook,
     _track_contributor_action_processor,
+    get_github_external_id,
+    get_scm_stream_extra,
 )
 from sentry.integrations.github.webhook_types import (
     GithubWebhookType,
@@ -60,6 +62,52 @@ from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+
+class GetGithubExternalIdTest(TestCase):
+    def test_normal_installation(self) -> None:
+        event = {"installation": {"id": 42}}
+        assert get_github_external_id(event) == 42
+
+    def test_installation_null(self) -> None:
+        # GitHub sometimes sends "installation": null; must not raise AttributeError
+        event = {"installation": None}
+        assert get_github_external_id(event) is None
+
+    def test_installation_missing(self) -> None:
+        event: dict = {}
+        assert get_github_external_id(event) is None
+
+    def test_with_host(self) -> None:
+        event = {"installation": {"id": 7}}
+        assert get_github_external_id(event, host="github.example.com") == "github.example.com:7"
+
+    def test_with_host_and_null_installation(self) -> None:
+        event = {"installation": None}
+        assert get_github_external_id(event, host="github.example.com") == "github.example.com:None"
+
+
+class GetScmStreamExtraTest(TestCase):
+    def test_normal_payload(self) -> None:
+        event = {"installation": {"id": 1}, "repository": {"id": 2}}
+        assert get_scm_stream_extra(event) == {"installation_id": 1, "repository_id": 2}
+
+    def test_null_installation(self) -> None:
+        # GitHub sometimes sends "installation": null; must not raise AttributeError
+        event = {"installation": None, "repository": {"id": 2}}
+        assert get_scm_stream_extra(event) == {"installation_id": None, "repository_id": 2}
+
+    def test_null_repository(self) -> None:
+        event = {"installation": {"id": 1}, "repository": None}
+        assert get_scm_stream_extra(event) == {"installation_id": 1, "repository_id": None}
+
+    def test_both_null(self) -> None:
+        event = {"installation": None, "repository": None}
+        assert get_scm_stream_extra(event) == {"installation_id": None, "repository_id": None}
+
+    def test_both_missing(self) -> None:
+        event: dict = {}
+        assert get_scm_stream_extra(event) == {"installation_id": None, "repository_id": None}
 
 
 class WebhookTest(APITestCase):

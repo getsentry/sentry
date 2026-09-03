@@ -134,7 +134,7 @@ class WebhookProcessor(Protocol):
 
 
 def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
-    external_id: str | None = event.get("installation", {}).get("id")
+    external_id: str | None = (event.get("installation") or {}).get("id")
     return f"{host}:{external_id}" if host else external_id
 
 
@@ -142,10 +142,21 @@ def get_scm_stream_extra(
     event: Mapping[str, Any],
 ) -> dict[str, str | None | bool | int | float]:
     """Identifiers an SCM-stream listener needs to resolve org/integration/repo context,
-    surfaced so listeners don't have to re-parse the raw event body."""
+    surfaced so listeners don't have to re-parse the raw event body.
+
+    Both values may be ``None`` — GitHub can send ``"installation": null`` or
+    ``"repository": null`` in certain webhook payloads (e.g. installation events
+    that do not target a specific repo).  Callers must already handle ``None``
+    because the ``extra`` field on ``SubscriptionEvent`` is typed as
+    ``dict[str, str | None | bool | int | float]``.
+    """
     return {
-        "installation_id": event.get("installation", {}).get("id"),
-        "repository_id": event.get("repository", {}).get("id"),
+        # Use `or {}` rather than a default in `.get()` so that an explicit
+        # ``null`` value in the payload falls back to the empty dict instead of
+        # propagating as ``None`` and causing an AttributeError on the chained
+        # `.get("id")` call.
+        "installation_id": (event.get("installation") or {}).get("id"),
+        "repository_id": (event.get("repository") or {}).get("id"),
     }
 
 
