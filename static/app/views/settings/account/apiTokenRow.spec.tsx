@@ -54,6 +54,20 @@ describe('ApiTokenRow', () => {
 
     const cb = jest.fn();
     renderRow(<ApiTokenRow onRemove={cb} token={token} canEdit />);
-    expect(screen.getByLabelText('Token preview')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token preview')).toHaveTextContent(
+      '************a1b2c3d4'
+    );
+  });
+
+  it('keeps token name and last characters visible for long names', () => {
+    const token = ApiTokenFixture({
+      name: 'Codespaces',
+      tokenLastCharacters: '14e3',
+    });
+
+    renderRow(<ApiTokenRow onRemove={jest.fn()} token={token} />);
+
+    expect(screen.getByText('Codespaces')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token preview')).toHaveTextContent('************14e3');
   });
 });

@@ -28,10 +28,10 @@ type Props = {
 };
 
 const USER_TOKEN_COLUMNS: TableColumnConfig[] = [
-  {key: 'token', width: 'auto'},
-  {key: 'created', width: 'auto'},
-  {key: 'scopes', width: 'auto'},
-  {key: 'actions', width: 'auto'},
+  {key: 'token'},
+  {key: 'created', width: 'min-content'},
+  {key: 'scopes'},
+  {key: 'actions', width: 'min-content'},
 ];
 
 function identityLabel(identity: UserIdentityConfig) {
