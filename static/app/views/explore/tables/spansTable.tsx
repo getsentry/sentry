@@ -69,10 +69,6 @@ export function SpansTable({
   const sortBys = useQueryParamsSortBys();
   const setFields = useSetQueryParamsFields();
   const setSortBys = useSetQueryParamsSortBys();
-  const organization = useOrganization();
-  const canExpandSpanDetails = organization.features.includes(
-    'explore-span-item-details'
-  );
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? [...fields] : ['id', ...fields]),
@@ -189,22 +185,15 @@ export function SpansTable({
         data-test-id="spans-table"
         fields={visibleFields}
         minimumColumnWidth={50}
-        prefixColumnWidth={canExpandSpanDetails ? SPAN_DETAILS_COLUMN_WIDTH : undefined}
+        prefixColumnWidth={SPAN_DETAILS_COLUMN_WIDTH}
       >
         <DataTable.Head>
           <DataTable.Row>
-            {canExpandSpanDetails && (
-              <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
-            )}
+            <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending || isLoadingDifferentTable) {
-                return (
-                  <DataTable.HeadCell
-                    key={i}
-                    isFirst={!canExpandSpanDetails && i === 0}
-                  />
-                );
+                return <DataTable.HeadCell key={i} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -225,7 +214,6 @@ export function SpansTable({
                   align={align}
                   columnIndex={i}
                   key={i}
-                  isFirst={!canExpandSpanDetails && i === 0}
                   onSort={updateSort}
                   sort={direction}
                 >
@@ -259,7 +247,6 @@ export function SpansTable({
             displayedData.map((row, i) => (
               <SpanSampleRow
                 key={`${tableIdentityKey}:${getSpanKey(row, i)}`}
-                canExpandSpanDetails={canExpandSpanDetails}
                 columns={columnsFromEventView}
                 data={row}
                 fields={visibleFields}
@@ -291,14 +278,12 @@ export function SpansTable({
 }
 
 function SpanSampleRow({
-  canExpandSpanDetails,
   columns,
   data,
   fields,
   pendingFields,
   meta,
 }: {
-  canExpandSpanDetails: boolean;
   columns: Array<TableColumn<string>>;
   data: EventData;
   fields: readonly string[];
@@ -311,24 +296,22 @@ function SpanSampleRow({
   return (
     <Fragment>
       <DataTable.Row>
-        {canExpandSpanDetails ? (
-          <SpanDetailsToggleCell>
-            <Button
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? t('Hide span details') : t('Show span details')}
-              icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-              size="zero"
-              variant="transparent"
-              onClick={() => {
-                setIsExpanded(e => !e);
-                trackAnalytics('trace_explorer.toggle_span_details', {
-                  organization,
-                  expanded: !isExpanded,
-                });
-              }}
-            />
-          </SpanDetailsToggleCell>
-        ) : null}
+        <SpanDetailsToggleCell>
+          <Button
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? t('Hide span details') : t('Show span details')}
+            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            size="zero"
+            variant="transparent"
+            onClick={() => {
+              setIsExpanded(e => !e);
+              trackAnalytics('trace_explorer.toggle_span_details', {
+                organization,
+                expanded: !isExpanded,
+              });
+            }}
+          />
+        </SpanDetailsToggleCell>
         {fields.map((field, index) => (
           <DataTable.Cell key={field}>
             {pendingFields.has(field) ? (
@@ -344,7 +327,7 @@ function SpanSampleRow({
           </DataTable.Cell>
         ))}
       </DataTable.Row>
-      {canExpandSpanDetails && isExpanded ? (
+      {isExpanded ? (
         <DataTable.Row>
           <SpanDetailsCell>
             <SpanItemDetails dataRow={data} />

@@ -90,9 +90,7 @@ describe('addValidatedFieldTypesToMeta', () => {
 });
 
 describe('SpansTable', () => {
-  const {organization, project} = initializeOrg({
-    organization: {features: ['explore-span-item-details']},
-  });
+  const {organization, project} = initializeOrg();
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -154,12 +152,10 @@ describe('SpansTable', () => {
   });
 
   function renderTable({
-    features = ['explore-span-item-details'],
     requestIdentityKey,
     tableResult,
     tableRows = rows,
   }: {
-    features?: string[];
     requestIdentityKey?: string;
     tableResult?: SpansTableResult['result'];
     tableRows?: Array<Record<string, unknown>>;
@@ -176,7 +172,7 @@ describe('SpansTable', () => {
     const renderResult = render(
       renderSpansTable(tableResult ?? makeQueryResult(tableRows)),
       {
-        organization: {...organization, features},
+        organization,
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
