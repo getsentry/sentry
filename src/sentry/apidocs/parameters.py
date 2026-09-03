@@ -687,13 +687,13 @@ class SentryAppParams:
 
 class SentryAppStatusParams:
     SENTRY_APP_STATUS = OpenApiParameter(
-        name="sentry_app_status",
+        name="status",
         location="query",
         required=False,
         many=False,
-        type=int,
-        description=f"The status of the custom integration, values translate to the following: {constants.SentryAppStatus.as_choices()}",
-        enum=constants.SentryAppStatus.as_int_choices(),
+        type=str,
+        description="Filter the custom integrations by their status.",
+        enum=constants.SentryAppStatus.as_str_choices(),
     )
 
 

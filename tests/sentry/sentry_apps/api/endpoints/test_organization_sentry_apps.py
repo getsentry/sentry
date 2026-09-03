@@ -99,3 +99,11 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
         response = self.client.get(f"{self.url}?status=internal", format="json")
         assert len(response.data) == 1
         assert response.data[0]["uuid"] == internal_integration.uuid
+
+    def test_unrecognized_status_returns_400(self) -> None:
+        self.login_as(user=self.user)
+        response = self.client.get(f"{self.url}?status=installed", format="json")
+
+        assert response.status_code == 400
+        assert "installed" in response.data["detail"]
+        assert "unpublished, published, internal" in response.data["detail"]
