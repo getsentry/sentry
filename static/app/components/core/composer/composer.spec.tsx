@@ -36,9 +36,11 @@ function ControlledComposer({
   sources = [MEMBER_SOURCE],
   initialValue = '',
   initialMentions = [],
+  onOpenChange,
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
+  onOpenChange?: (isOpen: boolean) => void;
   sources?: readonly TestComposerSource[];
 }) {
   const [value, setValue] = useState<ComposerValue>({
@@ -53,6 +55,7 @@ function ControlledComposer({
         sources={sources}
         value={value}
         onChange={setValue}
+        onOpenChange={onOpenChange}
       />
       <output aria-label="Editor value">
         {value.text}|{value.mentions.map(mention => mention.id).join(',')}
@@ -158,6 +161,23 @@ describe('Composer', () => {
 
     expect(textbox).toHaveTextContent('@al');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('notifies onOpenChange as suggestions open and close', async () => {
+    const onOpenChange = jest.fn();
+    render(<ControlledComposer onOpenChange={onOpenChange} />);
+
+    const textbox = getEditor();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    onOpenChange.mockClear();
+
+    await userEvent.type(textbox, '@al');
+    await screen.findByRole('listbox', {name: 'Members suggestions'});
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+
+    onOpenChange.mockClear();
+    await userEvent.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it('selects the current suggestion with Tab', async () => {
