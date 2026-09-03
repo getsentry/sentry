@@ -420,17 +420,43 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
         return_value=False,
     )
-    def test_control_silo_skips_access_check(self, mock_has_access):
+    def test_control_silo_single_cell_takes_fast_path(self, mock_has_access):
         """
-        In control silo, has_access is not consulted (it depends on subscription context
-        that getsentry's FlagpoleFeatureHandler does not populate in control silo).
-        The full verdict is deferred to the cell handler.
+        In control silo, a Slack installation whose orgs all live in one cell never
+        needs to know *which* org it is to pick where to forward — the cell resolves
+        and authorizes the real organization itself. Control skips the per-org RPC
+        loop (and therefore has_access) entirely and hands back a routing hint instead.
         """
         with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
             result = self.slack_request.resolve_seer_organization()
 
+        assert result.organization_id is None
+        assert result.halt_reason is None
+        assert result.cell_name is not None
+        mock_has_access.assert_not_called()
+
+    @patch(
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
+        return_value=False,
+    )
+    def test_control_silo_multi_cell_skips_access_check(self, mock_has_access):
+        """
+        When the installation's orgs span more than one cell, control still has to run
+        the full per-org resolution to pick which one org (and cell) to forward to —
+        but has_access is not consulted (it depends on subscription context that
+        getsentry's FlagpoleFeatureHandler does not populate in control silo). The full
+        verdict is deferred to the cell handler.
+        """
+        with mock.patch(
+            "sentry.integrations.slack.requests.event.find_cells_for_orgs",
+            return_value={"cell-a", "cell-b"},
+        ):
+            with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+                result = self.slack_request.resolve_seer_organization()
+
         assert result.organization_id == self.organization.id
         assert result.halt_reason is None
+        assert result.cell_name is None
         mock_has_access.assert_not_called()
 
     @patch(
