@@ -421,7 +421,6 @@ module = [
     "fixtures.page_objects.organization_integration_settings",
     "fixtures.page_objects.trace_view",
     "fixtures.page_objects.transaction_summary",
-    "fixtures.sdk_crash_detection.crash_event_android",
     "fixtures.sdk_crash_detection.crash_event_cocoa",
     "fixtures.sdk_crash_detection.crash_event_dart",
     "fixtures.sdk_crash_detection.crash_event_dotnet",
