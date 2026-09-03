@@ -2,6 +2,7 @@ import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import type {Frame} from 'sentry/types/event';
 
 import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './getRows';
+import {createStackTraceRowPolicy} from './rowPolicy';
 
 let frameSerial = 0;
 
@@ -111,6 +112,80 @@ describe('stackTrace rows utils', () => {
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({kind: 'frame', frameIndex: 1, timesRepeated: 1});
+  });
+
+  it('keeps grouping frames visible in app-frame view', () => {
+    const frames = [
+      makeFrame({inApp: false, filename: 'grouping.py', minGroupingLevel: 0}),
+      makeFrame({inApp: false, filename: 'hidden.py'}),
+      makeFrame({inApp: true, filename: 'app.py'}),
+    ];
+
+    const rows = getRows({
+      frames,
+      includeSystemFrames: false,
+      hiddenFrameToggleMap: {},
+      frameCountMap: getFrameCountMap(
+        frames,
+        false,
+        createStackTraceRowPolicy({groupingCurrentLevel: 0})
+      ),
+      newestFirst: false,
+      framesOmitted: null,
+      rowPolicy: createStackTraceRowPolicy({groupingCurrentLevel: 0}),
+    });
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({
+      kind: 'frame',
+      frameIndex: 0,
+      isUsedForGrouping: true,
+    });
+  });
+
+  it('hides Dart async suspension frames in app-frame view when requested', () => {
+    const frames = [
+      makeFrame({
+        filename: '<asynchronous suspension>',
+        absPath: '<asynchronous suspension>',
+        inApp: false,
+      }),
+      makeFrame({inApp: true, filename: 'app.dart'}),
+    ];
+
+    const appRows = getRows({
+      frames,
+      includeSystemFrames: false,
+      hiddenFrameToggleMap: {},
+      frameCountMap: getFrameCountMap(
+        frames,
+        false,
+        createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true})
+      ),
+      newestFirst: false,
+      framesOmitted: null,
+      rowPolicy: createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true}),
+    });
+
+    expect(appRows).toHaveLength(1);
+    expect(appRows[0]).toMatchObject({kind: 'frame', frameIndex: 1});
+
+    const fullRows = getRows({
+      frames,
+      includeSystemFrames: true,
+      hiddenFrameToggleMap: {},
+      frameCountMap: getFrameCountMap(
+        frames,
+        true,
+        createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true})
+      ),
+      newestFirst: false,
+      framesOmitted: null,
+      rowPolicy: createStackTraceRowPolicy({hideDartAsyncSuspensionFrames: true}),
+    });
+
+    expect(fullRows).toHaveLength(2);
+    expect(fullRows[0]).toMatchObject({kind: 'frame', frameIndex: 0});
   });
 
   it('inserts omitted rows and respects maxDepth and newestFirst', () => {

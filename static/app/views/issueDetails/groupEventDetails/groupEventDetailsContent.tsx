@@ -50,6 +50,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -107,6 +108,9 @@ export function EventDetailsContent({
   const shouldUseNewStackTrace =
     // New stack trace is currently only non-native platforms.
     !isNativePlatform(event.platform);
+  const shouldUseNewNativeThreadStackTrace =
+    organization.features.includes('issue-details-new-stack-trace') &&
+    isNativePlatform(event.platform);
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries} = event;
@@ -237,13 +241,23 @@ export function EventDetailsContent({
             )}
           {defined(eventEntries[EntryType.THREADS]) && (
             <EntryErrorBoundary type={EntryType.THREADS}>
-              <Threads
-                event={event}
-                data={eventEntries[EntryType.THREADS].data}
-                projectSlug={project.slug}
-                groupingCurrentLevel={groupingCurrentLevel}
-                group={group}
-              />
+              {shouldUseNewNativeThreadStackTrace ? (
+                <IssueThreadStackTrace
+                  event={event}
+                  data={eventEntries[EntryType.THREADS].data}
+                  projectSlug={project.slug}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                  group={group}
+                />
+              ) : (
+                <Threads
+                  event={event}
+                  data={eventEntries[EntryType.THREADS].data}
+                  projectSlug={project.slug}
+                  groupingCurrentLevel={groupingCurrentLevel}
+                  group={group}
+                />
+              )}
             </EntryErrorBoundary>
           )}
         </Fragment>

@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {StackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -31,6 +32,7 @@ export type FrameRow = {
   frame: Frame;
   frameIndex: number;
   isSubFrame: boolean;
+  isUsedForGrouping: boolean;
   kind: 'frame';
   timesRepeated: number;
   hiddenFrameCount?: number;
@@ -47,6 +49,8 @@ export type Row = FrameRow | OmittedFramesRow;
 
 export type StackTraceMeta = {
   frames?: Array<{
+    function?: Record<string, Record<any, any>>;
+    rawFunction?: Record<string, Record<any, any>>;
     vars?: Record<string, unknown>;
   }>;
   registers?: Record<string, unknown>;
@@ -58,6 +62,10 @@ export interface StackTraceProviderProps {
   stacktrace: StacktraceType;
   /** When true, all frames start collapsed regardless of their position. */
   collapseAll?: boolean;
+  /** Frame index to expand by default. Null means no default-expanded frame. */
+  defaultExpandedFrameIndex?: number | null;
+  /** Allows a single frame with no context/register details to be expanded. */
+  emptySourceNotation?: boolean;
   /** Optional exception index in the full exception values list. */
   exceptionIndex?: number;
   /** Per-frame source map debugger data, powering the "Unminify Code" action. */
@@ -77,4 +85,6 @@ export interface StackTraceProviderProps {
   minifiedStacktrace?: StacktraceType;
   /** Override the platform used for frame rendering logic. Defaults to the event/frame platform. */
   platform?: PlatformKey;
+  /** Row visibility and annotation policy for stacktrace-specific frame behavior. */
+  rowPolicy?: StackTraceRowPolicy;
 }

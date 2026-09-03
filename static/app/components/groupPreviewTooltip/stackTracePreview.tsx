@@ -13,12 +13,14 @@ import {
 } from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
+import {NativeStackTracePreview} from 'sentry/components/stackTrace/native/nativeStackTracePreview';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -60,6 +62,7 @@ export function StackTracePreviewContent({
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
 }) {
+  const organization = useOrganization();
   const includeSystemFrames = useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
   }, [stacktrace]);
@@ -80,6 +83,17 @@ export function StackTracePreviewContent({
     | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
+    if (organization.features.includes('issue-details-new-stack-trace')) {
+      return (
+        <NativeStackTracePreview
+          event={event}
+          stacktrace={stacktrace}
+          platform={platform}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
+      );
+    }
+
     return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
