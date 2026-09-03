@@ -605,12 +605,12 @@ function DynamicSampling({organization}: {organization: Organization}) {
   return (
     <Fragment>
       <SampleRateRow
-        label="Sample Rate (24h, sampling decisions)"
+        label="Sample Rate (24h, Generic Metrics)"
         rate={data.effectiveSampleRate}
         desiredSampleRate={desiredSampleRate}
       />
       <SampleRateRow
-        label="Sample Rate (24h, stored spans)"
+        label="Sample Rate (24h, EAP)"
         rate={data.eapEffectiveSampleRate}
         desiredSampleRate={desiredSampleRate}
       />

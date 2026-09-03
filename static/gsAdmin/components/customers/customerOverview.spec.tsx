@@ -735,7 +735,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h, sampling decisions):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('75.00%');
     });
@@ -764,7 +764,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h, sampling decisions):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('100.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -795,7 +795,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h, sampling decisions):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('60.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -825,7 +825,7 @@ describe('CustomerOverview', () => {
     );
     await screen.findByText('54.00% instead of 60.00% (~6.00%)');
 
-    const eapTerm = screen.getByText('Sample Rate (24h, stored spans):');
+    const eapTerm = screen.getByText('Sample Rate (24h, EAP):');
     expect(eapTerm.nextElementSibling).toHaveTextContent(
       '58.00% instead of 60.00% (~2.00%)'
     );
@@ -879,7 +879,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h, sampling decisions):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
     });
   });
