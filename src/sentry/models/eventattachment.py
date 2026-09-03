@@ -116,6 +116,10 @@ class EventAttachmentBase(Model):
     # storage:
     blob_path = models.TextField(null=True)
 
+    # NOTE: when adding new fields with db index,
+    #       add them to `EventAttachment` and / or `PendingEventAttachment`,
+    #       not to the base class (unless the index is needed for both tables).
+    
     class Meta:
         abstract = True
 
