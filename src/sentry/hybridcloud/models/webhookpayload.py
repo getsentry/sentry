@@ -98,7 +98,7 @@ class WebhookPayload(Model):
             request_method=request.method,
             request_path=request.get_full_path(),
             request_headers=json.dumps({k: v for k, v in request.headers.items()}),
-            request_body=request.body.decode(encoding="utf-8"),
+            request_body=request.body.decode(encoding="utf-8", errors="replace"),
         )
 
     @classmethod
