@@ -41,6 +41,12 @@ export function replayRecordApiOptions({
   );
 }
 
+/**
+ * Hoisted so the identity stays stable across renders. TanStack Query only
+ * reuses a cached `select` result while the function reference is unchanged,
+ * and re-running this one yields a fresh object every time: `ReplayRecord`
+ * holds `Date` and `Duration` values, which structural sharing cannot dedupe.
+ */
 function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
   return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
 }
