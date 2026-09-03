@@ -29,7 +29,9 @@ def _extract_first_user_message(messages: Any) -> str | None:
 
     for message in normalize_to_messages(messages, "user") or []:
         if message.get("role") == "user":
-            return stringify_message_content(message.get("content"))
+            content = stringify_message_content(message.get("content"))
+            if content:
+                return content
     return None
 
 
@@ -52,36 +54,37 @@ def get_last_output(row: Mapping[str, Any]) -> str | None:
 
 
 def get_aggregated_first_input(row: Mapping[str, Any]) -> str | None:
-    input_messages = row.get("input_messages")
     input_timestamp = timestamp_to_float(row.get("input_messages_timestamp"))
-    request_messages = row.get("request_messages")
     request_timestamp = timestamp_to_float(row.get("request_messages_timestamp"))
+    input_message = (
+        _extract_first_user_message(row.get("input_messages")) if input_timestamp else None
+    )
+    request_message = (
+        _extract_first_user_message(row.get("request_messages")) if request_timestamp else None
+    )
 
-    if (
-        input_messages
-        and input_timestamp
-        and (not request_messages or not request_timestamp or input_timestamp <= request_timestamp)
-    ):
-        return _extract_first_user_message(input_messages)
-    if request_messages and request_timestamp:
-        return _extract_first_user_message(request_messages)
-    return None
+    if input_message and request_message:
+        return input_message if input_timestamp <= request_timestamp else request_message
+    return input_message or request_message
 
 
 def get_aggregated_last_output(row: Mapping[str, Any]) -> str | None:
-    output_messages = row.get("output_messages")
     output_timestamp = timestamp_to_float(row.get("output_messages_timestamp"))
-    response_text = row.get("response_text")
     response_timestamp = timestamp_to_float(row.get("response_text_timestamp"))
-
-    if (
-        output_messages
-        and output_timestamp
-        and (not response_text or not response_timestamp or output_timestamp >= response_timestamp)
-    ):
+    output_messages = row.get("output_messages")
+    output = None
+    if output_timestamp:
         if output_messages == FILTERED:
-            return FILTERED
-        return extract_assistant_output(output_messages, "assistant")["response_text"]
-    if response_text and response_timestamp and isinstance(response_text, str):
-        return response_text
-    return None
+            output = FILTERED
+        else:
+            output = extract_assistant_output(output_messages, "assistant")["response_text"] or None
+    response_text = row.get("response_text")
+    response = (
+        response_text
+        if response_timestamp and isinstance(response_text, str) and response_text
+        else None
+    )
+
+    if output and response:
+        return output if output_timestamp >= response_timestamp else response
+    return output or response

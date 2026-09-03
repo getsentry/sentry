@@ -73,6 +73,17 @@ class TestGetFirstInputMessage:
         row = {"gen_ai.request.messages": "[Filtered]"}
         assert _get_first_input_message(row) == "[Filtered]"
 
+    def test_skips_empty_user_message(self) -> None:
+        row = {
+            "gen_ai.input.messages": json_string(
+                [
+                    {"role": "user", "content": ""},
+                    {"role": "user", "content": "Hello"},
+                ]
+            )
+        }
+        assert _get_first_input_message(row) == "Hello"
+
 
 class TestGetLastOutput:
     def test_prefers_output_messages_text_part(self) -> None:
@@ -136,6 +147,15 @@ class TestGetAggregatedMessages:
         }
         assert get_aggregated_first_input(row) == "New"
 
+    def test_first_input_falls_back_when_preferred_field_is_empty(self) -> None:
+        row = {
+            "input_messages": json_string([{"role": "assistant", "content": ""}]),
+            "input_messages_timestamp": 1,
+            "request_messages": json_string([{"role": "user", "content": "Fallback"}]),
+            "request_messages_timestamp": 2,
+        }
+        assert get_aggregated_first_input(row) == "Fallback"
+
     def test_last_output_uses_latest_timestamp(self) -> None:
         row = {
             "output_messages": json_string([{"role": "assistant", "content": "New"}]),
@@ -153,6 +173,15 @@ class TestGetAggregatedMessages:
             "response_text_timestamp": 1,
         }
         assert get_aggregated_last_output(row) == "New"
+
+    def test_last_output_falls_back_when_preferred_field_is_empty(self) -> None:
+        row = {
+            "output_messages": json_string([{"role": "assistant", "content": ""}]),
+            "output_messages_timestamp": 2,
+            "response_text": "Fallback",
+            "response_text_timestamp": 1,
+        }
+        assert get_aggregated_last_output(row) == "Fallback"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
