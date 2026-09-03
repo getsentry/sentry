@@ -496,11 +496,13 @@ class PromoteToLiveTest(TestCase):
         real_promote = promote_to_live
         attempts = []
 
-        def flaky_promote(candidate: GroupDerivedData, **kwargs: object) -> PromotionResult:
+        def flaky_promote(
+            candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
+        ) -> PromotionResult:
             attempts.append(candidate)
             if len(attempts) == 1:
                 return PromotionResult.RACE_LOST
-            return real_promote(candidate, **kwargs)
+            return real_promote(candidate, known_invalid_log_id=known_invalid_log_id)
 
         with patch("sentry.issues.derived.promote.promote_to_live", side_effect=flaky_promote):
             build_and_promote_derived_data(group.id, time_limit=timedelta(minutes=5))
@@ -515,7 +517,9 @@ class PromoteToLiveTest(TestCase):
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        def missing_then_real(candidate: GroupDerivedData, **kwargs: object) -> PromotionResult:
+        def missing_then_real(
+            candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
+        ) -> PromotionResult:
             return PromotionResult.GROUP_MISSING
 
         with patch("sentry.issues.derived.promote.promote_to_live", side_effect=missing_then_real):
