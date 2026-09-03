@@ -6,6 +6,7 @@ from jsonschema import ValidationError
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
@@ -44,7 +45,6 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            detector_settings = DetectorSettings(config_schema=self.example_schema)
 
         @dataclass(frozen=True)
         class ExampleGroupType(GroupType):
@@ -52,9 +52,13 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "example"
             description = "Example"
             category = GroupCategory.DB_QUERY.value
-            detector_settings = DetectorSettings(
-                config_schema={"type": "object", "additionalProperties": False},
-            )
+
+        detector_settings_registry.register(TestGroupType.slug)(
+            DetectorSettings(config_schema=self.example_schema)
+        )
+        detector_settings_registry.register(ExampleGroupType.slug)(
+            DetectorSettings(config_schema={"type": "object", "additionalProperties": False})
+        )
 
 
 # TODO - Move this to the detector model test
@@ -103,9 +107,12 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             slug = "test_metric_issue"
             description = "Metric alert fired"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(
-                config_schema=MetricIssue.detector_settings.config_schema,
+
+        detector_settings_registry.register(TestGroupType.slug)(
+            DetectorSettings(
+                config_schema=detector_settings_registry.get(MetricIssue.slug).config_schema,
             )
+        )
 
     def test_detector_correct_schema(self) -> None:
         self.create_detector(

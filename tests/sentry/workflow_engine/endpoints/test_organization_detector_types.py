@@ -2,17 +2,9 @@ from dataclasses import dataclass
 from typing import Never
 from unittest.mock import patch
 
-from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import (
-    GroupCategory,
-    GroupType,
-    GroupTypeRegistry,
-    PerformanceSlowDBQueryGroupType,
-)
-from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import (
     BaseDetectorHandler,
     DetectorOccurrence,
@@ -22,6 +14,7 @@ from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     DetectorSettings,
@@ -41,6 +34,9 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             new=GroupTypeRegistry(),
         )
         self.registry_patcher.start()
+
+        self.detector_settings_patcher = patch.dict(detector_settings_registry.registrations)
+        self.detector_settings_patcher.start()
 
         class MockDetectorHandler(BaseDetectorHandler[dict[Never, Never], bool]):
             def evaluate_impl(
@@ -98,47 +94,50 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
-            slug = MetricIssue.slug
+            slug = "test_metric_issue"
             description = "Metric alert"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
         class TestCronsGroupType(GroupType):
             type_id = 2
-            slug = MonitorIncidentType.slug
+            slug = "test_monitor_check_in_failure"
             description = "Crons"
             category = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
         class TestUptimeGroupType(GroupType):
             type_id = 3
-            slug = UptimeDomainCheckFailure.slug
+            slug = "test_uptime_domain_failure"
             description = "Uptime"
             category = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
-        # Should not be included in the response
+        # Should not be included in the response, it has no registered detector settings
         @dataclass(frozen=True)
         class TestPerformanceGroupType(GroupType):
             type_id = 4
-            slug = PerformanceSlowDBQueryGroupType.slug
+            slug = "test_performance_slow_db_query"
             description = "Performance"
             category = GroupCategory.DB_QUERY.value
             released = True
 
+        for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
+            detector_settings_registry.register(group_type.slug)(
+                DetectorSettings(handler=MockDetectorHandler)
+            )
+
+        self.expected_type_slugs = sorted(
+            [TestMetricGroupType.slug, TestCronsGroupType.slug, TestUptimeGroupType.slug]
+        )
+
     def tearDown(self) -> None:
         super().tearDown()
+        self.detector_settings_patcher.stop()
         self.registry_patcher.stop()
 
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
-        assert response.data == [
-            MetricIssue.slug,
-            MonitorIncidentType.slug,
-            UptimeDomainCheckFailure.slug,
-        ]
+        assert response.data == self.expected_type_slugs
