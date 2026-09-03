@@ -151,6 +151,34 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
         with pytest.raises(ValueError, match="Activity data is required"):
             ctx.evidence_data_and_priority
 
+    def test_evidence_data_and_priority_activity_ignores_ticketing_fields(self) -> None:
+        activity_data = asdict(self.evidence_data)
+        activity_data.update(
+            {
+                "integration_id": "373967",
+                "provider": "Jira",
+                "provider_key": "jira",
+            }
+        )
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data=activity_data,
+        )
+        event_data = WorkflowEventData(
+            event=activity,
+            workflow_env=self.workflow.environment,
+            group=self.group,
+        )
+
+        ctx = self._make_context(event_data=event_data)
+        evidence_data, priority = ctx.evidence_data_and_priority
+
+        assert isinstance(evidence_data, MetricIssueEvidenceData)
+        assert evidence_data.detector_id == self.detector.id
+        assert priority == DetectorPriorityLevel.OK
+
     def test_group(self) -> None:
         ctx = self._make_context()
         assert ctx.group == self.group

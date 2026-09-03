@@ -107,6 +107,10 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         activity = self.create_group_activity(
             group=group,
             type=ActivityType.SET_RESOLVED.value,
+            data={
+                "detector_id": self.detector.id,
+                "data_packet_source_id": 123,
+            },
         )
         self.event_data = WorkflowEventData(event=activity, group=group)
 
@@ -121,6 +125,36 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         )
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
+
+    @mock.patch("sentry.notifications.notification_action.utils.execute_via_metric_alert_handler")
+    def test_handle_metric_issue_manual_resolve_without_evidence(
+        self, mock_execute_metric_alert_handler
+    ) -> None:
+        """Ticketing resolves create SET_RESOLVED without detector evidence; skip metric handler."""
+        group = self.create_group(type=MetricIssue.type_id)
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+            data={
+                "integration_id": "373967",
+                "provider": "Jira",
+                "provider_key": "jira",
+            },
+        )
+        self.event_data = WorkflowEventData(event=activity, group=group)
+
+        with mock.patch.object(activity, "send_notification") as mock_send:
+            invocation = ActionInvocation(
+                event_data=self.event_data,
+                action=self.action,
+                detector=self.detector,
+                notification_uuid=str(uuid.uuid4()),
+                workflow_id=self.workflow.id,
+            )
+            execute_via_group_type_registry(invocation)
+
+        mock_execute_metric_alert_handler.assert_not_called()
+        mock_send.assert_called_once_with()
 
 
 class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
