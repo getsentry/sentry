@@ -78,6 +78,6 @@ describe('MetricKitHangProfileSection', () => {
 
     render(<MetricKitHangProfileSection data={data} />, {organization});
 
-    expect(screen.getByTestId('more-information')).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'More information'})).toBeInTheDocument();
   });
 });
