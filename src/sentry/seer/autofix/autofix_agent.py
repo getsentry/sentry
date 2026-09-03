@@ -37,7 +37,6 @@ from sentry.seer.autofix.artifact_schemas import (
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import (
-    ITERATION_FLAG,
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
 )
@@ -87,10 +86,6 @@ class NoSeerQuotaException(Exception):
 
 
 class PrIterationNoPullRequestException(Exception):
-    pass
-
-
-class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -512,7 +507,6 @@ def trigger_autofix_agent(
     commit_author: SeerCommitAuthor | None = None,
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
-    skip_quota: bool = False,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -524,17 +518,13 @@ def trigger_autofix_agent(
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by night shift to bypass
             quota for free cohort orgs. Not exposed via the API.
-        skip_quota: Bypass SEER_AUTOFIX quota checks and usage recording for a
-            new run.
     """
     # check billing quota for triggering a new autofix run
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
-        skip_quota_check = skip_quota or (
-            allow_free_cohort and is_free_cohort_org(group.organization)
-        )
+        skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
         if not skip_quota_check:
             has_budget: bool = quotas.backend.check_seer_quota(
                 org_id=group.organization.id,
@@ -592,12 +582,6 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
-    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
-    # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(ITERATION_FLAG, group.organization) or features.has(
-        MANUAL_FLAG, group.organization
-    )
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -614,9 +598,6 @@ def trigger_autofix_agent(
 
     iteration_index: int | None = None
     if is_iteration_step:
-        if not pr_iteration_enabled:
-            raise PrIterationNotEnabledException()
-
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
 
@@ -678,11 +659,10 @@ def trigger_autofix_agent(
         )
         run_id = run.seer_run_state_id
 
-        if not skip_quota:
-            # Make sure to log billing event for seer autofix whenever a new run is started
-            quotas.backend.record_seer_run(
-                group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
-            )
+        # Make sure to log billing event for seer autofix whenever a new run is started
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
+        )
     else:
         run = client.continue_run(
             run_id=run_id,

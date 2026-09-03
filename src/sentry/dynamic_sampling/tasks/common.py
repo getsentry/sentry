@@ -224,6 +224,12 @@ class OrganizationDataVolume:
         return self.total > 0 and self.indexed is not None and self.indexed > 0
 
 
+def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
+    if volume is None or volume.indexed is None or volume.total <= 0:
+        return None
+    return volume.indexed / volume.total
+
+
 class GetActiveOrgsVolumes:
     """
     Fetch organizations volumes in batches.

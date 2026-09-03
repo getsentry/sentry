@@ -6,11 +6,18 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import type {AuthConfig} from 'sentry/types/auth';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import AuthLogin from './index';
 
+jest.mock('sentry/utils/analytics');
+
 describe('AuthLogin', () => {
+  beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
+  });
+
   beforeAll(() => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
@@ -69,6 +76,15 @@ describe('AuthLogin', () => {
     expect(
       await screen.findByRole('heading', {name: 'Sign in to Sentry'})
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'auth.login.rendered',
+      {
+        organization: null,
+        entrypoint: 'generic',
+        state: 'login',
+      },
+      {startSession: true}
+    );
   });
 
   it('shows a retry when the initial auth config request fails', async () => {
@@ -402,7 +418,7 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByTestId('more-information'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(
         'This organization requires SSO authentication. You may still log in with an email and password to access other organizations and account settings.'

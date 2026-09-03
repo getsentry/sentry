@@ -380,6 +380,7 @@ export function ExternalIssueForm({
       <Grid
         as="header"
         columns="minmax(0, 1fr) max-content"
+        /* oxlint-disable-next-line react/jsx-curly-brace-presence -- Keep the template literal expression unchanged. */
         areas={`"content close" "content loading"`}
         align="start"
         gap="0 md"

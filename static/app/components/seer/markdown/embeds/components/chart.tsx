@@ -145,7 +145,31 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      <Container data-test-id="seer-chart-content" height="220px" width="100%">
+      {/*
+        A multi-series chart renders a legend, and the legend lays its items out
+        at their natural width — each `flex-shrink: 0` and up to 180px — only
+        collapsing them into a "+N more" dropdown once it has measured the room
+        it actually has. That natural width becomes this box's min-content
+        width, which no ancestor can shrink below, so the surrounding embed ends
+        up wider than its container. `overflow` alone can't hold it back: a
+        non-visible overflow only zeroes the automatic minimum size of a *flex
+        item*, while a block's min-content width goes on depending on its
+        children regardless.
+
+        Inline-axis size containment is what detaches the two — this box's width
+        is computed as if it had no contents, so it takes its width from the
+        embed and the legend measures against that instead of dictating it,
+        which is also what lets the "+N more" collapse do its job. `overflow`
+        then clips a canvas that is briefly stale between a resize and ECharts'
+        own ResizeObserver catching up.
+      */}
+      <Container
+        containerType="inline-size"
+        data-test-id="seer-chart-content"
+        height="220px"
+        overflow="hidden"
+        width="100%"
+      >
         {visualizationComponent}
       </Container>
     </Stack>
