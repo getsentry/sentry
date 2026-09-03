@@ -34,7 +34,6 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.issue_search import parse_search_query
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -52,6 +51,7 @@ from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -737,7 +737,6 @@ class UpdateGroupsTest(TestCase):
     def test_resolve_in_next_release_activity_from_action_log(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
-        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
         GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -753,9 +752,7 @@ class UpdateGroupsTest(TestCase):
         request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        with self.feature(
-            ["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"]
-        ):
+        with action_log_activity_enabled():
             response = update_groups(request, group_list)
 
         activity = response.data["activity"]
@@ -769,7 +766,6 @@ class UpdateGroupsTest(TestCase):
         # resolve goes through an outbox that may not have drained yet.
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
-        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         http_request = self.make_request(user=self.user, method="GET")
         http_request.GET = QueryDict(query_string=f"id={group.id}")
@@ -777,9 +773,7 @@ class UpdateGroupsTest(TestCase):
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
-            self.feature(
-                ["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"]
-            ),
+            action_log_activity_enabled(),
             patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
             self.assertLogs("sentry.api.helpers.group_index.update", level="INFO") as logs,
         ):
@@ -791,9 +785,9 @@ class UpdateGroupsTest(TestCase):
         assert response is not None
         assert "activity" not in response.data
 
-    def test_resolve_in_next_release_ignores_action_log_when_not_backfilled(self) -> None:
-        # The log covers only part of this project's history, so serving it would
-        # silently drop everything that predates the rollout. Fall back to Activity.
+    def test_resolve_in_next_release_ignores_action_log_when_disabled(self) -> None:
+        # With the gate closed the log may cover only part of this project's history,
+        # so serving it could silently drop older entries. Fall back to Activity.
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         GroupActionLogEntry.objects.create(
@@ -811,10 +805,7 @@ class UpdateGroupsTest(TestCase):
         request = _wrap_request(http_request, data={"status": "resolvedInNextRelease"})
 
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
-        with self.feature(
-            ["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"]
-        ):
-            response = update_groups(request, group_list)
+        response = update_groups(request, group_list)
 
         # the COMMENT only exists in the log, so its absence means Activity was served
         activity = response.data["activity"]

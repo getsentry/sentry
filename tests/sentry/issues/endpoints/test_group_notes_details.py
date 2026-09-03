@@ -5,7 +5,6 @@ import responses
 
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log.types import GroupActionType
-from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -14,6 +13,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -194,11 +194,10 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_returns_gale(self) -> None:
         self.login_as(user=self.user)
         group = self.group
-        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         # create a comment that dual writes to GALE
         post_url = f"/api/0/issues/{group.id}/comments/"
@@ -223,11 +222,10 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.data["data"]["text"] == "updated text"
         assert response.data["data"]["comment_id"] == activity_id
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_writes_comment_edit_entry(self) -> None:
         self.login_as(user=self.user)
         group = self.group
-        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         post_url = f"/api/0/issues/{group.id}/comments/"
         response = self.client.post(post_url, format="json", data={"text": "original"})
@@ -255,11 +253,10 @@ class GroupNotesDetailsTest(APITestCase):
         original_entry.refresh_from_db()
         assert original_entry.data["text"] == "original"
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_delete_writes_comment_delete_entry(self) -> None:
         self.login_as(user=self.user)
         group = self.group
-        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
 
         post_url = f"/api/0/issues/{group.id}/comments/"
         response = self.client.post(post_url, format="json", data={"text": "original"})
@@ -283,12 +280,11 @@ class GroupNotesDetailsTest(APITestCase):
         # same way COMMENT_EDIT entries do, so it can be joined to the COMMENT row
         assert delete_entry.data["comment_id"] == original_entry.id
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_returns_404_without_gale_entry(self) -> None:
         # backfilled project, so GALE is authoritative for existence: a missing
         # entry means the note is already gone and we 404 instead of editing
         # the Activity.
-        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
         del self.activity.data["external_id"]
         self.activity.save()
         self.login_as(user=self.user)
@@ -299,31 +295,6 @@ class GroupNotesDetailsTest(APITestCase):
         assert not GroupActionLogEntry.objects.filter(
             group_id=self.group.id, type=GroupActionType.COMMENT_EDIT.value
         ).exists()
-
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
-    def test_put_without_gale_entry_not_backfilled(self) -> None:
-        # activity flag on but the backfill hasn't finished, so GALE can't be
-        # authoritative for existence: an Activity that predates the rollout has
-        # no mirror GALE yet, and must still edit and return 200 rather than 404.
-        del self.activity.data["external_id"]
-        self.activity.save()
-        self.login_as(user=self.user)
-
-        response = self.client.put(self.url, format="json", data={"text": "updated"})
-        assert response.status_code == 200, response.content
-
-        assert response.data["id"] == str(self.activity.id)
-        assert response.data["data"]["text"] == "updated"
-
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
-    def test_delete_without_gale_entry_not_backfilled(self) -> None:
-        # same as above for DELETE: without a complete log we fall back to the
-        # Activity rather than treating a missing GALE entry as "already gone".
-        self.login_as(user=self.user)
-
-        response = self.client.delete(self.url, format="json")
-        assert response.status_code == 204, response.status_code
-        assert not Activity.objects.filter(id=self.activity.id).exists()
 
     @with_feature("projects:issue-action-log-write-to-db")
     def test_put_without_gale_entry_write_only(self) -> None:
