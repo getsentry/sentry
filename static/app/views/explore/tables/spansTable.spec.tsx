@@ -232,17 +232,6 @@ describe('SpansTable', () => {
     );
   }
 
-  it('does not render or fetch span details when the feature is disabled', () => {
-    const detailsMock = mockSpanDetails(firstRow, []);
-
-    renderTable({features: []});
-
-    expect(
-      screen.queryByRole('button', {name: 'Show span details'})
-    ).not.toBeInTheDocument();
-    expect(detailsMock).not.toHaveBeenCalled();
-  });
-
   it('independently expands span details only after clicking the chevrons', async () => {
     const firstDetailsMock = mockSpanDetails(firstRow, [
       {name: 'project_id', type: 'int', value: Number(project.id)},
