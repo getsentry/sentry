@@ -61,4 +61,36 @@ describe('saved issue view embed', () => {
       )
     );
   });
+
+  it('renders the view query as formatted search tokens', async () => {
+    const view = GroupSearchViewFixture({
+      id: '77',
+      name: 'Unresolved in checkout',
+      query: 'is:unresolved level:error',
+    });
+    const issue = GroupFixture({
+      id: '991',
+      shortId: 'JAVASCRIPT-991',
+      title: 'Checkout request failed',
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/77/',
+      body: view,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [issue],
+    });
+
+    renderEmbed({name: 'savedIssueView', data: {id: view.id}});
+
+    expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
+
+    expect(screen.getByLabelText('is:unresolved')).toBeInTheDocument();
+    expect(screen.getByLabelText('level:error')).toBeInTheDocument();
+  });
 });
