@@ -86,7 +86,7 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
       onChange={opt =>
         navigate({
           pathname: path || location.pathname,
-          query: {...location.query, [queryKey]: opt.value, cursor: ''},
+          query: {...location.query, [queryKey]: opt.value || undefined, cursor: ''},
         })
       }
       options={allOptions}
@@ -704,9 +704,10 @@ export function ResultGrid({
    */
   const loadMoreRegions = () => {
     const {regionCursors} = results;
-    const pages = getCells()
-      .filter(pageCell => regionCursors[pageCell.name])
-      .map(pageCell => ({cell: pageCell, cursor: regionCursors[pageCell.name]!}));
+    const pages = getCells().flatMap(pageCell => {
+      const cursor = regionCursors[pageCell.name];
+      return cursor ? [{cell: pageCell, cursor}] : [];
+    });
 
     if (pages.length === 0) {
       return;
@@ -843,20 +844,25 @@ export function ResultGrid({
   }, []);
 
   const onChangeCell = (localityUrl: string | undefined) => {
-    if (localityUrl === ALL_REGIONS) {
-      probeTokenRef.current += 1;
-      setProbe(IDLE_PROBE);
-      setRegion({allRegions: true, cell: undefined});
-      return;
-    }
-    const nextCell = getCells().find(c => c.locality_url === localityUrl);
-    if (nextCell === undefined) {
+    const nextRegion: RegionSelection | undefined =
+      localityUrl === ALL_REGIONS
+        ? {allRegions: true, cell: undefined}
+        : (() => {
+            const nextCell = getCells().find(c => c.locality_url === localityUrl);
+            return nextCell ? {allRegions: false, cell: nextCell} : undefined;
+          })();
+    if (nextRegion === undefined) {
       return;
     }
     // Invalidate any in-flight probe before switching regions.
     probeTokenRef.current += 1;
     setProbe(IDLE_PROBE);
-    setRegion({allRegions: false, cell: nextCell});
+    setResults(prev => ({
+      ...prev,
+      loading: true,
+      rows: nextRegion.allRegions ? [] : prev.rows,
+    }));
+    setRegion(nextRegion);
   };
 
   // TODO(dcramer): doesnt correctly respect filters without query strings

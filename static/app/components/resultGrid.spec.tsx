@@ -89,6 +89,29 @@ describe('ResultGrid', () => {
       expect(router.location.query.cursor).toBe('next-cursor');
     });
   });
+
+  it('removes the filter param when Any is selected', async () => {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'GET',
+      body: [],
+      headers: {Link: makeLinkHeader()},
+    });
+
+    const {router} = renderBasicGrid({
+      filters: {status: {name: 'Status', options: [['active', 'Active']]}},
+    });
+
+    await screen.findByTestId('pagination');
+    await userEvent.click(screen.getByRole('button', {name: /Status/}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Active'}));
+    await waitFor(() => expect(router.location.query.status).toBe('active'));
+
+    await userEvent.click(screen.getByRole('button', {name: /Status/}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Any'}));
+
+    await waitFor(() => expect(router.location.query).not.toHaveProperty('status'));
+  });
 });
 
 const US_URL = 'https://us.example.com/api/0/';
@@ -587,6 +610,36 @@ describe('ResultGrid allowAllRegions', () => {
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText('Beta')).not.toBeInTheDocument());
     expect(screen.queryByRole('columnheader', {name: 'Region'})).not.toBeInTheDocument();
+  });
+
+  it('shows the loading state instead of stale rows when the region changes', async () => {
+    let respond = true;
+    const stubApi = {
+      clear: jest.fn(),
+      request: jest.fn((url: string, options: any) => {
+        if (respond) {
+          const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
+          options.success([{id: '1', name, members: 5}], 'success', {
+            getResponseHeader: () => null,
+          });
+        }
+        return {requestPromise: new Promise(() => {})};
+      }),
+    };
+
+    renderGrid(undefined, {}, {...allRegionsProps, api: stubApi});
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: /Region/}));
+    await userEvent.click(await screen.findByRole('option', {name: 'us'}));
+    await waitFor(() => expect(screen.queryByText('Beta')).not.toBeInTheDocument());
+
+    respond = false;
+    await userEvent.click(screen.getByRole('button', {name: /Region/}));
+    await userEvent.click(await screen.findByRole('option', {name: 'All regions'}));
+
+    expect(screen.queryByText('Acme')).not.toBeInTheDocument();
+    expect(screen.getByText('Hold on to your butts!')).toBeInTheDocument();
   });
 
   it('flags a failed region with a warning icon and tooltip', async () => {
