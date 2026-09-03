@@ -6,6 +6,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getAlertDetailsPathname} from 'sentry/components/seer/markdown/embeds/components/alert/getAlertDetailsPathname';
 import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
@@ -149,10 +150,11 @@ function DetectorAlertPreview({detector}: {detector: PreviewableDetector}) {
   );
 }
 
-export function DetectorAlertBlock({id, detectorId, kind, name}: EmbedOutput<'alert'>) {
+export function DetectorAlertBlock(props: EmbedOutput<'alert'>) {
+  const {id, detectorId, kind, name} = props;
   const organization = useOrganization();
   const resourceId = detectorId ?? id;
-  const href = makeMonitorDetailsPathname(organization.slug, resourceId);
+  const href = getAlertDetailsPathname(organization, props);
   const {
     data: detector,
     isError,
