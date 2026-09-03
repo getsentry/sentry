@@ -43,6 +43,16 @@ class TestWebhookActionValidator(TestCase):
         assert result is True
         validator.save()
 
+    def test_validate__missing_target_identifier(self) -> None:
+        validator = BaseActionValidator(
+            data={**self.valid_data, "config": {}},
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is False
+        assert "'target_identifier' is a required property" in str(validator.errors["config"])
+
     def test_validate__invalid_sentry_app(self) -> None:
         validator = BaseActionValidator(
             data={
