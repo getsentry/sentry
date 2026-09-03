@@ -132,6 +132,64 @@ describe('ReplayDetails', () => {
     expect(
       screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
     ).not.toBeInTheDocument();
+    // The default viewer is not an employee, so that section is absent.
+    expect(
+      screen.queryByRole('group', {name: 'Sentry Employee Features'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Download Replay Record'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('groups the employee-only actions into their own section', async () => {
+    // useIsSentryEmployee reads the user off ConfigStore, keyed on a verified
+    // sentry.io address.
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        id: '1',
+        emails: [{id: '1', email: 'someone@sentry.io', is_verified: true}],
+      })
+    );
+
+    renderDetails();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
+
+    const section = await screen.findByRole('group', {
+      name: 'Sentry Employee Features',
+    });
+    // A section is a labelled group, not a selectable row of its own.
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Sentry Employee Features'})
+    ).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Download Replay Record'})
+    ).toBeInTheDocument();
+    expect(section).toContainElement(
+      screen.getByRole('menuitemradio', {name: 'Download Replay Record'})
+    );
+    expect(section).toContainElement(
+      screen.getByRole('menuitemradio', {name: /Sentry Replay Debugger/})
+    );
+
+    // The actions everyone sees stay outside the section.
+    expect(section).not.toContainElement(
+      screen.getByRole('menuitemradio', {name: 'Download JSON'})
+    );
+
+    // The section sits last, after the shared actions and the configure submenu.
+    expect(
+      screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
+    ).toEqual([
+      'Download JSON',
+      'Share',
+      'Delete',
+      'Configure Replay',
+      expect.stringContaining('Download Replay Record'),
+      expect.stringContaining('Sentry Replay Debugger'),
+    ]);
   });
 
   it('nests the configure docs behind a submenu', async () => {
