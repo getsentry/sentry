@@ -2,9 +2,9 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ThinkingBlock} from '@sentry/scraps/chat';
 
-// `ClippedBox` measures content via `ResizeObserver`; this mock reports a fixed height
-// synchronously (as the real observer would on first layout) so a clip decision is available
-// immediately, without waiting on a real browser layout pass.
+// `ClippedBox` measures content via `ResizeObserver`. Browser callbacks are asynchronous,
+// but this mock invokes the callback synchronously so a clip decision is available
+// immediately without waiting on a real browser layout pass.
 function mockContentHeight(height: number) {
   const previous = window.ResizeObserver;
 
