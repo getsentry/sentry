@@ -231,9 +231,11 @@ class MetricIssueContext:
             return IncidentStatus.CRITICAL
 
     @classmethod
-    def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
-        subscription = QuerySubscription.objects.get(id=int(evidence_data.data_packet_source_id))
-        return subscription
+    def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription | None:
+        try:
+            return QuerySubscription.objects.get(id=int(evidence_data.data_packet_source_id))
+        except QuerySubscription.DoesNotExist:
+            return None
 
     @classmethod
     def from_group_event(
@@ -247,13 +249,20 @@ class MetricIssueContext:
             raise ValueError("No open periods found for group")
 
         subscription = cls._get_subscription(evidence_data)
-        snuba_query = subscription.snuba_query
+        if subscription is not None:
+            snuba_query = subscription.snuba_query
+        else:
+            try:
+                snuba_query = AlertRule.objects_with_snapshots.get(
+                    id=evidence_data.alert_id
+                ).snuba_query
+            except AlertRule.DoesNotExist:
+                raise ValueError("No alert rule found for metric issue") from None
         if isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
         elif isinstance(evidence_data.value, dict):
             metric_value = evidence_data.value["value"]
         else:
-            # Evidence can be missing a metric value (e.g. incomplete packets).
             metric_value = None
 
         return cls(
