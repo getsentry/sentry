@@ -32,7 +32,7 @@ export function getEmbeddedDetectorId({
  * A detector-backed alert that the embed cannot point at a detector on its own.
  * Whether that is recoverable depends on the kind -- see `canResolveDetectorId`.
  */
-export function isLegacyAlert(alert: AlertEmbed): boolean {
+function isLegacyAlert(alert: AlertEmbed): boolean {
   return alert.kind !== 'issue' && !getEmbeddedDetectorId(alert);
 }
 
