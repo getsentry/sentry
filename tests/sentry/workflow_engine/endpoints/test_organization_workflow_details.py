@@ -1001,6 +1001,36 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         other_action.refresh_from_db()
         assert other_action.config == original_config
 
+    def test_update_action_with_legacy_rule_action_id(self) -> None:
+        """Non-numeric legacy rule action ids should 400 instead of 500."""
+        data = {
+            **self.valid_workflow,
+            "actionFilters": [
+                {
+                    "logicType": "any",
+                    "conditions": [],
+                    "actions": [
+                        {
+                            # Legacy issue-alert action class path, not a workflow Action PK.
+                            "id": "sentry.mail.actions.NotifyEmailAction",
+                            "type": "email",
+                            "config": {"targetType": "user", "targetIdentifier": "1"},
+                            "data": {},
+                        }
+                    ],
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=data,
+            status_code=400,
+        )
+
+        assert "Invalid Action ID" in str(response.data)
+
     def test_update_action_filter_condition_from_different_organization(self) -> None:
         """Test that conditionGroupId in action filter conditions cannot reference another org's group"""
         other_org = self.create_organization()
