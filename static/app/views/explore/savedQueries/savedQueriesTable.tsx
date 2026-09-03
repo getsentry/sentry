@@ -118,7 +118,7 @@ export function SavedQueriesTable({
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
-      return (name: string) => {
+      return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
           name,

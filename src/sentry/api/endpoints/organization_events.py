@@ -9,13 +9,11 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.client_kind import get_client_host, get_client_kind, get_user_agent
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
@@ -215,20 +213,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
-
-        client_kind = get_client_kind(request, organization)
-        if client_kind is not None:
-            # `_test` suffix while this is a POC, to keep it out of the way of a
-            # real `client_kind` attribute later.
-            sentry_sdk.set_tag("client_kind_test", client_kind.value)
-            sentry_sdk.set_attribute("client_kind_test", client_kind.value)
-            client_host = get_client_host(request)
-            if client_host is not None:
-                sentry_sdk.set_tag("client_host_test", client_host)
-                sentry_sdk.set_attribute("client_host_test", client_host)
-            user_agent = get_user_agent(request)
-            if user_agent is not None:
-                sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
         try:
             snuba_params = self.get_snuba_params(

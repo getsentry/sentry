@@ -13,7 +13,9 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 
+import sentry_sdk
 from rest_framework.request import Request
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import features
 from sentry.auth.services.auth import AuthenticatedToken
@@ -133,6 +135,32 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
         return ClientKind.SCRIPT
 
     return ClientKind.UNKNOWN
+
+
+def set_client_kind_attributes(request: Request, organization: Organization) -> None:
+    """Tag the current transaction with who called the endpoint.
+
+    A no-op when the org has not opted into ``client_kind``. Wired into
+    ``OrganizationEventsEndpointBase.convert_args`` so every events endpoint
+    reports the same set of attributes without hand-wiring them per handler.
+    """
+    client_kind = get_client_kind(request, organization)
+    if client_kind is None:
+        return
+
+    # `_test` suffix while this is a POC, to keep it out of the way of a
+    # real `client_kind` attribute later.
+    sentry_sdk.set_tag("client_kind_test", client_kind.value)
+    sentry_sdk.set_attribute("client_kind_test", client_kind.value)
+
+    client_host = get_client_host(request)
+    if client_host is not None:
+        sentry_sdk.set_tag("client_host_test", client_host)
+        sentry_sdk.set_attribute("client_host_test", client_host)
+
+    user_agent = get_user_agent(request)
+    if user_agent is not None:
+        sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
 
 def get_user_agent(request: Request) -> str | None:

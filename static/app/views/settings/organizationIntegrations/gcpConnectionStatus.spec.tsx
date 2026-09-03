@@ -187,14 +187,52 @@ describe('GcpConnectionStatus', () => {
       configData: {
         ...baseConfig,
         connection_status: 'unverified',
-        project_statuses: [],
+        project_statuses: [
+          {
+            gcp_project_id: 'project-prod',
+            connection_status: 'permission_denied',
+            error_detail: 'IAM roles not granted',
+          },
+        ],
         last_verified_at: null,
       },
     });
 
     expect(screen.getByText('Checking connection...')).toBeInTheDocument();
     expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
+    expect(screen.queryByText('IAM roles not granted')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Re-test'})).toBeDisabled();
+  });
+
+  it('hides the previous result while a re-test is running', async () => {
+    MockApiClient.addMockResponse({
+      url: VERIFY_URL,
+      method: 'POST',
+      body: {connectionStatus: 'connected', projects: []},
+      asyncDelay: 50,
+    });
+    renderStatus({
+      configData: {
+        ...baseConfig,
+        connection_status: 'permission_denied',
+        project_statuses: [
+          {
+            gcp_project_id: 'project-prod',
+            connection_status: 'permission_denied',
+            error_detail: 'IAM roles not granted',
+          },
+        ],
+        last_verified_at: '2026-08-30T00:00:00+00:00',
+      },
+    });
+
+    expect(screen.getByText('IAM roles not granted')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(screen.queryByText('IAM roles not granted')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last checked/)).not.toBeInTheDocument();
   });
 
   it('cannot be re-tested when the config is incomplete', () => {
