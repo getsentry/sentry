@@ -16,6 +16,7 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -68,6 +69,16 @@ locks = LockManager(
 
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
+COMMIT_CONTEXT_INTEGRATION_PROVIDERS = [
+    IntegrationProviderSlug.GITHUB.value,
+    IntegrationProviderSlug.GITLAB.value,
+    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+    IntegrationProviderSlug.PERFORCE.value,
+]
+# Keep project mapping changes responsive without querying on every event.
+COMMIT_CONTEXT_PROJECT_CACHE_TIMEOUT = 300
+# Match the previous integration-status cache window for this path.
+COMMIT_CONTEXT_ORG_INTEGRATION_CACHE_TIMEOUT = 14400
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -1091,6 +1102,52 @@ def process_code_mappings(job: PostProcessJob) -> None:
         logger.exception("Failed to process automatic source code config")
 
 
+def _project_has_usable_code_mapping(project: Project) -> bool:
+    from sentry.integrations.models.repository_project_path_config import (
+        RepositoryProjectPathConfig,
+    )
+    from sentry.integrations.services.integration import integration_service
+
+    cache_key = f"commit-context-code-mapping:{project.id}"
+    cached_result = cache.get(cache_key)
+    if cached_result is not None:
+        return bool(cached_result)
+
+    integration_cache_key = f"commit-context-active-scm-integration-ids:{project.organization_id}"
+    integration_ids = cache.get(integration_cache_key)
+    if integration_ids is None:
+        # Integration eligibility is shared by every project in the organization.
+        integration_ids = [
+            integration.id
+            for integration in integration_service.get_integrations(
+                organization_id=project.organization_id,
+                providers=COMMIT_CONTEXT_INTEGRATION_PROVIDERS,
+                status=ObjectStatus.ACTIVE,
+                org_integration_status=ObjectStatus.ACTIVE,
+            )
+        ]
+        cache.set(
+            integration_cache_key,
+            integration_ids,
+            COMMIT_CONTEXT_ORG_INTEGRATION_CACHE_TIMEOUT,
+        )
+
+    # Code mappings and repositories are project-scoped even though integrations are not.
+    has_usable_code_mapping = (
+        bool(integration_ids)
+        and RepositoryProjectPathConfig.objects.filter(
+            integration_id__in=integration_ids,
+            organization_integration_id__isnull=False,
+            organization_id=project.organization_id,
+            project_repository__project_id=project.id,
+            project_repository__repository__organization_id=project.organization_id,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).exists()
+    )
+    cache.set(cache_key, has_usable_code_mapping, COMMIT_CONTEXT_PROJECT_CACHE_TIMEOUT)
+    return has_usable_code_mapping
+
+
 def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1099,6 +1156,7 @@ def process_commits(job: PostProcessJob) -> None:
     from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
+    from sentry.utils.committers import get_frame_paths
 
     event = job["event"]
 
@@ -1109,6 +1167,22 @@ def process_commits(job: PostProcessJob) -> None:
             name="post_process_w_o",
         )
         with lock.acquire():
+            # Git blame can create the Commit row it finds, so it does not require imported commits.
+            if _project_has_usable_code_mapping(event.project):
+                if not job["group_state"]["is_new"]:
+                    return
+
+                process_commit_context.delay(
+                    event_id=event.event_id,
+                    event_platform=event.platform or "",
+                    event_frames=get_frame_paths(event),
+                    group_id=event.group_id,
+                    project_id=event.project_id,
+                    sdk_name=get_sdk_name(event.data),
+                )
+                return
+
+            # The release-based fallback still depends on commits already stored in Sentry.
             has_commit_key = f"w-o:{event.project.organization_id}-h-c"
             org_has_commit = cache.get(has_commit_key)
             if org_has_commit is None:
@@ -1117,57 +1191,21 @@ def process_commits(job: PostProcessJob) -> None:
                 ).exists()
                 cache.set(has_commit_key, org_has_commit, 3600)
 
-            if org_has_commit:
-                from sentry.utils.committers import get_frame_paths
+            if not org_has_commit:
+                return
 
-                event_frames = get_frame_paths(event)
-                sdk_name = get_sdk_name(event.data)
-
-                integration_cache_key = (
-                    f"commit-context-scm-integration:{event.project.organization_id}"
-                )
-                has_integrations = cache.get(integration_cache_key)
-                if has_integrations is None:
-                    from sentry.integrations.services.integration import integration_service
-
-                    org_integrations = integration_service.get_organization_integrations(
-                        organization_id=event.project.organization_id,
-                        providers=[
-                            IntegrationProviderSlug.GITHUB.value,
-                            IntegrationProviderSlug.GITLAB.value,
-                            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-                            IntegrationProviderSlug.PERFORCE.value,
-                        ],
-                    )
-                    has_integrations = len(org_integrations) > 0
-                    # Cache the integrations check for 4 hours
-                    cache.set(integration_cache_key, has_integrations, 14400)
-
-                if has_integrations:
-                    if not job["group_state"]["is_new"]:
-                        return
-
-                    process_commit_context.delay(
-                        event_id=event.event_id,
-                        event_platform=event.platform or "",
-                        event_frames=event_frames,
-                        group_id=event.group_id,
-                        project_id=event.project_id,
-                        sdk_name=sdk_name,
-                    )
-                else:
-                    cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
-                    if cache.get(cache_key):
-                        metrics.incr("sentry.tasks.process_suspect_commits.debounce")
-                        return
-                    process_suspect_commits.delay(
-                        event_id=event.event_id,
-                        event_platform=event.platform,
-                        event_frames=event_frames,
-                        group_id=event.group_id,
-                        project_id=event.project_id,
-                        sdk_name=sdk_name,
-                    )
+            cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
+            if cache.get(cache_key):
+                metrics.incr("sentry.tasks.process_suspect_commits.debounce")
+                return
+            process_suspect_commits.delay(
+                event_id=event.event_id,
+                event_platform=event.platform,
+                event_frames=get_frame_paths(event),
+                group_id=event.group_id,
+                project_id=event.project_id,
+                sdk_name=get_sdk_name(event.data),
+            )
     except UnableToAcquireLock:
         pass
 
