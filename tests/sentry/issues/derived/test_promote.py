@@ -101,6 +101,8 @@ class PromoteToLiveTest(TestCase):
 
         old = process_group_log(group.id)
         old_id = old.id
+        stale = django_timezone.now() - timedelta(minutes=5)
+        GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
@@ -120,6 +122,7 @@ class PromoteToLiveTest(TestCase):
         assert live.id == old_id
         assert live.view_count == 2
         assert live.generated_at == gen_time
+        assert live.date_updated > stale
 
     def test_promote_rejected_if_cursor_behind_despite_newer_generation(self) -> None:
         group = self.create_group()

@@ -135,7 +135,9 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     in-memory instance used only to carry the computed state.
     """
     generated_at = candidate.generated_at
+    # Keep date_updated out of _STATE_FIELDS so candidate objects don't need a real value.
     values = {f: getattr(candidate, f) for f in _STATE_FIELDS}
+    values["date_updated"] = timezone.now()
 
     cursor_ahead = Q(cursor_date__lt=candidate.cursor_date) | Q(
         cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id
