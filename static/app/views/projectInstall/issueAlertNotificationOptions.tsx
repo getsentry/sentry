@@ -94,7 +94,7 @@ export const providerDetails = {
   msteams: {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
-    placeholder: t('channel ID'),
+    placeholder: t('channel name'),
     channelSelectedBy: 'channelId',
     channelValidatedBy: 'channelName',
     channelTargetedBy: 'channelId',
@@ -128,6 +128,7 @@ export const enum MultipleCheckboxOptions {
 export type IntegrationChannel = {
   label: ReactNode;
   value: string;
+  channelName?: string;
   new?: boolean;
 };
 
@@ -174,7 +175,7 @@ function buildIntegrationAction({
       return {
         id: IssueAlertActionType.MS_TEAMS,
         team: integration?.id,
-        channel: channel?.value,
+        channel: channel?.channelName ?? channel?.value,
       };
     default:
       return undefined;
