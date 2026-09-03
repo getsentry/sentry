@@ -165,6 +165,123 @@ describe('SpanEvidenceKeyValueList', () => {
     });
   });
 
+  describe('N+1 Database Queries repeating-span deduping', () => {
+    function buildEvent(
+      offendingSpans: Array<{
+        description: string;
+        data?: Record<string, any>;
+        hash?: string;
+      }>
+    ) {
+      const builder = new TransactionEventBuilder('11211231', '/dog-park');
+      builder.getEventFixture().projectID = '415908';
+
+      const parentSpan = new MockSpan({
+        startTimestamp: 0,
+        endTimestamp: 0.2,
+        op: 'http.server',
+        problemSpan: ProblemSpan.PARENT,
+      });
+
+      offendingSpans.forEach(({description, data, hash}, i) => {
+        parentSpan.addChild({
+          startTimestamp: i,
+          endTimestamp: i + 1,
+          op: 'db',
+          description,
+          data,
+          hash,
+          problemSpan: ProblemSpan.OFFENDER,
+        });
+      });
+
+      builder.addSpan(parentSpan);
+      return builder.getEventFixture();
+    }
+
+    it('dedupes on the hash value, not the description, transaction-style spans', () => {
+      // The two `dogs` queries share a hash value but differ in description, so they have to
+      // collapse into a single row. If we compared descriptions instead, they'd get a row each.
+      const event = buildEvent([
+        {
+          description: 'SELECT * FROM dogs WHERE id = 1121',
+          hash: 'dog_pack',
+        },
+        {
+          description: 'SELECT * FROM dogs WHERE id = 1231',
+          hash: 'dog_pack',
+        },
+        {
+          description: 'SELECT * FROM tricks WHERE id = 908',
+          hash: 'talent_show',
+        },
+      ]);
+
+      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+
+      // In the span evidence table, the first row gets a different test id than the rest. They all
+      // start with `span-evidence-key-value-list.`, but the first row also has
+      // `repeating-spans-<repeating_span_count>` on the end.
+      const fullTable = screen.getByRole('table');
+      const firstTableRow = screen.getByTestId(
+        'span-evidence-key-value-list.repeating-spans-3'
+      );
+      const remainingTableRows = screen.getAllByTestId('span-evidence-key-value-list.');
+
+      // The second `dogs` query shares a hash value with the first, so it doesn't get a separate
+      // table row.
+      expect(firstTableRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
+      expect(fullTable).not.toHaveTextContent('SELECT * FROM dogs WHERE id = 1231');
+
+      // Since there are only two distinct hash values, there are only two total rows, or one more
+      // after the first.
+      expect(remainingTableRows).toHaveLength(1);
+      const secondTableRow = screen.getByTestId('span-evidence-key-value-list.');
+      expect(secondTableRow).toHaveTextContent('SELECT * FROM tricks WHERE id = 908');
+    });
+
+    it('dedupes on the hash value, not the description, segment-style spans', () => {
+      // The two `dogs` queries share a hash value but differ in description, so they have to
+      // collapse into a single row. If we compared descriptions instead, they'd get a row each.
+      const event = buildEvent([
+        {
+          description: 'SELECT * FROM dogs WHERE id = 1121',
+          data: {hash: 'dog_pack'},
+        },
+        {
+          description: 'SELECT * FROM dogs WHERE id = 1231',
+          data: {hash: 'dog_pack'},
+        },
+        {
+          description: 'SELECT * FROM tricks WHERE id = 908',
+          data: {hash: 'talent_show'},
+        },
+      ]);
+
+      render(<SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />);
+
+      // In the span evidence table, the first row gets a different test id than the rest. They all
+      // start with `span-evidence-key-value-list.`, but the first row also has
+      // `repeating-spans-<repeating_span_count>` on the end.
+      const fullTable = screen.getByRole('table');
+      const firstTableRow = screen.getByTestId(
+        'span-evidence-key-value-list.repeating-spans-3'
+      );
+      const remainingTableRows = screen.getAllByTestId('span-evidence-key-value-list.');
+
+      // The second `dogs` query shares a hash value with the first, so it doesn't get a separate
+      // table row.
+      expect(firstTableRow).toHaveTextContent('SELECT * FROM dogs WHERE id = 1121');
+      expect(fullTable).not.toHaveTextContent('SELECT * FROM dogs WHERE id = 1231');
+
+      // Since there are only two distinct hash values, there are only two total rows, or one more
+      // after the first.
+      expect(remainingTableRows).toHaveLength(1);
+      const secondTableRow = screen.getByTestId('span-evidence-key-value-list.');
+      expect(secondTableRow).toHaveTextContent('SELECT * FROM tricks WHERE id = 908');
+    });
+  });
+
   describe('MN+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
     builder.getEventFixture().projectID = '123';
