@@ -11,7 +11,7 @@ import type {
 } from 'sentry/views/insights/crons/types';
 
 interface UseMonitorProcessingErrorsOptions {
-  monitorSlug: string;
+  monitorSlug: string | undefined;
   organization: Organization;
   projectId: string;
 }
@@ -25,9 +25,10 @@ export function useMonitorProcessingErrors({
 
   const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
     CheckinProcessingError[]
-  >(makeMonitorErrorsQueryKey(organization, projectId, monitorSlug), {
+  >(makeMonitorErrorsQueryKey(organization, projectId, monitorSlug ?? ''), {
     staleTime: 0,
     refetchOnWindowFocus: true,
+    enabled: !!monitorSlug,
   });
 
   const handleDismissError = useCallback(
@@ -36,7 +37,7 @@ export function useMonitorProcessingErrors({
         api,
         organization.slug,
         projectId,
-        monitorSlug,
+        monitorSlug ?? '',
         errortype
       );
       await refetchErrors();

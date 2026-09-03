@@ -62,7 +62,10 @@ type CronDetectorDetailsProps = {
 };
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
-  const environments = detector.dataSources[0].queryObj.environments;
+  const environments = detector.dataSources[0].queryObj?.environments;
+  if (!environments) {
+    return;
+  }
   return getNextCheckInEnv(environments);
 }
 
@@ -82,7 +85,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
     () => ({timezone: timezoneOverride, clockDisplay}),
     [timezoneOverride, clockDisplay]
   );
-  const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
+  const openDocsPanel = useDocsPanel(dataSource.queryObj?.slug, project);
   const queryClient = useQueryClient();
 
   useDetectorQuery<CronDetector>(detector.id, {
@@ -108,8 +111,23 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const {checkinErrors, handleDismissError} = useMonitorProcessingErrors({
     organization,
     projectId: project.id,
-    monitorSlug: dataSource.queryObj.slug,
+    monitorSlug: dataSource.queryObj?.slug,
   });
+
+  // Only display the unknown legend when there are visible unknown check-ins
+  // in the timeline
+  const [showUnknownLegend, setShowUnknownLegend] = useState(false);
+
+  const checkHasUnknown = useCallback((stats: MonitorBucket[]) => {
+    const hasUnknown = stats.some(bucket =>
+      Object.values(bucket[1]).some(envBucket => Boolean(envBucket.unknown))
+    );
+    setShowUnknownLegend(hasUnknown);
+  }, []);
+
+  if (!dataSource.queryObj) {
+    return null;
+  }
 
   const {failure_issue_threshold, recovery_threshold} = dataSource.queryObj.config;
 
@@ -150,17 +168,6 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }
 
   const intervalSeconds = getIntervalSecondsFromEnv(monitorEnv);
-
-  // Only display the unknown legend when there are visible unknown check-ins
-  // in the timeline
-  const [showUnknownLegend, setShowUnknownLegend] = useState(false);
-
-  const checkHasUnknown = useCallback((stats: MonitorBucket[]) => {
-    const hasUnknown = stats.some(bucket =>
-      Object.values(bucket[1]).some(envBucket => Boolean(envBucket.unknown))
-    );
-    setShowUnknownLegend(hasUnknown);
-  }, []);
 
   return (
     <DateTimeProvider value={dateTime}>
@@ -337,14 +344,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   );
 }
 
-function useDocsPanel(monitorSlug: string, project: Project) {
+function useDocsPanel(monitorSlug: string | undefined, project: Project) {
   const {openDrawer} = useDrawer();
 
   const contents = (
     <Fragment>
       <DrawerHeader hideBar />
       <DrawerBody>
-        <MonitorQuickStartGuide project={project} monitorSlug={monitorSlug} />
+        <MonitorQuickStartGuide project={project} monitorSlug={monitorSlug ?? ''} />
       </DrawerBody>
     </Fragment>
   );
