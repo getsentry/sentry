@@ -1,22 +1,14 @@
-import {Button} from '@sentry/scraps/button';
-import {CodeBlock, InlineCode} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Hovercard} from 'sentry/components/hovercard';
-import {IconBot, IconCheckmark, IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconBot} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 
 export type AgentSetupCopySource = 'install_command' | 'prompt';
 
 const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
-
-const AGENT_CAPABILITIES = [
-  t('Detect your framework and language'),
-  t('Create and configure a new Sentry project'),
-  t('Install and instrument the Sentry SDK'),
-  t('Verify a real error reaches Sentry'),
-];
 
 interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
@@ -74,50 +66,7 @@ export function AgentSetupCard({
               </CodeBlock>
             </Stack>
             <Flex>
-              <Hovercard
-                position="top"
-                body={
-                  <Stack gap="xl">
-                    <Stack gap="md">
-                      {AGENT_CAPABILITIES.map(capability => (
-                        <Grid key={capability} columns="16px 1fr" align="center" gap="md">
-                          <Flex justify="center">
-                            <IconCheckmark size="sm" variant="success" />
-                          </Flex>
-                          <Text variant="muted" size="sm">
-                            {capability}
-                          </Text>
-                        </Grid>
-                      ))}
-                    </Stack>
-                    {onboardingCode ? (
-                      <Grid columns="16px 1fr" align="start" gap="md">
-                        <Flex justify="center" paddingTop="2xs">
-                          <IconInfo size="xs" variant="secondary" />
-                        </Flex>
-                        <Text variant="muted" size="sm">
-                          {tct(
-                            'Your agent uses ID [onboardingCode] to report setup progress here. Progress updates sent with this ID never include any part of your source code.',
-                            {
-                              onboardingCode: <InlineCode>{onboardingCode}</InlineCode>,
-                            }
-                          )}
-                        </Text>
-                      </Grid>
-                    ) : null}
-                  </Stack>
-                }
-              >
-                <Button
-                  variant="link"
-                  size="zero"
-                  icon={<IconInfo variant="secondary" />}
-                >
-                  <Text size="sm" variant="muted" underline="dotted">
-                    {t('What will my agent do?')}
-                  </Text>
-                </Button>
-              </Hovercard>
+              <AgentInfo onboardingCode={onboardingCode} />
             </Flex>
           </Stack>
         </Stack>
@@ -131,7 +80,7 @@ export function AgentSetupCard({
         padding="md xl"
       >
         <Text variant="muted" size="sm">
-          {t('Works with: Claude, Codex, Grok, Cursor, Pi, and OpenCode')}
+          {t('Works with: Claude, Codex, Grok, and Cursor')}
         </Text>
       </Flex>
     </Stack>
