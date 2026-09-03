@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import NamedTuple, cast
+from typing import Any, NamedTuple, cast
 from uuid import UUID
 
 from django.db.models import Exists, OuterRef, Q
@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import search
+from sentry import features, search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -93,9 +93,14 @@ _VISIBLE_PULL_REQUEST_FILTER = Q(pull_request__state__isnull=True) | ~Q(
 # writes; removable from these filters by 2026-11-11 (data retention).
 _AUTOFIX_AGENT_SOURCES = ("autofix", "autofix_rca")
 
-# The three issue-based sort params, mapped to their search-backend names.
+# The issue-based sort params, mapped to their search-backend names.
 # Any other value (seer default, empty, unknown) keeps the default order.
-_ISSUE_SORT_TO_SEARCH = {"issue": "date", "events": "freq", "users": "user"}
+_ISSUE_SORT_TO_SEARCH = {
+    "issue": "date",
+    "events": "freq",
+    "users": "user",
+    "recommended": "recommended",
+}
 
 
 @dataclass
@@ -316,7 +321,10 @@ def _serialize_run(
 ) -> RunPayload:
     root_cause_artifact = run.root_cause_artifact
     root_cause: RootCausePayload | None = (
-        {"oneLineDescription": root_cause_artifact.get("one_line_description")}
+        {
+            "oneLineDescription": root_cause_artifact.get("one_line_description"),
+            "headline": root_cause_artifact.get("headline"),
+        }
         if root_cause_artifact
         else None
     )
@@ -369,17 +377,25 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         include_project_config = "projectConfig" in expand
         environments = self.get_environments(request, organization)
 
-        sort = request.GET.get("sort")
+        sort = request.GET.get("sort", "")
 
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
-        if sort in _ISSUE_SORT_TO_SEARCH:
+        sort_by = _ISSUE_SORT_TO_SEARCH.get(sort)
+        if sort_by == "recommended" and features.has(
+            "organizations:issue-stream-recommended-sort-experimental",
+            organization,
+            actor=request.user,
+        ):
+            sort_by = "recommended_v2"
+        if sort_by is not None:
             latest_run_per_group = self._reorder_by_issue_sort(
                 latest_run_per_group,
-                _ISSUE_SORT_TO_SEARCH[sort],
+                sort_by,
                 projects,
                 environments,
                 start,
                 end,
+                request.user,
             )
 
         # Classify into milestones and cap before the expensive serialize, so the
@@ -547,6 +563,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         start: datetime,
         end: datetime,
+        actor: Any,
     ) -> dict[int, _RunMilestones]:
         candidate_ids = list(latest_run_per_group)
         if not candidate_ids:
@@ -561,6 +578,7 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
             search_filters=[SearchFilter(SearchKey("issue.id"), "IN", SearchValue(candidate_ids))],
             date_from=start,
             date_to=end,
+            actor=actor,
             referrer="seer.autofix-overview",
         )
 

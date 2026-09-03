@@ -227,6 +227,7 @@ export function SearchQueryBuilderProvider({
 
   const {filterKeyRegistryQueryOptions, registerFilterKeys} = useFilterKeyRegistry({
     asyncFilterKeyRegistryQueryKey,
+    enabled: Boolean(getTagKeys || asyncFilterKeyRegistryQueryKey),
   });
 
   const {data: asyncFilterKeys = {}} = useQuery(filterKeyRegistryQueryOptions);

@@ -8,7 +8,7 @@ import {
   useRef,
 } from 'react';
 import type {Client, Span} from '@sentry/core';
-import {spanToStreamedSpanJSON, timestampInSeconds} from '@sentry/core';
+import {spanToJSON, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {useLocation} from 'sentry/utils/useLocation';
@@ -265,18 +265,12 @@ export function VisuallyCompleteWithData({
  * @param tagName - Name for the tag, will create `<tagName>` in data and `<tagname>.grouped` as a tag
  * @param max - The approximate maximum value for the tag, A bucket between max and Infinity is also captured so it's fine if it's not precise, the data won't be entirely lost.
  * @param n - The value to be grouped, should represent `n` entities.
- * @param [buckets=[1,2,5]] - An optional param to specify the bucket progression. Default is 1,2,5 (10,20,50 etc).
  */
-export const setGroupedEntityTag = (
-  tagName: string,
-  max: number,
-  n: number,
-  buckets = [1, 2, 5]
-) => {
+export const setGroupedEntityTag = (tagName: string, max: number, n: number) => {
   Sentry.setExtra(tagName, n);
   let groups = [0];
   loop: for (let m = 1, mag = 0; m <= max; m *= 10, mag++) {
-    for (const i of buckets) {
+    for (const i of [1, 2, 5]) {
       const group = i * 10 ** mag;
       if (group > max) {
         break loop;
@@ -302,18 +296,18 @@ export const setGroupedEntityTag = (
 export function addUIElementTagToSegmentSpan(client: Client) {
   client.on('spanStart', span => {
     const segmentSpan = Sentry.getRootSpan(span);
-    const segmentSpanJson = spanToStreamedSpanJSON(segmentSpan);
+    const segmentSpanJson = spanToJSON(segmentSpan);
 
-    if (segmentSpanJson.attributes?.['sentry.op'] !== 'ui.action.click') {
+    if (segmentSpanJson.attributes['sentry.op'] !== 'ui.action.click') {
       return;
     }
 
-    const spanJson = spanToStreamedSpanJSON(span);
-    const spanOp = spanJson.attributes?.['sentry.op'];
+    const spanJson = spanToJSON(span);
+    const spanOp = spanJson.attributes['sentry.op'];
 
     if (
       spanOp === 'ui.interaction.click' &&
-      !segmentSpanJson.attributes?.interactionElement
+      !segmentSpanJson.attributes.interactionElement
     ) {
       segmentSpan.setAttribute('interactionElement', spanJson.name);
     }

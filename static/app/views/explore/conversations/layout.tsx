@@ -102,7 +102,8 @@ function ConversationsLandingHeader() {
   if (!hasSavedQuery) {
     return (
       <TopBar.Slot name="title">
-        {CONVERSATIONS_LANDING_TITLE} <FeatureBadge type="beta" />
+        {CONVERSATIONS_LANDING_TITLE}
+        <FeatureBadge type="new" />
       </TopBar.Slot>
     );
   }
@@ -122,6 +123,7 @@ function ConversationsLandingHeader() {
       </TopBar.Slot>
       <TopBar.Slot name="title">
         <BreadcrumbList.Title item={{type: 'page-title', label: savedQueryTitle}} />
+        <FeatureBadge type="new" />
       </TopBar.Slot>
     </Fragment>
   );

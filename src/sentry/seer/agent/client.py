@@ -32,6 +32,7 @@ from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
+    UserOrgContext,
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_status,
@@ -113,12 +114,6 @@ def _trigger_explorer_indexes_if_needed(
         build_service_map.apply_async(args=[organization_id])
 
 
-def _has_context_engine(
-    organization: Organization, user: User | RpcUser | AnonymousUser | None
-) -> bool:
-    return True
-
-
 def get_available_monitoring_providers(
     organization: Organization,
     user_id: int,
@@ -129,7 +124,9 @@ def get_available_monitoring_providers(
     Omits any provider that the user has permanently dismissed ("don't ask again").
     Does not mark which providers are already connected.
     """
-    if not features.has("organizations:seer-infra-telemetry", organization):
+    if not features.has("organizations:seer-infra-telemetry", organization) or not features.has(
+        "organizations:seer-infra-telemetry-user-level-auth", organization
+    ):
         return []
 
     feature_to_provider_map = {
@@ -357,14 +354,6 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        # PR context tools back both the automated CI and the manual iteration flows,
-        # so either flag grants them.
-        if enable_pr_context_tools and not (
-            features.has("organizations:autofix-pr-iteration", organization, actor=user)
-            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
-        ):
-            raise SeerPermissionError("PR context tools are not enabled for this organization")
-
         self.enable_pr_context_tools = enable_pr_context_tools
 
         self.viewer_context = self._build_viewer_context()
@@ -554,6 +543,7 @@ class SeerAgentClient:
         on_run_created: Callable[[SeerRun], None] | None = None,
         referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
+        user_org_context: UserOrgContext | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -596,15 +586,19 @@ class SeerAgentClient:
         if agent_run_options is not None:
             resolved_agent_run_options.update(agent_run_options)
 
+        body = SeerFeatureRunRequest(
+            feature_id=feature_id,
+            payload=payload,
+            agent_run_options=resolved_agent_run_options,
+        )
+        if user_org_context is not None:
+            body["user_org_context"] = user_org_context
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
             on_run_created=_create_agent_run,
-            body=SeerFeatureRunRequest(
-                feature_id=feature_id,
-                payload=payload,
-                agent_run_options=resolved_agent_run_options,
-            ),
+            body=body,
             viewer_context=self.viewer_context,
             user_id=user_id,
             referrer=referrer,
@@ -650,9 +644,8 @@ class SeerAgentClient:
         if self.enable_bash_tools:
             opts["enable_bash_mode"] = True
 
-        if _has_context_engine(self.organization, self.user):
-            if random.random() < options.get("seer.explorer.context-engine-rollout"):
-                opts["is_context_engine_enabled"] = True
+        if random.random() < options.get("seer.explorer.context-engine-rollout"):
+            opts["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-explorer-context-engine-allow-fe-override",
@@ -803,8 +796,7 @@ class SeerAgentClient:
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
-        if _has_context_engine(self.organization, self.user):
-            agent_run_options["is_context_engine_enabled"] = True
+        agent_run_options["is_context_engine_enabled"] = True
 
         if features.has(
             "organizations:seer-agent-source-code-search",

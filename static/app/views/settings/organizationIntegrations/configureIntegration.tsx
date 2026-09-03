@@ -1,5 +1,6 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {mutationOptions, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -34,6 +35,7 @@ import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {buildGcpVerifyPayload} from 'sentry/utils/seer/gcpConnection';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,10 +43,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {CrumbLink} from 'sentry/views/settings/components/settingsBreadcrumb';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {GcpConnectionStatus} from './gcpConnectionStatus';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
@@ -170,7 +174,7 @@ function ConfigureIntegration() {
               ...cachedIntegration,
               configData: null,
               configOrganization: [],
-              organizationId: organization.id,
+              organizationId: Number(organization.id),
               externalId: cachedIntegration.externalId ?? '',
             },
             headers: {},
@@ -181,6 +185,8 @@ function ConfigureIntegration() {
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
   const {projects} = useProjects();
+
+  const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -241,7 +247,7 @@ function ConfigureIntegration() {
   const settingsInstructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
   const hasSettingsTabContent =
-    integration.configOrganization.length > 0 ||
+    (integration.configOrganization?.length ?? 0) > 0 ||
     (settingsInstructions?.length ?? 0) > 0 ||
     provider.features.includes('alert-rule') ||
     provider.features.includes('serverless');
@@ -354,6 +360,30 @@ function ConfigureIntegration() {
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
     );
+
+    const integrationQueryOptions = organizationIntegrationApiOptions({
+      organizationSlug: organization.slug,
+      integrationId,
+    });
+
+    const verifyGcpConnection = async () => {
+      const savedConfig = queryClient.getQueryData(integrationQueryOptions.queryKey)?.json
+        .configData;
+      const payload = buildGcpVerifyPayload(savedConfig);
+      if (!payload) {
+        return;
+      }
+
+      await fetchMutation({
+        method: 'POST',
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
+        data: payload,
+      });
+    };
+
     const integrationMutationOptions = mutationOptions({
       mutationFn: (data: Record<string, unknown>) => {
         let requestData = data;
@@ -370,29 +400,55 @@ function ConfigureIntegration() {
           data: requestData,
         });
       },
-      onSuccess: () => {
-        // it's important that we keep the mutation pending while the refetch is happening by returning it.
-        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
-        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
-        return queryClient.invalidateQueries(
-          organizationIntegrationApiOptions({
-            organizationSlug: organization.slug,
-            integrationId,
-          })
-        );
+      onSuccess: async () => {
+        const verifiesConnection = provider.key === 'gcp';
+        if (verifiesConnection) {
+          setIsVerifyingGcp(true);
+        }
+
+        try {
+          // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
+          // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
+          // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
+          await queryClient.invalidateQueries(integrationQueryOptions);
+
+          if (verifiesConnection) {
+            try {
+              await verifyGcpConnection();
+              await queryClient.invalidateQueries(integrationQueryOptions);
+            } catch (error) {
+              // The save itself succeeded; the connection stays recorded as unverified
+              // and the customer can re-test, so don't report this as a failed save.
+              Sentry.captureException(error);
+            }
+          }
+        } finally {
+          if (verifiesConnection) {
+            setIsVerifyingGcp(false);
+          }
+        }
       },
     });
 
     return (
       <Fragment>
-        {integration.configOrganization.length > 0 && (
+        {provider.key === 'gcp' && (
+          <GcpConnectionStatus
+            configData={integration.configData}
+            organization={organization}
+            isVerifying={isVerifyingGcp}
+            onRetested={() => queryClient.invalidateQueries(integrationQueryOptions)}
+          />
+        )}
+
+        {(integration.configOrganization?.length ?? 0) > 0 && (
           <FieldGroup
             title={
               integration.provider.aspects.configure_integration?.title ||
               t('Organization Integration Settings')
             }
           >
-            {integration.configOrganization.map(fieldConfig => (
+            {integration.configOrganization?.map(fieldConfig => (
               <BackendJsonAutoSaveForm
                 key={fieldConfig.name}
                 field={fieldConfig}
@@ -495,7 +551,10 @@ function IntegrationNavigationHeader({
   integration: Integration;
   action?: React.ReactNode;
 }) {
+  const organization = useOrganization();
+  const {providerKey} = useParams<{providerKey: string}>();
   const externalUrl = getIntegrationExternalUrl(integration);
+  const configurationsHref = `/settings/${organization.slug}/integrations/${providerKey}/?tab=configurations`;
 
   return (
     <Fragment>
@@ -503,7 +562,7 @@ function IntegrationNavigationHeader({
       <SettingsPageHeader
         title={
           <Flex align="center" gap="sm">
-            <Text as="span">{t('Configurations')}</Text>
+            <CrumbLink to={configurationsHref}>{t('Configurations')}</CrumbLink>
             <Divider />
             <IntegrationIcon size={18} integration={integration} />
             {externalUrl ? (

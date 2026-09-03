@@ -52,6 +52,13 @@ def _assert_called_once_with_config(
     return config
 
 
+def _assert_called_once_with_organization(mock: Mock, organization_id: int) -> None:
+    mock.assert_called_once()
+    organization = mock.call_args.args[0]
+    assert isinstance(organization, Organization)
+    assert organization.id == organization_id
+
+
 def _transaction_volumes(org: Organization, project_id: int) -> list[ProjectTransactionCounts]:
     return [
         ProjectTransactionCounts(
@@ -214,7 +221,7 @@ class RunCalculationsPerOrgTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.NO_ORG_VOLUME
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         mocks[PROJECT_VOLUMES].assert_not_called()
         # A pass that bails out still reaches both end-of-pass steps, which find an
@@ -248,7 +255,7 @@ class RunCalculationsPerOrgTest(TestCase):
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
@@ -281,7 +288,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result == DynamicSamplingStatus.NO_PROJECT_VOLUMES
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_not_called()
         mocks[TRANSACTION_VOLUMES].assert_not_called()
@@ -309,7 +316,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result == DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -344,7 +351,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result is None
         mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_not_called()
         config = _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -356,6 +363,7 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
@@ -386,7 +394,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result is None
         mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -425,6 +433,7 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
@@ -451,7 +460,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result is None
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -472,6 +481,7 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_skips_the_factor_without_stored_segments(
@@ -502,6 +512,40 @@ class RunCalculationsPerOrgTest(TestCase):
         assert config.results.recalibration_factor is None
         mocks[SET_FACTOR].assert_not_called()
         # The comparison still runs, so the legacy factor is reported next to no EAP factor.
+        _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
+
+    @override_options(
+        {
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+            "dynamic-sampling.per_org.serving-rollout-rate": 0.0,
+        }
+    )
+    def test_run_calculations_per_org_skips_recalibration_for_an_unserved_org(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        project_volumes = [make_project_volume(project.id)]
+
+        with patch_configuration(
+            {
+                BLENDED_SAMPLE_RATE: 0.5,
+                ORG_VOLUME: org_volume,
+                PROJECT_VOLUMES: project_volumes,
+                PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
+                TRANSACTION_VOLUMES: _transaction_volumes(org, project.id),
+                TRANSACTION_BALANCING: {},
+                SET_FACTOR: DEFAULT,
+                EMIT_COMPARISONS: DEFAULT,
+            }
+        ) as mocks:
+            result = run_calculations_per_org_task(org.id)
+
+        assert result is None
+        config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
+        # Relay never applies the factor of an unserved org, so a factor computed for it
+        # would only compound from one pass to the next.
+        assert config.results.recalibration_factor is None
+        mocks[SET_FACTOR].assert_not_called()
         _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})

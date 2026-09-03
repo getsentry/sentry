@@ -16,7 +16,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {
   DiffTableChangeAmountCell,
-  DiffTableHeaderRow,
+  DiffTableHeader,
   DiffTableWithColumns,
   ITEMS_PER_PAGE,
   type DiffTableSort,
@@ -25,26 +25,11 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
-  {
-    key: 'change',
-    label: 'Change',
-  },
-  {
-    key: 'file_path',
-    label: 'File Path',
-  },
-  {
-    key: 'item_type',
-    label: 'Item Type',
-  },
-  {
-    key: 'size',
-    label: 'Size',
-  },
-  {
-    key: 'size_diff',
-    label: 'Size Diff',
-  },
+  {key: 'change', label: 'Change', width: '150px'},
+  {key: 'file_path', label: 'File Path', width: 'minmax(200px, 3fr)'},
+  {key: 'item_type', label: 'Item Type', width: '120px'},
+  {key: 'size', label: 'Size', width: '120px'},
+  {key: 'size_diff', label: 'Size Diff', width: '120px'},
 ];
 
 interface SizeCompareItemDiffTableProps {
@@ -139,31 +124,8 @@ export function SizeCompareItemDiffTable({
   return (
     <Stack gap="md">
       <DiffTableWithColumns
-        gridTemplateColumns="150px minmax(200px, 3fr) 120px 120px 120px"
-        header={
-          <DiffTableHeaderRow>
-            {tableHeaders.map(header => (
-              <SimpleTable.HeaderCell
-                key={header.key}
-                handleSortClick={
-                  header.key
-                    ? () =>
-                        setSort({
-                          field: header.key,
-                          kind:
-                            sort?.field === header.key && sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc',
-                        })
-                    : undefined
-                }
-                sort={sort && sort?.field === header.key ? sort.kind : undefined}
-              >
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </DiffTableHeaderRow>
-        }
+        columns={tableHeaders}
+        header={<DiffTableHeader headers={tableHeaders} onSort={setSort} sort={sort} />}
       >
         {sortedDiffItems.length === 0 && (
           <SimpleTable.Empty>

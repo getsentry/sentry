@@ -43,3 +43,10 @@ export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
 export const canUseMetricsHeatMap = (organization: Organization) => {
   return canUseMetricsUI(organization);
 };
+
+export const canUseMetricsDashboardTable = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-dashboard-table')
+  );
+};

@@ -1,5 +1,6 @@
 import {
   type ComponentProps,
+  useCallback,
   useEffectEvent,
   useLayoutEffect,
   useRef,
@@ -9,7 +10,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -28,6 +29,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
@@ -40,10 +42,12 @@ import type {PullRequestStatus} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getMessage, getTitle} from 'sentry/utils/events';
+import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
+import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -56,6 +60,10 @@ import {IssueListContainer} from 'sentry/views/issueList';
 import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreview';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
+import {
+  type AssignmentFilter,
+  useAssignmentFilter,
+} from 'sentry/views/issueList/pages/useAssignmentFilter';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
@@ -64,13 +72,11 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
-const ASSIGNMENT_QUERY_PARAM = 'assignment';
-const ASSIGNMENT_FILTERS = ['me', 'my_teams', 'all'] as const;
 const INBOX_SPLIT_SIZE_STORAGE_KEY = 'inbox-split-size';
 const INBOX_DEFAULT_SIZE = 480;
 const INBOX_MIN_SIZE = 320;
 const INBOX_MAX_SIZE = 640;
-type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
+type RestoreSelectedIssueScroll = (issueId: string, element: HTMLDivElement) => void;
 
 interface AssignmentCounts {
   all: number;
@@ -148,7 +154,7 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
 
 export default function InboxPage() {
   const organization = useOrganization();
-  const hasIssueInbox = organization.features.includes('issue-inbox');
+  const hasIssueInbox = orgHasIssueInbox(organization);
 
   if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
     return <NotFound />;
@@ -304,6 +310,10 @@ function AssignmentTabs({
 }
 
 function InboxContent() {
+  // Temporarily record all replays for the issue inbox
+  // Remove this once we roll out to more users
+  useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
+
   const theme = useTheme();
   const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
   const {layout} = usePrimaryNavigation();
@@ -311,15 +321,20 @@ function InboxContent() {
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const hasSeer = orgHasSeerAccess(organization);
-  const [assignmentFilter, setAssignmentFilter] = useQueryState(
-    ASSIGNMENT_QUERY_PARAM,
-    parseAsStringLiteral(ASSIGNMENT_FILTERS)
-      .withDefault('me')
-      .withOptions({history: 'replace'})
-  );
+  const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})
+  );
+  const issueIdToRestoreScroll = useRef(selectedIssueId);
+  const restoreSelectedIssueScroll = useCallback<RestoreSelectedIssueScroll>(
+    (issueId, element) => {
+      if (issueIdToRestoreScroll.current === issueId) {
+        issueIdToRestoreScroll.current = null;
+        element.scrollIntoView({block: 'center'});
+      }
+    },
+    []
   );
   const assignmentCounts = useAssignmentCounts();
   const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
@@ -345,6 +360,7 @@ function InboxContent() {
   });
 
   const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
+    issueIdToRestoreScroll.current = null;
     trackAnalytics('issue_inbox.assignment_filter_changed', {
       organization,
       assignment_filter: filter,
@@ -361,7 +377,15 @@ function InboxContent() {
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
-      <Layout.Title>{TITLE}</Layout.Title>
+      <Layout.Title>
+        {TITLE}
+        <PageHeadingQuestionTooltip
+          docsUrl="https://docs.sentry.io/product/issues/inbox/"
+          title={t(
+            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+          )}
+        />
+      </Layout.Title>
       <Grid
         flex={1}
         minHeight={0}
@@ -404,6 +428,7 @@ function InboxContent() {
                 assignmentFilter={assignmentFilter}
                 selectedIssueId={selectedIssueId}
                 onInitialResult={handleInitialSectionResult}
+                restoreSelectedIssueScroll={restoreSelectedIssueScroll}
               />
             ))}
           </Stack>
@@ -480,6 +505,7 @@ function AssignmentCountBadge({count}: {count: number | undefined}) {
 interface InboxSectionProps {
   assignmentFilter: AssignmentFilter;
   onInitialResult: (sectionKey: string, firstIssueId: string | null) => void;
+  restoreSelectedIssueScroll: RestoreSelectedIssueScroll;
   section: InboxSectionConfig;
   selectedIssueId: string | null;
 }
@@ -487,6 +513,7 @@ interface InboxSectionProps {
 function InboxSection({
   assignmentFilter,
   onInitialResult,
+  restoreSelectedIssueScroll,
   section,
   selectedIssueId,
 }: InboxSectionProps) {
@@ -594,6 +621,7 @@ function InboxSection({
                   assignmentFilter={assignmentFilter}
                   group={group}
                   progressLabel={section.label}
+                  restoreSelectedIssueScroll={restoreSelectedIssueScroll}
                   selected={selectedIssueId === group.id}
                   showPullRequests={
                     section.progress === ProgressState.FIX_PROPOSED ||
@@ -679,12 +707,14 @@ function InboxIssueCard({
   assignedUser,
   group,
   progressLabel,
+  restoreSelectedIssueScroll,
   selected,
   showPullRequests,
 }: {
   assignmentFilter: AssignmentFilter;
   group: Group;
   progressLabel: string;
+  restoreSelectedIssueScroll: RestoreSelectedIssueScroll;
   selected: boolean;
   showPullRequests: boolean;
   assignedUser?: User;
@@ -695,9 +725,17 @@ function InboxIssueCard({
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
+  const cardRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (selected && element) {
+        restoreSelectedIssueScroll(group.id, element);
+      }
+    },
+    [group.id, restoreSelectedIssueScroll, selected]
+  );
 
   return (
-    <Container position="relative">
+    <Container ref={cardRef} position="relative">
       <IssueCardLink
         {...prefetchHoverProps}
         aria-current={selected ? 'true' : undefined}
@@ -709,8 +747,8 @@ function InboxIssueCard({
         onClick={() =>
           trackAnalytics('issue_inbox.item_clicked', {
             organization,
+            ...getAnalyticsDataForGroup(group),
             assignment_filter: assignmentFilter,
-            group_id: group.id,
             progress: group.derivedData?.progress,
             last_progressed_at: group.derivedData?.lastProgressedAt ?? null,
           })
@@ -761,7 +799,6 @@ function InboxIssueCard({
                 <ActorAvatar
                   actor={group.assignedTo}
                   size={18}
-                  hasTooltip
                   tooltip={t('Assigned to: %s', getActorLabel(group.assignedTo))}
                   title={group.assignedTo.name}
                 />
@@ -770,8 +807,10 @@ function InboxIssueCard({
               <SuggestedAvatarStack
                 size={18}
                 owners={suggestedAssignees}
-                tooltip={t(
-                  'Suggested assignees: %s',
+                tooltip={tn(
+                  'Suggested assignee: %2$s',
+                  'Suggested assignees: %2$s',
+                  suggestedAssignees.length,
                   suggestedAssignees.map(getActorLabel).join(', ')
                 )}
               />

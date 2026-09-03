@@ -47,7 +47,7 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
 
     outbox_models = [
         OutboxBase.from_outbox_name(outbox_name)
-        for outbox_names in settings.SENTRY_OUTBOX_MODELS.values()
+        for outbox_names in settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS.values()
         for outbox_name in outbox_names
     ]
     outbox_models.append(GroupActionLogOutbox)

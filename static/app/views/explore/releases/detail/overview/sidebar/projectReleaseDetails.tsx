@@ -48,7 +48,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
         <KeyValueTable>
           <KeyValueTableRow
             keyName={t('Created')}
-            value={<DateTime date={dateCreated} seconds={false} />}
+            value={<DateTime date={dateCreated} />}
           />
           <KeyValueTableRow
             keyName={
@@ -74,7 +74,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
             }
             value={
               dateReleased ? (
-                <DateTime date={dateReleased} seconds={false} />
+                <DateTime date={dateReleased} />
               ) : (
                 <ButtonContainer>
                   <Tooltip

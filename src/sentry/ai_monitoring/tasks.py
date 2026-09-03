@@ -8,8 +8,7 @@ from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry
 
 from sentry import features
-from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.utils import (
+from sentry.ai_monitoring.conversation_titles import (
     ConversationTitleSpanData,
     clamp_conversation_id_for_storage,
     clamp_user_message,
@@ -19,6 +18,7 @@ from sentry.ai_monitoring.utils import (
     generate_conversation_title,
     span_source_timestamp,
 )
+from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.silo.base import SiloMode

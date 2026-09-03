@@ -36,7 +36,10 @@ from sentry.seer.autofix.artifact_schemas import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
+from sentry.seer.autofix.pr_iteration.constants import (
+    MANUAL_FLAG,
+    REVIEW_REQUEST_FLAG,
+)
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
@@ -83,10 +86,6 @@ class NoSeerQuotaException(Exception):
 
 
 class PrIterationNoPullRequestException(Exception):
-    pass
-
-
-class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -506,6 +505,7 @@ def trigger_autofix_agent(
     enable_bash_tools: bool = False,
     actor_user_id: int | None = None,
     commit_author: SeerCommitAuthor | None = None,
+    iteration_id: int | None = None,
     allow_free_cohort: bool = False,
 ) -> SeerRun:
     """
@@ -524,8 +524,8 @@ def trigger_autofix_agent(
     # (allow_free_cohort=True). The API endpoint never sets this flag,
     # so manual triggers still require quota.
     if run_id is None:
-        skip_quota = allow_free_cohort and is_free_cohort_org(group.organization)
-        if not skip_quota:
+        skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
+        if not skip_quota_check:
             has_budget: bool = quotas.backend.check_seer_quota(
                 org_id=group.organization.id,
                 data_category=DataCategory.SEER_AUTOFIX,
@@ -540,7 +540,10 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    if step == AutofixStep.ROOT_CAUSE and run_id is None:
+    use_seer_rca_feature = features.has(
+        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    )
+    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
         # Local import avoids a circular import (dispatch imports this module).
         from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
 
@@ -579,12 +582,6 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
-    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
-    # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(
-        "organizations:autofix-pr-iteration", group.organization
-    ) or features.has("organizations:autofix-pr-iteration-manual", group.organization)
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -601,9 +598,6 @@ def trigger_autofix_agent(
 
     iteration_index: int | None = None
     if is_iteration_step:
-        if not pr_iteration_enabled:
-            raise PrIterationNotEnabledException()
-
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
 
@@ -635,6 +629,9 @@ def trigger_autofix_agent(
 
     if iteration_index is not None:
         prompt_metadata["iteration_index"] = str(iteration_index)
+
+    if iteration_id is not None:
+        prompt_metadata["iteration_id"] = str(iteration_id)
 
     if step == AutofixStep.ROOT_CAUSE:
         base_shas = _build_base_shas_metadata(group, referrer)
@@ -926,7 +923,7 @@ def trigger_coding_agent_handoff(
     return cast(AutofixHandoffResponse, coding_agents)
 
 
-def _should_open_autofix_pr_as_draft(organization: Organization) -> bool:
+def should_open_autofix_pr_as_draft(organization: Organization) -> bool:
     """Draft Autofix PRs when the green-CI undraft / review-request flow is on."""
     return features.has(REVIEW_REQUEST_FLAG, organization)
 
@@ -967,7 +964,7 @@ def trigger_push_changes(
         run_id,
         repo_name=repo_name,
         pr_description_suffix=build_pr_description_suffix(group, run_id),
-        ready_for_review=not _should_open_autofix_pr_as_draft(group.organization),
+        ready_for_review=not should_open_autofix_pr_as_draft(group.organization),
         verify_content=verify_content,
         blocking=False,
         author=author,
@@ -1008,9 +1005,12 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
 
-    if features.has("organizations:autofix-pr-iteration-manual", group.organization):
+    if features.has(MANUAL_FLAG, group.organization):
         lines.append(
-            "\n<sub>Comment `@sentry <feedback>` on this PR to have Autofix iterate on the changes.</sub>"
+            # One command per line, and one `<sub>` tag per line: a blank line
+            # would close the tag and leave the next line full size.
+            "\n<sub>`@sentry <feedback>`: Autofix iterates on these changes</sub>"
+            "\n<sub>`@sentry stop iterating`: Autofix stops iterating on this run</sub>"
         )
 
     seer_run = SeerRun.objects.filter(

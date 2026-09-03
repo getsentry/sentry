@@ -1,5 +1,6 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -69,7 +69,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const detectorId = useUptimeIssueDetectorId({groupId: group.id});
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({

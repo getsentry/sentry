@@ -51,17 +51,36 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
-function hasUnquotedOpenParen(s: string): boolean {
+function isCharacterEscaped(value: ArrayLike<string>, index: number): boolean {
+  let precedingBackslashCount = 0;
+  for (let i = index - 1; i >= 0 && value[i] === '\\'; i--) {
+    precedingBackslashCount++;
+  }
+
+  return precedingBackslashCount % 2 === 1;
+}
+
+function countUnquotedUnmatchedClosingParens(s: string): number {
   let inQuotes = false;
+  let openParenCount = 0;
+  let unmatchedClosingParenCount = 0;
+
   for (let i = 0; i < s.length; i++) {
     const char = s[i];
-    if (char === '"' && (i === 0 || s[i - 1] !== '\\')) {
+    if (char === '"' && !isCharacterEscaped(s, i)) {
       inQuotes = !inQuotes;
     } else if (char === '(' && !inQuotes) {
-      return true;
+      openParenCount++;
+    } else if (char === ')' && !inQuotes) {
+      if (openParenCount > 0) {
+        openParenCount--;
+      } else {
+        unmatchedClosingParenCount++;
+      }
     }
   }
-  return false;
+
+  return unmatchedClosingParenCount;
 }
 
 function isProperlyBracketed(value: string): boolean {
@@ -179,7 +198,7 @@ export class MutableSearch {
       for (let i = 0, len = token.length; i < len; i++) {
         const char = token[i];
 
-        if (char === '"' && (i === 0 || token[i - 1] !== '\\')) {
+        if (char === '"' && !isCharacterEscaped(token, i)) {
           quoted = !quoted;
           continue;
         }
@@ -226,11 +245,15 @@ export class MutableSearch {
       }
 
       let trailingParen = '';
-      if (token.endsWith(')') && !hasUnquotedOpenParen(token)) {
+      if (token.endsWith(')')) {
         const parenMatch = token.match(/\)+$/g);
-        if (parenMatch) {
-          trailingParen = parenMatch[0];
-          token = token.replace(/\)+$/g, '');
+        const trailingParenCount = Math.min(
+          parenMatch?.[0].length ?? 0,
+          countUnquotedUnmatchedClosingParens(token)
+        );
+        if (trailingParenCount > 0) {
+          trailingParen = ')'.repeat(trailingParenCount);
+          token = token.slice(0, -trailingParenCount);
         }
       }
 
@@ -351,7 +374,7 @@ export class MutableSearch {
    * Adds the filter values separated by OR operators. This is in contrast to
    * addFilterValues, which implicitly separates each filter value with an AND operator.
    */
-  addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true) {
+  addDisjunctionFilterValues(key: string, values: string[]) {
     if (values.length === 0) {
       return this;
     }
@@ -361,7 +384,7 @@ export class MutableSearch {
       if (i > 0) {
         this.addOp('OR');
       }
-      this.addFilterValue(key, values[i]!, shouldEscape);
+      this.addFilterValue(key, values[i]!);
     }
     this.addOp(')');
     return this;
@@ -609,16 +632,15 @@ function splitSearchIntoTokens(query: string) {
       token = '';
     }
 
-    if (["'", '"'].includes(char) && (!quoteEnclosed || quoteType === char)) {
+    if (
+      ["'", '"'].includes(char) &&
+      !isCharacterEscaped(queryChars, idx) &&
+      (!quoteEnclosed || quoteType === char)
+    ) {
       quoteEnclosed = !quoteEnclosed;
       if (quoteEnclosed) {
         quoteType = char;
       }
-    }
-
-    if (quoteEnclosed && char === '\\' && nextChar === quoteType) {
-      token += nextChar;
-      idx++;
     }
   }
 
@@ -650,7 +672,7 @@ function parseFilter(filter: string) {
   for (; idx < filter.length; idx++) {
     const c = filter[idx];
 
-    if (c === '"') {
+    if (c === '"' && !isCharacterEscaped(filter, idx)) {
       quoted = !quoted;
       continue;
     }
@@ -710,7 +732,7 @@ function removeSurroundingQuotes(text: string) {
 
   let right = length - 1;
   for (; right >= length / 2; right--) {
-    if (text.charAt(right) !== '"' || text.charAt(right - 1) === '\\') {
+    if (text.charAt(right) !== '"' || isCharacterEscaped(text, right)) {
       break;
     }
   }

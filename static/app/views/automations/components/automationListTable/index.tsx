@@ -8,12 +8,13 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {LoadingError} from 'sentry/components/loadingError';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -55,21 +56,22 @@ function HeaderCell({
   children: React.ReactNode;
   sort: Sort | undefined;
   className?: string;
-  divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
   const navigate = useNavigate();
-  const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const newSort =
-      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    const nextSort = getNextSort(sortKey, sort ?? undefined, 'asc');
     navigate({
       pathname: location.pathname,
-      query: {...location.query, sort: newSort, cursor: undefined},
+      query: {
+        ...location.query,
+        sort: encodeSort(nextSort),
+        cursor: undefined,
+      },
     });
   };
 
@@ -149,14 +151,16 @@ export function AutomationListTable({
   return (
     <AutomationsSimpleTable
       header={
-        canEditAutomations && selected.size === 0 ? (
+        !canEditAutomations || selected.size === 0 ? (
           <SimpleTable.HeaderRow key="header">
             <HeaderCell sort={sort} sortKey="name">
               <Flex gap="md" align="center">
-                <SelectAllHeaderCheckbox
-                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                  onChange={checked => togglePageSelected(checked)}
-                />
+                {canEditAutomations && (
+                  <SelectAllHeaderCheckbox
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    onChange={checked => togglePageSelected(checked)}
+                  />
+                )}
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
@@ -228,11 +232,7 @@ export function AutomationListTable({
           </StyledFlex>
         </SimpleTable.Empty>
       )}
-      {isError && (
-        <SimpleTable.Empty>
-          <LoadingError message={t('Error loading alerts')} />
-        </SimpleTable.Empty>
-      )}
+      {isError && <SimpleTable.Error message={t('Error loading alerts')} />}
       {isPending && <LoadingSkeletons />}
       {isSuccess &&
         automations.map(automation => (

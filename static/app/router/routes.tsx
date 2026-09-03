@@ -2,7 +2,6 @@ import type {RouteObject} from 'react-router-dom';
 import {Outlet} from 'react-router-dom';
 import memoize from 'lodash/memoize';
 
-import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
@@ -16,7 +15,6 @@ import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
 import {AuthenticatedApiErrorHandler} from 'sentry/views/app/authenticatedApiErrorHandler';
-import {AuthLayoutRoute} from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -85,15 +83,6 @@ function buildRoutes(): RouteObject[] {
   //
   // ## The structure
   //
-  // * `experimentalSpaRoutes`
-  //
-  //   These routes are specifically for the experimental single-page-app mode,
-  //   where Sentry is run separate from Django. These are NOT part of the root
-  //   <App /> component.
-  //
-  //   Right now these are mainly used for authentication pages. In the future
-  //   they would be used for other pages like registration.
-  //
   // * `rootRoutes`
   //
   //   These routes live directly under the <App /> container, and generally
@@ -132,24 +121,6 @@ function buildRoutes(): RouteObject[] {
   //   they have redirects for. A good rule here is to place 'helper' redirects
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
-
-  const experimentalSpaChildRoutes: SentryRouteObject[] = [
-    {
-      index: true,
-      component: make(() => import('sentry/views/auth/login')),
-    },
-    {
-      path: ':orgId/',
-      component: make(() => import('sentry/views/auth/login')),
-    },
-  ];
-  const experimentalSpaRoutes: SentryRouteObject = EXPERIMENTAL_SPA
-    ? {
-        path: '/auth/login/',
-        component: errorHandler(AuthLayoutRoute),
-        children: experimentalSpaChildRoutes,
-      }
-    : {};
 
   const publicRootChildren: SentryRouteObject[] = [
     {
@@ -376,6 +347,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'authorizations/',
+      name: t('Authorized Applications'),
       component: make(
         () => import('sentry/views/settings/account/accountAuthorizations')
       ),
@@ -2976,7 +2948,6 @@ function buildRoutes(): RouteObject[] {
       );
     },
     children: [
-      experimentalSpaRoutes,
       {
         path: '/',
         component: errorHandler(App),

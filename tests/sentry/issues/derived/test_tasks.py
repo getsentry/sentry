@@ -5,6 +5,7 @@ from unittest.mock import call, patch
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
 from sentry.issues.derived.check import CheckId, CheckTimeout
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
@@ -15,9 +16,12 @@ from sentry.issues.derived.tasks import (
     heal_stale_derived_data,
     regenerate_stale_derived_data_batch,
 )
-from sentry.issues.derived.tasks_util import _pick_random_fresh_group_ranges
+from sentry.issues.derived.tasks_util import (
+    _pick_random_fresh_group_ranges,
+    group_id_ranges_for_hash,
+)
 from sentry.issues.models.groupderiveddata import GroupDerivedData
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -253,6 +257,7 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         mock_delay.assert_called_once_with(
             stale_pipeline_hashes=[stale],
+            target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
         )
@@ -315,7 +320,25 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         mock_delay.assert_not_called()
 
-    def test_dispatches_all_stale_hashes_in_one_batch_range(self) -> None:
+    def test_bails_on_invalid_batch_configuration(self) -> None:
+        groups = self.create_unprocessed_groups(1)
+        process_group_log(groups[0].id)
+        GroupDerivedData.objects.filter(group_id=groups[0].id).update(
+            pipeline_hash=self._pick_stale_hash()
+        )
+
+        with (
+            override_options({"issues.derived.heal-max-tasks": 0}),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
+        ):
+            heal_stale_derived_data()
+
+        # Neither healing nor the "nothing to heal" check fan-out should fire.
+        mock_delay.assert_not_called()
+        mock_check.assert_not_called()
+
+    def test_dispatches_one_task_per_stale_hash(self) -> None:
         groups = self.create_unprocessed_groups(3)
         group_ids = sorted(g.id for g in groups)
 
@@ -330,12 +353,63 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
         with patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay:
             heal_stale_derived_data()
 
-        # One batch covering the whole ID range, with both stale hashes.
+        # Ranges are computed per hash, so each hash gets its own task targeting
+        # just that hash.
+        assert [c.kwargs["target_hash"] for c in mock_delay.call_args_list] == [hash_a, hash_b]
+        assert [
+            (c.kwargs["group_id_start"], c.kwargs["group_id_end"])
+            for c in mock_delay.call_args_list
+        ] == [(group_ids[0], group_ids[1] + 1), (group_ids[2], group_ids[2] + 1)]
+
+    def test_null_range_does_not_overlap_stale_hash_range(self) -> None:
+        # NULL and stale-hash rows interleave in ID space, so the ranges overlap.
+        # Each task must be scoped so the overlap isn't processed twice.
+        groups = self.create_unprocessed_groups(4)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._pick_stale_hash()
+        GroupDerivedData.objects.filter(group_id__in=group_ids[::2]).update(pipeline_hash=None)
+        GroupDerivedData.objects.filter(group_id__in=group_ids[1::2]).update(pipeline_hash=stale)
+
+        with patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay:
+            heal_stale_derived_data()
+
+        # NULL is scheduled first — it means an explicit invalidation. The two
+        # ranges overlap, but their targets are disjoint.
+        assert [
+            (
+                c.kwargs["target_hash"],
+                c.kwargs["group_id_start"],
+                c.kwargs["group_id_end"],
+            )
+            for c in mock_delay.call_args_list
+        ] == [
+            (None, group_ids[0], group_ids[2] + 1),
+            (stale, group_ids[1], group_ids[3] + 1),
+        ]
+
+    def test_null_hash_is_prioritized_over_stale_hashes(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._pick_stale_hash()
+        # The stale-hash row sorts first, so ordering alone wouldn't pick NULL.
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=None)
+
+        with (
+            override_options({"issues.derived.heal-max-tasks": 1}),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
+        ):
+            heal_stale_derived_data()
+
         mock_delay.assert_called_once()
-        kwargs = mock_delay.call_args.kwargs
-        assert sorted(kwargs["stale_pipeline_hashes"]) == sorted([hash_a, hash_b])
-        assert kwargs["group_id_start"] == group_ids[0]
-        assert kwargs["group_id_end"] == group_ids[2] + 1
+        assert mock_delay.call_args.kwargs["target_hash"] is None
+        assert mock_delay.call_args.kwargs["group_id_start"] == group_ids[1]
 
     def test_null_hash_is_always_stale_without_being_listed(self) -> None:
         groups = self.create_unprocessed_groups(1)
@@ -347,7 +421,8 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
 
         mock_delay.assert_called_once()
         kwargs = mock_delay.call_args.kwargs
-        # NULL is handled unconditionally by the batch task; the list is empty.
+        # A None target means the NULL hash; the legacy list stays empty.
+        assert kwargs["target_hash"] is None
         assert kwargs["stale_pipeline_hashes"] == []
         assert kwargs["group_id_start"] == groups[0].id
         assert kwargs["group_id_end"] == groups[0].id + 1
@@ -368,11 +443,55 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
                 }
             ),
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
         ):
             heal_stale_derived_data()
 
-        # 3 chunks would be produced, but max_tasks caps to 2.
-        assert mock_delay.call_count == 2
+        # 3 chunks would be produced, but max_tasks caps to 2 and the third group
+        # is left for the next invocation rather than folded into the last range.
+        assert [
+            (c.kwargs["group_id_start"], c.kwargs["group_id_end"])
+            for c in mock_delay.call_args_list
+        ] == [(group_ids[0], group_ids[1]), (group_ids[1], group_ids[2])]
+        # Budget fully consumed by heal work, so no consistency checks fire.
+        mock_check.assert_not_called()
+
+    def test_schedules_checks_with_leftover_heal_budget(self) -> None:
+        groups = self.create_unprocessed_groups(4)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._pick_stale_hash()
+        # One stale row leaves heal budget free for checks on the fresh rows.
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-batch-size": 1,
+                    "issues.derived.heal-max-tasks": 3,
+                    "issues.derived.check-task-count": 5,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as mock_regenerate,
+            patch.object(check_fresh_derived_data_batch, "delay") as mock_check,
+        ):
+            heal_stale_derived_data()
+
+        mock_regenerate.assert_called_once_with(
+            stale_pipeline_hashes=[stale],
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[0] + 1,
+        )
+        # Remaining budget is 2, so checks are capped there even though
+        # check-task-count is higher.
+        assert mock_check.call_args_list == [
+            call(group_id_start=group_ids[1], group_id_end=group_ids[1] + 1),
+            call(group_id_start=group_ids[2], group_id_end=group_ids[2] + 1),
+        ]
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -468,6 +587,96 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             tags={"result": "no_result"},
         )
 
+    def test_records_status_inconsistency_for_backfilled_project(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            data={"status": "open"},
+        )
+
+        with patch("sentry.issues.derived.check.metrics.incr") as mock_incr:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        assert (
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={
+                    "result": "diverged",
+                    "derived_status": "open",
+                    "actual_status": "closed",
+                    "source": "batch_check",
+                },
+            )
+            in mock_incr.call_args_list
+        )
+
+    def test_skips_status_check_when_not_derived_should_be_correct(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+
+        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_not_called()
+
+    @override_options({"issues.derived.status-consistency-check-enabled": False})
+    def test_skips_status_check_when_option_disabled(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+
+        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_not_called()
+
+    def test_status_check_runs_before_derived_check_timeout(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash is not None
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+        check_id = CheckId(
+            "invocation-id",
+            group.id,
+            derived.generated_at,
+            derived.cursor_date,
+            derived.cursor_id,
+            derived.pipeline_hash,
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=CheckTimeout(check_id),
+            ),
+            patch.object(check_fresh_derived_data_batch, "delay"),
+            patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status,
+        ):
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_called_once()
+
 
 @with_feature("projects:issue-action-log-write-to-db")
 class PickRandomFreshGroupRangesTest(DerivedDataTaskTestBase):
@@ -542,6 +751,94 @@ class PickRandomFreshGroupRangesTest(DerivedDataTaskTestBase):
 
 
 @with_feature("projects:issue-action-log-write-to-db")
+class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
+    HASH = "a" * 16
+    OTHER_HASH = "b" * 16
+
+    def _seed(self, count: int, pipeline_hash: str | None) -> list[int]:
+        groups = self.create_unprocessed_groups(count)
+        for group in groups:
+            GroupDerivedData.objects.create(group_id=group.id, pipeline_hash=pipeline_hash)
+        return sorted(group.id for group in groups)
+
+    def test_no_matching_rows(self) -> None:
+        self._seed(2, self.OTHER_HASH)
+
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5) == []
+        assert group_id_ranges_for_hash(None, chunk_size=2, max_chunks=5) == []
+
+    def test_short_tail_is_one_range(self) -> None:
+        null_ids = self._seed(3, None)
+        hash_ids = self._seed(3, self.HASH)
+
+        # Fewer rows than chunk_size, for both the NULL and the concrete-hash
+        # predicate, and neither picks up the other's rows.
+        assert group_id_ranges_for_hash(None, chunk_size=10, max_chunks=5) == [
+            (null_ids[0], null_ids[-1] + 1)
+        ]
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=10, max_chunks=5) == [
+            (hash_ids[0], hash_ids[-1] + 1)
+        ]
+
+    def test_exact_chunk_boundaries(self) -> None:
+        group_ids = self._seed(5, self.HASH)
+
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5) == [
+            (group_ids[0], group_ids[2]),
+            (group_ids[2], group_ids[4]),
+            (group_ids[4], group_ids[4] + 1),
+        ]
+
+    def test_truncates_to_max_chunks(self) -> None:
+        group_ids = self._seed(5, self.HASH)
+
+        # The 5th group is left out rather than folded into an oversized last range.
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2) == [
+            (group_ids[0], group_ids[2]),
+            (group_ids[2], group_ids[4]),
+        ]
+
+    def test_truncates_when_scan_limit_is_reached(self) -> None:
+        # 6 rows exactly fills the scan budget of chunk_size * (max_chunks + 1), so
+        # the tail is known to be incomplete and waits for the next call.
+        group_ids = self._seed(6, self.HASH)
+
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2) == [
+            (group_ids[0], group_ids[2]),
+            (group_ids[2], group_ids[4]),
+        ]
+
+    def test_invalid_chunking(self) -> None:
+        self._seed(2, self.HASH)
+
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=0, max_chunks=5) == []
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=0) == []
+
+    def test_clamps_scan_budget(self) -> None:
+        group_ids = self._seed(3, self.HASH)
+
+        with patch("sentry.issues.derived.tasks_util._MAX_SCANNED_GROUP_IDS", 2):
+            ranges = group_id_ranges_for_hash(self.HASH, chunk_size=1, max_chunks=5)
+
+        # Only 2 rows were scanned, so the clamp must not be mistaken for having
+        # reached the end — the tail may not run past what we scanned.
+        assert ranges == [(group_ids[0], group_ids[1])]
+
+    def test_clamp_never_drops_below_one_chunk(self) -> None:
+        group_ids = self._seed(3, self.HASH)
+
+        # Clamping below chunk_size would leave a single boundary, which can't close
+        # a range — the caller would read the empty result as "nothing to do".
+        with patch("sentry.issues.derived.tasks_util._MAX_SCANNED_GROUP_IDS", 1):
+            ranges = group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+
+        assert ranges == [
+            (group_ids[0], group_ids[2]),
+            (group_ids[2], group_ids[2] + 1),
+        ]
+
+
+@with_feature("projects:issue-action-log-write-to-db")
 class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
     @staticmethod
     def _stale() -> str:
@@ -559,6 +856,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         regenerate_stale_derived_data_batch(
             stale_pipeline_hashes=[stale],
+            target_hash=stale,
             group_id_start=group_ids[0],
             group_id_end=group_ids[-1] + 1,
         )
@@ -567,7 +865,71 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             gdd = GroupDerivedData.objects.get(group_id=gid)
             assert gdd.pipeline_hash == PIPELINE.pipeline_hash
 
-    def test_rebuilds_null_hash_rows_even_when_list_is_empty(self) -> None:
+    def test_rebuilds_null_hash_rows_when_target_is_none(self) -> None:
+        groups = self.create_unprocessed_groups(1)
+        gid = groups[0].id
+        process_group_log(gid)
+        GroupDerivedData.objects.filter(group_id=gid).update(pipeline_hash=None)
+
+        regenerate_stale_derived_data_batch(
+            stale_pipeline_hashes=[],
+            target_hash=None,
+            group_id_start=gid,
+            group_id_end=gid + 1,
+        )
+
+        gdd = GroupDerivedData.objects.get(group_id=gid)
+        assert gdd.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_targets_only_the_given_hash(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=None)
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=stale)
+
+        regenerate_stale_derived_data_batch(
+            stale_pipeline_hashes=[stale],
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[-1] + 1,
+        )
+
+        # The NULL row belongs to the task targeting None, not this one.
+        assert GroupDerivedData.objects.get(group_id=group_ids[0]).pipeline_hash is None
+        assert (
+            GroupDerivedData.objects.get(group_id=group_ids[1]).pipeline_hash
+            == PIPELINE.pipeline_hash
+        )
+
+    def test_legacy_activation_targets_first_listed_hash(self) -> None:
+        # Enqueued by the previous release: a list of hashes and no target.
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        first, second = self._stale(), "y" * 16
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=first)
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=second)
+
+        regenerate_stale_derived_data_batch(
+            stale_pipeline_hashes=[first, second],
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[-1] + 1,
+        )
+
+        # Only the first hash is covered; the rest waits for the next scheduled run.
+        assert (
+            GroupDerivedData.objects.get(group_id=group_ids[0]).pipeline_hash
+            == PIPELINE.pipeline_hash
+        )
+        assert GroupDerivedData.objects.get(group_id=group_ids[1]).pipeline_hash == second
+
+    def test_legacy_activation_with_empty_list_targets_null(self) -> None:
         groups = self.create_unprocessed_groups(1)
         gid = groups[0].id
         process_group_log(gid)
@@ -579,8 +941,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             group_id_end=gid + 1,
         )
 
-        gdd = GroupDerivedData.objects.get(group_id=gid)
-        assert gdd.pipeline_hash == PIPELINE.pipeline_hash
+        assert GroupDerivedData.objects.get(group_id=gid).pipeline_hash == PIPELINE.pipeline_hash
 
     def test_skips_rows_no_longer_stale(self) -> None:
         # Row now has the current hash — the range query should return
@@ -592,6 +953,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         with patch("sentry.issues.derived.promote.build_and_promote_derived_data") as mock_build:
             regenerate_stale_derived_data_batch(
                 stale_pipeline_hashes=[self._stale()],
+                target_hash=self._stale(),
                 group_id_start=gid,
                 group_id_end=gid + 1,
             )
@@ -618,6 +980,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
             regenerate_stale_derived_data_batch(
                 stale_pipeline_hashes=[stale],
+                target_hash=stale,
                 group_id_start=group_ids[0],
                 group_id_end=group_ids[-1] + 1,
             )
@@ -625,7 +988,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         mock_build.assert_called_once()
         mock_delay.assert_called_once()
         kwargs = mock_delay.call_args.kwargs
-        assert kwargs["stale_pipeline_hashes"] == [stale]
+        assert kwargs["target_hash"] == stale
         assert kwargs["group_id_start"] == group_ids[0] + 1
         assert kwargs["group_id_end"] == group_ids[-1] + 1
 
@@ -647,6 +1010,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         ):
             regenerate_stale_derived_data_batch(
                 stale_pipeline_hashes=[stale],
+                target_hash=stale,
                 group_id_start=group_ids[0],
                 group_id_end=group_ids[-1] + 1,
             )
@@ -655,7 +1019,7 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
         kwargs = mock_delay.call_args.kwargs
         # Resume from the SAME group on a per-group timeout.
         assert kwargs["group_id_start"] == group_ids[0]
-        assert kwargs["stale_pipeline_hashes"] == [stale]
+        assert kwargs["target_hash"] == stale
 
 
 @with_feature("projects:issue-action-log-write-to-db")

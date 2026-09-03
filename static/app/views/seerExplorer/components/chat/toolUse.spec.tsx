@@ -5,9 +5,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {blockRendersToolContent} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import type {
   AgentWriteApproval,
   Block,
+  CallRecord,
   PendingUserInput,
   TodoItem,
 } from 'sentry/views/seerExplorer/types';
@@ -537,12 +539,13 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(screen.getByRole('link', {name: /Querying spans/})).toHaveAttribute(
+    // The row keeps seer's title; the link chip names the paired bus destination.
+    expect(screen.getByText('Querying spans')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View spans'})).toHaveAttribute(
       'href',
       expect.stringContaining('query=transaction.op%3Apageload')
     );
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('pairs each telemetry search row with its own bus destination in a multi-search execute', () => {
@@ -606,15 +609,18 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    expect(
-      screen.getByRole('link', {name: 'Querying issues for open bugs'})
-    ).toHaveAttribute('href', expect.stringContaining('/issues/'));
-    expect(
-      screen.getByRole('link', {name: 'Querying spans for slow db'})
-    ).toHaveAttribute('href', expect.stringContaining('query=span.op%3Adb'));
-    expect(screen.queryByText('View issues')).not.toBeInTheDocument();
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    // Each row keeps seer's title; its own link chip names its paired bus destination.
+    expect(screen.getByText('Querying issues for open bugs')).toBeInTheDocument();
+    expect(screen.getByText('Querying spans for slow db')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View issues'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/issues/')
+    );
+    expect(screen.getByRole('button', {name: 'View spans'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('query=span.op%3Adb')
+    );
+    expect(screen.getAllByRole('button')).toHaveLength(2);
   });
 
   it('prefers bus project filters over a stamped row url that lacks them', () => {
@@ -668,15 +674,15 @@ describe('ToolUseBlock', () => {
     ]);
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const rowLink = screen.getByRole('link', {name: 'Querying spans for top pageloads'});
+    expect(screen.getByText('Querying spans for top pageloads')).toBeInTheDocument();
+    const rowLink = screen.getByRole('button', {name: 'View spans'});
     expect(rowLink).toHaveAttribute(
       'href',
       expect.stringContaining('query=transaction.op%3Apageload')
     );
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=2'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('project=3'));
-    expect(screen.queryByText('View spans')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('makes a telemetry call row itself the issues search link when params include the query', () => {
@@ -727,11 +733,12 @@ describe('ToolUseBlock', () => {
 
     render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-    const rowLink = screen.getByRole('link', {name: title});
+    expect(screen.getByText(title)).toBeInTheDocument();
+    const rowLink = screen.getByRole('button', {name: 'View issues'});
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('/issues/'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('is%3Aunresolved'));
     expect(rowLink).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
-    expect(screen.queryByRole('link', {name: /View issues/})).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('does not double-render a classic link present in both channels', () => {
@@ -1185,7 +1192,7 @@ describe('ToolUseBlock', () => {
   describe('in-flight Code Mode calls', () => {
     // Code Mode's tool name is suppressed and its rows are built from work it has not done yet, so
     // an in-flight call used to render nothing at all — the reader saw the answer stop mid-stream.
-    // `Loading` is the block placeholder; `Running...` is a call row's own status tick.
+    // `Loading` is the block placeholder; `Running` is a Code Mode call row's own status tick.
     function runningBlock(overrides?: Partial<Block>): Block {
       return createBlock({
         loading: true,
@@ -1210,6 +1217,39 @@ describe('ToolUseBlock', () => {
         live_calls: liveCalls,
       });
     }
+
+    it('drops in-flight narration once the call reports back', () => {
+      // Progress describes work in flight. Seer clears it when the call settles, but an older
+      // seer or a failed clear must not leave narration rendering as settled rows.
+      const settled = executeBlock(null);
+      settled.loading = false;
+      settled.progress = [
+        {token: 'call-1', progress: 1, message: 'Searching for the issue'},
+      ];
+      settled.tool_results = [
+        {
+          tool_call_id: 'call-1',
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent: null,
+        },
+      ];
+
+      render(<BlockComponent block={settled} blockIndex={0} />);
+
+      expect(screen.queryByText('Searching for the issue')).not.toBeInTheDocument();
+    });
+
+    it('still shows narration while the call is in flight', () => {
+      const running = executeBlock(null);
+      running.progress = [
+        {token: 'call-1', progress: 1, message: 'Searching for the issue'},
+      ];
+
+      render(<BlockComponent block={running} blockIndex={0} />);
+
+      expect(screen.getByText('Searching for the issue')).toBeInTheDocument();
+    });
 
     it('keeps the placeholder up while a search runs, which reports no calls', () => {
       render(<BlockComponent block={runningBlock()} blockIndex={0} />);
@@ -1246,7 +1286,7 @@ describe('ToolUseBlock', () => {
       render(<BlockComponent block={block} blockIndex={0} />);
 
       expect(screen.getByText('Listing issues')).toBeInTheDocument();
-      expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Running')).toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
     });
 
@@ -1266,8 +1306,8 @@ describe('ToolUseBlock', () => {
 
       render(<BlockComponent block={block} blockIndex={0} />);
 
-      expect(screen.getByLabelText('All tool calls succeeded')).toBeInTheDocument();
-      expect(screen.queryByRole('status', {name: 'Running...'})).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Succeeded')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Running')).not.toBeInTheDocument();
       expect(screen.getByRole('status', {name: 'Loading'})).toBeInTheDocument();
     });
 
@@ -1395,5 +1435,148 @@ describe('ToolUseBlock', () => {
       expect(screen.getByRole('status', {name: 'Running...'})).toBeInTheDocument();
       expect(screen.queryByRole('status', {name: 'Loading'})).not.toBeInTheDocument();
     });
+  });
+
+  describe('Code Mode call records rendered as ToolCall', () => {
+    function codeModeCallsBlock(calls: CallRecord[]) {
+      return createBlock({
+        message: {
+          role: 'tool_use',
+          content: null,
+          tool_calls: [{id: 'call-1', function: 'sentry_api_execute', args: '{}'}],
+        },
+        tool_links: [null],
+        tool_results: [
+          {
+            tool_call_id: 'call-1',
+            tool_call_function: 'sentry_api_execute',
+            content: 'ran',
+            structuredContent: {calls},
+          },
+        ],
+      });
+    }
+
+    const issueCall: CallRecord = {
+      id: 1,
+      kind: 'api',
+      method: 'GET',
+      path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/',
+      resolved_path: '/api/0/organizations/test-org/issues/123/',
+      path_params: {issue_id: '123'},
+      status: 200,
+      title: 'Retrieve an issue',
+    };
+
+    it('renders each record as a ToolCall titled by its label', () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Retrieve an issue')).toBeInTheDocument();
+    });
+
+    it('surfaces the navigable resource as a real link chip', () => {
+      const block = codeModeCallsBlock([issueCall]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      // A record that addresses its own resource links to it; the chip is a real anchor.
+      expect(screen.getByRole('button', {name: /View issue/})).toHaveAttribute(
+        'href',
+        expect.stringContaining('/issues/123/')
+      );
+    });
+
+    it('decomposes the request query into inline input chips, no disclosure', () => {
+      const block = codeModeCallsBlock([
+        {
+          ...issueCall,
+          path: '/api/0/organizations/{organization_id_or_slug}/events/',
+          resolved_path:
+            '/api/0/organizations/test-org/events/?dataset=spans&project=ml-service',
+          title: 'Query spans',
+        },
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      // A tool call is not a disclosure: the request reads as always-visible input chips rather
+      // than a raw line hidden behind an expand toggle on the title.
+      expect(screen.queryByRole('button', {name: /Query spans/})).not.toBeInTheDocument();
+      expect(screen.getByText('Input:')).toBeInTheDocument();
+      expect(screen.getByText('dataset')).toBeInTheDocument();
+      expect(screen.getByText('spans')).toBeInTheDocument();
+      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('ml-service')).toBeInTheDocument();
+    });
+
+    it('shows the HTTP status code in the trailing chip and the error under Output', () => {
+      const block = codeModeCallsBlock([
+        {...issueCall, status: 500, title: 'Retrieve an issue'},
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      // Status code trails the title; the error prints under Output, mirroring Input.
+      expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.getByText('Output:')).toBeInTheDocument();
+      expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('blockRendersToolContent', () => {
+  // The predicate exists to agree with `ToolCallList`; every case here is one the list suppresses,
+  // so counting it opens a box with an empty body.
+  function codeModeBlock(
+    id: string,
+    structuredContent: Record<string, unknown> | null
+  ): Block {
+    return {
+      id,
+      message: {
+        role: 'tool_use',
+        content: null,
+        tool_calls: [{id: `${id}-call`, function: 'sentry_api_execute', args: '{}'}],
+      },
+      timestamp: '2024-01-01T00:01:00Z',
+      loading: false,
+      tool_results: [
+        {
+          tool_call_id: `${id}-call`,
+          tool_call_function: 'sentry_api_execute',
+          content: 'ok',
+          structuredContent,
+        },
+      ],
+    };
+  }
+
+  it('ignores links that only reported an error', () => {
+    // `ToolCallList` filters `is_error` links out, so a result carrying nothing else renders no row.
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {is_error: true}}],
+    });
+
+    expect(blockRendersToolContent(block, [block])).toBe(false);
+  });
+
+  it('counts a link that did not error', () => {
+    const block = codeModeBlock('t1', {
+      links: [{kind: 'get_issue_details', params: {issueId: '4521'}}],
+    });
+
+    expect(blockRendersToolContent(block, [block])).toBe(true);
+  });
+
+  it('ignores todos superseded by a later block', () => {
+    // Only the block holding the newest snapshot renders the checklist.
+    const stale = codeModeBlock('t1', {
+      todos: [{id: '1', text: 'old', status: 'completed'}],
+    });
+    const newest = codeModeBlock('t2', {
+      todos: [{id: '2', text: 'new', status: 'pending'}],
+    });
+    const blocks = [stale, newest];
+
+    expect(blockRendersToolContent(stale, blocks)).toBe(false);
+    expect(blockRendersToolContent(newest, blocks)).toBe(true);
   });
 });

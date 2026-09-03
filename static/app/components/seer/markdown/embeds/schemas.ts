@@ -25,6 +25,10 @@ const chartSeriesSchema = z.union([
   }),
 ]);
 
+// Agents often emit bare numbers for IDs; keep as a plain union (no .transform)
+// so gen:embed-widgets can still export JSON Schema.
+const idString = z.union([z.string(), z.number()]);
+
 /**
  * Page filters shared by every query embed. Seer supplies these separately from
  * the search string so the frontend can hand them to the canonical URL builders
@@ -32,7 +36,7 @@ const chartSeriesSchema = z.union([
  */
 const pageFilterFields = {
   projects: z
-    .array(z.string())
+    .array(idString)
     .optional()
     .describe('Project IDs. Omit for the "My Projects" selection.'),
   environments: z.array(z.string()).optional(),
@@ -116,7 +120,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the dashboard ID exactly as returned by the dashboard API. ' +
       'Include the API-provided title when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders a standalone dashboard reference. ' +
+      'Block: renders a live preview of the dashboard widgets. Do not duplicate ' +
+      'the widget titles, queries, visualizations, or values as text. ' +
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -226,6 +231,27 @@ export const SEER_EMBED_SCHEMAS = {
           id: '4c1f2e3d1234567890',
           eventTimestamp: '2026-08-25T16:37:12Z',
         },
+      },
+    ],
+  },
+  release: {
+    description:
+      'The ONLY way to reference a Sentry release. ' +
+      'Use `version` exactly as the releases API returns it. ' +
+      'Provide `projectId` when the release belongs to a specific project. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders release metadata, new issues, commit authors, the last commit, ' +
+      'and recent deploys. Do not duplicate that data as text. ' +
+      'Never use a markdown link for release references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      version: z.string().min(1),
+      projectId: idString.optional(),
+    }),
+    examples: [
+      {
+        label: 'Release',
+        data: {version: 'example-app@1.2.3', projectId: '1'},
       },
     ],
   },
@@ -343,6 +369,10 @@ export const SEER_EMBED_SCHEMAS = {
       '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
       'uptime alert, "cron" for a cron alert. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders alert conditions and configured actions, plus the ' +
+      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -356,20 +386,37 @@ export const SEER_EMBED_SCHEMAS = {
         data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
+      {
+        label: 'Uptime alert',
+        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+      },
+      {
+        label: 'Cron alert',
+        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+      },
     ],
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (cron, uptime, or metric ' +
-      'detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
+      'or mobile build detector). Use the numeric id from the detectors API ' +
+      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
+      '"id" field from the monitors API, which is a GUID and will not work here. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
       name: z.string().min(1).optional(),
     }),
-    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
+    examples: [
+      {
+        label: 'Monitor',
+        data: {id: '9931', name: 'nightly-billing-sync'},
+      },
+    ],
   },
   savedIssueView: {
     description:
@@ -472,14 +519,23 @@ export const SEER_EMBED_SCHEMAS = {
   },
   errorsQuery: {
     description:
-      'Link to an errors (Discover) query results page. ' +
-      'Use this for tabular error exploration across events. ' +
-      '`query` uses event search syntax and `fields` are the table columns. ' +
-      'Provide `yAxes` to chart aggregates alongside the table.',
+      'Preview an errors (Discover) query. ' +
+      'Use mode "samples" to show individual error events and "aggregate" to ' +
+      'group and chart them. ' +
+      '`query` uses event search syntax. In samples mode `fields` are ' +
+      'non-aggregate table columns; in aggregate mode `fields` must include the ' +
+      'group-by columns and at least one aggregate function, such as "count()" ' +
+      'or "count_unique(user)". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the total across the period — the chart is never ' +
+      'broken out per group. When aggregate mode names only aggregates and no ' +
+      'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
+      'which aggregate is charted; samples mode charts the event count.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
       query: z.string().default(''),
+      mode: z.enum(['samples', 'aggregate']).default('samples'),
       fields: z.array(z.string()).optional(),
       yAxes: z.array(z.string()).optional(),
       sort: z.string().optional(),
@@ -487,12 +543,37 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Errors by URL',
+        label: 'Recent errors',
         data: {
           query: 'event.type:error',
-          fields: ['title', 'count()', 'url'],
+          mode: 'samples',
+          fields: ['title', 'project', 'user.display', 'timestamp'],
           statsPeriod: '24h',
-          title: 'Checkout errors',
+          title: 'Recent errors',
+        },
+      },
+      {
+        label: 'Errors by title',
+        data: {
+          query: '',
+          mode: 'aggregate',
+          fields: ['title', 'project', 'count_unique(user)'],
+          sort: '-count_unique_user',
+          statsPeriod: '1h',
+          yAxes: ['count()'],
+          title: 'Errors by title',
+        },
+      },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total errors',
+        data: {
+          query: 'event.type:error',
+          mode: 'aggregate',
+          fields: ['count()'],
+          statsPeriod: '24h',
+          title: 'Total errors',
         },
       },
     ],
@@ -595,6 +676,39 @@ export const SEER_EMBED_SCHEMAS = {
           mode: 'aggregate',
           yAxes: ['p95(value)'],
           statsPeriod: '24h',
+        },
+      },
+    ],
+  },
+  autofixRef: {
+    featureFlag: 'organizations:seer-agent-autofix',
+    description:
+      'Render a live view of one Seer Autofix step (root cause, solution, code ' +
+      'changes, or PR iteration) that fetches and updates itself in the browser. ' +
+      'Emit this immediately after starting or continuing an autofix step via RPC, in ' +
+      'place of polling for the result yourself and writing it up: the embed ' +
+      'shows progress while the step runs, then the result once it completes, ' +
+      'with buttons to continue to the next step or retry on error. `id` and ' +
+      '`shortId` are the issue the run belongs to, exactly as the issue API ' +
+      'returns them. `runId` is the run identifier returned by the RPC call ' +
+      '(its `sentry_run_id`, or `run_id` if that is unavailable). `step` is the ' +
+      'autofix step identifier exactly as the autofix API reports it — the UI ' +
+      'renders the human-readable label, so do not send a display string.',
+    level: ['block'],
+    schema: z.object({
+      step: z.enum(['root_cause', 'solution', 'code_changes', 'pr_iteration']),
+      id: z.string(),
+      shortId: z.string(),
+      runId: z.union([z.string(), z.number()]),
+    }),
+    examples: [
+      {
+        label: 'Root cause',
+        data: {
+          id: '1234567890',
+          shortId: 'EXMPL-123',
+          runId: '018f2c1a-6b7e-7c3e-9a2f-3e6b1a2c3d4e',
+          step: 'root_cause' as const,
         },
       },
     ],

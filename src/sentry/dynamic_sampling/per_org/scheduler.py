@@ -19,9 +19,7 @@ from sentry.dynamic_sampling.per_org.feature_cache import (
     candidate_organizations,
     get_orgs_with_dynamic_sampling,
 )
-from sentry.dynamic_sampling.per_org.gate import (
-    is_org_in_rollout,
-)
+from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout, is_org_in_serving_rollout
 from sentry.dynamic_sampling.per_org.queries import (
     RECALIBRATION_TIME_INTERVAL,
     get_eap_organization_volume,
@@ -74,7 +72,10 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         results = config.results
         org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
         results.organization_volume = get_eap_organization_volume(
-            config, time_interval=RECALIBRATION_TIME_INTERVAL, end=org_volume_end
+            config.organization,
+            config.projects,
+            time_interval=RECALIBRATION_TIME_INTERVAL,
+            end=org_volume_end,
         )
         if results.organization_volume is None:
             return DynamicSamplingStatus.NO_ORG_VOLUME
@@ -102,7 +103,8 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
             config, results.project_volumes, results.transaction_volumes
         )
 
-        config.recalibrate(results.organization_volume)
+        if is_org_in_serving_rollout(org_id):
+            config.recalibrate(results.organization_volume)
 
         return None
     finally:

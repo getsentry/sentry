@@ -11,8 +11,12 @@ resources:
     WAI-ARIA Tooltip Practices: https://www.w3.org/WAI/ARIA/apg/patterns/tooltip/
 ---
 
+import {Fragment} from 'react';
+
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Storybook from 'sentry/stories';
@@ -195,6 +199,82 @@ Tooltips can display rich content including formatted text, multiple lines, and 
 </Tooltip>
 ```
 
+## Structured Content
+
+When a tooltip carries labelled values rather than a sentence, compose it out of
+`Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Footer`. Sections pull back out to the
+overlay's edges and re-apply the padding themselves, so a full width row can reach the
+edges while its content stays inset. There is nothing to pass.
+
+`Tooltip.Row` takes `leadingItems` and `trailingItems` either side of its main cell, and
+renders all three directly into the column tracks declared by `Tooltip.Grid`. That is what
+keeps a column aligned across every row — below, the two dates line up even though `PDT`
+and `UTC` are different widths. A row that owned its own grid would only align against
+itself.
+
+That holds wherever the sections come from. A component that renders them internally is
+covered too, because its sections are still the overlay's own children in the DOM.
+
+<Storybook.Demo>
+  <Tooltip
+    maxWidth={280}
+    forceVisible
+    title={
+      <Fragment>
+        <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
+        <Tooltip.Grid columns="max-content 1fr max-content">
+          <Tooltip.Row
+            leadingItems={<Tag variant="info">PDT</Tag>}
+            trailingItems={<Text align="right">11:40 PM</Text>}
+          >
+            <Text>Jul 28, 2026</Text>
+          </Tooltip.Row>
+          <Tooltip.Row
+            leadingItems={<Tag variant="muted">UTC</Tag>}
+            trailingItems={<Text align="right">6:40 AM</Text>}
+          >
+            <Text>Jul 29, 2026</Text>
+          </Tooltip.Row>
+        </Tooltip.Grid>
+      </Fragment>
+    }
+  >
+    <Button>Structured content</Button>
+  </Tooltip>
+</Storybook.Demo>
+```jsx
+<Tooltip
+  maxWidth={280}
+  title={
+    <Fragment>
+      <Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>
+      <Tooltip.Grid columns="max-content 1fr max-content">
+        <Tooltip.Row
+          leadingItems={<Tag variant="info">PDT</Tag>}
+          trailingItems={<Text align="right">11:40 PM</Text>}
+        >
+          <Text>Jul 28, 2026</Text>
+        </Tooltip.Row>
+        <Tooltip.Row
+          leadingItems={<Tag variant="muted">UTC</Tag>}
+          trailingItems={<Text align="right">6:40 AM</Text>}
+        >
+          <Text>Jul 29, 2026</Text>
+        </Tooltip.Row>
+      </Tooltip.Grid>
+    </Fragment>
+  }
+>
+  <Button>Structured content</Button>
+</Tooltip>
+```
+
+Sections deliberately do not set a font size, so they inherit the tooltip's. They do set
+their own text alignment, because the tooltip centers content by default — right for a
+sentence, wrong for a row of labelled values.
+
+Headers are written in sentence case. Do not uppercase them.
+
 ## Disabled State
 
 Tooltips can be disabled entirely using the `disabled` prop, which prevents them from showing on hover.
@@ -230,14 +310,26 @@ For text that may or may not overflow, use the `showOnlyOnOverflow` prop to cond
         title="This text is long and will be truncated with overflow"
         showOnlyOnOverflow
       >
-        <div style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+        <div
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           This text is long and will be truncated with overflow
         </div>
       </Tooltip>
     </div>
     <div style={{width: 200}}>
       <Tooltip title="Short text" showOnlyOnOverflow>
-        <div style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+        <div
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           Short text
         </div>
       </Tooltip>

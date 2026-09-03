@@ -1,105 +1,52 @@
-import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import styled from '@emotion/styled';
 
-import {IconBranch, IconCheckmark, IconCode, IconGlobe, IconStack} from 'sentry/icons';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {ScmCardButton} from 'sentry/components/onboarding/scm/scmCardButton';
+import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ManualSetupCardProps {
-  isAgentConnected: boolean;
   onSetupInBrowser: () => void;
 }
 
-export function ManualSetupCard({
-  isAgentConnected,
-  onSetupInBrowser,
-}: ManualSetupCardProps) {
+export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
   return (
-    <Stack
-      align="start"
-      alignSelf="start"
-      gap="xl"
-      width="100%"
-      border="muted"
-      radius="lg"
-      padding="xl"
-    >
-      <Flex align="center" gap="sm">
-        <IconGlobe size="md" variant="secondary" />
-        <Text variant="muted" size="sm" bold uppercase>
-          {t('Manual')}
-        </Text>
-      </Flex>
-
-      <Stack gap="md">
-        <Heading as="h3" size="lg">
-          {t('Set up in browser')}
-        </Heading>
-        <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
-          {t("Configure your application the ol'fashioned way.")}
-        </Text>
-      </Stack>
-
-      <Stack gap="lg" width="100%">
-        <Stack.Separator border="muted" />
-        <ManualSetupStep
-          icon={<IconBranch size="xs" variant="secondary" />}
-          title={t('Connect your repository')}
-          description={t('GitHub, GitLab, Bitbucket and more')}
-        />
-        <Stack.Separator border="muted" />
-        <ManualSetupStep
-          icon={<IconStack size="xs" variant="secondary" />}
-          title={t('Choose your platform')}
-          description={t("We'll detect your framework")}
-        />
-        <Stack.Separator border="muted" />
-        <ManualSetupStep
-          icon={<IconCode size="xs" variant="secondary" />}
-          title={t('Install the SDK')}
-          description={t('Add our code snippet to your project')}
-        />
-        <Stack.Separator border="muted" />
-        <ManualSetupStep
-          icon={<IconCheckmark size="xs" variant="secondary" />}
-          title={t('Verify your setup')}
-          description={t('Send a test event to confirm it all works')}
-        />
-      </Stack>
-
-      <Button
-        variant={isAgentConnected ? undefined : 'primary'}
-        onClick={onSetupInBrowser}
-        data-test-id="onboarding-setup-in-browser"
+    <CardButton onClick={onSetupInBrowser} data-test-id="onboarding-setup-in-browser">
+      <Grid
+        columns="min-content 1fr"
+        gap="md lg"
+        align="center"
+        border="primary"
+        radius="xl"
+        padding="xl"
+        width="100%"
+        areas={`
+          "icon title"
+          ".    body"
+        `}
       >
-        {isAgentConnected ? t('Switch to Manual') : t('Start setup')}
-      </Button>
-    </Stack>
+        <Flex area="icon" align="center">
+          <IconSliders size="sm" variant="secondary" />
+        </Flex>
+        <Container area="title">
+          <Text bold size="lg">
+            {t('Set up manually instead')}
+          </Text>
+        </Container>
+        <Container area="body">
+          <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+            {t(
+              'Connect a repo, choose what to instrument and where alerts land, then follow the instructions for your project'
+            )}
+          </Text>
+        </Container>
+      </Grid>
+    </CardButton>
   );
 }
 
-function ManualSetupStep({
-  description,
-  icon,
-  title,
-}: {
-  description: string;
-  icon: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <Flex align="start" gap="md">
-      <Flex flexShrink={0} paddingTop="2xs">
-        {icon}
-      </Flex>
-      <Stack gap="xs">
-        <Text size="sm" bold>
-          {title}
-        </Text>
-        <Text size="sm" variant="muted">
-          {description}
-        </Text>
-      </Stack>
-    </Flex>
-  );
-}
+const CardButton = styled(ScmCardButton)`
+  width: 100%;
+`;

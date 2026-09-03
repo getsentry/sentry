@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -23,6 +24,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+const INVITE_COLUMNS: TableColumnConfig[] = [
+  {key: 'select', width: 'max-content'},
+  {key: 'userInformation', width: '1fr'},
+  {key: 'recentCommits', width: 'max-content'},
+  {key: 'role', width: '1fr'},
+  {key: 'team', width: '1fr'},
+];
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
   allowedRoles: OrgRole[];
@@ -208,6 +217,7 @@ export function InviteMissingMembersModal({
       <h4>{t('Invite Your Dev Team')}</h4>
       {headerInfo}
       <StyledSimpleTable
+        columns={INVITE_COLUMNS}
         header={
           <SimpleTable.HeaderRow sticky>
             <SimpleTable.HeaderCell>
@@ -335,7 +345,6 @@ export function InviteMissingMembersModal({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
   max-height: 475px;
 `;

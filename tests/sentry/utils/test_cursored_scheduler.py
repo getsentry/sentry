@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,8 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.cursored_scheduler import (
     BATCH_SIZE_CACHE_KEY_PREFIX,
     CURSOR_CACHE_KEY_PREFIX,
+    CYCLE_START_CACHE_KEY_PREFIX,
+    NEXT_CYCLE_START_CACHE_KEY_PREFIX,
     PK_LIST_CACHE_KEY_PREFIX,
     TICK_INTERVAL_CACHE_KEY_PREFIX,
     CursoredScheduler,
@@ -46,10 +49,12 @@ class CursoredSchedulerTest(TestCase):
         self.batch_size_key = f"{BATCH_SIZE_CACHE_KEY_PREFIX}:test_scheduler"
         self.pk_list_key = f"{PK_LIST_CACHE_KEY_PREFIX}:test_scheduler"
         self.tick_interval_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:test_scheduler"
+        self.next_cycle_start_key = f"{NEXT_CYCLE_START_CACHE_KEY_PREFIX}:test_scheduler"
         self.redis_client = redis_clusters.get("default")
         cache.delete(self.cache_key)
         cache.delete(self.batch_size_key)
         cache.delete(self.tick_interval_key)
+        cache.delete(self.next_cycle_start_key)
         self.redis_client.delete(self.pk_list_key)
 
     _oi_counter = 0
@@ -70,6 +75,9 @@ class CursoredSchedulerTest(TestCase):
             )
             integrations.append(oi)
         return integrations
+
+    def _make_next_cycle_due(self, scheduler):
+        cache.set(self.next_cycle_start_key, time.time() - 1, scheduler.cache_ttl)
 
     def _make_scheduler(
         self,
@@ -142,6 +150,7 @@ class CursoredSchedulerTest(TestCase):
         assert scheduler.tick() is False
 
         self.mock_task.reset_mock()
+        self._make_next_cycle_due(scheduler)
 
         # New cycle should start from beginning
         scheduler.tick()
@@ -155,6 +164,57 @@ class CursoredSchedulerTest(TestCase):
 
         assert has_more is False
         self.mock_task.delay.assert_not_called()
+
+    def test_empty_cycle_is_not_reinitialized_every_tick(self):
+        """An empty queryset runs the cycle-start query once, not on every tick."""
+        scheduler = self._make_scheduler()
+
+        with patch.object(
+            scheduler, "_prevalidated_pks", wraps=scheduler._prevalidated_pks
+        ) as prevalidated_pks:
+            for _ in range(5):
+                assert scheduler.tick() is False
+
+            assert prevalidated_pks.call_count == 1
+
+    def test_empty_cycle_is_retried_after_the_cycle_duration(self):
+        scheduler = self._make_scheduler()
+        scheduler.tick()
+
+        self._make_next_cycle_due(scheduler)
+        self._create_org_integrations(3)
+
+        assert scheduler.tick() is True
+        assert self.mock_task.delay.call_count == 1
+
+    def test_small_set_is_not_redispatched_before_the_cycle_elapses(self):
+        """
+        One item over a 3-tick cycle has batch_size 1 and finishes on the first tick.
+        The next cycle waits for the rest of cycle_duration, so the item is dispatched
+        once per cycle_duration, not once every pass.
+        """
+        self._create_org_integrations(1)
+        scheduler = self._make_scheduler()
+
+        assert scheduler.tick() is True
+        assert scheduler.tick() is False
+        for _ in range(5):
+            assert scheduler.tick() is False
+        assert self.mock_task.delay.call_count == 1
+
+        self._make_next_cycle_due(scheduler)
+        assert scheduler.tick() is True
+        assert self.mock_task.delay.call_count == 2
+
+    def test_next_cycle_start_is_measured_from_the_cycle_start(self):
+        """A cycle that finishes early does not push the next start out past cycle_duration."""
+        self._create_org_integrations(1)
+        scheduler = self._make_scheduler(cycle_duration=timedelta(minutes=3))
+
+        scheduler.tick()
+
+        cycle_start = float(cache.get(f"{CYCLE_START_CACHE_KEY_PREFIX}:test_scheduler"))
+        assert float(cache.get(self.next_cycle_start_key)) == cycle_start + 180
 
     def test_batch_size_cached_across_ticks(self):
         """Batch size is calculated once at cycle start, not every tick."""
@@ -182,6 +242,7 @@ class CursoredSchedulerTest(TestCase):
         self._create_org_integrations(30)
 
         self.mock_task.reset_mock()
+        self._make_next_cycle_due(scheduler)
 
         scheduler.tick()
         assert self.mock_task.delay.call_count == 20

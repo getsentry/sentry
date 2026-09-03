@@ -25,10 +25,13 @@ function useDefaultButtonTracking() {
 }
 
 export function SentryTrackingProvider({children}: {children: React.ReactNode}) {
+  // Called here, not in `useClickTracking`, so a Button's hook count doesn't
+  // depend on which implementation is registered.
+  const useButtonTracking =
+    getOverride('react-hook:use-button-tracking') ?? useDefaultButtonTracking;
+
   return (
-    <TrackingContextProvider
-      value={getOverride('react-hook:use-button-tracking') ?? useDefaultButtonTracking}
-    >
+    <TrackingContextProvider value={useButtonTracking()}>
       {children}
     </TrackingContextProvider>
   );

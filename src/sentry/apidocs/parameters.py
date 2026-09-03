@@ -226,6 +226,19 @@ Valid fields include:
 """,
     )
 
+    MEMBER_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description=(
+            "Limit results to members matching the given query. `id, `user.id`, ... are supported prefixes "
+            "match on: `id`, `user.id`, `email`, `role`, `scope`, `isInvited`, `ssoLinked`, "
+            "`has2fa`, `hasExternalUsers`. For example, `query=user.id:1234`. An unrecognized "
+            "field returns no results."
+        ),
+    )
+
     PROJECT_QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -365,6 +378,19 @@ class IssueParams:
         name="groupStatsPeriod",
         description="The timeline on which stats for the groups should be presented.",
         enum=["", "24h", "14d", "auto"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+    PROJECT_GROUP_STATS_PERIOD = OpenApiParameter(
+        name="statsPeriod",
+        description=(
+            "The timeline on which stats for the groups should be presented. "
+            'Defaults to `"24h"`. Pass `""` to omit stats entirely. Unlike the '
+            "organization-wide issues endpoint, this does not filter the query "
+            "window and does not accept arbitrary periods."
+        ),
+        enum=["", "24h", "14d"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
         required=False,

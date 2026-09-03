@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -25,17 +26,20 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TimeRangeSelector, type ChangeData} from 'sentry/components/timeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Actor} from 'sentry/types/core';
+import type {Actor, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {
   indexMembersByProject,
@@ -79,7 +83,22 @@ const SeerTrialCTA = OverrideOrDefault({
   overrideName: 'component:seer-trial-cta',
 });
 
+const FilterBar = styled(Flex)`
+  @container (width < ${p => p.theme.container.sm}) {
+    > * {
+      flex: 1 1 calc(50% - ${p => p.theme.space.md});
+      min-width: 0;
+    }
+
+    > * > button {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+`;
+
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
+  {value: 'recommended', label: t('Recommended')},
   {value: 'seer', label: t('Recent Seer Activity')},
   {value: 'issue', label: t('Recent Issue Activity')},
   {value: 'events', label: t('Most events')},
@@ -87,6 +106,10 @@ const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
 ];
 
 const {'90d': _90d, ...ACTIVITY_RELATIVE_PERIODS} = DEFAULT_RELATIVE_PERIODS;
+
+const ACTIVITY_DEFAULT_PERIOD = '7d';
+
+const EMPTY_MEMBER_LIST: User[] = [];
 
 const activityRelativeOptions = ({
   arbitraryOptions,
@@ -156,7 +179,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   const sort: OverviewSort =
     SORT_OPTIONS.find(option => option.value === decodeScalar(location.query.sort))
-      ?.value ?? 'seer';
+      ?.value ?? 'recommended';
   const assignee = decodeScalar(location.query.assignee) ?? null;
   const view =
     decodeScalar(location.query.view) === 'in_progress' ? 'in_progress' : 'all';
@@ -180,6 +203,59 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       value,
     });
 
+  const activityDatetime = useMemo<PageFilterDatetime>(() => {
+    const {statsPeriod, start, end, utc} = normalizeDateTimeParams(
+      {
+        statsPeriod: location.query.activityStatsPeriod,
+        start: location.query.activityStart,
+        end: location.query.activityEnd,
+        utc: location.query.activityUtc,
+      },
+      {defaultStatsPeriod: ACTIVITY_DEFAULT_PERIOD}
+    );
+    return {
+      period: statsPeriod ?? null,
+      start: start ?? null,
+      end: end ?? null,
+      utc: utc === undefined ? null : utc === 'true',
+    };
+  }, [
+    location.query.activityStatsPeriod,
+    location.query.activityStart,
+    location.query.activityEnd,
+    location.query.activityUtc,
+  ]);
+
+  const setActivityWindow = (next: {
+    activityEnd?: string;
+    activityStart?: string;
+    activityStatsPeriod?: string;
+    activityUtc?: string;
+  }) =>
+    navigate(
+      {pathname: location.pathname, query: {...location.query, ...next}},
+      {replace: true}
+    );
+
+  const handleActivityChange = ({start, end, relative, utc}: ChangeData) => {
+    trackFilterChanged('activity', relative ?? 'absolute');
+    if (start && end) {
+      setActivityWindow({
+        activityStatsPeriod: undefined,
+        activityStart: getUtcDateString(start),
+        activityEnd: getUtcDateString(end),
+        activityUtc: utc ? 'true' : undefined,
+      });
+      return;
+    }
+    setActivityWindow({
+      activityStatsPeriod: relative || undefined,
+      activityStart: undefined,
+      activityEnd: undefined,
+      activityUtc: undefined,
+    });
+  };
+
   const {
     data,
     projectConfig,
@@ -195,6 +271,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   } = useAutofixOverview({
     organization,
     selection,
+    datetime: activityDatetime,
     sort,
     enabled: pageFiltersReady,
   });
@@ -211,7 +288,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     numProjectsSelected: selection.projects.length,
     numUnconfiguredProjects: unconfiguredProjects.length,
     projectConfigPending,
-    statsPeriod: selection.datetime.period,
+    statsPeriod: activityDatetime.period,
   });
   const allUnconfigured =
     unconfiguredProjects.length > 0 &&
@@ -279,18 +356,23 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
     .flatMap(section => section.runs)
     .filter(run => run.pullRequests.length > 0)
     .map(run => run.seerRunId);
-  const scmWindows: string[][] = [];
-  for (let start = 0; start < orderedPrRunIds.length; start += SCM_WINDOW_SIZE) {
-    scmWindows.push(orderedPrRunIds.slice(start, start + SCM_WINDOW_SIZE));
-  }
-  const scmWindowsByRunId = new Map<string, string[][]>();
-  scmWindows.forEach((window, index) => {
-    const nextWindow = scmWindows[index + 1];
-    const toRequest = nextWindow ? [window, nextWindow] : [window];
-    for (const id of window) {
-      scmWindowsByRunId.set(id, toRequest);
+  const orderedPrRunIdsKey = orderedPrRunIds.join(',');
+  const scmWindowsByRunId = useMemo(() => {
+    const ids = orderedPrRunIdsKey ? orderedPrRunIdsKey.split(',') : [];
+    const windows: string[][] = [];
+    for (let start = 0; start < ids.length; start += SCM_WINDOW_SIZE) {
+      windows.push(ids.slice(start, start + SCM_WINDOW_SIZE));
     }
-  });
+    const map = new Map<string, string[][]>();
+    windows.forEach((window, index) => {
+      const nextWindow = windows[index + 1];
+      const toRequest = nextWindow ? [window, nextWindow] : [window];
+      for (const id of window) {
+        map.set(id, toRequest);
+      }
+    });
+    return map;
+  }, [orderedPrRunIdsKey]);
 
   const toggleGroup = (groupKey: StatusGroupKey, expanded: boolean) => {
     setCollapsedGroups(previous =>
@@ -335,8 +417,8 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
   }
 
   return (
-    <Stack gap="lg" padding="lg xl">
-      <Flex gap="md" align="center" wrap="wrap">
+    <Stack gap="lg" padding={{xs: 'lg md', sm: 'lg xl'}}>
+      <FilterBar gap="md" align="center" wrap="wrap">
         {pageFiltersReady && projectsLoaded ? (
           <PageFilterBar condensed>
             <ProjectPageFilter />
@@ -344,11 +426,15 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
         ) : (
           <ProjectFilterSkeleton />
         )}
-        <DatePageFilter
+        <TimeRangeSelector
+          relative={activityDatetime.period ?? ''}
+          start={activityDatetime.start}
+          end={activityDatetime.end}
+          utc={activityDatetime.utc}
           relativeOptions={activityRelativeOptions}
-          onChange={update =>
-            trackFilterChanged('activity', update.relative ?? 'absolute')
-          }
+          onChange={handleActivityChange}
+          menuTitle={t('Filter Time Range')}
+          menuWidth="22em"
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Autofix Activity')} />
           )}
@@ -368,25 +454,28 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
           options={SORT_OPTIONS}
           onChange={selected => {
             trackFilterChanged('sort', selected.value);
-            setQueryParam('sort', selected.value === 'seer' ? undefined : selected.value);
+            setQueryParam(
+              'sort',
+              selected.value === 'recommended' ? undefined : selected.value
+            );
           }}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort')} />
           )}
         />
-      </Flex>
+        {someUnconfigured && (
+          <ProjectSetupWarning
+            unconfiguredProjects={unconfiguredProjects}
+            orgSlug={organization.slug}
+          />
+        )}
+      </FilterBar>
       {isError ? (
         <LoadingError onRetry={refetch} />
       ) : resultsPending ? (
         <OverviewSkeleton />
       ) : (
         <Fragment>
-          {someUnconfigured && (
-            <ProjectSetupWarning
-              unconfiguredProjects={unconfiguredProjects}
-              orgSlug={organization.slug}
-            />
-          )}
           {allRuns.length === 0 ? (
             noRunsContent
           ) : assigneeRuns.length === 0 ? (
@@ -435,7 +524,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                   collapsedGroups={collapsedGroups}
                   onToggle={toggleGroup}
                   orgSlug={organization.slug}
-                  statsPeriod={selection.datetime.period}
+                  statsPeriod={activityDatetime.period}
                   requestScmWindow={requestScmWindow}
                   scmWindowsByRunId={scmWindowsByRunId}
                   isScmSettled={isScmSettled}
@@ -527,7 +616,9 @@ function OverviewSectionList({
                       requestScmWindow={requestScmWindow}
                       scmWindows={scmWindowsByRunId.get(run.seerRunId)}
                       projectConfig={projectConfigById.get(run.issue.project.id)}
-                      memberList={membersByProject.get(run.issue.project.slug) ?? []}
+                      memberList={
+                        membersByProject.get(run.issue.project.slug) ?? EMPTY_MEMBER_LIST
+                      }
                       assigneeReady={assigneeReady}
                     />
                   );

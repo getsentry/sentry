@@ -53,7 +53,7 @@ from sentry.issues.constants import (
     cache_key_for_issue_view,
     get_issue_tsdb_group_model,
 )
-from sentry.issues.derived.features import STATUS, IssueStatus
+from sentry.issues.derived.check import record_status_consistency
 from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
@@ -61,7 +61,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
@@ -86,13 +86,6 @@ logger = logging.getLogger(__name__)
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
     return str(group.times_seen_with_pending)
-
-
-_GROUP_STATUS_TO_DERIVED_STATUS = {
-    GroupStatus.UNRESOLVED: IssueStatus.OPEN,
-    GroupStatus.RESOLVED: IssueStatus.CLOSED,
-    GroupStatus.IGNORED: IssueStatus.CLOSED,
-}
 
 
 @extend_schema(tags=["Events"])
@@ -129,13 +122,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _reconcile_status(self, request: Request, group: Group) -> None:
-        """Detect divergence between the Group model status (source of truth) and
-        the action-log-derived status and publish a ReconcileStatusAction to fix it.
-
-        This is a best-effort, non-essential side effect on a read path; callers
-        must ensure a failure here never breaks the group view.
-        """
+    def _report_status_inconsistency(self, group: Group) -> None:
         if options.get("issues.derived_data.read_path_checks.killswitch"):
             return
 
@@ -145,42 +132,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
         ):
             return
 
-        expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)
-        if expected_status is None:
-            # XXX: some statuses like pending deletion, merge, etc. are skipped
-            # as they don't map to a derived status
-            return
-
         derived = GroupDerivedData.objects.filter(group_id=group.id).first()
         if derived is None:
-            # nothing to reconcile against
             return
 
-        raw = derived.data.get(STATUS.name)
-        derived_status = STATUS.from_json(raw) if raw is not None else STATUS.initial_value()
-        if derived_status == expected_status:
-            return
-
-        metrics.incr(
-            "issues.status_reconciliation.diverged",
-            sample_rate=1.0,
-            tags={
-                "derived_status": derived_status.value,
-                "expected_status": expected_status.value,
-            },
-        )
-        # Status reconciliation is disabled for now; log divergences so we can
-        # find and investigate these cases automatically instead of publishing a
-        # ReconcileStatusAction.
-        logger.info(
-            "issues.status_reconciliation.diverged",
-            extra={
-                "group_id": group.id,
-                "project_id": group.project_id,
-                "derived_status": derived_status.value,
-                "expected_status": expected_status.value,
-            },
-        )
+        record_status_consistency(group, derived, source="read_path")
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -424,7 +380,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             try:
-                self._reconcile_status(request, group)
+                self._report_status_inconsistency(group)
             except Exception:
                 logger.exception("group.details.get.reconcile_status_failed")
 

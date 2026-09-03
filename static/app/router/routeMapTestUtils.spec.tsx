@@ -18,8 +18,8 @@ describe('extractModulePath', () => {
   });
 
   it('recovers the import target from an untransformed import() thunk', () => {
-    expect(extractModulePath("() => import('sentry/views/auth/login')")).toBe(
-      'sentry/views/auth/login'
+    expect(extractModulePath("() => import('sentry/views/authV2/authLogin')")).toBe(
+      'sentry/views/authV2/authLogin'
     );
   });
 

@@ -7,12 +7,12 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -413,7 +413,11 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
-@extend_schema_serializer(exclude_fields=["dataset_source"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "dataset_source": "Records whether the widget's dataset was chosen by the user or inferred; internal provenance.",
+    }
+)
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -459,11 +463,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 config is not None
                 and display_type_id not in config["supported_display_types"]
                 # Existing tracemetrics table widgets (those sent with an ``id``)
-                # are allowed to save. The Widget Builder doesn't offer table for
-                # tracemetrics, but some widgets were created with this combo
-                # before display-type validation existed, and those dashboards
-                # must still be saveable. New widgets are still rejected.
-                and not self._is_existing_tracemetrics_table(widget_type_id, display_type_id)
+                # are allowed to save. New tracemetrics table widgets are enabled
+                # by the feature flag.
+                and not self._allows_tracemetrics_table(widget_type_id, display_type_id)
             ):
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
@@ -477,11 +479,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
-    def _is_existing_tracemetrics_table(self, widget_type_id, display_type_id):
-        return (
-            self.context.get("widget_id") is not None
-            and widget_type_id == DashboardWidgetTypes.TRACEMETRICS
-            and display_type_id == DashboardWidgetDisplayTypes.TABLE
+    def _allows_tracemetrics_table(self, widget_type_id, display_type_id):
+        if (
+            widget_type_id != DashboardWidgetTypes.TRACEMETRICS
+            or display_type_id != DashboardWidgetDisplayTypes.TABLE
+        ):
+            return False
+
+        return self.context.get("widget_id") is not None or features.has(
+            "organizations:tracemetrics-dashboard-table",
+            self.context["organization"],
+            actor=self.context["request"].user,
         )
 
     def _validate_widget_type(self, data):

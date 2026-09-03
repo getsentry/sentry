@@ -252,7 +252,7 @@ class DebugFileObjectstoreTest(TestCase):
         return get_session(UsecaseId.DEBUG_FILES, self.project)
 
     def _create_objectstore_dif(self, content=b"test-content", **kwargs):
-        storage_path = self._get_session().put(content, compression="zstd")
+        storage_path = self._get_session().put(content, compress="zstd")
         defaults = {
             "debug_id": "dfb8e43a-f242-3d73-a453-aeb6a777ef75",
             "project_id": self.project.id,
@@ -545,7 +545,7 @@ class CreateDebugFileTest(APITestCase):
         assert storage_path is not None
         session = get_session(UsecaseId.DEBUG_FILES, self.project)
         session.delete(storage_path)
-        replacement_storage_path = session.put(objectstore_content, compression="none")
+        replacement_storage_path = session.put(objectstore_content, compress="none")
         dif.storage_path = replacement_storage_path
         dif.save(update_fields=["storage_path"])
 
