@@ -703,7 +703,14 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       return;
     }
 
-    this.setState({pendingRegions: pages.map(page => page.cell.name), regionErrors: []});
+    const names = pages.map(page => page.cell.name);
+    // A region that failed keeps its warning unless this load asks it again —
+    // it holds no cursor, so nothing here retries it, and its results are
+    // still missing from the table.
+    this.setState(prev => ({
+      pendingRegions: names,
+      regionErrors: prev.regionErrors.filter(name => !names.includes(name)),
+    }));
     this.fetchRegionPages(pages, this.buildQueryParams());
   };
 
@@ -868,6 +875,8 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         allRegions: false,
         cell,
         loading: true,
+        pendingRegions: [],
+        regionErrors: [],
         regionMatches: [],
         probingRegions: false,
       },

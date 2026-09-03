@@ -638,6 +638,41 @@ describe('ResultGrid allowAllRegions', () => {
     );
   });
 
+  it('keeps the warning of a failed region while another region loads more', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: ''})],
+      body: [{id: '1', name: 'Acme', members: 5}],
+      headers: {
+        Link:
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:1:0>; ' +
+          'rel="next"; results="true"; cursor="0:1:0"',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: '0:1:0'})],
+      body: [{id: '2', name: 'Beta', members: 4}],
+    });
+    // The de region never answers, so it holds no cursor and nothing retries
+    // it. Its results stay missing from the merged table.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      statusCode: 500,
+      body: {},
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('1 region failed')).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Load more (us)'}));
+
+    expect(await screen.findByText('Beta')).toBeInTheDocument();
+    expect(screen.getByText('1 region failed')).toBeInTheDocument();
+    expect(screen.getByLabelText('Some regions failed to load')).toBeInTheDocument();
+  });
+
   it('shows no load more control when a single page holds every result', async () => {
     MockApiClient.addMockResponse({
       url: '/_admin/cells/us/customers/',
