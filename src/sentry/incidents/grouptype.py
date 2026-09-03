@@ -8,9 +8,11 @@ from typing import Any, Literal, TypedDict
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.discover.arithmetic import is_equation, strip_equation
+
+# Import data condition handlers so they register themselves for this group type
 from sentry.incidents.handlers.condition import *  # noqa
 
-# Imported so the validator registers itself for this group type.
+# Imported so the validator registers itself for this group type
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator  # noqa: F401
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
