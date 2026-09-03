@@ -118,7 +118,7 @@
     "@sentry/status-page-list": "^0.6.1",
     "@sentry/toolbar": "1.0.0-beta.16",
     "@sentry/webpack-plugin": "5.3.0",
-    "@stripe/react-stripe-js": "^3.9.2",
+    "@stripe/react-stripe-js": "^4.0.2",
     "@stripe/stripe-js": "^5.10.0",
     "@swc/plugin-emotion": "15.0.0",
     "@tanstack/query-async-storage-persister": "5.101.4",
