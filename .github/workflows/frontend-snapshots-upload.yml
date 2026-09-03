@@ -18,6 +18,7 @@ concurrency:
 permissions:
   contents: read
   actions: read
+  statuses: write
 
 env:
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
@@ -39,7 +40,9 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Install sentry-cli
-        run: curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=3.5.0 sh
+        uses: getsentry/action-setup-cli@70d7e587b84c2e78cf4d37cd33d7b74fb3729c1b # v1
+        with:
+          version: '3.5.0'
 
       # head_sha, head_ref and base_repo_name come from the trusted workflow_run
       # event so a fork can't forge them; head_sha in particular anchors the
@@ -90,6 +93,21 @@ jobs:
           fi
 
           sentry-cli --log-level=debug "${args[@]}"
+
+      # The backend posts the check-run on success; without this a failed
+      # upload leaves the PR with no snapshot status at all.
+      - name: Post failure status on head commit
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${{ github.repository }}/statuses/$COMMIT_SHA" \
+            -f state=failure \
+            -f context="snapshots/upload" \
+            -f description="Snapshot upload failed" \
+            -f target_url="$RUN_URL"
 
       - name: Report upload failure to Sentry
         if: ${{ failure() && steps.upload.outcome == 'failure' }}
