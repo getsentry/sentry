@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {useEffect, useMemo, type ReactNode} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -24,6 +24,7 @@ import {
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
@@ -133,6 +134,27 @@ interface AutofixRefContentProps extends Pick<Group, 'id' | 'shortId'> {
   step: AutofixExplorerStep;
 }
 
+/**
+ * Refreshes the pages behind the chat panel once this step's result lands.
+ *
+ * Keyed on the status alone, so reopening a chat history also refreshes on the
+ * already-finished steps it renders. That extra refetch is worth accepting: the
+ * embed can't tell which page is behind it, let alone whether that page has
+ * fetched anything since the run started.
+ */
+function useRefreshOnStepResult(
+  groupId: string,
+  status: AutofixSection['status'] | undefined
+) {
+  const refreshAutofixProgressQueries = useRefreshAutofixProgressQueries(groupId);
+
+  useEffect(() => {
+    if (status === 'completed') {
+      refreshAutofixProgressQueries();
+    }
+  }, [status, refreshAutofixProgressQueries]);
+}
+
 function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const autofix = useExplorerAutofix({id, shortId});
   const {runState, isLoading, isPolling} = autofix;
@@ -140,6 +162,8 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);
+
+  useRefreshOnStepResult(id, section?.status);
 
   const handleRetry = () => {
     sendMessage?.(t('Retry the %s step for %s.', STEP_LABELS[step], shortId));
