@@ -116,12 +116,18 @@ def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionR
     return PromotionResult.RACE_LOST
 
 
-def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
+def promote_to_live(
+    candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
+) -> PromotionResult:
     """Upsert the candidate's state into the row for its group.
 
     The UPDATE guard requires that ``candidate.generated_at`` is >= the
-    row's (newer generation wins) and the cursor is at or ahead.  On
-    success, all state fields (including ``generated_at``) are stamped.
+    row's (newer generation wins) and the cursor is at or ahead. If the
+    live cursor points at ``known_invalid_log_id`` — a log entry the caller
+    has confirmed no longer belongs to this group — the cursor guard is
+    bypassed, since that cursor doesn't represent a real position in the
+    group's log. On success, all state fields (including ``generated_at``)
+    are stamped.
 
     Returns SUPERSEDED if the row has a newer ``generated_at``.
     Returns CURSOR_BEHIND if the cursor guard failed against a same or
@@ -140,6 +146,8 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     cursor_ahead = Q(cursor_date__lt=candidate.cursor_date) | Q(
         cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id
     )
+    if known_invalid_log_id is not None:
+        cursor_ahead |= Q(cursor_id=known_invalid_log_id)
     updated = GroupDerivedData.objects.filter(
         cursor_ahead,
         group_id=candidate.group_id,
@@ -229,6 +237,7 @@ def build_and_promote_derived_data(
     deadline = time.monotonic() + time_limit.total_seconds()
 
     result = PromotionResult.CURSOR_BEHIND
+    known_invalid_log_id: int | None = None
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         remaining = timedelta(seconds=max(0, deadline - time.monotonic()))
         drained = _drain_log(
@@ -243,7 +252,7 @@ def build_and_promote_derived_data(
             _generation_cache.set(current_gen_id, derived)
             raise GroupLogTimeout(group_id, generation_id=current_gen_id)
 
-        result = promote_to_live(derived)
+        result = promote_to_live(derived, known_invalid_log_id=known_invalid_log_id)
         metrics.incr("issues.derived.promote_to_live", tags={"result": result.value})
         match result:
             case PromotionResult.PROMOTED:
@@ -275,24 +284,24 @@ def build_and_promote_derived_data(
                 # exist past our cursor, the next drain will pick them up.
                 if _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
                     continue
-                # If not, the log was modified (e.g. merge deleted entries)
-                # and our replay is incomplete — give up.
-                _log_if_live_cursor_orphaned(group_id, derived)
+                # If not, the log may have been modified (e.g. merge moved
+                # the live cursor's entry to another group). Retry while
+                # bypassing that specific log ID; a concurrent move of the
+                # live cursor to any other position remains guarded.
+                known_invalid_log_id = _detect_orphaned_log_id(group_id, derived)
+                if known_invalid_log_id is not None:
+                    continue
                 break
 
     _generation_cache.delete(current_gen_id)
     raise PromotionFailed(group_id, result, attempt + 1)
 
 
-def _log_if_live_cursor_orphaned(group_id: int, derived: GroupDerivedData) -> None:
-    """Log if the live row's cursor points at a deleted log entry.
+def _detect_orphaned_log_id(group_id: int, derived: GroupDerivedData) -> int | None:
+    """Return the live cursor's log ID if it no longer belongs to this group.
 
-    Called on the terminal CURSOR_BEHIND give-up path so operators can
-    distinguish log-mutation causes (merge/unmerge deleted the referenced
-    entry) from lost races.
-
-    TODO: when we detect an orphaned live cursor, the safer response is
-    probably to retry promotion without the cursor guard.
+    Logs as a side effect. Called on the CURSOR_BEHIND path so the caller can
+    retry promotion while bypassing that specific log ID.
     """
     live_cursor = (
         GroupDerivedData.objects.filter(group_id=group_id)
@@ -300,14 +309,14 @@ def _log_if_live_cursor_orphaned(group_id: int, derived: GroupDerivedData) -> No
         .get_or_none()
     )
     if live_cursor is None:
-        return
+        return None
     live_cursor_date, live_cursor_id = live_cursor
     if live_cursor_id == 0:
         # 0 is the "no actions yet" state; unexpected in this context, but doesn't suggest an
         # orphaned cursor.
-        return
+        return None
     if GroupActionLogEntry.objects.filter(group_id=group_id, id=live_cursor_id).exists():
-        return
+        return None
     logger.info(
         "issues.derived.promote.live_cursor_orphaned",
         extra={
@@ -318,6 +327,7 @@ def _log_if_live_cursor_orphaned(group_id: int, derived: GroupDerivedData) -> No
             "candidate_cursor_id": derived.cursor_id,
         },
     )
+    return live_cursor_id
 
 
 class BatchRunResult(NamedTuple):
