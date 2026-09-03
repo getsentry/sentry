@@ -618,7 +618,16 @@ class EventManager:
         if not is_reprocessed and attachments:
             save_attachments(cache_key, attachments, job)
 
-        acknowledge_pending_attachments(job["event"].event_id)
+        # NOTE: this might work with is_reprocessed, but let's be conservative for now.
+        if not is_reprocessed:
+            # TODO: Is querying `PendingEventAttachment` for every event feasible?
+            #       Do we need to guard this somehow?
+            safe_execute(
+                save_pending_attachments,
+                project_id=job["event"].project_id,
+                event_id=job["event"].event_id,
+                group_id=group_info.group.id,
+            )
 
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
@@ -2509,14 +2518,17 @@ def save_attachment(
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
-    if is_pending:
+    if is_pending and features.has("projects:defer-attachment-storage", project):
+        metrics.incr("attachments.pending.create")
         assert group_id is None
         db_fields.pop("group_id")
+        db_fields["date_expires_retention"] = db_fields["date_expires"]
+        db_fields["date_expires"] = datetime.now(timezone.utc) + PENDING_ATTACHMENT_TTL
         PendingEventAttachment.objects.create(**db_fields)
 
         return
 
-    EventAttachment.objects.create()
+    EventAttachment.objects.create(**db_fields)
 
     track_outcome(
         org_id=project.organization_id,
@@ -2556,6 +2568,36 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
             start_time=job["start_time"],
             is_pending=False,  # we have an event
         )
+
+
+def save_pending_attachments(*, project_id: int, event_id: str, group_id: str | None) -> None:
+    with transaction.atomic():
+        metrics.incr("attachments.pending.persist")
+        pending_attachments = PendingEventAttachment.objects.filter(
+            project_id=project_id, event_id=event_id
+        )
+        summed_attachment_size = 0
+        for pending_attachment in pending_attachments:
+            EventAttachment.objects.create(
+                **pending_attachment,
+                date_expires=pending_attachment.date_expires_retention,
+                group_id=group_id,
+            )
+            summed_attachment_size += pending_attachment.size
+            pending_attachment.delete()
+
+        if summed_attachment_size > 0:
+            track_outcome(  # TODO
+                org_id=project.organization_id,
+                project_id=project_id,
+                key_id=key_id,
+                outcome=Outcome.ACCEPTED,
+                reason=None,
+                timestamp=now(),  # TODO: is it OK to use now time here?
+                event_id=event_id,
+                category=DataCategory.ATTACHMENT,
+                quantity=summed_attachment_size,
+            )
 
 
 @trace
