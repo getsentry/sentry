@@ -338,9 +338,12 @@ export const SEER_EMBED_SCHEMAS = {
       'belongs to, exactly as the issue API returns them. `step` is the ' +
       'autofix step identifier exactly as the autofix API reports it — the ' +
       'UI renders the human-readable label, so do not send a display ' +
-      'string. `result` is the full markdown write-up for that step. ' +
-      'Prefer this embed over a plaintext explanation whenever an issue ' +
-      'can be autofixed, and emit one embed per step rather than ' +
+      'string. `result` is the markdown summary for that step. Send the ' +
+      "step's detail in the structured fields rather than folding it into " +
+      '`result`, so it renders as the same sections a live run shows: ' +
+      '`fiveWhys` and `reproductionSteps` for `root_cause`, `steps` for ' +
+      '`solution`. Prefer this embed over a plaintext explanation whenever ' +
+      'an issue can be autofixed, and emit one embed per step rather than ' +
       'combining multiple steps into one.',
     level: ['block'],
     schema: z.object({
@@ -348,6 +351,18 @@ export const SEER_EMBED_SCHEMAS = {
       result: z.string(),
       id: z.string(),
       shortId: z.string(),
+      fiveWhys: z
+        .array(z.string())
+        .optional()
+        .describe('root_cause only: the causal chain, most immediate cause first.'),
+      reproductionSteps: z
+        .array(z.string())
+        .optional()
+        .describe('root_cause only: ordered steps that reproduce the error.'),
+      steps: z
+        .array(z.object({title: z.string(), description: z.string()}))
+        .optional()
+        .describe('solution only: the ordered steps needed to resolve the issue.'),
     }),
     examples: [
       {
@@ -356,8 +371,44 @@ export const SEER_EMBED_SCHEMAS = {
           id: '1234567890',
           shortId: 'EXMPL-123',
           result:
-            'The root cause of the issue is that the code is not working correctly.',
+            '`CartService.total()` reduces the line items without an initial ' +
+            'accumulator, so an empty cart throws instead of totalling to zero.',
+          fiveWhys: [
+            '`POST /checkout` returned a 500 for every request with an empty cart.',
+            '`CartService.total()` threw `TypeError: Reduce of empty array with no initial value`.',
+            '`items.reduce((sum, item) => sum + item.price)` was called without a second argument.',
+            'With no initial value `reduce` uses the first element as the seed, which an empty array does not have.',
+            'The empty cart path was never covered — every test seeded at least one line item.',
+          ],
+          reproductionSteps: [
+            'Sign in and add a single item to the cart.',
+            'Remove that item, leaving the cart empty.',
+            'Open `/checkout`, which calls `POST /api/checkout/quote`.',
+            'The request 500s and the page renders the generic error state.',
+          ],
           step: 'root_cause' as const,
+        },
+      },
+      {
+        label: 'Plan',
+        data: {
+          id: '1234567890',
+          shortId: 'EXMPL-123',
+          result:
+            'Seed the reduction with `0` so an empty cart totals to zero, and cover the path with a test.',
+          steps: [
+            {
+              title: 'Pass an initial accumulator to `CartService.total()`',
+              description:
+                'Change `items.reduce((sum, item) => sum + item.price)` to pass `0` as the second argument.',
+            },
+            {
+              title: 'Add a regression test for the empty cart',
+              description:
+                'Assert `total()` returns `0` for `[]` in `src/checkout/cartService.test.ts`.',
+            },
+          ],
+          step: 'solution' as const,
         },
       },
     ],
