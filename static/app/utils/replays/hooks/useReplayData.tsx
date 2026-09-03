@@ -153,17 +153,14 @@ export function useReplayData({
   // partial types or nullable fields.
   // We're overfetching for sure.
   const {
-    data: replayData,
+    data: replayRecord,
     status: fetchReplayStatus,
     error: fetchReplayError,
   } = useQuery({
     ...replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId}),
     retry: false,
+    select: data => (data?.data ? mapResponseToReplayRecord(data.data) : undefined),
   });
-  const replayRecord = useMemo(
-    () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),
-    [replayData?.data]
-  );
 
   const projectSlug = useReplayProjectSlug({replayRecord});
   const {isPending: isFetchingProjects} = useQuery(
