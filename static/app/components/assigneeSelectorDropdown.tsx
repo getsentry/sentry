@@ -9,7 +9,6 @@ import {
   getUserAvatarProps,
 } from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   MenuComponents,
@@ -240,15 +239,12 @@ function AvatarButtonTooltip({
   if (suggestion) {
     return (
       <Stack gap="xs" align="start">
-        <Text as="div" align="left">
-          {tn(
-            'Suggested assignee: %2$s',
-            'Suggested assignees: %2$s',
-            suggestedActors.length,
-            suggestedActors
-              .map(actor => (actor.type === 'team' ? `#${actor.name}` : actor.name))
-              .join(', ')
-          )}
+        <Text as="div" align="left" wrap="nowrap">
+          {tct('Suggestion: [name]', {
+            name: suggestion.type === 'team' ? `#${suggestion.name}` : suggestion.name,
+          })}
+          {suggestedActors.length > 1 &&
+            tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
         </Text>
         <Text as="div" align="left" variant="muted">
           {suggestion.suggestedReasonText ??
@@ -572,40 +568,6 @@ export function AssigneeSelectorDropdown({
           ? currentMemberList.find(member => member.id === group.assignedTo?.id)
           : getAssignableTeams().find(team => team.team.id === group.assignedTo?.id)
         : suggestedActors[0]?.assignee;
-      const tooltipProps = {
-        isHoverable: true,
-        maxWidth: 300,
-        title: (
-          <AvatarButtonTooltip
-            assignedTo={group.assignedTo}
-            assignmentDetails={assignmentDetails}
-            suggestedActors={suggestedActors}
-          />
-        ),
-      };
-
-      if (!group.assignedTo && suggestedActors.length > 1) {
-        return (
-          <SuggestedAssigneesButton
-            {...triggerProps}
-            aria-label={t('Modify issue assignee')}
-            busy={loading}
-            data-test-id="assignee-selector"
-            disabled={loading}
-            icon={
-              <SuggestedAvatarStack
-                owners={suggestedActors}
-                size={18}
-                tooltipOptions={{disabled: true}}
-              />
-            }
-            ref={ref as Ref<HTMLButtonElement>}
-            size="xs"
-            tooltipProps={tooltipProps}
-            variant="secondary"
-          />
-        );
-      }
 
       return (
         <AssigneeAvatarButton
@@ -625,7 +587,17 @@ export function AssigneeSelectorDropdown({
           disabled={loading}
           ref={ref as Ref<HTMLButtonElement>}
           size="xs"
-          tooltipProps={tooltipProps}
+          tooltipProps={{
+            isHoverable: true,
+            maxWidth: 300,
+            title: (
+              <AvatarButtonTooltip
+                assignedTo={group.assignedTo}
+                assignmentDetails={assignmentDetails}
+                suggestedActors={suggestedActors}
+              />
+            ),
+          }}
         />
       );
     }
@@ -706,10 +678,6 @@ const AssigneeWrapper = styled('div')`
 `;
 
 const AssigneeAvatarButton = styled(AvatarButton)`
-  display: flex;
-`;
-
-const SuggestedAssigneesButton = styled(Button)`
   display: flex;
 `;
 
