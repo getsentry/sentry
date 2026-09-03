@@ -367,6 +367,29 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.projection["workflowVersion"] == 5
         assert self.orchestration_run.status == InvestigationOrchestrationStatus.FAILED
 
+    def test_report_events_are_not_reported_as_applied(self) -> None:
+        # Report materialization lands separately. Marking these applied would
+        # advance the sequence past work that never happened.
+        receipt = self.deliver(
+            self.event(
+                1,
+                "report_block_started",
+                {
+                    "reportRevision": 0,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        stored = InvestigationOrchestrationEvent.objects.get(sequence=1)
+        assert stored.error == {"reason": "unsupported_event_type"}
+        assert stored.payload["payload"]["stableAgentKey"] == "summary"
+
     def test_stale_and_future_generations_are_consumed_without_mutation(self) -> None:
         self.deliver(
             self.event(

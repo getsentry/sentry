@@ -264,6 +264,11 @@ def _apply_event(
         run.phase = InvestigationOrchestrationPhase.FAILED
         run.status = InvestigationOrchestrationStatus.FAILED
         run.error = deepcopy(payload.get("error"))
+    else:
+        # The report events are reduced separately. Consuming one here would
+        # advance the sequence past work this deploy cannot perform, so it is
+        # recorded as unapplied and its payload stays available to replay.
+        return False, "unsupported_event_type"
 
     run.heartbeat_at = timezone.now()
     return True, None
