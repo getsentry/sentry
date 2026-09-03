@@ -9,6 +9,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
@@ -20,7 +21,9 @@ export function FirstIssueCard({issueId}: {issueId: string}) {
       organizationSlug: organization.slug,
       environments: [],
     }),
-    retry: false,
+    retry: (failureCount, error) =>
+      failureCount < 3 && error instanceof RequestError && error.status === 404,
+    retryDelay: 2000,
   });
 
   if (isPending) {
