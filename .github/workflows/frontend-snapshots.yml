@@ -113,7 +113,6 @@ jobs:
         if: ${{ !cancelled() }}
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_REPO_NAME: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
         run: |
@@ -121,10 +120,9 @@ jobs:
           mkdir -p "$(dirname "$VCS_METADATA_FILE")"
           jq -n \
             --arg pr_number "$PR_NUMBER" \
-            --arg head_repo_name "$HEAD_REPO_NAME" \
             --arg base_ref "$BASE_REF" \
             --arg base_sha "$BASE_SHA" \
-            '{pr_number: $pr_number, head_repo_name: $head_repo_name, base_ref: $base_ref, base_sha: $base_sha}' \
+            '{pr_number: $pr_number, base_ref: $base_ref, base_sha: $base_sha}' \
             > "$VCS_METADATA_FILE"
           cat "$VCS_METADATA_FILE"
 
