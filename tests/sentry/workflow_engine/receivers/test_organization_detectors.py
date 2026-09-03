@@ -69,7 +69,7 @@ class TestCreateOrganizationDetectors(TestCase):
     ],
 )
 @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
-@mock.patch("sentry.workflow_engine.receivers.organization_workflows.sentry_sdk")
+@mock.patch("sentry.workflow_engine.receivers.organization_detectors.sentry_sdk")
 def test_captures_exception_on_creation_failure(
     mock_sdk: mock.MagicMock, expected_error: Exception
 ) -> None:
@@ -77,7 +77,7 @@ def test_captures_exception_on_creation_failure(
     organization = Factories.create_organization(owner=user)
 
     with mock.patch(
-        "sentry.workflow_engine.receivers.organization_workflows.ensure_default_organization_workflows",
+        "sentry.workflow_engine.receivers.organization_detectors.ensure_default_organization_detectors",
         side_effect=expected_error,
     ):
         organization_created.send_robust(organization=organization, user=user, sender="test-case")
