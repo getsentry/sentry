@@ -722,7 +722,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.75},
+      body: {effectiveSampleRate: 0.75, genericMetricsEffectiveSampleRate: 0.75},
     });
 
     render(
@@ -735,7 +735,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, stored spans):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('75.00%');
     });
@@ -752,7 +752,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 1},
+      body: {effectiveSampleRate: 1, genericMetricsEffectiveSampleRate: 1},
     });
 
     render(
@@ -764,7 +764,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, stored spans):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('100.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -783,7 +783,7 @@ describe('CustomerOverview', () => {
     // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.600001},
+      body: {effectiveSampleRate: 0.600001, genericMetricsEffectiveSampleRate: 0.600001},
     });
 
     render(
@@ -795,7 +795,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, stored spans):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('60.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -813,7 +813,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.54},
+      body: {effectiveSampleRate: 0.54, genericMetricsEffectiveSampleRate: 0.58},
     });
 
     render(
@@ -824,6 +824,11 @@ describe('CustomerOverview', () => {
       />
     );
     await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+
+    const decisionsTerm = screen.getByText('Sample Rate (24h, sampling decisions):');
+    expect(decisionsTerm.nextElementSibling).toHaveTextContent(
+      '58.00% instead of 60.00% (~2.00%)'
+    );
   });
 
   it('renders decimal sample rates preserving trailing zeros', async () => {
@@ -837,7 +842,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.501},
+      body: {effectiveSampleRate: 0.501, genericMetricsEffectiveSampleRate: 0.502},
     });
 
     render(
@@ -848,6 +853,7 @@ describe('CustomerOverview', () => {
       />
     );
     await screen.findByText('50.10% instead of 60.00% (~9.90%)');
+    expect(screen.getByText('50.20% instead of 60.00% (~9.80%)')).toBeInTheDocument();
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
@@ -861,7 +867,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: null},
+      body: {effectiveSampleRate: null, genericMetricsEffectiveSampleRate: null},
     });
 
     render(
@@ -873,7 +879,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, stored spans):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
     });
   });

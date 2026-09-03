@@ -510,10 +510,61 @@ function isWithinAcceptedMargin(
   return difference >= 0 && difference <= desiredSampleRate * 0.1;
 }
 
+const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
+
+type SampleRateRowProps = {
+  desiredSampleRate: number | null;
+  label: string;
+  rate: number | null;
+};
+
+function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
+  if (!defined(rate)) {
+    return (
+      <ThresholdLabel label={label} positive={false}>
+        n/a
+      </ThresholdLabel>
+    );
+  }
+
+  const effectiveSampleRate = rate * 100;
+
+  const getSampleRateValue = (): string => {
+    if (effectiveSampleRate && desiredSampleRate) {
+      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
+      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
+        return formatRate(effectiveSampleRate);
+      }
+      const diffSampleRate = Math.abs(effectiveSampleRate - desiredSampleRate);
+      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate)})`;
+    }
+    if (desiredSampleRate) {
+      return formatRate(desiredSampleRate);
+    }
+    return 'n/a';
+  };
+
+  return (
+    <ThresholdLabel
+      label={label}
+      positive={
+        effectiveSampleRate && desiredSampleRate
+          ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
+          : false
+      }
+    >
+      {getSampleRateValue()}
+    </ThresholdLabel>
+  );
+}
+
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-  const {data, isPending, isError} = useApiQuery<{effectiveSampleRate: number | null}>(
+  const {data, isPending, isError} = useApiQuery<{
+    effectiveSampleRate: number | null;
+    genericMetricsEffectiveSampleRate: number | null;
+  }>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
         path: {organizationIdOrSlug: organization.slug},
@@ -526,54 +577,44 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 
   if (!dynamicSamplingEnabled) {
-    return <ThresholdLabel positive={false}>Disabled</ThresholdLabel>;
+    return (
+      <ThresholdLabel label="Sample Rate (24h)" positive={false}>
+        Disabled
+      </ThresholdLabel>
+    );
   }
   if (isError) {
-    return <ThresholdLabel positive={false}>Error loading data</ThresholdLabel>;
+    return (
+      <ThresholdLabel label="Sample Rate (24h)" positive={false}>
+        Error loading data
+      </ThresholdLabel>
+    );
   }
   if (isPending) {
-    return <ThresholdLabel positive={false}>Loading...</ThresholdLabel>;
+    return (
+      <ThresholdLabel label="Sample Rate (24h)" positive={false}>
+        Loading...
+      </ThresholdLabel>
+    );
   }
 
-  if (!defined(data.effectiveSampleRate)) {
-    return <ThresholdLabel positive={false}>n/a</ThresholdLabel>;
-  }
-
-  const effectiveSampleRate = data.effectiveSampleRate * 100;
   const desiredSampleRate = organization.desiredSampleRate
     ? organization.desiredSampleRate * 100
     : null;
-  const diffSampleRate =
-    effectiveSampleRate && desiredSampleRate
-      ? Math.abs(effectiveSampleRate - desiredSampleRate)
-      : null;
-
-  const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
-
-  const getSampleRateValue = (): string => {
-    if (effectiveSampleRate && desiredSampleRate) {
-      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
-      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
-        return formatRate(effectiveSampleRate);
-      }
-      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`;
-    }
-    if (desiredSampleRate) {
-      return formatRate(desiredSampleRate);
-    }
-    return 'n/a';
-  };
 
   return (
-    <ThresholdLabel
-      positive={
-        effectiveSampleRate && desiredSampleRate
-          ? isWithinAcceptedMargin(effectiveSampleRate, desiredSampleRate)
-          : false
-      }
-    >
-      {getSampleRateValue()}
-    </ThresholdLabel>
+    <Fragment>
+      <SampleRateRow
+        label="Sample Rate (24h, stored spans)"
+        rate={data.effectiveSampleRate}
+        desiredSampleRate={desiredSampleRate}
+      />
+      <SampleRateRow
+        label="Sample Rate (24h, sampling decisions)"
+        rate={data.genericMetricsEffectiveSampleRate}
+        desiredSampleRate={desiredSampleRate}
+      />
+    </Fragment>
   );
 }
 
@@ -1063,13 +1104,14 @@ const StyledTag = styled(Tag)`
 
 type ThresholdLabelProps = {
   children: React.ReactNode;
+  label: string;
   positive: boolean;
 };
 
-function ThresholdLabel({positive, children}: ThresholdLabelProps) {
+function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (
     <Fragment>
-      <dt>Sample Rate (24h):</dt>
+      <dt>{label}:</dt>
       <ThresholdValue positive={positive}>{children}</ThresholdValue>
     </Fragment>
   );
