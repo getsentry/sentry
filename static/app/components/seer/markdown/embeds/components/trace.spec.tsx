@@ -6,6 +6,33 @@ describe('trace embed', () => {
   const traceId = 'a1b2c3d4e5f678901234567890abcdef';
   const timestamp = '2026-08-25T16:37:12Z';
 
+  const originalSearch = window.location.search;
+
+  afterEach(() => {
+    window.history.replaceState({}, '', `/${originalSearch}`);
+  });
+
+  function mockTraceRequests() {
+    const traceRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-trace/${traceId}/`,
+      body: {transactions: [], orphan_errors: []},
+    });
+    const metaRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-trace-meta/${traceId}/`,
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+        transaction_child_count_map: [],
+        span_count: 0,
+        span_count_map: {},
+      },
+    });
+
+    return {traceRequest, metaRequest};
+  }
+
   it('converts the ISO timestamp to unix seconds for the waterfall', () => {
     const href = getEmbedLinkHref('trace', 'Trace a1b2c3d4', {
       traceId,
@@ -29,22 +56,7 @@ describe('trace embed', () => {
   });
 
   it('renders the trace waterfall at block level', async () => {
-    const traceRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace/${traceId}/`,
-      body: {transactions: [], orphan_errors: []},
-    });
-    const metaRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace-meta/${traceId}/`,
-      body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [],
-        span_count: 0,
-        span_count_map: {},
-      },
-    });
+    const {traceRequest, metaRequest} = mockTraceRequests();
 
     renderEmbed({name: 'trace', data: {traceId, timestamp}});
 
@@ -71,5 +83,18 @@ describe('trace embed', () => {
       );
       expect(metaRequest).toHaveBeenCalled();
     });
+  });
+
+  it('does not seed the embed search box from the host page query string', async () => {
+    // The embed is rendered inside another page (a Seer response), so the surrounding page's
+    // `?search=`/`?node=` must not steer it.
+    window.history.replaceState({}, '', '/?search=http.client&node=span-hostspan');
+    mockTraceRequests();
+
+    renderEmbed({name: 'trace', data: {traceId, timestamp}});
+
+    expect(
+      await screen.findByPlaceholderText('Search in trace', {}, {timeout: 10_000})
+    ).toHaveValue('');
   });
 });
