@@ -392,10 +392,16 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 as_user=serialize_generic_user(request.user),
             )
 
+            # serialize_many can include None when a user fails serialization (e.g.
+            # deleted/inaccessible). Skip those instead of 500ing group details.
+            typed_participants = []
             for participant in participants:
+                if participant is None:
+                    continue
                 participant["type"] = "user"
+                typed_participants.append(participant)
 
-            data.update({"participants": participants})
+            data.update({"participants": typed_participants})
 
             publish_action(
                 ViewAction(),
