@@ -340,35 +340,6 @@ def _decorator_response_Ts(decorator: ast.expr) -> list[ast.expr]:
     return out
 
 
-def _extract_response_annotation_Ts(returns: ast.expr | None) -> list[ast.expr] | None:
-    """Every `T` inside `Response[...]`, across single and union annotations.
-
-    `None` when the annotation is not `Response[T]` — the unmigrated state, skipped."""
-    if returns is None:
-        return None
-
-    # Collect every leaf of a union, then check each is `Response[T]`.
-    arms: list[ast.expr] = []
-    pending: list[ast.expr] = [returns]
-    while pending:
-        node = pending.pop()
-        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
-            pending.append(node.left)
-            pending.append(node.right)
-        else:
-            arms.append(node)
-
-    extracted: list[ast.expr] = []
-    for arm in arms:
-        T = _is_response_subscript(arm)
-        if T is None:
-            # If any arm is `Response` (bare, unparameterized) or some other type,
-            # we can't meaningfully compare — treat this as unmigrated.
-            return None
-        extracted.append(T)
-    return extracted or None
-
-
 _UNION_NAMES = frozenset({"Union", "Optional"})
 
 
@@ -385,6 +356,46 @@ def _is_union_subscript(node: ast.expr) -> ast.expr | None:
     if isinstance(val, ast.Attribute) and val.attr in _UNION_NAMES:
         return node.slice
     return None
+
+
+def _extract_response_annotation_Ts(returns: ast.expr | None) -> list[ast.expr] | None:
+    """Every `T` inside `Response[...]`, across single and union annotations.
+
+    `None` when the annotation is not `Response[T]` — the unmigrated state, skipped."""
+    if returns is None:
+        return None
+
+    # Collect every leaf of a union, then check each is `Response[T]`. Both union
+    # spellings are unwrapped, matching _annotation_has_bare_response.
+    arms: list[ast.expr] = []
+    pending: list[ast.expr] = [returns]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+            pending.append(node.left)
+            pending.append(node.right)
+            continue
+        union_slice = _is_union_subscript(node)
+        if union_slice is not None:
+            if isinstance(union_slice, ast.Tuple):
+                pending.extend(union_slice.elts)
+            else:
+                pending.append(union_slice)
+            continue
+        arms.append(node)
+
+    extracted: list[ast.expr] = []
+    for arm in arms:
+        if isinstance(arm, ast.Constant) and arm.value is None:
+            # A `None` arm carries no T and does not stop the Response arms from
+            # being compared.
+            continue
+        T = _is_response_subscript(arm)
+        if T is None:
+            # A bare `Response` or some other type: nothing to compare against.
+            return None
+        extracted.append(T)
+    return extracted or None
 
 
 def _annotation_has_bare_response(returns: ast.expr) -> bool:

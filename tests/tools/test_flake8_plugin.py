@@ -1099,3 +1099,82 @@ def test_S023_exclude_fields_naming_no_field_reports_both() -> None:
 class S(serializers.Serializer):
     real = serializers.CharField()
 """) == ["1:S023", "1:S023"]
+
+
+def test_S021_typing_union_mismatch_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Union[Response[BResponse], Response[DetailResponse]]: ...
+""") == ["3:S021"]
+
+
+def test_S021_typing_union_match_passes() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Union[Response[AResponse], Response[DetailResponse]]: ...
+""")
+        == []
+    )
+
+
+def test_S021_optional_mismatch_fires() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Optional[Response[BResponse]]: ...
+""") == ["3:S021"]
+
+
+def test_S021_optional_match_passes() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Optional[Response[AResponse]]: ...
+""")
+        == []
+    )
+
+
+def test_S021_none_arm_is_ignored_not_disqualifying() -> None:
+    assert _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Response[BResponse] | None: ...
+""") == ["3:S021"]
+
+
+def test_S021_none_arm_with_matching_type_passes() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Response[AResponse] | None: ...
+""")
+        == []
+    )
+
+
+def test_S021_bare_response_inside_typing_union_still_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Union[Response, Response[BResponse]]: ...
+""")
+        == []
+    )
+
+
+def test_S021_non_response_arm_in_typing_union_still_skipped() -> None:
+    assert (
+        _resp("""\
+class E:
+    @extend_schema(responses={200: inline_sentry_response_serializer("A", AResponse)})
+    def get(self) -> Union[Response[BResponse], StreamingHttpResponse]: ...
+""")
+        == []
+    )
