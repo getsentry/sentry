@@ -361,15 +361,8 @@ const RunId = styled(Text)`
   opacity: 0.6;
 `;
 
-/**
- * The finished run, collapsed. Nine rows all reading "Done" say no more than
- * one row does, so what survives the collapse is the outcome and what it
- * produced — the projects the agent created.
- */
 function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
   const {projects} = useProjects({slugs: projectSlugs});
-  // A single project is named outright; past that, the list's avatars and its
-  // count carry it, since a row of full badges would not fit.
   const soleProjectSlug = projectSlugs.length === 1 ? projectSlugs[0] : undefined;
   const soleProject = soleProjectSlug
     ? (projects.find(project => project.slug === soleProjectSlug) ?? {
@@ -423,8 +416,6 @@ export function AgenticProgress({
   const verificationStage = run.stages.find(
     stage => stage.stage === 'receive_verification_error'
   );
-  // The agent reports every issue the verification error grouped into; the
-  // first is the one it sent, and the one worth handing back.
   const firstIssueId = verificationStage?.extra?.issueIds?.[0];
   const isComplete = run.runStatus === 'completed';
 

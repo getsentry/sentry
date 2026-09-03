@@ -177,7 +177,6 @@ describe('AgenticProgressList', () => {
 
     expect(screen.getByText('Setup complete')).toBeInTheDocument();
     expect(await screen.findByText('react-frontend')).toBeInTheDocument();
-    // The stages collapse away rather than standing as nine finished rows.
     expect(screen.queryByText('Confirm test error')).not.toBeInTheDocument();
 
     expect(await screen.findByText('Check out your first issue')).toBeInTheDocument();

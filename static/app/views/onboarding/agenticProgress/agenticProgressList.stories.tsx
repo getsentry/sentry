@@ -45,9 +45,6 @@ const pendingStages: AgenticProgressStageState[] = [
 ];
 
 const createdProjectSlugs = ['react-frontend', 'python-backend'];
-// The issue the story's run reports back. Storybook has no group to resolve it
-// against, so the completed run's issue card stays out — driving the run to a
-// terminal state with the shape the agent actually sends is the point here.
 const verificationIssueIds = ['4815162342'];
 
 export default Storybook.story('Agentic Onboarding Progress', story => {
