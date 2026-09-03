@@ -25,7 +25,6 @@ from sentry.seer.entrypoints.operator import SeerAgentOperator
 from sentry.seer.entrypoints.slack.mention import _SLACK_URL_RE, build_thread_context
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.silo.base import SiloMode, all_silo_function
-from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user.service import user_service
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
@@ -53,12 +52,6 @@ def is_event_challenge(data: Mapping[str, Any]) -> bool:
 class SeerResolutionResult(NamedTuple):
     organization_id: int | None
     halt_reason: SeerSlackHaltReason | None
-    # Set only by the single-cell fast path below: every org on this Slack installation
-    # lives in the same cell, so control can skip the full per-org RPC membership loop
-    # and forward straight there. The cell still resolves the exact organization itself
-    # (it always has to — see route_slack_seer_event), so this is a routing hint, not a
-    # resolved organization.
-    cell_name: str | None = None
 
 
 @all_silo_function
@@ -74,7 +67,12 @@ def _resolve_available_organizations(
     """
     available_organizations = []
     for organization_id in organization_ids:
-        ctx = organization_service.get_organization_by_id(id=organization_id, user_id=user_id)
+        ctx = organization_service.get_organization_by_id(
+            id=organization_id,
+            user_id=user_id,
+            include_projects=False,
+            include_teams=False,
+        )
         logging_ctx["current_organization_id"] = organization_id
         if ctx is None:
             logger.info("_resolve_available_organizations.no_rpc_response", extra=logging_ctx)
@@ -228,22 +226,6 @@ def resolve_seer_organization(
 
     organization_ids = [oi.organization_id for oi in ois]
     logging_ctx["organization_ids"] = organization_ids
-
-    # Cheap DB lookup (no RPC): if every org on this installation already lives in the
-    # same cell, we don't need to know *which* org it is to pick where to send the
-    # webhook — the cell will resolve/authorize the real organization itself. Skip the
-    # expensive per-org RPC loop below entirely in that case.
-    #
-    # Only take this shortcut from CONTROL. The cell silo calls this same function to
-    # do the *real* resolution (it always needs the actual organization_id), so it must
-    # run the full loop rather than getting back a routing hint for itself.
-    if SiloMode.get_current_mode() == SiloMode.CONTROL:
-        cell_names = find_cells_for_orgs(organization_ids)
-        if len(cell_names) == 1:
-            logger.info("resolve_seer_organization.single_cell_fast_path", extra=logging_ctx)
-            return SeerResolutionResult(
-                organization_id=None, halt_reason=None, cell_name=next(iter(cell_names))
-            )
 
     available_organizations = _resolve_available_organizations(
         user_id=user.id, organization_ids=organization_ids, logging_ctx=logging_ctx

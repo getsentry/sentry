@@ -227,7 +227,7 @@ def route_slack_seer_event(
         logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
-    organization_id, halt_reason, cell_name = resolve_seer_organization(
+    organization_id, halt_reason = resolve_seer_organization(
         integration=integration,
         slack_user_id=slack_user_id,
         channel_id=channel_id,
@@ -238,7 +238,6 @@ def route_slack_seer_event(
     )
     logging_ctx["organization_id"] = organization_id
     logging_ctx["halt_reason"] = halt_reason
-    logging_ctx["cell_name"] = cell_name
 
     if halt_reason:
         # We set the cache here and pop it in the identity linking completion function to re-trigger this task
@@ -267,15 +266,6 @@ def route_slack_seer_event(
             halt_reason=halt_reason,
         )
         logger.info("route_slack_seer_event.halt_message_sent", extra=logging_ctx)
-        return
-
-    # Single-cell fast path: every org on this installation lives in one cell, so
-    # resolve_seer_organization skipped the per-org RPC loop and handed back that cell
-    # directly instead of an organization_id. Forward as-is; the cell resolves/
-    # authorizes the real organization itself (it always does — see
-    # SlackEventEndpoint._handle_seer_prompt), so there's nothing more to pick here.
-    if cell_name is not None:
-        _AsyncSlackSeerDispatcher(payload, response_url="").dispatch([cell_name])
         return
 
     if organization_id is None:
