@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 from typing import Any
+from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.api.client_kind import (
     FEATURE_FLAG,
@@ -11,6 +13,7 @@ from sentry.api.client_kind import (
     get_client_host,
     get_client_kind,
     get_user_agent,
+    set_client_kind_attributes,
 )
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
@@ -151,3 +154,55 @@ class GetClientHostTest(TestCase):
 
     def test_absent_header_is_none(self) -> None:
         assert get_client_host(make_request()) is None
+
+
+class SetClientKindAttributesTest(TestCase):
+    def test_noop_when_feature_is_disabled(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        with (
+            self.feature({FEATURE_FLAG: False}),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        sdk.set_tag.assert_not_called()
+        sdk.set_attribute.assert_not_called()
+
+    def test_records_kind_and_user_agent(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
+        assert sdk.set_attribute.call_args_list == [
+            mock.call("client_kind_test", "script"),
+            mock.call(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
+        ]
+
+    def test_records_client_host_for_mcp(self) -> None:
+        request = make_request(
+            auth=api_token(),
+            user_agent="sentry-mcp/1.0",
+            headers={
+                "X-Sentry-MCP-Version": "1.0",
+                "X-Sentry-MCP-Client-Family": "Claude-Code",
+            },
+        )
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        assert mock.call("client_host_test", "claude-code") in sdk.set_tag.call_args_list
+        assert mock.call("client_host_test", "claude-code") in sdk.set_attribute.call_args_list
+
+    def test_omits_user_agent_when_absent(self) -> None:
+        request = make_request(auth=api_token())
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        for call in sdk.set_attribute.call_args_list:
+            assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL
