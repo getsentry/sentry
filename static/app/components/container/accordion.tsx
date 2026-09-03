@@ -16,7 +16,6 @@ interface Props {
   items: AccordionItemContent[];
   setExpandedIndex: (index: number) => void;
   collapsedChevronDirection?: SVGIconDirection;
-  collapsible?: boolean;
   expandedChevronDirection?: SVGIconDirection;
 }
 
@@ -26,7 +25,6 @@ export function Accordion({
   expandedChevronDirection = 'up',
   setExpandedIndex,
   items,
-  collapsible = true,
 }: Props) {
   return (
     <AccordionContainer>
@@ -45,15 +43,13 @@ export function Accordion({
                     }
                   />
                 }
-                aria-label={collapsible && isExpanded ? t('Collapse') : t('Expand')}
+                aria-label={isExpanded ? t('Collapse') : t('Expand')}
                 aria-expanded={isExpanded}
                 size="zero"
                 variant="transparent"
-                onClick={() => setExpandedIndex(collapsible && isExpanded ? -1 : index)}
+                onClick={() => setExpandedIndex(isExpanded ? -1 : index)}
               />
-              <LineItemWrapper
-                onClick={() => setExpandedIndex(isExpanded && collapsible ? -1 : index)}
-              >
+              <LineItemWrapper onClick={() => setExpandedIndex(isExpanded ? -1 : index)}>
                 {item.header}
               </LineItemWrapper>
             </AccordionHeader>

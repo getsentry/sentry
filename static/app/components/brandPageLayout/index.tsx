@@ -13,26 +13,22 @@ const BrandPageLayoutSlot = slot(['headerStart', 'headerEnd', 'content'] as cons
 
 interface BrandPageLayoutProps {
   children: React.ReactNode;
-  artwork?: React.ReactNode;
-  background?: React.ReactNode;
 }
+
+const DEFAULT_ARTWORK = (
+  <BrandLayoutArt intrinsicHeight={1117} intrinsicWidth={1567} rightBleed={132}>
+    <InteractiveIllustration
+      backgroundSrc={artworkBackground}
+      outlineSrc={artworkOutline}
+      src={artworkImage}
+    />
+  </BrandLayoutArt>
+);
 
 /**
  * Full-page layout for focused workflows paired with prominent brand artwork.
  */
-function BrandPageLayoutRoot({
-  artwork = (
-    <BrandLayoutArt intrinsicHeight={1117} intrinsicWidth={1567} rightBleed={132}>
-      <InteractiveIllustration
-        backgroundSrc={artworkBackground}
-        outlineSrc={artworkOutline}
-        src={artworkImage}
-      />
-    </BrandLayoutArt>
-  ),
-  background = <BrandPageBackground />,
-  children,
-}: BrandPageLayoutProps) {
+function BrandPageLayoutRoot({children}: BrandPageLayoutProps) {
   return (
     <BrandPageLayoutSlot.Provider>
       {children}
@@ -54,7 +50,7 @@ function BrandPageLayoutRoot({
           position="relative"
         >
           <Container position="absolute" inset="0" overflow="hidden">
-            {background}
+            <BrandPageBackground />
           </Container>
           <Container
             position="absolute"
@@ -62,7 +58,7 @@ function BrandPageLayoutRoot({
             overflow="visible"
             pointerEvents="none"
           >
-            {artwork}
+            {DEFAULT_ARTWORK}
           </Container>
         </Container>
 

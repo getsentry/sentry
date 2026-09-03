@@ -111,7 +111,6 @@ interface UseChartZoomOptions {
    * inside dataZoom model for synced charts.
    */
   disabled?: boolean;
-  onZoom?: (period: FormattedPeriod) => void;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Will persist zoom state to page filters
@@ -123,7 +122,6 @@ interface UseChartZoomOptions {
    * Sets the start, end, and statsPeriod query params.
    */
   usePageDate?: boolean;
-  xAxisIndex?: number | number[];
 }
 
 /**
@@ -215,10 +213,8 @@ function useChartZoomCancel(disabled?: boolean) {
  */
 export function useChartZoom({
   disabled,
-  onZoom,
   usePageDate,
   saveOnZoom,
-  xAxisIndex,
 }: UseChartZoomOptions): ZoomRenderProps {
   const {handleChartReady} = useChartZoomCancel(disabled);
   const location = useLocation();
@@ -244,14 +240,9 @@ export function useChartZoom({
 
   const setPeriod = useCallback(
     (newPeriod: DateTimeUpdate) => {
-      const formattedPeriod = getFormattedPeriod(newPeriod);
-
-      // Callback to let parent component know zoom has changed.
-      onZoom?.(formattedPeriod);
-
-      commitZoomPeriod(formattedPeriod);
+      commitZoomPeriod(getFormattedPeriod(newPeriod));
     },
-    [commitZoomPeriod, onZoom]
+    [commitZoomPeriod]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
@@ -306,10 +297,9 @@ export function useChartZoom({
     // still receive x-range changes without this hook writing URL state.
     const zoomInside = DataZoomInside({
       id: 'useChartZoom-inside',
-      xAxisIndex,
     });
     return zoomInside;
-  }, [xAxisIndex]);
+  }, []);
 
   const toolBox = useMemo<ToolboxComponentOption>(() => {
     if (disabled) {
@@ -322,7 +312,6 @@ export function useChartZoom({
       {id: 'useChartZoom-toolbox'},
       {
         dataZoom: {
-          xAxisIndex,
           title: {
             zoom: '',
             back: '',
@@ -335,7 +324,7 @@ export function useChartZoom({
         },
       }
     );
-  }, [disabled, xAxisIndex]);
+  }, [disabled]);
 
   const renderProps = useMemo<ZoomRenderProps>(
     () => ({

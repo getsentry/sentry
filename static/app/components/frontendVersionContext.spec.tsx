@@ -111,18 +111,6 @@ describe('FrontendVersionProvider', () => {
     expect(await screen.findByTestId('running-version')).toHaveTextContent(commitSha);
   });
 
-  it('provides forced state when force prop is set', async () => {
-    render(
-      <FrontendVersionProvider releaseVersion="frontend@abc123" force="stale">
-        <TestComponent />
-      </FrontendVersionProvider>
-    );
-
-    expect(await screen.findByTestId('state')).toHaveTextContent('stale');
-    expect(await screen.findByTestId('deployed-version')).toHaveTextContent('null');
-    expect(await screen.findByTestId('running-version')).toHaveTextContent('abc123');
-  });
-
   it('provides state="disabled" when sentryMode is not SAAS', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/frontend-version/',

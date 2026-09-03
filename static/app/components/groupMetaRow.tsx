@@ -15,7 +15,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getTitle} from 'sentry/utils/events';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -24,7 +23,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   data: Group;
-  showAssignee?: boolean;
   showLifetime?: boolean;
 };
 
@@ -49,7 +47,7 @@ function Lifetime({
   );
 }
 
-export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
+export function GroupMetaRow({data, showLifetime = true}: Props) {
   const {
     id,
     lastSeen,
@@ -57,7 +55,6 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
     subscriptionDetails,
     numComments,
     logger,
-    assignedTo,
     annotations,
     shortId,
     project,
@@ -135,9 +132,6 @@ export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
           <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
         </Annotation>
       ))}
-      {showAssignee && assignedTo ? (
-        <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
-      ) : null}
     </GroupExtra>
   );
 }
