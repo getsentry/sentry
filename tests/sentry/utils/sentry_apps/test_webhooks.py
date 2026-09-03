@@ -182,6 +182,7 @@ class WebhookCircuitBreakerTest(TestCase):
         response = send_and_save_webhook_request(sentry_app, event)
 
         mock_safe_urlopen.assert_not_called()
+        assert response is not None
         assert response.status_code is None
 
     @override_options(CIRCUIT_BREAKER_OPTIONS)
