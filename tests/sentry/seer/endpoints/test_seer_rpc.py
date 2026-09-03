@@ -21,6 +21,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
 )
+from sentry.investigations.services.orchestration import create_agentic_manual_investigation
 from sentry.models.activity import Activity
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
@@ -1121,19 +1122,23 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
-    def test_investigation_event_is_scoped_staged_and_idempotent(self) -> None:
+    def test_investigation_event_is_scoped_applied_and_idempotent(self) -> None:
         organization = self.create_organization(owner=self.user)
-        investigation = self.create_investigation(
+        investigation, run = create_agentic_manual_investigation(
             organization=organization,
-            created_by=self.user,
-            source={"type": "manual"},
-        )
-        run = self.create_investigation_orchestration_run(
-            investigation=investigation,
-            source={"type": "manual"},
-            projection={},
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
         )
         event_id = uuid4()
+        projection = {
+            **run.projection,
+            "runId": 42,
+            "status": "processing",
+            "heartbeatAt": "2025-01-01T00:00:00+00:00",
+        }
         event = {
             "schemaVersion": 1,
             "eventId": str(event_id),
@@ -1142,7 +1147,7 @@ class TestSeerRpcViewerContextAuth(APITestCase):
             "sequence": 1,
             "generation": 1,
             "type": "workflow_updated",
-            "payload": {"projection": {"status": "processing"}},
+            "payload": {"projection": projection},
         }
         path = self._get_path("deliver_investigation_event")
         data: dict[str, Any] = {
@@ -1163,9 +1168,9 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.data == {
             "accepted": True,
             "duplicate": False,
-            "applicationStatus": "pending",
-            "lastAppliedSequence": 0,
-            "nextExpectedSequence": 1,
+            "applicationStatus": "applied",
+            "lastAppliedSequence": 1,
+            "nextExpectedSequence": 2,
             "notebookRevision": 0,
         }
         run.refresh_from_db()
@@ -1174,32 +1179,36 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert run.seer_run.seer_run_state_id == 42
         assert run.seer_run.type == SeerRunType.INVESTIGATION.value
         assert run.seer_run.organization_id == organization.id
-        assert run.last_event_sequence == 0
+        # The reducer applies the event, so the sequence advances.
+        assert run.last_event_sequence == 1
         stored = InvestigationOrchestrationEvent.objects.get(
             orchestration_run=run,
             event_id=event_id,
         )
-        assert stored.application_status == InvestigationOrchestrationEventStatus.PENDING
+        assert stored.application_status == InvestigationOrchestrationEventStatus.APPLIED
         assert stored.payload == {
             "schemaVersion": 1,
             "runId": 42,
             "investigationId": investigation.id,
             "generation": 1,
-            "payload": {"projection": {"status": "processing"}},
+            "payload": {"projection": projection},
         }
 
         duplicate = self.client.post(path, data=data, **headers)
 
         assert duplicate.status_code == 200
         assert duplicate.data["duplicate"] is True
-        assert duplicate.data["applicationStatus"] == "pending"
+        assert duplicate.data["applicationStatus"] == "applied"
         assert InvestigationOrchestrationEvent.objects.filter(orchestration_run=run).count() == 1
 
         conflicting_data = {
             **data,
             "args": {
                 **data["args"],
-                "event": {**event, "payload": {"projection": {"status": "failed"}}},
+                "event": {
+                    **event,
+                    "payload": {"projection": {**projection, "status": "failed"}},
+                },
             },
         }
         conflicting = self.client.post(
