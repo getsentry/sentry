@@ -12,7 +12,6 @@ from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.base import run_outbox_replications_for_self_hosted
 from sentry.hybridcloud.tasks.backfill_outboxes import (
-    WATERMARK_MISSING_METRIC,
     WATERMARK_REPORT_ERROR_METRIC,
     WATERMARK_STATE_METRIC,
     WATERMARK_TARGET_VERSION_METRIC,
@@ -303,7 +302,6 @@ def test_watermark_report_covers_a_finished_table() -> None:
     assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
     # The report sits below the loop, so it sees the keys the loop just created. The loop
     # walked every table on this cycle, so every table reports a pair.
-    assert _counter_calls(metrics_mock, WATERMARK_MISSING_METRIC) == 0
     assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC).keys() == {
         model._meta.db_table for model in _backfill_models(SiloMode.CONTROL)
     }
@@ -359,7 +357,6 @@ def test_watermark_report_carries_the_value_the_cycle_left() -> None:
 
     reported = _gauge_values(metrics_mock, WATERMARK_STATE_METRIC)
     assert reported.keys() == {model._meta.db_table for model in models}
-    assert _counter_calls(metrics_mock, WATERMARK_MISSING_METRIC) == 0
     # Every table reports what Redis holds now, not what it held at the start of the cycle.
     for table_name, value in reported.items():
         assert read_processing_state(table_name) == (value, ANY)
@@ -371,11 +368,8 @@ def test_watermark_report_carries_the_value_the_cycle_left() -> None:
 
 @django_db_all
 @no_silo_test
-def test_watermark_report_marks_a_table_the_loop_never_reached() -> None:
-    """A spent budget ends the walk early, so a later table has no watermark to report.
-
-    The loop ran on this cycle. A missing key is not by itself a dropped key.
-    """
+def test_watermark_report_skips_a_table_the_loop_never_reached() -> None:
+    """A spent budget ends the walk early, so a later table has no watermark to report."""
     reset_processing_state()
     with outbox_context(flush=False):
         for _ in range(5):
@@ -390,15 +384,11 @@ def test_watermark_report_marks_a_table_the_loop_never_reached() -> None:
         backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
 
     reported = set(_gauge_values(metrics_mock, WATERMARK_STATE_METRIC))
-    missing = {
-        call.kwargs["tags"]["table_name"]
-        for call in metrics_mock.incr.call_args_list
-        if call.args[0] == WATERMARK_MISSING_METRIC
-    }
     tables = {model._meta.db_table for model in _backfill_models(SiloMode.CONTROL)}
-    assert AuthProvider._meta.db_table in missing
-    assert reported | missing == tables
-    assert not reported & missing
+    # The budget ran out on auth_user, so the tables after it were never given a key.
+    assert User._meta.db_table in reported
+    assert AuthProvider._meta.db_table not in reported
+    assert reported < tables
 
 
 @django_db_all
@@ -416,7 +406,6 @@ def test_watermark_report_creates_no_key() -> None:
     for model in models:
         assert client.get(get_backfill_key(model._meta.db_table)) is None
 
-    assert _counter_calls(metrics_mock, WATERMARK_MISSING_METRIC) == len(models)
     assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
     assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC) == {}
 
@@ -519,26 +508,6 @@ def test_backfill_stops_at_the_budget() -> None:
 
     assert seen, "the walk never reached a model"
     assert [size for size in seen if size <= 0] == []
-
-
-@django_db_all
-@no_silo_test
-def test_watermark_report_names_the_table_it_lost() -> None:
-    """The counters are what an alert reads, so they have to say which table."""
-    reset_processing_state()
-    kept = AuthProvider._meta.db_table
-    set_processing_state(kept, 7, 1)
-
-    with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
-        backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
-
-    missing = {
-        call.kwargs["tags"]["table_name"]
-        for call in metrics_mock.incr.call_args_list
-        if call.args[0] == WATERMARK_MISSING_METRIC
-    }
-    assert kept not in missing
-    assert missing == {m._meta.db_table for m in _backfill_models(SiloMode.CONTROL)} - {kept}
 
 
 @django_db_all

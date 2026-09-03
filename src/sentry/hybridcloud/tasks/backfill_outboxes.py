@@ -206,8 +206,6 @@ WATERMARK_VERSION_METRIC = "backfill_outboxes.watermark_version"
 # version the backfill is working towards (per-table)
 WATERMARK_TARGET_VERSION_METRIC = "backfill_outboxes.watermark_target_version"
 
-WATERMARK_MISSING_METRIC = "backfill_outboxes.watermark_missing"
-
 # reporting errors, debugging only
 WATERMARK_REPORT_ERROR_METRIC = "backfill_outboxes.watermark_report_error"
 
@@ -256,12 +254,6 @@ def _report_watermark_for_model(
 
     state = read_processing_state(table_name)
     if state is None:
-        metrics.incr(
-            WATERMARK_MISSING_METRIC,
-            tags=dict(table_name=table_name),
-            skip_internal=True,
-            sample_rate=1.0,
-        )
         logger.warning(
             "backfill_outboxes.watermark_absent",
             extra={"table_name": table_name, "target_version": target_version},
