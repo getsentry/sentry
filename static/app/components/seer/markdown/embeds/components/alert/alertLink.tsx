@@ -1,21 +1,21 @@
-import {getAlertDetailsPathname} from 'sentry/components/seer/markdown/embeds/components/alert/getAlertDetailsPathname';
+import {getAlertDetailsPathname} from 'sentry/components/seer/markdown/embeds/components/alert/alertUtils';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function AlertLink({id, detectorId, kind, name}: EmbedOutput<'alert'>) {
+export function AlertLink(props: EmbedOutput<'alert'>) {
   const organization = useOrganization();
+  const {id, name} = props;
 
-  const resourceId = detectorId ?? id;
-  const href = getAlertDetailsPathname(organization, {id, detectorId, kind, name});
-
+  // `id` is the alert id the model was given, so it is the one a reader can
+  // match against the alerts UI -- the detector id only belongs in the href.
   return (
     <ResourceLink
       icon={IconSiren}
-      href={href}
-      title={name ?? t('Alert %s', resourceId)}
+      href={getAlertDetailsPathname(organization, props)}
+      title={name ?? t('Alert %s', id)}
     />
   );
 }

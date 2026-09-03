@@ -22,10 +22,13 @@ describe('alert embed schema', () => {
     const alert = seerEmbedsToJsonSchemas().find(widget => widget.name === 'alert');
 
     expect(alert).toMatchObject({
-      description: expect.stringContaining('always include `detectorId`'),
+      description: expect.stringContaining('also include `detectorId`'),
       body: {
         properties: {
-          detectorId: {type: 'string'},
+          detectorId: {
+            type: 'string',
+            description: expect.stringContaining('Omit for uptime alerts'),
+          },
         },
       },
     });

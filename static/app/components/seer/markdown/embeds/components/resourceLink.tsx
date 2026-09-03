@@ -61,11 +61,23 @@ export function ResourceLink({
   href,
   title,
 }: {
-  href: string;
   icon: ComponentType<SVGIconProps>;
   title: string;
+  /**
+   * Omit when the resource has no page to link to. The title still renders, so
+   * the reference stays readable instead of disappearing entirely.
+   */
+  href?: string;
 }): ReactNode {
   const icon = <Icon size="xs" style={{verticalAlign: 'middle'}} />;
+
+  if (!href) {
+    return (
+      <span>
+        {icon} {title}
+      </span>
+    );
+  }
 
   if (/^https?:\/\//.test(href) && isSafeHref(href)) {
     try {
