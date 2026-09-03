@@ -17,7 +17,6 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     NoSeerQuotaException,
     PrIterationNoPullRequestException,
-    PrIterationNotEnabledException,
     _build_base_shas_metadata,
     build_step_prompt,
     generate_autofix_handoff_prompt,
@@ -823,14 +822,14 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_pr_iteration_enabled_by_either_flag(
+    def test_pr_iteration_does_not_gate_on_flags(
         self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
-        """Automated CI iteration and manual iteration each enable the PR_ITERATION step.
+        """The PR_ITERATION step is gated by its callers, not here.
 
         Automated CI iteration runs under ``autofix-pr-iteration`` and manual
-        iteration under the ``-manual`` variant, so either flag alone is enough and
-        neither flag rejects the step.
+        iteration under the ``-manual`` variant; whichever caller checked its flag
+        is what decides, so the step itself runs with neither flag set.
         """
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
@@ -855,17 +854,16 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=67890,
             )
 
-        with pytest.raises(PrIterationNotEnabledException):
-            trigger()
-        mock_client.continue_run.assert_not_called()
+        trigger()
+        assert mock_client.continue_run.call_count == 1
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger()
-        assert mock_client.continue_run.call_count == 1
+        assert mock_client.continue_run.call_count == 2
 
         with self.feature("organizations:autofix-pr-iteration-manual"):
             trigger()
-        assert mock_client.continue_run.call_count == 2
+        assert mock_client.continue_run.call_count == 3
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
