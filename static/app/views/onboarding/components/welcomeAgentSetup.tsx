@@ -4,6 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,6 +28,7 @@ const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
   const initialization = useAgenticProgressInit({enabled});
   const restartRun = useRestartAgenticRun();
+  const {agenticProgressOnboardingCode} = useOnboardingContext();
   const progress = useAgenticProgress({
     runId: initialization.data?.runId ?? null,
     enabled,
@@ -42,7 +44,7 @@ export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
 
   return {
     run: liveRun,
-    onboardingCode: initialization.data?.onboardingCode,
+    onboardingCode: initialization.data?.onboardingCode ?? agenticProgressOnboardingCode,
     isAgentConnected: liveIsConnected,
     isSetupComplete: liveRun?.runStatus === 'completed',
     hasRunFailed: liveRun?.runStatus === 'failed' || liveRun?.runStatus === 'cancelled',
