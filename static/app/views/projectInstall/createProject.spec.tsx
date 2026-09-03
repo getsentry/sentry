@@ -1,3 +1,4 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -809,6 +810,131 @@ describe('CreateProject', () => {
     ).toBeInTheDocument();
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
     expect(addErrorMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('targets an MS Teams channel picked from the list by its name', async () => {
+    // The picker keys Teams channels by id, but the backend resolves a Teams
+    // channel by name only, so the workflow must carry the name.
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    const msteamsIntegration = OrganizationIntegrationsFixture({
+      id: '338731',
+      name: "Moo Deng's Team",
+      provider: {
+        key: 'msteams',
+        slug: 'msteams',
+        name: 'MS Teams',
+        canAdd: true,
+        canDisable: false,
+        features: ['alert-rule', 'chat-unfurl'],
+        aspects: {
+          alerts: [],
+        },
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [TeamFixture({slug: teamWithAccess.slug})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [msteamsIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${msteamsIntegration.id}/channels/`,
+      body: {
+        results: [
+          {
+            id: '19:abc@thread.tacv2',
+            name: 'General',
+            display: 'General',
+            type: 'standard',
+          },
+        ],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: {id: '1', slug: 'testProj', name: 'Test Project'},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: '1'})],
+    });
+
+    const ruleCreationMockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture(),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [
+        {
+          id: '1',
+          slug: 'testProj',
+          name: 'Test Project',
+        },
+      ],
+    });
+
+    render(<CreateProject />, {organization});
+
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByText(/When there are more than/));
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: /Notify via integration/,
+      })
+    );
+    await selectEvent.select(
+      screen.getByLabelText('channel'),
+      'General (19:abc@thread.tacv2)'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+
+    await waitFor(() => {
+      expect(ruleCreationMockRequest).toHaveBeenCalled();
+    });
+    expect(ruleCreationMockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/workflows/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          actionFilters: [
+            expect.objectContaining({
+              actions: expect.arrayContaining([
+                expect.objectContaining({
+                  type: 'msteams',
+                  integrationId: msteamsIntegration.id,
+                  config: expect.objectContaining({targetDisplay: 'General'}),
+                }),
+              ]),
+            }),
+          ],
+        }),
+      })
+    );
   });
 
   describe('Issue Alerts Options', () => {
