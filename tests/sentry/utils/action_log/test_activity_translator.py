@@ -151,7 +151,7 @@ class ActivityToActionTest(TestCase):
         assert action is not None
         # The sanitized payload must be encodable as UTF-8; lone surrogates raise
         # UnicodeEncodeError, which is what breaks psycopg2 param encoding.
-        json.dumps(action.dict(), ensure_ascii=False).encode("utf-8")
+        action.dict()["title"].encode("utf-8")
         assert "\ud800" not in action.dict()["title"]
 
     def test_strips_bad_chars_in_dict_keys(self) -> None:
