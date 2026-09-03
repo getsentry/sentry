@@ -187,8 +187,9 @@ class BaseRequestParser(ABC):
     def get_response_from_webhookpayload(
         self,
         cells: list[Cell],
-        mailbox: MailboxName | None = None,
+        mailbox: MailboxName | None = None,  # TODO(getsentry): make required
         integration_id: int | None = None,
+        identifier: int | str | None = None,  # TODO(getsentry): remove
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
@@ -196,6 +197,10 @@ class BaseRequestParser(ABC):
 
         A provider that resolved nothing to key its mailbox on falls back to its
         own webhook identifier, which puts every one of its payloads in one mailbox.
+
+        `identifier` is the older spelling of a subject-only `mailbox`, kept while the
+        parsers in getsentry still pass it -- the two repos cannot change in one commit.
+        The fallback to `webhook_identifier` goes when it does; no caller relies on it.
         """
         shed_response = self.get_shed_response(integration_id=integration_id)
         if shed_response is not None:
@@ -204,7 +209,9 @@ class BaseRequestParser(ABC):
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        target = mailbox or MailboxName(self.provider, str(self.webhook_identifier.value))
+        target = mailbox or MailboxName(
+            self.provider, str(identifier or self.webhook_identifier.value)
+        )
         # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(

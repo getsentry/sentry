@@ -142,6 +142,26 @@ class BaseRequestParserTest(TestCase):
             assert payload.request_method
             assert payload.destination_type == DestinationType.SENTRY_CELL
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_the_deprecated_identifier_names_the_mailbox_a_subject_would(self) -> None:
+        """The parsers in getsentry still pass `identifier`, and have to keep landing
+        on the mailbox they were landing on before `MailboxName` existed."""
+
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.SLACK
+            provider = "slack"
+
+        parser = MockParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_webhookpayload(
+            cells=self.region_config, identifier=12345
+        )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert {
+            (payload.cell_name, payload.mailbox_name) for payload in WebhookPayload.objects.all()
+        } == {("us", "slack:us:12345"), ("eu", "slack:eu:12345")}
+
     def test_get_mailbox_buckets_whenever_a_key_exists(self) -> None:
         class BucketedParser(ExampleRequestParser):
             def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
