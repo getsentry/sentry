@@ -58,6 +58,10 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
     return null;
   }
 
+  // Key on the slot each action was declared in, not its position after the
+  // nulls are dropped. Consumers inline conditionals here, so a slot appearing
+  // would otherwise shift every later action onto a new key — remounting it and
+  // discarding its state (an open dropdown snaps shut).
   const actions = (
     Array.isArray(trailingActions) ? trailingActions : [trailingActions]
   ).flatMap((action, slot) => (action === null ? [] : [{action, slot}]));
