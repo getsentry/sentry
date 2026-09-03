@@ -252,6 +252,11 @@ def _apply_event(
         projection = payload.get("projection")
         if projection is not None:
             _set_projection(run, projection, event_generation=generation)
+        run.phase = InvestigationOrchestrationPhase.FAILED
+        run.status = InvestigationOrchestrationStatus.FAILED
+        run.error = deepcopy(payload.get("error"))
+
+    run.heartbeat_at = timezone.now()
     return True, None
 
 

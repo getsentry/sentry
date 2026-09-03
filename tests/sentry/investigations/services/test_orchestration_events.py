@@ -4,13 +4,16 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from django.utils import timezone
 from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
+    InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
+    InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.orchestration import (
     create_agentic_manual_investigation,
@@ -304,6 +307,25 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
+
+    def test_workflow_failure_fails_the_run_without_a_projection(self) -> None:
+        error = {"code": "seer_unavailable", "message": "Seer stopped responding."}
+
+        receipt = self.deliver(self.event(1, "workflow_failed", {"error": error}))
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == InvestigationOrchestrationStatus.FAILED
+        assert self.orchestration_run.phase == InvestigationOrchestrationPhase.FAILED
+        assert self.orchestration_run.error == error
+
+    def test_applying_an_event_records_a_heartbeat(self) -> None:
+        before = timezone.now()
+
+        self.deliver(self.event(1, "workflow_updated", {"projection": self.projection()}))
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.heartbeat_at >= before
 
     def test_stale_and_future_generations_are_consumed_without_mutation(self) -> None:
         self.deliver(
