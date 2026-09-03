@@ -938,6 +938,15 @@
           "yAxes": ["count()"],
           "title": "Errors by title"
         }
+      },
+      {
+        "label": "Total errors",
+        "data": {
+          "query": "event.type:error",
+          "fields": ["count()"],
+          "statsPeriod": "24h",
+          "title": "Total errors"
+        }
       }
     ]
   },

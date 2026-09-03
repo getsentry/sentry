@@ -576,6 +576,17 @@ export const SEER_EMBED_SCHEMAS = {
           title: 'Errors by title',
         },
       },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total errors',
+        data: {
+          query: 'event.type:error',
+          fields: ['count()'],
+          statsPeriod: '24h',
+          title: 'Total errors',
+        },
+      },
     ],
   },
   spansQuery: {
