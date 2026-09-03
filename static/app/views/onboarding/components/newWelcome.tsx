@@ -123,6 +123,43 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
 ];
 
+/**
+ * The headline follows the run once an agent has it: its status while it works,
+ * what to do next when it finishes, and how to carry on when it does not.
+ */
+function getAgentHeading({
+  hasRunFailed,
+  isSetupComplete,
+}: {
+  hasRunFailed: boolean;
+  isSetupComplete: boolean;
+}) {
+  if (hasRunFailed) {
+    return {
+      title: t('Setup Didn’t Finish'),
+      description: t(
+        'Your agent ran into a problem. You can pick up where it left off manually below.'
+      ),
+    };
+  }
+
+  if (isSetupComplete) {
+    return {
+      title: t("You're All Set"),
+      description: t(
+        'Sentry is watching your app. Anything it catches from here shows up in Issues.'
+      ),
+    };
+  }
+
+  return {
+    title: t('Agent Connected'),
+    description: t(
+      'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
+    ),
+  };
+}
+
 export function NewWelcomeUI(props: StepProps) {
   const organization = useOrganization();
   const {inExperiment: hasScmOnboarding} = useExperiment({
@@ -135,27 +172,11 @@ export function NewWelcomeUI(props: StepProps) {
   // WelcomeAgentSetup initializes the agentic run as soon as it mounts — so
   // there is no separate preload to run first.
   const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
-  const {run, onboardingCode, isAgentConnected, isSetupComplete} = useWelcomeAgentRun({
-    enabled: showAgentSetup,
-  });
-  // A connected agent takes over the step, headline included: the run's own
-  // status is more use than the pitch the headline was making. Once it is done,
-  // neither is — what is left to say is where the errors go from here.
+  const {run, onboardingCode, isAgentConnected, isSetupComplete, hasRunFailed} =
+    useWelcomeAgentRun({enabled: showAgentSetup});
   const showAgentHeading = showAgentSetup && isAgentConnected;
   const scmHeading = showAgentHeading
-    ? isSetupComplete
-      ? {
-          title: t("You're All Set"),
-          description: t(
-            'Sentry is watching your app. Anything it catches from here shows up in Issues.'
-          ),
-        }
-      : {
-          title: t('Agent Connected'),
-          description: t(
-            'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
-          ),
-        }
+    ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
         title: t("Code breaks.\nWe'll help you fix it faster"),
         description: t('Monitor, debug, and fix your code, all in one place.'),

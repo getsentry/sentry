@@ -39,13 +39,20 @@ export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
   const connectionStatus = liveRun?.stages.find(
     stage => stage.stage === 'connect_mcp'
   )?.status;
-  const liveIsConnected = connectionStatus !== null && connectionStatus !== undefined;
+  // A failed connection is a report, but not a connection. Every other status
+  // means the agent reached us: connect_mcp is not optional, so it is never
+  // skipped, and the backend infers `bypassed` from later stages arriving.
+  const liveIsConnected =
+    connectionStatus !== null &&
+    connectionStatus !== undefined &&
+    connectionStatus !== 'failed';
 
   return {
     run: liveRun,
     onboardingCode: initialization.data?.onboardingCode,
     isAgentConnected: liveIsConnected,
     isSetupComplete: liveRun?.runStatus === 'completed',
+    hasRunFailed: liveRun?.runStatus === 'failed' || liveRun?.runStatus === 'cancelled',
   };
 }
 
@@ -81,8 +88,11 @@ export function WelcomeAgentSetup({
 }: WelcomeAgentSetupProps) {
   const organization = useOrganization();
   // Once an agent reports in, the run's progress is the whole step. Offering the
-  // manual path alongside it would be offering a choice already made.
+  // manual path alongside it would be offering a choice already made — until the
+  // run fails, at which point the choice is open again and the step needs a way
+  // forward. The progress stays up either way, since it shows what went wrong.
   const showsProgress = Boolean(run) && isAgentConnected;
+  const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   // Built as separate lines rather than one sentence: the code block renders
   // with `white-space: pre-wrap`, so the breaks survive into what gets copied.
   const prompt = onboardingCode
@@ -141,7 +151,7 @@ export function WelcomeAgentSetup({
 
       {/* Collapsing the height rather than just fading keeps the card above from
           jumping into the vacated space. */}
-      <ScmCollapsibleReveal open={!showsProgress}>
+      <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
         <Stack gap="2xl" align="center" width="100%">
           <Text variant="muted" size="md" bold uppercase>
             {t('or')}
