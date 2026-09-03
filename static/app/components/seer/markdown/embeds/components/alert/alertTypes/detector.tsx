@@ -155,12 +155,14 @@ export function DetectorAlertBlock(props: EmbedOutput<'alert'>) {
   const organization = useOrganization();
   const resourceId = detectorId ?? id;
   const href = getAlertDetailsPathname(organization, props);
+  const isLegacyMetricAlert = kind === 'metric' && detectorId === undefined;
   const {
     data: detector,
     isError,
     isPending,
   } = useQuery({
     ...detectorAlertApiOptions(organization.slug, resourceId),
+    enabled: !isLegacyMetricAlert,
     retry: false,
   });
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
@@ -184,7 +186,11 @@ export function DetectorAlertBlock(props: EmbedOutput<'alert'>) {
       testId="seer-alert-embed"
       title={detector?.name ?? name ?? t('Alert %s', resourceId)}
     >
-      {isPending ? (
+      {isLegacyMetricAlert ? (
+        <Text variant="muted">
+          {t('Alert details are unavailable for legacy alerts.')}
+        </Text>
+      ) : isPending ? (
         <LoadingIndicator />
       ) : isError || !detector ? (
         <Text variant="muted">{t('Unable to load alert details.')}</Text>
