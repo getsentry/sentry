@@ -51,7 +51,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.net.http import SafeSession
-from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
+from sentry.scm.private.rate_limit import DynamicRateLimiter, RateLimitCheck, RedisRateLimitProvider
 from sentry.shared_integrations.client.base import SessionSettings
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
@@ -1481,6 +1481,17 @@ def resolve_rate_limit_resource(path: str) -> str:
     return GITHUB_RESOURCE_CORE
 
 
+def _header_int(response: Response, header: str) -> int | None:
+    value = response.headers.get(header)
+    if value is None:
+        return None
+
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 def is_rate_limit_response(response: Response) -> bool:
     """Return True if GitHub rejected the request because a rate limit was exhausted."""
     if response.status_code not in GITHUB_RATE_LIMIT_STATUS_CODES:
@@ -1567,10 +1578,13 @@ class GitHubApiClient(GitHubBaseClient):
         # Quota is metered per resource on GitHub's side, so the counter we consult and the
         # capacity we record must both be scoped to the resource this request belongs to.
         resource = resolve_rate_limit_resource(path)
+        referrer = self.__rate_limiter.normalize_referrer(self.__referrer)
 
         is_rate_limited = False
+        rate_limit_check: RateLimitCheck | None = None
         try:
-            if self.__rate_limiter.is_rate_limited(self.__referrer, resource=resource):
+            rate_limit_check = self.__rate_limiter.check_rate_limit(referrer, resource=resource)
+            if rate_limit_check.is_limited:
                 # For now do nothing. We'll eventually use this once we understand its behavior better.
                 # raise RateLimitExceed
                 is_rate_limited = True
@@ -1579,17 +1593,48 @@ class GitHubApiClient(GitHubBaseClient):
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
 
-        response = super()._do_send(session, request, session_settings)
-
         try:
-            capacity = int(response.headers[GITHUB_RATE_LIMIT_CAPACITY])
-            self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
-        except KeyError:
-            # GitHub didn't return rate-limit headers for some unknown reason.
-            metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+            response = super()._do_send(session, request, session_settings)
+        except Exception:
+            if rate_limit_check is not None:
+                self.__rate_limiter.record_completed_request(referrer, resource, None)
+            raise
+
+        reset: int | None = None
+        try:
+            capacity = _header_int(response, GITHUB_RATE_LIMIT_CAPACITY)
+            used = _header_int(response, GITHUB_RATE_LIMIT_USED)
+            reset = _header_int(response, GITHUB_RATE_LIMIT_RESET)
+
+            if capacity is None:
+                # GitHub didn't return rate-limit headers for some unknown reason.
+                metrics.incr("sentry.scm.github.could_not_extract_rate_limit_headers")
+            elif used is None or reset is None:
+                # Capacity alone still keeps the limit fresh, but without GitHub's own accounting
+                # we cannot align our window to theirs or correct for requests we mis-counted.
+                metrics.incr("sentry.scm.github.could_not_extract_rate_limit_window")
+                self.__rate_limiter.set_total_capacity(capacity=capacity, resource=resource)
+            else:
+                local_used = None
+                reserved_used = None
+                if rate_limit_check is not None:
+                    local_used, reserved_used = self.__rate_limiter.report_usage_snapshots(
+                        rate_limit_check, reset
+                    )
+                self.__rate_limiter.update_rate_limit_meta(
+                    capacity=capacity,
+                    consumed=used,
+                    next_window_start=reset,
+                    local_used=local_used,
+                    reserved_used=reserved_used,
+                    resource=resource,
+                )
         except Exception as e:
             # Something went really wrong. Let's not be instrusive. We'll fail silently instead.
             sentry_sdk.capture_exception(e)
+        finally:
+            if rate_limit_check is not None:
+                self.__rate_limiter.record_completed_request(referrer, resource, reset)
 
         # QA metrics.
         was_rejected = is_rate_limit_response(response)
