@@ -59,9 +59,13 @@ class LevelCondition(EventCondition):
         return tag is not None and self._passes(tag)
 
     def render_label(self) -> str:
+        level = self.data.get("level")
+        match = self.data.get("match")
         data = {
-            "level": LEVEL_CHOICES[self.data["level"]],
-            "match": MATCH_CHOICES[self.data["match"]],
+            # Fall back to the raw value for unexpected/legacy data so rule list
+            # serialization does not 500.
+            "level": LEVEL_CHOICES.get(str(level), level),
+            "match": MATCH_CHOICES.get(match, match),
         }
         return self.label.format(**data)
 
