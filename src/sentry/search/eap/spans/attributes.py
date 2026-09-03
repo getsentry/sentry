@@ -738,13 +738,19 @@ except Exception as e:
 
 
 def device_class_context_constructor(params: SnubaParams, _resolver: Any) -> VirtualColumnContext:
-    # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`
+    # EAP defaults to lower case `unknown`, but in querybuilder we used `Unknown`.
+    #
+    # Span-streaming / conventions store the class as `device.class` ("1"/"2"/"3").
+    # Older V1 paths wrote `sentry.device.class`. Filters dual-read both keys in the
+    # resolver (OR for positive matches, AND for != / NOT IN; Unknown = neither key
+    # holds a known class code). VirtualColumnContext is single-source, so SELECT/
+    # group-by maps the convention name (historical streaming + new dual-written V1).
     value_map = {"": "Unknown"}
     for device_class, values in DEVICE_CLASS.items():
         for value in values:
             value_map[value] = device_class
     return VirtualColumnContext(
-        from_column_name="sentry.device.class",
+        from_column_name="device.class",
         to_column_name="device.class",
         value_map=value_map,
         default_value="Unknown",
@@ -864,9 +870,12 @@ SPANS_STATS_EXCLUDED_ATTRIBUTES_PUBLIC_ALIAS: set[str] = {
 SPAN_VIRTUAL_CONTEXTS = {
     "device.class": VirtualColumnDefinition(
         constructor=device_class_context_constructor,
-        filter_column="sentry.device.class",
+        filter_column="device.class",
         # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
         default_value="Unknown",
+        # Sort on the dual-written raw codes, not the VCC target. When from==to
+        # (device.class), ordering by device.class sorts mapped labels alphabetically
+        # (medium > low > high). sentry.device.class stays unmapped numeric codes.
         sort_column="sentry.device.class",
         search_type="string",
     ),

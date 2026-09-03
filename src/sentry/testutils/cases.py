@@ -3412,6 +3412,9 @@ def span_to_trace_item(span) -> TraceItem:
             k = "normalized_description"
 
         attributes[f"sentry.{k}"] = scalar_to_any_value(v)
+        # EAP maps convention `device.class`; dual-write so tests match production V1 convert.
+        if k == "device.class":
+            attributes["device.class"] = scalar_to_any_value(v)
 
     for k, v in span.get("measurements", {}).items():
         if v is None or v["value"] is None:
