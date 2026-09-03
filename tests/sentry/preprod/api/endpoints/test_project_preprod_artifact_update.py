@@ -804,3 +804,100 @@ class FindOrCreateReleaseTest(TestCase):
         assert result_with_build is not None
         assert result_with_build.id == existing_release.id
         assert result_with_build.version == f"{package}@{version}+456"
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_existing_release_matched_by_head_sha_not_duplicated(self) -> None:
+        """Regression test for https://github.com/getsentry/sentry/issues/123124
+
+        sentry-cli creates the release from `options.release` (e.g. android@1.1+930)
+        and associates the build's head commit with it. When the artifact update
+        arrives, we must attach to that release instead of minting a
+        bundle-id-named duplicate (com.mobile@1.1+930) that no events land on.
+        """
+        from sentry.models.release import Release
+
+        head_sha = "a" * 40
+        repo = self.create_repo(project=self.project)
+        sdk_release = self.create_release(self.project, version="android@1.1+930")
+        commit = self.create_commit(repo=repo, project=self.project, key=head_sha)
+        self.create_release_commit(release=sdk_release, commit=commit)
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, head_sha=head_sha
+        )
+        self.preprod_artifact.commit_comparison = commit_comparison
+        self.preprod_artifact.save()
+
+        data = {
+            "app_id": "com.mobile",
+            "build_version": "1.1",
+            "build_number": 930,
+        }
+        response = self._make_request(data)
+        assert response.status_code == 200
+
+        self.preprod_artifact.refresh_from_db()
+        assert self.preprod_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
+
+        # No bundle-id-named duplicate release is created
+        assert not Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.mobile@1.1+930",
+        ).exists()
+        # The SDK-created release is the only release in the project
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id, projects=self.project
+        )
+        assert releases.count() == 1
+        assert releases.first() is not None
+        assert releases.first().id == sdk_release.id
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_release_created_when_head_sha_has_no_matching_release(self) -> None:
+        """Fallback: artifact with vcs info whose commit belongs to no release yet
+        still gets the bundle-id-named release (existing behavior)."""
+        from sentry.models.release import Release
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, head_sha="b" * 40
+        )
+        self.preprod_artifact.commit_comparison = commit_comparison
+        self.preprod_artifact.save()
+
+        data = {
+            "app_id": "com.example.app",
+            "build_version": "1.0.0",
+            "build_number": 123,
+        }
+        response = self._make_request(data)
+        assert response.status_code == 200
+
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases.count() == 1
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_release_created_when_artifact_has_no_commit_comparison(self) -> None:
+        """Fallback: artifact uploaded without vcs info keeps existing behavior."""
+        from sentry.models.release import Release
+
+        assert self.preprod_artifact.commit_comparison is None
+
+        data = {
+            "app_id": "com.example.app",
+            "build_version": "1.0.0",
+            "build_number": 123,
+        }
+        response = self._make_request(data)
+        assert response.status_code == 200
+
+        releases = Release.objects.filter(
+            organization_id=self.project.organization_id,
+            projects=self.project,
+            version="com.example.app@1.0.0+123",
+        )
+        assert releases.count() == 1
