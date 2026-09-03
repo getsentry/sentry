@@ -8,7 +8,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
@@ -18,6 +18,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
@@ -407,6 +408,31 @@ class RecentDateCondition(ScalarCondition):
         return super().apply(queryset, search_filter)
 
 
+class HasAttachmentsCondition(Condition):
+    """Filter issues by whether they have any retained attachment rows."""
+
+    def apply(
+        self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
+    ) -> BaseQuerySet[Group, Group]:
+        value = search_filter.value.raw_value
+        if value == "" and search_filter.operator in ("=", "!="):
+            has_attachments = search_filter.operator == "!="
+        elif isinstance(value, int) and value in (0, 1) and search_filter.operator == "=":
+            has_attachments = bool(value)
+        else:
+            raise InvalidSearchQuery(
+                f"Operator {search_filter.operator} not valid for search {search_filter}"
+            )
+
+        attachments = EventAttachment.objects.filter(
+            group_id=OuterRef("pk"),
+            project_id=OuterRef("project_id"),
+        )
+        return queryset.alias(_has_attachments=Exists(attachments)).filter(
+            _has_attachments=has_attachments
+        )
+
+
 class QuerySetBuilder:
     def __init__(self, conditions: Mapping[str, Condition]):
         self.conditions = conditions
@@ -661,6 +687,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "issue.seer_last_run": RecentDateCondition(
                 "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
+            "has_attachments": HasAttachmentsCondition(),
             "issue.id": QCallbackCondition(
                 lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
             ),

@@ -418,6 +418,11 @@ class Fixtures:
             project = self.project
         return Factories.create_group(project, *args, **kwargs)
 
+    def create_event_attachment(self, project=None, *args, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_event_attachment(project, *args, **kwargs)
+
     def create_group_activity(self, group=None, *args, **kwargs):
         if group is None:
             group = self.group
