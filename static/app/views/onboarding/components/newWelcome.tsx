@@ -172,8 +172,14 @@ export function NewWelcomeUI(props: StepProps) {
   // WelcomeAgentSetup initializes the agentic run as soon as it mounts — so
   // there is no separate preload to run first.
   const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
-  const {run, onboardingCode, isAgentConnected, isSetupComplete, hasRunFailed} =
-    useWelcomeAgentRun({enabled: showAgentSetup});
+  const {
+    run,
+    onboardingCode,
+    isAgentConnected,
+    isSetupComplete,
+    hasRunFailed,
+    restartRun,
+  } = useWelcomeAgentRun({enabled: showAgentSetup});
   const showAgentHeading = showAgentSetup && isAgentConnected;
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
@@ -271,6 +277,7 @@ export function NewWelcomeUI(props: StepProps) {
                   isAgentConnected={isAgentConnected}
                   onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
+                  onRetry={restartRun}
                   onSetupInBrowser={handleComplete}
                   run={run}
                 />
