@@ -217,7 +217,7 @@ def _backfill_models(
     silo_mode: SiloMode,
 ) -> list[type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User]]:
     """
-    The models the backfill loop would look at in this silo mode.
+    The models the backfill loop processes in this silo mode.
     """
     found: list[
         type[ControlOutboxProducingModel] | type[CellOutboxProducingModel] | type[User]
@@ -318,29 +318,18 @@ def backfill_outboxes_for(
     refresh_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
 
     if remaining_to_backfill > 0:
-        for app, app_models in apps.all_models.items():
-            for model in app_models.values():
-                if not hasattr(model._meta, "silo_limit"):
-                    continue
+        for model in _backfill_models(silo_mode):
+            # If we find some backfill work to perform, do it.
+            batch = process_outbox_backfill_batch(
+                model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
+            )
+            if batch is None:
+                continue
 
-                # Only process models local this operational mode.
-                if (
-                    silo_mode is not SiloMode.MONOLITH
-                    and silo_mode not in model._meta.silo_limit.modes
-                ):
-                    continue
-
-                # If we find some backfill work to perform, do it.
-                batch = process_outbox_backfill_batch(
-                    model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
-                )
-                if batch is None:
-                    continue
-
-                remaining_to_backfill -= batch.count
-                backfilled += batch.count
-                if remaining_to_backfill <= 0:
-                    break
+            remaining_to_backfill -= batch.count
+            backfilled += batch.count
+            if remaining_to_backfill <= 0:
+                break
 
     metrics.incr(
         "backfill_outboxes.backfilled",

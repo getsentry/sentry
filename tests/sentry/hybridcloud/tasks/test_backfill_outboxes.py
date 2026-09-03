@@ -43,6 +43,7 @@ from sentry.testutils.silo import (
     create_test_cells,
     no_silo_test,
 )
+from sentry.users.models.user import User
 from sentry.utils import redis
 
 
@@ -387,3 +388,38 @@ def test_watermark_report_does_not_fail_the_tick_on_a_registry_error() -> None:
         backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
 
     assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 1
+
+
+@django_db_all
+@no_silo_test
+def test_backfill_stops_at_the_budget() -> None:
+    """A spent budget must end the walk, not carry a non-positive batch size to later models.
+
+    process_outbox_backfill_batch treats batch_size <= 0 as an empty page, reads
+    has_more as False, and marks the table complete having produced nothing.
+    """
+    reset_processing_state()
+    with outbox_context(flush=False):
+        for _ in range(5):
+            Factories.create_user()
+
+    seen: list[int] = []
+    real = process_outbox_backfill_batch
+
+    def spy(model: Any, batch_size: int, force_synchronous: bool = False) -> Any:
+        seen.append(batch_size)
+        return real(model, batch_size, force_synchronous=force_synchronous)
+
+    with (
+        override_options(
+            {"outbox_replication.auth_user.replication_version": User.replication_version}
+        ),
+        patch(
+            "sentry.hybridcloud.tasks.backfill_outboxes.process_outbox_backfill_batch",
+            side_effect=spy,
+        ),
+    ):
+        backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
+
+    assert seen, "the walk never reached a model"
+    assert [size for size in seen if size <= 0] == []
