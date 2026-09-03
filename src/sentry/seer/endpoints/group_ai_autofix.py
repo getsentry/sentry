@@ -614,6 +614,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             for repo_name, info in missing_perms.items()
         ]
         queued_feedback = [item.feedback.dict() for item in queued_items]
+        log_ctx = PrIterationLogContext.for_run(logger, state, group.organization.id, group.id)
         # Off the fetched row, not is_pr_iteration_paused: polled every second.
         paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
         pause_reason = pause_reason_from_marker(paused_marker)
@@ -641,7 +642,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
-                    "pr_iteration_outcomes": get_iteration_outcomes(state),
+                    "pr_iteration_outcomes": get_iteration_outcomes(state, log_ctx=log_ctx),
                     "pr_iteration_paused": paused_marker is not None,
                     "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
                     "warnings": warnings,

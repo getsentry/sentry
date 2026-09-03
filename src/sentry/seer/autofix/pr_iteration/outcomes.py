@@ -9,13 +9,11 @@ that ran before this existed still resolve.
 
 from __future__ import annotations
 
-import logging
 from enum import StrEnum
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.autofix_agent import Iteration, get_iterations
-
-logger = logging.getLogger(__name__)
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 
 
 class IterationOutcome(StrEnum):
@@ -34,7 +32,9 @@ def _made_changes(iteration: Iteration) -> bool:
     return any(block.file_patches for block in iteration.blocks)
 
 
-def get_iteration_outcomes(state: SeerRunState) -> dict[str, str]:
+def get_iteration_outcomes(
+    state: SeerRunState, *, log_ctx: PrIterationLogContext
+) -> dict[str, str]:
     """Outcome per iteration, keyed by iteration index as a string so it survives
     JSON.
 
@@ -45,7 +45,7 @@ def get_iteration_outcomes(state: SeerRunState) -> dict[str, str]:
     try:
         iterations = get_iterations(state)
     except Exception:
-        logger.exception("autofix.pr_iteration.get_iteration_outcomes.failed")
+        log_ctx.error("autofix.pr_iteration.iteration_outcomes.failed")
         return {}
 
     if not iterations:
