@@ -96,10 +96,12 @@ describe('SecondFactorAuth', () => {
         challenge: {webAuthnAuthenticationData: 'challenge'},
       },
     });
+    const authorization = Promise.withResolvers<void>();
     const authRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/',
       method: 'POST',
       body: {nextUri: '/organizations/', user},
+      asyncDelay: authorization.promise,
     });
 
     render(
@@ -128,6 +130,8 @@ describe('SecondFactorAuth', () => {
         })
       )
     );
+    expect(screen.getByText('Authorizing...')).toBeInTheDocument();
+    act(() => authorization.resolve());
     await waitFor(() =>
       expect(onComplete).toHaveBeenCalledWith({nextUri: '/organizations/', user})
     );
