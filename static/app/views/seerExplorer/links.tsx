@@ -7,8 +7,14 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {
+  makeAutomationBasePathname,
+  makeAutomationDetailsPathname,
+} from 'sentry/views/automations/pathnames';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+} from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
   LOGS_GROUP_BY_KEY,
@@ -572,24 +578,32 @@ export const LINK_RULES: LinkRule[] = [
     },
   },
 
-  // --- Searches. Not an entity: a set of results, reproduced as a query against the same dataset
-  // seer read. ---
+  // --- Searches / composites. Not a single entity: a result set or a section home, reproduced as a
+  // page URL. Query routes pull filter state from the call's query string (merged into `params` by
+  // `subjectFromCallRecord`). ---
 
   {
     id: 'telemetry_live_search',
-    resolve: ({kind, params, title}, {projects}) => {
-      // Arrives on both channels. The bus link always carries the translated query. The call row
-      // starts with only `dataset` + `question`; seer stamps the translated params onto the record
-      // after the search returns, so a fresh row can deep-link the same way. Older rows without a
-      // query still decline here and keep the residual bus link underneath.
-      if (kind !== 'link' && kind !== 'lib') {
-        return null;
-      }
+    // Org + project Explore / issue-search collections only. Do not claim nested lists under an
+    // entity id (e.g. `/issues/{issue_id}/events/`) — those inherit the parent via longest-prefix.
+    prefix:
+      /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/(?:events(?:-timeseries|-stats|-meta|-facets)?|traces|issues)\/?$/,
+    resolve: ({kind, params, path, title}, {projects}) => {
+      // Lib/bus: the bus link always carries the translated query. The call row starts with only
+      // `dataset` + `question`; seer stamps the translated params onto the record after the search
+      // returns. Older rows without a query still decline here and keep the residual bus link.
       if (kind === 'lib' && (params.query === undefined || params.query === null)) {
         return null;
       }
 
-      const url = searchUrl(params, projects);
+      // API rows: map Sentry query-string keys onto the searchUrl vocabulary, and infer dataset
+      // from the route when the agent did not send one (project error-event listing, issue search).
+      const searchParams =
+        kind === 'api' ? searchParamsFromApiCall(params, path) : params;
+
+      // A bare list with no filter still deep-links to the section home — better than an unlinked
+      // "Listing issues" row. Metrics still need a metric identity and decline without one.
+      const url = searchUrl(searchParams, projects);
       if (!url) {
         return null;
       }
@@ -597,10 +611,157 @@ export const LINK_RULES: LinkRule[] = [
       // Prefer seer's title when present (the call row ships one); otherwise name the dataset so a
       // residual nav link is not a generic "View results" under a row that already says which
       // dataset ran.
-      const datasetLabel = telemetryDatasetLabel(params.dataset);
+      const datasetLabel = telemetryDatasetLabel(searchParams.dataset);
       return {
         label: title ?? (datasetLabel ? t('View %s', datasetLabel) : t('View results')),
         url,
+      };
+    },
+  },
+  {
+    id: 'list_replays',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/replays\/?$/,
+    resolve: ({params, title}, {organization, projects}) => {
+      const project = resolveProject(
+        params.project_id_or_slug ?? params.project,
+        projects
+      );
+      return {
+        label: title ?? t('View replays'),
+        url: {
+          pathname: makeReplaysPathname({organization, path: '/'}),
+          query: {
+            ...(typeof params.query === 'string' ? {query: params.query} : {}),
+            ...(params.statsPeriod || params.stats_period
+              ? {statsPeriod: params.statsPeriod || params.stats_period}
+              : {}),
+            ...(project?.id ? {project: project.id} : {}),
+          },
+        },
+      };
+    },
+  },
+  {
+    id: 'list_releases',
+    // Org or project release *collection* only — detail rows already match get_release_details.
+    prefix:
+      /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/releases\/?$/,
+    resolve: ({params, title}, {organization, projects}) => {
+      const project = resolveProject(
+        params.project_id_or_slug ?? params.project,
+        projects
+      );
+      return {
+        label: title ?? t('View releases'),
+        url: {
+          pathname: makeReleasesPathname({organization, path: '/'}),
+          query: project?.id ? {project: project.id} : {},
+        },
+      };
+    },
+  },
+  {
+    id: 'list_dashboards',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/dashboards\/?$/,
+    resolve: ({title}) => ({
+      label: title ?? t('View dashboards'),
+      url: {pathname: '/dashboards/'},
+    }),
+  },
+  {
+    id: 'list_detectors',
+    // Org detector list (+ count). Project-nested create stays on the project rule.
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/detectors(?:\/count)?\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View monitors'),
+      url: {pathname: makeMonitorBasePathname(organization.slug)},
+    }),
+  },
+  {
+    id: 'list_workflows',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/workflows\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View alerts'),
+      url: {pathname: makeAutomationBasePathname(organization.slug)},
+    }),
+  },
+  {
+    id: 'list_monitors',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/monitors\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View monitors'),
+      // Classic cron list lives under the monitors surface; `/alerts/rules/crons/` has no index.
+      url: {pathname: makeMonitorBasePathname(organization.slug)},
+    }),
+  },
+  {
+    id: 'list_members',
+    // Org members only — project/team membership lists inherit their parent entity.
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/members\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View members'),
+      url: {pathname: `/settings/${organization.slug}/members/`},
+    }),
+  },
+  {
+    id: 'list_teams',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/teams\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View teams'),
+      url: {pathname: `/settings/${organization.slug}/teams/`},
+    }),
+  },
+  {
+    id: 'list_projects',
+    prefix: /\/organizations\/\{organization_id_or_slug\}\/projects\/?$/,
+    resolve: ({title}, {organization}) => ({
+      label: title ?? t('View projects'),
+      url: {pathname: makeProjectsPathname({organization, path: '/'})},
+    }),
+  },
+  {
+    id: 'get_explore_saved_query',
+    prefix: /\/explore\/saved\/\{id\}/,
+    resolve: ({params, title}) => {
+      const id = asUrlSegment(params.id);
+      if (!id) {
+        return null;
+      }
+      // Explore has no saved-query detail route; open spans Explore with the saved id. Dataset is
+      // not on the path — spans is the default surface and still loads the saved query when it is
+      // a logs/metrics/replays one via redirect.
+      return {
+        label: title ?? t('View saved query'),
+        url: {pathname: '/traces/', query: {id}},
+      };
+    },
+  },
+  {
+    id: 'get_discover_saved_query',
+    prefix: /\/discover\/saved\/\{query_id\}/,
+    resolve: ({params, title}) => {
+      const id = asUrlSegment(params.query_id);
+      if (!id) {
+        return null;
+      }
+      return {
+        label: title ?? t('View saved query'),
+        url: {pathname: '/explore/discover/results/', query: {id}},
+      };
+    },
+  },
+  {
+    id: 'resolve_short_id',
+    prefix: /\/shortids\/\{issue_id\}/,
+    resolve: ({params, title}) => {
+      const issueId = asUrlSegment(params.issue_id);
+      if (!issueId) {
+        return null;
+      }
+      // Short ids resolve on the issue route the same way numeric ids do.
+      return {
+        label: title ?? t('View issue'),
+        url: {pathname: `/issues/${issueId}/`},
       };
     },
   },
@@ -664,19 +825,25 @@ export function resolveLink(
 
 /** A call Code Mode reported, as something the rules can match on. */
 export function subjectFromCallRecord(record: CallRecord): LinkSubject {
-  const [pathname, query] = (record.resolved_path ?? '').split('?');
+  const [pathname, queryStringPart] = (record.resolved_path ?? '').split('?');
+  const query = queryStringPart
+    ? (queryString.parse(queryStringPart) as Record<string, any>)
+    : undefined;
+
+  // Lib rows keep scalar args. API rows merge path params with the requested query string so a
+  // composite rule can read `dataset` / `query` / `project` the same way a lib search does — seer
+  // only carries the query on `resolved_path`, never beside `path_params`.
+  const params =
+    record.kind === 'lib' ? (record.params ?? {}) : {...record.path_params, ...query};
 
   return {
     kind: record.kind === 'lib' ? 'lib' : 'api',
-    // API rows use path params. Lib rows use their scalar args — name-matched rules (e.g.
-    // `get_span_details`) are the only ones that see them, since route `match` predicates key on
-    // `path`, which a lib call does not have.
-    params: record.kind === 'lib' ? (record.params ?? {}) : (record.path_params ?? {}),
+    params,
     name: record.kind === 'lib' ? record.name : undefined,
     method: record.method,
     path: record.path,
     pathname: pathname || undefined,
-    query: query ? (queryString.parse(query) as Record<string, string>) : undefined,
+    query,
     status: record.status,
     // Same precedence as the row's own label, so a rule that names the row from its title
     // still leads with the agent's line rather than dropping it on every navigable row.
@@ -779,6 +946,53 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
 }
 
 /**
+ * Map a raw Sentry API call's query string (+ path) onto the `searchUrl` param vocabulary.
+ *
+ * Lib/bus searches already speak that vocabulary. HTTP Explore/issue routes use Sentry's wire
+ * names (`statsPeriod`, `yAxis`, `field`, `project` as ids) and sometimes omit `dataset` entirely
+ * (project error-event listing, org issue search).
+ */
+function searchParamsFromApiCall(
+  params: Record<string, any>,
+  path: string | undefined
+): Record<string, any> {
+  const next: Record<string, any> = {...params};
+
+  if (next.stats_period === undefined && next.statsPeriod !== undefined) {
+    next.stats_period = next.statsPeriod;
+  }
+  if (next.y_axes === undefined && next.yAxis !== undefined) {
+    next.y_axes = getStringArray(next.yAxis);
+  }
+  if (next.group_by === undefined && next.groupBy !== undefined) {
+    next.group_by = getStringArray(next.groupBy);
+  }
+  // Discover/events table columns.
+  if (next.field !== undefined && next.fields === undefined) {
+    next.fields = getStringArray(next.field);
+  }
+
+  if (!next.dataset) {
+    if (path?.includes('/issues/')) {
+      next.dataset = 'issues';
+    } else if (path?.includes('/traces/')) {
+      next.dataset = 'spans';
+    } else if (path?.includes('/events')) {
+      // Org events* and project events listings default to the errors Explore surface when the
+      // agent did not name a dataset. Spans/logs/metrics calls always send one.
+      next.dataset = 'errors';
+    }
+  }
+
+  // Wire `project` is an id (or list of ids). searchUrl also accepts `project_slugs` from the lib.
+  if (next.project !== undefined && next.project_ids === undefined) {
+    next.project_ids = getStringArray(next.project);
+  }
+
+  return next;
+}
+
+/**
  * The search a `telemetry_live_search` link stands for, as a URL onto the matching Explore page.
  *
  * Each dataset lands on a different page with its own query param vocabulary, so the shared page
@@ -788,7 +1002,8 @@ function searchUrl(
   params: Record<string, any>,
   projects?: Array<{id: string; slug: string}>
 ): LocationDescriptor | null {
-  const {dataset, project_slugs, query, sort, stats_period, start, end} = params;
+  const {dataset, project_slugs, project_ids, query, sort, stats_period, start, end} =
+    params;
 
   const queryParams: Record<string, any> = {query: query || '', project: null};
   if (stats_period) {
@@ -799,24 +1014,33 @@ function searchUrl(
   }
   // The page filter expects no timezone (treated as UTC) or a +HH:MM offset.
   if (start) {
-    queryParams.start = start.replace(/Z$/, '');
+    queryParams.start = String(start).replace(/Z$/, '');
   }
   if (end) {
-    queryParams.end = end.replace(/Z$/, '');
+    queryParams.end = String(end).replace(/Z$/, '');
   }
   if (project_slugs?.length && projects) {
-    const projectIds = project_slugs
+    const projectIds = getStringArray(project_slugs)
       .map((slug: string) => projects.find(p => p.slug === slug)?.id)
       .filter((id: string | undefined) => id !== undefined);
     if (projectIds.length > 0) {
       queryParams.project = projectIds;
+    }
+  } else if (project_ids?.length) {
+    queryParams.project = getStringArray(project_ids);
+  } else if (params.project_id_or_slug) {
+    // Project-scoped API routes carry the project in the path, not the query string.
+    const project = resolveProject(params.project_id_or_slug, projects);
+    if (project?.id) {
+      queryParams.project = [project.id];
     }
   }
 
   if (dataset === 'issues') {
     return {pathname: '/issues/', query: queryParams};
   }
-  if (dataset === 'errors') {
+  if (dataset === 'errors' || dataset === 'discover') {
+    // Events API default dataset is `discover`; treat it like the inferred errors Explore surface.
     return {
       pathname: '/explore/discover/homepage/',
       query: errorsQuery(queryParams, params),
@@ -831,7 +1055,12 @@ function searchUrl(
       ? {pathname: '/explore/metrics/', query: {...queryParams, metric}}
       : null;
   }
-  return {pathname: '/traces/', query: spansQuery(queryParams, params)};
+  if (dataset === 'spans' || dataset === 'transactions' || !dataset) {
+    // Spans is the default Explore surface when dataset is missing on a traces-family route.
+    return {pathname: '/traces/', query: spansQuery(queryParams, params)};
+  }
+  // Unknown dataset — fail closed rather than guess a page.
+  return null;
 }
 
 function errorsQuery(
@@ -849,9 +1078,16 @@ function errorsQuery(
     next.yAxis = y_axes;
   }
 
-  // In Discover, group_by values become selected columns (the `field` param) alongside the y_axes
-  // aggregates. Always force some: with no fields Discover re-routes to the saved default query.
-  const fields = [...getStringArray(group_by), ...getStringArray(y_axes)];
+  // In Discover, group_by / y_axes become selected columns (`field`). Prefer explicit `fields` from
+  // the events API when present; otherwise force defaults so Discover does not re-route to saved.
+  // Dedup: wire `field` and `yAxis` often both carry the same aggregate (e.g. count()).
+  const fields = [
+    ...new Set([
+      ...getStringArray(params.fields),
+      ...getStringArray(group_by),
+      ...getStringArray(y_axes),
+    ]),
+  ];
   next.field = fields.length
     ? fields
     : [...DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS].fields];
