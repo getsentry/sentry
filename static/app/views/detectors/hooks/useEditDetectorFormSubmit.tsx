@@ -22,8 +22,6 @@ interface UseEditDetectorFormSubmitOptions<TDetector, TFormData> {
    * Function to transform form data to API payload
    */
   formDataToEndpointPayload: (formData: TFormData) => BaseDetectorUpdatePayload;
-  onError?: (error: unknown) => void;
-  onSuccess?: (detector: TDetector) => void;
 }
 
 export function useEditDetectorFormSubmit<
@@ -32,8 +30,6 @@ export function useEditDetectorFormSubmit<
 >({
   detector,
   formDataToEndpointPayload,
-  onSuccess,
-  onError,
 }: UseEditDetectorFormSubmitOptions<TDetector, TFormData>): OnSubmitCallback {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -69,11 +65,7 @@ export function useEditDetectorFormSubmit<
 
         addSuccessMessage(t('Monitor updated'));
 
-        if (onSuccess) {
-          onSuccess(resultDetector as TDetector);
-        } else {
-          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
-        }
+        navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 
         onSubmitSuccess?.(resultDetector);
       } catch (error) {
@@ -83,21 +75,9 @@ export function useEditDetectorFormSubmit<
             : null) ?? t('Unable to update monitor')
         );
 
-        if (onError) {
-          onError(error);
-        }
-
         onSubmitError?.(error);
       }
     },
-    [
-      detector,
-      formDataToEndpointPayload,
-      updateDetector,
-      organization,
-      navigate,
-      onSuccess,
-      onError,
-    ]
+    [detector, formDataToEndpointPayload, updateDetector, organization, navigate]
   );
 }
