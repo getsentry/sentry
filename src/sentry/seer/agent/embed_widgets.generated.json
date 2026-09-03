@@ -490,7 +490,7 @@
   },
   {
     "name": "alert",
-    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus the underlying rule configuration for metric, uptime, and cron alerts. Do not duplicate those details as text. Never use a markdown link for alert references.",
+    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. For metric and cron alerts, also include `detectorId` from the detectors API — their `id` comes from a separate legacy id space that monitor links and previews cannot resolve. Uptime alerts need no `detectorId`. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus the underlying rule configuration for metric, uptime, and cron alerts. Do not duplicate those details as text. Never use a markdown link for alert references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -507,6 +507,11 @@
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "detectorId": {
+          "description": "Numeric detector id from the detectors API. Required for metric and cron alerts, whose `id` is an alert rule id and a monitor GUID respectively. Omit for uptime alerts, whose `id` is already a detector id, and for issue alerts, which are automations.",
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": ["id", "kind"],
@@ -517,6 +522,7 @@
         "label": "Metric alert",
         "data": {
           "id": "4521",
+          "detectorId": "9812",
           "kind": "metric",
           "name": "Checkout p95 latency"
         }
@@ -539,7 +545,8 @@
       {
         "label": "Cron alert",
         "data": {
-          "id": "9931",
+          "id": "3f8c1e2a-5b47-4d90-9a13-7c2e5f4b8d61",
+          "detectorId": "9931",
           "kind": "cron",
           "name": "nightly-sync"
         }

@@ -14,7 +14,11 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/resourceEmbedTestUtils';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-function renderDetectorAlert(detector: Detector, kind: 'cron' | 'metric' | 'uptime') {
+function renderDetectorAlert(
+  detector: Detector,
+  kind: 'cron' | 'metric' | 'uptime',
+  alertRuleId = detector.id
+) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/detectors/${detector.id}/`,
     body: detector,
@@ -31,7 +35,7 @@ function renderDetectorAlert(detector: Detector, kind: 'cron' | 'metric' | 'upti
 
   return renderEmbed({
     name: 'alert',
-    data: {id: detector.id, kind, name: detector.name},
+    data: {id: alertRuleId, detectorId: detector.id, kind, name: detector.name},
   });
 }
 
@@ -40,10 +44,11 @@ describe('alert embed', () => {
     expect(
       getEmbedLinkHref('alert', 'Checkout latency', {
         id: '4521',
+        detectorId: '9812',
         kind: 'metric',
         name: 'Checkout latency',
       })
-    ).toBe('/organizations/org-slug/monitors/4521/');
+    ).toBe('/organizations/org-slug/monitors/9812/');
   });
 
   it('points an issue alert at its automation', () => {
@@ -52,13 +57,95 @@ describe('alert embed', () => {
     );
   });
 
-  it('falls back to an id-based label when the API name is missing', () => {
+  it('points a metric alert without a detector ID at the legacy alert route', () => {
     renderEmbed({
       name: 'alert',
       data: {id: '4521', kind: 'metric'},
       level: 'inline',
     });
-    expect(screen.getByRole('link', {name: 'Alert 4521'})).toBeInTheDocument();
+
+    expect(screen.getByRole('link', {name: 'Alert 4521'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/alerts/rules/details/4521/'
+    );
+  });
+
+  it('points an uptime alert at its own id, which is already a detector id', () => {
+    expect(
+      getEmbedLinkHref('alert', 'Checkout availability', {
+        id: '774',
+        kind: 'uptime',
+        name: 'Checkout availability',
+      })
+    ).toBe('/organizations/org-slug/monitors/774/');
+  });
+
+  it('does not link a cron alert whose id is a monitor GUID', () => {
+    renderEmbed({
+      name: 'alert',
+      data: {id: '3f8c1e2a-5b47-4d90-9a13-7c2e5f4b8d61', kind: 'cron', name: 'Nightly'},
+      level: 'inline',
+    });
+
+    // The monitors route would 404 on a GUID and the legacy cron route needs a
+    // project the embed does not carry, so the name renders unlinked.
+    expect(screen.getByText('Nightly')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Nightly'})).not.toBeInTheDocument();
+  });
+
+  it('resolves a legacy metric alert to its detector', async () => {
+    const detector = MetricDetectorFixture({id: '9812', name: 'Checkout latency'});
+    const lookup = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rule-detector/',
+      body: {detectorId: '9812', alertRuleId: '4521', ruleId: null},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/9812/',
+      body: detector,
+    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/workflows/', body: []});
+
+    renderEmbed({name: 'alert', data: {id: '4521', kind: 'metric'}});
+
+    expect(await screen.findByText('Dataset:')).toBeInTheDocument();
+    expect(lookup).toHaveBeenCalledWith(
+      '/organizations/org-slug/alert-rule-detector/',
+      expect.objectContaining({query: expect.objectContaining({alert_rule_id: '4521'})})
+    );
+  });
+
+  it('falls back to the legacy message when no detector is dual-written', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rule-detector/',
+      statusCode: 404,
+      body: {detail: 'The requested resource does not exist'},
+    });
+
+    renderEmbed({name: 'alert', data: {id: '4521', kind: 'metric'}});
+
+    expect(
+      await screen.findByText('Alert details are unavailable for legacy alerts.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Unable to load alert details.')).not.toBeInTheDocument();
+  });
+
+  it('does not attempt a detector lookup for a legacy cron alert', async () => {
+    const lookup = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/alert-rule-detector/',
+      body: {detectorId: '9931', alertRuleId: null, ruleId: null},
+    });
+
+    renderEmbed({
+      name: 'alert',
+      data: {id: '3f8c1e2a-5b47-4d90-9a13-7c2e5f4b8d61', kind: 'cron'},
+    });
+
+    // A monitor GUID is not an alert rule id, so there is nothing to look it up
+    // against -- the endpoint would reject it outright.
+    expect(
+      await screen.findByText('Alert details are unavailable for legacy alerts.')
+    ).toBeInTheDocument();
+    expect(lookup).not.toHaveBeenCalled();
   });
 
   it('renders conditions and actions for an issue alert', async () => {
@@ -104,16 +191,18 @@ describe('alert embed', () => {
       latestGroup: null,
     });
 
-    renderDetectorAlert(detector, 'metric');
+    renderDetectorAlert(detector, 'metric', 'legacy-alert-rule-id');
 
     expect(
       await screen.findByRole('link', {name: detector.name}, {timeout: 5_000})
-    ).toBeInTheDocument();
+    ).toHaveAttribute('href', `/organizations/org-slug/monitors/${detector.id}/`);
     expect(await screen.findByText('Dataset:')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Rules'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Alert actions'})).toBeInTheDocument();
+    // The automations load independently of the detector, so this arrives on
+    // its own tick rather than with the rest of the preview.
     expect(
-      screen.getByRole('link', {name: `${detector.name} notifications`})
+      await screen.findByRole('link', {name: `${detector.name} notifications`})
     ).toBeInTheDocument();
     expect(screen.queryByText('Metric data')).not.toBeInTheDocument();
   });

@@ -1,11 +1,16 @@
 import type {ComponentType} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {
+  canResolveDetectorId,
+  getAlertDetailsPathname,
+  getEmbeddedDetectorId,
+} from 'sentry/components/seer/markdown/embeds/components/alert/alertUtils';
 import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
 import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
@@ -27,20 +32,58 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type DetectorAlertKind = Exclude<EmbedOutput<'alert'>['kind'], 'issue'>;
 
 type PreviewableDetector = MetricDetector | UptimeDetector | CronDetector;
 
-function detectorAlertApiOptions(organizationSlug: string, detectorId: string) {
+function detectorAlertApiOptions(
+  organizationSlug: string,
+  detectorId: string | undefined
+) {
   return apiOptions.as<Detector>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
     {
-      path: {organizationIdOrSlug: organizationSlug, detectorId},
+      path: detectorId ? {organizationIdOrSlug: organizationSlug, detectorId} : skipToken,
       staleTime: 30_000,
     }
   );
+}
+
+interface AlertRuleDetectorResponse {
+  detectorId: string;
+}
+
+/**
+ * The detector behind this alert, translating a legacy metric alert's
+ * `AlertRule` id when that is all the embed carries. The workflow engine keeps
+ * an explicit lookup table between the two id spaces, which is the same
+ * translation the alert routes perform when redirecting onto the monitor page.
+ *
+ * A 404 from that lookup means the alert was never dual-written, so there is
+ * no detector to preview -- it resolves to nothing rather than to an error.
+ */
+function useResolvedDetectorId(alert: EmbedOutput<'alert'>) {
+  const organization = useOrganization();
+  const shouldResolve = canResolveDetectorId(alert);
+
+  const {data, isPending} = useQuery({
+    ...apiOptions.as<AlertRuleDetectorResponse>()(
+      '/organizations/$organizationIdOrSlug/alert-rule-detector/',
+      {
+        path: shouldResolve ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {alert_rule_id: alert.id},
+        staleTime: 30_000,
+      }
+    ),
+    retry: false,
+  });
+
+  if (!shouldResolve) {
+    return {detectorId: getEmbeddedDetectorId(alert), isResolving: false};
+  }
+
+  return {detectorId: data?.detectorId, isResolving: isPending};
 }
 
 function getDetectorAlertLabel(kind: DetectorAlertKind) {
@@ -149,15 +192,56 @@ function DetectorAlertPreview({detector}: {detector: PreviewableDetector}) {
   );
 }
 
-export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
+/**
+ * The preview under the alert's header. Without a detector id there is nothing
+ * to load, which is a legacy alert rather than a failure -- say so instead of
+ * reporting an error the reader cannot act on.
+ */
+function DetectorAlertBody({
+  detector,
+  hasDetectorId,
+  isError,
+  isPending,
+}: {
+  hasDetectorId: boolean;
+  isError: boolean;
+  isPending: boolean;
+  detector?: Detector;
+}) {
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (!hasDetectorId) {
+    return (
+      <Text variant="muted">{t('Alert details are unavailable for legacy alerts.')}</Text>
+    );
+  }
+
+  if (isError || !detector) {
+    return <Text variant="muted">{t('Unable to load alert details.')}</Text>;
+  }
+
+  if (!isAlertDetector(detector)) {
+    return (
+      <Text variant="muted">{t('This alert type does not support block previews.')}</Text>
+    );
+  }
+
+  return <DetectorAlertPreview detector={detector} />;
+}
+
+export function DetectorAlertBlock(props: EmbedOutput<'alert'>) {
+  const {id, kind, name} = props;
   const organization = useOrganization();
-  const href = makeMonitorDetailsPathname(organization.slug, id);
+  const href = getAlertDetailsPathname(organization, props);
+  const {detectorId, isResolving} = useResolvedDetectorId(props);
   const {
     data: detector,
     isError,
     isPending,
   } = useQuery({
-    ...detectorAlertApiOptions(organization.slug, id),
+    ...detectorAlertApiOptions(organization.slug, detectorId),
     retry: false,
   });
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
@@ -187,17 +271,12 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
             </Tag>
           ) : null}
         </Flex>
-        {isPending ? (
-          <LoadingIndicator />
-        ) : isError || !detector ? (
-          <Text variant="muted">{t('Unable to load alert details.')}</Text>
-        ) : isAlertDetector(detector) ? (
-          <DetectorAlertPreview detector={detector} />
-        ) : (
-          <Text variant="muted">
-            {t('This alert type does not support block previews.')}
-          </Text>
-        )}
+        <DetectorAlertBody
+          detector={detector}
+          hasDetectorId={Boolean(detectorId)}
+          isError={isError}
+          isPending={isResolving || (Boolean(detectorId) && isPending)}
+        />
       </Stack>
     </Container>
   );

@@ -1,20 +1,21 @@
+import {getAlertDetailsPathname} from 'sentry/components/seer/markdown/embeds/components/alert/alertUtils';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
-export function AlertLink({id, kind, name}: EmbedOutput<'alert'>) {
+export function AlertLink(props: EmbedOutput<'alert'>) {
   const organization = useOrganization();
+  const {id, name} = props;
 
-  // Under the workflow engine an issue alert is an automation, while metric,
-  // uptime and cron alerts are all detectors.
-  const href =
-    kind === 'issue'
-      ? makeAutomationDetailsPathname(organization.slug, id)
-      : makeMonitorDetailsPathname(organization.slug, id);
-
-  return <ResourceLink icon={IconSiren} href={href} title={name ?? t('Alert %s', id)} />;
+  // `id` is the alert id the model was given, so it is the one a reader can
+  // match against the alerts UI -- the detector id only belongs in the href.
+  return (
+    <ResourceLink
+      icon={IconSiren}
+      href={getAlertDetailsPathname(organization, props)}
+      title={name ?? t('Alert %s', id)}
+    />
+  );
 }
