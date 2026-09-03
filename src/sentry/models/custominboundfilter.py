@@ -18,9 +18,11 @@ class CustomInboundFilterConditionType(StrEnum):
 
 
 class CustomInboundFilterDataType(StrEnum):
+    ALL = "all"
     ERROR = "error"
     LOG = "log"
     METRIC = "metric"
+    SPAN = "span"
 
 
 # The data type each condition reads a field of. A filter targets a single data type,
