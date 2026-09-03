@@ -25,9 +25,12 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     dropped_count: int
     automated_feedback_count: int
 
-    # Outcome, written when the iteration ends.
+    # Outcome, written when the iteration ends. ``outcome`` is a plain str
+    # rather than a Literal: its failure values are Seer's own, so a reason Seer
+    # adds mid-deploy still records instead of failing validation. See
+    # ``PrIterationOutcome`` for the values Sentry knows about.
     duration_ms: int
-    pushed_changes: bool
+    outcome: str
 
 
 analytics.register(AiAutofixPrIterationFeedbackBatchCompletedEvent)
