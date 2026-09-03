@@ -3,7 +3,7 @@ from unittest import mock
 import jwt
 import responses
 from requests import PreparedRequest, Request
-from responses.matchers import header_matcher, query_string_matcher
+from responses.matchers import header_matcher, query_param_matcher, query_string_matcher
 
 from sentry.integrations.jira.client import STATUS_SEARCH_MAX_PAGES, STATUS_SEARCH_PAGE_SIZE
 from sentry.integrations.utils.atlassian_connect import get_query_hash
@@ -229,3 +229,39 @@ class JiraClientTest(TestCase):
 
         assert result == {"values": short_page}
         assert len(responses.calls) == 1
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_search_issues_with_pasted_issue_url(self, mock_finalize: mock.MagicMock) -> None:
+        body = {"issues": [{"key": "ABC-123", "fields": {"summary": "My Issue"}}]}
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/search/jql/",
+            match=[query_param_matcher({"jql": 'id="ABC-123"', "fields": "*all"})],
+            body=json.dumps(body),
+            status=200,
+            content_type="application/json",
+        )
+        res = self.jira_client.search_issues("https://example.atlassian.net/browse/ABC-123")
+        assert res == body
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_search_issues_with_free_text(self, mock_finalize: mock.MagicMock) -> None:
+        body: dict[str, list[str]] = {"issues": []}
+        responses.add(
+            method=responses.GET,
+            url="https://example.atlassian.net/rest/api/2/search/jql/",
+            match=[query_param_matcher({"jql": 'text ~ "login crash"', "fields": "*all"})],
+            body=json.dumps(body),
+            status=200,
+            content_type="application/json",
+        )
+        res = self.jira_client.search_issues("login crash")
+        assert res == body
