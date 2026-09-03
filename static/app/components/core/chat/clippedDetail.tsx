@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {type ReactNode, useCallback, useState} from 'react';
 
 import {Container} from '@sentry/scraps/layout/container';
 
@@ -15,8 +15,18 @@ const DETAIL_CLIP_HEIGHT = 180;
  * everything after it off screen. A short value never shows the affordance at all —
  * `ClippedBox` only clips once the content exceeds `clipHeight + clipFlex` (208 px with
  * these defaults).
+ *
+ * When clipped, the overflowed children are marked `inert` so keyboard users
+ * cannot tab into content hidden behind `overflow: hidden`.
  */
 export function ClippedDetail({children}: {children: ReactNode}) {
+  const [isClipped, setIsClipped] = useState(false);
+
+  const handleReveal = useCallback(() => setIsClipped(false), []);
+
+  // ponytail: ref callback fires in commit phase when clipFade mounts, safe for setState
+  const onClipFadeMount = useCallback(() => setIsClipped(true), []);
+
   return (
     <Container minWidth="0" maxWidth="100%" padding="0">
       {containerProps => (
@@ -24,8 +34,10 @@ export function ClippedDetail({children}: {children: ReactNode}) {
           {...containerProps}
           clipHeight={DETAIL_CLIP_HEIGHT}
           buttonProps={{size: 'xs'}}
+          onReveal={handleReveal}
           clipFade={({showMoreButton}) => (
             <Container
+              ref={onClipFadeMount}
               position="absolute"
               left={0}
               bottom={0}
@@ -36,7 +48,7 @@ export function ClippedDetail({children}: {children: ReactNode}) {
             </Container>
           )}
         >
-          {children}
+          <div inert={isClipped ? true : undefined}>{children}</div>
         </ClippedBox>
       )}
     </Container>
