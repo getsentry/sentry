@@ -165,4 +165,6 @@ class EventObject(BaseModel):
     evidence: list[tuple[str, str]] = []
     # the alert definition behind a metric issue, as ordered label/value pairs
     metric_alert: list[tuple[str, str]] = []
+    # the response's ``context``: data the customer's own instrumentation attached
+    extra: list[tuple[str, str]] = []
     culprit: str | None = None

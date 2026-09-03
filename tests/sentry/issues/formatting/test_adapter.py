@@ -469,3 +469,37 @@ def test_metric_alert_renders_in_the_output() -> None:
     assert "## Metric Alert Details" in out
     assert "**Aggregate:** p95(span.duration)" in out
     assert "**Threshold:** above 500" in out
+
+
+def _event_with_extra(**context: Any) -> dict[str, Any]:
+    return {"title": "ValueError: x", "context": context}
+
+
+def test_extra_maps_the_response_context() -> None:
+    model = event_response_to_model(
+        _event_with_extra(shardId=7, note="retry after backoff", flags=["a", "b"])
+    )
+    # containers are serialized rather than str()'d, so the value stays machine readable
+    assert model.extra == [
+        ("shardId", "7"),
+        ("note", "retry after backoff"),
+        ("flags", '["a","b"]'),
+    ]
+
+
+def test_extra_drops_scrubbed_and_empty_values() -> None:
+    model = event_response_to_model(_event_with_extra(secret="[Filtered]", missing=None, kept=1))
+    assert model.extra == [("kept", "1")]
+
+
+def test_extra_absent_when_there_is_no_context() -> None:
+    assert event_response_to_model({"title": "t"}).extra == []
+    assert event_response_to_model({"title": "t", "context": {}}).extra == []
+
+
+def test_extra_is_held_back_from_the_default_sections() -> None:
+    # the same open-ended shape as contexts, but filled by the customer's own instrumentation,
+    # so it is opt-in rather than in the list a caller gets without thinking about it
+    event = _event_with_extra(shardId=7)
+    assert "Extra Data" not in format_issue(event)
+    assert "Extra Data" in format_issue(event, sections=EVENT_SECTIONS_WITH_USER)

@@ -33,6 +33,7 @@ from sentry.issues.formatting.sections import (
     detection_context_section,
     evidence_section,
     exceptions_section,
+    extra_section,
     format_issue,
     message_section,
     request_section,
@@ -498,7 +499,9 @@ def test_user_identifiers_are_opt_in() -> None:
     assert user_section in EVENT_SECTIONS_WITH_USER
     # opting in changes nothing else about the render order
     assert [s.__name__ for s in EVENT_SECTIONS] == [
-        s.__name__ for s in EVENT_SECTIONS_WITH_USER if s not in (user_section, contexts_section)
+        s.__name__
+        for s in EVENT_SECTIONS_WITH_USER
+        if s not in (user_section, contexts_section, extra_section)
     ]
 
     data = {"title": "t", "user": {"email": "someone@example.com", "ipAddress": "203.0.113.7"}}
@@ -655,3 +658,14 @@ def test_evidence_truncation_never_splits_markup() -> None:
             dataclasses.replace(LIMITS_DEFAULT, max_evidence_chars=cap),
         )
         ElementTree.fromstring(out)  # raises if a tag was split
+
+
+def test_extra_data_is_opt_in() -> None:
+    # ``context`` is the same open-ended shape as contexts, but filled by the customer's own
+    # instrumentation, so it follows the same rule rather than riding along in the default list
+    assert extra_section not in EVENT_SECTIONS
+    assert extra_section in EVENT_SECTIONS_WITH_USER
+
+    data = {"title": "t", "context": {"customerRef": "cus_9871", "shardId": 7}}
+    assert "cus_9871" not in format_issue(data)
+    assert "cus_9871" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
