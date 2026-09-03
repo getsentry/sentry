@@ -669,14 +669,23 @@ def get_groups_to_fire(
             when_dcg = data_condition_group_mapping.get(when_dcg_id)
             if not when_dcg:
                 when_dcg_missing[workflow_id].append(group_id)
-                continue
-            when_evaluation = _evaluate_group_result_for_dcg(
-                when_dcg,
-                dcg_to_slow_conditions,
-                group_id,
-                workflow_env,
-                condition_group_results,
-            )
+                when_evaluation = DataConditionGroupEvaluation(
+                    result=False,
+                    triggered=False,
+                    error=ConditionError(msg="DataConditionGroup does not exist"),
+                    data={
+                        "condition_evaluations": [],
+                        "logic_type": DataConditionGroup.Type.ANY,
+                    },
+                )
+            else:
+                when_evaluation = _evaluate_group_result_for_dcg(
+                    when_dcg,
+                    dcg_to_slow_conditions,
+                    group_id,
+                    workflow_env,
+                    condition_group_results,
+                )
             if not when_evaluation.triggered:
                 # If we're not triggering, all action-y if conditions need to be treated
                 # as tainted or not based on the when condition result.
