@@ -11,6 +11,7 @@ from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
+    CommentAction,
     GroupActionType,
     GroupActorType,
 )
@@ -64,6 +65,22 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
         "data": {"priority": initial_priority},
         "dateCreated": group.first_seen,
     }
+
+
+def _serialized_id(obj: GroupActionLogEntry) -> str:
+    """
+    The id clients address this entry by.
+
+    The notes endpoints resolve ``note_id`` against ``Activity.id``, so a COMMENT
+    serializes its ``comment_id`` (the Activity it mirrors) rather than its own.
+    COMMENT_EDIT and COMMENT_DELETE carry a ``comment_id`` too, but theirs points
+    at the GALE id of the COMMENT they supersede, so they keep their own.
+    """
+    if obj.type == GroupActionType.COMMENT.value:
+        match obj.action:
+            case CommentAction(comment_id=comment_id):
+                return str(comment_id)
+    return str(obj.id)
 
 
 @register(GroupActionLogEntry)
@@ -215,7 +232,7 @@ class GroupActionLogEntrySerializer(Serializer):
             data.pop("current_release_version", None)
 
         return {
-            "id": str(obj.id),
+            "id": _serialized_id(obj),
             "type": type_display,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
