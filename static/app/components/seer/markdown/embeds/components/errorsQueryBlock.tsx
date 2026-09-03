@@ -212,15 +212,6 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
       border="primary"
       data-test-id={`seer-errors-query-${kind}-embed`}
       margin="lg 0"
-      // Whatever lays this embed out decides how wide it is; nothing inside
-      // gets to widen the conversation around it. `min-width: 0` alone can't
-      // promise that — a block's min-content width keeps depending on its
-      // children until the overflow is non-visible — and the chart is the wide
-      // one, since ECharts sizes its canvas to an explicit pixel width.
-      // Clipping is safe here: the chart's tooltips and the legend's overflow
-      // dropdown both render in portals.
-      minWidth="0"
-      overflow="hidden"
       padding="lg"
       radius="md"
       width="100%"

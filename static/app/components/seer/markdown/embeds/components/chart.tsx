@@ -169,19 +169,25 @@ export function ChartContent({
         </Stack>
       ) : null}
       {/*
-        ECharts sizes its canvas to an explicit pixel width, which would
-        otherwise propagate up as this box's min-content width and stop every
-        ancestor from shrinking below whatever the chart last measured — in a
-        centering flex row (Storybook's `Demo`) that widens the whole embed and
-        spills it out both sides. `min-width: 0` plus a non-visible `overflow`
-        cuts the canvas out of that min-content chain, and clips a stale canvas
-        instead of letting it paint outside. Tooltips are unaffected; both
-        visualizations render them with `appendToBody`.
+        The legend lays its items out at their natural width — each one
+        `flex-shrink: 0` and up to 180px — and only collapses them into a
+        "+N more" dropdown after it has measured the room it actually has. That
+        natural width becomes this box's min-content width, which no ancestor
+        can then shrink below, so a five-series chart widens the whole embed
+        past its container. `overflow` can't hold it back: a non-visible
+        overflow only zeroes the automatic minimum size of a *flex item*, while
+        a block's min-content width keeps depending on its children regardless.
+
+        Inline-axis size containment is what actually detaches the two — the
+        box's width is computed as if it had no contents, so it takes its width
+        from the embed and the legend measures against that instead of dictating
+        it. `overflow: hidden` then clips a canvas that is briefly stale between
+        a resize and ECharts' own ResizeObserver catching up.
       */}
       <Container
+        containerType="inline-size"
         data-test-id="seer-chart-content"
         height={`${height}px`}
-        minWidth="0"
         overflow="hidden"
         width="100%"
       >
@@ -201,10 +207,6 @@ export const Chart = defineSeerEmbed({
         border="primary"
         data-test-id="seer-chart-embed"
         margin="lg 0"
-        // Same guarantee as every other chart-bearing embed: the canvas doesn't
-        // get to widen the conversation around it. See `getChartContentHeight`.
-        minWidth="0"
-        overflow="hidden"
         padding="lg xl md"
         radius="md"
       >
