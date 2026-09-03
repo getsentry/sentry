@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0033_seer_run_pr_iteration
 
-sentry: 1162_pendingeventattachment
+sentry: 1163_drop_organizationmapping_require_email_verification
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
