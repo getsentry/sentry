@@ -517,16 +517,23 @@ export const SEER_EMBED_SCHEMAS = {
   },
   errorsQuery: {
     description:
-      'Preview individual error events from an errors (Discover) query. ' +
-      'Use this for non-aggregate error exploration. ' +
-      '`query` uses event search syntax and `fields` are non-aggregate table columns. ' +
-      'Inline renders a link; block renders a timeseries chart above the first ' +
-      'five matching rows. The chart plots the event count over time unless ' +
-      '`yAxes` names other aggregates to plot instead.',
+      'Preview an errors (Discover) query. ' +
+      'Use mode "samples" to show individual error events and "aggregate" to ' +
+      'group and chart them. ' +
+      '`query` uses event search syntax. In samples mode `fields` are ' +
+      'non-aggregate table columns; in aggregate mode `fields` must include the ' +
+      'group-by columns and at least one aggregate function, such as "count()" ' +
+      'or "count_unique(user)". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the total across the period — the chart is never ' +
+      'broken out per group. When aggregate mode names only aggregates and no ' +
+      'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
+      'which aggregate is charted; samples mode charts the event count.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
       query: z.string().default(''),
+      mode: z.enum(['samples', 'aggregate']).default('samples'),
       fields: z.array(z.string()).optional(),
       yAxes: z.array(z.string()).optional(),
       sort: z.string().optional(),
@@ -537,38 +544,17 @@ export const SEER_EMBED_SCHEMAS = {
         label: 'Recent errors',
         data: {
           query: 'event.type:error',
+          mode: 'samples',
           fields: ['title', 'project', 'user.display', 'timestamp'],
           statsPeriod: '24h',
           title: 'Recent errors',
         },
       },
-    ],
-  },
-  errorsQueryAggregate: {
-    description:
-      'Preview grouped results from an aggregate errors (Discover) query. ' +
-      'Use this when comparing error groups or aggregate values. ' +
-      '`query` uses event search syntax. `fields` must include the group-by columns ' +
-      'and at least one aggregate function, such as "count()" or "count_unique(user)". ' +
-      'Inline renders a link; block renders the first five grouped rows beneath ' +
-      'a timeseries chart of the aggregate totalled across the period — the ' +
-      'chart is not broken out per group. When `fields` names only aggregates ' +
-      'and no group-by columns, the chart replaces the table. Provide `yAxes` ' +
-      'to pick which aggregate is charted.',
-    level: ['inline', 'block'],
-    schema: z.object({
-      ...pageFilterFields,
-      query: z.string().default(''),
-      fields: z.array(z.string()).optional(),
-      yAxes: z.array(z.string()).optional(),
-      sort: z.string().optional(),
-      title: z.string().min(1).optional(),
-    }),
-    examples: [
       {
         label: 'Errors by title',
         data: {
           query: '',
+          mode: 'aggregate',
           fields: ['title', 'project', 'count_unique(user)'],
           sort: '-count_unique_user',
           statsPeriod: '1h',
@@ -582,6 +568,7 @@ export const SEER_EMBED_SCHEMAS = {
         label: 'Total errors',
         data: {
           query: 'event.type:error',
+          mode: 'aggregate',
           fields: ['count()'],
           statsPeriod: '24h',
           title: 'Total errors',

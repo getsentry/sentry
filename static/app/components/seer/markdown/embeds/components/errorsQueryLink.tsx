@@ -7,18 +7,11 @@ import {
   buildErrorsEventView,
   getErrorsQueryHref,
   type ErrorsQueryData,
-  type ErrorsQueryKind,
 } from './errorsQueryUtils';
 
-export function ErrorsQueryLink({
-  data,
-  kind,
-}: {
-  data: ErrorsQueryData;
-  kind: ErrorsQueryKind;
-}) {
+export function ErrorsQueryLink({data}: {data: ErrorsQueryData}) {
   const organization = useOrganization();
-  const eventView = buildErrorsEventView(data, kind);
+  const eventView = buildErrorsEventView(data);
   const href = getErrorsQueryHref(eventView, organization);
 
   return (
@@ -27,7 +20,7 @@ export function ErrorsQueryLink({
       href={href}
       title={
         data.title ??
-        (kind === 'aggregate' ? t('Aggregated error search') : t('Error search'))
+        (data.mode === 'aggregate' ? t('Aggregated error search') : t('Error search'))
       }
     />
   );

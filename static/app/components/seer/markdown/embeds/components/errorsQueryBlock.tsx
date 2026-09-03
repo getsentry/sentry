@@ -30,7 +30,6 @@ import {
   resolveChartYAxes,
   toChartUnit,
   type ErrorsQueryData,
-  type ErrorsQueryKind,
 } from './errorsQueryUtils';
 
 const ROW_LIMIT = 5;
@@ -41,7 +40,6 @@ const CHART_HEIGHT = '220px';
 
 interface ErrorsQueryBlockProps {
   data: ErrorsQueryData;
-  kind: ErrorsQueryKind;
 }
 
 function formatCellValue(value: unknown): string {
@@ -89,19 +87,17 @@ function ErrorsQueryChart({
   eventView,
   fields,
   hasTable,
-  kind,
 }: {
   data: ErrorsQueryData;
   eventView: ReturnType<typeof buildErrorsEventView>;
   fields: string[];
   hasTable: boolean;
-  kind: ErrorsQueryKind;
 }) {
   const organization = useOrganization();
 
   // The chart is the total across the period, never a per-group breakdown —
   // the table below is what breaks the results out by group.
-  const yAxisFields = resolveChartYAxes(data, fields, kind);
+  const yAxisFields = resolveChartYAxes(data, fields);
 
   const query = useQuery({
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
@@ -163,14 +159,15 @@ function ErrorsQueryChart({
   );
 }
 
-export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
+export default function ErrorsQueryBlock({data}: ErrorsQueryBlockProps) {
   const organization = useOrganization();
-  const eventView = buildErrorsEventView(data, kind);
+  const eventView = buildErrorsEventView(data);
   const fields = eventView.getFields();
+  const isAggregate = data.mode === 'aggregate';
   // An aggregate with no grouping columns collapses to a single row, so the
   // chart already says everything a table would. Every other query keeps its
   // table and gains the chart above it.
-  const isChartOnly = kind === 'aggregate' && hasNoGroupBy(fields);
+  const isChartOnly = isAggregate && hasNoGroupBy(fields);
 
   const tableQuery = useQuery({
     ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
@@ -195,7 +192,7 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
       as="section"
       background="primary"
       border="primary"
-      data-test-id={`seer-errors-query-${kind}-embed`}
+      data-test-id={`seer-errors-query-${data.mode}-embed`}
       margin="lg 0"
       padding="lg"
       radius="md"
@@ -203,8 +200,8 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
     >
       <Stack gap="md">
         <Flex align="center" gap="md" justify="between">
-          <ErrorsQueryLink data={data} kind={kind} />
-          <Tag variant="muted">{kind === 'aggregate' ? t('Aggregate') : t('Events')}</Tag>
+          <ErrorsQueryLink data={data} />
+          <Tag variant="muted">{isAggregate ? t('Aggregate') : t('Events')}</Tag>
         </Flex>
         {data.query ? <ProvidedFormattedQuery query={data.query} /> : null}
         <ErrorsQueryChart
@@ -212,7 +209,6 @@ export default function ErrorsQueryBlock({data, kind}: ErrorsQueryBlockProps) {
           eventView={eventView}
           fields={fields}
           hasTable={!isChartOnly}
-          kind={kind}
         />
         {isChartOnly ? null : (
           <SimpleTable

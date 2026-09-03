@@ -12,19 +12,17 @@ const SERIES = [
 ];
 
 function renderEmbed({
-  name,
   data,
   level = 'block',
 }: {
   data: Record<string, unknown>;
-  name: 'errorsQuery' | 'errorsQueryAggregate';
   level?: 'block' | 'inline';
 }) {
-  const tag = `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
+  const tag = `{% errorsQuery %}${JSON.stringify(data)}{% /errorsQuery %}`;
   return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
 }
 
-describe('errors query embeds', () => {
+describe('errors query embed', () => {
   it('previews five error events under a count timeseries', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -43,8 +41,8 @@ describe('errors query embeds', () => {
     });
 
     renderEmbed({
-      name: 'errorsQuery',
       data: {
+        mode: 'samples',
         query: 'event.type:error',
         fields: ['title', 'project', 'timestamp'],
         sort: '-timestamp',
@@ -112,12 +110,12 @@ describe('errors query embeds', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {TypeError: {data: SERIES}},
+      body: {data: SERIES},
     });
 
     renderEmbed({
-      name: 'errorsQueryAggregate',
       data: {
+        mode: 'aggregate',
         query: '',
         fields: ['title', 'project', 'count_unique(user)'],
         sort: '-count_unique_user',
@@ -161,8 +159,8 @@ describe('errors query embeds', () => {
     });
 
     renderEmbed({
-      name: 'errorsQueryAggregate',
       data: {
+        mode: 'aggregate',
         query: 'event.type:error',
         fields: ['title', 'project', 'count()'],
         sort: '-count',
@@ -205,8 +203,8 @@ describe('errors query embeds', () => {
     });
 
     renderEmbed({
-      name: 'errorsQueryAggregate',
       data: {
+        mode: 'aggregate',
         query: 'event.type:error',
         fields: ['count()'],
         statsPeriod: '1h',
@@ -245,7 +243,8 @@ describe('errors query embeds', () => {
     });
 
     renderEmbed({
-      name: 'errorsQuery',
+      // No `mode`, so this also pins the schema default. `errorsQuery` shipped
+      // before the mode existed, and samples is what it used to do.
       data: {query: 'is:unresolved'},
       level: 'inline',
     });

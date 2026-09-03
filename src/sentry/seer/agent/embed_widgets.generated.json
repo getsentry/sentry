@@ -777,7 +777,7 @@
   },
   {
     "name": "errorsQuery",
-    "description": "Preview individual error events from an errors (Discover) query. Use this for non-aggregate error exploration. `query` uses event search syntax and `fields` are non-aggregate table columns. Inline renders a link; block renders a timeseries chart above the first five matching rows. The chart plots the event count over time unless `yAxes` names other aggregates to plot instead.",
+    "description": "Preview an errors (Discover) query. Use mode \"samples\" to show individual error events and \"aggregate\" to group and chart them. `query` uses event search syntax. In samples mode `fields` are non-aggregate table columns; in aggregate mode `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the total across the period — the chart is never broken out per group. When aggregate mode names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted; samples mode charts the event count.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -822,6 +822,11 @@
           "default": "",
           "type": "string"
         },
+        "mode": {
+          "default": "samples",
+          "type": "string",
+          "enum": ["samples", "aggregate"]
+        },
         "fields": {
           "type": "array",
           "items": {
@@ -842,7 +847,7 @@
           "minLength": 1
         }
       },
-      "required": ["query"],
+      "required": ["query", "mode"],
       "additionalProperties": false
     },
     "examples": [
@@ -850,88 +855,17 @@
         "label": "Recent errors",
         "data": {
           "query": "event.type:error",
+          "mode": "samples",
           "fields": ["title", "project", "user.display", "timestamp"],
           "statsPeriod": "24h",
           "title": "Recent errors"
         }
-      }
-    ]
-  },
-  {
-    "name": "errorsQueryAggregate",
-    "description": "Preview grouped results from an aggregate errors (Discover) query. Use this when comparing error groups or aggregate values. `query` uses event search syntax. `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five grouped rows beneath a timeseries chart of the aggregate totalled across the period — the chart is not broken out per group. When `fields` names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted.",
-    "level": ["inline", "block"],
-    "body": {
-      "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "type": "object",
-      "properties": {
-        "projects": {
-          "description": "Project IDs. Omit for the \"My Projects\" selection.",
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              }
-            ]
-          }
-        },
-        "environments": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "statsPeriod": {
-          "description": "Relative time range, e.g. \"24h\" or \"7d\". Mutually exclusive with start/end.",
-          "type": "string",
-          "pattern": "^\\d+[smhdw]$"
-        },
-        "start": {
-          "type": "string",
-          "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-        },
-        "end": {
-          "type": "string",
-          "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-        },
-        "query": {
-          "default": "",
-          "type": "string"
-        },
-        "fields": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "yAxes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "sort": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        }
       },
-      "required": ["query"],
-      "additionalProperties": false
-    },
-    "examples": [
       {
         "label": "Errors by title",
         "data": {
           "query": "",
+          "mode": "aggregate",
           "fields": ["title", "project", "count_unique(user)"],
           "sort": "-count_unique_user",
           "statsPeriod": "1h",
@@ -943,6 +877,7 @@
         "label": "Total errors",
         "data": {
           "query": "event.type:error",
+          "mode": "aggregate",
           "fields": ["count()"],
           "statsPeriod": "24h",
           "title": "Total errors"

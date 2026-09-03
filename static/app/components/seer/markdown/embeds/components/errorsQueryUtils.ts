@@ -9,12 +9,9 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 
-export type ErrorsQueryKind = 'aggregate' | 'events';
-export type ErrorsQueryData =
-  | EmbedOutput<'errorsQuery'>
-  | EmbedOutput<'errorsQueryAggregate'>;
+export type ErrorsQueryData = EmbedOutput<'errorsQuery'>;
 
-const DEFAULT_EVENT_FIELDS = [
+const DEFAULT_SAMPLE_FIELDS = [
   'title',
   'event.type',
   'project',
@@ -26,9 +23,10 @@ const DEFAULT_AGGREGATE_FIELDS = ['title', 'project', 'count()'];
 /** Charted when the query has no aggregate of its own to plot. */
 const DEFAULT_Y_AXIS = 'count()';
 
-export function buildErrorsEventView(data: ErrorsQueryData, kind: ErrorsQueryKind) {
+export function buildErrorsEventView(data: ErrorsQueryData) {
   const {
     query,
+    mode,
     fields,
     yAxes,
     sort,
@@ -46,10 +44,10 @@ export function buildErrorsEventView(data: ErrorsQueryData, kind: ErrorsQueryKin
     query,
     fields: fields?.length
       ? fields
-      : kind === 'aggregate'
+      : mode === 'aggregate'
         ? DEFAULT_AGGREGATE_FIELDS
-        : DEFAULT_EVENT_FIELDS,
-    orderby: sort ?? (kind === 'aggregate' ? '-count' : '-timestamp'),
+        : DEFAULT_SAMPLE_FIELDS,
+    orderby: sort ?? (mode === 'aggregate' ? '-count' : '-timestamp'),
     projects: projects?.map(Number),
     environment: environments,
     range: statsPeriod,
@@ -95,16 +93,12 @@ export function hasNoGroupBy(fields: string[]): boolean {
  * and finally a plain event count for queries that have none (every
  * non-aggregate query, and aggregates that only named grouping columns).
  */
-export function resolveChartYAxes(
-  data: ErrorsQueryData,
-  fields: string[],
-  kind: ErrorsQueryKind
-): string[] {
+export function resolveChartYAxes(data: ErrorsQueryData, fields: string[]): string[] {
   if (data.yAxes?.length) {
     return data.yAxes;
   }
 
-  const aggregates = kind === 'aggregate' ? fields.filter(isAggregateFieldName) : [];
+  const aggregates = data.mode === 'aggregate' ? fields.filter(isAggregateFieldName) : [];
 
   return aggregates.length > 0 ? aggregates : [DEFAULT_Y_AXIS];
 }

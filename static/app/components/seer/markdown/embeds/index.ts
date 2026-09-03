@@ -5,7 +5,7 @@ import {Chart} from './components/chart';
 import {Dashboard} from './components/dashboard';
 import {Docs} from './components/docs';
 import {Dsn} from './components/dsn';
-import {ErrorsQuery, ErrorsQueryAggregate} from './components/errorsQuery';
+import {ErrorsQuery} from './components/errorsQuery';
 import {Issue, Issues} from './components/issue';
 import {IssuesQuery} from './components/issuesQuery';
 import {LogsQuery} from './components/logsQuery';
@@ -33,7 +33,6 @@ const embeds = [
   Docs,
   Dsn,
   ErrorsQuery,
-  ErrorsQueryAggregate,
   Issue,
   Issues,
   IssuesQuery,
