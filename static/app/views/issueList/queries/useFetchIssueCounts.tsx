@@ -2,7 +2,6 @@ import {keepPreviousData} from '@tanstack/react-query';
 
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface FetchIssueCountsParameters {
@@ -29,13 +28,9 @@ const makeFetchIssueCounts = ({
   },
 ];
 
-export const useFetchIssueCounts = (
-  params: FetchIssueCountsParameters,
-  options: Partial<UseApiQueryOptions<Record<string, number>>> = {}
-) => {
+export const useFetchIssueCounts = (params: FetchIssueCountsParameters) => {
   return useApiQuery<Record<string, number>>(makeFetchIssueCounts(params), {
     staleTime: 180000, // 3 minutes
     placeholderData: keepPreviousData,
-    ...options,
   });
 };

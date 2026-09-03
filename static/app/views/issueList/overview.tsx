@@ -14,7 +14,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {QueryCount} from 'sentry/components/queryCount';
@@ -91,11 +90,9 @@ const MAX_ISSUES_COUNT = 100;
 interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
-  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
-  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilterDatetime> {
@@ -140,12 +137,10 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
-  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
   headerActions,
-  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -231,11 +226,9 @@ function IssueListOverviewInner({
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : initialSort === DEFAULT_ISSUE_STREAM_SORT
-      ? hasRecommendedSortDefault
-        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-        : DEFAULT_ISSUE_STREAM_SORT
-      : initialSort;
+    : hasRecommendedSortDefault
+      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+      : DEFAULT_ISSUE_STREAM_SORT;
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -717,11 +710,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (
-      hasRecommendedSortDefault &&
-      !urlParams.viewId &&
-      initialSort === DEFAULT_ISSUE_STREAM_SORT
-    ) {
+    if (hasRecommendedSortDefault && !urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -1017,7 +1006,6 @@ function IssueListOverviewInner({
               supergroupLookup={supergroupLookup}
               error={error}
               refetchGroups={fetchData}
-              withColumns={withColumns}
               paginationCaption={
                 !issuesLoading && modifiedQueryCount > 0
                   ? tct('[start]-[end] of [total]', {

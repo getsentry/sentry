@@ -3,7 +3,6 @@ import type {ReactNode} from 'react';
 import {ProgressMarker, type ProgressMarkerStep} from 'sentry/components/progressMarker';
 import {t} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
-import type {IconSize} from 'sentry/utils/theme/types';
 
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
@@ -28,10 +27,10 @@ const PROGRESS_STATE_STEPS: Record<ProgressState, ProgressMarkerStep> = {
   [ProgressState.FIX_APPLIED]: 'complete',
 };
 
-export function getProgressIcon(state: ProgressState | null, size?: IconSize): ReactNode {
+export function getProgressIcon(state: ProgressState | null): ReactNode {
   if (!state) {
     return null;
   }
   const step = PROGRESS_STATE_STEPS[state];
-  return step ? <ProgressMarker step={step} size={size} /> : null;
+  return step ? <ProgressMarker step={step} /> : null;
 }
