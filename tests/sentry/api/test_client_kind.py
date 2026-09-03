@@ -41,6 +41,16 @@ def make_request(
     return request
 
 
+def mark_from_api_client(request: Request) -> None:
+    """Stamp the marker `sentry.api.client.ApiClient` puts on its synthetic requests.
+
+    Set on the underlying Django request, as `ApiClient` does; the DRF request
+    delegates the lookup, which is what the guard in `client_kind` relies on.
+    """
+    django_request: Any = request._request
+    django_request.__from_api_client__ = True
+
+
 def session_user(*, is_sentry_app: bool = False) -> SimpleNamespace:
     return SimpleNamespace(is_authenticated=True, is_sentry_app=is_sentry_app)
 
@@ -125,6 +135,39 @@ class GetClientKindTest(TestCase):
                 request = make_request(auth=api_token(), user_agent=user_agent)
                 assert self.classify(request) == expected
 
+    def test_tool_name_is_found_after_a_prefix(self) -> None:
+        # Real clients bury the telling token behind a prefix or inside a comment.
+        # Requiring it to lead the string read every one of these as UNKNOWN.
+        cases = [
+            "node",
+            "python-httpx/0.28.1",
+            "Python/3.10 aiohttp/3.13.5",
+            "Apache-HttpClient/5.5.2 (Java/21.0.10)",
+            "Symfony HttpClient (Curl)",
+            "Deno/2.1.4 (variant; SupabaseEdgeRuntime/1.74.4)",
+            "Mozilla/5.0 (compatible; Google-Apps-Script; beanserver; +https://script.google.com)",
+            "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-GB) WindowsPowerShell/5.1.20348",
+        ]
+        for user_agent in cases:
+            with self.subTest(user_agent=user_agent):
+                request = make_request(auth=api_token(), user_agent=user_agent)
+                assert self.classify(request) == ClientKind.SCRIPT
+
+    def test_browsers_are_not_mistaken_for_scripts(self) -> None:
+        # The cost of matching mid-string is false positives, so the generic names
+        # (`java` inside `JavaScript`, `got`, `requests`) stay anchored to the front.
+        cases = [
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+            "AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1",
+            "JavaScript/1.0",
+        ]
+        for user_agent in cases:
+            with self.subTest(user_agent=user_agent):
+                request = make_request(auth=api_token(), user_agent=user_agent)
+                assert self.classify(request) == ClientKind.UNKNOWN
+
     def test_frontend_requires_a_session_cookie(self) -> None:
         # Shares `is_frontend_request` with the `ui_request` tag on `view.response`.
         request = make_request(user=session_user(), cookies=False)
@@ -206,3 +249,17 @@ class SetClientKindAttributesTest(TestCase):
             set_client_kind_attributes(request, self.organization)
         for call in sdk.set_attribute.call_args_list:
             assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL
+
+    def test_skips_requests_from_the_internal_api_client(self) -> None:
+        # `ApiClient` dispatches in-process with a synthetic request carrying no user
+        # agent, cookies or token. Recording its UNKNOWN would clobber the enclosing
+        # transaction's own attribution, since these attributes are isolation-scoped.
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        mark_from_api_client(request)
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        sdk.set_tag.assert_not_called()
+        sdk.set_attribute.assert_not_called()

@@ -50,12 +50,28 @@ _SDK_USER_AGENT = re.compile(r"^sentry[.-][a-z0-9_.-]+/", re.IGNORECASE)
 # Generic HTTP clients: someone's automation, not a Sentry-authored client. A
 # coding agent hitting the API directly lands here too -- nothing in the request
 # separates it from any other script, so we don't pretend to detect `agent`.
-_SCRIPT_USER_AGENT = re.compile(
-    r"^(?:"
-    r"curl|wget|python-requests|python-urllib|urllib3|httpx|aiohttp|requests"
-    r"|node-fetch|axios|got|undici|okhttp|go-http-client|java|libwww-perl"
-    r"|postmanruntime|insomnia|ruby|php|guzzlehttp|httparty|faraday|reqwest"
+#
+# Split by how safe a name is to look for mid-string. A user agent is a sequence of
+# `product/version (comment)` tokens and real clients bury the telling one behind a
+# prefix -- `python-httpx/0.28.1`, `Python/3.10 aiohttp/3.13.5`,
+# `Symfony HttpClient (Curl)`, `Apache-HttpClient/5.5.2 (Java/21.0.10)`. Requiring
+# every name to lead the string (as this once did) read all of those as UNKNOWN.
+_SCRIPT_USER_AGENT_ANYWHERE = re.compile(
+    r"(?:"
+    r"curl|wget|urllib3|httpx|aiohttp|node-fetch|axios|undici|okhttp"
+    r"|go-http-client|apache-httpclient|libwww-perl|postmanruntime|insomnia"
+    r"|guzzlehttp|httparty|faraday|reqwest|scrapy|deno|powershell"
+    r"|google-apps-script"
     r")\b",
+    re.IGNORECASE,
+)
+
+# Names too generic to look for mid-string: `java` is a substring of every
+# JavaScript runtime's user agent, and `got`/`requests` are ordinary English words
+# that appear in comment tokens. These only count when the caller leads with them.
+# `python` covers `python-requests`, `python-urllib` and `python-httpx` alike.
+_SCRIPT_USER_AGENT_PREFIX = re.compile(
+    r"^(?:node|java|ruby|php|python|requests|got)\b",
     re.IGNORECASE,
 )
 
@@ -131,7 +147,9 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
         return ClientKind.CLI
     if _SDK_USER_AGENT.match(user_agent):
         return ClientKind.SDK
-    if _SCRIPT_USER_AGENT.match(user_agent):
+    if _SCRIPT_USER_AGENT_PREFIX.match(user_agent) or _SCRIPT_USER_AGENT_ANYWHERE.search(
+        user_agent
+    ):
         return ClientKind.SCRIPT
 
     return ClientKind.UNKNOWN
@@ -144,6 +162,14 @@ def set_client_kind_attributes(request: Request, organization: Organization) -> 
     ``OrganizationEventsEndpointBase.convert_args`` so every events endpoint
     reports the same set of attributes without hand-wiring them per handler.
     """
+    # `sentry.api.client.ApiClient` dispatches endpoints in-process with a synthetic
+    # request that carries no user agent, cookies or token, so it classifies as
+    # UNKNOWN. These attributes are isolation-scoped, so recording that would overwrite
+    # the enclosing transaction's own classification -- or invent one for a Celery task
+    # that never served an API request. The outer caller is the one worth attributing.
+    if getattr(request, "__from_api_client__", False):
+        return
+
     client_kind = get_client_kind(request, organization)
     if client_kind is None:
         return
