@@ -5,7 +5,7 @@ import time
 from base64 import b64decode
 from collections import defaultdict
 from concurrent.futures import as_completed
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, Protocol, TypedDict, runtime_checkable
 
 import sentry_sdk
 from yaml import YAMLError
@@ -47,8 +47,22 @@ from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.yaml import safe_load
 
-if TYPE_CHECKING:
-    from sentry.integrations.github.client import GitHubBaseClient
+
+@runtime_checkable
+class PlatformDetectionClient(Protocol):
+    """What platform detection actually needs from an SCM client.
+
+    Detection was written against GitHub, but nothing in it is GitHub-specific
+    beyond these two calls -- so any provider whose client can produce a
+    GitHub-shaped git tree and Linguist-style language byte counts can reuse it.
+    Both methods are positional-only so implementations are free to name their
+    parameters to suit their own API.
+    """
+
+    def get(self, path: str, /, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_languages(self, repo: str, /) -> dict[str, int]: ...
+
 
 # ---------------------------------------------------------------------------
 # File I/O and manifest parsing helpers
@@ -60,7 +74,7 @@ def _ref_params(ref: str | None) -> dict[str, str]:
 
 
 def _get_repo_file_content(
-    client: GitHubBaseClient, repo: str, path: str, ref: str | None = None
+    client: PlatformDetectionClient, repo: str, path: str, ref: str | None = None
 ) -> str | None:
     """Fetch a file's content from a GitHub repo. Returns None if not found."""
     try:
@@ -274,7 +288,7 @@ def _segments_are_ignored(segments: list[str]) -> bool:
 
 
 def _get_tree(
-    client: GitHubBaseClient,
+    client: PlatformDetectionClient,
     repo: str,
     ref: str | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
@@ -541,7 +555,7 @@ def _framework_matches_scoped(
 
 
 def detect_platforms_multi(
-    client: GitHubBaseClient,
+    client: PlatformDetectionClient,
     repo: str,
     ref: str | None = None,
 ) -> MultiDetectionResult:
