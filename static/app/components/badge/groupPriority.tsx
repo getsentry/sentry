@@ -45,6 +45,12 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 
+const GROUP_PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
+  [PriorityLevel.HIGH]: 3,
+  [PriorityLevel.MEDIUM]: 2,
+  [PriorityLevel.LOW]: 1,
+};
+
 function useLastEditedBy({
   groupId,
   lastEditedBy: incomingLastEditedBy,
@@ -98,8 +104,7 @@ export function GroupPriorityBadge({
   showLabel = true,
   children,
 }: GroupPriorityBadgeProps) {
-  const bars =
-    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const bars = GROUP_PRIORITY_BARS[priority];
   const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
 
   return (
@@ -143,10 +148,15 @@ export function GroupPriorityDropdown({
   lastEditedBy,
   disabled = false,
 }: GroupPriorityDropdownProps) {
+  const organization = useOrganization();
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
+  const useCompactButton = organization.features.includes('issue-priority-assignee-ui');
+  const tooltip = disabled
+    ? t('You cannot manually update the priority of a metric issue.')
+    : t('Update the priority of this issue.');
 
   return (
     <DropdownMenu
@@ -157,23 +167,31 @@ export function GroupPriorityDropdown({
         </Flex>
       }
       minMenuWidth={230}
-      trigger={(triggerProps, isOpen) => (
-        <DropdownButton
-          {...triggerProps}
-          aria-label={t('Modify issue priority')}
-          size="zero"
-          disabled={disabled}
-          tooltipProps={{
-            title: disabled
-              ? t('You cannot manually update the priority of a metric issue.')
-              : t('Update the priority of this issue.'),
-          }}
-        >
-          <GroupPriorityBadge showLabel={false} priority={value}>
-            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
-          </GroupPriorityBadge>
-        </DropdownButton>
-      )}
+      trigger={(triggerProps, isOpen) =>
+        useCompactButton ? (
+          <Button
+            {...triggerProps}
+            aria-label={t('Modify issue priority')}
+            disabled={disabled}
+            icon={<IconCellSignal bars={GROUP_PRIORITY_BARS[value]} />}
+            size="xs"
+            tooltipProps={{title: tooltip}}
+            variant="secondary"
+          />
+        ) : (
+          <DropdownButton
+            {...triggerProps}
+            aria-label={t('Modify issue priority')}
+            size="zero"
+            disabled={disabled}
+            tooltipProps={{title: tooltip}}
+          >
+            <GroupPriorityBadge showLabel={false} priority={value}>
+              <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" variant="muted" />
+            </GroupPriorityBadge>
+          </DropdownButton>
+        )
+      }
       items={options}
       menuFooter={
         <Fragment>

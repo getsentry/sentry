@@ -16,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 
 interface AssigneeSelectorProps {
@@ -89,6 +90,7 @@ export function AssigneeSelector({
   showLabel = false,
   useOwnerAssignmentDetails = true,
 }: AssigneeSelectorProps) {
+  const organization = useOrganization();
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
     ...useProjectMembersQueryOptions([group.project.id]),
     select: resp => selectUsersFromMembers(resp.json),
@@ -102,9 +104,11 @@ export function AssigneeSelector({
   const currentAssignmentDetails =
     assignmentDetails ??
     (useOwnerAssignmentDetails ? getOwnerAssignmentDetails(group) : undefined);
+  const useAvatarButton = organization.features.includes('issue-priority-assignee-ui');
 
   return (
     <AssigneeSelectorDropdown
+      assignmentDetails={currentAssignmentDetails}
       group={group}
       loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
       memberList={currentMemberList}
@@ -113,23 +117,28 @@ export function AssigneeSelector({
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
-      trigger={(props, isOpen) => (
-        <StyledTrigger
-          {...props}
-          showChevron={false}
-          aria-label={t('Modify issue assignee')}
-          size="zero"
-        >
-          <AssigneeBadge
-            assignedTo={group.assignedTo ?? undefined}
-            assignedUser={assignedUser}
-            assignmentDetails={currentAssignmentDetails}
-            loading={assigneeLoading}
-            showLabel={showLabel}
-            chevronDirection={isOpen ? 'up' : 'down'}
-          />
-        </StyledTrigger>
-      )}
+      trigger={
+        useAvatarButton
+          ? undefined
+          : (props, isOpen) => (
+              <StyledTrigger
+                {...props}
+                showChevron={false}
+                aria-label={t('Modify issue assignee')}
+                size="zero"
+              >
+                <AssigneeBadge
+                  assignedTo={group.assignedTo ?? undefined}
+                  assignedUser={assignedUser}
+                  assignmentDetails={currentAssignmentDetails}
+                  loading={assigneeLoading}
+                  showLabel={showLabel}
+                  chevronDirection={isOpen ? 'up' : 'down'}
+                />
+              </StyledTrigger>
+            )
+      }
+      useAvatarButton={useAvatarButton}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );

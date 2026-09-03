@@ -158,6 +158,7 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const useCompactControls = organization.features.includes('issue-priority-assignee-ui');
 
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
@@ -246,7 +247,7 @@ function IssuePreviewContent() {
           onContinueInSeer={() => openSeerDrawer()}
           onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
         />
-        <Flex align="center" wrap="wrap" gap="lg">
+        <Flex align="center" wrap="wrap" gap={useCompactControls ? 'md' : 'lg'}>
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
             group={group}
