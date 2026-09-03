@@ -85,7 +85,7 @@ def build_test_message_blocks(
         else:
             title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
 
-    title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
+    title_text = f":red_circle: <{title_link}|{formatted_title}>"
 
     if rule:
         if legacy_rule_id:
