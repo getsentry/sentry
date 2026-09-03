@@ -70,6 +70,18 @@ describe('alert embed', () => {
     );
   });
 
+  it('does not load detector details for a legacy metric alert', async () => {
+    renderEmbed({
+      name: 'alert',
+      data: {id: '4521', kind: 'metric'},
+    });
+
+    expect(
+      await screen.findByText('Alert details are unavailable for legacy alerts.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Unable to load alert details.')).not.toBeInTheDocument();
+  });
+
   it('renders conditions and actions for an issue alert', async () => {
     const automation = AutomationFixture({
       id: '881',
