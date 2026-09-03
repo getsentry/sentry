@@ -19,6 +19,7 @@ from sentry.workflow_engine.processors.evaluations import (
     WorkflowEvaluation,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.processors.evaluations.eap import EVALUATION_EAP_FEATURE
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData
 
 LOGGING_MODULE = "sentry.workflow_engine.processors.evaluation_logging"
@@ -257,6 +258,55 @@ class TestWorkflowEvaluationArtifact(TestCase):
             )
 
         mock_logger.info.assert_called_once()
+
+    def test_emitter_sends_sampled_artifact_to_eap_with_feature(self) -> None:
+        evaluation = self._build_evaluation(triggered=True)
+        result = self._build_batch_result({10: evaluation})
+        mock_logger = mock.MagicMock()
+        with (
+            Feature(
+                {
+                    "organizations:workflow-engine-log-evaluations": True,
+                    EVALUATION_EAP_FEATURE: True,
+                }
+            ),
+            mock.patch(
+                f"{LOGGING_MODULE}.produce_workflow_evaluation_artifacts_to_eap"
+            ) as mock_produce,
+        ):
+            assert emit_workflow_evaluation_logs(
+                mock_logger,
+                organization=self.organization,
+                result=result,
+            )
+
+        mock_logger.info.assert_not_called()
+        mock_produce.assert_called_once()
+        assert mock_produce.call_args.args[0] == result
+        assert mock_produce.call_args.kwargs["organization_id"] == self.organization.id
+
+    def test_eap_feature_does_not_bypass_sampling(self) -> None:
+        mock_logger = mock.MagicMock()
+        with (
+            Feature(
+                {
+                    "organizations:workflow-engine-log-evaluations": False,
+                    EVALUATION_EAP_FEATURE: True,
+                }
+            ),
+            override_options({"workflow_engine.evaluation_log_sample_rate": 0.0}),
+            mock.patch(
+                f"{LOGGING_MODULE}.produce_workflow_evaluation_artifacts_to_eap"
+            ) as mock_produce,
+        ):
+            assert not emit_workflow_evaluation_logs(
+                mock_logger,
+                organization=self.organization,
+                result=self._build_batch_result({10: self._build_evaluation()}),
+            )
+
+        mock_logger.info.assert_not_called()
+        mock_produce.assert_not_called()
 
     def test_emitter_logs_artifact_to_sentry_logger(self) -> None:
         evaluation = self._build_evaluation(triggered=True)

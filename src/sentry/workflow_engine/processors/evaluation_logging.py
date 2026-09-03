@@ -6,9 +6,16 @@ from dataclasses import asdict
 from logging import Logger
 from typing import TYPE_CHECKING, cast
 
+from django.utils import timezone
+
 from sentry import features, options
 from sentry.utils.sdk import sdk_logger
 from sentry.workflow_engine.processors.evaluations.detector import ProcessDetectorsResult
+from sentry.workflow_engine.processors.evaluations.eap import (
+    EVALUATION_EAP_FEATURE,
+    produce_detector_evaluation_artifacts_to_eap,
+    produce_workflow_evaluation_artifacts_to_eap,
+)
 from sentry.workflow_engine.processors.evaluations.workflow import (
     ProcessWorkflowsResult,
     WorkflowEvaluationArtifact,
@@ -54,11 +61,12 @@ def _emit_evaluation_artifacts(
     artifacts: list[dict[str, object]],
     log_prefix: str,
 ) -> None:
-    direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
     for artifact in artifacts:
         if organization_id is not None:
             artifact["organization_id"] = organization_id
 
+    direct_to_sentry = options.get("workflow_engine.evaluation_logs_direct_to_sentry")
+    for artifact in artifacts:
         if direct_to_sentry:
             sdk_logger.info(log_prefix, attributes=artifact)
         else:
@@ -70,10 +78,19 @@ def emit_detector_evaluation_logs(
     *,
     organization_id: int | None,
     result: ProcessDetectorsResult,
+    eap_enabled: bool = False,
     log_prefix: str = DETECTOR_EVALUATION_LOG_PREFIX,
 ) -> bool:
     if not _is_sampled():
         return False
+
+    if eap_enabled and organization_id is not None:
+        produce_detector_evaluation_artifacts_to_eap(
+            result,
+            organization_id=organization_id,
+            emitted_at=timezone.now(),
+        )
+        return True
 
     _emit_evaluation_artifacts(
         logger,
@@ -98,6 +115,18 @@ def emit_workflow_evaluation_logs(
     """
     if not should_log(organization, result):
         return False
+
+    if features.has(
+        EVALUATION_EAP_FEATURE,
+        organization,
+        skip_experiment_exposure=True,
+    ):
+        produce_workflow_evaluation_artifacts_to_eap(
+            result,
+            organization_id=organization.id,
+            emitted_at=timezone.now(),
+        )
+        return True
 
     if isinstance(result, ProcessWorkflowsResult):
         artifacts = (

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from sentry import features, options
 from sentry.db.models.utils import is_model_attr_cached
@@ -25,12 +26,16 @@ from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
 from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.eap import EVALUATION_EAP_FEATURE
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -284,6 +289,14 @@ def _get_detector_organization_id(detector: Detector) -> int | None:
     return detector.config.get("organization_id", None)
 
 
+def _get_detector_organization(detector: Detector) -> Organization | None:
+    if not is_model_attr_cached(detector, "project") or detector.project is None:
+        return None
+    if not is_model_attr_cached(detector.project, "organization"):
+        return None
+    return detector.project.organization
+
+
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
@@ -306,9 +319,16 @@ def process_detectors[T](
         ):
             detector_results = handler.evaluate(data_packet)
 
+        organization = _get_detector_organization(detector)
         emit_detector_evaluation_logs(
             logger,
             organization_id=_get_detector_organization_id(detector),
+            eap_enabled=organization is not None
+            and features.has(
+                EVALUATION_EAP_FEATURE,
+                organization,
+                skip_experiment_exposure=True,
+            ),
             result=ProcessDetectorsResult(
                 detector_id=detector.id,
                 detector_type=detector.type,

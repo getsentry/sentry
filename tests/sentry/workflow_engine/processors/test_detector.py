@@ -19,6 +19,7 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
@@ -44,6 +45,7 @@ from sentry.workflow_engine.processors.evaluations import (
     DetectorEvaluationOutcome,
     EvaluationType,
 )
+from sentry.workflow_engine.processors.evaluations.eap import EVALUATION_EAP_FEATURE
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorPriorityLevel,
@@ -262,23 +264,31 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_project_detector_uses_cached_project_organization_id(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
-        ) as mock_emit:
+        with (
+            Feature({EVALUATION_EAP_FEATURE: True}),
+            mock.patch(
+                "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            ) as mock_emit,
+        ):
             process_detectors(self.build_data_packet(), [detector])
 
         assert mock_emit.call_args.kwargs["organization_id"] == self.organization.id
+        assert mock_emit.call_args.kwargs["eap_enabled"] is True
 
     def test_project_detector_without_cached_project_uses_none(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
         detector = Detector.objects.get(id=detector.id)
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
-        ) as mock_emit:
+        with (
+            Feature({EVALUATION_EAP_FEATURE: True}),
+            mock.patch(
+                "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            ) as mock_emit,
+        ):
             process_detectors(self.build_data_packet(), [detector])
 
         assert mock_emit.call_args.kwargs["organization_id"] is None
+        assert mock_emit.call_args.kwargs["eap_enabled"] is False
 
     def test_all_projects_detector_uses_configured_organization_id(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
