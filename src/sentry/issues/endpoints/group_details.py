@@ -1,8 +1,11 @@
+import copy
 import functools
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, cast
+from enum import StrEnum
+from typing import Any, Self, cast
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -47,13 +50,33 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import ViewAction
+from sentry.issues.action_log.types import (
+    CommentDeleteAction,
+    CommentEditAction,
+    SeerCodingCompletedAction,
+    SeerCodingStartedAction,
+    SeerIterationCompletedAction,
+    SeerIterationStartedAction,
+    SeerRCACompletedAction,
+    SeerRCAStartedAction,
+    SeerSolutionCompletedAction,
+    SeerSolutionStartedAction,
+    ViewAction,
+)
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
     cache_key_for_issue_view,
     get_issue_tsdb_group_model,
 )
 from sentry.issues.derived.check import check_status_consistency
+from sentry.issues.derived.framework import (
+    AggregatorResult,
+    Feature,
+    Pipeline,
+    StateView,
+    aggregator,
+    emit,
+)
 from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
@@ -86,6 +109,161 @@ logger = logging.getLogger(__name__)
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
     return str(group.times_seen_with_pending)
+
+
+class _SeerStep(StrEnum):
+    RCA = "rca"
+    SOLUTION = "solution"
+    CODING = "coding"
+    ITERATION = "iteration"
+
+
+@dataclass(frozen=True)
+class _CommentMention:
+    id: int
+    actor_type: str
+    slug: str | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "actor_type": self.actor_type, "slug": self.slug}
+
+
+@dataclass(frozen=True)
+class _CommentValue:
+    text: str | None
+    mentions: tuple[_CommentMention, ...] | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "text": self.text,
+            "mentions": (
+                [mention.as_dict() for mention in self.mentions]
+                if self.mentions is not None
+                else None
+            ),
+        }
+
+
+@dataclass
+class _Edits:
+    to_delete: list[int] = field(default_factory=list)
+    comment_values: dict[int, _CommentValue | None] = field(default_factory=dict)
+
+    def copy(self) -> Self:
+        return type(self)(
+            to_delete=self.to_delete.copy(),
+            comment_values=self.comment_values.copy(),
+        )
+
+
+type _PendingSeerStarts = dict[tuple[_SeerStep, int | str], list[int]]
+
+
+_PENDING_SEER_STARTS = Feature[_PendingSeerStarts]("pending_seer_starts", default_factory=dict)
+EDITS = Feature[_Edits]("edits", default_factory=_Edits)
+
+
+@aggregator(
+    (_PENDING_SEER_STARTS, EDITS),
+    scope=(
+        CommentEditAction,
+        CommentDeleteAction,
+        SeerRCAStartedAction,
+        SeerRCACompletedAction,
+        SeerSolutionStartedAction,
+        SeerSolutionCompletedAction,
+        SeerCodingStartedAction,
+        SeerCodingCompletedAction,
+        SeerIterationStartedAction,
+        SeerIterationCompletedAction,
+    ),
+)
+def _track_action_log_edits(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    action = entry.action
+    edits = state[EDITS].copy()
+    pending_starts: _PendingSeerStarts = {
+        step: list(action_ids) for step, action_ids in state[_PENDING_SEER_STARTS].items()
+    }
+
+    match action:
+        case CommentEditAction():
+            edits.to_delete.append(entry.id)
+            edits.comment_values[action.comment_id] = _CommentValue(
+                text=action.text,
+                mentions=(
+                    tuple(
+                        _CommentMention(
+                            id=mention.id,
+                            actor_type=mention.actor_type,
+                            slug=mention.slug,
+                        )
+                        for mention in action.mentions
+                    )
+                    if action.mentions is not None
+                    else None
+                ),
+            )
+            return emit(_PENDING_SEER_STARTS.value(pending_starts), EDITS.value(edits))
+        case CommentDeleteAction():
+            edits.to_delete.append(entry.id)
+            edits.comment_values[action.comment_id] = None
+            return emit(_PENDING_SEER_STARTS.value(pending_starts), EDITS.value(edits))
+        case SeerRCAStartedAction():
+            step, completed = _SeerStep.RCA, False
+        case SeerRCACompletedAction():
+            step, completed = _SeerStep.RCA, True
+        case SeerSolutionStartedAction():
+            step, completed = _SeerStep.SOLUTION, False
+        case SeerSolutionCompletedAction():
+            step, completed = _SeerStep.SOLUTION, True
+        case SeerCodingStartedAction():
+            step, completed = _SeerStep.CODING, False
+        case SeerCodingCompletedAction():
+            step, completed = _SeerStep.CODING, True
+        case SeerIterationStartedAction():
+            step, completed = _SeerStep.ITERATION, False
+        case SeerIterationCompletedAction():
+            step, completed = _SeerStep.ITERATION, True
+        case _:
+            return None
+
+    run_id = getattr(action, "run_id", None)
+    if run_id is None:
+        return None
+
+    key = (step, run_id)
+    if completed:
+        edits.to_delete.extend(pending_starts.pop(key, []))
+    else:
+        pending_starts.setdefault(key, []).append(entry.id)
+
+    return emit(_PENDING_SEER_STARTS.value(pending_starts), EDITS.value(edits))
+
+
+_ACTION_LOG_PIPELINE = Pipeline([_track_action_log_edits])
+
+
+def _apply_action_log_edits(
+    action_log: Sequence[GroupActionLogEntry],
+) -> list[GroupActionLogEntry]:
+    edits = _ACTION_LOG_PIPELINE.run(reversed(action_log))[EDITS]
+    to_delete = set(edits.to_delete)
+    edited_action_log = []
+    for entry in action_log:
+        if entry.id in to_delete:
+            continue
+        if entry.id in edits.comment_values:
+            comment_value = edits.comment_values[entry.id]
+            if comment_value is None:
+                continue
+            entry = copy.copy(entry)
+            entry.data = {**entry.data, **comment_value.as_dict()}
+            # The return value should probably be something different so we're not mutating
+            # models not intended to be mutated, and so we can create synthetic activity results
+            # if we want.
+            entry.__dict__.pop("action", None)
+        edited_action_log.append(entry)
+    return edited_action_log
 
 
 @extend_schema(tags=["Events"])
@@ -373,6 +551,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
+                    action_log = _apply_action_log_edits(action_log)
                     # swap action log data in under the activity name
                     first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
                     data.update(
