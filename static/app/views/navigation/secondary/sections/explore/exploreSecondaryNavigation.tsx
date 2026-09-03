@@ -64,13 +64,11 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Replays', to: `${baseUrl}/replays/`});
   }
   navItems.push({label: 'Releases', to: `${baseUrl}/releases/`});
-  if (organization.features.includes('gen-ai-conversations')) {
-    navItems.push({
-      label: 'Agents',
-      badge: 'new',
-      to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
-    });
-  }
+  navItems.push({
+    label: 'Agents',
+    badge: 'new',
+    to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+  });
   if (organization.openMembership && organization.features.includes('investigations')) {
     navItems.push({
       label: 'Investigations',
@@ -203,21 +201,19 @@ function ExploreSecondaryNavigationImpl() {
                 {t('Releases')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            <Feature features="gen-ai-conversations">
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
-                  to={{
-                    pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
-                    search: '?statsPeriod=24h&referrer=sidebar',
-                  }}
-                  analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="new" />}
-                >
-                  {t('Agents')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            </Feature>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
+                to={{
+                  pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+                  search: '?statsPeriod=24h&referrer=sidebar',
+                }}
+                analyticsItemName="explore_conversations"
+                trailingItems={<FeatureBadge type="new" />}
+              >
+                {t('Agents')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
             {organization.openMembership && (
               <Feature features="organizations:investigations">
                 <SecondaryNavigation.ListItem>

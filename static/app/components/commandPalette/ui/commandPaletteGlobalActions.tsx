@@ -429,12 +429,10 @@ export function GlobalCommandPaletteActions() {
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
-          {organization.features.includes('gen-ai-conversations') && (
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
-            />
-          )}
+          <CMDKAction
+            display={{label: t('Agents')}}
+            to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
+          />
           <CMDKAction
             display={{label: t('All Queries')}}
             to={`${prefix}/explore/saved-queries/`}
