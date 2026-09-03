@@ -6,7 +6,6 @@ from django.utils import timezone
 from sentry_sdk import capture_exception
 from taskbroker_client.task import Task
 
-from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocationtransfer import (
     MAX_AGE,
     RETRY_BACKOFF,
@@ -131,40 +130,19 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
             capture_exception(err)
     elif transfer.state == RelocationTransferState.Reply:
         # We expect the `ProxyRelocationExportService::reply_with_export` implementation to have
-        # written the export data to the control silo's local relocation-specific GCS bucket. Here,
-        # we just read it into memory and attempt the RPC back to the requesting cell.
-        uuid = transfer.relocation_uuid
-        slug = transfer.org_slug
-
-        relocation_storage = get_relocation_storage()
-        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+        # written the export data to the shared relocation bucket. Now, we forward the reply request
+        # to the requesting cell.
         try:
-            encrypted_bytes = relocation_storage.open(path)
-        except Exception as err:
-            logger.warning(
-                "relocation.failed_open_reply",
-                extra={
-                    **log_context,
-                    "error": str(err),
-                },
+            cell_relocation_export_service.reply_with_export(
+                relocation_uuid=str(transfer.relocation_uuid),
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
+                org_slug=transfer.org_slug,
+                encrypted_contents=None,
+                encrypted_bytes=None,
             )
-            capture_exception(err)
-            return
-
-        try:
-            with encrypted_bytes:
-                # Move encrypted bytes to the requesting cell.
-                cell_relocation_export_service.reply_with_export(
-                    relocation_uuid=str(transfer.relocation_uuid),
-                    requesting_region_name=transfer.requesting_cell,
-                    replying_region_name=transfer.exporting_cell,
-                    org_slug=slug,
-                    # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-                    encrypted_contents=None,
-                    encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
-                )
-                # We are done with this stage of the transfer
-                transfer.delete()
+            # We are done with this stage of the transfer
+            transfer.delete()
         except Exception as err:
             logger.warning(
                 "relocation.failed_rpc_reply",
@@ -201,31 +179,14 @@ def process_relocation_transfer_region(transfer_id: int) -> None:
     logger.info("relocation.transfer.processing", extra=log_context)
 
     if transfer.state == RelocationTransferState.Reply:
-        relocation_storage = get_relocation_storage()
-        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
-        try:
-            encrypted_bytes = relocation_storage.open(path)
-        except Exception as err:
-            logger.warning(
-                "relocation.failed_open.export",
-                extra={
-                    **log_context,
-                    "error": str(err),
-                },
-            )
-            capture_exception(err)
-            return
-
-        with encrypted_bytes:
-            control_relocation_export_service.reply_with_export(
-                relocation_uuid=uuid,
-                requesting_region_name=transfer.requesting_cell,
-                replying_region_name=transfer.exporting_cell,
-                org_slug=slug,
-                # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-                encrypted_contents=None,
-                encrypted_bytes=[int(byte) for byte in encrypted_bytes.read()],
-            )
+        control_relocation_export_service.reply_with_export(
+            relocation_uuid=uuid,
+            requesting_region_name=transfer.requesting_cell,
+            replying_region_name=transfer.exporting_cell,
+            org_slug=slug,
+            encrypted_contents=None,
+            encrypted_bytes=None,
+        )
         # Remove the transfer once the reply is sent.
         transfer.delete()
     else:

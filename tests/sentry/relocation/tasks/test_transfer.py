@@ -19,6 +19,7 @@ from sentry.relocation.tasks.transfer import (
     process_relocation_transfer_control,
     process_relocation_transfer_region,
 )
+from sentry.relocation.utils import relocation_raw_data_path
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import (
@@ -165,11 +166,9 @@ class ProcessRelocationTransferControlTest(TestCase):
             state=RelocationTransferState.Reply,
             public_key=b"public_key_data",
         )
+        # Save a file as we use it to get size metadata
         relocation_storage = get_relocation_storage()
-        relocation_storage.save(
-            f"runs/{relocation.uuid}/saas_to_saas_export/{organization.slug}.tar",
-            BytesIO(b"export data"),
-        )
+        relocation_storage.save(relocation_raw_data_path(relocation.uuid), BytesIO(b"some bytes"))
 
         process_relocation_transfer_control(transfer_id=transfer.id)
 
@@ -178,7 +177,10 @@ class ProcessRelocationTransferControlTest(TestCase):
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
         # the relocation RPC call should create a file on the cell
         with assume_test_silo_mode(SiloMode.CELL):
-            assert RelocationFile.objects.filter(relocation=relocation).exists()
+            relocation_file = RelocationFile.objects.get(relocation=relocation)
+            assert relocation_file
+            assert relocation_file.file
+            assert relocation_file.file.size == len("some bytes")
 
 
 @cell_silo_test(cells=TEST_REGIONS)
@@ -209,12 +211,6 @@ class ProcessRelocationTransferRegionTest(TestCase):
             relocation_uuid=relocation.uuid,
             state=RelocationTransferState.Reply,
         )
-        relocation_storage = get_relocation_storage()
-        relocation_storage.save(
-            f"runs/{relocation.uuid}/saas_to_saas_export/{organization.slug}.tar",
-            BytesIO(b"export data"),
-        )
-
         process_relocation_transfer_region(transfer_id=transfer.id)
 
         # Should be removed on completion.
