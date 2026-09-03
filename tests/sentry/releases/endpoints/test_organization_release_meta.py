@@ -228,7 +228,9 @@ class ReleaseMetaTest(APITestCase):
         head_sha = "c" * 40
         repo = Repository.objects.create(organization_id=org.id, name=project.name)
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key=head_sha)
-        ReleaseCommit.objects.create(organization_id=org.id, release=release, commit=commit, order=1)
+        ReleaseCommit.objects.create(
+            organization_id=org.id, release=release, commit=commit, order=1
+        )
 
         self.create_member(teams=[team1], user=user, organization=org)
         self.login_as(user=user)
@@ -289,8 +291,8 @@ class ReleaseMetaTest(APITestCase):
         data = orjson.loads(response.content)
         assert data["preprodBuildCount"] == 1
 
-        # Now a build with a different app_id whose commit is not in the
-        # release: must NOT be counted
+        # A build with a different app_id whose commit is not in the release
+        # must NOT be counted
         other_comparison = self.create_commit_comparison(organization=org, head_sha="e" * 40)
         self.create_preprod_artifact(
             project=project,
