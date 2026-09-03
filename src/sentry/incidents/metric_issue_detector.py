@@ -151,9 +151,23 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
+        has_anomaly_detection = any(
+            condition["type"] == Condition.ANOMALY_DETECTION for condition in value
+        )
+        if has_anomaly_detection and any(
+            condition["type"] != Condition.ANOMALY_DETECTION for condition in value
+        ):
+            # Dynamic (anomaly detection) detectors are evaluated against an
+            # AnomalyDetectionValues dict rather than a scalar. Mixing in a base
+            # comparison condition (gt/lt/gte/lte) creates a malformed condition
+            # group: the shared dict payload gets handed to an operator that
+            # expects a number, which TypeErrors at evaluation time.
+            raise serializers.ValidationError(
+                "Cannot combine anomaly detection conditions with other condition types."
+            )
         if not any(
             condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
-        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+        ) and not has_anomaly_detection:
             raise serializers.ValidationError(
                 "Resolution condition required for metric issue detector."
             )

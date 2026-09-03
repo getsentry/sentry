@@ -117,38 +117,6 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
             dc.evaluate_value(2)
             assert mock_logger.exception.call_args[0][0] == "Invalid comparison for data condition"
 
-    def test_operator_unwraps_anomaly_detection_values_dict(self) -> None:
-        """Dynamic detectors pass AnomalyDetectionValues dicts; threshold ops need the numeric value."""
-        dc = self.create_data_condition(
-            type=Condition.LESS_OR_EQUAL,
-            comparison=0,
-            condition_result=DetectorPriorityLevel.OK,
-        )
-        evaluation = dc.evaluate_value(
-            {
-                "value": 33900.19140625,
-                "source_id": "388999",
-                "subscription_id": "sub-id",
-                "timestamp": "2026-08-27T17:00:00Z",
-            }
-        )
-        # 33900.19 <= 0 is False -> not triggered
-        assert evaluation.result is None
-        assert evaluation.error is None
-        assert evaluation.triggered is False
-
-        evaluation = dc.evaluate_value(
-            {
-                "value": 0,
-                "source_id": "388999",
-                "subscription_id": "sub-id",
-                "timestamp": "2026-08-27T17:00:00Z",
-            }
-        )
-        assert evaluation.result == DetectorPriorityLevel.OK
-        assert evaluation.error is None
-        assert evaluation.triggered is True
-
     def test_condition_result_comparison_fails(self) -> None:
         dc = self.create_data_condition(
             type=Condition.GREATER,

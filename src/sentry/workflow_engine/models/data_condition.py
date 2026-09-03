@@ -167,22 +167,6 @@ class DataCondition(DefaultFieldsModel):
                 )
                 return ConditionError(msg="Invalid condition result")
 
-    @staticmethod
-    def _coerce_operator_value(value: Any) -> Any:
-        """
-        Base comparison operators expect a scalar.
-
-        Dynamic metric detectors evaluate conditions against an
-        AnomalyDetectionValues dict (with a numeric ``value`` field) so the
-        anomaly_detection condition can call Seer. Threshold/resolve operators
-        that share that condition group still need the numeric payload.
-        """
-        if isinstance(value, dict) and "value" in value:
-            nested = value.get("value")
-            if isinstance(nested, (int, float)) and not isinstance(nested, bool):
-                return nested
-        return value
-
     def _evaluate_operator(
         self,
         condition_type: Condition,
@@ -190,10 +174,9 @@ class DataCondition(DefaultFieldsModel):
     ) -> DataConditionResult | ConditionError:
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
-        comparison_value = self._coerce_operator_value(value)
 
         try:
-            return op(cast(Any, comparison_value), self.comparison)
+            return op(cast(Any, value), self.comparison)
         except TypeError:
             logger.exception(
                 "Invalid comparison for data condition",
