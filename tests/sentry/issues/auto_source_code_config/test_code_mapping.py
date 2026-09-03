@@ -187,6 +187,7 @@ class TestDerivedCodeMappings(TestCase):
         ]
         code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == self.expected_code_mappings
+        assert self.code_mapping_helper._matches_existing_code_mappings("src/sentry/web/urls.py")
 
     def test_more_than_one_match_works_with_different_order(self) -> None:
         frames = [
@@ -201,10 +202,15 @@ class TestDerivedCodeMappings(TestCase):
     @patch("sentry.issues.auto_source_code_config.code_mapping.logger")
     def test_more_than_one_repo_match(self, logger: Any) -> None:
         # XXX: There's a chance that we could infer package names but that is risky
-        # repo 1: src/sentry/web/urls.py
-        # repo 2: sentry/web/urls.py
+        path = "src/sentry/web/urls.py"
+        helper = CodeMappingTreesHelper(
+            {
+                self.foo_repo.name: RepoTree(self.foo_repo, files=[path]),
+                self.bar_repo.name: RepoTree(self.bar_repo, files=[path]),
+            }
+        )
         frames = [{"filename": "sentry/web/urls.py"}]
-        code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
+        code_mappings = helper.generate_code_mappings(frames)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
         logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")

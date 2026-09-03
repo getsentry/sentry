@@ -64,10 +64,23 @@ class RepoTreesIntegration(ABC):
     def integration_name(self) -> str:
         raise NotImplementedError
 
-    def get_trees_for_org(self) -> dict[str, RepoTree]:
+    def get_trees_for_org(
+        self, repository_names: Sequence[str] | None = None
+    ) -> dict[str, RepoTree]:
         trees = {}
         with metrics.timer(f"{METRICS_KEY_PREFIX}.populate_repositories.duration"):
             repositories = self._populate_repositories()
+            if repository_names is not None:
+                # Preserve the caller's repository priority while filtering.
+                repository_order = {name: index for index, name in enumerate(repository_names)}
+                repositories = sorted(
+                    (
+                        repository
+                        for repository in repositories
+                        if repository["full_name"] in repository_order
+                    ),
+                    key=lambda repository: repository_order[repository["full_name"]],
+                )
         if not repositories:
             logger.warning("Fetching repositories returned an empty list.")
         else:
