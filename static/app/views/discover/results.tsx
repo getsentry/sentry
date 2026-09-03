@@ -1325,14 +1325,14 @@ function SaveQueryButton({
       }
       const nextEventView = eventView.clone();
       nextEventView.name = queryName;
-      handleCreateSavedQuery(api, organization, nextEventView, yAxis, !eventView.id).then(
-        (sq: SavedQuery) => {
+      handleCreateSavedQuery(api, organization, nextEventView, yAxis, !eventView.id)
+        .then((sq: SavedQuery) => {
           const view = EventView.fromSavedQuery(sq);
           Banner.dismiss('discover');
           setQueryName('');
           navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
-        }
-      );
+        })
+        .catch(() => {});
     },
     [api, navigate, organization, eventView, yAxis, queryName]
   );
@@ -1340,12 +1340,14 @@ function SaveQueryButton({
   const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
-      const view = EventView.fromSavedQuery(sq);
-      setSavedQuery(sq);
-      setQueryName('');
-      navigate(view.getResultsViewShortUrlTarget(organization));
-    });
+    handleUpdateSavedQuery(api, organization, eventView, yAxis)
+      .then((sq: SavedQuery) => {
+        const view = EventView.fromSavedQuery(sq);
+        setSavedQuery(sq);
+        setQueryName('');
+        navigate(view.getResultsViewShortUrlTarget(organization));
+      })
+      .catch(() => {});
   };
 
   return (

@@ -41,16 +41,16 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
       name: nextQueryName,
     });
 
-    handleUpdateQueryName(api, organization, nextEventView).then(
-      (_updatedQuery: SavedQuery) => {
+    handleUpdateQueryName(api, organization, nextEventView)
+      .then((_updatedQuery: SavedQuery) => {
         // The current eventview may have changes that are not explicitly saved.
         // So, we just preserve them and change its name
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
         navigate(normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization)));
-      }
-    );
+      })
+      .catch(() => {});
   }
 
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
