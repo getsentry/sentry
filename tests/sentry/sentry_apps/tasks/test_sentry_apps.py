@@ -1917,7 +1917,7 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
 
     def test_regenerate_missing_service_hook_for_installation(self) -> None:
@@ -1970,7 +1970,7 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events == []
 
 
