@@ -21,6 +21,7 @@ from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.outcomes import IterationOutcome
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -83,6 +84,38 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["run_id"] == 888
         assert response.data["autofix"]["sentry_run_id"] == str(run.uuid)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_reports_pr_iteration_outcomes(self, mock_get_explorer_state):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[
+                MemoryBlock(
+                    id="iter-0",
+                    message=Message(
+                        role="assistant",
+                        content="",
+                        metadata={
+                            "step": AutofixStep.PR_ITERATION.value,
+                            "iteration_index": "0",
+                            "feedback": "[]",
+                        },
+                    ),
+                    timestamp="2023-07-18T12:00:00Z",
+                )
+            ],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+        self.login_as(user=self.user)
+
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["pr_iteration_outcomes"] == {
+            "0": IterationOutcome.NO_CHANGES
+        }
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_pr_iteration_paused(self, mock_get_explorer_state):
