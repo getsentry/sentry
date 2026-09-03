@@ -77,8 +77,7 @@ def can_store_inline(data: bytes) -> bool:
     return len(data) < 192 and all(byte > 0x00 and byte < 0x7F for byte in data)
 
 
-@cell_silo_model
-class EventAttachment(Model):
+class EventAttachmentBase(Model):
     """
     Attachment Metadata and Storage
 
@@ -97,7 +96,6 @@ class EventAttachment(Model):
 
     # the things we want to look up attachments by:
     project_id = BoundedBigIntegerField()
-    group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
 
     # attachment and file metadata:
@@ -117,12 +115,24 @@ class EventAttachment(Model):
     blob_path = models.TextField(null=True)
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_eventattachment"
+        abstract = True
         indexes = (
             models.Index(fields=("project_id", "date_added")),
             models.Index(fields=("project_id", "event_id")),
         )
+
+
+@cell_silo_model
+class EventAttachment(EventAttachmentBase):
+    """
+    An attachment belonging to an event that has been ingested.
+    """
+
+    group_id = BoundedBigIntegerField(null=True, db_index=True)
+
+    class Meta(EventAttachmentBase.Meta):
+        app_label = "sentry"
+        db_table = "sentry_eventattachment"
 
     __repr__ = sane_repr("event_id", "name")
 
@@ -283,6 +293,19 @@ class EventAttachment(Model):
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
         )
+
+
+@cell_silo_model
+class PendingEventAttachment(EventAttachmentBase):
+    """
+    An attachment whose corresponding event has not been ingested (yet).
+    """
+
+    class Meta(EventAttachmentBase.Meta):
+        app_label = "sentry"
+        db_table = "sentry_pendingeventattachment"
+
+    __repr__ = sane_repr("event_id", "name")
 
 
 def normalize_content_type(content_type: str | None, name: str) -> str:
