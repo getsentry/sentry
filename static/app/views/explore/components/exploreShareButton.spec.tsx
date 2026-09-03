@@ -54,6 +54,22 @@ describe('getExploreShareLink', () => {
     );
   });
 
+  it('strips page-scoped date params when the URL carries them', () => {
+    const link = getExploreShareLink({
+      datetime: relative,
+      location: LocationFixture({
+        pathname,
+        search:
+          '?pageStatsPeriod=7d&pageStart=2026-08-01T00%3A00%3A00&pageUtc=true&project=1',
+      }),
+      now,
+    });
+
+    expect(link.url).toBe(
+      'http://localhost/organizations/org-slug/explore/logs/?project=1&start=2026-08-27T12%3A00%3A00&end=2026-09-03T12%3A00%3A00'
+    );
+  });
+
   it('keeps the URL unchanged when the selection is already absolute', () => {
     const search =
       '?start=2026-08-01T00%3A00%3A00&end=2026-08-02T00%3A00%3A00&utc=true&project=1';

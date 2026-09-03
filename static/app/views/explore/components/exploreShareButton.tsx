@@ -2,7 +2,10 @@ import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 
-import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {
+  ALL_DATE_TIME_QUERY_KEYS,
+  URL_PARAM,
+} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -35,7 +38,7 @@ export function getExploreShareLink({
     if (!range) {
       return;
     }
-    for (const key of DATE_TIME_KEYS) {
+    for (const key of ALL_DATE_TIME_QUERY_KEYS) {
       if (key !== URL_PARAM.UTC) {
         params.delete(key);
       }
