@@ -151,12 +151,9 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
         MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
             raise_exception=True
         )
-        has_anomaly_detection = any(
-            condition["type"] == Condition.ANOMALY_DETECTION for condition in value
-        )
-        if has_anomaly_detection and any(
-            condition["type"] != Condition.ANOMALY_DETECTION for condition in value
-        ):
+        condition_types = {condition["type"] for condition in value}
+        has_anomaly_detection = Condition.ANOMALY_DETECTION in condition_types
+        if has_anomaly_detection and condition_types != {Condition.ANOMALY_DETECTION}:
             # Dynamic (anomaly detection) detectors are evaluated against an
             # AnomalyDetectionValues dict rather than a scalar. Mixing in a base
             # comparison condition (gt/lt/gte/lte) creates a malformed condition
