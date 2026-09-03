@@ -2606,6 +2606,12 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Emit per-attempt spans and metrics for each retry of an RPC call.
+register(
+    "hybridcloud.rpc.attempt_observability.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.apigateway.use_pooling.rate",
     default=0.0,

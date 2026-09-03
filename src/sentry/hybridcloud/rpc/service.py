@@ -27,10 +27,15 @@ import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
-from requests.adapters import HTTPAdapter, Retry
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
+from sentry.hybridcloud.rpc.attempt_instrumentation import (
+    InstrumentedHTTPAdapter,
+    ObservedRetry,
+    observe_rpc_call,
+    record_call_attempts,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
@@ -497,8 +502,8 @@ def dispatch_remote_call(
 
 
 def _create_request_session(retry_count: int) -> requests.Session:
-    retry_adapter = HTTPAdapter(
-        max_retries=Retry(
+    retry_adapter = InstrumentedHTTPAdapter(
+        max_retries=ObservedRetry(
             total=retry_count,
             backoff_factor=0.1,
             status_forcelist=[503],
@@ -738,26 +743,41 @@ class _RemoteSiloCall:
         url = self.address + self.path
 
         timeout = self.get_method_timeout()
-        try:
-            return http.post(url, headers=headers, data=data, timeout=timeout)
-        except requests.exceptions.ConnectionError as e:
-            metrics.incr(
-                "hybrid_cloud.dispatch_rpc.failure",
-                tags=self._metrics_tags(kind="connectionerror"),
-            )
-            raise self._remote_exception("RPC Connection failed") from e
-        except requests.exceptions.RetryError as e:
-            metrics.incr(
-                "hybrid_cloud.dispatch_rpc.failure",
-                tags=self._metrics_tags(kind="retryerror"),
-            )
-            raise self._remote_exception("RPC failed, max retries reached.") from e
-        except requests.exceptions.Timeout as e:
-            metrics.incr(
-                "hybrid_cloud.dispatch_rpc.failure",
-                tags=self._metrics_tags(kind="timeout"),
-            )
-            raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+        destination = self.cell.name if self.cell else "control"
+        with observe_rpc_call(f"{self.service_name}.{self.method_name}", destination) as call:
+            outcome = "failure"
+            try:
+                response = http.post(url, headers=headers, data=data, timeout=timeout)
+                outcome = "success"
+                return response
+            # ConnectTimeout subclasses both ConnectionError and Timeout, so it has to
+            # be caught before ConnectionError to be tagged as a timeout at all.
+            except requests.exceptions.ConnectTimeout as e:
+                metrics.incr(
+                    "hybrid_cloud.dispatch_rpc.failure",
+                    tags=self._metrics_tags(kind="connecttimeout"),
+                )
+                raise self._remote_exception(f"Timeout of {timeout} exceeded connecting") from e
+            except requests.exceptions.ConnectionError as e:
+                metrics.incr(
+                    "hybrid_cloud.dispatch_rpc.failure",
+                    tags=self._metrics_tags(kind="connectionerror"),
+                )
+                raise self._remote_exception("RPC Connection failed") from e
+            except requests.exceptions.RetryError as e:
+                metrics.incr(
+                    "hybrid_cloud.dispatch_rpc.failure",
+                    tags=self._metrics_tags(kind="retryerror"),
+                )
+                raise self._remote_exception("RPC failed, max retries reached.") from e
+            except requests.exceptions.Timeout as e:
+                metrics.incr(
+                    "hybrid_cloud.dispatch_rpc.failure",
+                    tags=self._metrics_tags(kind="timeout"),
+                )
+                raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+            finally:
+                record_call_attempts(call, self._metrics_tags(outcome=outcome))
 
     def _check_disabled(self) -> None:
         if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):
