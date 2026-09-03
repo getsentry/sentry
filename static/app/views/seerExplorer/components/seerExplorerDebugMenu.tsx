@@ -34,9 +34,11 @@ export function SeerExplorerDebugMenu({
   const showContextEngineToggle = !!organization?.features.includes(
     'seer-explorer-context-engine-fe-override-ui-flag'
   );
-  const showThinkingToggle = !!organization?.features.includes(
-    'seer-explorer-thinking-blocks'
-  );
+  // Code mode runs benefit from visible thinking; unlock the toggle when either
+  // the dedicated thinking-blocks flag or code-mode tools is on.
+  const showThinkingToggle =
+    !!organization?.features.includes('seer-explorer-thinking-blocks') ||
+    !!organization?.features.includes('seer-explorer-code-mode-tools');
   const showBashModeToggle = !!organization?.features.includes(
     'seer-explorer-allow-bash-mode'
   );

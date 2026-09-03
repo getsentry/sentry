@@ -173,10 +173,11 @@ export function SeerExplorerContent({
   };
 
   // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer).
+  // into the picture-in-picture window, or reopening the drawer). Default on
+  // when code mode tools are enabled so thinking is visible without a manual flip.
   const [showThinking, setShowThinking] = useLocalStorageState(
     'seer-explorer-show-thinking',
-    false
+    !!organization?.features.includes('seer-explorer-code-mode-tools')
   );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);

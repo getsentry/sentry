@@ -83,6 +83,16 @@ describe('SeerExplorerHeader', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('unlocks show thinking when code mode tools is enabled', async () => {
+      await renderHeader({}, orgWith('seer-explorer-code-mode-tools'));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
+
+      expect(
+        screen.getByRole('menuitemradio', {name: /Show thinking/})
+      ).toBeInTheDocument();
+    });
+
     it('renders the force bash mode toggle behind its own flag', async () => {
       const onOverrideBashModeToggle = jest.fn();
       await renderHeader(
