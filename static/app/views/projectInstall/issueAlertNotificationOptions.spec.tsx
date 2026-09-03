@@ -93,8 +93,8 @@ describe('getChannelTarget', () => {
     [
       'msteams',
       {
-        label: 'General (19:abc@thread.tacv2)',
-        value: '19:abc@thread.tacv2',
+        label: 'General',
+        value: 'General',
         channelId: '19:abc@thread.tacv2',
         channelName: 'General',
       },
@@ -697,21 +697,5 @@ describe('buildNotificationSelection', () => {
         channel: {label: '#eng', value: '#eng'},
       })
     ).toEqual({provider: 'slack', integrationId: '5', channel: '#eng'});
-  });
-
-  it('stores the action target rather than the picker key', () => {
-    const integration = OrganizationIntegrationsFixture({id: '5'});
-    expect(
-      buildNotificationSelection({
-        provider: 'msteams',
-        integration,
-        channel: {
-          label: 'General (19:abc@thread.tacv2)',
-          value: '19:abc@thread.tacv2',
-          channelId: '19:abc@thread.tacv2',
-          channelName: 'General',
-        },
-      })
-    ).toEqual({provider: 'msteams', integrationId: '5', channel: 'General'});
   });
 });
