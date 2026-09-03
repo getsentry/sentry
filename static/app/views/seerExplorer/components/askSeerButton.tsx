@@ -38,13 +38,7 @@ export function AskSeerButton() {
         <Flex position="relative">
           <IconSeer
             variant={state === 'thinking' && prefersReducedMotion ? 'accent' : undefined}
-            animation={
-              showMessageIndicator
-                ? 'waiting'
-                : state === 'thinking'
-                  ? 'loading'
-                  : undefined
-            }
+            animation={showMessageIndicator || state === 'thinking' ? 'idle' : undefined}
           />
           {showMessageIndicator && isIconOnly ? <MessageIndicator /> : null}
         </Flex>

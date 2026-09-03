@@ -55,7 +55,7 @@ export function EmptyState({
         </Fragment>
       ) : (
         <Fragment>
-          <IconSeer size="xl" animation="waiting" />
+          <IconSeer size="xl" animation="idle" />
           <Text>{t('Ask Seer anything about your application.')}</Text>
           {onSuggestionClick && (
             <Stack align="center" gap="md" paddingTop="2xl">
