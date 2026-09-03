@@ -64,6 +64,7 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.outcomes import get_iteration_outcomes
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -640,6 +641,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
+                    "pr_iteration_outcomes": get_iteration_outcomes(state),
                     "pr_iteration_paused": paused_marker is not None,
                     "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
                     "warnings": warnings,
