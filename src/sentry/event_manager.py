@@ -2597,15 +2597,32 @@ def save_pending_attachments(*, project: Project, event_id: str, group_id: int) 
     if not features.has("projects:defer-attachment-storage", project):
         return
 
-    pending_attachments = list(
-        PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id)
-    )
-    if not pending_attachments:
+    # This runs for every error event of a flagged project, and almost none of them have
+    # a pending attachment. Probe outside a transaction so the common case stays a single
+    # unlocked SELECT rather than a BEGIN/COMMIT round trip.
+    if not PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id).exists():
         return
 
-    metrics.incr("attachments.pending.persist", amount=len(pending_attachments))
-
     with transaction.atomic(router.db_for_write(EventAttachment)):
+        # Claim the rows under lock. The insert and the delete below are in the same
+        # transaction, so a concurrent promoter -- a duplicate `event_id`, or a sweep over
+        # rows the ingest-time promotion missed -- re-checks under the lock and finds them
+        # gone instead of inserting a second copy and billing the customer twice.
+        #
+        # The row locks live until this block commits, not for as long as the queryset
+        # object does, so materializing the queryset here is precisely what takes them.
+        # Leaving it lazy would take no locks at all.
+        #
+        # `order_by("id")` keeps the lock order deterministic between two callers claiming
+        # overlapping sets of rows.
+        pending_attachments = list(
+            PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id)
+            .order_by("id")
+            .select_for_update()
+        )
+        if not pending_attachments:
+            return
+
         EventAttachment.objects.bulk_create(
             EventAttachment(
                 project_id=pending.project_id,
