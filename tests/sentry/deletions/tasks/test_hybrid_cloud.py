@@ -21,7 +21,6 @@ from sentry.deletions.models.watermark import CellDeletionWatermark, ControlDele
 from sentry.deletions.tasks.hybrid_cloud import (
     ROW_WATERMARK,
     TOMBSTONE_WATERMARK,
-    WATERMARK_PREFIXES,
     WatermarkBatch,
     _process_hybrid_cloud_foreign_key_cascade,
     _read_postgres_watermark,
@@ -135,8 +134,8 @@ def record_watermark_writes(
     field: HybridCloudForeignKey[int, int],
 ) -> Generator[set[str]]:
     """
-    Collect the watermark prefixes written for one field. A rewrite stores the
-    value it already holds, so the row itself cannot show that it happened.
+    Collect the watermark prefixes written for one field. A write can store the
+    value the row already holds, so the row itself cannot show that it happened.
     """
     written: set[str] = set()
     manager = _watermark_model(field).objects
@@ -172,53 +171,22 @@ def test_no_work_is_no_op(
 
 
 @django_db_all
-def test_no_work_rewrites_both_watermarks(
+def test_no_work_writes_no_watermark(
     task_runner: Callable[[], ContextManager[None]],
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
+    """
+    A caught up field writes its watermark rows only when it has work. The
+    every cycle rewrite existed to fill the Postgres tables during the
+    Redis to Postgres migration and is gone now.
+    """
     reset_watermarks()
-
-    before = {
-        prefix: get_watermark(prefix, project_bookmark_user_id_field)
-        for prefix in WATERMARK_PREFIXES
-    }
 
     with record_watermark_writes(project_bookmark_user_id_field) as written:
         with task_runner():
             schedule_hybrid_cloud_foreign_key_jobs()
 
-    assert written == set(WATERMARK_PREFIXES)
-
-    for prefix, watermark in before.items():
-        assert get_watermark(prefix, project_bookmark_user_id_field) == watermark
-
-
-@django_db_all
-def test_catch_up_rewrites_both_watermarks(
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    """
-    The `or` in _process_hybrid_cloud_foreign_key_cascade skips the second
-    reconciliation while the first one still has work. Both watermarks must be
-    written on such a cycle.
-    """
-    reset_watermarks()
-
-    with record_watermark_writes(project_bookmark_user_id_field) as written:
-        with patch(
-            "sentry.deletions.tasks.hybrid_cloud._process_tombstone_reconciliation",
-            return_value=True,
-        ) as reconciliation:
-            _process_hybrid_cloud_foreign_key_cascade(
-                app_name=ProjectBookmark._meta.app_label,
-                model_name=ProjectBookmark.__name__,
-                field_name=project_bookmark_user_id_field.name,
-                process_task=Mock(),
-                silo_mode=SiloMode.CELL,
-            )
-
-    assert reconciliation.call_count == 1
-    assert written == set(WATERMARK_PREFIXES)
+    assert written == set()
 
 
 @django_db_all
@@ -308,25 +276,6 @@ def test_write_failure_reaches_the_caller(
     row = _cell_watermark_rows(project_bookmark_user_id_field).get(prefix=TOMBSTONE_WATERMARK)
     assert row.low_bound == 5
     assert get_watermark(TOMBSTONE_WATERMARK, project_bookmark_user_id_field)[0] == 5
-
-
-@django_db_all
-def test_one_cycle_fills_both_watermark_rows(
-    task_runner: Callable[[], ContextManager[None]],
-    project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
-) -> None:
-    reset_watermarks()
-    _cell_watermark_rows(project_bookmark_user_id_field).delete()
-
-    with task_runner():
-        schedule_hybrid_cloud_foreign_key_jobs()
-
-    rows = {row.prefix: row for row in _cell_watermark_rows(project_bookmark_user_id_field)}
-    assert set(rows) == set(WATERMARK_PREFIXES)
-    for prefix, row in rows.items():
-        assert (row.low_bound, row.transaction_id) == get_watermark(
-            prefix, project_bookmark_user_id_field
-        )
 
 
 @django_db_all

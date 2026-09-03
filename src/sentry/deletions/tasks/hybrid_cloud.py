@@ -42,7 +42,6 @@ from sentry.utils import metrics
 
 TOMBSTONE_WATERMARK = "tombstone"
 ROW_WATERMARK = "row"
-WATERMARK_PREFIXES = (TOMBSTONE_WATERMARK, ROW_WATERMARK)
 
 
 @dataclass
@@ -126,12 +125,6 @@ def set_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
 ) -> None:
     _write_watermark(prefix, field, value, sha1(prev_transaction_id.encode("utf8")).hexdigest())
-
-
-def refresh_watermarks(field: HybridCloudForeignKey[Any, Any]) -> None:
-    for prefix in WATERMARK_PREFIXES:
-        low_bound, transaction_id = get_watermark(prefix, field)
-        _write_watermark(prefix, field, low_bound, transaction_id)
 
 
 def _chunk_watermark_batch(
@@ -284,8 +277,6 @@ def _process_hybrid_cloud_foreign_key_cascade(
 
         tombstone_cls = TombstoneBase.class_for_silo_mode(silo_mode)
         assert tombstone_cls, "A tombstone class is required"
-
-        refresh_watermarks(field)
 
         # We rely on the return value of _process_tombstone_reconciliation
         # to short circuit the second half of this `or` so that the terminal batch
