@@ -1,8 +1,8 @@
+import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -46,14 +46,8 @@ function EndPeriodEarlyModal({
     },
   });
 
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {},
-    onSubmit: () => mutation.mutateAsync().catch(() => {}),
-  });
-
   return (
-    <form.AppForm form={form}>
+    <Fragment>
       <Header closeButton>
         <Heading as="h3">End Current Period Immediately</Heading>
       </Header>
@@ -73,10 +67,16 @@ function EndPeriodEarlyModal({
       <Footer>
         <Flex gap="md" justify="end">
           <Button onClick={closeModal}>Cancel</Button>
-          <form.SubmitButton>Submit</form.SubmitButton>
+          <Button
+            variant="primary"
+            busy={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            Submit
+          </Button>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </Fragment>
   );
 }
 
