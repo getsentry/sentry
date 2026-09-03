@@ -4,7 +4,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {IconDownload, IconSettings} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreContentSection,
@@ -13,7 +12,6 @@ import {
 import {ErrorsCharts} from 'sentry/views/explore/errors/charts';
 import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
 import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface ErrorsControlSectionProps {
   controlSectionExpanded: boolean;
@@ -59,7 +57,6 @@ export function ErrorsContentSection({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <ExploreShareButton traceItemDataset={TraceItemDataset.ERRORS} />
           <Button size="xs" aria-label={t('Export data')} icon={<IconDownload />}>
             {t('Export')}
           </Button>
