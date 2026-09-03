@@ -64,7 +64,12 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
-from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA
+from sentry.seer.autofix.pr_iteration.pause import (
+    PAUSED_EXTRA,
+    PauseReason,
+    get_pause_reason,
+    pause_reason_from_marker,
+)
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
@@ -91,6 +96,11 @@ from sentry.utils.http import is_mcp_request
 logger = logging.getLogger(__name__)
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
+
+PAUSED_PR_ITERATION_DETAIL = {
+    PauseReason.USER_STOP: "Iteration was stopped for this pull request",
+    PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
+}
 
 
 def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
@@ -391,6 +401,15 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+                pause_reason = get_pause_reason(
+                    run_id=resolved_run_id, organization_id=group.organization.id
+                )
+                if pause_reason is not None:
+                    return Response(
+                        {"detail": PAUSED_PR_ITERATION_DETAIL[pause_reason]},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
                 serialized_users = user_service.serialize_many(
                     filter={"user_ids": [request.user.id]},
                 )
@@ -594,6 +613,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
             for repo_name, info in missing_perms.items()
         ]
         queued_feedback = [item.feedback.dict() for item in queued_items]
+        # Off the fetched row, not is_pr_iteration_paused: polled every second.
+        paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
+        pause_reason = pause_reason_from_marker(paused_marker)
         return Response(
             {
                 "autofix": {
@@ -618,10 +640,8 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         "organizations:autofix-pr-iteration-manual", group.organization
                     ),
                     "queued_feedback": queued_feedback,
-                    # Off the fetched row, not is_pr_iteration_paused: polled every second.
-                    "pr_iteration_paused": (
-                        run is not None and get_run_extra(run, PAUSED_EXTRA) is not None
-                    ),
+                    "pr_iteration_paused": paused_marker is not None,
+                    "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
                     "warnings": warnings,
                 }
             }

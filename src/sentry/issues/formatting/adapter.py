@@ -65,7 +65,12 @@ def _thread(v: Mapping[str, Any]) -> ThreadDetails:
 
 
 def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | None]:
-    tags = [(tag["key"], tag.get("value")) for tag in data.get("tags") or []]
+    # skips tags with None keys
+    tags = [
+        (key, tag.get("value"))
+        for tag in data.get("tags") or []
+        if (key := tag.get("key")) is not None
+    ]
     transaction_name = next((value for key, value in tags if key == "transaction"), None)
     return tags, transaction_name
 

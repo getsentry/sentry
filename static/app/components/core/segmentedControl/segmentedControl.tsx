@@ -37,7 +37,6 @@ function getTextColor({
   isSelected: boolean;
   priority: Priority;
   theme: Theme;
-  isDisabled?: boolean;
 }) {
   if (isSelected) {
     return priority === 'default' || priority === 'secondary'

@@ -47,7 +47,7 @@ export function formatTimeSeriesLabelForWidgetQuery(
   if (aggregates.length > 1 && columns.length > 0) {
     labelParts.push(
       widget.widgetType === WidgetType.TRACEMETRICS
-        ? (formatTraceMetricsFunction(yAxis) as string)
+        ? formatTraceMetricsFunction(yAxis)
         : yAxis
     );
   }

@@ -219,6 +219,11 @@ export type EventMetadata = {
   message?: string;
   origin?: string;
   stripped_crash?: boolean;
+  /**
+   * Set when the SDK fabricated the exception to carry a stacktrace. Its `type` is then a
+   * platform label (`SIGSEGV`, `AppHang`) rather than the identity of what went wrong.
+   */
+  synthetic?: boolean;
   title?: string;
   type?: string;
   uri?: string;

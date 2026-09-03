@@ -2,7 +2,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -12,22 +11,14 @@ interface UseProfileFunctionTrendsOptions {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
   cursor?: string;
-  datetime?: PageFilterDatetime;
-  enabled?: boolean;
   limit?: number;
-  projects?: Array<number | string>;
   query?: string;
-  refetchOnMount?: boolean;
 }
 
 export function useProfileFunctionTrends({
   cursor,
-  datetime,
-  projects,
-  enabled,
   limit,
   query,
-  refetchOnMount,
   trendFunction,
   trendType,
 }: UseProfileFunctionTrendsOptions) {
@@ -40,9 +31,9 @@ export function useProfileFunctionTrends({
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          project: projects || selection.projects,
+          project: selection.projects,
           environment: selection.environments,
-          ...normalizeDateTimeParams(datetime ?? selection.datetime),
+          ...normalizeDateTimeParams(selection.datetime),
           function: trendFunction,
           trend: trendType,
           query,
@@ -54,8 +45,6 @@ export function useProfileFunctionTrends({
     ),
     select: selectJsonWithHeaders,
     refetchOnWindowFocus: false,
-    refetchOnMount,
     retry: false,
-    enabled,
   });
 }

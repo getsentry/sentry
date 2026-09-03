@@ -10,6 +10,8 @@ from sentry import audit_log, buffer, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.action_log import action_context_scope
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ReconcileStatusAction
 from sentry.issues.constants import cache_key_for_issue_view
@@ -218,25 +220,35 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/issues/2", "displayName": "Issue#2"}
         ]
 
-    def test_integration_external_issue_annotation(self) -> None:
-        group = self.create_group()
-        integration = self.create_integration(
+    def _create_issue_tracking_integration(self, group: Group) -> Integration:
+        return self.create_integration(
             organization=group.organization,
             provider="jira",
             external_id="some_id",
             name="Hello world",
             metadata={"base_url": "https://example.com"},
         )
+
+    def test_integration_external_issue_annotation(self) -> None:
+        group = self.create_group()
+        integration = self._create_issue_tracking_integration(group)
         self.create_integration_external_issue(group=group, integration=integration, key="api-123")
 
         self.login_as(user=self.user)
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-        response = self.client.get(url, format="json")
+        with mock.patch(
+            "sentry.api.serializers.models.group.integration_service",
+            wraps=integration_service,
+        ) as mock_integration_service:
+            response = self.client.get(url, format="json")
 
         assert response.data["annotations"] == [
             {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
+        mock_integration_service.get_integrations.assert_called_once_with(
+            organization_id=group.organization.id
+        )
 
     def test_permalink_superuser(self) -> None:
         superuser = self.create_user(is_superuser=True)

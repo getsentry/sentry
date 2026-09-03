@@ -106,6 +106,7 @@ export function StarredSegmentCell({
           <IconStar
             variant={isStarred ? 'warning' : 'muted'}
             isSolid={isStarred}
+            size="sm"
             data-test-id="starred-transaction-column"
           />
         }
