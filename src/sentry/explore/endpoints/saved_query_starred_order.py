@@ -1,7 +1,6 @@
 from typing import Any
 
-from django.db import transaction
-from rb import router
+from django.db import router, transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request

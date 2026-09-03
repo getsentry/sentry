@@ -60,7 +60,7 @@ class SavedQueryStarredOrderTest(APITestCase):
 
     def ref(self, query: DiscoverSavedQuery | ExploreSavedQuery) -> dict[str, object]:
         query_type = "discover" if isinstance(query, DiscoverSavedQuery) else "explore"
-        return {"type": query_type, "id": query.id}
+        return {"type": query_type, "query_id": query.id}
 
     def current_order(self) -> list[tuple[str, int]]:
         rows = [
