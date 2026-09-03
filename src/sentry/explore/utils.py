@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Sequence
-from typing import Any
 
 from django.db import models
 
@@ -37,9 +35,7 @@ def next_starred_position(organization: Organization, user_id: int) -> int:
     This is just the maximum position across Discover and Explore tables, plus one.
     If the user has no starred queries, returns 1.
     """
-    highest: int | None = None
-
-    highest_in_discover: int | None = (
+    highest_in_discover = (
         DiscoverSavedQueryStarred.objects.filter(
             organization=organization, user_id=user_id, position__isnull=False
         )
@@ -47,7 +43,7 @@ def next_starred_position(organization: Organization, user_id: int) -> int:
         .first()
     )
 
-    highest_in_explore: int | None = (
+    highest_in_explore = (
         ExploreSavedQueryStarred.objects.filter(
             organization=organization, user_id=user_id, position__isnull=False
         )
@@ -55,14 +51,13 @@ def next_starred_position(organization: Organization, user_id: int) -> int:
         .first()
     )
 
-    if highest_in_discover and highest_in_explore:
-        highest = max(highest_in_discover.position, highest_in_explore.position)
-    elif highest_in_discover:
-        highest = highest_in_discover.position
-    elif highest_in_explore:
-        highest = highest_in_explore.position
+    positions = [
+        row.position
+        for row in (highest_in_discover, highest_in_explore)
+        if row is not None and row.position is not None
+    ]
 
-    return 1 if highest is None else highest + 1
+    return max(positions, default=0) + 1
 
 
 def shift_starred_positions_by_one(
@@ -111,14 +106,18 @@ def reorder_starred_queries(
         organization=organization, user_id=user_id, position__isnull=False, starred=True
     )
 
-    combined_starred_queries_map: dict[SavedQueryRef, Any] = {}
-    for row in discover_starred_queries:
-        ref = SavedQueryRef(SavedQueryType.DISCOVER, row.discover_saved_query_id)
-        combined_starred_queries_map[ref] = row
+    combined_starred_queries_map: dict[
+        SavedQueryRef, DiscoverSavedQueryStarred | ExploreSavedQueryStarred
+    ] = {}
+    for discover_row in discover_starred_queries:
+        combined_starred_queries_map[
+            SavedQueryRef(SavedQueryType.DISCOVER, discover_row.discover_saved_query_id)
+        ] = discover_row
 
-    for row in explore_starred_queries:
-        ref = SavedQueryRef(SavedQueryType.EXPLORE, row.explore_saved_query_id)
-        combined_starred_queries_map[ref] = row
+    for explore_row in explore_starred_queries:
+        combined_starred_queries_map[
+            SavedQueryRef(SavedQueryType.EXPLORE, explore_row.explore_saved_query_id)
+        ] = explore_row
 
     if combined_starred_queries_map.keys() != set(requested):
         raise ValueError("Mismatch between existing and provided starred queries.")
@@ -126,16 +125,15 @@ def reorder_starred_queries(
     # normalize positions to 1...N, then assign them in order of the ref sequence provided
     slots = range(1, len(requested) + 1)
 
-    updates: dict[SavedQueryType, list[models.Model]] = defaultdict(list)
+    discover_updates: list[DiscoverSavedQueryStarred] = []
+    explore_updates: list[ExploreSavedQueryStarred] = []
     for ref, new_position in zip(requested, slots):
         row = combined_starred_queries_map[ref]
         row.position = new_position
-        updates[ref.type].append(row)
+        if isinstance(row, ExploreSavedQueryStarred):
+            explore_updates.append(row)
+        else:
+            discover_updates.append(row)
 
-    ExploreSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__isnull=False
-    ).bulk_update(updates[SavedQueryType.EXPLORE], ["position"])
-
-    DiscoverSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__isnull=False
-    ).bulk_update(updates[SavedQueryType.DISCOVER], ["position"])
+    ExploreSavedQueryStarred.objects.bulk_update(explore_updates, ["position"])
+    DiscoverSavedQueryStarred.objects.bulk_update(discover_updates, ["position"])
