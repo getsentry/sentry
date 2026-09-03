@@ -2437,6 +2437,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, a recalibration factor outside the rebalance bounds is clamped to the
+# nearest bound instead of deleted. Deletion drops the factor back to 1.0 for a full
+# cycle, which makes the effective sample rate oscillate; clamping keeps it steady.
+register(
+    "dynamic-sampling.recalibration.clamp-factor",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
