@@ -1,5 +1,6 @@
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -48,11 +49,13 @@ export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
     isAgentConnected: liveIsConnected,
     isSetupComplete: liveRun?.runStatus === 'completed',
     hasRunFailed: liveRun?.runStatus === 'failed' || liveRun?.runStatus === 'cancelled',
+    hasInitFailed: initialization.isError,
     restartRun,
   };
 }
 
 interface WelcomeAgentSetupProps {
+  hasInitFailed: boolean;
   isAgentConnected: boolean;
   /**
    * Fired when a command is copied out of one of the code blocks.
@@ -68,6 +71,7 @@ interface WelcomeAgentSetupProps {
 }
 
 export function WelcomeAgentSetup({
+  hasInitFailed,
   isAgentConnected,
   onboardingCode,
   onCopyCommand,
@@ -89,6 +93,20 @@ export function WelcomeAgentSetup({
 
   return (
     <Stack gap="2xl" width="100%" position="relative" align="center">
+      <ScmCollapsibleReveal open={hasInitFailed}>
+        <Alert
+          variant="danger"
+          showIcon
+          trailingItems={
+            <Button size="xs" onClick={onRetry}>
+              {t('Try again')}
+            </Button>
+          }
+        >
+          {t('Could not start setup, so the prompt below will not report progress.')}
+        </Alert>
+      </ScmCollapsibleReveal>
+
       <MotionContainer
         layout
         width="100%"
@@ -119,6 +137,7 @@ export function WelcomeAgentSetup({
               transition={CARD_MORPH_TRANSITION}
             >
               <AgentSetupCard
+                hasSetupFailed={hasInitFailed}
                 onboardingCode={onboardingCode}
                 onCopyCommand={onCopyCommand}
                 prompt={prompt}

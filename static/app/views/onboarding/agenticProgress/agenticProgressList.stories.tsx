@@ -126,6 +126,7 @@ function AgentConnectionStory() {
         </Button>
         <Container width="100%" maxWidth="480px">
           <WelcomeAgentSetup
+            hasInitFailed={false}
             isAgentConnected={isAgentConnected}
             onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
