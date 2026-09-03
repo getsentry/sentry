@@ -300,6 +300,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             addSuccessMessage(successMessage);
           }
           onComplete?.();
+        },
+        complete: () => {
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({
               organizationSlug: organization.slug,

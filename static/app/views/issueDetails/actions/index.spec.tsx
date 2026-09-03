@@ -456,6 +456,46 @@ describe('GroupActions', () => {
     expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
   });
 
+  it('refetches group data when resolving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+    const groupFetchApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+
+    function GroupActionsWrapper() {
+      const {data: groupData, isLoading} = useGroup({groupId: group.id});
+
+      if (isLoading || !groupData) {
+        return <div>Loading...</div>;
+      }
+
+      return (
+        <GroupActions group={groupData} project={project} disabled={false} event={null} />
+      );
+    }
+
+    render(
+      <Fragment>
+        <GroupActionsWrapper />
+        <Indicators />
+      </Fragment>,
+      {organization}
+    );
+
+    await waitFor(() => expect(groupFetchApi).toHaveBeenCalledTimes(1));
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    await waitFor(() => expect(groupFetchApi).toHaveBeenCalledTimes(2));
+  });
+
   it('can archive issue', async () => {
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
