@@ -2489,6 +2489,38 @@ class TestGetEventDetails(
         assert event_dict["detectionContext"] is None
         assert event_dict["troubleshootingHint"] is None
 
+    # --- session id (lets Seer pull the whole session's telemetry as context) ---
+
+    def test_session_id_surfaced_from_tag(self) -> None:
+        """An event tagged with session.id surfaces it so Seer can query the whole session."""
+        session_id = uuid.uuid4().hex
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "Test exception"}]}
+        data["tags"] = {"session.id": session_id}
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        assert result["session_id"] == session_id
+
+    def test_session_id_is_none_when_untagged(self) -> None:
+        """Events without a session tag report session_id as None."""
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        assert result["session_id"] is None
+
 
 class TestGetIssueEventTimeseries(APITransactionTestCase, SnubaTestCase):
     """Tests for _get_issue_event_timeseries — resolution selection and API call params."""

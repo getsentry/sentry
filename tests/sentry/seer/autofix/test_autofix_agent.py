@@ -240,6 +240,15 @@ class TestBuildStepPrompt(TestCase):
         assert "ROOT CAUSE" in prompt
         assert "root_cause artifact" in prompt
 
+    def test_root_cause_prompt_steers_to_session_telemetry(self) -> None:
+        prompt = build_step_prompt(AutofixStep.ROOT_CAUSE, self.group)
+
+        # The root-cause step should tell the agent to pivot on session.id when present, so it
+        # investigates the whole user session rather than just the error's own trace.
+        assert "session.id" in prompt
+        # The session hint is specific to root-cause investigation, not the later steps.
+        assert "session.id" not in build_step_prompt(AutofixStep.SOLUTION, self.group)
+
     def test_solution_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
 

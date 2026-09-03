@@ -1385,6 +1385,18 @@ class _EventTroubleshootingContext(TypedDict):
     troubleshootingHint: str | None
 
 
+# The SDK tags every event in a user session with this key. A session groups the user's telemetry
+# (spans, logs, errors) across multiple traces and page loads, so surfacing it lets Seer pull the
+# whole session as investigation context instead of only the error's own trace.
+_SESSION_ID_TAG = "session.id"
+
+
+def _get_event_session_id(event: Event | GroupEvent) -> str | None:
+    # `sentry.session.id` is the same attribute under the SDK's namespaced convention; accept both
+    # so this keeps working whichever form lands on the event as a tag.
+    return event.get_tag(_SESSION_ID_TAG) or event.get_tag(f"sentry.{_SESSION_ID_TAG}")
+
+
 def _get_event_troubleshooting_context(
     event: Event | GroupEvent,
 ) -> _EventTroubleshootingContext:
@@ -2068,8 +2080,10 @@ def get_event_details(
         include_breadcrumbs: Drop the breadcrumbs section from the rendered output when False.
 
     Returns:
-        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, and
-        formatted (rendered text when a ``format`` is requested, else None), or None if not found.
+        Dict with serialized event, event_id, event_trace_id, session_id (the user session this
+        event belongs to, if tagged — query telemetry with ``session.id:<value>`` to pull the whole
+        session across traces), project_id, project_slug, and formatted (rendered text when a
+        ``format`` is requested, else None), or None if not found.
     """
     if bool(event_id) == bool(issue_id):
         raise BadRequest("Either event_id or issue_id must be provided, but not both.")
@@ -2178,6 +2192,7 @@ def get_event_details(
         event=serialized_event,
         event_id=event.event_id,
         event_trace_id=event.trace_id,
+        session_id=_get_event_session_id(event),
         project_id=event.project_id,
         project_slug=event.project.slug,
         formatted=formatted,
