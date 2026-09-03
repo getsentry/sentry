@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock, patch
+import logging
+from unittest.mock import patch
 
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
@@ -9,6 +10,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.autofix_agent import AutofixStep
+from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.outcomes import IterationOutcome, get_iteration_outcomes
 from sentry.testutils.cases import TestCase
 
@@ -64,13 +66,20 @@ def _synced_pr_states(commit_sha: str) -> dict[str, RepoPRState]:
 
 
 class TestGetIterationOutcomes(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.log_ctx = PrIterationLogContext(logging.getLogger(__name__))
+
+    def _outcomes(self, state: SeerRunState) -> dict[str, str]:
+        return get_iteration_outcomes(state, log_ctx=self.log_ctx)
+
     def test_no_iterations(self) -> None:
-        assert get_iteration_outcomes(_state([_plain_block("a")])) == {}
+        assert self._outcomes(_state([_plain_block("a")])) == {}
 
     def test_iteration_that_edited_nothing_made_no_changes(self) -> None:
         state = _state([_iteration_block(0), _plain_block("a")])
 
-        assert get_iteration_outcomes(state) == {"0": IterationOutcome.NO_CHANGES}
+        assert self._outcomes(state) == {"0": IterationOutcome.NO_CHANGES}
 
     def test_edits_pushed_to_the_pr(self) -> None:
         state = _state(
@@ -78,7 +87,7 @@ class TestGetIterationOutcomes(TestCase):
             repo_pr_states=_synced_pr_states("abc"),
         )
 
-        assert get_iteration_outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
+        assert self._outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
 
     def test_edits_that_never_reached_the_pr(self) -> None:
         state = _state(
@@ -86,12 +95,12 @@ class TestGetIterationOutcomes(TestCase):
             repo_pr_states=_synced_pr_states("abc"),
         )
 
-        assert get_iteration_outcomes(state) == {"0": IterationOutcome.PUSH_FAILED}
+        assert self._outcomes(state) == {"0": IterationOutcome.PUSH_FAILED}
 
     def test_latest_iteration_is_in_progress_while_the_run_processes(self) -> None:
         state = _state([_iteration_block(0)], status="processing")
 
-        assert get_iteration_outcomes(state) == {"0": IterationOutcome.IN_PROGRESS}
+        assert self._outcomes(state) == {"0": IterationOutcome.IN_PROGRESS}
 
     def test_only_the_latest_iteration_is_in_progress(self) -> None:
         # The older iteration edited nothing and is settled; the newest is still running.
@@ -100,7 +109,7 @@ class TestGetIterationOutcomes(TestCase):
             status="processing",
         )
 
-        assert get_iteration_outcomes(state) == {
+        assert self._outcomes(state) == {
             "0": IterationOutcome.NO_CHANGES,
             "1": IterationOutcome.IN_PROGRESS,
         }
@@ -116,7 +125,7 @@ class TestGetIterationOutcomes(TestCase):
             repo_pr_states=_synced_pr_states("abc"),
         )
 
-        assert get_iteration_outcomes(state) == {
+        assert self._outcomes(state) == {
             "0": IterationOutcome.CHANGES_PUSHED,
             "1": IterationOutcome.NO_CHANGES,
         }
@@ -127,10 +136,11 @@ class TestGetIterationOutcomes(TestCase):
             repo_pr_states=_synced_pr_states("abc"),
         )
 
-        assert get_iteration_outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
+        assert self._outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
 
-    @patch("sentry.seer.autofix.pr_iteration.outcomes.logger")
-    def test_unparseable_iterations_report_and_return_nothing(self, mock_logger: MagicMock) -> None:
+    def test_unparseable_iterations_report_and_return_nothing(self) -> None:
         # A PR_ITERATION block without an iteration_index makes get_iterations raise.
-        assert get_iteration_outcomes(_state([_iteration_block(None)])) == {}
-        mock_logger.exception.assert_called_once()
+        with patch.object(self.log_ctx, "error") as mock_error:
+            assert self._outcomes(_state([_iteration_block(None)])) == {}
+
+        assert mock_error.call_args.args == ("autofix.pr_iteration.iteration_outcomes.failed",)
