@@ -1,10 +1,11 @@
-"""What each PR iteration did about the feedback that drove it.
+"""What each PR iteration did about the feedback that started it.
 
-The feedback list shows the outcome next to the feedback, so a reader can tell
-whether Seer is still working on a CI failure or made no changes for it without
-opening the PR. Outcomes are derived from the run state on read — an iteration's
-blocks carry the edits it made — so nothing extra is persisted and iterations
-that ran before this existed still resolve.
+The feedback list shows this outcome next to the feedback. A reader can then see
+that Seer works on a CI failure, or that Seer made no changes for it.
+
+Each outcome comes from the run state at read time. The blocks of an iteration
+hold the edits that the iteration made. This module stores nothing, so an
+iteration that ran before this code also gets an outcome.
 """
 
 from __future__ import annotations
@@ -19,28 +20,24 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 class IterationOutcome(StrEnum):
     IN_PROGRESS = "in_progress"
     CHANGES_PUSHED = "changes_pushed"
-    # Edits were made but the run ended without them reaching the PR.
     PUSH_FAILED = "push_failed"
-    # The iteration ran to completion and edited nothing: Seer had no fix for
-    # this feedback.
     NO_CHANGES = "no_changes"
 
 
 def _made_changes(iteration: Iteration) -> bool:
-    """`file_patches` are the edits made in that block, so any of them means this
-    iteration (not an earlier one) touched code."""
+    """`file_patches` hold the edits of one block, so they show only the work of
+    this iteration."""
     return any(block.file_patches for block in iteration.blocks)
 
 
 def get_iteration_outcomes(
     state: SeerRunState, *, log_ctx: PrIterationLogContext
 ) -> dict[str, str]:
-    """Outcome per iteration, keyed by iteration index as a string so it survives
-    JSON.
+    """The outcome of each iteration, keyed by the iteration index as a string.
 
-    Only the newest iteration can be unfinished, and only its changes can still
-    be waiting on a push: everything older is settled by the fact that another
-    iteration started after it.
+    Only the newest iteration can be incomplete. Only the edits of the newest
+    iteration can wait for a push. An older iteration is complete, because a
+    later iteration started after it.
     """
     try:
         iterations = get_iterations(state)
