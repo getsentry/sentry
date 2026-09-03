@@ -39,6 +39,7 @@ from sentry.utils.snuba_rpc import trace_item_stats_rpc
 logger = logging.getLogger(__name__)
 
 PARALLELIZATION_FACTOR = 2
+STATS_RPC_MAX_ATTRIBUTES = 500  # Snuba's hard limit per TraceItemStatsRequest
 
 
 @cell_silo_endpoint
@@ -287,15 +288,18 @@ def query_attribute_distributions(
         )
         attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
 
-    # Chunk attributes for parallel processing
-    chunked_attributes: defaultdict[int, list[AttributeKey]] = defaultdict(list)
-    for i, attr_proto in enumerate(attrs_response.attributes):
-        if attr_proto.name in SPANS_STATS_EXCLUDED_ATTRIBUTES:
-            continue
+    # Build filtered list of attributes
+    filtered_attributes = [
+        AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
+        for attr_proto in attrs_response.attributes
+        if attr_proto.name not in SPANS_STATS_EXCLUDED_ATTRIBUTES
+    ]
 
-        chunked_attributes[i % PARALLELIZATION_FACTOR].append(
-            AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
-        )
+    # Chunk attributes into fixed-size batches to respect Snuba's per-request limit
+    chunked_attributes: list[list[AttributeKey]] = [
+        filtered_attributes[i : i + STATS_RPC_MAX_ATTRIBUTES]
+        for i in range(0, max(len(filtered_attributes), 1), STATS_RPC_MAX_ATTRIBUTES)
+    ]
 
     def run_stats_request_with_error_handling(filter, attributes):
         with handle_query_errors():
@@ -327,17 +331,18 @@ def query_attribute_distributions(
                 referrer=Referrer.API_SPAN_SAMPLE_GET_SPAN_DATA.value,
             )
 
+    num_batches = len(chunked_attributes)
     with ContextPropagatingThreadPoolExecutor(
         thread_name_prefix=__name__,
-        max_workers=PARALLELIZATION_FACTOR * 2 + 2,  # 2 cohorts * threads + 2 totals queries
+        max_workers=num_batches * 2 + 2,  # 2 cohorts * num_batches + 2 totals queries
     ) as query_thread_pool:
         cohort_1_futures = [
             query_thread_pool.submit(run_stats_request_with_error_handling, cohort_1, attributes)
-            for attributes in chunked_attributes.values()
+            for attributes in chunked_attributes
         ]
         cohort_2_futures = [
             query_thread_pool.submit(run_stats_request_with_error_handling, cohort_2, attributes)
-            for attributes in chunked_attributes.values()
+            for attributes in chunked_attributes
         ]
 
         totals_1_future = query_thread_pool.submit(run_table_query_with_error_handling, query_1)
