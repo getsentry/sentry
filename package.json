@@ -106,7 +106,7 @@
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry-internal/rrweb": "2.41.0",
-    "@sentry-internal/rrweb-player": "2.41.0",
+    "@sentry-internal/rrweb-player": "2.43.0",
     "@sentry-internal/rrweb-snapshot": "2.41.0",
     "@sentry/browser": "11.0.0-beta.0",
     "@sentry/conventions": "^0.21.0",
