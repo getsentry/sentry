@@ -63,8 +63,7 @@ function StoryLayout() {
           maxWidth={{zero: '580px', '3xl': '832px'}}
           gap="3xl"
           padding="0 xl"
-          marginLeft={{zero: '0', '3xl': 'auto'}}
-          marginRight={{zero: '0', '3xl': 'auto'}}
+          margin={{zero: '0', '3xl': '0 auto'}}
           containerType="inline-size"
         >
           <Stack flexGrow={1} minWidth="0px">
@@ -108,8 +107,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
           maxWidth={{zero: '580px', '3xl': '832px'}}
           gap="2xl"
           padding="0 xl"
-          marginLeft={{zero: '0', '3xl': 'auto'}}
-          marginRight={{zero: '0', '3xl': 'auto'}}
+          margin={{zero: '0', '3xl': '0 auto'}}
           containerType="inline-size"
         >
           <Stack
