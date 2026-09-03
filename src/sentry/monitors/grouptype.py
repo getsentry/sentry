@@ -7,6 +7,7 @@ from sentry_redis_tools.sliding_windows_rate_limiter import Quota
 from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
 from sentry.monitors.validators import MonitorIncidentDetectorValidator
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
 
 
@@ -20,8 +21,12 @@ class MonitorIncidentType(GroupType):
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
+
+
+detector_settings_registry.register(MonitorIncidentType.slug)(
+    DetectorSettings(
         handler=None,
         validator=MonitorIncidentDetectorValidator,
         config_schema={},
     )
+)

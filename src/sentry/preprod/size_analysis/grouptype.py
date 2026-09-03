@@ -25,6 +25,7 @@ from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     DetectorSettings,
@@ -417,7 +418,10 @@ class PreprodSizeAnalysisGroupType(GroupType):
         context=[],
         text_code_formatted=False,
     )
-    detector_settings = DetectorSettings(
+
+
+detector_settings_registry.register(PreprodSizeAnalysisGroupType.slug)(
+    DetectorSettings(
         handler=PreprodSizeAnalysisDetectorHandler,
         validator=PreprodSizeAnalysisDetectorValidator,
         config_schema={
@@ -444,3 +448,4 @@ class PreprodSizeAnalysisGroupType(GroupType):
             "additionalProperties": False,
         },
     )
+)

@@ -32,6 +32,7 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
     DetectorGroupKey,
@@ -360,7 +361,10 @@ class MetricIssue(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     enable_user_status_and_priority_changes = False
-    detector_settings = DetectorSettings(
+
+
+detector_settings_registry.register(MetricIssue.slug)(
+    DetectorSettings(
         handler=MetricIssueDetectorHandler,
         validator=MetricIssueDetectorValidator,
         config_schema={
@@ -380,3 +384,4 @@ class MetricIssue(GroupType):
             },
         },
     )
+)
