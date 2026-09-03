@@ -583,3 +583,19 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, slug="delete_and_discard"
         )
         assert feature_complete
+
+    def test_bulk_record_keeps_new_features_after_cache_loss(self) -> None:
+        org_id = self.organization.id
+        FeatureAdoption.objects.record(org_id, "python")
+
+        # The redis set expires on its own TTL, so a cold cache is a normal state.
+        key = FeatureAdoption.objects.cache_backend.key_tpl.format(org_id)
+        FeatureAdoption.objects.cache_backend.get_client(key).delete(key)
+
+        # This batch mixes a feature that is already in the database with a new one.
+        FeatureAdoption.objects.bulk_record(org_id, ["python", "source_maps"])
+
+        source_maps = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="source_maps"
+        )
+        assert source_maps

@@ -3,13 +3,7 @@ import styled from '@emotion/styled';
 
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {
-  Container,
-  Flex,
-  Stack,
-  type FlexProps,
-  type StackProps,
-} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -56,22 +50,12 @@ function RowLayout(props: RowLayoutProps) {
   );
 }
 
-interface StackLayoutProps extends LayoutProps {
-  padding?: StackProps['padding'];
-}
-
-function StackLayout(props: StackLayoutProps) {
+function StackLayout(props: LayoutProps) {
   const isCompact = props.variant === 'compact';
   const field = useFieldContext();
 
   return (
-    <HighlightableFlex
-      id={field.name}
-      direction="column"
-      gap="md"
-      padding={props.padding}
-      flexGrow={1}
-    >
+    <HighlightableFlex id={field.name} direction="column" gap="md" flexGrow={1}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}

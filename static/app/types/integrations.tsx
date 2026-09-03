@@ -1,7 +1,6 @@
 import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
-import type {Field} from 'sentry/components/forms/types';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
 import type {
   DISABLED as DISABLED_STATUS,
@@ -11,7 +10,7 @@ import type {
   PENDING_DELETION,
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
-import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {Avatar, ObjectStatus, Scope} from './core';
 import type {ParsedOwnershipRule} from './ownership';
 import type {BaseRelease} from './release';
 import type {User} from './user';
@@ -177,6 +176,14 @@ export type PullRequestReviewStatus =
   | 'changes_requested'
   | 'review_required';
 
+export type PullRequestFileChangeType =
+  | 'ADDED'
+  | 'CHANGED'
+  | 'COPIED'
+  | 'DELETED'
+  | 'MODIFIED'
+  | 'RENAMED';
+
 export interface LinkedPullRequest extends Omit<PullRequest, 'author'> {
   attribution: PullRequestAttribution | null;
   checksStatus: PullRequestChecksStatus | null;
@@ -341,6 +348,7 @@ export type SentryAppWebhookRequest = {
   responseCode: number;
   sentryAppSlug: string;
   webhookUrl: string;
+  durationMs?: number | null;
   error_id?: string | null;
   organization?: {
     id: number;
@@ -348,6 +356,7 @@ export type SentryAppWebhookRequest = {
     slug: string;
   };
   project_id?: number | null;
+  requestId?: string | null;
   request_body?: string | null;
   /**
    * Values of custom headers are masked before they reach the buffer, so only
@@ -355,6 +364,8 @@ export type SentryAppWebhookRequest = {
    */
   request_headers?: Record<string, string> | null;
   response_body?: string | null;
+  subjectId?: string | null;
+  subjectType?: string | null;
 };
 
 /**
@@ -454,6 +465,8 @@ interface CommonIntegration {
 }
 
 export interface Integration extends CommonIntegration {
+  /** OAuth scopes from provider metadata. Always sent; null when unused (e.g. GitHub). */
+  scopes: string[] | null;
   dynamicDisplayInformation?: {
     configure_integration?: {
       instructions: string[];
@@ -464,7 +477,6 @@ export interface Integration extends CommonIntegration {
   };
   // Present on OrganizationIntegration; for GitHub this is the App installation id.
   externalId?: string;
-  scopes?: string[];
 }
 
 type ConfigData = Record<string, unknown> & {
@@ -473,9 +485,10 @@ type ConfigData = Record<string, unknown> & {
 
 export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
-  configOrganization: JsonFormAdapterFieldConfig[];
   externalId: string;
-  organizationId: string;
+  organizationId: number;
+  /** Omitted when the list endpoint is fetched with includeConfig=0. */
+  configOrganization?: JsonFormAdapterFieldConfig[];
 }
 
 // we include the configOrganization when we need it
@@ -518,27 +531,14 @@ export type ExternalIssue = {
   title: string;
 };
 
-/**
- * The issue config form fields we get are basically the form fields we use in
- * the UI but with some extra information. Some fields marked optional in the
- * form field are guaranteed to exist so we can mark them as required here
- */
-export type IssueConfigField = Field & {
-  name: string;
-  choices?: Choices;
-  default?: string | number | Choice;
-  multiple?: boolean;
-  url?: string;
-};
-
 export type IntegrationIssueConfig = {
   domainName: string;
   icon: string[];
   name: string;
   provider: IntegrationProvider;
   status: ObjectStatus;
-  createIssueConfig?: IssueConfigField[];
-  linkIssueConfig?: IssueConfigField[];
+  createIssueConfig?: JsonFormAdapterFieldConfig[];
+  linkIssueConfig?: JsonFormAdapterFieldConfig[];
 };
 
 export type AppOrProviderOrPlugin = SentryApp | IntegrationProvider | DocIntegration;

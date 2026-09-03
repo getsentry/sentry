@@ -7,16 +7,13 @@ import {
   defaultFields,
   defaultSortBys,
 } from 'sentry/views/explore/metrics/metricQuery';
-import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 
 interface MetricsStateQueryParamsProviderProps {
   children: ReactNode;
-  frozenParams?: Partial<ReadableQueryParamsOptions>;
 }
 
 export function MetricsStateQueryParamsProvider({
   children,
-  frozenParams,
 }: MetricsStateQueryParamsProviderProps) {
   return (
     <ExploreStateQueryParamsProvider
@@ -24,7 +21,6 @@ export function MetricsStateQueryParamsProvider({
       defaultSortBys={defaultSortBys}
       defaultAggregateFields={defaultAggregateFields}
       defaultAggregateSortBys={defaultAggregateSortBys}
-      frozenParams={frozenParams}
     >
       {children}
     </ExploreStateQueryParamsProvider>

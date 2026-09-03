@@ -1,7 +1,6 @@
 import {useContext, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {AriaTabPanelProps} from '@react-aria/tabs';
 import {useTabPanel} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
@@ -14,7 +13,7 @@ import {tabsShouldForwardProp} from './utils';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-interface TabPanelsProps extends AriaTabPanelProps {
+interface TabPanelsProps {
   children: CollectionBase<unknown>['children'];
   className?: string;
 }
@@ -57,7 +56,7 @@ export function TabPanels(props: TabPanelsProps) {
 
 TabPanels.Item = TabPanelItem;
 
-interface TabPanelProps extends AriaTabPanelProps {
+interface TabPanelProps {
   state: TabListState<any>;
   children?: React.ReactNode;
   className?: string;

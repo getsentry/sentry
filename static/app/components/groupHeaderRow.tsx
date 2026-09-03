@@ -13,6 +13,7 @@ import {IconStar} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
@@ -23,8 +24,6 @@ import {EventTitleError} from './eventTitleError';
 interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
-  hideIcons?: boolean;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
   query?: string;
   source?: string;
 }
@@ -47,7 +46,7 @@ function usePreloadGroupOnHover({
           groupId,
           organizationSlug: organization.slug,
           environments: selection.environments,
-          expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+          expandDerivedData: orgHasIssueInbox(organization),
         })
       );
     },
@@ -66,14 +65,7 @@ function usePreloadGroupOnHover({
 /**
  * Displays a group/issue title row (i.e. in Stream)
  */
-export function GroupHeaderRow({
-  data,
-  query,
-  onClick,
-  hideIcons,
-  eventId,
-  source,
-}: GroupHeaderRowProps) {
+export function GroupHeaderRow({data, query, eventId, source}: GroupHeaderRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -99,10 +91,9 @@ export function GroupHeaderRow({
           data-test-id={data.status === 'resolved' ? 'resolved-issue' : undefined}
           {...preloadHoverProps}
           to={to}
-          onClick={onClick}
           data-issue-title-link
         >
-          {!hideIcons && data.isBookmarked && (
+          {data.isBookmarked && (
             <IconWrapper>
               <IconStar isSolid variant="warning" />
             </IconWrapper>

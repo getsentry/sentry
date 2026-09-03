@@ -1,16 +1,21 @@
 from collections import namedtuple
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import orjson
 import pytest
 from django.conf import settings
 from requests import Response
-from requests.exceptions import Timeout
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.notifications.platform.service import NotificationService
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
-from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
+from sentry.sentry_apps.utils.webhooks import (
+    CommentActionType,
+    IssueActionType,
+    SentryAppResourceType,
+)
 from sentry.shared_integrations.exceptions import ApiHostError, ClientError
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -20,7 +25,12 @@ from sentry.testutils.silo import cell_silo_test
 from sentry.utils import redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
-from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
+from sentry.utils.sentry_apps.webhooks import (
+    CONNECTION_ERROR_STATUS_CODE,
+    TIMEOUT_STATUS_CODE,
+    WebhookTimeoutError,
+    send_and_save_webhook_request,
+)
 
 
 def _raise_status_false() -> bool:
@@ -460,3 +470,165 @@ class ClaudeRoutineTextSummaryTest(TestCase):
         body = self._send(mock_safe_urlopen, "https://example.com/webhook")
 
         assert "text" not in body
+
+    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_routine_signature_matches_sent_body(self, mock_safe_urlopen):
+        """The signature must verify against the text-summary body we actually send.
+
+        Regression: reading the Request-ID before include_text_summary was set
+        cached sentry_headers' signature over the pre-summary body.
+        """
+        sentry_app = self.create_sentry_app(
+            name="RoutineSigApp",
+            organization=self.organization,
+            webhook_url=self.ROUTINE_URL,
+            published=True,
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"issue": {"id": "123"}},
+        )
+        mock_response = Mock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_safe_urlopen.return_value = mock_response
+
+        send_and_save_webhook_request(sentry_app, event)
+
+        sent_body = mock_safe_urlopen.call_args.kwargs["data"]
+        sent_headers = mock_safe_urlopen.call_args.kwargs["headers"]
+        # The text summary is part of the signed body...
+        assert "text" in orjson.loads(sent_body)
+        # ...and the signature verifies against that exact body.
+        assert sent_headers["Sentry-Hook-Signature"] == sentry_app.build_signature(sent_body)
+
+
+@cell_silo_test
+class WebhookRequestIdAndDurationTest(TestCase):
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.sentry_app = self.create_sentry_app(
+            name="IdApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+
+    def _issue_event(self):
+        return AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"issue": {"id": "123"}},
+        )
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_success_row_stores_request_id_subject_and_duration(
+        self, MockBreaker, mock_safe_urlopen
+    ):
+        MockBreaker.return_value.should_allow_request.return_value = True
+        mock_response = Mock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.elapsed = timedelta(milliseconds=137)
+        mock_safe_urlopen.return_value = mock_response
+
+        event = self._issue_event()
+        send_and_save_webhook_request(self.sentry_app, event)
+
+        # request_id is persisted on a SUCCESS row and equals the Request-ID sent.
+        sent_request_id = mock_safe_urlopen.call_args.kwargs["headers"]["Request-ID"]
+        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests()
+        assert len(requests) == 1
+        row = requests[0]
+        assert row["request_id"] == sent_request_id
+        assert row["request_id"] == event.sentry_headers["Request-ID"]
+        assert row["subject_id"] == "123"
+        assert row["subject_type"] == "group"
+        assert row["duration_ms"] == 137
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_timeout_row_stores_configured_timeout_as_duration(
+        self, MockBreaker, mock_safe_urlopen
+    ):
+        MockBreaker.return_value.should_allow_request.return_value = True
+        mock_safe_urlopen.side_effect = Timeout()
+
+        event = self._issue_event()
+        with pytest.raises(Timeout):
+            send_and_save_webhook_request(self.sentry_app, event)
+
+        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        row = requests[0]
+        assert row["response_code"] == TIMEOUT_STATUS_CODE
+        # CIRCUIT_BREAKER_OPTIONS sets the webhook timeout to 1.0s -> 1000ms.
+        assert row["duration_ms"] == 1000
+        assert row["request_id"] == event.sentry_headers["Request-ID"]
+        assert row["subject_id"] == "123"
+        assert row["subject_type"] == "group"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_connection_error_row_stores_no_duration(self, MockBreaker, mock_safe_urlopen):
+        MockBreaker.return_value.should_allow_request.return_value = True
+        mock_safe_urlopen.side_effect = ConnectionError()
+
+        event = self._issue_event()
+        with pytest.raises(ConnectionError):
+            send_and_save_webhook_request(self.sentry_app, event)
+
+        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        row = requests[0]
+        # Its own code, distinct from a timeout, and no meaningful response time.
+        assert row["response_code"] == CONNECTION_ERROR_STATUS_CODE
+        assert row.get("duration_ms") is None
+        assert row["request_id"] == event.sentry_headers["Request-ID"]
+        assert row["subject_id"] == "123"
+        assert row["subject_type"] == "group"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_row_without_subject_stores_request_id_and_duration_only(
+        self, MockBreaker, mock_safe_urlopen
+    ):
+        MockBreaker.return_value.should_allow_request.return_value = True
+        mock_response = Mock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_response.elapsed = timedelta(milliseconds=10)
+        mock_safe_urlopen.return_value = mock_response
+
+        # A comment payload with no note id yields no stable subject.
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.COMMENT,
+            action=CommentActionType.CREATED,
+            install=self.install,
+            data={"comment_id": None},
+        )
+        send_and_save_webhook_request(self.sentry_app, event)
+
+        requests = SentryAppWebhookRequestsBuffer(self.sentry_app).get_requests()
+        assert len(requests) == 1
+        row = requests[0]
+        assert row.get("subject_id") is None
+        assert row.get("subject_type") is None
+        assert row["request_id"] == event.sentry_headers["Request-ID"]
+        assert row["duration_ms"] == 10

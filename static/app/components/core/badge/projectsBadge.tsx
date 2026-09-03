@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import PlatformIcon from 'platformicons/build/platformIcon';
+import {PlatformIcon} from 'platformicons';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 

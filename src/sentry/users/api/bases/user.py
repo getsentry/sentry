@@ -17,12 +17,18 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import organization_service
+from sentry.seer import agent_token
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
 class UserPermission(DemoSafePermission):
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if agent_token.is_agent_auth(request.auth):
+            return False
+        return super().has_permission(request, view)
+
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:

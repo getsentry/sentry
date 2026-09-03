@@ -240,7 +240,7 @@ def create_sample_time_series(event, release=None):
             project=project, release=release, environment=environment, datetime=now
         )
 
-        grouprelease = GroupRelease.get_or_create(
+        GroupRelease.get_or_create(
             group=group, release=release, environment=environment, datetime=now
         )
 
@@ -277,17 +277,6 @@ def create_sample_time_series(event, release=None):
             int(count * 0.1),
         )
 
-        frequencies = [
-            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
-        ]
-        if release:
-            frequencies.append(
-                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
-            )
-
-        tsdb.backend.record_frequency_multi(frequencies, now)
-
         now = now - timedelta(seconds=1)
 
     for _ in range(24 * 30):
@@ -316,17 +305,6 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 0.1),
         )
-
-        frequencies = [
-            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
-        ]
-        if release:
-            frequencies.append(
-                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
-            )
-
-        tsdb.backend.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(hours=1)
 

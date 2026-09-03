@@ -586,34 +586,6 @@ def build_repo_definition_from_project_repo(
     )
 
 
-def build_repo_definition_from_project_repo_fallback(
-    project_repo: ProjectRepository,
-) -> SeerRepoDefinition | None:
-    """Build a SeerRepoDefinition from a ProjectRepository → Repository, without
-    Seer-specific fields. Used as a fallback for free cohort orgs that have no
-    SeerProjectRepository rows.
-
-    Returns None if Repository name is invalid."""
-    repo = project_repo.repository
-    repo_name_sections = get_repo_url_path(repo).split("/")
-    if len(repo_name_sections) < 2:
-        sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
-        return None
-
-    return SeerRepoDefinition(
-        repository_id=repo.id,
-        organization_id=repo.organization_id,
-        integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
-        provider=repo.provider or "",
-        owner=repo_name_sections[0],
-        name="/".join(repo_name_sections[1:]),
-        external_id=repo.external_id or "",
-        branch_name=None,
-        instructions=None,
-        branch_overrides=[],
-    )
-
-
 def get_automation_handoff(
     get_option: Callable[[str], Any],
 ) -> SeerAutomationHandoffConfiguration | None:
@@ -635,32 +607,19 @@ def get_automation_handoff(
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB."""
-    if is_free_cohort_org(project.organization):
-        # Free cohort orgs have no SeerProjectRepository rows — use
-        # ProjectRepository → Repository directly.
-        project_repo_qs = ProjectRepository.objects.filter(
-            project=project,
-            repository__status=ObjectStatus.ACTIVE,
-        ).select_related("repository")
-        repo_definitions = [
-            repo_def
-            for pr in project_repo_qs
-            if (repo_def := build_repo_definition_from_project_repo_fallback(pr)) is not None
-        ]
-    else:
-        seer_project_repo_qs = (
-            SeerProjectRepository.objects.filter(
-                project_repository__project=project,
-                project_repository__repository__status=ObjectStatus.ACTIVE,
-            )
-            .select_related("project_repository", "project_repository__repository")
-            .prefetch_related("branch_overrides")
+    seer_project_repo_qs = (
+        SeerProjectRepository.objects.filter(
+            project_repository__project=project,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         )
-        repo_definitions = [
-            repo_def
-            for project_repo in seer_project_repo_qs
-            if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
-        ]
+        .select_related("project_repository", "project_repository__repository")
+        .prefetch_related("branch_overrides")
+    )
+    repo_definitions = [
+        repo_def
+        for project_repo in seer_project_repo_qs
+        if (repo_def := build_repo_definition_from_project_repo(project_repo)) is not None
+    ]
 
     return SeerProjectPreference(
         organization_id=project.organization_id,
@@ -682,33 +641,18 @@ def bulk_read_preferences_from_sentry_db(
     projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
 
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
-    org = Organization.objects.filter(id=organization_id).first()
-    if org is not None and is_free_cohort_org(org):
-        # Free cohort orgs have no SeerProjectRepository rows — use
-        # ProjectRepository → Repository directly.
-        fallback_qs = ProjectRepository.objects.filter(
-            project_id__in=project_ids,
-            repository__status=ObjectStatus.ACTIVE,
-        ).select_related("repository")
-        for pr in fallback_qs:
-            repo_def = build_repo_definition_from_project_repo_fallback(pr)
-            if repo_def is not None:
-                repo_definitions_by_project[pr.project_id].append(repo_def)
-    else:
-        seer_repo_qs = (
-            SeerProjectRepository.objects.filter(
-                project_repository__project_id__in=project_ids,
-                project_repository__repository__status=ObjectStatus.ACTIVE,
-            )
-            .select_related("project_repository", "project_repository__repository")
-            .prefetch_related("branch_overrides")
+    seer_repo_qs = (
+        SeerProjectRepository.objects.filter(
+            project_repository__project_id__in=project_ids,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
         )
-        for seer_repo in seer_repo_qs:
-            repo_def = build_repo_definition_from_project_repo(seer_repo)
-            if repo_def is not None:
-                repo_definitions_by_project[seer_repo.project_repository.project_id].append(
-                    repo_def
-                )
+        .select_related("project_repository", "project_repository__repository")
+        .prefetch_related("branch_overrides")
+    )
+    for seer_repo in seer_repo_qs:
+        repo_def = build_repo_definition_from_project_repo(seer_repo)
+        if repo_def is not None:
+            repo_definitions_by_project[seer_repo.project_repository.project_id].append(repo_def)
 
     # get_value_bulk_id returns None for missing options, unlike project.get_option
     # which automatically falls back to the registered well-known key default.
@@ -927,30 +871,13 @@ def replace_all_seer_project_repos(
 
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
-    """Check if a project has connected repositories for Seer automation.
-
-    For free cohort orgs (no SeerProjectRepository rows), falls back to
-    checking ProjectRepository directly.
-    """
-    has_seer_repos = SeerProjectRepository.objects.filter(
+    """Check if a project has connected repositories for Seer automation."""
+    return SeerProjectRepository.objects.filter(
         project_repository__project=project,
         project_repository__project__organization_id=organization.id,
         project_repository__project__status=ObjectStatus.ACTIVE,
         project_repository__repository__status=ObjectStatus.ACTIVE,
     ).exists()
-    if has_seer_repos:
-        return True
-
-    # Free cohort orgs have ProjectRepository rows but no SeerProjectRepository rows.
-    if is_free_cohort_org(organization):
-        return ProjectRepository.objects.filter(
-            project=project,
-            project__organization_id=organization.id,
-            project__status=ObjectStatus.ACTIVE,
-            repository__status=ObjectStatus.ACTIVE,
-        ).exists()
-
-    return False
 
 
 def get_autofix_repos_from_project_code_mappings(

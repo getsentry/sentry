@@ -27,10 +27,7 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import (
-    get_attachments_session,
-    get_internal_download_url,
-)
+from sentry.objectstore import UsecaseId, get_internal_download_url, get_session
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
@@ -237,7 +234,7 @@ class Symbolicator:
 
         if minidump.stored_id:
             stored_id = minidump.stored_id
-            session = get_attachments_session(self.project.organization_id, self.project.id)
+            session = get_session(UsecaseId.ATTACHMENTS, self.project)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -281,7 +278,7 @@ class Symbolicator:
 
         if report.stored_id:
             stored_id = report.stored_id
-            session = get_attachments_session(self.project.organization_id, self.project.id)
+            session = get_session(UsecaseId.ATTACHMENTS, self.project)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,

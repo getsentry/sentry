@@ -5,10 +5,9 @@ import {Panel} from 'sentry/components/panels/panel';
 interface Props extends React.ComponentProps<typeof Panel> {
   children: React.ReactNode;
   image?: React.ReactNode;
-  noCenter?: boolean;
 }
 
-export function ReplayPanel({image, noCenter, children, ...props}: Props) {
+export function ReplayPanel({image, children, ...props}: Props) {
   return (
     <Panel {...props}>
       <Flex
@@ -37,9 +36,7 @@ export function ReplayPanel({image, noCenter, children, ...props}: Props) {
           flex={{xl: 2}}
           minWidth="0"
           style={
-            !image && !noCenter
-              ? {zIndex: 1, textAlign: 'center', maxWidth: '600px'}
-              : {zIndex: 1}
+            image ? {zIndex: 1} : {zIndex: 1, textAlign: 'center', maxWidth: '600px'}
           }
         >
           {children}

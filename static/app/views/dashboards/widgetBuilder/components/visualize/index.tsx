@@ -252,6 +252,17 @@ function canDeleteField(
       ).length > 1 || field.kind === FieldValueKind.FIELD
     );
   }
+  if (dataset === WidgetType.TRACEMETRICS) {
+    // Trace metric tables only support aggregates. Keep the last aggregate so
+    // a table cannot become a samples-only query.
+    return (
+      selectedFields.filter(
+        selectedField =>
+          selectedField.kind === FieldValueKind.FUNCTION ||
+          selectedField.kind === FieldValueKind.EQUATION
+      ).length > 1 || field.kind === FieldValueKind.FIELD
+    );
+  }
   return true;
 }
 
@@ -878,6 +889,29 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                         disableTransactionWidget || isHeatmapWidget
                                       }
                                       field={field}
+                                      fieldSelector={autoSelectFirstColumn =>
+                                        field.kind === FieldValueKind.FIELD ? (
+                                          <SelectRow
+                                            autoSelectFirstColumn={autoSelectFirstColumn}
+                                            showAggregateSelector={false}
+                                            field={field}
+                                            index={index}
+                                            hasColumnParameter={hasColumnParameter}
+                                            columnOptions={columnOptions}
+                                            aggregateOptions={aggregateOptions}
+                                            stringFields={stringFields}
+                                            error={error}
+                                            setError={setError}
+                                            fields={fields}
+                                            source={source}
+                                            isEditing={isEditing}
+                                            fieldOptions={fieldOptions}
+                                            columnFilterMethod={columnFilterMethod}
+                                            aggregates={aggregates}
+                                            disabled={disableTransactionWidget}
+                                          />
+                                        ) : undefined
+                                      }
                                       index={index}
                                     />
                                   ) : (

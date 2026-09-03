@@ -19,7 +19,6 @@ type Props = {
   event: Event;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  hideGuide?: boolean;
 };
 
 function StackTraceContentWrapper({

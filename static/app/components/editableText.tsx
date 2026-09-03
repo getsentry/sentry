@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
@@ -23,12 +23,10 @@ type Props = {
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
   maxLength?: number;
-  name?: string;
   /**
    * The placeholder text to display when the input is empty.
    */
   placeholder?: string;
-  successMessage?: React.ReactNode;
   /**
    * "compact" removes fixed heights so the component inherits font-size and
    * line-height from its context (e.g. when rendered inside a breadcrumb row).
@@ -39,9 +37,7 @@ type Props = {
 export function EditableText({
   value,
   onChange,
-  name,
   errorMessage,
-  successMessage,
   maxLength,
   isDisabled = false,
   autoSelect = false,
@@ -74,12 +70,8 @@ export function EditableText({
         }
         return;
       }
-
-      if (successMessage) {
-        addSuccessMessage(successMessage);
-      }
     },
-    [errorMessage, successMessage]
+    [errorMessage]
   );
 
   const exitEditing = useCallback(() => {
@@ -206,7 +198,6 @@ export function EditableText({
         >
           <StyledInput
             aria-label={ariaLabel}
-            name={name}
             ref={inputRef}
             value={currentDraft}
             onChange={handleInputChange}

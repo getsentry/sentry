@@ -51,7 +51,7 @@ function TopBarContent() {
     if (isSeerExplorerOpen) {
       return getExplorerFeedbackOptions(seerExplorerRunId);
     }
-    return {tags: {['feedback.source']: 'top_navigation'}};
+    return {tags: {'feedback.source': 'top_navigation'}};
   }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   return (

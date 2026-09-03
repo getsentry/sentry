@@ -10,7 +10,6 @@ type FormSectionProps = {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  defaultExpanded?: boolean;
   description?: React.ReactNode;
   step?: number;
   trailingItems?: React.ReactNode;
@@ -23,7 +22,6 @@ export function FormSection({
   description,
   step,
   trailingItems,
-  defaultExpanded = true,
 }: FormSectionProps) {
   return (
     <ErrorBoundary mini>
@@ -31,7 +29,7 @@ export function FormSection({
         as="section"
         size="md"
         role="region"
-        defaultExpanded={defaultExpanded}
+        defaultExpanded
         className={className}
       >
         <Disclosure.Title trailingItems={trailingItems}>

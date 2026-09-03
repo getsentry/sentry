@@ -591,3 +591,27 @@ def test_bad_launchdarkly_data() -> None:
         DeserializationError,
     ):
         LaunchDarklyProvider(123, None).handle(request_data)
+
+
+def test_launchdarkly_long_flag_name() -> None:
+    """LaunchDarkly allows flag names up to 256 characters."""
+    request_data = {
+        "_id": "1234",
+        "_accountId": "1234",
+        "date": 1729123867537,
+        "accesses": [{"action": "createFlag", "resource": "proj/default:env/test:flag/test-flag"}],
+        "kind": "flag",
+        "name": "a" * 256,
+        "description": "flag was created",
+        "shortDescription": "",
+        "comment": "",
+        "titleVerb": "created the flag",
+        "title": "Michelle created the flag",
+    }
+
+    res = LaunchDarklyProvider(123, None).handle(request_data)
+    assert len(res) == 1
+    assert res[0]["flag"] == "a" * 256
+
+    with pytest.raises(DeserializationError):
+        LaunchDarklyProvider(123, None).handle({**request_data, "name": "a" * 257})

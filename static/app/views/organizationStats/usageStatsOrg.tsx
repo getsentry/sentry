@@ -125,7 +125,6 @@ export function getEndpointQuery({
 }
 
 export function getChartProps({
-  dataError,
   chartData,
   dataCategory,
   clientDiscard,
@@ -166,22 +165,15 @@ export function getChartProps({
   ) => void;
   loading: boolean;
   clientDiscard?: boolean;
-  dataError?: Error;
 }): UsageChartProps & {
   footer: React.ReactNode;
   title: React.ReactNode;
 } {
-  const errors =
-    error || dataError
-      ? {
-          ...(error ? {error} : {}),
-          ...(dataError ? {data: dataError} : {}),
-        }
-      : undefined;
+  const errors = error ? {error} : undefined;
 
   return {
     isLoading: loading,
-    isError: Boolean(error || !!dataError),
+    isError: Boolean(error),
     errors,
     title: (
       <Fragment>
@@ -327,9 +319,7 @@ export interface UsageStatsOrganizationProps {
     usageChart: React.ReactNode;
   }) => React.ReactNode;
   clientDiscard?: boolean;
-  clock24Hours?: boolean;
   endpointQuery?: ReturnType<typeof getEndpointQuery>;
-  projectDetails?: React.ReactNode[];
 }
 
 type CardMetadata = Record<

@@ -27,7 +27,7 @@ type SelectProjectsBreadcrumbItem = {
 type BreadcrumbItem = LinkBreadcrumbItem | SelectProjectsBreadcrumbItem;
 export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
 
-export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
+export interface BreadcrumbListProps {
   items: BreadcrumbItem[];
 }
 
@@ -83,7 +83,7 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
  *   BreadcrumbItemMenuBreadcrumbs overflow button; non-link parents (e.g.
  *   'select-projects') just hide.
  */
-export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
+export function BreadcrumbList({items}: BreadcrumbListProps) {
   const hasParentQueryContainer = useHasContainerQuery();
 
   if (items.length === 0) {
@@ -112,7 +112,7 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
     // Renders parent links as inline content (no <nav> landmark). The TopBar
     // title slot owns the page heading, so this list only contains supporting
     // parent links.
-    <Container width="100%" {...props}>
+    <Container width="100%">
       {/*
        * When there is already a query container (for example, the flexible
        * content region in TopBar), use it instead of introducing inline-size
@@ -123,7 +123,7 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
         containerType={hasParentQueryContainer ? 'normal' : 'inline-size'}
         width="100%"
       >
-        <Flex as="ol" align="center" gap="xs" padding="md 0" margin="0" wrap="nowrap">
+        <Flex as="ol" align="center" gap="xs" margin="0" padding="0" wrap="nowrap">
           {items.map((item, index) => (
             // Wide: show every item. Narrow: hide them all — 'link' parents
             // reappear in the overflow menu below; other types (e.g. 'select-projects')

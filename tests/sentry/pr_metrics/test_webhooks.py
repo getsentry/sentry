@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import orjson
 from django.conf import settings
 from django.core.cache import cache
+from django.db import OperationalError
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.integrations.github.webhook import PullRequestEventWebhook
@@ -37,15 +38,34 @@ from sentry.pr_metrics.webhooks import (
     handle_review_comment,
     handle_review_thread,
 )
+from sentry.seer.models.run import (
+    SeerRunCodingAgentHandoff,
+    SeerRunMilestone,
+    SeerRunMilestoneType,
+    SeerRunPullRequest,
+    SeerRunType,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import get_event_count
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 
 MODULE = "sentry.pr_metrics.webhooks"
 
 
-@with_feature("organizations:pr-metrics-attribution")
+def pin_to_legacy_activity_store(test: TestCase) -> None:
+    """Route this test's activity writes to the legacy ``PullRequestActivity`` rows.
+
+    A real PR takes that path only when it predates the activity-document cutover;
+    anything newer starts on the document. The classes below cover the legacy
+    writers, so they state the routing they exercise rather than inheriting it from
+    a flag default.
+    """
+    test.enterContext(patch(f"{MODULE}._use_activity_document", return_value=False))
+
+
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleWebhookForPrMetricsTest(TestCase):
     def setUp(self) -> None:
@@ -325,7 +345,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
     # --- Feature flag ---
 
     def test_feature_flag_off_skips_attribution(self) -> None:
-        with self.feature({"organizations:pr-metrics-attribution": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call(user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID)
 
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
@@ -371,8 +391,7 @@ OPENED_AT = datetime(2020, 6, 4, 9, 0, 0, tzinfo=timezone.utc)  # past year avoi
 CLOSED_AT = datetime(2020, 6, 4, 10, 0, 0, tzinfo=timezone.utc)
 
 
-@with_feature("organizations:pr-metrics-emit")
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsEmissionTest(TestCase):
     def setUp(self) -> None:
@@ -514,16 +533,6 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert metrics.verdict == "merged_unchanged"
 
     @patch("sentry.analytics.record")
-    def test_skips_emit_when_judge_needed(self, mock_record: MagicMock) -> None:
-        # A merge with later commits can't be settled deterministically — it needs
-        # a judge. With pr-metrics-judge off (this class), the forward is skipped
-        # and no verdict is set.
-        self._add_synchronize()
-        self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
-        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
-
-    @patch("sentry.analytics.record")
     def test_recreates_missing_metrics_row_when_claiming_cooldown(
         self, mock_record: MagicMock
     ) -> None:
@@ -547,19 +556,12 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_does_nothing_when_flag_off(self, mock_record: MagicMock) -> None:
-        with self.feature({"organizations:pr-metrics-emit": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call(merged=True)
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
-
-    @patch("sentry.analytics.record")
-    def test_skips_emit_when_activity_tracking_disabled(self, mock_record: MagicMock) -> None:
-        # Without activity tracking the commits-after-open signal is absent, so the
-        # verdict can't be settled deterministically — defer rather than emit a
-        # possibly-wrong merged_unchanged. No verdict is claimed either.
-        with self.feature({"organizations:pr-metrics-activity": False}):
-            self._call(merged=True)
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
-        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert not PullRequestMetrics.objects.filter(
+            pull_request=self.pull_request, verdict__isnull=False
+        ).exists()
 
     @patch("sentry.analytics.record")
     def test_emits_without_seer_access(self, mock_record: MagicMock) -> None:
@@ -610,8 +612,9 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_judge_needed_pr_never_emits_on_redelivery(self, mock_record: MagicMock) -> None:
-        # With pr-metrics-judge off, a judge-needed PR writes no verdict, so every
-        # redelivery re-evaluates to "needs judge" and skips — never emitting here.
+        # A judge-needed PR forwards to the judge and parks on the judge_in_progress
+        # claim; the row is emitted later from the judge's callback, never from this
+        # path. The redelivery then finds the claim taken and drops.
         self._add_synchronize()
         self._call(merged=True)
         self._call(merged=True)
@@ -644,8 +647,7 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
 
-@with_feature("organizations:pr-metrics-emit")
-@with_feature(["organizations:pr-metrics-activity", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsCooldownTest(TestCase):
     """The webhook-side scheduling of deferred emission and its cooldown claim."""
@@ -796,7 +798,7 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
         assert self._verdict() is None
 
 
-@with_feature("organizations:pr-metrics-emit")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleWebhookForPrMetricsCountersTest(TestCase):
     def setUp(self) -> None:
@@ -866,7 +868,7 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert metrics.participants_count == 2
 
     def test_does_nothing_when_flag_off(self) -> None:
-        with self.feature({"organizations:pr-metrics-emit": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call(additions=5)
         assert not PullRequestMetrics.objects.filter(pull_request=self.pull_request).exists()
 
@@ -957,10 +959,11 @@ class HandleWebhookForPrMetricsCountersTest(TestCase):
         assert metrics_row.comments_count == 7
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleWebhookForPrMetricsActivityTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1228,19 +1231,6 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.payload["sender_type"] == "User"
 
-    # --- Feature flag interactions ---
-
-    def test_attribution_flag_only_does_not_write_activity(self) -> None:
-        with self.feature(
-            {
-                "organizations:pr-metrics-activity": False,
-                "organizations:pr-metrics-attribution": True,
-            }
-        ):
-            self._call(action="opened")
-
-        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
-
     # --- Merge-intent signals ---
 
     def test_auto_merge_enabled_writes_activity_with_method(self) -> None:
@@ -1337,10 +1327,11 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1454,7 +1445,7 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_feature_flag_off_skips_comment(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1542,10 +1533,11 @@ class HandleCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleReviewForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1610,7 +1602,7 @@ class HandleReviewForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_flag_off_skips_review(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1664,10 +1656,11 @@ class HandleReviewForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleReviewCommentForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1721,7 +1714,7 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_flag_off_skips_review_comment(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1776,10 +1769,11 @@ class HandleReviewCommentForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleReviewThreadForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -1829,7 +1823,7 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     def test_flag_off_skips_thread_event(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -1883,10 +1877,11 @@ class HandleReviewThreadForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 @cell_silo_test
 class HandleCheckEventsForPrMetricsTest(TestCase):
     def setUp(self) -> None:
+        pin_to_legacy_activity_store(self)
         self.project = self.create_project(organization=self.organization)
         self.repo = self.create_repo(self.project, provider="integrations:github", external_id="99")
         self.pr = self.create_pull_request(
@@ -2058,7 +2053,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert PullRequestActivity.objects.filter(pull_request=self.pr).count() == 1
 
     def test_check_suite_flag_off_skips(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call_suite()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -2127,7 +2122,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         )
 
     def test_check_run_flag_off_skips(self) -> None:
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call_run()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
@@ -2177,12 +2172,10 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
 
-@with_feature("organizations:pr-metrics-emit")
-@with_feature("organizations:pr-metrics-activity")
-@with_feature(["organizations:pr-metrics-judge", "organizations:gen-ai-features"])
+@with_feature(["organizations:pr-metrics", "organizations:gen-ai-features"])
 @cell_silo_test
 class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
-    """The needs-judge branch with pr-metrics-judge on: claim the sentinel and forward."""
+    """The needs-judge branch: claim the sentinel and forward."""
 
     def setUp(self) -> None:
         self.project = self.create_project(organization=self.organization)
@@ -2390,7 +2383,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
             signal_type=PullRequestAttributionSignalType.MCP
         )
-        with self.feature({"organizations:pr-metrics-activity": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
@@ -2400,7 +2393,12 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 MATCH_RPC = "sentry.pr_metrics.webhooks.make_match_coding_agent_pr_request"
 
 
-@with_feature(["organizations:pr-metrics-attribution", "organizations:gen-ai-features"])
+@with_feature(
+    [
+        "organizations:pr-metrics",
+        "organizations:gen-ai-features",
+    ]
+)
 @cell_silo_test
 class HandleDelegatedAgentDetectionTest(TestCase):
     def setUp(self) -> None:
@@ -2547,6 +2545,149 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "outcome": "sync_matched",
         }
 
+    def _link_outcome(self, mock_incr: MagicMock) -> dict[str, str] | None:
+        """The tags of the single ``delegated_agent.link`` emission."""
+        calls = [
+            c
+            for c in mock_incr.call_args_list
+            if c.args and c.args[0] == "pr_metrics.delegated_agent.link"
+        ]
+        assert len(calls) == 1
+        return calls[0].kwargs.get("tags")
+
+    def _match_body(self, agent_id: str = "agent-1", match_path: str = "branch") -> dict[str, Any]:
+        return {
+            "run_id": 123,
+            "agent_id": agent_id,
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": match_path,
+        }
+
+    def _create_handoff(self, agent_id: str = "agent-1", organization: Any = None) -> Any:
+        organization = organization or self.organization
+        seer_run = self.create_seer_run(organization, type=SeerRunType.FEATURE_RUN)
+        return self.create_seer_run_coding_agent_handoff(
+            seer_run, agent_id=agent_id, provider="claude_code_agent"
+        )
+
+    def test_sync_match_links_pull_request_to_its_run(self) -> None:
+        """No observation of the agent ever carried this PR, so nothing linked it when it
+        opened. Seer has just named the run it came from -- this is the last chance."""
+        handoff = self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        link = SeerRunPullRequest.objects.get(pull_request=self.pr)
+        assert link.seer_run_id == handoff.seer_run_id
+        assert link.coding_agent_handoff_id == handoff.id
+
+    def test_sync_match_links_on_the_looser_group_id_match_path(self) -> None:
+        """Linking fires wherever attribution does; Seer already declined ambiguous
+        fan-out before returning a 200."""
+        handoff = self._create_handoff()
+
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=self._match_body(match_path="group_id")),
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert (
+            SeerRunPullRequest.objects.get(pull_request=self.pr).seer_run_id == handoff.seer_run_id
+        )
+
+    def test_sync_match_advances_the_run_to_the_pull_request_milestone(self) -> None:
+        """A run is grouped under its furthest milestone. Linking without recording this
+        one leaves the run showing below the PR stage despite having a linked PR."""
+        handoff = self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert SeerRunMilestone.objects.filter(
+            seer_run_id=handoff.seer_run_id, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
+        ).exists()
+
+    def test_sync_match_link_outcome_metric_carries_the_match_path(self) -> None:
+        self._create_handoff()
+
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=self._match_body(match_path="group_id")),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._link_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "linked",
+            "match_path": "group_id",
+        }
+
+    def test_sync_match_reports_a_failed_handoff_lookup(self) -> None:
+        """A lookup that fails for any other reason than a missing row must not be
+        invisible -- it is an operational fault, not an expected miss."""
+        broken = MagicMock()
+        broken.objects.select_related.return_value.get.side_effect = OperationalError("db gone")
+        broken.DoesNotExist = SeerRunCodingAgentHandoff.DoesNotExist
+
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=self._match_body()),
+            patch(f"{MODULE}.SeerRunCodingAgentHandoff", broken),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._link_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "lookup_failed",
+            "match_path": "branch",
+        }
+        assert PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+    def test_sync_match_keeps_attribution_when_no_handoff_row_exists(self) -> None:
+        """Seer knows agents whose handoff row we never wrote. That must not cost the
+        attribution recorded alongside the link."""
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert not SeerRunPullRequest.objects.filter(pull_request=self.pr).exists()
+        assert PullRequestAttribution.objects.filter(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+        ).exists()
+
+    def test_sync_match_does_not_link_a_handoff_from_another_org(self) -> None:
+        """agent_id is unique globally, so an unscoped lookup would cross orgs."""
+        other_org = self.create_organization()
+        self._create_handoff(organization=other_org)
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert not SeerRunPullRequest.objects.filter(pull_request=self.pr).exists()
+
+    def test_sync_match_link_is_idempotent_across_open_and_close(self) -> None:
+        """The funnel re-runs on close; the second pass must not double-write."""
+        self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(action="opened", head_ref="claude/fix")
+            self._call(action="closed", head_ref="claude/fix")
+
+        assert SeerRunPullRequest.objects.filter(pull_request=self.pr).count() == 1
+
+    @override_options({"seer.pull-request-linking.killswitch.enabled": True})
+    def test_sync_match_respects_the_linking_killswitch(self) -> None:
+        self._create_handoff()
+
+        with self._mock_org_check(), self._mock_seer(status=200, body=self._match_body()):
+            self._call(head_ref="claude/fix")
+
+        assert not SeerRunPullRequest.objects.filter(pull_request=self.pr).exists()
+
     def test_sync_match_bad_body_records_error_outcome(self) -> None:
         with (
             self._mock_org_check(),
@@ -2663,7 +2804,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
     def test_attribution_flag_off_does_not_call_seer(self) -> None:
         with self._mock_seer() as mock_rpc:
-            with self.feature({"organizations:pr-metrics-attribution": False}):
+            with self.feature({"organizations:pr-metrics": False}):
                 self._call(head_ref="claude/fix")
 
         mock_rpc.assert_not_called()

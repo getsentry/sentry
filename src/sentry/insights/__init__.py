@@ -28,13 +28,18 @@ class FilterSpan(NamedTuple):
         )
 
     @classmethod
-    def from_span_attributes(cls, attributes: dict[str, Any]) -> "FilterSpan":
+    def from_span_attributes(
+        cls, attributes: dict[str, Any], is_segment: bool | None = None
+    ) -> "FilterSpan":
         """Get relevant fields from `span.attributes`."""
+        op = (attributes.get("sentry.op") or {}).get("value")
+        if is_segment is None:
+            is_segment = (attributes.get("sentry.is_segment") or {}).get("value")
         return cls(
-            op=(attributes.get("sentry.op") or {}).get("value"),
+            op=op,
             category=(attributes.get("sentry.category") or {}).get("value"),
             description=(attributes.get("sentry.description") or {}).get("value"),
-            transaction_op=(attributes.get("sentry.transaction_op") or {}).get("value"),
+            transaction_op=op if is_segment else None,
             gen_ai_op_name=(attributes.get("gen_ai.operation.name") or {}).get("value"),
         )
 
@@ -56,7 +61,9 @@ def is_app_start(span: FilterSpan) -> bool:
 
 
 def is_screen_load(span: FilterSpan) -> bool:
-    return span.transaction_op == "ui.load"
+    if span.transaction_op == "ui.load" or span.op == "ui.load":
+        return True
+    return span.op is not None and span.op.startswith("ui.load.")
 
 
 def is_vital(span: FilterSpan) -> bool:

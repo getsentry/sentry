@@ -75,11 +75,13 @@ def should_increment_contributor_seat(
     and potentially assign a new seat.
 
     Require repo integration, code review OR autofix enabled for the repo,
-    seat-based Seer enabled for the organization, and contributor is not a bot.
+    seat-based Seer enabled for the organization, contributor is not a bot,
+    and the organization is not transitioning from the free cohort.
     """
     if (
         repo.integration_id is None
         or contributor.is_bot
+        or organization.get_option("agentic-triage-free-cohort", False)
         or not _has_code_review_or_autofix_enabled(organization, repo.id)
         or not features.has("organizations:seat-based-seer-enabled", organization)
     ):

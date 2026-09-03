@@ -109,7 +109,7 @@ export function Body({noRowGap, ...props}: BodyProps) {
   );
 }
 
-interface MainProps extends ContainerProps<'section'> {
+interface MainProps extends Omit<ContainerProps<'section'>, 'width'> {
   children: React.ReactNode;
   /**
    * Set the width of the main content.

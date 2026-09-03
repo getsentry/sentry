@@ -6,13 +6,10 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import type {InputProps} from '@sentry/scraps/input';
 import {Input} from '@sentry/scraps/input';
-import type {ControlProps} from '@sentry/scraps/select';
-import {Select} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
+import type {ControlProps, SelectValue, SingleValueProps} from '@sentry/scraps/select';
+import {Select, components} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -24,9 +21,8 @@ import type {
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {AGGREGATIONS, DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
-import type {FieldValueType} from 'sentry/utils/fields';
-import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {DEPRECATED_FIELDS} from 'sentry/utils/discover/fields';
+import {classifyTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 import {ArithmeticInput} from './arithmeticInput';
@@ -90,17 +86,6 @@ type Props = {
    * render an empty parameter placeholder. Leave blank to avoid adding spacers.
    */
   gridColumns?: number;
-  hideParameterSelector?: boolean;
-  hidePrimarySelector?: boolean;
-  /**
-   * Whether or not to add labels inside of the input fields, currently only
-   * used for the metric alert builder.
-   */
-  inFieldLabels?: boolean;
-  /**
-   * This will be displayed in the select if there are no fields
-   */
-  noFieldsMessage?: string;
   otherColumns?: Column[];
   placeholder?: string;
   /**
@@ -115,7 +100,6 @@ type Props = {
    * Whether or not to add the tag explaining the FieldValueKind of each field
    */
   shouldRenderTag?: boolean;
-  skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
   theme?: Theme;
   /**
@@ -319,6 +303,14 @@ class _QueryField extends Component<Props> {
       return fieldOptions[equationName].value;
     }
 
+    // EAP attributes keep their type in the key, e.g. `tags[foo,boolean]`, and
+    // their options are keyed by the attribute's FieldKind. `classifyTagKey`
+    // returns `tag` for untyped keys, so this only adds a lookup for typed ones.
+    const typedTagName = `${classifyTagKey(name)}:${name}`;
+    if (fieldOptions[typedTagName]) {
+      return fieldOptions[typedTagName].value;
+    }
+
     const tagName =
       name.indexOf('tags[') === 0
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
@@ -436,10 +428,7 @@ class _QueryField extends Component<Props> {
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const {
       disabled,
-      inFieldLabels,
       filterAggregateParameters,
-      hideParameterSelector,
-      skipParameterPlaceholder,
       fieldValue,
       useMenuPortal,
       theme,
@@ -448,9 +437,6 @@ class _QueryField extends Component<Props> {
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
-        if (hideParameterSelector) {
-          return null;
-        }
         const aggregateParameters = filterAggregateParameters
           ? descriptor.options.filter(option =>
               filterAggregateParameters(option, fieldValue)
@@ -490,12 +476,11 @@ class _QueryField extends Component<Props> {
             options={aggregateParameters}
             value={descriptor.value}
             onChange={this.handleFieldParameterChange}
-            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled || disableParameterSelector}
             menuPortalTarget={portalProps.menuPortalTarget}
             styles={{
               ...portalProps.styles,
-              ...(inFieldLabels ? undefined : this.FieldSelectStyles),
+              ...this.FieldSelectStyles,
             }}
             components={this.FieldSelectComponents}
           />
@@ -552,7 +537,6 @@ class _QueryField extends Component<Props> {
             options={descriptor.options}
             value={descriptor.value}
             onChange={this.handleDropdownParameterChange(index + 1)}
-            inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
           />
         );
@@ -561,10 +545,6 @@ class _QueryField extends Component<Props> {
         `Unknown parameter type encountered for ${JSON.stringify(this.props.fieldValue)}`
       );
     });
-
-    if (skipParameterPlaceholder) {
-      return inputs;
-    }
 
     // Add enough disabled inputs to fill the grid up.
     // We always have 1 input.
@@ -607,15 +587,11 @@ class _QueryField extends Component<Props> {
       takeFocus,
       filterPrimaryOptions,
       fieldValue,
-      inFieldLabels,
       disabled,
       error,
-      hidePrimarySelector,
       gridColumns,
       otherColumns,
       placeholder,
-      noFieldsMessage,
-      skipParameterPlaceholder,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -638,9 +614,8 @@ class _QueryField extends Component<Props> {
       placeholder: placeholder ?? t('(Required)'),
       value: field,
       onChange: this.handleFieldChange,
-      inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
-      noOptionsMessage: () => noFieldsMessage ?? null,
+      noOptionsMessage: () => null,
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
@@ -679,45 +654,18 @@ class _QueryField extends Component<Props> {
     const containerColumns =
       parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
 
-    let gridColumnsQuantity: undefined | number;
-
-    if (skipParameterPlaceholder) {
-      // if the selected field is a function and has parameters, we would like to display each value in separate columns.
-      // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
-      if (fieldValue.kind === 'function') {
-        const operation =
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          AGGREGATIONS[fieldValue.function[0]] ??
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          SESSIONS_OPERATIONS[fieldValue.function[0]];
-        if (operation?.parameters.length > 0) {
-          if (containerColumns === 3 && operation.parameters.length === 1) {
-            gridColumnsQuantity = 2;
-          } else {
-            gridColumnsQuantity = containerColumns;
-          }
-        } else {
-          gridColumnsQuantity = 1;
-        }
-      } else {
-        gridColumnsQuantity = 1;
-      }
-    }
-
     return (
       <Container
         className={className}
-        gridColumns={gridColumnsQuantity ?? containerColumns}
+        gridColumns={containerColumns}
         tripleLayout={gridColumns === 3 && parameters.length > 2}
         data-test-id="queryField"
       >
-        {!hidePrimarySelector && (
-          <Select
-            {...selectProps}
-            styles={inFieldLabels ? undefined : this.FieldSelectStyles}
-            components={this.FieldSelectComponents}
-          />
-        )}
+        <Select
+          {...selectProps}
+          styles={this.FieldSelectStyles}
+          components={this.FieldSelectComponents}
+        />
         {parameters}
       </Container>
     );

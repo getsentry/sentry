@@ -7,8 +7,6 @@ import {emptyStringValue, emptyValue} from 'sentry/utils/discover/emptyFieldValu
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
-import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
-import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/formatMongoDBQuery';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
@@ -19,11 +17,8 @@ interface Props {
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   description?: string;
-  extraLinkQueryParams?: Record<string, string>;
   group?: string | null;
-  spanAction?: string;
   spanOp?: string;
-  system?: string;
 }
 
 export function SpanDescriptionCell({
@@ -32,21 +27,14 @@ export function SpanDescriptionCell({
   moduleName,
   spanOp,
   projectId,
-  system,
-  spanAction,
-  extraLinkQueryParams,
 }: Props) {
   const formatterDescription = useMemo(() => {
     if (!rawDescription || moduleName !== ModuleName.DB) {
       return rawDescription;
     }
 
-    if (system === SupportedDatabaseSystem.MONGODB) {
-      return spanAction ? formatMongoDBQuery(rawDescription, spanAction) : rawDescription;
-    }
-
     return formatter.toSimpleMarkup(rawDescription);
-  }, [moduleName, rawDescription, spanAction, system]);
+  }, [moduleName, rawDescription]);
 
   if (!rawDescription) {
     return rawDescription === '' ? emptyStringValue : emptyValue;
@@ -59,7 +47,6 @@ export function SpanDescriptionCell({
       projectId={projectId}
       spanOp={spanOp}
       description={formatterDescription}
-      extraLinkQueryParams={extraLinkQueryParams}
     />
   );
 

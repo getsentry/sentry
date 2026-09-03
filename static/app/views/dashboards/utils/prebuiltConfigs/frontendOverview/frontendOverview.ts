@@ -45,7 +45,6 @@ TABLE_QUERY.addFilterValue(
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addFilterValue('sdk.name', `[${FRONTEND_SDK_NAMES.join(',')}]`);
 TABLE_QUERY.addOp(')');
-TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
 const ASSETS_BY_TIME_SPENT_QUERY = getResourcesEventViewQuery(
   {},

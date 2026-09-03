@@ -67,9 +67,9 @@ class SentryAppAvatar(ControlAvatarBase):
 
     url_path = "sentry-app-avatar"
 
-    def get_cache_key(self, size):
+    def get_cache_key(self, size) -> str:
         color_identifier = "color" if self.color else "simple"
         return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"
 
-    def get_avatar_photo_type(self):
+    def get_avatar_photo_type(self) -> SentryAppAvatarPhotoTypes:
         return SentryAppAvatarPhotoTypes.LOGO if self.color else SentryAppAvatarPhotoTypes.ICON

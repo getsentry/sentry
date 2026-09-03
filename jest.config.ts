@@ -260,7 +260,7 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+    '\\.(css|less|png|gif|jpg|avif|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/stories/storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
@@ -301,6 +301,11 @@ const config: Config.InitialOptions = {
     ? testMatch
     : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  // Coding agents check out nested git worktrees under .claude/worktrees/, each a
+  // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
+  // mock in static/ collides with its copies and the file that ends up backing
+  // jest.mock() is decided by crawl order. Keep the module map to this checkout.
+  modulePathIgnorePatterns: ['<rootDir>/\\.claude/'],
 
   unmockedModulePathPatterns: [
     '<rootDir>/node_modules/react',

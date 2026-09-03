@@ -5,6 +5,7 @@ import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -127,10 +128,15 @@ async function fetchProjects(
 
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
-  const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
-    includeAllArgs: true,
-    query,
-  });
+  const [data, , resp] = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {
+      includeAllArgs: true,
+      query,
+    }
+  );
 
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {

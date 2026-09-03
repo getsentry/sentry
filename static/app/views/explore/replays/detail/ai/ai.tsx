@@ -118,7 +118,6 @@ export function Ai() {
             </Text>
             <Button
               variant="secondary"
-              type="button"
               size="xs"
               onClick={() => {
                 startSummaryRequest();
@@ -278,9 +277,9 @@ function ThumbsUpDownButton({
             ? t('What did you like about the replay summary and chapters?')
             : t('How can we make the replay summary and chapters work better for you?'),
         tags: {
-          ['feedback.source']: 'replay_ai_summary',
-          ['feedback.owner']: 'replay',
-          ['feedback.type']: type,
+          'feedback.source': 'replay_ai_summary',
+          'feedback.owner': 'replay',
+          'feedback.type': type,
         },
       }}
     >

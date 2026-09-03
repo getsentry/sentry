@@ -31,6 +31,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {isInvalidFilterKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   Token,
@@ -369,7 +370,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   const {dispatch} = useSearchQueryBuilderState();
-  const {invalidFilterKeys} = useSearchQueryBuilderConfig();
+  const {invalidFilterKeys, invalidFilterKeyMessage} = useSearchQueryBuilderConfig();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -394,8 +395,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
   const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
-  const isInvalidFilterKey = invalidFilterKeys.includes(filterKeyName);
-  const tokenHasError = hasTokenInvalid || isInvalidFilterKey;
+  const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys);
+  const tokenHasError = hasTokenInvalid || keyIsInvalid;
 
   return (
     <FilterWrapper
@@ -413,8 +414,9 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
         warning={
-          isInvalidFilterKey && !hasTokenInvalid
-            ? t('Invalid key. "%s" is not a supported search key.', filterKeyName)
+          keyIsInvalid && !hasTokenInvalid
+            ? (invalidFilterKeyMessage ??
+              t('Invalid key. "%s" is not a supported search key.', filterKeyName))
             : undefined
         }
       >

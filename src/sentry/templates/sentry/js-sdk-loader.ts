@@ -2,6 +2,7 @@ declare const __LOADER__PUBLIC_KEY__: any;
 declare const __LOADER__SDK_URL__: any;
 declare const __LOADER__CONFIG__: any;
 declare const __LOADER__IS_LAZY__: any;
+declare const __LOADER__QUEUEABLE_APIS__: any;
 
 (function sentryLoader(
   _window,
@@ -12,7 +13,8 @@ declare const __LOADER__IS_LAZY__: any;
   _publicKey,
   _sdkBundleUrl,
   _loaderInitConfig,
-  _lazy
+  _lazy,
+  _queueableApis
 ) {
   let lazy = _lazy;
 
@@ -309,16 +311,9 @@ declare const __LOADER__IS_LAZY__: any;
     });
   };
 
-  [
-    'init',
-    'addBreadcrumb',
-    'captureMessage',
-    'captureException',
-    'captureEvent',
-    'configureScope',
-    'withScope',
-    'showReportDialog',
-  ].forEach(function (f) {
+  // The list of queueable APIs is injected by the backend, based on the SDK version
+  // the loader serves (see `QUEUEABLE_SDK_APIS` in `js_sdk_loader.py`).
+  _queueableApis.forEach(function (f) {
     _window[_namespace][f] = function () {
       enqueue({f, a: arguments});
     };
@@ -347,5 +342,6 @@ declare const __LOADER__IS_LAZY__: any;
   __LOADER__PUBLIC_KEY__,
   __LOADER__SDK_URL__,
   __LOADER__CONFIG__,
-  __LOADER__IS_LAZY__
+  __LOADER__IS_LAZY__,
+  __LOADER__QUEUEABLE_APIS__
 );
