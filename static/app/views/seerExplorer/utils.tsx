@@ -815,14 +815,14 @@ const SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET = 50;
  * Keeps Amplitude distributions useful without exploding cardinality on exact
  * device widths/heights or drag endpoints.
  */
-export function roundSeerExplorerAnalyticsPixels(
-  value: number,
-  bucketSize = SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET
-): number {
-  if (!Number.isFinite(value) || bucketSize <= 0) {
+export function roundSeerExplorerAnalyticsPixels(value: number): number {
+  if (!Number.isFinite(value)) {
     return 0;
   }
-  return Math.round(Math.max(0, value) / bucketSize) * bucketSize;
+  return (
+    Math.round(Math.max(0, value) / SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET) *
+    SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET
+  );
 }
 
 /** Current browser viewport size, bucketed for Seer Explorer analytics events. */

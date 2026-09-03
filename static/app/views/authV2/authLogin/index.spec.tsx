@@ -402,7 +402,7 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByTestId('more-information'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(
         'This organization requires SSO authentication. You may still log in with an email and password to access other organizations and account settings.'
