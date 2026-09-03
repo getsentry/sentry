@@ -129,8 +129,8 @@ function ResultsHeaderBase({
   // when the dataset selector tabs are removed.
   const deprecationHeaderStyles: ContainerProps<'header'> = {
     padding: {
-      'screen:sm': '0',
-      'screen:md': '0',
+      xl: '0',
+      '3xl': '0',
     },
     borderBottom: {
       '2xs': 'none',

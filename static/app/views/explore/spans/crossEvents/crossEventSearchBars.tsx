@@ -89,10 +89,7 @@ export function SpansTabCrossEventSearchBars({
 
     return (
       <Fragment key={`${crossEvent.type}-${index}`}>
-        <Container
-          justifySelf="end"
-          width={{'screen:sm': '100%', 'screen:md': 'min-content'}}
-        >
+        <Container justifySelf="end" width={{xl: '100%', '3xl': 'min-content'}}>
           {props => (
             <CompactSelect
               {...props}
