@@ -75,7 +75,9 @@ function ThresholdRow({
 
   return (
     <Flex align="center" gap="xl">
-      <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
+      <IndicatorWrapper>
+        <CircleIndicator color={color} size={WIDGET_INDICATOR_SIZE} />
+      </IndicatorWrapper>
       <StyledNumberField {...minInputProps} inline={false} disabled />
       {t('to')}
       <StyledNumberField onChange={handleChange} {...maxInputProps} inline={false} />
@@ -215,6 +217,10 @@ const ThresholdsContainer = styled('div')`
     padding: 0;
     border-bottom: none;
   }
+`;
+
+const IndicatorWrapper = styled('div')`
+  flex-shrink: 0;
 `;
 
 const StyledNumberField = styled(NumberField)`
