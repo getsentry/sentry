@@ -55,7 +55,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     """
 
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
-    owner = ApiOwner.EXPLORE
+    owner = ApiOwner.DATA_BROWSING
     permission_classes = (MemberPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
