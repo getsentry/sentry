@@ -7,10 +7,10 @@ import type {
   TraceContextSpanProxy,
 } from 'sentry/components/events/interfaces/spans/types';
 import {
-  type EntrySpans,
-  type EventTransaction,
   EntryType,
+  type EntrySpans,
   type Event,
+  type EventTransaction,
 } from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
