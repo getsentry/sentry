@@ -52,20 +52,6 @@ class HookService(RpcService):
         """
         pass
 
-    @cell_rpc_method(ByCellName())
-    @abc.abstractmethod
-    def get_matching_service_hook_installation_ids(
-        self,
-        *,
-        cell_name: str,
-        application_id: int,
-        installation_ids: list[int],
-        webhook_url: str,
-        events: list[str],
-    ) -> list[int]:
-        """Return candidate installation IDs whose ServiceHook matches the app config."""
-        pass
-
     @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def create_or_update_webhook_and_events_for_installation(

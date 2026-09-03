@@ -443,44 +443,6 @@ class TestHookServiceBulkCreate(TestCase):
             organization_id=self.org.id, events=["issue.created"]
         )
 
-    def test_get_matching_service_hook_installation_ids(self) -> None:
-        matching_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.org, user=self.user
-        )
-        stale_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.org, user=self.user
-        )
-        duplicate_installation = self.create_sentry_app_installation(
-            slug=self.sentry_app.slug, organization=self.org, user=self.user
-        )
-        with assume_test_silo_mode(SiloMode.CELL):
-            ServiceHook.objects.filter(installation_id=stale_installation.id).update(
-                events=["comment.created"]
-            )
-        hook_service.create_service_hook(
-            application_id=self.sentry_app.application_id,
-            actor_id=duplicate_installation.id,
-            installation_id=duplicate_installation.id,
-            organization_id=self.org.id,
-            events=self.sentry_app.events,
-            url=self.sentry_app.webhook_url,
-        )
-
-        result = hook_service.get_matching_service_hook_installation_ids(
-            cell_name="us",
-            application_id=self.sentry_app.application_id,
-            installation_ids=[
-                matching_installation.id,
-                stale_installation.id,
-                duplicate_installation.id,
-                -1,
-            ],
-            webhook_url=self.sentry_app.webhook_url,
-            events=self.sentry_app.events,
-        )
-
-        assert result == [matching_installation.id]
-
     def test_bulk_create_service_hooks_for_app_success(self) -> None:
         # Create some installations and organizations
         installation1 = self.create_sentry_app_installation(
