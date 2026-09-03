@@ -78,11 +78,12 @@ export function WelcomeAgentSetup({
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const prompt = onboardingCode
     ? [
-        t('Help me setup Sentry'),
-        t('Org ID: %s', organization.slug),
-        `[${onboardingCode}]`,
+        t('Please help me get started with sentry.'),
+        '',
+        t('org slug: %s', organization.slug),
+        t('run code: %s', onboardingCode),
       ].join('\n')
-    : t('Help me setup Sentry');
+    : t('Please help me get started with sentry.');
 
   return (
     <Stack gap="2xl" width="100%" position="relative" align="center">
