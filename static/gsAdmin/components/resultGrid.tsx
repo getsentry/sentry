@@ -723,6 +723,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     queryParams: Record<string, any>
   ) => {
     const token = this.fetchToken;
+    const names = pages.map(({cell}) => cell.name);
 
     pages.forEach(({cell, cursor}) => {
       const markFailed = () => {
@@ -735,10 +736,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           }
           const regionErrors = [...prev.regionErrors, cell.name];
           return {
-            // Every region failing with nothing to show is a failed load. A
-            // region failing under rows we already have is a partial result,
-            // so keep the table.
-            error: prev.rows.length === 0 && regionErrors.length === pages.length,
+            // Every region of this load failing with nothing to show is a
+            // failed load. A region failing under rows we already have is a
+            // partial result, so keep the table.
+            error:
+              prev.rows.length === 0 && names.every(name => regionErrors.includes(name)),
             pendingRegions: prev.pendingRegions.filter(name => name !== cell.name),
             regionErrors,
           };

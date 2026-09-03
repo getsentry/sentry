@@ -6,6 +6,7 @@ import {ResultGrid} from 'admin/components/resultGrid';
 
 const US_URL = 'https://us.example.com/api/0/';
 const DE_URL = 'https://de.example.com/api/0/';
+const EU_URL = 'https://eu.example.com/api/0/';
 
 function setupCells() {
   ConfigStore.set('cells', [
@@ -702,6 +703,52 @@ describe('ResultGrid allowAllRegions', () => {
     });
 
     renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('Something bad happened :/')).toBeInTheDocument();
+  });
+
+  it('errors when every region of a load more fails with nothing to show', async () => {
+    ConfigStore.set('cells', [
+      {name: 'us', locality_url: US_URL},
+      {name: 'de', locality_url: DE_URL},
+      {name: 'eu', locality_url: EU_URL},
+    ]);
+
+    // The us region answers empty but promises a further page, so it is the
+    // only region a load more asks again.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: ''})],
+      body: [],
+      headers: {
+        Link:
+          '<https://us.example.com/api/0/_admin/cells/us/customers/?cursor=0:1:0>; ' +
+          'rel="next"; results="true"; cursor="0:1:0"',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      match: [MockApiClient.matchData({cursor: '0:1:0'})],
+      statusCode: 500,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      statusCode: 500,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/eu/customers/',
+      statusCode: 500,
+      body: {},
+    });
+
+    renderGrid(undefined, {}, allRegionsProps);
+
+    expect(await screen.findByText('2 regions failed')).toBeInTheDocument();
+    expect(screen.queryByText('Something bad happened :/')).not.toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Load more (us)'}));
 
     expect(await screen.findByText('Something bad happened :/')).toBeInTheDocument();
   });
