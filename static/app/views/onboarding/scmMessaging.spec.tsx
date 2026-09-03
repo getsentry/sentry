@@ -696,8 +696,8 @@ describe('ScmMessaging', () => {
   });
 
   it('Continue targets an MS Teams channel by its name', async () => {
-    // The picker keys Teams channels by id, but the backend resolves a Teams
-    // channel by name only, so the workflow must carry the name.
+    // The backend resolves a Teams channel by name only, so the workflow must
+    // carry the name.
     const msteamsSetup: ScmMessagingSetup = {
       mode: 'selected',
       providerKey: 'msteams',

@@ -77,7 +77,7 @@ export type UseMessagingChannelResult = {
  *   - /channels/ query (skipped without provider + integration; staleTime
  *     Infinity unless refetchOnWindowFocus is set)
  *   - /channel-validate/ for manually entered channels
- *   - channelOptions shaping (Slack keyed by display name; Discord and MS Teams
+ *   - channelOptions shaping (Slack and MS Teams keyed by display name; Discord
  *     keyed by id with `display (id)` labels, since the name alone cannot
  *     disambiguate same-named channels)
  *   - A channel chosen from the list carries both `channelId` and
