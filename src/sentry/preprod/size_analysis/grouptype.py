@@ -25,10 +25,12 @@ from sentry.workflow_engine.processors.data_condition_group import (
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
-from sentry.workflow_engine.types import (
-    DetectorPriorityLevel,
-    DetectorSettings,
+from sentry.workflow_engine.registry import (
+    detector_config_schema_registry,
+    detector_handler_registry,
+    detector_validator_registry,
 )
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 if TYPE_CHECKING:
     from sentry.preprod.models import PreprodArtifact
@@ -190,6 +192,50 @@ SizeAnalysisDataPacket = DataPacket[SizeAnalysisValue]
 SizeAnalysisEvaluation: TypeAlias = int | float
 
 
+@dataclass(frozen=True)
+class PreprodSizeAnalysisGroupType(GroupType):
+    type_id = 11003
+    slug = "preprod_size_analysis"
+    description = "Size Analysis"
+    category = GroupCategory.PREPROD.value
+    default_priority = PriorityLevel.LOW
+    released = False
+    enable_auto_resolve = True
+    enable_escalation_detection = False
+    notification_config = NotificationConfig(
+        context=[],
+        text_code_formatted=False,
+    )
+
+
+detector_config_schema_registry.register(PreprodSizeAnalysisGroupType.slug)(
+    {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "Configuration for preprod static analysis detector",
+        "type": "object",
+        "properties": {
+            "threshold_type": {
+                "type": "string",
+                "enum": ["absolute_diff", "absolute", "relative_diff"],
+                "description": "The type of threshold to apply",
+            },
+            "measurement": {
+                "type": "string",
+                "enum": ["install_size", "download_size"],
+                "description": "The measurement to track",
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query to filter which artifacts are monitored",
+            },
+        },
+        "required": ["threshold_type", "measurement"],
+        "additionalProperties": False,
+    }
+)
+
+
+@detector_handler_registry.register(PreprodSizeAnalysisGroupType.slug)
 class PreprodSizeAnalysisDetectorHandler(
     BaseDetectorHandler[SizeAnalysisValue, SizeAnalysisEvaluation]
 ):
@@ -399,48 +445,6 @@ class PreprodSizeAnalysisDetectorHandler(
         raise NotImplementedError
 
 
+@detector_validator_registry.register(PreprodSizeAnalysisGroupType.slug)
 class PreprodSizeAnalysisDetectorValidator(BaseDetectorTypeValidator):
     data_source_required = False
-
-
-@dataclass(frozen=True)
-class PreprodSizeAnalysisGroupType(GroupType):
-    type_id = 11003
-    slug = "preprod_size_analysis"
-    description = "Size Analysis"
-    category = GroupCategory.PREPROD.value
-    default_priority = PriorityLevel.LOW
-    released = False
-    enable_auto_resolve = True
-    enable_escalation_detection = False
-    notification_config = NotificationConfig(
-        context=[],
-        text_code_formatted=False,
-    )
-    detector_settings = DetectorSettings(
-        handler=PreprodSizeAnalysisDetectorHandler,
-        validator=PreprodSizeAnalysisDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "Configuration for preprod static analysis detector",
-            "type": "object",
-            "properties": {
-                "threshold_type": {
-                    "type": "string",
-                    "enum": ["absolute_diff", "absolute", "relative_diff"],
-                    "description": "The type of threshold to apply",
-                },
-                "measurement": {
-                    "type": "string",
-                    "enum": ["install_size", "download_size"],
-                    "description": "The measurement to track",
-                },
-                "query": {
-                    "type": "string",
-                    "description": "Search query to filter which artifacts are monitored",
-                },
-            },
-            "required": ["threshold_type", "measurement"],
-            "additionalProperties": False,
-        },
-    )

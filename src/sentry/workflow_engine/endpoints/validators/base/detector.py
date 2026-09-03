@@ -122,7 +122,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             else:
                 error_message = f"Unknown detector type '{value}'"
             raise serializers.ValidationError(error_message)
-        if type.detector_settings is None or type.detector_settings.validator is None:
+        if type.detector_settings.validator is None:
             raise serializers.ValidationError("Detector type not compatible with detectors")
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector

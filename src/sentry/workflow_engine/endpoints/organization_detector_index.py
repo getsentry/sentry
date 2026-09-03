@@ -137,10 +137,11 @@ def get_detector_validator(
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
         raise ValidationError({"type": [error_message]})
 
-    if type.detector_settings is None or type.detector_settings.validator is None:
+    validator = type.detector_settings.validator
+    if validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    return type.detector_settings.validator(
+    return validator(
         instance=instance,
         context={
             "project": project,

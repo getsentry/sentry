@@ -42,7 +42,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET
@@ -52,6 +52,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import detector_validator_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 """
@@ -675,6 +676,7 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
         return attrs
 
 
+@detector_validator_registry.register(GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE)
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
     enforce_single_datasource = True
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)

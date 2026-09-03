@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.registry import detector_config_schema_registry
 
 
 # hidden group type, used for issue stream detector
@@ -18,11 +18,13 @@ class IssueStreamGroupType(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     enable_user_status_and_priority_changes = False
-    detector_settings = DetectorSettings(
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "type": "object",
-            "properties": {"organization_id": {"type": "integer"}},
-            "additionalProperties": False,
-        },
-    )
+
+
+detector_config_schema_registry.register(IssueStreamGroupType.slug)(
+    {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {"organization_id": {"type": "integer"}},
+        "additionalProperties": False,
+    }
+)

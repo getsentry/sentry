@@ -46,7 +46,7 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         type_slugs = [
             gt.slug
             for gt in grouptype.registry.get_visible(organization)
-            if gt.detector_settings is not None and gt.detector_settings.handler is not None
+            if gt.detector_settings.handler is not None
         ]
         type_slugs.sort()
 

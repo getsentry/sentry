@@ -15,6 +15,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
+from sentry.incidents.utils.types import GROUP_TYPE_METRIC_ISSUE
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.seer.anomaly_detection.delete_rule import delete_data_in_seer_for_detector
@@ -43,6 +44,7 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 )
 from sentry.workflow_engine.models import DataCondition, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import detector_validator_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel, SnubaQueryDataSourceType
 
 
@@ -193,6 +195,7 @@ def format_extrapolation_mode(
     return ExtrapolationMode.from_str(extrapolation_mode)
 
 
+@detector_validator_registry.register(GROUP_TYPE_METRIC_ISSUE)
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
     data_sources = serializers.ListField(
         child=SnubaQueryValidator(timeWindowSeconds=True), required=False

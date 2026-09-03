@@ -14,7 +14,9 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator
+
+# Imported so the validator registers itself for this group type.
+from sentry.uptime.endpoints.validators import UptimeDomainCheckFailureValidator  # noqa: F401
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.uptime.utils import build_fingerprint, generate_scheduled_check_times_ms
@@ -26,10 +28,14 @@ from sentry.workflow_engine.handlers.detector.stateful import (
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import (
+    detector_config_schema_registry,
+    detector_filter_registry,
+    detector_handler_registry,
+)
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -101,6 +107,51 @@ def build_event_data(result: CheckResult, detector: Detector) -> EventData:
     }
 
 
+@dataclass(frozen=True)
+class UptimeDomainCheckFailure(GroupType):
+    type_id = 7001
+    slug = GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
+    description = "Uptime Domain Monitor Failure"
+    released = True
+    category = GroupCategory.OUTAGE.value
+    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+detector_config_schema_registry.register(UptimeDomainCheckFailure.slug)(
+    {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of an uptime alert",
+        "type": "object",
+        "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
+        "properties": {
+            "mode": {
+                "type": ["integer"],
+                "enum": [mode.value for mode in UptimeMonitorMode],
+            },
+            "environment": {"type": ["string", "null"]},
+            "recovery_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive successful checks required to mark monitor as recovered",
+            },
+            "downtime_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive failed checks required to mark monitor as down",
+            },
+        },
+        "additionalProperties": False,
+    }
+)
+detector_filter_registry.register(UptimeDomainCheckFailure.slug)(
+    ~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)
+)
+
+
+@detector_handler_registry.register(UptimeDomainCheckFailure.slug)
 class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStatus]):
     @override
     @property
@@ -257,45 +308,3 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         event_data = build_event_data(result, self.detector)
 
         return (occurrence, event_data)
-
-
-@dataclass(frozen=True)
-class UptimeDomainCheckFailure(GroupType):
-    type_id = 7001
-    slug = GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE
-    description = "Uptime Domain Monitor Failure"
-    released = True
-    category = GroupCategory.OUTAGE.value
-    creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    enable_auto_resolve = False
-    enable_escalation_detection = False
-    detector_settings = DetectorSettings(
-        handler=UptimeDetectorHandler,
-        validator=UptimeDomainCheckFailureValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of an uptime alert",
-            "type": "object",
-            "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
-            "properties": {
-                "mode": {
-                    "type": ["integer"],
-                    "enum": [mode.value for mode in UptimeMonitorMode],
-                },
-                "environment": {"type": ["string", "null"]},
-                "recovery_threshold": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
-                },
-                "downtime_threshold": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Number of consecutive failed checks required to mark monitor as down",
-                },
-            },
-            "additionalProperties": False,
-        },
-        filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
-    )

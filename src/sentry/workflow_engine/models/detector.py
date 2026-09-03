@@ -18,11 +18,10 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import is_model_attr_cached
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupType
+from sentry.issues.grouptype import DetectorSettings, GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
-from sentry.workflow_engine.types import DetectorSettings
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 from .json_config import JSONConfigBase
@@ -187,28 +186,23 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def detector_handler(self) -> DetectorHandler[Any] | None:
-        group_type = self.group_type
+        handler = self.settings.handler
 
-        if self.settings.handler is None:
+        if handler is None:
             logger.error(
                 "Registered grouptype for detector has no detector_handler",
                 extra={
-                    "group_type": str(group_type),
+                    "group_type": str(self.group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
                 },
             )
             return None
-        return self.settings.handler(self)
+        return handler(self)
 
     @property
     def settings(self) -> DetectorSettings:
-        settings = self.group_type.detector_settings
-
-        if settings is None:
-            raise ValueError("Registered grouptype has no detector settings")
-
-        return settings
+        return self.group_type.detector_settings
 
     def get_snapshot(self) -> DetectorSnapshot:
         trigger_condition = None
@@ -263,10 +257,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if not group_type:
             raise ValueError(f"No group type found with type {self.type}")
 
-        if not group_type.detector_settings:
+        config_schema = group_type.detector_settings.config_schema
+        if config_schema is None:
             return
 
         if not isinstance(self.config, dict):
             raise ValidationError("Detector config must be a dictionary")
 
-        self.validate_config(group_type.detector_settings.config_schema)
+        self.validate_config(config_schema)

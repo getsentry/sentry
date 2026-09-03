@@ -28,10 +28,13 @@ from sentry.workflow_engine.handlers.detector.stateful import (
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import (
+    detector_config_schema_registry,
+    detector_handler_registry,
+)
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -242,13 +245,6 @@ class ProcessingErrorDetectorHandler(
         )
 
 
-class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
-    error_types = JS_SOURCEMAP_ERROR_TYPES
-    fingerprint_key = "sourcemap"
-    issue_title = "Source maps are misconfigured"
-    issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
-
-
 @dataclass(frozen=True)
 class SourcemapConfigurationType(GroupType):
     type_id = 13001
@@ -261,17 +257,23 @@ class SourcemapConfigurationType(GroupType):
     enable_escalation_detection = False
     creation_quota = Quota(3600, 60, 100)
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
     enable_user_status_and_priority_changes = False
     # For the moment, we only want to show these issue types in the ui
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
     in_default_search = False
+
+
+detector_config_schema_registry.register(SourcemapConfigurationType.slug)({})
+
+
+@detector_handler_registry.register(SourcemapConfigurationType.slug)
+class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
+    error_types = JS_SOURCEMAP_ERROR_TYPES
+    fingerprint_key = "sourcemap"
+    issue_title = "Source maps are misconfigured"
+    issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
 
 
 @dataclass(frozen=True)
