@@ -3,6 +3,7 @@
 /* eslint-disable import/no-nodejs-modules -- This skill helper is a Node.js CLI. */
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import {parseArgs} from 'node:util';
@@ -323,29 +324,20 @@ async function validateImages(page, target) {
 
 // Capture pipeline --------------------------------------------------------------
 
-async function capture(planPath, cdpUrl) {
+async function capture(planPath, profileDirectory) {
   const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
   validatePlan(plan);
   const {chromium} = requireFromRepo('playwright');
-  const endpoint = new URL(cdpUrl);
-  if (
-    endpoint.protocol !== 'http:' ||
-    endpoint.username ||
-    endpoint.password ||
-    !['127.0.0.1', 'localhost'].includes(endpoint.hostname)
-  ) {
-    throw new Error('CDP must use localhost');
-  }
-
-  const browser = await chromium.connectOverCDP(cdpUrl);
+  const context = await chromium.launchPersistentContext(profileDirectory, {
+    channel: 'chrome',
+    headless: true,
+    ignoreHTTPSErrors: true,
+    viewport: null,
+  });
   let page;
   const featureFlagState = [];
   try {
-    const context = browser.contexts()[0];
-    if (!context) {
-      throw new Error('Dedicated Chrome has no persistent browser context');
-    }
-    page = await context.newPage();
+    page = context.pages()[0] ?? (await context.newPage());
     await page.clock.setFixedTime(new Date());
     const session = await context.newCDPSession(page);
     await session.send('Security.setIgnoreCertificateErrors', {ignore: true});
@@ -431,7 +423,7 @@ async function capture(planPath, cdpUrl) {
       }
     } finally {
       await page?.close().catch(() => {});
-      await browser.close();
+      await context.close();
     }
   }
 }
@@ -441,10 +433,13 @@ async function capture(planPath, cdpUrl) {
 const {values: options} = parseArgs({
   options: {
     plan: {type: 'string'},
-    'cdp-url': {type: 'string', default: 'http://127.0.0.1:9222'},
+    'profile-directory': {
+      type: 'string',
+      default: path.join(os.homedir(), '.sentry-ui-capture-chrome'),
+    },
   },
 });
 if (!options.plan) {
-  throw new Error('Usage: capture.mjs --plan <path> [--cdp-url <localhost URL>]');
+  throw new Error('Usage: capture.mjs --plan <path> [--profile-directory <path>]');
 }
-await capture(options.plan, options['cdp-url']);
+await capture(options.plan, options['profile-directory']);
