@@ -77,7 +77,10 @@ export function useComposerSuggestions<T>({
     }
 
     return suggestions.map(suggestion => {
-      const textValue = activeSource.getText(suggestion);
+      const textValue =
+        'getText' in activeSource
+          ? activeSource.getText(suggestion)
+          : activeSource.getId(suggestion);
       return {
         key: `${activeSource.id}:${activeSource.getId(suggestion)}`,
         hideCheck: true,

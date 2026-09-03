@@ -32,8 +32,36 @@ const MEMBER_SOURCE: TestComposerSource = {
   renderSuggestion: suggestion => suggestion.label,
 };
 
-function ControlledComposer({
-  sources = [MEMBER_SOURCE],
+interface CommandSuggestion {
+  id: 'new' | 'snippet';
+  title: string;
+}
+
+const COMMAND_SOURCE: ComposerSource<CommandSuggestion> = {
+  id: 'commands',
+  label: 'Commands',
+  trigger: '/',
+  restrictToStart: true,
+  getSuggestions: query =>
+    (
+      [
+        {id: 'new', title: 'new'},
+        {id: 'snippet', title: 'snippet'},
+      ] satisfies CommandSuggestion[]
+    ).filter(suggestion => suggestion.title.startsWith(query)),
+  getId: suggestion => suggestion.id,
+  renderSuggestion: suggestion => `/${suggestion.title}`,
+  onSelect: (suggestion, actions) => {
+    if (suggestion.id === 'new') {
+      actions.clear();
+    } else {
+      actions.insertText('Inserted snippet ');
+    }
+  },
+};
+
+function ControlledComposer<TSuggestion = PersonSuggestion>({
+  sources = [MEMBER_SOURCE] as unknown as ReadonlyArray<ComposerSource<TSuggestion>>,
   initialValue = '',
   initialMentions = [],
   onOpenChange,
@@ -41,7 +69,7 @@ function ControlledComposer({
   initialMentions?: readonly Mention[];
   initialValue?: string;
   onOpenChange?: (isOpen: boolean) => void;
-  sources?: readonly TestComposerSource[];
+  sources?: ReadonlyArray<ComposerSource<TSuggestion>>;
 }) {
   const [value, setValue] = useState<ComposerValue>({
     text: initialValue,
@@ -236,5 +264,45 @@ describe('Composer', () => {
     await userEvent.click(getEditor());
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();
+  });
+
+  it('only matches a restrictToStart trigger at the very start of the text', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} initialValue="hi there " />);
+
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.keyboard('{End}/new');
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('shows restrictToStart suggestions when the trigger is the first character', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '/sni');
+
+    expect(await screen.findByRole('option', {name: '/snippet'})).toBeVisible();
+  });
+
+  it('runs onSelect to clear the editor instead of inserting text', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '/new');
+    await userEvent.click(await screen.findByRole('option', {name: '/new'}));
+
+    expect(textbox).toBeEmptyDOMElement();
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent('|');
+  });
+
+  it('runs onSelect to insert a snippet at the trigger position', async () => {
+    render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
+
+    const textbox = getEditor();
+    await userEvent.type(textbox, '/sni');
+    await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
+
+    expect(textbox).toHaveTextContent('Inserted snippet');
   });
 });

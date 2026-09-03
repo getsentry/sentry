@@ -7,7 +7,12 @@ source: '@sentry/scraps/composer'
 
 import * as Storybook from 'sentry/stories';
 
-import {AsyncComposerDemo, ComposerDemo, RestoredComposerDemo} from './__stories__/demos';
+import {
+  AsyncComposerDemo,
+  CommandComposerDemo,
+  ComposerDemo,
+  RestoredComposerDemo,
+} from './__stories__/demos';
 
 export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
 
@@ -37,4 +42,12 @@ Async sources provide TanStack Query options, sharing the application's loading,
 
 <Storybook.Demo overflow="visible">
   <AsyncComposerDemo />
+</Storybook.Demo>
+
+## Commands instead of references
+
+A source can handle selection itself instead of inserting text — for example, a `/` command restricted to the start of the editor. `onSelect` receives `clear()` and `insertText()` so a suggestion can reset the composer, insert a snippet at the trigger position, or run some other side effect entirely.
+
+<Storybook.Demo overflow="visible">
+  <CommandComposerDemo />
 </Storybook.Demo>

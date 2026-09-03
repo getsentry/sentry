@@ -1,7 +1,12 @@
 import {useState} from 'react';
 import {queryOptions} from '@tanstack/react-query';
 
-import {Composer, type ComposerValue, type ComposerSource} from '@sentry/scraps/composer';
+import {
+  Composer,
+  type ComposerActions,
+  type ComposerValue,
+  type ComposerSource,
+} from '@sentry/scraps/composer';
 import {Stack} from '@sentry/scraps/layout';
 
 interface Suggestion {
@@ -73,6 +78,37 @@ const REMOTE_SOURCES = [
   },
 ];
 
+interface CommandSuggestion {
+  description: string;
+  id: 'clear' | 'snippet';
+  title: string;
+}
+
+const COMMANDS: readonly CommandSuggestion[] = [
+  {id: 'clear', title: 'clear', description: 'Clear the composer'},
+  {id: 'snippet', title: 'snippet', description: 'Insert a saved reply'},
+];
+
+const COMMAND_SOURCES = [
+  {
+    id: 'commands',
+    label: 'Commands',
+    trigger: '/',
+    restrictToStart: true,
+    getSuggestions: (query: string) =>
+      COMMANDS.filter(command => command.title.startsWith(query)),
+    getId: (suggestion: CommandSuggestion) => suggestion.id,
+    renderSuggestion: (suggestion: CommandSuggestion) => `/${suggestion.title}`,
+    onSelect: (suggestion: CommandSuggestion, actions: ComposerActions) => {
+      if (suggestion.id === 'clear') {
+        actions.clear();
+      } else {
+        actions.insertText("Thanks for reaching out — I'll take a look shortly.");
+      }
+    },
+  },
+] satisfies ReadonlyArray<ComposerSource<CommandSuggestion>>;
+
 function filterSuggestions(suggestions: readonly Suggestion[], query: string) {
   const normalizedQuery = query.toLocaleLowerCase();
   return suggestions.filter(suggestion =>
@@ -133,6 +169,22 @@ export function AsyncComposerDemo() {
       <Composer
         aria-label="Remote member search"
         sources={REMOTE_SOURCES}
+        value={value}
+        onChange={setValue}
+      />
+    </Stack>
+  );
+}
+
+export function CommandComposerDemo() {
+  const [value, setValue] = useState<ComposerValue>({text: '', mentions: []});
+
+  return (
+    <Stack width="100%" maxWidth="720px">
+      <Composer
+        aria-label="Command input"
+        placeholder="Type / for commands"
+        sources={COMMAND_SOURCES}
         value={value}
         onChange={setValue}
       />
