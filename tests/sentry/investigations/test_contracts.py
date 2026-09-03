@@ -524,3 +524,16 @@ def test_user_disposition_is_validated() -> None:
 def test_size_measurement_tolerates_values_orjson_cannot_serialize() -> None:
     # Query results reach this from Snuba, which returns Decimals.
     assert json_byte_size({"total": Decimal("1.5")}) > 0
+
+
+def test_size_measurement_rejects_input_it_cannot_serialize() -> None:
+    # A parsed JSON payload can carry an integer wider than orjson handles.
+    with pytest.raises(ValidationError):
+        json_byte_size({"x": 2**65})
+
+
+def test_block_upsert_rejects_a_bad_display_beside_the_collapsed_flag() -> None:
+    rejects(
+        ReportBlockUpsertedPayloadSerializer,
+        block_payload(collapsed=True, display="not-an-object"),
+    )

@@ -29,7 +29,10 @@ def json_byte_size(value: Any) -> int:
     cannot serialize, such as the Decimals a query result can carry.
     """
 
-    return len(orjson.dumps(value, default=str))
+    try:
+        return len(orjson.dumps(value, default=str))
+    except TypeError as error:
+        raise serializers.ValidationError("Payload is not serializable.") from error
 
 
 class StrictContractSerializer(serializers.Serializer[Any]):
@@ -793,10 +796,9 @@ class ReportBlockUpsertedPayloadSerializer(_BlockKeyMixin, ProjectScopedSerializ
             if not isinstance(collapsed, bool):
                 raise serializers.ValidationError({"collapsed": "Must be a boolean."})
             display = data.get("display")
-            data["display"] = {
-                **(display if isinstance(display, dict) else {}),
-                "queryCollapsed": collapsed,
-            }
+            if display is not None and not isinstance(display, dict):
+                raise serializers.ValidationError({"display": "Must be an object."})
+            data["display"] = {**(display or {}), "queryCollapsed": collapsed}
         return super().to_internal_value(data)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
