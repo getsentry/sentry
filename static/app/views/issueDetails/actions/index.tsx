@@ -294,7 +294,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
           if (successMessage) {
             addSuccessMessage(successMessage);

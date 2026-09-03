@@ -16,6 +16,7 @@ import {
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
+import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -23,6 +24,7 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import Indicators from 'sentry/components/indicators';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -92,6 +94,7 @@ describe('GroupActions', () => {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
+    clearIndicators();
     ConfigStore.init();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -389,6 +392,29 @@ describe('GroupActions', () => {
         data: {status: 'unresolved', statusDetails: {}, substatus: 'ongoing'},
       })
     );
+  });
+
+  it('does not report success when resolving fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      statusCode: 500,
+    });
+
+    render(
+      <Fragment>
+        <GroupActions group={group} project={project} disabled={false} event={null} />
+        <Indicators />
+      </Fragment>,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(
+      await screen.findByText('Unable to update events. Please try again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
   });
 
   it('can archive issue', async () => {
