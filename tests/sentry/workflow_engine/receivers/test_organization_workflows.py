@@ -8,7 +8,7 @@ from sentry.workflow_engine.defaults.workflows import (
     PULL_REQUEST_WORKFLOW_LABEL,
     ensure_default_organization_workflows,
 )
-from sentry.workflow_engine.models import DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 
 class TestCreateOrganizationWorkflows(TestCase):
@@ -68,5 +68,24 @@ class TestCreateOrganizationWorkflows(TestCase):
             organization_created.send_robust(
                 organization=organization, user=self.user, sender=type(self)
             )
+        mock_sdk.capture_exception.assert_called_once()
+        mock_sdk.reset_mock()
 
+        with mock.patch(
+            "sentry.workflow_engine.receivers.organization_workflows.ensure_default_organization_workflows",
+            side_effect=Detector.MultipleObjectsReturned,
+        ):
+            organization_created.send_robust(
+                organization=organization, user=self.user, sender=type(self)
+            )
+        mock_sdk.capture_exception.assert_called_once()
+        mock_sdk.reset_mock()
+
+        with mock.patch(
+            "sentry.workflow_engine.receivers.organization_workflows.ensure_default_organization_workflows",
+            side_effect=Workflow.MultipleObjectsReturned,
+        ):
+            organization_created.send_robust(
+                organization=organization, user=self.user, sender=type(self)
+            )
         mock_sdk.capture_exception.assert_called_once()

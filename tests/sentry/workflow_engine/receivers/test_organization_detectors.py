@@ -69,3 +69,14 @@ class TestCreateOrganizationDetectors(TestCase):
             )
 
         mock_sdk.capture_exception.assert_called_once()
+        mock_sdk.reset_mock()
+
+        with mock.patch(
+            "sentry.workflow_engine.receivers.organization_detectors.ensure_default_organization_detectors",
+            side_effect=Detector.MultipleObjectsReturned,
+        ):
+            organization_created.send_robust(
+                organization=organization, user=self.user, sender=type(self)
+            )
+
+        mock_sdk.capture_exception.assert_called_once()
