@@ -263,6 +263,38 @@ class IntegrationProviderResponse(TypedDict):
 
 
 class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[IntegrationProvider],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[IntegrationProvider, MutableMapping[str, Any]]:
+        organization = kwargs["organization"]
+
+        # Only providers that disallow a second installation need to know whether one
+        # already exists, so restrict the lookup to those keys (and skip it entirely
+        # when there are none).
+        keys = [
+            provider.key
+            for provider in item_list
+            if provider.can_add and not provider.allow_multiple
+        ]
+        installed_provider_keys: set[str] = set()
+        if keys:
+            installed_provider_keys = {
+                integration.provider
+                for integration in integration_service.get_integrations(
+                    organization_id=organization.id,
+                    providers=keys,
+                    status=ObjectStatus.ACTIVE,
+                )
+            }
+
+        return {
+            provider: {"has_existing_integration": provider.key in installed_provider_keys}
+            for provider in item_list
+        }
+
     def serialize(
         self,
         obj: IntegrationProvider,
@@ -270,19 +302,12 @@ class IntegrationProviderSerializer(Serializer[IntegrationProviderResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
-        organization = kwargs.pop("organization")
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None
 
         can_add = obj.can_add
-        if can_add and not obj.allow_multiple:
-            existing = integration_service.get_integrations(
-                organization_id=organization.id,
-                providers=[obj.key],
-                status=ObjectStatus.ACTIVE,
-            )
-            if existing:
-                can_add = False
+        if can_add and not obj.allow_multiple and attrs["has_existing_integration"]:
+            can_add = False
 
         return {
             "key": obj.key,
