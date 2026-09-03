@@ -301,6 +301,70 @@ function getTypeScriptSymbolDefaults(
   return undefined;
 }
 
+function objectExpressionHasHardcodedCandidate(node: TSESTree.ObjectExpression): boolean {
+  if (node.properties.some(property => property.type === AST_NODE_TYPES.SpreadElement)) {
+    return false;
+  }
+
+  return node.properties.some(
+    property =>
+      property.type === AST_NODE_TYPES.Property &&
+      getPropertyName(property.key, property.computed) !== undefined &&
+      getHardcodedValue(property.value) !== NOT_HARDCODED
+  );
+}
+
+function callHasHardcodedCandidate(node: TSESTree.CallExpression): boolean {
+  const spreadIndex = node.arguments.findIndex(
+    argument => argument.type === AST_NODE_TYPES.SpreadElement
+  );
+  const alignedArgumentCount = spreadIndex === -1 ? node.arguments.length : spreadIndex;
+
+  if (spreadIndex === -1) {
+    const lastArgument = node.arguments.at(-1);
+    if (lastArgument && getHardcodedValue(lastArgument) !== NOT_HARDCODED) {
+      return true;
+    }
+  }
+
+  return node.arguments
+    .slice(0, alignedArgumentCount)
+    .some(
+      argument =>
+        argument.type === AST_NODE_TYPES.ObjectExpression &&
+        objectExpressionHasHardcodedCandidate(argument)
+    );
+}
+
+function getJSXAttributeValue(
+  attribute: TSESTree.JSXAttribute
+): HardcodedValue | typeof NOT_HARDCODED {
+  if (!attribute.value) {
+    return true;
+  }
+  if (attribute.value.type === AST_NODE_TYPES.JSXExpressionContainer) {
+    return getHardcodedValue(attribute.value.expression);
+  }
+  return getHardcodedValue(attribute.value);
+}
+
+function elementHasHardcodedCandidate(node: TSESTree.JSXOpeningElement): boolean {
+  if (
+    node.attributes.some(
+      attribute => attribute.type === AST_NODE_TYPES.JSXSpreadAttribute
+    )
+  ) {
+    return false;
+  }
+
+  return node.attributes.some(
+    attribute =>
+      attribute.type === AST_NODE_TYPES.JSXAttribute &&
+      attribute.name.type === AST_NODE_TYPES.JSXIdentifier &&
+      getJSXAttributeValue(attribute) !== NOT_HARDCODED
+  );
+}
+
 function formatHardcodedValue(value: HardcodedValue): string {
   if (typeof value === 'string') {
     return JSON.stringify(value);
@@ -339,6 +403,8 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       Scope.Variable,
       FunctionDefaults | null
     >();
+    const stableByVariable = new WeakMap<Scope.Variable, boolean>();
+    let checker: ts.TypeChecker | undefined;
     const calls: Array<{
       node: TSESTree.CallExpression;
       variable: Scope.Variable;
@@ -351,7 +417,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     function resolveVariable(node: TSESTree.Identifier | TSESTree.JSXIdentifier) {
       let scope: Scope.Scope | null = context.sourceCode.getScope(node);
       while (scope) {
-        const variable = scope.variables.find(candidate => candidate.name === node.name);
+        const variable = scope.set.get(node.name);
         if (variable) {
           return variable;
         }
@@ -374,7 +440,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         return;
       }
 
-      const checker = program.getTypeChecker();
+      checker ??= program.getTypeChecker();
       const typeScriptNode = parserServices.esTreeNodeToTSNodeMap.get(identifier);
       const symbol = checker.getSymbolAtLocation(typeScriptNode);
       const defaults = symbol ? getTypeScriptSymbolDefaults(checker, symbol) : undefined;
@@ -398,9 +464,13 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         | TSESTree.FunctionDeclaration
         | TSESTree.FunctionExpression
     ) {
-      const variable = resolveVariable(identifier);
       const defaults = getFunctionDefaults(node);
-      if (variable && hasDefaults(defaults)) {
+      if (!hasDefaults(defaults)) {
+        return;
+      }
+
+      const variable = resolveVariable(identifier);
+      if (variable) {
         defaultsByVariable.set(variable, defaults);
       }
     }
@@ -548,9 +618,15 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function isStable(variable: Scope.Variable) {
-      return !variable.references.some(
+      if (stableByVariable.has(variable)) {
+        return stableByVariable.get(variable)!;
+      }
+
+      const stable = !variable.references.some(
         reference => reference.isWrite() && !reference.init
       );
+      stableByVariable.set(variable, stable);
+      return stable;
     }
 
     function checkObjectExpression(
@@ -692,12 +768,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           continue;
         }
 
-        let value: HardcodedValue | typeof NOT_HARDCODED = true;
-        if (attribute.value?.type === AST_NODE_TYPES.JSXExpressionContainer) {
-          value = getHardcodedValue(attribute.value.expression);
-        } else if (attribute.value) {
-          value = getHardcodedValue(attribute.value);
-        }
+        const value = getJSXAttributeValue(attribute);
 
         if (value !== NOT_HARDCODED && Object.is(value, defaultValue.value)) {
           redundantAttributes.push({attribute, defaultValue, index});
@@ -735,7 +806,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       },
 
       CallExpression(node) {
-        if (node.callee.type !== AST_NODE_TYPES.Identifier) {
+        if (
+          node.callee.type !== AST_NODE_TYPES.Identifier ||
+          !callHasHardcodedCandidate(node)
+        ) {
           return;
         }
         const variable = resolveVariable(node.callee);
@@ -747,7 +821,8 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       JSXOpeningElement(node) {
         if (
           node.name.type !== AST_NODE_TYPES.JSXIdentifier ||
-          node.name.name[0] !== node.name.name[0]?.toUpperCase()
+          node.name.name[0] !== node.name.name[0]?.toUpperCase() ||
+          !elementHasHardcodedCandidate(node)
         ) {
           return;
         }

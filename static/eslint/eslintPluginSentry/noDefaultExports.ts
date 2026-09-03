@@ -175,14 +175,6 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
 
   create(context) {
     const currentFileName = ts.sys.resolvePath(context.filename);
-    const allowedFiles = getAllowedFiles(currentFileName);
-    if (!allowedFiles) {
-      return {};
-    }
-
-    if (allowedFiles.has(currentFileName)) {
-      return {};
-    }
 
     function visitDeclaration(
       exported: TSESTree.Node,
@@ -257,6 +249,10 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
 
     return {
       ExportDefaultDeclaration(node) {
+        const allowedFiles = getAllowedFiles(currentFileName);
+        if (!allowedFiles || allowedFiles.has(currentFileName)) {
+          return;
+        }
         visitDeclaration(node.declaration, node);
       },
     };
