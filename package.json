@@ -202,7 +202,7 @@
     "react-grid-layout": "1.5.3",
     "react-lazyload": "^3.2.1",
     "react-popper": "^2.3.0",
-    "react-router-dom": "6.30.3",
+    "react-router-dom": "7.18.3",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
     "reflux": "0.4.1",
