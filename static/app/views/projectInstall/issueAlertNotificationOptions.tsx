@@ -43,10 +43,10 @@ interface MessagingProviderDetail {
 }
 
 /**
- * Providers disagree on what identifies a channel. MS Teams is the only row
- * that is not uniform: the picker keys it by id, since two Teams channels can
- * share a name, but the backend resolves a Teams channel by name only
- * (`find_channel_id`), so it is validated and targeted by name.
+ * Providers disagree on what identifies a channel. Slack and MS Teams resolve
+ * a channel by name (`find_channel_id` matches Teams channels by name only),
+ * Discord by id. Each picker is keyed by the field its backend resolves, so a
+ * picked channel and its action target are the same value.
  */
 export const providerDetails = {
   slack: {
@@ -86,8 +86,8 @@ export const providerDetails = {
   msteams: {
     name: t('MS Teams'),
     action: IssueAlertActionType.MS_TEAMS,
-    placeholder: t('channel name'),
-    channelSelectedBy: 'channelId',
+    placeholder: t('channel, e.g. General'),
+    channelSelectedBy: 'channelName',
     channelValidatedBy: 'channelName',
     channelTargetedBy: 'channelName',
     makeSentence: ({providerName, integrationName, target}: any) =>
