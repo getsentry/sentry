@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -12,14 +12,17 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const DEFAULT_PARALLEL_LIMIT = 20;
 
 const schema = z.object({
   dashboardsAsyncQueueParallelLimit: z
-    .number({message: 'Parallel limit is required'})
-    .min(1, 'Parallel limit must be at least 1'),
+    .number()
+    .nullable()
+    .refine(
+      value => value !== null && value >= 1,
+      'Parallel limit must be at least 1'
+    ),
 });
 
 interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
@@ -57,16 +60,15 @@ function ChangeDashboardsParallelLimitModal({
     },
   });
 
+  const defaultValues: z.input<typeof schema> = {
+    dashboardsAsyncQueueParallelLimit: currentLimit,
+  };
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {dashboardsAsyncQueueParallelLimit: currentLimit},
+    defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
-      mutation.mutateAsync(value).catch(error => {
-        if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
-        }
-      }),
+    onSubmit: ({value}) =>
+      mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (
