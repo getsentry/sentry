@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
 /* eslint-disable import/no-nodejs-modules -- This skill helper is a Node.js CLI. */
+import {execFile} from 'node:child_process';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
-import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
-import {parseArgs} from 'node:util';
+import {parseArgs, promisify} from 'node:util';
 
 const requireFromRepo = createRequire(path.join(process.cwd(), 'package.json'));
 const FEATURE_FLAGS_KEY = 'feature-flag-overrides';
+const execFileAsync = promisify(execFile);
 
 // The agent chooses screenshot scope from the diff; this helper validates and captures.
 
@@ -107,6 +108,16 @@ function validatePlan(plan) {
         plan.featureFlags.every(flag => typeof flag === 'string' && flag)),
     'Plan featureFlags must contain non-empty strings'
   );
+  assert(
+    plan.settleMs === undefined ||
+      (Number.isInteger(plan.settleMs) && plan.settleMs >= 0),
+    'Plan settleMs must be a non-negative integer'
+  );
+  assert(
+    plan.forceVerticalScrollbar === undefined ||
+      typeof plan.forceVerticalScrollbar === 'boolean',
+    'Plan forceVerticalScrollbar must be a boolean'
+  );
 }
 
 function safeName(value) {
@@ -117,6 +128,25 @@ function safeName(value) {
 }
 
 // Browser state -----------------------------------------------------------------
+
+async function hideDedicatedChrome(endpoint) {
+  if (process.platform !== 'darwin') {
+    return;
+  }
+  const port = endpoint.port;
+  assert(/^\d+$/.test(port), 'The CDP URL must include an explicit port');
+  const {stdout} = await execFileAsync('/usr/sbin/lsof', [
+    '-nP',
+    `-tiTCP:${port}`,
+    '-sTCP:LISTEN',
+  ]);
+  const pid = stdout.trim().split(/\s+/)[0];
+  assert(/^\d+$/.test(pid), `No dedicated Chrome process is listening on port ${port}`);
+  await execFileAsync('/usr/bin/osascript', [
+    '-e',
+    `tell application "System Events" to set visible of first application process whose unix id is ${pid} to false`,
+  ]);
+}
 
 async function enableFeatureFlags(page, urls, featureFlags, previousValues) {
   if (!featureFlags?.length) {
@@ -237,25 +267,37 @@ async function runActions(page, actions, assertLocation) {
   }
 }
 
-async function verifyContainerWidth(page, container, expectedWidth) {
+async function verifyContainerWidth(
+  page,
+  container,
+  expectedWidth,
+  forceVerticalScrollbar
+) {
   if (expectedWidth === undefined) {
     return undefined;
   }
   const locator = accessibleLocator(page, container ?? {role: 'main'});
-  if ((await locator.count()) !== 1 || !(await locator.isVisible())) {
+  await locator.first().waitFor({state: 'visible', timeout: 60000});
+  if ((await locator.count()) !== 1) {
     throw new Error('Container width target did not resolve to one visible element');
   }
-  const actualWidth = await locator.evaluate(element => {
-    const box = element.getBoundingClientRect();
-    const style = getComputedStyle(element);
-    return (
-      box.width -
-      parseFloat(style.paddingLeft) -
-      parseFloat(style.paddingRight) -
-      parseFloat(style.borderLeftWidth) -
-      parseFloat(style.borderRightWidth)
-    );
-  });
+  const measure = () =>
+    locator.evaluate(element => {
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return (
+        box.width -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight) -
+        parseFloat(style.borderLeftWidth) -
+        parseFloat(style.borderRightWidth)
+      );
+    });
+  let actualWidth = await measure();
+  if (forceVerticalScrollbar && Math.abs(actualWidth - expectedWidth) > 1) {
+    await page.addStyleTag({content: 'html {overflow-y: scroll !important;}'});
+    actualWidth = await measure();
+  }
   if (Math.abs(actualWidth - expectedWidth) > 1) {
     throw new Error(
       `Expected container width ${expectedWidth}px, but rendered ${actualWidth}px`
@@ -275,7 +317,13 @@ async function rejectKnownInvalidState(page) {
 
 async function resolveTarget(page, target) {
   if (target.kind === 'product') {
-    return null;
+    const locator = page.getByRole('main');
+    await locator.waitFor({state: 'visible', timeout: 60000});
+    if ((await locator.count()) !== 1) {
+      throw new Error('Expected one product main region');
+    }
+    await locator.scrollIntoViewIfNeeded();
+    return locator;
   }
   const heading = target.heading
     ? page.getByRole('heading', {name: target.heading, exact: true})
@@ -324,20 +372,30 @@ async function validateImages(page, target) {
 
 // Capture pipeline --------------------------------------------------------------
 
-async function capture(planPath, profileDirectory) {
+async function capture(planPath, cdpUrl) {
   const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
   validatePlan(plan);
   const {chromium} = requireFromRepo('playwright');
-  const context = await chromium.launchPersistentContext(profileDirectory, {
-    channel: 'chrome',
-    headless: true,
-    ignoreHTTPSErrors: true,
-    viewport: null,
-  });
+  const endpoint = new URL(cdpUrl);
+  if (
+    endpoint.protocol !== 'http:' ||
+    endpoint.username ||
+    endpoint.password ||
+    !['127.0.0.1', 'localhost'].includes(endpoint.hostname)
+  ) {
+    throw new Error('CDP must use localhost');
+  }
+
+  await hideDedicatedChrome(endpoint);
+  const browser = await chromium.connectOverCDP(cdpUrl);
   let page;
   const featureFlagState = [];
   try {
-    page = context.pages()[0] ?? (await context.newPage());
+    const context = browser.contexts()[0];
+    if (!context) {
+      throw new Error('Dedicated Chrome has no persistent browser context');
+    }
+    page = await context.newPage();
     await page.clock.setFixedTime(new Date());
     const session = await context.newCDPSession(page);
     await session.send('Security.setIgnoreCertificateErrors', {ignore: true});
@@ -379,15 +437,16 @@ async function capture(planPath, profileDirectory) {
           assertLocation();
           await runActions(page, plan.actions, assertLocation);
           await rejectKnownInvalidState(page);
+          await page.waitForTimeout(plan.settleMs ?? 2500);
           const containerWidth = await verifyContainerWidth(
             page,
             plan.container,
-            viewport.containerWidth
+            viewport.containerWidth,
+            viewport.forceVerticalScrollbar ?? plan.forceVerticalScrollbar
           );
           const target = await resolveTarget(page, plan.target);
           await page.evaluate(() => document.fonts.ready);
           await validateImages(page, target);
-          await page.waitForTimeout(2500);
           const screenshotPath = path.join(
             outputDirectory,
             `${version}-${safeName(viewport.name)}-${theme}-2x.png`
@@ -423,7 +482,7 @@ async function capture(planPath, profileDirectory) {
       }
     } finally {
       await page?.close().catch(() => {});
-      await context.close();
+      await browser.close();
     }
   }
 }
@@ -433,13 +492,10 @@ async function capture(planPath, profileDirectory) {
 const {values: options} = parseArgs({
   options: {
     plan: {type: 'string'},
-    'profile-directory': {
-      type: 'string',
-      default: path.join(os.homedir(), '.sentry-ui-capture-chrome'),
-    },
+    'cdp-url': {type: 'string', default: 'http://127.0.0.1:9222'},
   },
 });
 if (!options.plan) {
-  throw new Error('Usage: capture.mjs --plan <path> [--profile-directory <path>]');
+  throw new Error('Usage: capture.mjs --plan <path> [--cdp-url <localhost URL>]');
 }
-await capture(options.plan, options['profile-directory']);
+await capture(options.plan, options['cdp-url']);

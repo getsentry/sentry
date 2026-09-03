@@ -11,3 +11,5 @@ node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs --login
 Chrome opens to the current PR. Complete GitHub login; the helper exits after it can reach the PR upload control. Never paste credentials into an agent conversation or terminal command.
 
 The profile lives at `~/.sentry-ui-capture-github`. It is separate from the Sentry demo profile and persists GitHub cookies. Do not commit, inspect, print, or copy its contents. Close the helper's Chrome window to revoke active browser access, and delete that profile to remove the saved session.
+
+Normal uploads reuse this profile headlessly. GitHub or organization SSO can still expire; when the publisher asks you to rerun `--login`, complete authentication in the visible isolated window and leave it open until the helper reports that the attachment session is ready.

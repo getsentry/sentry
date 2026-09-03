@@ -90,6 +90,21 @@ async function openPullRequest(context, pullRequest) {
   return page;
 }
 
+async function assertUploadSession(page) {
+  const current = new URL(page.url());
+  const isSsoWall =
+    (await page.getByText('Single sign-on to Sentry', {exact: false}).count()) > 0;
+  if (
+    current.hostname !== 'github.com' ||
+    current.pathname.startsWith('/login') ||
+    isSsoWall
+  ) {
+    throw new Error(
+      'GitHub or organization SSO session expired; rerun publish.mjs --login'
+    );
+  }
+}
+
 function uploadControl(page) {
   return page.locator('input[type="file"]').last();
 }
@@ -124,9 +139,7 @@ async function uploadImages(pullRequest, pairs) {
   const context = await launchGitHub(PROFILE_DIRECTORY, true);
   try {
     const page = await openPullRequest(context, pullRequest);
-    if (new URL(page.url()).pathname.startsWith('/login')) {
-      throw new Error('GitHub session expired; rerun publish.mjs --login');
-    }
+    await assertUploadSession(page);
     await page
       .getByText('Add a comment', {exact: false})
       .last()
