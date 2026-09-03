@@ -22,10 +22,8 @@ from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
-from sentry.workflow_engine.types import (
-    DetectorPriorityLevel,
-    DetectorSettings,
-)
+from sentry.workflow_engine.registry import detector_handler_registry
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 @cell_silo_test
@@ -41,6 +39,11 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             new=GroupTypeRegistry(),
         )
         self.registry_patcher.start()
+
+        self.detector_handler_patcher = patch.dict(
+            detector_handler_registry.registrations, clear=True
+        )
+        self.detector_handler_patcher.start()
 
         class MockDetectorHandler(BaseDetectorHandler[dict[Never, Never], bool]):
             def evaluate_impl(
@@ -101,7 +104,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MetricIssue.slug
             description = "Metric alert"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -110,7 +112,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = MonitorIncidentType.slug
             description = "Crons"
             category = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -119,7 +120,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             slug = UptimeDomainCheckFailure.slug
             description = "Uptime"
             category = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         # Should not be included in the response
@@ -131,8 +131,12 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category = GroupCategory.DB_QUERY.value
             released = True
 
+        for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
+            detector_handler_registry.register(group_type.slug)(MockDetectorHandler)
+
     def tearDown(self) -> None:
         super().tearDown()
+        self.detector_handler_patcher.stop()
         self.registry_patcher.stop()
 
     def test_simple(self) -> None:

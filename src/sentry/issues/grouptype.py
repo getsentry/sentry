@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.apps import apps
 from django.db.models import Q
+from django.utils.functional import classproperty
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
@@ -18,12 +19,18 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.registry import (
+    detector_handler_registry,
+    detector_validator_registry,
+)
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -189,8 +196,8 @@ class GroupTypeRegistry:
         filtered_type_conditions = Q()
 
         for group_type in self.all():
-            if group_type.detector_settings and group_type.detector_settings.filter is not None:
-                filter = group_type.detector_settings.filter
+            filter = group_type.detector_settings.filter
+            if filter is not None:
                 types_with_filters.append(group_type.slug)
                 filtered_type_conditions |= Q(type=group_type.slug) & filter
 
@@ -237,6 +244,47 @@ class NotificationConfig:
     )  # TODO(cathy): view monitor button for crons. "text": "", "url": ""
 
 
+def find_registration[T](slug: str, registry: Registry[T]) -> T | None:
+    try:
+        return registry.get(slug)
+    except NoRegistrationExistsError:
+        return None
+
+
+@dataclass(frozen=True)
+class DetectorSettings:
+    """
+    Looks up a group type's detector handler and validator in the workflow engine
+    registries by the group type's slug. The config schema and filter come from the validator.
+    """
+
+    slug: str
+
+    @property
+    def handler(self) -> type[DetectorHandler[Any]] | None:
+        return find_registration(self.slug, detector_handler_registry)
+
+    @property
+    def validator(self) -> type[BaseDetectorTypeValidator] | None:
+        return find_registration(self.slug, detector_validator_registry)
+
+    @property
+    def config_schema(self) -> dict[str, Any] | None:
+        validator = self.validator
+
+        return validator.config_schema if validator is not None else None
+
+    @property
+    def filter(self) -> Q | None:
+        validator = self.validator
+
+        return validator.detector_filter if validator is not None else None
+
+    @property
+    def is_registered(self) -> bool:
+        return self.handler is not None or self.validator is not None
+
+
 class GroupType:
     type_id: ClassVar[int]
     slug: ClassVar[str]
@@ -262,7 +310,6 @@ class GroupType:
         3600, 60, 5
     )  # default 5 per hour, sliding window of 60 seconds
     notification_config: ClassVar[NotificationConfig] = NotificationConfig()
-    detector_settings: ClassVar[DetectorSettings | None] = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: ClassVar[bool] = True
@@ -288,6 +335,10 @@ class GroupType:
                 features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
+
+    @classproperty
+    def detector_settings(cls) -> DetectorSettings:
+        return DetectorSettings(cls.slug)
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:

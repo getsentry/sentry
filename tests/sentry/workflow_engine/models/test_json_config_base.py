@@ -3,10 +3,11 @@ from dataclasses import dataclass
 import pytest
 from jsonschema import ValidationError
 
-from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
+from sentry.workflow_engine.registry import detector_validator_registry
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -44,7 +45,6 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
-            detector_settings = DetectorSettings(config_schema=self.example_schema)
 
         @dataclass(frozen=True)
         class ExampleGroupType(GroupType):
@@ -52,9 +52,15 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             slug = "example"
             description = "Example"
             category = GroupCategory.DB_QUERY.value
-            detector_settings = DetectorSettings(
-                config_schema={"type": "object", "additionalProperties": False},
-            )
+
+        class TestDetectorValidator(BaseDetectorTypeValidator):
+            config_schema = self.example_schema
+
+        class ExampleDetectorValidator(BaseDetectorTypeValidator):
+            config_schema = {"type": "object", "additionalProperties": False}
+
+        detector_validator_registry.register(TestGroupType.slug)(TestDetectorValidator)
+        detector_validator_registry.register(ExampleGroupType.slug)(ExampleDetectorValidator)
 
 
 # TODO - Move this to the detector model test
@@ -103,9 +109,8 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             slug = "test_metric_issue"
             description = "Metric alert fired"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(
-                config_schema=MetricIssue.detector_settings.config_schema,
-            )
+
+        detector_validator_registry.register(TestGroupType.slug)(MetricIssueDetectorValidator)
 
     def test_detector_correct_schema(self) -> None:
         self.create_detector(

@@ -4,6 +4,7 @@ from typing import Any, override
 
 import jsonschema
 from django.db import router
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.fields import URLField
@@ -42,7 +43,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE, UptimeMonitorMode
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET
@@ -52,6 +53,7 @@ from sentry.workflow_engine.endpoints.validators.base import (
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import detector_validator_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 """
@@ -675,7 +677,33 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
         return attrs
 
 
+@detector_validator_registry.register(GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE)
 class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of an uptime alert",
+        "type": "object",
+        "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
+        "properties": {
+            "mode": {
+                "type": ["integer"],
+                "enum": [mode.value for mode in UptimeMonitorMode],
+            },
+            "environment": {"type": ["string", "null"]},
+            "recovery_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive successful checks required to mark monitor as recovered",
+            },
+            "downtime_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive failed checks required to mark monitor as down",
+            },
+        },
+        "additionalProperties": False,
+    }
+    detector_filter = ~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING)
     enforce_single_datasource = True
     data_sources = serializers.ListField(child=UptimeMonitorDataSourceValidator(), required=False)
     config = UptimeDomainCheckFailureConfigValidator(required=False)  # type: ignore[assignment]

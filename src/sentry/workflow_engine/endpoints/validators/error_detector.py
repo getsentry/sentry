@@ -11,9 +11,13 @@ from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfi
 from sentry.issues.grouptype import GroupType
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.registry import detector_validator_registry
+from sentry.workflow_engine.types import GROUP_TYPE_ERROR
 
 
+@detector_validator_registry.register(GROUP_TYPE_ERROR)
 class ErrorDetectorValidator(BaseDetectorTypeValidator):
+    config_schema = {"type": "object", "additionalProperties": False}
     data_source_required = False
 
     # TODO - Update the Error Detector to store grouping rules in the DataCondition
@@ -32,7 +36,7 @@ class ErrorDetectorValidator(BaseDetectorTypeValidator):
 
     def validate_type(self, value: str) -> builtins.type[GroupType]:
         type = super().validate_type(value)
-        if type.slug != "error":
+        if type.slug != GROUP_TYPE_ERROR:
             raise serializers.ValidationError("Detector type must be error")
 
         return type

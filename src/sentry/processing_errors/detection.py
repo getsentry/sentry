@@ -57,9 +57,7 @@ class DetectorConfig:
     feature_flag: str | None = None
 
     def __post_init__(self) -> None:
-        settings = self.config_type.detector_settings
-        assert settings is not None, f"{self.config_type.slug} has no detector_settings"
-        handler = settings.handler
+        handler = self.config_type.detector_settings.handler
         assert handler is not None, f"{self.config_type.slug} has no handler"
         assert issubclass(handler, ProcessingErrorDetectorHandler), (
             f"{self.config_type.slug} handler must be a ProcessingErrorDetectorHandler"
@@ -71,9 +69,7 @@ class DetectorConfig:
 
     @property
     def handler_cls(self) -> type[ProcessingErrorDetectorHandler]:
-        settings = self.config_type.detector_settings
-        assert settings is not None
-        handler = settings.handler
+        handler = self.config_type.detector_settings.handler
         assert handler is not None and issubclass(handler, ProcessingErrorDetectorHandler)
         return handler
 

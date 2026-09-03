@@ -1,5 +1,7 @@
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -19,6 +21,16 @@ from sentry.issues.grouptype import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
+from sentry.utils.registry import Registry
+from sentry.workflow_engine.registry import (
+    detector_handler_registry,
+    detector_validator_registry,
+)
+
+DETECTOR_REGISTRIES: tuple[Registry[Any], ...] = (
+    detector_handler_registry,
+    detector_validator_registry,
+)
 
 
 class BaseGroupTypeTest(TestCase):
@@ -26,6 +38,12 @@ class BaseGroupTypeTest(TestCase):
         super().setUp()
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())
         self.registry_patcher.__enter__()
+
+        self.detector_registries_patcher = ExitStack()
+        for detector_registry in DETECTOR_REGISTRIES:
+            self.detector_registries_patcher.enter_context(
+                patch.dict(detector_registry.registrations)
+            )
 
         class ErrorGroupType(GroupType):
             type_id = -1
@@ -41,6 +59,7 @@ class BaseGroupTypeTest(TestCase):
 
     def tearDown(self) -> None:
         super().tearDown()
+        self.detector_registries_patcher.close()
         self.registry_patcher.__exit__(None, None, None)
 
 

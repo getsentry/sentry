@@ -9,6 +9,7 @@ from typing import Any, ClassVar, override
 
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
+from rest_framework.exceptions import PermissionDenied
 from sentry_redis_tools.sliding_windows_rate_limiter import Quota
 
 from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
@@ -17,6 +18,7 @@ from sentry.models.eventerror import EventErrorType
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
+from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.handlers.detector.base import (
     DetectorOccurrence,
     EventData,
@@ -26,12 +28,15 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     DetectorThresholds,
     StatefulDetectorHandler,
 )
-from sentry.workflow_engine.models import DataPacket, DetectorState
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import (
+    detector_handler_registry,
+    detector_validator_registry,
+)
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -242,13 +247,6 @@ class ProcessingErrorDetectorHandler(
         )
 
 
-class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
-    error_types = JS_SOURCEMAP_ERROR_TYPES
-    fingerprint_key = "sourcemap"
-    issue_title = "Source maps are misconfigured"
-    issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
-
-
 @dataclass(frozen=True)
 class SourcemapConfigurationType(GroupType):
     type_id = 13001
@@ -261,17 +259,36 @@ class SourcemapConfigurationType(GroupType):
     enable_escalation_detection = False
     creation_quota = Quota(3600, 60, 100)
     notification_config = NotificationConfig(context=[])
-    detector_settings = DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
     enable_user_status_and_priority_changes = False
     # For the moment, we only want to show these issue types in the ui
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
     in_default_search = False
+
+
+@detector_validator_registry.register(SourcemapConfigurationType.slug)
+class SourcemapDetectorValidator(BaseDetectorTypeValidator):
+    """
+    Sourcemap detectors are provisioned by Sentry itself. This validator exists so detector
+    config is validated on save, and refuses to create or update detectors through the API.
+    """
+
+    data_source_required = False
+
+    def create(self, validated_data: dict[str, Any]) -> Detector:
+        raise PermissionDenied("Creating sourcemap detectors is not supported")
+
+    def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        raise PermissionDenied("Updating sourcemap detectors is not supported")
+
+
+@detector_handler_registry.register(SourcemapConfigurationType.slug)
+class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
+    error_types = JS_SOURCEMAP_ERROR_TYPES
+    fingerprint_key = "sourcemap"
+    issue_title = "Source maps are misconfigured"
+    issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
 
 
 @dataclass(frozen=True)
