@@ -197,7 +197,7 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
 function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
   return (
     <Fragment>
-      {detector.dataSources.map(dataSource => {
+      {detector.dataSources?.map(dataSource => {
         return (
           <Fragment key={dataSource.id}>
             <DetailItem>{middleEllipsis(dataSource.queryObj.url, 40)}</DetailItem>
