@@ -73,11 +73,4 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        # Route through the group type registry so `Activity` events (e.g. an
-        # issue being resolved) are dispatched to the activity handler
-        # registry instead of always assuming a `GroupEvent`, which raises
-        # loudly in `get_rule_futures`. Ticketing action types are registered
-        # with `UnsupportedActivityHandler` in the activity registry, and
-        # `GroupEvent`s still fall through to the issue alert handler as
-        # before.
         execute_via_group_type_registry(invocation)
