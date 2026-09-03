@@ -163,8 +163,8 @@ importers:
         specifier: 3.36.0
         version: 3.36.0(react@19.2.3)
       '@remix-run/router':
-        specifier: 1.23.2
-        version: 1.23.2
+        specifier: 1.23.3
+        version: 1.23.3
       '@rsdoctor/rspack-plugin':
         specifier: 1.5.18
         version: 1.5.18(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rspack/core@2.2.0)
@@ -2746,6 +2746,10 @@ packages:
 
   '@remix-run/router@1.23.2':
     resolution: {integrity: sha512-Ic6m2U/rMjTkhERIa/0ZtXJP17QUi2CbWE7cqx4J58M8aA3QTfW+2UlQ4psvTX9IO1RfNVhK3pcpdjej7L+t2w==}
+    engines: {node: '>=14.0.0'}
+
+  '@remix-run/router@1.23.3':
+    resolution: {integrity: sha512-4An71tdz9X8+3sI4Qqqd2LWd9vS39J7sqd9EU4Scw7TJE/qB10Flv/UuqbPVgfQV9XoK8Np6jNquZitnZq5i+Q==}
     engines: {node: '>=14.0.0'}
 
   '@rsbuild/plugin-check-syntax@1.6.1':
@@ -11132,6 +11136,8 @@ snapshots:
       react: 19.2.3
 
   '@remix-run/router@1.23.2': {}
+
+  '@remix-run/router@1.23.3': {}
 
   '@rsbuild/plugin-check-syntax@1.6.1':
     dependencies:
