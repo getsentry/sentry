@@ -238,6 +238,27 @@ class MetricIssueContext:
             return None
 
     @classmethod
+    def _get_snuba_query_from_detector(cls, detector_id: int) -> SnubaQuery | None:
+        """
+        Falls back to the detector's current data source when the subscription
+        referenced by stored evidence has since been deleted (e.g. the alert's
+        query was edited, replacing the underlying QuerySubscription).
+        """
+        try:
+            detector = Detector.objects.get(id=detector_id)
+        except Detector.DoesNotExist:
+            return None
+
+        data_source = detector.data_sources.first()
+        if data_source is None:
+            return None
+
+        try:
+            return QuerySubscription.objects.get(id=int(data_source.source_id)).snuba_query
+        except (QuerySubscription.DoesNotExist, ValueError):
+            return None
+
+    @classmethod
     def from_group_event(
         cls,
         group: Group,
@@ -252,12 +273,10 @@ class MetricIssueContext:
         if subscription is not None:
             snuba_query = subscription.snuba_query
         else:
-            try:
-                snuba_query = AlertRule.objects_with_snapshots.get(
-                    id=evidence_data.alert_id
-                ).snuba_query
-            except AlertRule.DoesNotExist:
-                raise ValueError("No alert rule found for metric issue") from None
+            detector_snuba_query = cls._get_snuba_query_from_detector(evidence_data.detector_id)
+            if detector_snuba_query is None:
+                raise ValueError("No query subscription found for metric issue")
+            snuba_query = detector_snuba_query
         if isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
         elif isinstance(evidence_data.value, dict):
