@@ -57,6 +57,20 @@ class DatabaseBackedHookService(HookService):
                 deletions.exec_sync_many(list(hooks))
                 return []
 
+    def get_service_hook_for_installation(
+        self,
+        *,
+        installation_id: int,
+        application_id: int,
+        organization_id: int,
+    ) -> RpcServiceHook | None:
+        hook = ServiceHook.objects.filter(
+            installation_id=installation_id,
+            application_id=application_id,
+            organization_id=organization_id,
+        ).first()
+        return serialize_service_hook(hook) if hook else None
+
     def create_or_update_webhook_and_events_for_installation(
         self,
         *,
