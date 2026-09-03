@@ -131,6 +131,29 @@ export const VALID_ISSUE_CATEGORIES = [
   IssueCategory.CONFIGURATION,
 ];
 
+/**
+ * Numeric values used by issue category workflow conditions.
+ * These must match GroupCategory in src/sentry/issues/grouptype.py.
+ */
+export const ISSUE_CATEGORY_TO_GROUP_CATEGORY: Record<IssueCategory, number> = {
+  [IssueCategory.ERROR]: 1,
+  [IssueCategory.PERFORMANCE]: 2,
+  [IssueCategory.CRON]: 4,
+  [IssueCategory.REPLAY]: 5,
+  [IssueCategory.FEEDBACK]: 6,
+  [IssueCategory.UPTIME]: 7,
+  [IssueCategory.METRIC_ALERT]: 8,
+  [IssueCategory.OUTAGE]: 10,
+  [IssueCategory.METRIC]: 11,
+  [IssueCategory.DB_QUERY]: 12,
+  [IssueCategory.HTTP_CLIENT]: 13,
+  [IssueCategory.FRONTEND]: 14,
+  [IssueCategory.MOBILE]: 15,
+  [IssueCategory.AI_DETECTED]: 16,
+  [IssueCategory.PREPROD]: 17,
+  [IssueCategory.CONFIGURATION]: 19,
+};
+
 export const ISSUE_CATEGORY_TO_DESCRIPTION: Record<IssueCategory, string> = {
   [IssueCategory.ERROR]: t('Runtime errors or exceptions.'),
   [IssueCategory.OUTAGE]: t('Uptime or cron monitoring issues.'),
