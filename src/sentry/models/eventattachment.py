@@ -96,19 +96,18 @@ class EventAttachmentBase(Model):
 
     # the things we want to look up attachments by:
     project_id = BoundedBigIntegerField()
-    event_id = models.CharField(max_length=32, db_index=True)
+    event_id = models.CharField(max_length=32)
 
     # attachment and file metadata:
-    type = models.CharField(max_length=64, db_index=True)
+    type = models.CharField(max_length=64)
     name = models.TextField()
     content_type = models.TextField(null=True)
     size = BoundedIntegerField(null=True)
     sha1 = models.CharField(max_length=40, null=True)
 
-    date_added = models.DateTimeField(default=timezone.now, db_index=True)
+    date_added = models.DateTimeField(default=timezone.now)
     date_expires = models.DateTimeField(
         db_default=Now() + timedelta(days=30),
-        db_index=True,
     )
 
     # storage:
@@ -116,10 +115,6 @@ class EventAttachmentBase(Model):
 
     class Meta:
         abstract = True
-        indexes = (
-            models.Index(fields=("project_id", "date_added")),
-            models.Index(fields=("project_id", "event_id")),
-        )
 
 
 @cell_silo_model
@@ -133,6 +128,14 @@ class EventAttachment(EventAttachmentBase):
     class Meta(EventAttachmentBase.Meta):
         app_label = "sentry"
         db_table = "sentry_eventattachment"
+        indexes = (
+            models.Index(fields=("event_id",)),
+            models.Index(fields=("type",)),
+            models.Index(fields=("date_added",)),
+            models.Index(fields=("date_expires",)),
+            models.Index(fields=("project_id", "date_added")),
+            models.Index(fields=("project_id", "event_id")),
+        )
 
     __repr__ = sane_repr("event_id", "name")
 
@@ -304,9 +307,16 @@ class PendingEventAttachment(EventAttachmentBase):
     is missing for pending attachments.
     """
 
+    #: A non-indexed long-term expiry date for retention purposes. This will be copied into `EventAttachment.date_expires`.
+    date_expires_retention = models.DateTimeField(db_default=Now() + timedelta(days=30))
+
     class Meta(EventAttachmentBase.Meta):
         app_label = "sentry"
         db_table = "sentry_pendingeventattachment"
+        indexes = (
+            models.Index(fields=("date_expires",)),
+            models.Index(fields=("project_id", "event_id")),
+        )
 
     __repr__ = sane_repr("event_id", "name")
 
