@@ -1,9 +1,11 @@
 import time
 
 import orjson
+import pytest
 import responses
 from requests import PreparedRequest
 
+from sentry.incidents.logic import InvalidTriggerActionError
 from sentry.integrations.msteams.utils import get_channel_id
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
@@ -105,3 +107,39 @@ class GetChannelIdTest(TestCase):
 
     def test_bad_user_not_selected(self) -> None:
         self.run_invalid_test("Prince Humperdinck")
+
+
+class GetAlertRuleTriggerActionMsTeamsChannelIdTest(TestCase):
+    def setUp(self) -> None:
+        self.integration, _ = self.create_provider_integration_for(
+            self.event.project.organization,
+            self.user,
+            provider="msteams",
+            name="Test Team",
+            external_id="test-team-id",
+            metadata={
+                "service_url": "https://smba.trafficmanager.net/amer",
+                "access_token": "test-token",
+                "expires_at": int(time.time()) + 86400,
+            },
+        )
+
+    @responses.activate
+    def test_api_error_raises_invalid_trigger_action_error(self) -> None:
+        """When MS Teams API returns 400 (e.g. bot removed from team),
+        _get_alert_rule_trigger_action_msteams_channel_id should raise
+        InvalidTriggerActionError instead of letting ApiInvalidRequestError propagate."""
+        from sentry.incidents.logic import _get_alert_rule_trigger_action_msteams_channel_id
+
+        responses.add(
+            responses.GET,
+            "https://smba.trafficmanager.net/amer/v3/teams/test-team-id/conversations",
+            status=400,
+            json={"error": {"code": "BadRequest", "message": "Bad Request"}},
+        )
+
+        with pytest.raises(InvalidTriggerActionError) as exc_info:
+            _get_alert_rule_trigger_action_msteams_channel_id(
+                "Errors-channel", self.organization, self.integration.id
+            )
+        assert "bot may have been removed" in str(exc_info.value)

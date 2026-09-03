@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.constants import ObjectStatus
 from sentry.integrations.msteams.utils import find_channel_id
 from sentry.integrations.services.integration.service import integration_service
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.forms import set_field_choices
 
 
@@ -39,7 +40,21 @@ class MsTeamsNotifyServiceForm(forms.Form):
         if not integration:
             raise forms.ValidationError(_("Team is a required field."), code="invalid")
 
-        channel_id = find_channel_id(integration, channel)
+        try:
+            channel_id = find_channel_id(integration, channel)
+        except ApiError:
+            params = {
+                "channel": channel,
+                "team": dict(self._team_list).get(int(integration_id)),
+            }
+            raise forms.ValidationError(
+                _(
+                    'Could not communicate with the %(team)s Team to find channel or user "%(channel)s". '
+                    "The Microsoft Teams bot may have been removed from the team."
+                ),
+                code="invalid",
+                params=params,
+            )
 
         if channel_id is None and integration_id is not None:
             params = {
