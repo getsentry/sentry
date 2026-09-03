@@ -155,7 +155,7 @@ describe('NotificationSettingsByType', () => {
       await screen.findByRole('textbox', {name: 'Spike Protection Notifications'})
     ).toBeInTheDocument();
     expect(
-      screen.getByText('This is the default for all projects under all Organizations.')
+      screen.getByText('This is the default for all projects under all organizations.')
     ).toBeInTheDocument();
   });
 
