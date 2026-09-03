@@ -246,11 +246,29 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
+def release_rule_condition(values: list[str]) -> dict:
+    """The catch-all shape: the release field of every data type, combined with OR."""
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "glob", "name": "event.release", "value": values},
+            {"op": "glob", "name": "log.attributes.sentry.release.value", "value": values},
+            {
+                "op": "glob",
+                "name": "trace_metric.attributes.sentry.release.value",
+                "value": values,
+            },
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": values},
+        ],
+    }
+
+
 @django_db_all
 @pytest.mark.parametrize(
-    ("conditions", "expected_condition"),
+    ("data_type", "conditions", "expected_condition"),
     [
         pytest.param(
+            "error",
             [
                 {"type": "error_message", "value": ["*ConnectionError*"]},
                 {"type": "release", "value": ["1.*", "2.*"]},
@@ -265,11 +283,13 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="error_message_and_release",
         ),
         pytest.param(
+            "error",
             [{"type": "error_type", "value": ["TypeError", "*Timeout"]}],
             error_type_rule_condition(["TypeError", "*Timeout"]),
             id="error_type_only",
         ),
         pytest.param(
+            "error",
             [
                 {"type": "error_type", "value": ["TypeError"]},
                 {"type": "error_message", "value": ["*undefined*"]},
@@ -284,6 +304,7 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="error_type_and_error_message",
         ),
         pytest.param(
+            "error",
             [
                 {"type": "error_type", "value": ["TypeError"]},
                 {"type": "release", "value": ["1.*"]},
@@ -298,6 +319,7 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="error_type_and_release",
         ),
         pytest.param(
+            "log",
             [
                 {"type": "log_message", "value": ["*DEBUG*"]},
                 {"type": "release", "value": ["1.2.3"]},
@@ -316,6 +338,7 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="log_message_and_release",
         ),
         pytest.param(
+            "metric",
             [
                 {"type": "metric_name", "value": ["checkout.*"]},
                 {"type": "release", "value": ["1.2.3"]},
@@ -334,22 +357,51 @@ def error_type_rule_condition(values: list[str]) -> dict:
             id="metric_name_and_release",
         ),
         pytest.param(
+            "metric",
             [{"type": "metric_name", "value": ["checkout.*"]}],
             {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
             id="single_condition_is_not_wrapped",
         ),
         pytest.param(
+            "span",
+            [{"type": "release", "value": ["1.2.3"]}],
+            {"op": "glob", "name": "span.attributes.sentry.release.value", "value": ["1.2.3"]},
+            id="release_on_spans",
+        ),
+        pytest.param(
+            "error",
             [{"type": "release", "value": ["1.*"]}],
             {"op": "glob", "name": "event.release", "value": ["1.*"]},
-            id="release_only_targets_events",
+            id="release_on_errors_reads_the_event_field_only",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "value": ["1.*"]}],
+            release_rule_condition(["1.*"]),
+            id="catch_all_release",
+        ),
+        pytest.param(
+            "all",
+            [
+                {"type": "release", "value": [">2*"]},
+                {"type": "release", "value": ["<4*"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    release_rule_condition([">2*"]),
+                    release_rule_condition(["<4*"]),
+                ],
+            },
+            id="catch_all_release_range",
         ),
     ],
 )
 def test_custom_inbound_filter_condition_translation(
-    default_project, factories, conditions, expected_condition
+    default_project, factories, data_type, conditions, expected_condition
 ) -> None:
     custom_filter = factories.create_project_custom_inbound_filter(
-        default_project, conditions=conditions
+        default_project, data_type=data_type, conditions=conditions
     )
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
@@ -462,6 +514,25 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "release", "value": []}],
+    )
+    # A data type this revision does not know, e.g. one a newer deploy wrote.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="unknown_data_type",
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+    # A span filter accepts release alone, so any other condition disables the filter
+    # rather than widening it.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "error_type", "value": ["TypeError"]}],
+    )
+    # A catch-all can only carry conditions every data type has a field for.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "error_message", "value": ["*Error*"]}],
     )
     # A log carries no exception type, so a filter mixing data types matches nothing.
     factories.create_project_custom_inbound_filter(
