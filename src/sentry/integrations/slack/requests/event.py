@@ -25,6 +25,7 @@ from sentry.seer.entrypoints.operator import SeerAgentOperator
 from sentry.seer.entrypoints.slack.mention import _SLACK_URL_RE, build_thread_context
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.silo.base import SiloMode, all_silo_function
+from sentry.types.cell import find_cell_by_org_id
 from sentry.users.services.user.service import user_service
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
@@ -65,14 +66,27 @@ def _resolve_available_organizations(
     - the user has access to the organization
     - the organization has access to Seer Agent in Slack (varies based on SiloMode)
     """
+    # Cheap DB lookup (no RPC): once a valid membership has been confirmed for a given
+    # cell, further orgs in that same cell can't change which cell control forwards to
+    # (the cell always re-resolves/authorizes the real organization itself for real —
+    # see route_slack_seer_event), so skip their RPC lookups. Only distinct cells need a
+    # representative org checked. Gated to CONTROL: the cell silo runs this same loop to
+    # do the *real* resolution and must check every org for full correctness there.
+    org_id_to_cell_name: dict[int, str] = {}
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        org_id_to_cell_name = find_cell_by_org_id(organization_ids)
+    resolved_cells: set[str] = set()
+
     available_organizations = []
     for organization_id in organization_ids:
-        ctx = organization_service.get_organization_by_id(
-            id=organization_id,
-            user_id=user_id,
-            include_projects=False,
-            include_teams=False,
-        )
+        cell_name = org_id_to_cell_name.get(organization_id)
+        if cell_name is not None and cell_name in resolved_cells:
+            logging_ctx["current_organization_id"] = organization_id
+            logging_ctx["cell_name"] = cell_name
+            logger.info("_resolve_available_organizations.skipped_resolved_cell", extra=logging_ctx)
+            continue
+
+        ctx = organization_service.get_organization_by_id(id=organization_id, user_id=user_id)
         logging_ctx["current_organization_id"] = organization_id
         if ctx is None:
             logger.info("_resolve_available_organizations.no_rpc_response", extra=logging_ctx)
@@ -101,6 +115,8 @@ def _resolve_available_organizations(
 
         logger.info("_resolve_available_organizations.success", extra=logging_ctx)
         available_organizations.append(ctx)
+        if cell_name is not None:
+            resolved_cells.add(cell_name)
     return available_organizations
 
 
