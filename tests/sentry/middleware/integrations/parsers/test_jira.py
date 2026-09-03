@@ -16,12 +16,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality
 
 cell = Cell("us", 1, "http://us.testserver")
 eu_cell = Cell("eu", 2, "http://eu.testserver")
-locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
-eu_locality = Locality("eu", frozenset(["eu"]), RegionCategory.MULTI_TENANT, new_org_cell="eu")
+locality = Locality("us", frozenset(["us"]), new_org_cell="us")
+eu_locality = Locality("eu", frozenset(["eu"]), new_org_cell="eu")
 
 cell_config = (cell, eu_cell)
 

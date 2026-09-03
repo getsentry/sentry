@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
@@ -88,7 +87,6 @@ class MetricSerializer(serializers.Serializer):
     )
 
 
-@extend_schema_serializer(exclude_fields=["groupby"])
 class QuerySerializer(serializers.Serializer):
     fields = ListField(
         child=serializers.CharField(),
@@ -101,7 +99,12 @@ class QuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="How to order the query results. Must be something in the `field` list.",
     )
-    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    groupby = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Columns to group results by.",
+    )
     query = serializers.CharField(
         required=False,
         allow_null=True,

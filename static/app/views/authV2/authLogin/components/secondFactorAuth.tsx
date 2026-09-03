@@ -78,7 +78,7 @@ export function SecondFactorAuth({
     : sortedMethods[0]?.id;
   const auth = useSecondFactorAuth();
   const cancellation = useCancelSecondFactorAuth();
-  const isProcessing = auth.isPending || cancellation.isPending;
+  const isProcessing = auth.isPending || Boolean(auth.result) || cancellation.isPending;
   const authenticate = (credentials: SecondFactorCredentials) => {
     cancellation.reset();
     auth.authenticate(credentials);
@@ -164,7 +164,7 @@ export function SecondFactorAuth({
             size="xs"
             icon={<IconArrow direction="left" />}
             busy={cancellation.isPending}
-            disabled={auth.isPending}
+            disabled={isProcessing}
             onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
           >
             {t('Back to Login')}

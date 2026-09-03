@@ -1,11 +1,13 @@
 import {
   cloneElement,
+  Fragment,
   isValidElement,
   useEffect,
   useEffectEvent,
   useRef,
   useState,
 } from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -17,6 +19,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -24,7 +27,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable} from 'sentry/components/resultTable';
-import {IconList, IconSearch} from 'sentry/icons';
+import {IconList, IconSearch, IconWarning} from 'sentry/icons';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -33,6 +36,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Option = [key: string, label: string];
+
+/**
+ * Sentinel region-selector value that means "query every region at once".
+ * Locality URLs are always full URLs, so this cannot collide with one.
+ */
+const ALL_REGIONS = 'all';
 
 function extractColumnLabel(col: React.ReactNode): string {
   if (!isValidElement(col)) {
@@ -71,7 +80,7 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
   return (
     <CompactSelect
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={name} size="xs" />
+        <OverlayTrigger.Button {...triggerProps} prefix={name} size="sm" />
       )}
       value={value}
       onChange={opt =>
@@ -102,6 +111,7 @@ function SortBy({options, path, value}: SortByProps) {
           {...triggerProps}
           icon={<IconList size="xs" />}
           prefix="Sort By"
+          size="sm"
         />
       )}
       value={value}
@@ -134,6 +144,23 @@ interface ResultGridProps {
    * The relative path to map result URLs to
    */
   path: string;
+  /**
+   * Adds an "All regions" option to the region selector — selected by default —
+   * that queries every region in parallel and merges the results into a single
+   * table with a Region column (placed by `regionColumnIndex`). Rows appear as
+   * each region responds.
+   *
+   * Cursors do not compose across regions, so this mode holds one cursor per
+   * region and grows the table by a page from each of them, through a "Load
+   * more" control in place of the single-cursor pagination. Provide
+   * `sortValueForRow` so the merged rows keep a coherent order as pages
+   * arrive.
+   *
+   * Only meaningful together with `isRegional`/`isCellScoped`.
+   *
+   * @default false
+   */
+  allowAllRegions?: boolean;
   /**
    * Overrides the API client used to make requests
    */
@@ -266,6 +293,12 @@ interface ResultGridProps {
    */
   probeAllRegionsHint?: string;
   /**
+   * Index in `columns` where the all-regions Region column is inserted.
+   *
+   * @default 0
+   */
+  regionColumnIndex?: number;
+  /**
    * Translates the data object from the request into rows
    */
   rowsFromData?: (data: any, cell: Cell | undefined) => any[];
@@ -274,12 +307,26 @@ interface ResultGridProps {
    */
   sortOptions?: Option[];
   /**
+   * Returns the numeric sort value of a row for the given `sortBy` key, used
+   * to keep the merged all-regions table sorted client-side (descending, to
+   * match the server's ordering). Each region's page is already server-sorted;
+   * this lets the merged view interleave them correctly as responses arrive.
+   *
+   * Only used in the `allowAllRegions` mode.
+   */
+  sortValueForRow?: (row: any, sortBy: string) => number;
+  /**
    * TODO
    */
   useQueryString?: boolean;
 }
 
 export type State = {
+  /**
+   * Whether the grid is in the all-regions mode: every region is queried in
+   * parallel and the results are merged. `cell` is undefined while active.
+   */
+  allRegions: boolean;
   cell: Cell | undefined;
   cursor: string;
   error: boolean;
@@ -293,10 +340,24 @@ export type State = {
   missingExactMatch: boolean;
   pageLinks: string | null;
   /**
+   * Names of regions whose all-regions request is still in flight.
+   */
+  pendingRegions: string[];
+  /**
    * Whether we are currently probing other regions after a missing exact match.
    */
   probingRegions: boolean;
   query: string;
+  /**
+   * The cursor of the next page of every region that still has one, keyed by
+   * cell name. A region leaves the map when it runs out of pages, so an empty
+   * map means the merged table holds every result.
+   */
+  regionCursors: Record<string, string>;
+  /**
+   * Names of regions whose all-regions request failed.
+   */
+  regionErrors: string[];
   /**
    * Other regions that have at least one match for the active search.
    */
@@ -316,7 +377,21 @@ type Results = {
   error: boolean;
   loading: boolean;
   pageLinks: string | null;
+  pendingRegions: string[];
+  regionCursors: Record<string, string>;
+  regionErrors: string[];
   rows: any[];
+};
+
+const IDLE_REGIONS: Pick<Results, 'pendingRegions' | 'regionCursors' | 'regionErrors'> = {
+  pendingRegions: [],
+  regionCursors: {},
+  regionErrors: [],
+};
+
+type RegionSelection = {
+  allRegions: boolean;
+  cell: Cell | undefined;
 };
 
 type RegionProbe = {
@@ -357,6 +432,7 @@ export function ResultGrid({
   keyForRow = (row: any) => row.id,
   columnsForRow = () => [],
   defaultParams = {per_page: 50},
+  allowAllRegions = false,
   hasPagination = true,
   isCellScoped = false,
   isRegional = false,
@@ -371,8 +447,10 @@ export function ResultGrid({
   onLoad,
   panelTitle,
   probeAllRegionsHint,
+  regionColumnIndex = 0,
   rowsFromData,
   sortOptions,
+  sortValueForRow,
 }: ResultGridProps) {
   const defaultApi = useApi();
   const api = apiProp ?? defaultApi;
@@ -381,14 +459,19 @@ export function ResultGrid({
 
   const needsRegion = isRegional || isCellScoped;
 
-  const [cell, setCell] = useState<Cell | undefined>(() => {
+  const [region, setRegion] = useState<RegionSelection>(() => {
     if (!needsRegion) {
-      return;
+      return {allRegions: false, cell: undefined};
     }
     const cells = getCells();
     const regionUrl = extractQuery(location.query.regionUrl);
-    return regionUrl ? cells.find(c => c.locality_url === regionUrl) : cells[0];
+    const requestedCell = regionUrl
+      ? cells.find(c => c.locality_url === regionUrl)
+      : undefined;
+    const allRegions = allowAllRegions && !requestedCell;
+    return {allRegions, cell: allRegions ? undefined : (requestedCell ?? cells[0])};
   });
+  const {allRegions, cell} = region;
 
   // The request parameters live in the URL when `useQueryString` is on, and in
   // component state otherwise. Deriving them keeps the two modes on one code
@@ -402,6 +485,7 @@ export function ResultGrid({
 
   const [queryInput, setQueryInput] = useState(request.query);
   const [results, setResults] = useState<Results>({
+    ...IDLE_REGIONS,
     rows: [],
     loading: true,
     error: false,
@@ -412,6 +496,10 @@ export function ResultGrid({
   // Monotonic token used to discard results from stale region probes (e.g.
   // when the user switches regions or searches again before probes resolve).
   const probeTokenRef = useRef(0);
+  // Monotonic token used to discard responses from a superseded all-regions
+  // fetch (e.g. the user changed the sort or region while regions were still
+  // responding).
+  const fetchTokenRef = useRef(0);
 
   // Transform endpoint to cell-scoped URL if needed
   // Currently using region.name (e.g., "us", "de") as the cell_id.
@@ -472,6 +560,170 @@ export function ResultGrid({
     });
   };
 
+  // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
+  const buildQueryParams = (): Record<string, any> => ({
+    ...defaultParams,
+    ...(useQueryString ? location.query : request.query ? {query: request.query} : {}),
+    sortBy: request.sortBy,
+    cursor: request.cursor,
+  });
+
+  // Merged all-regions rows are re-sorted descending to match the server's
+  // ordering. Without `sortValueForRow`, rows keep arrival order.
+  const sortRows = (rows: any[], sortBy: string) =>
+    sortValueForRow
+      ? rows.toSorted((a, b) => sortValueForRow(b, sortBy) - sortValueForRow(a, sortBy))
+      : rows;
+
+  /**
+   * Request one page from each given region, merge the rows into the table and
+   * record the cursor of any region that reports a further page.
+   */
+  const fetchRegionPages = (
+    pages: Array<{cell: Cell; cursor: string}>,
+    queryParams: Record<string, any>
+  ) => {
+    const token = fetchTokenRef.current;
+    const names = pages.map(page => page.cell.name);
+    const sortBy = request.sortBy;
+
+    pages.forEach(({cell: pageCell, cursor}) => {
+      const markFailed = () => {
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+        setResults(prev => {
+          if (!prev.pendingRegions.includes(pageCell.name)) {
+            return prev;
+          }
+          const regionErrors = [...prev.regionErrors, pageCell.name];
+          return {
+            ...prev,
+            // Every region of this load failing with nothing to show is a
+            // failed load. A region failing under rows we already have is a
+            // partial result, so keep the table.
+            error:
+              prev.rows.length === 0 && names.every(name => regionErrors.includes(name)),
+            pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
+            regionErrors,
+          };
+        });
+      };
+
+      const pageRequest = api.request(cellEndpoint(pageCell), {
+        method,
+        host: pageCell.locality_url,
+        data: {...queryParams, cursor},
+        success: (data, _, resp) => {
+          if (token !== fetchTokenRef.current) {
+            return;
+          }
+          const rows = rowsFromData?.(data, pageCell) ?? data;
+          const tagged = (Array.isArray(rows) ? rows : []).map(row => ({
+            ...row,
+            __region: pageCell,
+          }));
+          const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
+          const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
+
+          setResults(prev => {
+            if (!prev.pendingRegions.includes(pageCell.name)) {
+              return prev;
+            }
+            const regionCursors = {...prev.regionCursors};
+            if (nextCursor) {
+              regionCursors[pageCell.name] = nextCursor;
+            } else {
+              delete regionCursors[pageCell.name];
+            }
+            return {
+              ...prev,
+              rows: sortRows([...prev.rows, ...tagged], sortBy),
+              pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
+              regionCursors,
+            };
+          });
+          onLoad?.();
+        },
+        error: res => {
+          markFailed();
+          onError?.(res);
+        },
+      });
+
+      // The API client swallows a rejection of the fetch itself (a blocked
+      // request, a network failure) without running either callback, which
+      // would leave the region pending forever. Catch it here so the region
+      // resolves to failed. An abort from api.clear() also lands here, but
+      // the fetch token was already bumped by then, so markFailed ignores it.
+      pageRequest?.requestPromise?.catch(markFailed);
+    });
+  };
+
+  /**
+   * Query every region in parallel and merge the results into one table. Each
+   * region's rows are tagged with their cell (rendered as the Region column)
+   * and the merged set is re-sorted as every response arrives, so the table
+   * stays coherently ordered while regions trickle in.
+   */
+  const fetchAllRegions = (queryParams: Record<string, any>) => {
+    const cells = getCells();
+
+    if (cells.length === 0) {
+      setResults(prev => ({
+        ...prev,
+        ...IDLE_REGIONS,
+        loading: false,
+        error: false,
+        rows: [],
+        pageLinks: null,
+      }));
+      return;
+    }
+
+    setResults(prev => ({
+      ...prev,
+      ...IDLE_REGIONS,
+      loading: false,
+      error: false,
+      rows: [],
+      pageLinks: null,
+      pendingRegions: cells.map(c => c.name),
+    }));
+
+    fetchRegionPages(
+      cells.map(pageCell => ({cell: pageCell, cursor: ''})),
+      queryParams
+    );
+  };
+
+  /**
+   * Load the next page of every region that still has one and append it to the
+   * merged table. A merged view has no cursor of its own — cursors do not
+   * compose across regions — so it grows a page per region at a time.
+   */
+  const loadMoreRegions = () => {
+    const {regionCursors} = results;
+    const pages = getCells()
+      .filter(pageCell => regionCursors[pageCell.name])
+      .map(pageCell => ({cell: pageCell, cursor: regionCursors[pageCell.name]!}));
+
+    if (pages.length === 0) {
+      return;
+    }
+
+    const names = pages.map(page => page.cell.name);
+    // A region that failed keeps its warning unless this load asks it again —
+    // it holds no cursor, so nothing here retries it, and its results are
+    // still missing from the table.
+    setResults(prev => ({
+      ...prev,
+      pendingRegions: names,
+      regionErrors: prev.regionErrors.filter(name => !names.includes(name)),
+    }));
+    fetchRegionPages(pages, buildQueryParams());
+  };
+
   const fetchData = useEffectEvent(() => {
     // Avoid slow-fetch race conditions
     api.clear();
@@ -482,24 +734,25 @@ export function ResultGrid({
     // the token) and clear its UI state here, the single entry point for fetches,
     // so it's reset regardless of which caller we hit.
     probeTokenRef.current += 1;
+    fetchTokenRef.current += 1;
     setProbe(prev => (prev === IDLE_PROBE ? prev : IDLE_PROBE));
     // Only a URL-driven reload drops the page links. Clearing them on a
     // `useQueryString: false` cursor click would make the pagination control
     // vanish out from under the cursor that just clicked it.
     setResults(prev => ({
       ...prev,
+      ...IDLE_REGIONS,
       loading: true,
       error: false,
       pageLinks: useQueryString ? null : prev.pageLinks,
     }));
 
-    // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
-    const queryParams: Record<string, any> = {
-      ...defaultParams,
-      ...(useQueryString ? location.query : request.query ? {query: request.query} : {}),
-      sortBy: request.sortBy,
-      cursor: request.cursor,
-    };
+    const queryParams = buildQueryParams();
+
+    if (allRegions) {
+      fetchAllRegions(queryParams);
+      return;
+    }
 
     const activeCell = cell;
 
@@ -544,7 +797,7 @@ export function ResultGrid({
             : isEmpty)
         );
 
-        setResults({loading: false, error: false, rows, pageLinks});
+        setResults({...IDLE_REGIONS, loading: false, error: false, rows, pageLinks});
         setProbe({...IDLE_PROBE, missingExactMatch});
         onLoad?.();
 
@@ -568,7 +821,7 @@ export function ResultGrid({
 
   useEffect(() => {
     fetchData();
-  }, [requestSignal, cell]);
+  }, [requestSignal, region]);
 
   useEffect(() => {
     if (useQueryString) {
@@ -590,6 +843,12 @@ export function ResultGrid({
   }, []);
 
   const onChangeCell = (localityUrl: string | undefined) => {
+    if (localityUrl === ALL_REGIONS) {
+      probeTokenRef.current += 1;
+      setProbe(IDLE_PROBE);
+      setRegion({allRegions: true, cell: undefined});
+      return;
+    }
     const nextCell = getCells().find(c => c.locality_url === localityUrl);
     if (nextCell === undefined) {
       return;
@@ -597,7 +856,7 @@ export function ResultGrid({
     // Invalidate any in-flight probe before switching regions.
     probeTokenRef.current += 1;
     setProbe(IDLE_PROBE);
-    setCell(nextCell);
+    setRegion({allRegions: false, cell: nextCell});
   };
 
   // TODO(dcramer): doesnt correctly respect filters without query strings
@@ -618,43 +877,66 @@ export function ResultGrid({
     setLocalRequest(prev => ({...prev, cursor: cursor ?? ''}));
   };
 
-  const state: State = {...results, ...probe, ...request, cell, query: queryInput};
+  const state: State = {
+    ...results,
+    ...probe,
+    ...request,
+    allRegions,
+    cell,
+    query: queryInput,
+  };
 
-  function renderBody() {
-    if (results.loading) {
-      return (
-        <tr>
-          <td colSpan={columns.length}>
-            <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
-          </td>
-        </tr>
-      );
-    }
+  const clampedRegionIndex = Math.min(Math.max(regionColumnIndex, 0), columns.length);
+  const effectiveColumns = allRegions
+    ? columns.toSpliced(
+        clampedRegionIndex,
+        0,
+        <th key="__region" style={{width: 70}}>
+          Region
+        </th>
+      )
+    : columns;
 
-    if (results.error) {
-      return (
-        <tr>
-          <td colSpan={columns.length}>
-            <ErrorAlert variant="danger" showIcon>
-              Something bad happened :/
-            </ErrorAlert>
-          </td>
-        </tr>
-      );
-    }
+  function renderLoading() {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+        </td>
+      </tr>
+    );
+  }
 
-    if (results.rows.length === 0) {
-      return (
-        <tr>
-          <td colSpan={columns.length}>
-            <EmptyMessage>No results</EmptyMessage>
-          </td>
-        </tr>
-      );
-    }
+  function renderError() {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <ErrorAlert variant="danger" showIcon>
+            Something bad happened :/
+          </ErrorAlert>
+        </td>
+      </tr>
+    );
+  }
 
-    const columnLabels = columns.map(extractColumnLabel);
-    const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
+  function renderNoResults() {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <EmptyMessage>No results</EmptyMessage>
+        </td>
+      </tr>
+    );
+  }
+
+  function renderResults() {
+    const regionIndex = allRegions ? clampedRegionIndex : -1;
+    const columnLabels = effectiveColumns.map(extractColumnLabel);
+    // The Region column is contextual — keep the record's own first labeled
+    // column as the mobile-primary cell.
+    const firstPrimaryIndex = columnLabels.findIndex(
+      (label, index) => index !== regionIndex && (label ?? '') !== ''
+    );
 
     // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
     // via inheritance, which works even when cells are rendered inside wrapper components
@@ -667,7 +949,11 @@ export function ResultGrid({
     );
 
     return results.rows.map((row, i) => {
-      const cells = columnsForRow(row, results.rows, state);
+      const rowRegion: Cell | undefined = allRegions ? row.__region : undefined;
+      const rowCells = columnsForRow(row, results.rows, state);
+      const cells = allRegions
+        ? rowCells.toSpliced(regionIndex, 0, <td key="__region">{rowRegion?.name}</td>)
+        : rowCells;
       const labeledCells = cells.map((gridCell, j) => {
         if (!isValidElement(gridCell)) {
           return gridCell;
@@ -681,15 +967,47 @@ export function ResultGrid({
           extraProps
         );
       });
+      const rowKey = keyForRow(row) ?? i;
       return (
-        <tr key={keyForRow(row) ?? i} style={labelVars}>
+        // Row ids can collide across regions, so scope the key by region.
+        <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
           {labeledCells}
         </tr>
       );
     });
   }
 
+  function renderBody() {
+    if (results.error) {
+      return renderError();
+    }
+    // Rows render as regions respond. The "still updating" signal lives outside
+    // the body, so rows never shift while regions trickle in, and "No results"
+    // only shows once every region has answered.
+    if (allRegions) {
+      if (results.rows.length > 0) {
+        return renderResults();
+      }
+      if (results.loading || results.pendingRegions.length > 0) {
+        return renderLoading();
+      }
+      return renderNoResults();
+    }
+    if (results.loading) {
+      return renderLoading();
+    }
+    if (results.rows.length === 0) {
+      return renderNoResults();
+    }
+    return renderResults();
+  }
+
   function renderRegionHint() {
+    // The all-regions mode already shows every region's results.
+    if (allRegions) {
+      return null;
+    }
+
     if ((!probeAcrossRegions && !probeAllRegions) || results.loading || results.error) {
       return null;
     }
@@ -748,9 +1066,14 @@ export function ResultGrid({
 
   const resultTable = (
     <TableScrollWrapper>
+      {results.pendingRegions.length > 0 && (
+        <TableProgressBar data-test-id="table-progress" aria-hidden>
+          <TableProgressValue />
+        </TableProgressBar>
+      )}
       <ResultTable>
         <thead>
-          <tr>{columns}</tr>
+          <tr>{effectiveColumns}</tr>
         </thead>
         <tbody>{renderBody()}</tbody>
       </ResultTable>
@@ -777,34 +1100,94 @@ export function ResultGrid({
     resultTable
   );
 
+  const cells = getCells();
+  const hasSelectors =
+    needsRegion ||
+    Boolean(sortOptions && sortOptions.length > 0) ||
+    Object.keys(filters).length > 0;
+
+  const regionOptions = [
+    ...(allowAllRegions ? [{label: 'All regions', value: ALL_REGIONS}] : []),
+    ...cells.map(c => {
+      const hasMatch = probe.regionMatches.some(m => m.locality_url === c.locality_url);
+      return {
+        label: c.name,
+        value: c.locality_url,
+        trailingItems: hasMatch ? <Tag variant="success">found</Tag> : undefined,
+      };
+    }),
+  ];
+
+  const {pendingRegions, regionErrors} = results;
+  const moreRegions = cells.map(c => c.name).filter(name => results.regionCursors[name]);
+  // The status note shares the row of the selectors, so nothing moves while
+  // requests run. While regions load it lists the outstanding ones; when a
+  // region failed, a warning icon with a tooltip names the failed regions.
+  const statusNote =
+    pendingRegions.length > 0 || regionErrors.length > 0 ? (
+      <RegionStatusNote role="status" align="center" gap="sm" wrap="wrap">
+        {regionErrors.length > 0 && (
+          <Tooltip title={`Could not load results from: ${regionErrors.join(', ')}`}>
+            <IconWarning
+              variant="warning"
+              size="sm"
+              aria-label="Some regions failed to load"
+            />
+          </Tooltip>
+        )}
+        {pendingRegions.length > 0 ? (
+          <Fragment>
+            <span>Still loading</span>
+            {pendingRegions.map(name => (
+              <Tag key={name} variant="muted">
+                {name}
+              </Tag>
+            ))}
+          </Fragment>
+        ) : (
+          <span>
+            {regionErrors.length} {regionErrors.length === 1 ? 'region' : 'regions'}{' '}
+            failed
+          </span>
+        )}
+      </RegionStatusNote>
+    ) : probe.probingRegions ? (
+      <RegionHintNote>Checking other regions…</RegionHintNote>
+    ) : null;
+
   return (
     <Container data-test-id="result-grid">
       <SortSearchForm onSubmit={onSearch}>
         {needsRegion && (
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix="Region" />
-            )}
-            value={cell ? cell.locality_url : undefined}
-            options={getCells().map(c => {
-              const hasMatch = probe.regionMatches.some(
-                m => m.locality_url === c.locality_url
-              );
-              return {
-                label: c.name,
-                value: c.locality_url,
-                trailingItems: hasMatch ? <Tag variant="success">found</Tag> : undefined,
-              };
-            })}
-            onChange={opt => onChangeCell(opt.value)}
-          />
+          <SelectorItem>
+            <CompactSelect
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix="Region" size="sm" />
+              )}
+              value={allRegions ? ALL_REGIONS : cell ? cell.locality_url : undefined}
+              options={regionOptions}
+              onChange={opt => onChangeCell(opt.value)}
+            />
+          </SelectorItem>
         )}
         {sortOptions && sortOptions.length > 0 && (
-          <SortBy options={sortOptions} value={request.sortBy} path={path} />
+          <SelectorItem>
+            <SortBy options={sortOptions} value={request.sortBy} path={path} />
+          </SelectorItem>
         )}
-        {probe.probingRegions && <RegionHintNote>Checking other regions…</RegionHintNote>}
+        {Object.keys(filters).map(filterKey => (
+          <SelectorItem key={filterKey}>
+            <Filter
+              queryKey={filterKey}
+              value={extractQuery(request.filters[filterKey])}
+              path={path}
+              {...filters[filterKey]!}
+            />
+          </SelectorItem>
+        ))}
+        {hasSelectors && !hasSearch && <RowFiller aria-hidden />}
         {hasSearch && (
-          <Flex align="center" gap="xs" flex="1" minWidth="240px">
+          <Flex align="center" gap="xs" flex="999 1 auto" minWidth="240px">
             <SearchInput
               type="text"
               placeholder="Search"
@@ -822,20 +1205,8 @@ export function ResultGrid({
             />
           </Flex>
         )}
+        {statusNote}
       </SortSearchForm>
-      {Object.keys(filters).length > 0 && (
-        <FilterList>
-          {Object.keys(filters).map(filterKey => (
-            <Filter
-              key={filterKey}
-              queryKey={filterKey}
-              value={extractQuery(request.filters[filterKey])}
-              path={path}
-              {...filters[filterKey]!}
-            />
-          ))}
-        </FilterList>
-      )}
       {renderRegionHint()}
       {table}
       {hasPagination && results.pageLinks && (
@@ -844,11 +1215,19 @@ export function ResultGrid({
           onCursor={useQueryString ? undefined : onCursor}
         />
       )}
+      {hasPagination && allRegions && moreRegions.length > 0 && (
+        <LoadMoreRow justify="center">
+          <Button size="sm" onClick={loadMoreRegions} busy={pendingRegions.length > 0}>
+            {`Load more (${moreRegions.join(', ')})`}
+          </Button>
+        </LoadMoreRow>
+      )}
     </Container>
   );
 }
 
 const TableScrollWrapper = styled(Container)`
+  position: relative;
   overflow-x: auto;
 
   @media (max-width: 768px) {
@@ -866,23 +1245,70 @@ const SortSearchForm = styled('form')`
   }
 
   /* Gross hack to fix z-index of dropdowns on top of each other */
-  > div > button + div {
+  button + div {
     z-index: ${p => p.theme.zIndex.dropdown + 2};
   }
 `;
 
-const FilterList = styled('div')`
-  width: 100%;
-  margin-bottom: ${p => p.theme.space.md};
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  flex-wrap: wrap;
-  align-items: center;
-
-  /* Gross hack to fix z-index of dropdowns on top of each other */
-  > div > button + div {
-    z-index: ${p => p.theme.zIndex.dropdown + 2};
+const indeterminateSlide = keyframes`
+  0% {
+    transform: translateX(-100%);
   }
+  100% {
+    transform: translateX(300%);
+  }
+`;
+
+const TableProgressBar = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  overflow: hidden;
+  background: ${p => p.theme.tokens.background.transparent.accent.muted};
+`;
+
+const TableProgressValue = styled('div')`
+  width: 40%;
+  height: 100%;
+  background: ${p => p.theme.tokens.graphics.accent.vibrant};
+  animation: ${indeterminateSlide} 1.2s ease-in-out infinite;
+`;
+
+/**
+ * Stretches each selector so a packed row of dropdowns fills the full width.
+ * The search box (or `RowFiller` without one) absorbs the free space of the
+ * last, partly filled row so it keeps natural widths, like justified text.
+ */
+const SelectorItem = styled('div')`
+  display: flex;
+  flex: 1 1 auto;
+  min-width: max-content;
+
+  > div {
+    display: flex;
+    width: 100%;
+  }
+
+  > div > button {
+    width: 100%;
+  }
+`;
+
+const RowFiller = styled('div')`
+  flex: 999 1 auto;
+`;
+
+const LoadMoreRow = styled(Flex)`
+  margin-bottom: ${p => p.theme.space['2xl']};
+`;
+
+const RegionStatusNote = styled(Flex)`
+  align-self: center;
+  margin-left: auto;
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export const SearchInput = styled(Input)`

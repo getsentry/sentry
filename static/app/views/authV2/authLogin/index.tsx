@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -14,6 +14,8 @@ import {IconGithub, IconGoogle, IconLab, IconSentry, IconVsts} from 'sentry/icon
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
@@ -47,6 +49,7 @@ export default function AuthLogin() {
   const location = useLocation();
   const sentryUrl = ConfigStore.get('links').sentryUrl;
   const {setAuthV2CookieState} = useEnableAuthV2();
+  const hasStartedAnalyticsSession = useRef(false);
 
   const returnToLegacyLogin = () => {
     setAuthV2CookieState(AuthV2CookieState.DISABLED);
@@ -149,20 +152,39 @@ export default function AuthLogin() {
   );
 
   const mainState = hasInitialAuthConfigError
-    ? 'auth-config-error'
+    ? 'auth_config_error'
     : hasAuthOrganizationError
-      ? 'organization-error'
+      ? 'organization_error'
       : pendingMfaMethods
         ? 'mfa'
         : organizationSsoOnly
-          ? 'organization-sso'
+          ? 'organization_sso'
           : 'login';
-
-  if (
+  const isLoginRenderable = !(
     isAuthConfigPending ||
     (orgSlug && isAuthOrganizationPending) ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
-  ) {
+  );
+
+  useEffect(() => {
+    if (!isLoginRenderable) {
+      return;
+    }
+
+    const startSession = !hasStartedAnalyticsSession.current;
+    hasStartedAnalyticsSession.current = true;
+    trackAnalytics(
+      'auth.login.rendered',
+      {
+        organization: null,
+        entrypoint: orgSlug ? 'organization' : 'generic',
+        state: mainState,
+      },
+      startSession ? {startSession: true} : undefined
+    );
+  }, [isLoginRenderable, mainState, orgSlug]);
+
+  if (!isLoginRenderable) {
     return null;
   }
 
@@ -180,7 +202,14 @@ export default function AuthLogin() {
           <Text as="div" align="right" size="sm" variant="muted">
             {tct('Having problems logging in? [legacyLogin]', {
               legacyLogin: (
-                <Button size="zero" variant="link" onClick={returnToLegacyLogin}>
+                <Button
+                  analyticsEventKey="auth.login.legacy_fallback_clicked"
+                  analyticsEventName="Auth: Legacy Login Fallback Clicked"
+                  analyticsParams={{state: mainState}}
+                  size="zero"
+                  variant="link"
+                  onClick={returnToLegacyLogin}
+                >
                   {t('Return to the old login experience')}
                 </Button>
               ),
@@ -210,7 +239,13 @@ export default function AuthLogin() {
                   <Alert variant="danger">
                     {t('Unable to load the login page. Try again.')}
                   </Alert>
-                  <Button busy={isAuthConfigFetching} onClick={() => refetchAuthConfig()}>
+                  <Button
+                    analyticsEventKey="auth.login.retry_clicked"
+                    analyticsEventName="Auth: Login Retry Clicked"
+                    analyticsParams={{stage: 'auth_config'}}
+                    busy={isAuthConfigFetching}
+                    onClick={() => refetchAuthConfig()}
+                  >
                     {t('Retry')}
                   </Button>
                 </Stack>
@@ -220,6 +255,9 @@ export default function AuthLogin() {
                     {t('Unable to load organization authentication. Please try again.')}
                   </Alert>
                   <Button
+                    analyticsEventKey="auth.login.retry_clicked"
+                    analyticsEventName="Auth: Login Retry Clicked"
+                    analyticsParams={{stage: 'organization_config'}}
                     busy={isAuthOrganizationFetching}
                     onClick={() => refetchAuthOrganization()}
                   >
@@ -298,13 +336,17 @@ export default function AuthLogin() {
           </AnimatePresence>
         </LoginContainer>
 
-        {loginConfig?.loginBanner && (
-          <Alert variant="muted">
-            {/* Login banners are trusted server and plugin configuration, matching the legacy template contract. */}
-            <Text as="div" dangerouslySetInnerHTML={{__html: loginConfig.loginBanner}}>
-              {null}
-            </Text>
-          </Alert>
+        {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
+          <Stack width="100%" gap="md">
+            {loginConfig.warning && (
+              <Alert variant="warning">{loginConfig.warning}</Alert>
+            )}
+            {loginConfig.loginBannerMarkdown && (
+              <Alert variant="muted">
+                <MarkedText text={loginConfig.loginBannerMarkdown} inline />
+              </Alert>
+            )}
+          </Stack>
         )}
       </Stack>
     </Fragment>

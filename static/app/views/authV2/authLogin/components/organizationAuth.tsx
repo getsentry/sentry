@@ -1,3 +1,5 @@
+import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Avatar} from '@sentry/scraps/avatar';
@@ -10,15 +12,24 @@ import {IconClose, IconMegaphone} from 'sentry/icons';
 import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
+import {useMedia} from 'sentry/utils/useMedia';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 
 interface OrganizationAuthProps {
   authOrganization: AuthOrganization;
+  hideClearButton?: boolean;
   onClear?: () => void;
 }
 
-export function OrganizationAuth({authOrganization, onClear}: OrganizationAuthProps) {
-  const {organization, provider, joinRequestUrl, ssoRequired} = authOrganization;
+export function OrganizationAuth({
+  authOrganization,
+  hideClearButton = false,
+  onClear,
+}: OrganizationAuthProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const {organization, provider, joinRequestUrl} = authOrganization;
   const avatarProps = organization.avatarUrl
     ? ({
         type: 'upload',
@@ -32,20 +43,10 @@ export function OrganizationAuth({authOrganization, onClear}: OrganizationAuthPr
         name: organization.name,
       } as const);
   const description = provider
-    ? ssoRequired
-      ? tct('[requires:Requires] sign in with [icon] [provider]', {
-          requires: (
-            <Text as="span" bold>
-              {null}
-            </Text>
-          ),
-          icon: <InlineIdentityIcon providerId={provider.key} />,
-          provider: provider.name,
-        })
-      : tct('Members sign in with [icon] [provider]', {
-          icon: <InlineIdentityIcon providerId={provider.key} />,
-          provider: provider.name,
-        })
+    ? tct('Members log in with [icon] [provider]', {
+        icon: <InlineIdentityIcon providerId={provider.key} />,
+        provider: provider.name,
+      })
     : t('Members sign in with email and password');
   const orgBadge = (
     <Flex align="center" gap="md" flex="1" minWidth="0">
@@ -61,7 +62,7 @@ export function OrganizationAuth({authOrganization, onClear}: OrganizationAuthPr
     </Flex>
   );
   const ssoAction = (
-    <form method="POST">
+    <form method="POST" onSubmit={() => setIsSubmitting(true)}>
       <input type="hidden" name="csrfmiddlewaretoken" value={getCsrfToken()} />
       <input type="hidden" name="init" value="1" />
       <Tooltip
@@ -69,6 +70,7 @@ export function OrganizationAuth({authOrganization, onClear}: OrganizationAuthPr
         title={t('This organization does not have Single Sign-On configured')}
       >
         <Button
+          busy={isSubmitting}
           disabled={!provider}
           type="submit"
           variant={provider ? 'primary' : undefined}
@@ -79,43 +81,58 @@ export function OrganizationAuth({authOrganization, onClear}: OrganizationAuthPr
     </form>
   );
 
-  return (
-    <OrganizationCardStack gap="0" border="secondary" radius="md" position="relative">
-      <Flex align="center" gap="lg" padding="lg">
-        {orgBadge}
-        {ssoAction}
-      </Flex>
+  const showClearButton = Boolean(onClear) && !hideClearButton;
 
-      {joinRequestUrl && (
-        <Flex
-          align="center"
-          justify="between"
-          gap="lg"
-          borderTop="secondary"
-          padding="sm lg"
-        >
-          <Text size="sm">{t('Not a member?')}</Text>
-          <LinkButton
-            href={joinRequestUrl}
-            icon={<IconMegaphone />}
-            size="xs"
-            variant="transparent"
-          >
-            {t('Request to join')}
-          </LinkButton>
+  return (
+    <Stack align="start" gap="md">
+      <OrganizationCardStack
+        width="100%"
+        gap="0"
+        border="secondary"
+        radius="md"
+        position="relative"
+      >
+        <Flex align="center" gap="lg" padding="lg">
+          {orgBadge}
+          {ssoAction}
         </Flex>
+
+        {joinRequestUrl && (
+          <Flex
+            align="center"
+            justify="between"
+            gap="lg"
+            borderTop="secondary"
+            padding="sm lg"
+          >
+            <Text size="sm">{t('Not a member?')}</Text>
+            <LinkButton
+              href={joinRequestUrl}
+              icon={<IconMegaphone />}
+              size="xs"
+              variant="transparent"
+            >
+              {t('Request to join')}
+            </LinkButton>
+          </Flex>
+        )}
+        {showClearButton && !isSmallScreen && (
+          <ClearButton
+            aria-label={t('Clear organization login context')}
+            icon={<IconClose />}
+            size="zero"
+            tooltipProps={{title: t('Clear organization login context')}}
+            variant="transparent"
+            onClick={onClear}
+          />
+        )}
+      </OrganizationCardStack>
+      {showClearButton && isSmallScreen && (
+        <Button icon={<IconClose />} size="zero" variant="transparent" onClick={onClear}>
+          {t('Wrong Organization')}
+        </Button>
       )}
-      {onClear && (
-        <ClearButton
-          aria-label={t('Clear organization login context')}
-          icon={<IconClose />}
-          size="zero"
-          tooltipProps={{title: t('Clear organization login context')}}
-          variant="transparent"
-          onClick={onClear}
-        />
-      )}
-    </OrganizationCardStack>
+    </Stack>
   );
 }
 
