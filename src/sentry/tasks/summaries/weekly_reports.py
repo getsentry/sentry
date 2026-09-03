@@ -572,10 +572,17 @@ def get_group_display(group: Group) -> dict[str, str]:
     custom_title = metadata.get("title")
 
     if event_type == "error":
+        if metadata.get("synthetic"):
+            # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`) rather than
+            # the identity of what went wrong, so the crash location makes the better title. Same
+            # ordering as `ErrorEvent.compute_title`.
+            fallback = metadata.get("function") or metadata.get("type")
+        else:
+            fallback = metadata.get("type") or metadata.get("function")
         title = (
             custom_title
             if custom_title and custom_title != "<unlabeled event>"
-            else metadata.get("type") or metadata.get("function") or "<unknown>"
+            else fallback or "<unknown>"
         )
         message = metadata.get("value")
     elif event_type in ("transaction", "generic"):

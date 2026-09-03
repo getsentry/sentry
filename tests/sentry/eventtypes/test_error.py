@@ -14,6 +14,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
+            "synthetic": False,
         }
 
     def test_no_exception_type_or_value(self) -> None:
@@ -24,6 +25,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
+            "synthetic": False,
         }
 
     def test_pulls_top_function(self) -> None:
@@ -48,6 +50,7 @@ class GetMetadataTest(TestCase):
             "type": "Error",
             "value": "",
             "function": "top_func",
+            "synthetic": False,
         }
 
     def test_none_frame(self) -> None:
@@ -56,6 +59,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
+            "synthetic": False,
         }
 
     def test_synthetic_records_type_and_flag(self) -> None:
@@ -78,7 +82,10 @@ class GetMetadataTest(TestCase):
             "synthetic": True,
         }
 
-    def test_non_synthetic_carries_no_flag(self) -> None:
+    def test_non_synthetic_flag_is_written_as_false(self) -> None:
+        # The flag is always written, never merely omitted. Group metadata is merged key by key
+        # across a group's events and a merge cannot delete keys, so an omitted flag would let one
+        # synthetic event mark the group synthetic forever. See `test_synthetic_flag_clears`.
         inst = ErrorEvent()
         data = {
             "exception": {
@@ -91,7 +98,33 @@ class GetMetadataTest(TestCase):
                 ]
             }
         }
-        assert inst.get_metadata(data) == {"type": "ValueError", "value": "bad"}
+        assert inst.get_metadata(data) == {
+            "type": "ValueError",
+            "value": "bad",
+            "synthetic": False,
+        }
+
+    def test_synthetic_flag_clears(self) -> None:
+        # A group that saw a synthetic event and then a real one must end up describing the real
+        # exception. This mirrors the metadata merge in `_process_existing_aggregate`.
+        inst = ErrorEvent()
+        synthetic = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Signal 11, Code 1",
+                        "mechanism": {"type": "signal", "synthetic": True},
+                    }
+                ]
+            }
+        }
+        real = {"exception": {"values": [{"type": "ValueError", "value": "bad"}]}}
+
+        merged = {**inst.get_metadata(synthetic), **inst.get_metadata(real)}
+
+        assert merged["synthetic"] is False
+        assert inst.get_title(merged) == "ValueError: bad"
 
     def test_multiple_exceptions_default(self) -> None:
         inst = ErrorEvent()
@@ -106,6 +139,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
+            "synthetic": False,
         }
 
     def test_multiple_exceptions_main_indicated(self) -> None:
@@ -122,6 +156,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Bar",
+            "synthetic": False,
         }
 
 
