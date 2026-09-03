@@ -431,8 +431,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         staff_user = self.create_user(is_staff=True)
         self.create_member(organization=organization, teams=[team], user=staff_user)
 
-        member_group = self.store_event(project_id=member_project.id).group
-        self.store_event(project_id=other_project.id)
+        member_group = self.store_event(data={}, project_id=member_project.id).group
+        self.store_event(data={}, project_id=other_project.id)
         self.login_as(user=staff_user, staff=True)
 
         response = self.get_success_response(sort_by="date")
