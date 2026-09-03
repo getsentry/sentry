@@ -34,6 +34,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
     BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -690,6 +691,22 @@ def build_proguard_reupload_dif_meta(source_dif: ProjectDebugFile, debug_id: str
         name=source_dif.object_name,
         data=source_dif.data,
     )
+
+
+@cell_silo_model
+class DebugFileObjectstoreMigrationState(Model):
+    """The next ID to inspect for one Objectstore migration shard."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    shard_id = BoundedPositiveIntegerField(unique=True)
+    cursor = BoundedBigIntegerField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_debugfileobjectstoremigration"
+
+    __repr__ = sane_repr("shard_id", "cursor")
 
 
 @cell_silo_model
