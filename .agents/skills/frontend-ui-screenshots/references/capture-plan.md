@@ -21,6 +21,10 @@ Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
 
 `name`, both URLs, and `target.kind` are required. The URLs may use different local ports but must use HTTPS and `demo.dev.getsentry.net`. Omit optional arrays to use light mode at 1440×1000 with no actions or feature-flag overrides. Omit `container` and `containerWidth` when the change is not responsive.
 
+Set `settleMs` only when the surface needs longer than the default 2500ms after fonts and images are ready, such as a slow chart or table query. The value must be a non-negative integer.
+
+Set `forceVerticalScrollbar` to `true` when a viewport breakpoint changes page height and makes the scrollbar appear or disappear, creating a gap in attainable container widths. If the first measurement is not the expected width, the helper reserves a scrollbar and measures again. The option can be set on the whole plan or an individual viewport.
+
 For a Scraps section, use `"target":{"kind":"story","heading":"Image Avatars"}`. Omit `heading` to capture the whole main story gallery.
 
 Use the canonical Scraps URL shown by its route registration/navigation. Do not use the internal `?name=<source-file>` loader URL: it is not a stable, reviewable route and can render a misleading fallback state.

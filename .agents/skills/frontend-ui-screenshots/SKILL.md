@@ -22,7 +22,7 @@ Use these defaults unless the user asks for broader coverage:
 - Do not capture `sentry.sentry.io/_admin` or any admin page backed by real Sentry data. Admin UI evidence is out of scope for now; a future workflow must run Sentry locally with synthetic or mock data.
 - Explicit invocation authorizes replacing this skill's marked screenshot table in the current PR description, or in file-level review comments when the user requests them. Do not publish anywhere else.
 - Keep published evidence to the screenshot table. Do not add narrative capture summaries such as which demo page was used or how widths were measured. Use only concise labels needed to distinguish pairs, such as the affected breakpoint, theme, or interaction state.
-- Capture with the dedicated Chrome profile in [references/chrome-setup.md](references/chrome-setup.md). The helper runs headlessly and must not open or foreground a browser window during normal capture.
+- Capture with the dedicated Chrome profile in [references/chrome-setup.md](references/chrome-setup.md). Normal capture connects to the hidden background Chrome process and must not open or foreground a browser window.
 - Do not publish authenticated personal UI such as a real user name, email address, or avatar. Prefer a crop or story that excludes account chrome; otherwise use a synthetic identity in both builds. Treat identity chrome as customer information even when the product data comes from the `demo` organization.
 - Capture PNG at device scale factor 2. Wait for fonts and lazy-loaded images; reject broken images.
 - Preserve the user's worktree. Put the merge-base build in a temporary detached worktree and remove only that worktree and its server afterward.
