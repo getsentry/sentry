@@ -40,6 +40,10 @@ export function replayRecordApiOptions({
   );
 }
 
+function selectReplayRecord(data: {data: unknown} | undefined) {
+  return data?.data ? mapResponseToReplayRecord(data.data) : undefined;
+}
+
 export function replayAttachmentsApiOptions({
   organizationIdOrSlug,
   projectIdOrSlug,
@@ -159,7 +163,7 @@ export function useReplayData({
   } = useQuery({
     ...replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId}),
     retry: false,
-    select: data => (data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined),
+    select: selectReplayRecord,
   });
 
   const projectSlug = useReplayProjectSlug({replayRecord});
