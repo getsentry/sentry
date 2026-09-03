@@ -29,7 +29,7 @@ Use these defaults unless the user asks for broader coverage:
 
 ## Workflow
 
-1. Confirm `gh pr view` resolves the current branch's PR. Before the first upload, complete the one-time setup in [references/github-setup.md](references/github-setup.md). Stop before capture if there is no current PR.
+1. Confirm `gh pr view` resolves the current branch's PR. Stop before capture if there is no current PR. Publishing requires `gh` ≥ 2.99.0 (`gh pr edit --attach`).
 2. Inspect the merge-base diff, including uncommitted and untracked frontend files. Ignore `.spec.*` files as capture targets, but use them as route and interaction evidence. Search beside changed files for MDX and stories, responsive declarations, import parents, and route registrations. Map every visually changed surface to evidence or state why it cannot be captured; one convenient story is not coverage for an unrelated multi-file diff.
 3. Choose one of two paths:
    - `product`: visit the demo route, reproduce the state with safe accessible actions, and retain surrounding context. Do not submit mutations.
@@ -51,7 +51,7 @@ node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifact
 node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs --manifest .artifacts/ui-capture/<name>/manifest.json
 ```
 
-By default, the publisher replaces its marked Before/After table in the current PR description. Do not add an introduction or capture description around the table. When the user wants evidence beside the diff or per changed file, publish a file-level comment for every changed file that contributes to the rendered surface. A shared component's comment must include every captured product surface that renders through it. Do not also put the table in the PR description. The publisher accepts repeated manifests, so combine surfaces without copying images into an aggregate directory:
+By default, the publisher uses `gh pr edit --attach` to upload images and replaces its marked Before/After table in the current PR description. Do not add an introduction or capture description around the table. When the user wants evidence beside the diff or per changed file, publish a file-level comment for every changed file that contributes to the rendered surface. A shared component's comment must include every captured product surface that renders through it. Do not also put the table in the PR description. The publisher accepts repeated manifests, so combine surfaces without copying images into an aggregate directory:
 
 ```bash
 node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs \
@@ -60,6 +60,6 @@ node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs \
   --comment-path static/app/path/to/shared-component.tsx
 ```
 
-File mode creates or replaces the skill's marked file-level review comment without changing the PR description. In either mode, verify the returned body and retrieve the uploaded assets to confirm they are the inspected local PNGs, not merely that their URLs appear in the comment. Retain the local artifacts so a reviewer-requested correction can reuse the unaffected images. If upload or PR editing fails, report how to retry. Remove capture artifacts only when the user asks or confirms the evidence is accepted.
+File mode uploads via a temporary PR comment, then creates or replaces the skill's marked file-level review comment without changing the PR description. In either mode, verify the returned body and retrieve the uploaded assets to confirm they are the inspected local PNGs, not merely that their URLs appear in the comment. Retain the local artifacts so a reviewer-requested correction can reuse the unaffected images. If upload or PR editing fails, report how to retry. Remove capture artifacts only when the user asks or confirms the evidence is accepted.
 
 After publication, stop only the merge-base dev-ui process started for the capture and remove its temporary worktree. Keep the ignored `rspack-base-cache` for later captures; remove it only when the user requests artifact cleanup. Do not stop the current dev-ui.
