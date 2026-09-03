@@ -1,40 +1,64 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {Form} from 'sentry/components/forms/form';
 
 type Props = {
   onAction: (effectiveAt: string) => void;
 };
 
-export const openChangeEffectiveAtModal = ({onAction}: Props) =>
-  openModal(({Header, Body, closeModal}) => (
-    <Fragment>
+type ChangeEffectiveAtModalProps = Props & ModalRenderProps;
+
+function ChangeEffectiveAtModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  onAction,
+}: ChangeEffectiveAtModalProps) {
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {effectiveAt: ''},
+    onSubmit: ({value}) => {
+      onAction(value.effectiveAt);
+      closeModal();
+    },
+  });
+
+  return (
+    <form.AppForm form={form}>
       <Header closeButton>Change Effective At Date</Header>
       <Body>
-        <Form
-          requireChanges
-          onSubmit={data => {
-            onAction(data.effectiveAt);
-            closeModal();
-          }}
-          onCancel={closeModal}
-          submitLabel="Submit"
-          cancelLabel="Cancel"
-        >
-          <DateField
-            type="date"
-            label="Effective At"
-            name="effectiveAt"
-            help="Invoice date used for ARR calculations"
-          />
-        </Form>
+        <form.AppField name="effectiveAt">
+          {field => (
+            <field.Layout.Stack
+              label="Effective At"
+              hintText="Invoice date used for ARR calculations"
+            >
+              <field.Input
+                type="date"
+                value={field.state.value}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
       </Body>
-    </Fragment>
-  ));
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.Subscribe selector={state => state.isPristine}>
+            {isPristine => (
+              <form.SubmitButton disabled={isPristine}>Submit</form.SubmitButton>
+            )}
+          </form.Subscribe>
+        </Flex>
+      </Footer>
+    </form.AppForm>
+  );
+}
 
-const DateField = styled(InputField)`
-  padding-left: 0px;
-`;
+export const openChangeEffectiveAtModal = ({onAction}: Props) =>
+  openModal(modalProps => <ChangeEffectiveAtModal {...modalProps} onAction={onAction} />);
