@@ -250,7 +250,7 @@ jobs:
           docker run -d --name postgres-postgres-1 \
             --network devservices --label orchestrator=devservices \
             -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
+            -v postgres-data:/var/lib/postgresql \
             -v /tmp/pg-sock:/var/run/postgresql \
             -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
             "$PG_IMAGE" postgres \
