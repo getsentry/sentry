@@ -57,13 +57,17 @@ describe('alert embed', () => {
     );
   });
 
-  it('falls back to an id-based label when the API name is missing', () => {
+  it('points a metric alert without a detector ID at the legacy alert route', () => {
     renderEmbed({
       name: 'alert',
       data: {id: '4521', kind: 'metric'},
       level: 'inline',
     });
-    expect(screen.getByRole('link', {name: 'Alert 4521'})).toBeInTheDocument();
+
+    expect(screen.getByRole('link', {name: 'Alert 4521'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/alerts/rules/details/4521/'
+    );
   });
 
   it('renders conditions and actions for an issue alert', async () => {
@@ -116,6 +120,10 @@ describe('alert embed', () => {
     expect(
       await screen.findByRole('button', {name: detector.name}, {timeout: 5_000})
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Alert'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/monitors/${detector.id}/`
+    );
     expect(await screen.findByText('Dataset:')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Rules'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Alert actions'})).toBeInTheDocument();
