@@ -243,7 +243,7 @@ export function rawTrackAnalyticsEvent(
     }
     // using the eventName for marketing event names
     if (eventName && MARKETING_EVENT_NAMES.has(eventName)) {
-      trackMarketingEvent(eventName, {plan: subscription?.plan});
+      trackMarketingEvent(eventName);
     }
   } catch (err) {
     // eslint-disable-next-line no-console
