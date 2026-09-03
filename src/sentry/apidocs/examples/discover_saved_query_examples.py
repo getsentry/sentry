@@ -10,6 +10,7 @@ DISCOVER_SAVED_QUERY_OBJ = {
     "expired": False,
     "dateCreated": "2024-07-25T19:35:38.422859Z",
     "dateUpdated": "2024-07-25T19:35:38.422874Z",
+    "lastVisited": "2024-07-25T19:35:38.422874Z",
     "environment": [],
     "query": "transaction:/api/foo",
     "fields": ["transaction", "project", "count()", "avg(transaction.duration)", "p75()", "p95()"],
@@ -54,6 +55,7 @@ SAVED_QUERIES = [
         "expired": False,
         "dateCreated": "2024-07-25T19:35:38.422859Z",
         "dateUpdated": "2024-07-25T19:35:38.422874Z",
+        "lastVisited": "2024-07-25T19:35:38.422874Z",
         "environment": [],
         "query": "",
         "fields": [
@@ -100,6 +102,7 @@ SAVED_QUERIES = [
         "expired": False,
         "dateCreated": "2024-07-25T19:35:38.422859Z",
         "dateUpdated": "2024-07-25T19:35:38.422874Z",
+        "lastVisited": "2024-07-25T19:35:38.422874Z",
         "environment": [],
         "query": "transaction:/api/foo",
         "fields": [

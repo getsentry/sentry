@@ -286,7 +286,7 @@ async function main() {
 
   await Promise.all(files.map(processFile));
 
-  // Extract briefs from ATTRIBUTE_METADATA
+  // Extract briefs from ATTRIBUTE_SEARCH_METADATA
   extractBriefsFromAttributeMetadata(gettextData, nplurals);
 
   const outputFilePath = path.resolve(BASE_DIRECTORY, OUTPUT_FILE);

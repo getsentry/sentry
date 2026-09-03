@@ -88,6 +88,10 @@ class XmlFormatter(Formatter):
 
 Format = Literal["markdown", "xml"]
 
+# Who the output is being rendered for. The UI and API clients ramp on separate features and
+# want different sections from the same endpoint, so adapters take this alongside the format.
+Consumer = Literal["ui", "api"]
+
 
 class FormattedResponse(TypedDict):
     """The ``formatted`` field the mixin adds to a response when ``?llmFormat`` is requested."""

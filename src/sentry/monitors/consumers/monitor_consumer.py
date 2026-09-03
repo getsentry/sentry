@@ -1212,7 +1212,12 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with start_span(op="process_batch", name="monitors.monitor_consumer", transaction=True):
+    with start_span(
+        op="process_batch",
+        name="monitors.monitor_consumer",
+        transaction=True,
+        custom_sampling_context={"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING},
+    ):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]

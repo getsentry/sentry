@@ -635,7 +635,7 @@ function setUpMocks(
     body: [OwnerFixture()],
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/projects/?statsPeriod=30d`,
+    url: `/organizations/${organization.slug}/projects/`,
     body: [
       {
         ...ProjectFixture({}),
@@ -662,10 +662,6 @@ function setUpMocks(
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/`,
     body: organization,
-  });
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/projects/`,
-    body: [],
   });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/integrations/`,

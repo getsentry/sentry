@@ -217,7 +217,6 @@ function AddWidgetDropdown({
         tooltipProps: {title: tooltip},
         variant: 'primary',
       }}
-      position="bottom-end"
     />
   );
 }
