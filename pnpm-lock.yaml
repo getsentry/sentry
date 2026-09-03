@@ -708,7 +708,7 @@ importers:
         specifier: ^0.7.0
         version: 0.7.0
 
-  static/eslint/eslintPluginScraps:
+  static/oxlint/eslintPluginScraps:
     dependencies:
       '@typescript-eslint/utils':
         specifier: 8.58.0
@@ -721,7 +721,7 @@ importers:
         specifier: npm:@typescript/typescript6@6.0.2
         version: '@typescript/typescript6@6.0.2'
 
-  static/eslint/eslintPluginSentry:
+  static/oxlint/eslintPluginSentry:
     dependencies:
       '@typescript-eslint/utils':
         specifier: 8.58.0

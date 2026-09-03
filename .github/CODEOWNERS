@@ -849,7 +849,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
-/static/eslint/                                       @getsentry/design-engineering
+/static/oxlint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 /.agents/skills/design-system/                         @getsentry/design-engineering
 /.agents/skills/migrate-frontend-forms/                @getsentry/design-engineering

@@ -67,7 +67,7 @@ const config: KnipConfig = {
         '!static/app/**/__stories__/*.{js,ts,tsx}!',
         '!static/app/stories/**/*.{js,ts,tsx}!',
         // Oxlint JS plugins are separate workspace packages
-        '!static/eslint/**/*.ts!',
+        '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
         'core-js',
@@ -82,7 +82,7 @@ const config: KnipConfig = {
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
     },
-    'static/eslint/eslintPluginSentry': {
+    'static/oxlint/eslintPluginSentry': {
       // RuleTester resolves these cross-file fixtures by filename.
       ignoreFiles: ['fixtures/**/*.{ts,tsx}'],
     },

@@ -295,8 +295,8 @@ const config = defineConfig({
       },
       // Local lint plugins and compatibility wrappers.
       {
-        type: 'eslint',
-        pattern: 'static/eslint',
+        type: 'oxlint',
+        pattern: 'static/oxlint',
       },
     ],
     // File descriptors match complete file paths, preserving classifications
@@ -917,14 +917,14 @@ const config = defineConfig({
           {
             from: {
               element: {
-                type: 'eslint',
+                type: 'oxlint',
               },
             },
             allow: [
               {
                 to: {
                   element: {
-                    type: 'eslint',
+                    type: 'oxlint',
                   },
                 },
               },
@@ -1429,9 +1429,9 @@ const config = defineConfig({
         '**/__mocks__/*',
         'static/app/stories/*Loader.ts',
         'static/app/chartcuterie/config.tsx',
-        'static/eslint/eslintPluginSentry/index.ts',
-        'static/eslint/eslintPluginScraps/index.ts',
-        'static/eslint/oxlintCompat/*.ts',
+        'static/oxlint/eslintPluginSentry/index.ts',
+        'static/oxlint/eslintPluginScraps/index.ts',
+        'static/oxlint/oxlintCompat/*.ts',
         'tests/js/*-transform.*',
         'tests/js/test-*/*',
       ],
@@ -1608,7 +1608,7 @@ const config = defineConfig({
     },
     {
       files: [
-        'static/eslint/**/*.js',
+        'static/oxlint/**/*.js',
         'scripts/**/*.{js,ts}',
         'tests/js/test-balancer/*.ts',
       ],
