@@ -16,6 +16,7 @@ from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
     ApiRateLimitedError,
+    ApiUnauthorized,
     IntegrationConfigurationError,
 )
 
@@ -216,6 +217,21 @@ class GitHubStatusCheckProvider(StatusCheckProvider):
                         "the organization has accepted any updated permissions."
                     ) from e
                 raise
+            except ApiUnauthorized as e:
+                lifecycle.record_halt(e)
+                logger.warning(
+                    "preprod.status_checks.create.client_error",
+                    extra={
+                        "organization_id": self.organization_id,
+                        "integration_id": self.integration_id,
+                        "repo": repo,
+                        "status_code": e.code,
+                    },
+                )
+                raise IntegrationConfigurationError(
+                    f"GitHub API returned {e.code} client error when creating check run: "
+                    "invalid or expired integration credentials."
+                ) from e
             except ApiRateLimitedError as e:
                 lifecycle.record_halt(e)
                 raise

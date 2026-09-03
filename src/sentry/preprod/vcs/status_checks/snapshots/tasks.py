@@ -37,7 +37,7 @@ from sentry.preprod.vcs.status_checks.utils import (
     update_posted_status_check,
 )
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
@@ -497,6 +497,8 @@ def post_snapshot_status_check_task(
             extra["status_code"] = e.code
         logger.exception("preprod.snapshot_status_checks.post.failed", extra=extra)
         update_posted_status_check(preprod_artifact, check_type="snapshots", success=False, error=e)
+        if isinstance(e, IntegrationConfigurationError):
+            return
         if isinstance(e, ApiError) and e.code and 400 <= e.code < 500 and e.code != 429:
             return
         raise
