@@ -888,3 +888,46 @@ class OutboxAggregationTest(TestCase):
             warning_call.args and warning_call.args[0] == "deliver_from_outbox.deep_shard"
             for warning_call in mock_logger.warning.mock_calls
         )
+
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_total_outbox_count_derived_from_category_depths(self, mock_metrics: Mock) -> None:
+        with patch.object(
+            ControlOutbox, "get_total_outbox_count", wraps=ControlOutbox.get_total_outbox_count
+        ) as mock_count:
+            schedule_outbox_model(
+                silo_mode=SiloMode.CONTROL,
+                outbox_model=ControlOutbox,
+                drain_task=Mock(),
+            )
+
+        mock_count.assert_not_called()
+        total_calls = [
+            gauge_call
+            for gauge_call in mock_metrics.gauge.mock_calls
+            if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.total_outbox_count"
+        ]
+        assert len(total_calls) == 1
+        assert total_calls[0].kwargs["value"] == 7 + 4 + 1
+
+    @override_options({"hybridcloud.outbox.category_depth_metric.enabled": False})
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_total_outbox_count_falls_back_when_category_metric_disabled(
+        self, mock_metrics: Mock
+    ) -> None:
+        with patch.object(
+            ControlOutbox, "get_total_outbox_count", wraps=ControlOutbox.get_total_outbox_count
+        ) as mock_count:
+            schedule_outbox_model(
+                silo_mode=SiloMode.CONTROL,
+                outbox_model=ControlOutbox,
+                drain_task=Mock(),
+            )
+
+        mock_count.assert_called_once()
+        total_calls = [
+            gauge_call
+            for gauge_call in mock_metrics.gauge.mock_calls
+            if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.total_outbox_count"
+        ]
+        assert len(total_calls) == 1
+        assert total_calls[0].kwargs["value"] == 7 + 4 + 1
