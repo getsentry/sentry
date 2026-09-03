@@ -19,7 +19,7 @@ hybridcloud: 0034_drop_webhookpayload_priority_index
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0006_add_investigation_orchestration
+investigations: 0007_drop_producing_seer_run_fk
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
