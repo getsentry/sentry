@@ -15,6 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import internal_cell_silo_endpoint
 from sentry.models.project import Project
 from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
 from sentry.preprod.analytics import PreprodArtifactApiUpdateEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.authentication import (
@@ -207,6 +208,47 @@ def find_or_create_release(
         )
         return None
 
+
+def find_release_by_commit_sha(project: Project, head_sha: str) -> Release | None:
+    """
+    Find the most recent release in a project that contains the given commit sha.
+
+    Used to attach preprod artifacts to the release that events actually land
+    on (the one created by the SDK/CLI from `options.release`), instead of
+    minting a bundle-id-named duplicate release that no events will ever
+    reference. See https://github.com/getsentry/sentry/issues/123124
+
+    Args:
+        project: The project the release must belong to
+        head_sha: The head commit sha of the uploaded artifact
+
+    Returns:
+        The most recently created matching Release, or None if no release in
+        this project contains the commit
+    """
+    try:
+        return (
+            Release.objects.filter(
+                organization_id=project.organization_id,
+                projects=project,
+                id__in=ReleaseCommit.objects.filter(
+                    organization_id=project.organization_id,
+                    commit__key=head_sha,
+                ).values_list("release_id", flat=True),
+            )
+            .order_by("-date_added")
+            .first()
+        )
+    except Exception as e:
+        logger.exception(
+            "Failed to find release by commit sha",
+            extra={
+                "project_id": project.id,
+                "head_sha": head_sha,
+                "error": str(e),
+            },
+        )
+        return None
 
 @internal_cell_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
@@ -403,12 +445,24 @@ class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
             and build_version
             and head_artifact.state == PreprodArtifact.ArtifactState.PROCESSED
         ):
-            find_or_create_release(
-                project=project,
-                package=head_artifact.app_id,
-                version=build_version,
-                build_number=build_number,
-            )
+            # Prefer the release the artifact's head commit already belongs to
+            # (e.g. the one sentry-cli created from `options.release`). Falling
+            # back unconditionally to find_or_create_release mints a
+            # bundle-id-named duplicate release that receives no events.
+            # See https://github.com/getsentry/sentry/issues/123124
+            release = None
+            if head_artifact.commit_comparison is not None:
+                release = find_release_by_commit_sha(
+                    project=project,
+                    head_sha=head_artifact.commit_comparison.head_sha,
+                )
+            if release is None:
+                find_or_create_release(
+                    project=project,
+                    package=head_artifact.app_id,
+                    version=build_version,
+                    build_number=build_number,
+                )
 
         # Determine which features can run based on quota and filters
         requested_features: list[PreprodFeature] = []
