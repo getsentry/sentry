@@ -4,7 +4,10 @@ from unittest.mock import patch
 import orjson
 from django.test import override_settings
 
-from sentry.preprod.api.endpoints.project_preprod_artifact_update import find_or_create_release
+from sentry.preprod.api.endpoints.project_preprod_artifact_update import (
+    find_or_create_release,
+    find_release_by_commit_sha,
+)
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactMobileAppInfo,
@@ -773,38 +776,6 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             == "Distribution disabled for this project"
         )
 
-
-class FindOrCreateReleaseTest(TestCase):
-    def test_exact_version_matching_prevents_incorrect_matches(self) -> None:
-        package = "com.hackernews"
-        version = "1.2.3"
-
-        self.create_release(project=self.project, version=f"{package}@{version}333333")
-        self.create_release(project=self.project, version=f"{package}@{version}.0")
-        self.create_release(project=self.project, version=f"{package}@{version}-beta")
-
-        result = find_or_create_release(self.project, package, version)
-
-        assert result is not None
-        assert result.version == f"{package}@{version}"
-
-    def test_finds_existing_release_regardless_of_build_number(self) -> None:
-        package = "com.example.app"
-        version = "2.1.0"
-
-        existing_release = self.create_release(
-            project=self.project, version=f"{package}@{version}+456"
-        )
-
-        result = find_or_create_release(self.project, package, version)
-        assert result is not None
-        assert result.id == existing_release.id
-
-        result_with_build = find_or_create_release(self.project, package, version, 789)
-        assert result_with_build is not None
-        assert result_with_build.id == existing_release.id
-        assert result_with_build.version == f"{package}@{version}+456"
-
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_existing_release_matched_by_head_sha_not_duplicated(self) -> None:
         """Regression test for https://github.com/getsentry/sentry/issues/123124
@@ -850,8 +821,9 @@ class FindOrCreateReleaseTest(TestCase):
             organization_id=self.project.organization_id, projects=self.project
         )
         assert releases.count() == 1
-        assert releases.first() is not None
-        assert releases.first().id == sdk_release.id
+        first = releases.first()
+        assert first is not None
+        assert first.id == sdk_release.id
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_release_created_when_head_sha_has_no_matching_release(self) -> None:
@@ -901,3 +873,49 @@ class FindOrCreateReleaseTest(TestCase):
             version="com.example.app@1.0.0+123",
         )
         assert releases.count() == 1
+
+
+class FindOrCreateReleaseTest(TestCase):
+    def test_exact_version_matching_prevents_incorrect_matches(self) -> None:
+        package = "com.hackernews"
+        version = "1.2.3"
+
+        self.create_release(project=self.project, version=f"{package}@{version}333333")
+        self.create_release(project=self.project, version=f"{package}@{version}.0")
+        self.create_release(project=self.project, version=f"{package}@{version}-beta")
+
+        result = find_or_create_release(self.project, package, version)
+
+        assert result is not None
+        assert result.version == f"{package}@{version}"
+
+    def test_finds_existing_release_regardless_of_build_number(self) -> None:
+        package = "com.example.app"
+        version = "2.1.0"
+
+        existing_release = self.create_release(
+            project=self.project, version=f"{package}@{version}+456"
+        )
+
+        result = find_or_create_release(self.project, package, version)
+        assert result is not None
+        assert result.id == existing_release.id
+
+        result_with_build = find_or_create_release(self.project, package, version, 789)
+        assert result_with_build is not None
+        assert result_with_build.id == existing_release.id
+        assert result_with_build.version == f"{package}@{version}+456"
+
+    def test_find_release_by_commit_sha(self) -> None:
+        head_sha = "f" * 40
+        repo = self.create_repo(project=self.project)
+        release = self.create_release(project=self.project, version="android@1.1+930")
+        commit = self.create_commit(repo=repo, project=self.project, key=head_sha)
+        self.create_release_commit(release=release, commit=commit)
+
+        result = find_release_by_commit_sha(self.project, head_sha)
+        assert result is not None
+        assert result.id == release.id
+
+        # a commit not attached to any release in this project must not match
+        assert find_release_by_commit_sha(self.project, "0" * 40) is None
