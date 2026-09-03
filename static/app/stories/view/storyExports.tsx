@@ -64,7 +64,6 @@ function StoryLayout() {
           gap="3xl"
           padding="0 xl"
           margin={{zero: '0', '3xl': '0 auto'}}
-          containerType="inline-size"
         >
           <Stack flexGrow={1} minWidth="0px">
             <StoryTabPanels documentation={documentation} />
@@ -108,7 +107,6 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
           gap="2xl"
           padding="0 xl"
           margin={{zero: '0', '3xl': '0 auto'}}
-          containerType="inline-size"
         >
           <Stack
             gap="xl"
