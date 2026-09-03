@@ -5,30 +5,54 @@ import styled from '@emotion/styled';
 import {type AriaGridListOptions} from '@react-aria/gridlist';
 import {Item, Section} from '@react-stately/collections';
 import {useListState, type ListState} from '@react-stately/list';
-import type {CollectionChildren, KeyboardEvent, Node} from '@react-types/shared';
+import type {CollectionChildren, Node} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
+import {
+  isSearchFilterParameter,
+  unwrapSearchFilterArgument,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter';
 import {useArithmeticBuilder} from 'sentry/components/arithmeticBuilder/context';
 import type {
   Token,
   TokenAttribute,
   TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
-import {TokenKind} from 'sentry/components/arithmeticBuilder/token';
+import {ConditionalFilterArgumentInput} from 'sentry/components/arithmeticBuilder/token/conditionalFilterInput';
 import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
-import {nextTokenKeyOfKind} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {
+  ArgumentGridCell,
+  ArgumentGridRow,
+  useFunctionArgumentInput,
+  type FunctionArgumentInputProps,
+} from 'sentry/components/arithmeticBuilder/token/useFunctionArgumentInput';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
-import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {ComboBox} from 'sentry/components/tokenizedInput/token/comboBox';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
+
+function resolveArgumentDisplayLabel(
+  parameterDefinition:
+    | {defaultLabel?: string; kind?: string; name?: string}
+    | null
+    | undefined,
+  fallbackLabel: string
+): string {
+  if (parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel) {
+    return parameterDefinition.defaultLabel;
+  }
+  if (isSearchFilterParameter(parameterDefinition)) {
+    return unwrapSearchFilterArgument(fallbackLabel);
+  }
+  return fallbackLabel;
+}
 
 interface ArithmeticTokenFunctionProps {
   item: Node<Token>;
@@ -44,12 +68,28 @@ export function ArithmeticTokenFunction({
   const functionArguments = token.attributes;
 
   const ref = useRef<HTMLDivElement>(null);
+  const skipArgumentFocusRef = useRef(false);
   const {rowProps, gridCellProps} = useGridListItem({
     item,
     ref,
     state,
     focusable: defined(functionArguments) && functionArguments.length > 0, // if there are no arguments, it's not focusable
   });
+
+  const onRowFocus = useCallback(
+    (evt: FocusEvent<HTMLDivElement>) => {
+      if (skipArgumentFocusRef.current) {
+        skipArgumentFocusRef.current = false;
+        return;
+      }
+      rowProps.onFocus?.(evt);
+    },
+    [rowProps]
+  );
+
+  const onFunctionNameMouseDown = useCallback(() => {
+    skipArgumentFocusRef.current = true;
+  }, []);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
@@ -58,14 +98,27 @@ export function ArithmeticTokenFunction({
   return (
     <FunctionWrapper
       {...rowProps}
+      onFocus={onRowFocus}
       ref={ref}
       tabIndex={isFocused ? 0 : -1}
       aria-label={`${token.function}(${attrText ?? ''})`}
       aria-invalid={false}
       state="valid"
     >
-      <FunctionGridCell {...gridCellProps}>{token.function}</FunctionGridCell>
-      <ArgumentsGrid rowRef={ref} item={item} state={state} token={token} />
+      <FunctionGridCell {...gridCellProps} onMouseDown={onFunctionNameMouseDown}>
+        {token.function}
+      </FunctionGridCell>
+      {/* Function tokens are keyed by position (`func:0`), so deleting an earlier
+          function reuses this component for the next one. Remount the arguments
+          grid when the token identity changes so we don't keep the previous
+          function's draft argument state. */}
+      <ArgumentsGrid
+        key={`${token.location.start.offset}:${token.function}`}
+        rowRef={ref}
+        item={item}
+        state={state}
+        token={token}
+      />
       <BaseGridCell {...gridCellProps}>
         <DeleteButton token={token} label={t('Remove function %s', token.text)} />
       </BaseGridCell>
@@ -73,7 +126,7 @@ export function ArithmeticTokenFunction({
   );
 }
 
-type Argument = {label: string; value: string};
+type Argument = FunctionArgumentInputProps['argument'];
 
 interface ArgumentsGridProps extends ArithmeticTokenFunctionProps {
   rowRef: RefObject<HTMLDivElement | null>;
@@ -85,17 +138,15 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const {getFieldDefinition} = useArithmeticBuilder();
+  const {dispatch, getFieldDefinition} = useArithmeticBuilder();
 
   const resolveArgumentLabel = useCallback(
     (index: number, fallbackLabel: string) => {
-      const fieldDefinition = getFieldDefinition(functionToken.function)?.parameters?.[
-        index
-      ];
-      if (fieldDefinition?.kind === 'column') {
-        return fieldDefinition?.defaultLabel ?? fallbackLabel;
-      }
-      return fallbackLabel;
+      const fieldDefinition = getFieldDefinition(
+        functionToken.function,
+        functionToken.attributes.map(attr => attr.text)
+      )?.parameters?.[index];
+      return resolveArgumentDisplayLabel(fieldDefinition, fallbackLabel);
     },
     [getFieldDefinition, functionToken]
   );
@@ -109,9 +160,29 @@ function ArgumentsGrid({
     })
   );
 
+  const argsRef = useRef(args);
+  argsRef.current = args;
+  const functionTokenRef = useRef(functionToken);
+  functionTokenRef.current = functionToken;
+
+  const commitArgumentsIfChanged = useCallback(() => {
+    const nextArgs = argsRef.current.map(argument => argument.value).join(',');
+    const prevArgs = functionTokenRef.current.attributes
+      .map(attribute => attribute.text)
+      .join(',');
+    if (nextArgs === prevArgs) {
+      return;
+    }
+    dispatch({
+      type: 'REPLACE_TOKEN',
+      token: functionTokenRef.current,
+      text: `${functionTokenRef.current.function}(${nextArgs})`,
+    });
+  }, [dispatch]);
+
   const updateArgumentAtIndex = (index: number, argument: string) => {
-    setArguments(prev =>
-      prev.map((item, i) =>
+    setArguments(prev => {
+      const next = prev.map((item, i) =>
         index === i
           ? {
               ...item,
@@ -119,8 +190,10 @@ function ArgumentsGrid({
               label: resolveArgumentLabel(index, prettifyTagKey(argument)),
             }
           : item
-      )
-    );
+      );
+      argsRef.current = next;
+      return next;
+    });
   };
 
   if (!args.length) {
@@ -136,6 +209,7 @@ function ArgumentsGrid({
       item={functionItem}
       state={functionListState}
       token={functionToken}
+      onArgumentsBlur={commitArgumentsIfChanged}
       onArgumentsChange={(index: number, argument: string) =>
         updateArgumentAtIndex(index, argument)
       }
@@ -149,6 +223,7 @@ interface GridListProps
   extends AriaGridListOptions<TokenAttribute>, ArithmeticTokenFunctionProps {
   arguments: Argument[];
   children: CollectionChildren<TokenAttribute>;
+  onArgumentsBlur: () => void;
   onArgumentsChange: (index: number, argument: string) => void;
   rowRef: RefObject<HTMLDivElement | null>;
 }
@@ -157,6 +232,7 @@ function ArgumentsGridList({
   item: functionItem,
   state: functionListState,
   token: functionToken,
+  onArgumentsBlur,
   onArgumentsChange,
   arguments: functionArguments,
   rowRef,
@@ -218,6 +294,7 @@ function ArgumentsGridList({
               argumentsListState={state}
               argumentRef={ref}
               argumentIndex={index}
+              onArgumentsBlur={onArgumentsBlur}
               onArgumentsChange={onArgumentsChange}
             />
             {index < functionToken.attributes.length - 1 && ','}
@@ -229,93 +306,74 @@ function ArgumentsGridList({
   );
 }
 
-interface InternalInputProps {
-  argument: Argument;
-  argumentIndex: number;
-  argumentItem: Node<TokenAttribute>;
-  argumentRef: RefObject<HTMLDivElement | null>;
-  arguments: Argument[];
-  argumentsListState: ListState<TokenAttribute>;
-  functionItem: Node<Token>;
-  functionListState: ListState<Token>;
-  functionToken: TokenFunction;
-  onArgumentsChange: (index: number, argument: string) => void;
-  rowRef: RefObject<HTMLDivElement | null>;
+function InternalInput(props: FunctionArgumentInputProps) {
+  const {getFieldDefinition} = useArithmeticBuilder();
+  const parameterDefinition = useMemo(
+    () =>
+      getFieldDefinition(
+        props.functionToken.function,
+        props.functionToken.attributes.map(attr => attr.text)
+      )?.parameters?.[props.argumentIndex],
+    [getFieldDefinition, props.argumentIndex, props.functionToken]
+  );
+
+  if (isSearchFilterParameter(parameterDefinition)) {
+    return <ConditionalFilterArgumentInput {...props} />;
+  }
+
+  return <FunctionArgumentInput {...props} />;
 }
 
-function InternalInput({
-  argumentIndex,
-  functionToken,
-  functionItem,
-  functionListState,
-  argumentsListState,
-  argumentItem,
-  argument,
-  arguments: functionArguments,
-  onArgumentsChange,
-}: InternalInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const gridCellRef = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item: argumentItem,
-    ref: gridCellRef,
-    state: argumentsListState,
-    focusable: true,
-  });
-
-  const isFocused = argumentItem.key === argumentsListState.selectionManager.focusedKey;
-  const hasNextArgument = argumentIndex < functionToken.attributes.length - 1;
-  const hasPrevArgument = argumentIndex > 0;
+function FunctionArgumentInput(props: FunctionArgumentInputProps) {
+  const {argument, argumentIndex, functionToken, onArgumentsChange} = props;
+  const {
+    clearSkipBlurFlush,
+    commitFunctionToken,
+    dataTestId,
+    flushArgumentsIfLeavingGrid,
+    focusArgument,
+    focusNextArgument,
+    gridCellProps,
+    gridCellRef,
+    hasNextArgument,
+    inputRef,
+    isFocused,
+    onKeyDown,
+    onKeyDownCapture,
+    rowProps,
+    shouldCloseOnInteractOutside,
+  } = useFunctionArgumentInput(props);
 
   const {
-    dispatch,
     functionArguments: builderFunctionArguments,
     getFieldDefinition,
     getSuggestedKey,
   } = useArithmeticBuilder();
 
   const parameterDefinition = useMemo(
-    () => getFieldDefinition(functionToken.function)?.parameters?.[argumentIndex],
+    () =>
+      getFieldDefinition(
+        functionToken.function,
+        functionToken.attributes.map(attr => attr.text)
+      )?.parameters?.[argumentIndex],
     [argumentIndex, getFieldDefinition, functionToken]
   );
 
   const resolveDisplayLabel = useCallback(
     (fallback: string): string =>
-      parameterDefinition?.kind === 'column' && parameterDefinition.defaultLabel
-        ? parameterDefinition.defaultLabel
-        : fallback,
+      resolveArgumentDisplayLabel(parameterDefinition, fallback),
     [parameterDefinition]
   );
 
   const initialLabel = resolveDisplayLabel(argument.label);
-
   const [inputValue, setInputValue] = useState('');
   const [currentValue, setCurrentValue] = useState(initialLabel);
   const [isCurrentlyEditing, setIsCurrentlyEditing] = useState(false);
-  const [_selectionIndex, setSelectionIndex] = useState(0); // TODO
-  const [_isOpen, setIsOpen] = useState(false); // TODO
-
-  const filterValue = inputValue.trim();
   const displayValue = isCurrentlyEditing ? inputValue : currentValue;
-
-  const updateSelectionIndex = useCallback(() => {
-    setSelectionIndex(inputRef.current?.selectionStart ?? 0);
-  }, [setSelectionIndex]);
 
   const resetInputValue = useCallback(() => {
     setInputValue('');
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
-  const updateAttrsWith = useCallback(
-    (value: string) => {
-      const tokenArguments = functionArguments.map(arg => arg.value);
-      tokenArguments[argumentIndex] = value;
-      const argsStr = tokenArguments.join(',');
-      return argsStr;
-    },
-    [argumentIndex, functionArguments]
-  );
+  }, []);
 
   const attributesFilter = useMemo(() => {
     if (parameterDefinition?.kind === 'column') {
@@ -348,6 +406,8 @@ function InternalInput({
   const attributeItems = useAttributeItems(allowedAttributes);
 
   const items = useMemo(() => {
+    const filterValue = inputValue.trim();
+
     if (parameterDefinition?.kind === 'value' && parameterDefinition.options) {
       return parameterDefinition.options
         .filter(
@@ -393,20 +453,16 @@ function InternalInput({
     }
 
     return result;
-  }, [parameterDefinition, filterValue, attributeItems]);
+  }, [attributeItems, inputValue, parameterDefinition]);
 
-  const shouldCloseOnInteractOutside = useCallback((el: Element) => {
-    return !gridCellRef.current?.contains(el);
-  }, []);
-
-  const onClick = useCallback(() => {
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
-  const onInputBlur = useCallback(() => {
-    resetInputValue();
-    setIsCurrentlyEditing(false);
-  }, [resetInputValue]);
+  const onInputBlur = useCallback(
+    (evt?: FocusEvent<HTMLInputElement>) => {
+      resetInputValue();
+      setIsCurrentlyEditing(false);
+      flushArgumentsIfLeavingGrid(evt);
+    },
+    [flushArgumentsIfLeavingGrid, resetInputValue]
+  );
 
   const resolveValue = useCallback(
     (raw: string): string => {
@@ -423,43 +479,29 @@ function InternalInput({
     [parameterDefinition]
   );
 
-  const onTextInputBlur = useCallback(() => {
-    if (inputValue) {
-      onArgumentsChange(argumentIndex, inputValue);
-      dispatch({
-        text: `${functionToken.function}(${updateAttrsWith(inputValue)})`,
-        type: 'REPLACE_TOKEN',
-        token: functionToken,
-        focusOverride: {
-          itemKey: nextTokenKeyOfKind(
-            functionListState,
-            functionToken,
-            TokenKind.FREE_TEXT
-          ),
-        },
-      });
-    }
-    resetInputValue();
-    setIsCurrentlyEditing(false);
-  }, [
-    argumentIndex,
-    dispatch,
-    functionListState,
-    functionToken,
-    inputValue,
-    onArgumentsChange,
-    resetInputValue,
-    updateAttrsWith,
-  ]);
-
-  const onInputChange = useCallback(
-    (evt: ChangeEvent<HTMLInputElement>) => {
-      setInputValue(evt.target.value);
-      setCurrentValue(evt.target.value);
-      setSelectionIndex(evt.target.selectionStart ?? 0);
+  // Non-filter free-text values (e.g. apdex threshold) flush pending edits when leaving.
+  const onTextInputBlur = useCallback(
+    (evt: FocusEvent<HTMLInputElement>) => {
+      if (inputValue) {
+        onArgumentsChange(argumentIndex, inputValue);
+      }
+      resetInputValue();
+      setIsCurrentlyEditing(false);
+      flushArgumentsIfLeavingGrid(evt);
     },
-    [setInputValue]
+    [
+      argumentIndex,
+      flushArgumentsIfLeavingGrid,
+      inputValue,
+      onArgumentsChange,
+      resetInputValue,
+    ]
   );
+
+  const onInputChange = useCallback((evt: ChangeEvent<HTMLInputElement>) => {
+    setInputValue(evt.target.value);
+    setCurrentValue(evt.target.value);
+  }, []);
 
   const onInputCommit = useCallback(() => {
     let value = inputValue.trim() || argument.label;
@@ -472,34 +514,19 @@ function InternalInput({
 
     setCurrentValue(resolveDisplayLabel(value));
     onArgumentsChange(argumentIndex, value);
-
-    dispatch({
-      text: `${functionToken.function}(${updateAttrsWith(value)})`,
-      type: 'REPLACE_TOKEN',
-      token: functionToken,
-      focusOverride: {
-        itemKey: nextTokenKeyOfKind(
-          functionListState,
-          functionToken,
-          TokenKind.FREE_TEXT
-        ),
-      },
-    });
+    commitFunctionToken(value);
     resetInputValue();
   }, [
-    inputValue,
     argument.label,
+    argumentIndex,
+    commitFunctionToken,
     getSuggestedKey,
+    inputValue,
+    onArgumentsChange,
     parameterDefinition,
+    resetInputValue,
     resolveDisplayLabel,
     resolveValue,
-    onArgumentsChange,
-    argumentIndex,
-    dispatch,
-    functionToken,
-    updateAttrsWith,
-    functionListState,
-    resetInputValue,
   ]);
 
   const onInputEscape = useCallback(() => {
@@ -512,148 +539,54 @@ function InternalInput({
       // We're stopping propagation because `useGridListItem` in the parent component
       // always steals and sets focus to the first child and we don't want that happening.
       evt.stopPropagation();
+      clearSkipBlurFlush();
       // Explicitly focus target on this item because we're calling evt.stopPropagation().
       // If this isn't called, the argument collection doesn't shift focus to current arg
       // causing bugs. Test for this behaviour can be found in
       // static/app/components/arithmeticBuilder/token/index.spec.tsx -t 'shifts focus between args correctly'
-      focusTarget(argumentsListState, argumentItem.key);
+      focusArgument();
       setIsCurrentlyEditing(true);
       resetInputValue();
     },
-    [argumentItem.key, argumentsListState, resetInputValue]
+    [clearSkipBlurFlush, focusArgument, resetInputValue]
   );
 
-  const onKeyDownCapture = useCallback(
-    (evt: React.KeyboardEvent<HTMLInputElement>) => {
-      // At start and pressing left arrow, focus the previous full token
-      if (
-        evt.currentTarget.selectionStart === 0 &&
-        evt.currentTarget.selectionEnd === 0 &&
-        evt.key === 'ArrowLeft'
-      ) {
-        if (hasPrevArgument) {
-          focusTarget(
-            argumentsListState,
-            argumentsListState.collection.getKeyBefore(argumentItem.key)
-          );
-        } else {
-          focusTarget(
-            functionListState,
-            functionListState.collection.getKeyBefore(functionItem.key)
-          );
-        }
-        return;
-      }
-
-      // At end and pressing right arrow, focus the next full token
-      if (
-        evt.currentTarget.selectionStart === evt.currentTarget.value.length &&
-        evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
-        evt.key === 'ArrowRight'
-      ) {
-        if (hasNextArgument) {
-          focusTarget(
-            argumentsListState,
-            argumentsListState.collection.getKeyAfter(argumentItem.key)
-          );
-        } else {
-          focusTarget(
-            functionListState,
-            functionListState.collection.getKeyAfter(functionItem.key)
-          );
-        }
-        return;
-      }
+  // Free-text value args should keep their current text on focus so the user can edit it.
+  // ComboBox clears on focus to type a new query.
+  const onTextInputFocus = useCallback(
+    (evt: FocusEvent<HTMLInputElement>) => {
+      evt.stopPropagation();
+      clearSkipBlurFlush();
+      focusArgument();
+      setIsCurrentlyEditing(true);
+      setInputValue(currentValue);
     },
-    [
-      hasPrevArgument,
-      argumentsListState,
-      argumentItem.key,
-      functionListState,
-      functionItem.key,
-      hasNextArgument,
-    ]
-  );
-
-  const onKeyDown = useCallback(
-    (evt: KeyboardEvent) => {
-      // TODO: handle meta keys
-
-      // At start and pressing backspace, delete this token
-      if (
-        evt.currentTarget.selectionStart === 0 &&
-        evt.currentTarget.selectionEnd === 0 &&
-        evt.key === 'Backspace'
-      ) {
-        const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
-        dispatch({
-          type: 'DELETE_TOKEN',
-          token: functionToken,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
-        });
-      }
-
-      // At end and pressing delete, focus the next full token
-      if (
-        evt.currentTarget.selectionStart === evt.currentTarget.value.length &&
-        evt.currentTarget.selectionEnd === evt.currentTarget.value.length &&
-        evt.key === 'Delete'
-      ) {
-        const itemKey = functionListState.collection.getKeyBefore(functionItem.key);
-        dispatch({
-          type: 'DELETE_TOKEN',
-          token: functionToken,
-          focusOverride: defined(itemKey) ? {itemKey} : undefined,
-        });
-      }
-    },
-    [dispatch, functionToken, functionListState, functionItem]
+    [clearSkipBlurFlush, currentValue, focusArgument]
   );
 
   const onOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
       setCurrentValue(resolveDisplayLabel(prettifyTagKey(option.value)));
+      onArgumentsChange(argumentIndex, option.value);
       if (hasNextArgument) {
-        focusTarget(
-          argumentsListState,
-          argumentsListState.collection.getKeyAfter(argumentItem.key)
-        );
-        onArgumentsChange(argumentIndex, option.value);
+        focusNextArgument();
       } else {
-        dispatch({
-          text: `${functionToken.function}(${updateAttrsWith(option.value)})`,
-          type: 'REPLACE_TOKEN',
-          token: functionToken,
-          focusOverride: {
-            itemKey: nextTokenKeyOfKind(
-              functionListState,
-              functionToken,
-              TokenKind.FREE_TEXT
-            ),
-          },
-        });
+        commitFunctionToken(option.value);
       }
       resetInputValue();
     },
     [
-      hasNextArgument,
-      resolveDisplayLabel,
-      resetInputValue,
-      argumentsListState,
-      argumentItem.key,
-      onArgumentsChange,
       argumentIndex,
-      dispatch,
-      functionToken,
-      updateAttrsWith,
-      functionListState,
+      commitFunctionToken,
+      focusNextArgument,
+      hasNextArgument,
+      onArgumentsChange,
+      resetInputValue,
+      resolveDisplayLabel,
     ]
   );
 
-  const onPaste = useCallback((_evt: React.ClipboardEvent<HTMLInputElement>) => {
-    // TODO
-  }, []);
-
+  // Free-text value args with no options (e.g. apdex threshold) use a plain input.
   if (
     parameterDefinition?.kind === 'value' &&
     (!defined(parameterDefinition.options) || !parameterDefinition.options.length)
@@ -666,16 +599,14 @@ function InternalInput({
             ref={inputRef}
             inputLabel={t('Add a value')}
             inputValue={displayValue}
-            onClick={onClick}
             onInputBlur={onTextInputBlur}
             onInputChange={onInputChange}
             onInputCommit={onInputCommit}
             onInputEscape={onInputEscape}
-            onInputFocus={onInputFocus}
+            onInputFocus={onTextInputFocus}
             onKeyDown={onKeyDown}
             onKeyDownCapture={onKeyDownCapture}
           />
-          {argumentIndex < functionToken.attributes.length - 1 && ','}
         </ArgumentGridCell>
       </ArgumentGridRow>
     );
@@ -698,12 +629,9 @@ function InternalInput({
               : t('Select an option')
           }
           inputValue={displayValue}
-          filterValue={filterValue}
-          tabIndex={
-            argumentItem.key === argumentsListState.selectionManager.focusedKey ? 0 : -1
-          }
+          filterValue={inputValue}
+          tabIndex={isFocused ? 0 : -1}
           shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-          onClick={onClick}
           onInputBlur={onInputBlur}
           onInputChange={onInputChange}
           onInputCommit={onInputCommit}
@@ -711,14 +639,8 @@ function InternalInput({
           onInputFocus={onInputFocus}
           onKeyDown={onKeyDown}
           onKeyDownCapture={onKeyDownCapture}
-          onOpenChange={setIsOpen}
           onOptionSelected={onOptionSelected}
-          onPaste={onPaste}
-          data-test-id={
-            functionListState.collection.getLastKey() === functionItem.key
-              ? 'arithmetic-builder-argument-input'
-              : undefined
-          }
+          data-test-id={dataTestId}
         >
           {keyItem =>
             itemIsSection(keyItem) ? (
@@ -787,27 +709,6 @@ const FunctionWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.colors.gray100};
-  }
-`;
-
-const ArgumentGridRow = styled('div')`
-  display: flex;
-  align-items: center;
-  position: relative;
-  height: 100%;
-  flex: 0 1 auto;
-  max-width: fit-content;
-`;
-
-const ArgumentGridCell = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 100%;
-
-  > div input {
-    max-width: 130px !important;
-    min-width: 0 !important;
-    white-space: nowrap !important;
   }
 `;
 

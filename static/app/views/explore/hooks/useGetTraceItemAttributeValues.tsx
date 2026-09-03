@@ -53,8 +53,14 @@ export function useGetTraceItemAttributeValues({
 
   return useCallback(
     async ({tag, searchQuery}: GetTagValuesParams): Promise<TagValueWithCount[]> => {
-      if (tag.kind === FieldKind.FUNCTION || type === 'number' || type === 'boolean') {
-        // We can't really auto suggest values for aggregate functions, numbers, or booleans
+      if (
+        !tag.key ||
+        tag.kind === FieldKind.FUNCTION ||
+        type === 'number' ||
+        type === 'boolean'
+      ) {
+        // We can't really auto suggest values for aggregate functions, numbers, or booleans.
+        // An empty key would request `/attributes//values/` and 404.
         return Promise.resolve([]);
       }
 

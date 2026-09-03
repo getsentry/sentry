@@ -1813,6 +1813,22 @@ export function prettifyParsedFunction(func: ParsedFunction) {
     return `${func.name}(${prettifyTagKey(metricName ?? '')})`;
   }
 
-  const args = func.arguments.map(prettifyTagKey);
+  const args = func.arguments.map(prettifyFunctionArgument);
   return `${func.name}(${args.join(',')})`;
+}
+
+/**
+ * Prettify a function argument for display. Search-filter args (backtick-wrapped)
+ * must not go through {@link prettifyTagKey} directly — that regex is unanchored and
+ * would collapse `` `tags[Limit,number]:>5` `` to `Limit`. Instead, rewrite typed tag
+ * keys inside the filter while keeping the rest of the query intact.
+ */
+function prettifyFunctionArgument(arg: string): string {
+  if (isSearchFilterArgument(arg)) {
+    const filter = arg
+      .slice(1, -1)
+      .replace(/tags\[(\S*),(\S*)\]/g, match => prettifyTagKey(match));
+    return `\`${filter}\``;
+  }
+  return prettifyTagKey(arg);
 }

@@ -11,6 +11,7 @@ import {
   findSuggestedColumns,
   getSamplingWarningReason,
   isSamplingSensitiveAggregate,
+  prettifyAggregation,
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
@@ -684,5 +685,21 @@ describe('getSamplingWarningReason', () => {
     expect(
       getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
     ).toBeNull();
+  });
+});
+
+describe('prettifyAggregation', () => {
+  it('prettifies typed tag keys inside conditional filters', () => {
+    expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
+      'avg_if(`Limit:>5`,span.duration)'
+    );
+  });
+
+  it('prettifies typed tag keys in equation conditionals used as chart titles', () => {
+    expect(
+      prettifyAggregation(
+        'equation|avg_if(`tags[Limit,number]:>5`,span.duration) / p95(span.duration)'
+      )
+    ).toBe(' avg_if(`Limit:>5`,span.duration)  /  p95(span.duration) ');
   });
 });

@@ -21,7 +21,10 @@ import type {
   AggregateField,
   WritableAggregateField,
 } from 'sentry/views/explore/queryParams/aggregateField';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
@@ -543,6 +546,30 @@ describe('AggregateColumnEditorModal', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onColumnsChange).toHaveBeenCalledWith([{yAxes: ['epm()']}]);
+    });
+
+    it('does not offer EAP-only _if aggregates in equations without the feature', async () => {
+      renderModal({columns: [new VisualizeEquation('equation|')]});
+
+      const input = await screen.findByRole('combobox', {name: 'Add a term'});
+      await userEvent.click(input);
+      // Discover already ships avg_if/count_if; sum_if is EAP-only behind the flag.
+      await userEvent.type(input, 'sum_if');
+
+      expect(screen.queryByRole('option', {name: 'sum_if'})).not.toBeInTheDocument();
+    });
+
+    it('offers EAP _if aggregates in equations with the feature', async () => {
+      renderModal({
+        columns: [new VisualizeEquation('equation|')],
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const input = await screen.findByRole('combobox', {name: 'Add a term'});
+      await userEvent.click(input);
+      await userEvent.type(input, 'sum_if');
+
+      expect(await screen.findByRole('option', {name: 'sum_if'})).toBeInTheDocument();
     });
   });
 });

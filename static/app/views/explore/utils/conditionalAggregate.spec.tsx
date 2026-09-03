@@ -1,12 +1,16 @@
 import {
+  ensureSearchFilterArgument,
+  escapeConditionalFilter,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter';
+import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {
   applyConditionalFilter,
   areAllVisualizesInvalidConditionalFilters,
+  areConditionalAggregateFiltersInExpressionValid,
   buildConditionalAggregate,
-  escapeConditionalFilter,
   getConditionalFilterInvalidSeriesMessage,
   getConditionalFilterInvalidSeriesMessageForYAxis,
   isConditionalAggregateFilterValid,
@@ -218,12 +222,25 @@ describe('isConditionalAggregateFilterValid', () => {
   });
 });
 
+describe('ensureSearchFilterArgument', () => {
+  it('wraps raw filters in backticks', () => {
+    expect(ensureSearchFilterArgument('span.op:db')).toBe('`span.op:db`');
+    expect(ensureSearchFilterArgument('`span.op:db`')).toBe('`span.op:db`');
+    expect(ensureSearchFilterArgument('')).toBe('``');
+  });
+});
+
 describe('isConditionalAggregateYAxisValid', () => {
   it('accepts plain aggregates and valid _if filters', () => {
     expect(isConditionalAggregateYAxisValid('count(span.duration)')).toBe(true);
     expect(isConditionalAggregateYAxisValid('count_if(`span.op:db`,span.duration)')).toBe(
       true
     );
+  });
+
+  it('rejects _if aggregates with an empty filter', () => {
+    expect(isConditionalAggregateYAxisValid('avg_if(``,span.duration)')).toBe(false);
+    expect(isConditionalAggregateYAxisValid('count_if(``)')).toBe(false);
   });
 
   it('rejects _if filters that use aggregate keys', () => {
@@ -235,6 +252,24 @@ describe('isConditionalAggregateYAxisValid', () => {
     expect(
       isConditionalAggregateYAxisValid(
         'count_if(`span.category:db _pi_file_io_main_thread:492262d12c82474e p95(span.duration):>300ms`,span.duration)'
+      )
+    ).toBe(false);
+  });
+});
+
+describe('areConditionalAggregateFiltersInExpressionValid', () => {
+  it('accepts equations with filled _if filters', () => {
+    expect(
+      areConditionalAggregateFiltersInExpressionValid(
+        'avg_if(`span.op:db`,span.duration) / count(span.duration)'
+      )
+    ).toBe(true);
+  });
+
+  it('rejects equations with empty _if filters', () => {
+    expect(
+      areConditionalAggregateFiltersInExpressionValid(
+        'avg_if(``,span.duration) / count(span.duration)'
       )
     ).toBe(false);
   });

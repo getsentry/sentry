@@ -1167,6 +1167,34 @@ describe('ExploreToolbar', () => {
         expect(visualizeYAxesFromRouter(router)).toEqual(['avg(span.duration)']);
       });
     });
+
+    it('expands the equation editor on click', async () => {
+      render(<ExploreToolbar extras={['equations']} />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      const input = await screen.findByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+
+      expect(input.closest('[data-expanded="true"]')).toBeTruthy();
+    });
+
+    it('does not expand the equation editor without the feature', async () => {
+      render(<ExploreToolbar extras={['equations']} />, {
+        additionalWrapper: Wrapper,
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      const input = await screen.findByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+
+      expect(input.closest('[data-expanded="true"]')).toBeNull();
+    });
   });
 
   it('disables compare queries when only one chart is available', async () => {

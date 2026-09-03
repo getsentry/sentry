@@ -32,6 +32,24 @@ function SearchBarStub({
   );
 }
 
+function EquationBuilderStub({
+  children,
+  ...inputProps
+}: {
+  children?: React.ReactNode;
+} & React.ComponentProps<'input'>) {
+  return (
+    <ExpandableFilterSearchBar>
+      <div data-test-id="arithmetic-builder">
+        <div role="row" tabIndex={-1}>
+          <input data-test-id="arithmetic-builder-input" {...inputProps} />
+        </div>
+        {children}
+      </div>
+    </ExpandableFilterSearchBar>
+  );
+}
+
 function isExpanded(input: HTMLElement) {
   return Boolean(input.closest('[data-expanded="true"]'));
 }
@@ -46,6 +64,20 @@ describe('ExpandableFilterSearchBar', () => {
     expect(isExpanded(input)).toBe(true);
     expect(input).toHaveFocus();
     expect(input).toHaveProperty('selectionStart', 'span.op:db'.length);
+  });
+
+  it('expands the equation builder and puts the caret at the end of the query', async () => {
+    render(<EquationBuilderStub defaultValue="avg_if(span.duration,span.op,db)" />);
+
+    const input = screen.getByTestId('arithmetic-builder-input');
+    await userEvent.click(input);
+
+    expect(isExpanded(input)).toBe(true);
+    expect(input).toHaveFocus();
+    expect(input).toHaveProperty(
+      'selectionStart',
+      'avg_if(span.duration,span.op,db)'.length
+    );
   });
 
   it('collapses on Enter when no suggestion menu is open', async () => {

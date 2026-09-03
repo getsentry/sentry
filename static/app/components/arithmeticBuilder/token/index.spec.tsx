@@ -2,6 +2,7 @@ import type {Dispatch} from 'react';
 import {useCallback} from 'react';
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -18,7 +19,8 @@ import {
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
+import {FieldKind, getExploreEquationFieldDefinition} from 'sentry/utils/fields';
 
 const aggregations = ['avg', 'avg_if', 'sum', 'epm', 'count', 'count_unique', 'count_if'];
 
@@ -28,14 +30,6 @@ const functionArguments = [
   {name: 'span.op', kind: FieldKind.TAG},
   {name: 'span.description', kind: FieldKind.TAG},
 ];
-
-const getSpanFieldDefinition = (key: string) => {
-  const argument = functionArguments.find(
-    functionArgument => functionArgument.name === key
-  );
-
-  return getFieldDefinition(key, 'span', argument?.kind);
-};
 
 const getSuggestedKey = (key: string) => {
   switch (key) {
@@ -52,10 +46,17 @@ const getSuggestedKey = (key: string) => {
 interface TokensProp {
   expression: string;
   dispatch?: Dispatch<ArithmeticBuilderAction>;
+  getFilterTagValues?: GetTagValues;
+  /**
+   * Mirrors `explore-conditional-aggregates`. Defaults to on so EAP filter-first
+   * coverage stays the default; Discover 3/4-arg `_if` tests pass `false`.
+   */
+  hasConditionalAggregates?: boolean;
   references?: Set<string>;
 }
 
 function Tokens(props: TokensProp) {
+  const hasConditionalAggregates = props.hasConditionalAggregates ?? true;
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: props.expression,
     references: props.references,
@@ -69,6 +70,22 @@ function Tokens(props: TokensProp) {
     [dispatch, props]
   );
 
+  const getSpanFieldDefinition = useCallback(
+    (key: string, attributeTexts?: readonly string[]) => {
+      const argument = functionArguments.find(
+        functionArgument => functionArgument.name === key
+      );
+
+      return getExploreEquationFieldDefinition(
+        key,
+        argument?.kind,
+        hasConditionalAggregates,
+        attributeTexts
+      );
+    },
+    [hasConditionalAggregates]
+  );
+
   return (
     <ArithmeticBuilderContext
       value={{
@@ -77,6 +94,7 @@ function Tokens(props: TokensProp) {
         aggregations,
         functionArguments,
         getFieldDefinition: getSpanFieldDefinition,
+        getFilterTagValues: props.getFilterTagValues,
         getSuggestedKey,
         references: props.references,
       }}
@@ -95,6 +113,13 @@ function getLastInput() {
 }
 
 describe('token', () => {
+  it('focuses the last input when clicking empty space in the field', async () => {
+    render(<Tokens expression="avg_if(span.duration,span.op,db)" />);
+
+    await userEvent.click(screen.getByRole('grid', {name: 'Enter an equation'}));
+
+    expect(getLastInput()).toHaveFocus();
+  });
   describe('ArithmeticTokenFreeText', () => {
     it('renders default place holder', async () => {
       render(<Tokens expression="" />);
@@ -161,7 +186,7 @@ describe('token', () => {
     });
 
     it('fills in every argument when selecting avg_if', async () => {
-      render(<Tokens expression="" />);
+      render(<Tokens expression="" hasConditionalAggregates={false} />);
 
       const input = screen.getByRole('combobox', {name: 'Add a term'});
 
@@ -172,6 +197,22 @@ describe('token', () => {
       expect(
         await screen.findByRole('row', {
           name: 'avg_if(span.duration,span.op,equals,db)',
+        })
+      ).toBeInTheDocument();
+    });
+
+    it('fills in filter-first arguments when selecting avg_if with the feature', async () => {
+      render(<Tokens expression="" />);
+
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
+
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg_if');
+      await userEvent.click(screen.getByRole('option', {name: 'avg_if'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
         })
       ).toBeInTheDocument();
     });
@@ -854,8 +895,564 @@ describe('token', () => {
       await waitFor(() => {
         expect(thirdArg).toHaveFocus();
       });
-      await userEvent.keyboard('db');
+      await userEvent.clear(thirdArg);
+      await userEvent.type(thirdArg, 'db');
       expect(thirdArg).toHaveValue('db');
+    });
+
+    it('keeps filter text when focusing an _if filter argument', async () => {
+      render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+      expect(filterArg).toHaveValue('span.op:db');
+
+      await userEvent.click(filterArg);
+      expect(filterArg).toHaveValue('span.op:db');
+    });
+
+    it('autocompletes attribute keys in an _if filter argument', async () => {
+      render(<Tokens expression="avg_if(``,span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op');
+      expect(screen.getByRole('option', {name: 'span.op:'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.op:'}));
+
+      expect(filterArg).toHaveValue('span.op:');
+      expect(filterArg).toHaveFocus();
+      // Caret must sit after the colon so value suggestions kick in (Chrome used to
+      // reset this when focus returned from the listbox).
+      expect(filterArg).toHaveProperty('selectionStart', 'span.op:'.length);
+      expect(filterArg).toHaveProperty('selectionEnd', 'span.op:'.length);
+    });
+
+    it('switches to value suggestions after selecting a filter key', async () => {
+      const getFilterTagValues = jest.fn().mockResolvedValue([{value: 'db'}]);
+
+      render(
+        <Tokens
+          expression="avg_if(``,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op');
+      await userEvent.click(screen.getByRole('option', {name: 'span.op:'}));
+
+      expect(filterArg).toHaveValue('span.op:');
+      await waitFor(() => {
+        expect(getFilterTagValues).toHaveBeenCalled();
+      });
+      expect(await screen.findByRole('option', {name: 'db'})).toBeInTheDocument();
+    });
+
+    it('autocompletes tag values in an _if filter argument', async () => {
+      const getFilterTagValues = jest.fn(({tag, searchQuery}) => {
+        if (tag.key === 'span.op') {
+          return Promise.resolve(
+            [{value: 'db'}, {value: 'http'}].filter(
+              item => !searchQuery || item.value.includes(searchQuery)
+            )
+          );
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <Tokens
+          expression="avg_if(``,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:');
+
+      await waitFor(() => {
+        expect(getFilterTagValues).toHaveBeenCalled();
+      });
+      expect(await screen.findByRole('option', {name: 'db'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'db'}));
+
+      expect(filterArg).toHaveValue('span.op:db');
+      expect(filterArg).toHaveFocus();
+      await waitFor(() => {
+        expect(screen.queryByRole('option')).not.toBeInTheDocument();
+      });
+    });
+
+    it('continues value autocomplete inside an unclosed quoted value', async () => {
+      const getFilterTagValues = jest.fn(({searchQuery}) => {
+        return Promise.resolve(
+          [{value: 'hello world'}, {value: 'hello there'}].filter(
+            item => !searchQuery || item.value.includes(searchQuery)
+          )
+        );
+      });
+
+      render(
+        <Tokens
+          expression="avg_if(``,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.description:"hello ');
+
+      await waitFor(() => {
+        expect(getFilterTagValues).toHaveBeenCalledWith(
+          expect.objectContaining({searchQuery: 'hello '})
+        );
+      });
+      expect(
+        await screen.findByRole('option', {name: 'hello world'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'hello world'}));
+      expect(filterArg).toHaveValue('span.description:"hello world"');
+    });
+
+    it('shows key autocomplete after a completed value and trailing space', async () => {
+      const getFilterTagValues = jest.fn().mockResolvedValue([{value: 'db'}]);
+
+      render(
+        <Tokens
+          expression="avg_if(``,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:db ');
+
+      expect(
+        await screen.findByRole('option', {name: 'span.description:'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'db'})).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.description:'}));
+      expect(filterArg).toHaveValue('span.op:db span.description:');
+    });
+
+    it('autocompletes keys after a boolean operator in a compound filter', async () => {
+      render(<Tokens expression="avg_if(``,span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:db and ');
+
+      expect(
+        await screen.findByRole('option', {name: 'span.description:'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.description:'}));
+
+      expect(filterArg).toHaveValue('span.op:db and span.description:');
+    });
+
+    it('does not show a values dropdown when there are no matching values', async () => {
+      const getFilterTagValues = jest.fn().mockResolvedValue([]);
+
+      render(
+        <Tokens
+          expression="avg_if(``,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.description');
+      expect(screen.getByRole('option', {name: 'span.description:'})).toBeInTheDocument();
+
+      await userEvent.type(filterArg, ':');
+      await waitFor(() => {
+        expect(getFilterTagValues).toHaveBeenCalled();
+        expect(screen.queryByRole('option')).not.toBeInTheDocument();
+      });
+      expect(screen.queryByText('No options found')).not.toBeInTheDocument();
+    });
+
+    it('shows filter key suggestions when editing an existing _if filter', async () => {
+      const getFilterTagValues = jest.fn().mockResolvedValue([{value: 'db'}]);
+
+      render(
+        <Tokens
+          expression="avg_if(`span.op:db`,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      (filterArg as HTMLInputElement).setSelectionRange(0, 0);
+      fireEvent.keyUp(filterArg, {key: 'ArrowLeft', code: 'ArrowLeft'});
+      await waitFor(() => {
+        expect(screen.getByRole('option', {name: 'span.op:'})).toBeInTheDocument();
+      });
+      expect(screen.queryByRole('option', {name: 'db'})).not.toBeInTheDocument();
+    });
+
+    it('shows filter value suggestions when the cursor is after the colon', async () => {
+      const getFilterTagValues = jest.fn().mockResolvedValue([{value: 'db'}]);
+
+      render(
+        <Tokens
+          expression="avg_if(`span.op:db`,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      (filterArg as HTMLInputElement).setSelectionRange(9, 9);
+      fireEvent.keyUp(filterArg, {key: 'ArrowLeft', code: 'ArrowLeft'});
+
+      await waitFor(() => {
+        expect(getFilterTagValues).toHaveBeenCalled();
+      });
+      expect(await screen.findByRole('option', {name: 'db'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'span.op:'})).not.toBeInTheDocument();
+    });
+
+    it('does not open filter autocomplete when clicking the function name', async () => {
+      const getFilterTagValues = jest.fn().mockResolvedValue([{value: 'db'}]);
+
+      render(
+        <Tokens
+          expression="avg_if(`span.op:db`,span.duration)"
+          getFilterTagValues={getFilterTagValues}
+        />
+      );
+
+      const functionRow = await screen.findByRole('row', {
+        name: 'avg_if(`span.op:db`,span.duration)',
+      });
+
+      await userEvent.click(within(functionRow).getByText('avg_if'));
+
+      expect(
+        within(functionRow).getByRole('combobox', {name: 'Add a filter'})
+      ).not.toHaveFocus();
+      expect(screen.queryByRole('option', {name: 'span.op:'})).not.toBeInTheDocument();
+    });
+
+    it('renders filter-first avg_if arguments and allows navigating between them', async () => {
+      render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const args = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).queryAllByRole('gridcell');
+
+      expect(args).toHaveLength(2);
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+      // Filter args are shown without backticks; wrapping is applied on commit.
+      expect(filterArg).toHaveValue('span.op:db');
+
+      const columnArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Select an attribute'});
+      expect(columnArg).toHaveAttribute('placeholder', 'span.duration');
+
+      await userEvent.click(columnArg);
+      await userEvent.type(columnArg, 'span.self_time');
+      expect(screen.getByRole('option', {name: 'span.self_time'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
+
+      await waitFor(() => {
+        expect(getLastInput()).toHaveFocus();
+      });
+      expect(
+        screen.queryByRole('option', {name: 'span.self_time'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('commits _if filter on blur when leaving the equation', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="avg_if(``,span.duration)" dispatch={dispatch} />);
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(``,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:db');
+      await userEvent.click(getLastInput());
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(`span.op:db`,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('clears _if filter on blur when the filter input is emptied', async () => {
+      const dispatch = jest.fn();
+      render(
+        <Tokens expression="avg_if(`span.op:db`,span.duration)" dispatch={dispatch} />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.clear(filterArg);
+      await userEvent.click(getLastInput());
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(``,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('clears _if filter on Enter when the filter input is emptied', async () => {
+      const dispatch = jest.fn();
+      render(
+        <Tokens expression="avg_if(`span.op:db`,span.duration)" dispatch={dispatch} />
+      );
+
+      expect(
+        await screen.findByRole('row', {
+          name: 'avg_if(`span.op:db`,span.duration)',
+        })
+      ).toBeInTheDocument();
+
+      const filterArg = within(
+        screen.getByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await userEvent.clear(filterArg);
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(``,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('does not delete the function when Backspace clears a selected filter', async () => {
+      const dispatch = jest.fn();
+      render(
+        <Tokens expression="avg_if(`span.op:db`,span.duration)" dispatch={dispatch} />
+      );
+
+      const filterArg = within(
+        await screen.findByRole('grid', {name: 'Enter arguments'})
+      ).getByRole('combobox', {name: 'Add a filter'});
+
+      await userEvent.click(filterArg);
+      await waitFor(() => {
+        expect(filterArg).toHaveValue('span.op:db');
+      });
+      const filterInput = filterArg as HTMLInputElement;
+      filterInput.setSelectionRange(0, filterInput.value.length);
+      await userEvent.keyboard('{Backspace}');
+
+      expect(
+        screen.getByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
+      ).toBeInTheDocument();
+      expect(dispatch).not.toHaveBeenCalledWith(
+        expect.objectContaining({type: 'DELETE_TOKEN'})
+      );
+    });
+
+    it('does not rewrite the function when moving from filter to another argument', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="avg_if(``,span.duration)" dispatch={dispatch} />);
+
+      const argsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+      const filterArg = within(argsGrid).getByRole('combobox', {name: 'Add a filter'});
+      const columnArg = within(argsGrid).getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:db');
+      await userEvent.click(columnArg);
+
+      await waitFor(() => {
+        expect(columnArg).toHaveFocus();
+      });
+      expect(dispatch).not.toHaveBeenCalledWith(
+        expect.objectContaining({type: 'REPLACE_TOKEN'})
+      );
+    });
+
+    it('flushes pending filter edits when leaving the arguments grid', async () => {
+      const dispatch = jest.fn();
+      render(<Tokens expression="avg_if(``,span.duration)" dispatch={dispatch} />);
+
+      const argsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+      const filterArg = within(argsGrid).getByRole('combobox', {name: 'Add a filter'});
+      const columnArg = within(argsGrid).getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+
+      await userEvent.click(filterArg);
+      await userEvent.type(filterArg, 'span.op:db');
+      await userEvent.click(columnArg);
+      await waitFor(() => {
+        expect(columnArg).toHaveFocus();
+      });
+      await userEvent.click(getLastInput());
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: 'REPLACE_TOKEN',
+            text: 'avg_if(`span.op:db`,span.duration)',
+          })
+        );
+      });
+    });
+
+    it('keeps Discover-style avg_if arguments editable when the feature is on', async () => {
+      render(<Tokens expression="avg_if(span.duration,span.op,equals,queue.process)" />);
+
+      const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+
+      expect(
+        within(argumentsGrid).queryByRole('combobox', {name: 'Add a filter'})
+      ).not.toBeInTheDocument();
+
+      const [numberArg, stringArg] = within(argumentsGrid).getAllByRole('combobox', {
+        name: 'Select an attribute',
+      });
+      expect(numberArg).toHaveValue('span.duration');
+      expect(stringArg).toHaveValue('span.op');
+      expect(
+        within(argumentsGrid).getByRole('combobox', {name: 'Select an option'})
+      ).toBeInTheDocument();
+      expect(
+        within(argumentsGrid).getByRole('textbox', {name: 'Add a value'})
+      ).toHaveValue('queue.process');
     });
 
     it('suggests attributes for each argument of avg_if', async () => {
@@ -892,6 +1489,27 @@ describe('token', () => {
       ]);
 
       expect(valueArg).toHaveValue('queue.process');
+    });
+
+    it('suggests column attributes for filter-first avg_if', async () => {
+      render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
+
+      const argumentsGrid = await screen.findByRole('grid', {name: 'Enter arguments'});
+
+      const filterArg = within(argumentsGrid).getByRole('combobox', {
+        name: 'Add a filter',
+      });
+      const columnArg = within(argumentsGrid).getByRole('combobox', {
+        name: 'Select an attribute',
+      });
+
+      expect(filterArg).toHaveValue('span.op:db');
+
+      await userEvent.click(columnArg);
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'span.duration',
+        'span.self_time',
+      ]);
     });
   });
 
@@ -945,6 +1563,41 @@ describe('token', () => {
     });
 
     expect(screen.queryByRole('option', {name: 'span.op'})).not.toBeInTheDocument();
+  });
+
+  it('shifts focus between filter-first avg_if args correctly', async () => {
+    render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
+
+    expect(
+      await screen.findByRole('row', {
+        name: 'avg_if(`span.op:db`,span.duration)',
+      })
+    ).toBeInTheDocument();
+
+    const argsGrid = screen.getByRole('grid', {name: 'Enter arguments'});
+    expect(within(argsGrid).queryAllByRole('gridcell')).toHaveLength(2);
+
+    const filterArg = within(argsGrid).getByRole('combobox', {
+      name: 'Add a filter',
+    });
+    const columnArg = within(argsGrid).getByRole('combobox', {
+      name: 'Select an attribute',
+    });
+
+    await userEvent.click(filterArg);
+    await waitFor(() => {
+      expect(filterArg).toHaveFocus();
+    });
+
+    await userEvent.click(columnArg);
+    await waitFor(() => {
+      expect(columnArg).toHaveFocus();
+    });
+
+    await userEvent.click(filterArg);
+    await waitFor(() => {
+      expect(filterArg).toHaveFocus();
+    });
   });
 
   describe('ArithmeticTokenLiteral', () => {
