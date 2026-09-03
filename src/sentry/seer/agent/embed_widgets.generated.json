@@ -490,7 +490,7 @@
   },
   {
     "name": "alert",
-    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus the underlying rule configuration for metric, uptime, and cron alerts. Do not duplicate those details as text. Never use a markdown link for alert references.",
+    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. For metric, uptime, and cron alerts, always include `detectorId` from the detectors API. The alerts API can return a legacy alert rule ID as `id`, but monitor links and details require the corresponding detector ID. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus the underlying rule configuration for metric, uptime, and cron alerts. Do not duplicate those details as text. Never use a markdown link for alert references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -507,6 +507,10 @@
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "detectorId": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": ["id", "kind"],
@@ -517,6 +521,7 @@
         "label": "Metric alert",
         "data": {
           "id": "4521",
+          "detectorId": "9812",
           "kind": "metric",
           "name": "Checkout p95 latency"
         }
@@ -532,6 +537,7 @@
         "label": "Uptime alert",
         "data": {
           "id": "774",
+          "detectorId": "774",
           "kind": "uptime",
           "name": "Checkout availability"
         }
@@ -540,6 +546,7 @@
         "label": "Cron alert",
         "data": {
           "id": "9931",
+          "detectorId": "9931",
           "kind": "cron",
           "name": "nightly-sync"
         }

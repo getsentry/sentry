@@ -17,6 +17,27 @@ describe('seerEmbedsToJsonSchemas', () => {
   });
 });
 
+describe('alert embed schema', () => {
+  it('exposes detectorId for detector-backed alerts', () => {
+    const alert = seerEmbedsToJsonSchemas().find(widget => widget.name === 'alert');
+
+    expect(alert).toMatchObject({
+      description: expect.stringContaining('always include `detectorId`'),
+      body: {
+        properties: {
+          detectorId: {type: 'string'},
+        },
+      },
+    });
+  });
+
+  it('keeps detectorId optional for stored legacy embeds', () => {
+    expect(
+      SEER_EMBED_SCHEMAS.alert.schema.safeParse({id: '4521', kind: 'metric'}).success
+    ).toBe(true);
+  });
+});
+
 describe('SEER_EMBED_SCHEMAS page filters', () => {
   it('accepts numeric project IDs for spansQuery', () => {
     const parsed = SEER_EMBED_SCHEMAS.spansQuery.schema.safeParse({

@@ -368,6 +368,9 @@ export const SEER_EMBED_SCHEMAS = {
       'Use `id` exactly as the alerts API returns it, and set `kind` to match: ' +
       '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
       'uptime alert, "cron" for a cron alert. ' +
+      'For metric, uptime, and cron alerts, always include `detectorId` from the ' +
+      'detectors API. The alerts API can return a legacy alert rule ID as `id`, ' +
+      'but monitor links and details require the corresponding detector ID. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: renders alert conditions and configured actions, plus the ' +
@@ -379,20 +382,37 @@ export const SEER_EMBED_SCHEMAS = {
       id: z.string().min(1),
       kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
       name: z.string().min(1).optional(),
+      // Optional so alert embeds stored before detectorId was added remain renderable.
+      detectorId: z.string().min(1).optional(),
     }),
     examples: [
       {
         label: 'Metric alert',
-        data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
+        data: {
+          id: '4521',
+          detectorId: '9812',
+          kind: 'metric',
+          name: 'Checkout p95 latency',
+        },
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
       {
         label: 'Uptime alert',
-        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+        data: {
+          id: '774',
+          detectorId: '774',
+          kind: 'uptime',
+          name: 'Checkout availability',
+        },
       },
       {
         label: 'Cron alert',
-        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+        data: {
+          id: '9931',
+          detectorId: '9931',
+          kind: 'cron',
+          name: 'nightly-sync',
+        },
       },
     ],
   },

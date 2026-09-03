@@ -14,7 +14,11 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/resourceEmbedTestUtils';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-function renderDetectorAlert(detector: Detector, kind: 'cron' | 'metric' | 'uptime') {
+function renderDetectorAlert(
+  detector: Detector,
+  kind: 'cron' | 'metric' | 'uptime',
+  alertRuleId = detector.id
+) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/detectors/${detector.id}/`,
     body: detector,
@@ -31,7 +35,7 @@ function renderDetectorAlert(detector: Detector, kind: 'cron' | 'metric' | 'upti
 
   return renderEmbed({
     name: 'alert',
-    data: {id: detector.id, kind, name: detector.name},
+    data: {id: alertRuleId, detectorId: detector.id, kind, name: detector.name},
   });
 }
 
@@ -40,10 +44,11 @@ describe('alert embed', () => {
     expect(
       getEmbedLinkHref('alert', 'Checkout latency', {
         id: '4521',
+        detectorId: '9812',
         kind: 'metric',
         name: 'Checkout latency',
       })
-    ).toBe('/organizations/org-slug/monitors/4521/');
+    ).toBe('/organizations/org-slug/monitors/9812/');
   });
 
   it('points an issue alert at its automation', () => {
@@ -104,7 +109,7 @@ describe('alert embed', () => {
       latestGroup: null,
     });
 
-    renderDetectorAlert(detector, 'metric');
+    renderDetectorAlert(detector, 'metric', 'legacy-alert-rule-id');
 
     expect(
       await screen.findByRole('link', {name: detector.name}, {timeout: 5_000})
