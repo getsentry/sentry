@@ -118,14 +118,6 @@ export default Storybook.story('Agentic Onboarding Progress', story => {
   story('Connecting an agent', () => <AgentConnectionStory />);
 });
 
-/**
- * The welcome step's own composition, driven by a toggle rather than a real
- * agent. Rendering WelcomeAgentSetup itself (not a copy of its markup) is what
- * makes this useful for the setup card to progress list transition: the card
- * swap, the box resizing between the two heights, and the manual path
- * collapsing are all the components' own, so what happens here is what happens
- * in onboarding.
- */
 function AgentConnectionStory() {
   const [isAgentConnected, setIsAgentConnected] = useState(false);
 
@@ -140,6 +132,7 @@ function AgentConnectionStory() {
             isAgentConnected={isAgentConnected}
             onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
+            onRetry={() => setIsAgentConnected(false)}
             onSetupInBrowser={() => {}}
             run={makeAgenticProgressRun({
               sequence: 3,

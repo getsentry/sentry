@@ -107,28 +107,17 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
 const MotionGrid = motion.create(Grid);
 const MotionStack = motion.create(Stack);
 
-/**
- * Stage rows settle in one after another rather than all at once, so the list
- * reads as the agent's plan being laid out. Rows are keyed by stage, so this
- * runs when a row mounts — on the list's first appearance, and again for each
- * stage the agent reports later — not on every poll.
- */
 const STAGE_LIST_STAGGER_TRANSITION: MotionProps['transition'] = {
   staggerChildren: 0.03,
   delayChildren: 0.04,
 };
 
-// Transform and opacity only: the row's height stays put, so the card's own
-// resize is not fighting the rows arriving.
 const STAGE_ITEM_VARIANTS: MotionProps['variants'] = {
   initial: {opacity: 0, y: 12},
   animate: {
     opacity: 1,
     y: 0,
     transition: {
-      // `bounce` is how far the row overshoots before settling: 0 stops dead,
-      // 1 wobbles. Only the travel springs — a spring on opacity overshoots
-      // past full, which reads as a flicker rather than a bounce.
       y: {type: 'spring', duration: 0.3, bounce: 0.35},
       opacity: {duration: 0.12, ease: 'easeOut'},
     },
@@ -295,11 +284,6 @@ export function AgenticProgressList({
   extraContentByStage?: Partial<Record<AgenticProgressStage, React.ReactNode>>;
   header?: React.ReactNode;
 }) {
-  // An enclosing AnimatePresence with `initial={false}` puts `initial: false` on
-  // PresenceContext, which blocks the mount animation of every motion component
-  // beneath it — so the stagger silently vanishes whenever the list is already
-  // on screen at first paint. Flipping the label after mount makes it an
-  // ordinary animate change, which nothing upstream suppresses.
   const [hasEntered, setHasEntered] = useState(false);
   useEffect(() => {
     setHasEntered(true);
@@ -333,10 +317,6 @@ export function AgenticProgressList({
   );
 }
 
-/**
- * Run metadata. It sits below the card rather than inside it: the card is the
- * list of stages, and this is a caption on the run as a whole.
- */
 function AgenticProgressMeta({
   isComplete,
   onboardingCode,
@@ -346,15 +326,11 @@ function AgenticProgressMeta({
   onboardingCode: string | undefined;
   updatedAt: string;
 }) {
-  // Nothing left to caption once the run is done: the timestamp was there to
-  // show the stream was live, and the dot to show it was still arriving.
   if (isComplete && !onboardingCode) {
     return null;
   }
 
   return (
-    // The id holds the right edge in both states, so it does not jump across
-    // when the timestamp beside it goes away.
     <Flex align="center" justify={isComplete ? 'end' : 'between'} gap="md">
       {isComplete ? null : (
         <Flex align="center" gap="sm">
@@ -452,13 +428,8 @@ export function AgenticProgress({
   const firstIssueId = verificationStage?.extra?.issueIds?.[0];
   const isComplete = run.runStatus === 'completed';
 
-  // The metadata is bundled with the list rather than left to each caller, so
-  // anything rendering a run — the welcome step, the stories — gets both.
   return (
     <Stack width="100%" gap="md">
-      {/* popLayout takes the outgoing list out of flow so the summary occupies
-          the slot while the two cross-fade, leaving the caller's own layout
-          animation to tween the height the collapse frees up. */}
       <AnimatePresence initial={false} mode="popLayout">
         {isComplete ? (
           <MotionContainer
@@ -490,8 +461,6 @@ export function AgenticProgress({
         )}
       </AnimatePresence>
       {isComplete && firstIssueId ? (
-        // Delayed past the collapse so the issue arrives as the next thing to
-        // look at rather than as part of the swap.
         <MotionContainer
           width="100%"
           initial={{opacity: 0, y: 8}}
