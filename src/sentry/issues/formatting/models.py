@@ -40,6 +40,12 @@ def _drop_filtered(value: Any) -> Any:
     return kept_entries or _DROP
 
 
+def drop_scrubbed(value: Any) -> Any | None:
+    """``_drop_filtered`` for callers outside this module: ``None`` when nothing survives."""
+    cleaned = _drop_filtered(value)
+    return None if cleaned is _DROP else cleaned
+
+
 class Frame(BaseModel):
     # accept the serialized camelCase keys (absPath, lineNo, ...) via aliases,
     # while still allowing snake_case construction in-code

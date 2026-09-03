@@ -20,7 +20,7 @@ from sentry.issues.formatting.models import (
     Stacktrace,
     ThreadDetails,
     UserDetails,
-    contains_filtered,
+    drop_scrubbed,
 )
 from sentry.utils import json
 
@@ -188,14 +188,23 @@ def _extra(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     """The response's ``context``: the ``extra`` data a customer's instrumentation attached.
 
     Distinct from ``contexts``, which is Sentry's own structured device/os/runtime data. Values
-    are arbitrary, so containers are serialized rather than str()'d, and scrubbed values are
-    dropped the way the breadcrumb and feedback paths drop theirs.
+    are arbitrary, so containers are serialized rather than str()'d.
+
+    ``context`` is typed as a mapping but arrives unvalidated, and the adapter runs before any
+    section: raising here would take down the whole render rather than this one block, which is
+    the same trap ``_contexts`` guards against.
     """
+    context = data.get("context")
+    if not isinstance(context, Mapping):
+        return []
+
     pairs: list[tuple[str, str]] = []
-    for key, value in (data.get("context") or {}).items():
-        if not key or value is None or contains_filtered(value):
+    for key, value in context.items():
+        # scrub per leaf rather than per entry, so one filtered key does not drop its siblings
+        cleaned = drop_scrubbed(value)
+        if not key or cleaned is None:
             continue
-        rendered = value if isinstance(value, str) else json.dumps(value)
+        rendered = cleaned if isinstance(cleaned, str) else json.dumps(cleaned)
         pairs.append((str(key), rendered))
     return pairs
 

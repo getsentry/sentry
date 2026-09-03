@@ -503,3 +503,18 @@ def test_extra_is_held_back_from_the_default_sections() -> None:
     event = _event_with_extra(shardId=7)
     assert "Extra Data" not in format_issue(event)
     assert "Extra Data" in format_issue(event, sections=EVENT_SECTIONS_WITH_USER)
+
+
+def test_extra_scrubs_per_leaf_not_per_entry() -> None:
+    # one filtered key must not take its siblings with it
+    model = event_response_to_model(_event_with_extra(cfg={"token": "[Filtered]", "region": "us"}))
+    assert model.extra == [("cfg", '{"region":"us"}')]
+
+
+def test_extra_survives_a_malformed_context() -> None:
+    # the adapter runs before any section, so raising here would render the whole event as ""
+    for bad in ("a string", ["a", "list"], 7):
+        data: dict[str, Any] = {"title": "ValueError: x", "context": bad}
+        out = format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
+        assert "ValueError: x" in out, f"context={bad!r} sank the render"
+        assert "Extra Data" not in out
