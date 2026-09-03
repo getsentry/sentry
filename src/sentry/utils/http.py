@@ -29,6 +29,11 @@ KNOWN_MCP_CLIENT_FAMILIES = frozenset(
 )
 MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
 
+# Header Seer sets on the API calls it makes on a user's behalf. Shared so that
+# every caller-attribution site keys off the same signal (see `sentry.api.client_kind`
+# and `sentry.issues.action_log`).
+SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
+
 
 class ParsedUriMatch(NamedTuple):
     scheme: str
