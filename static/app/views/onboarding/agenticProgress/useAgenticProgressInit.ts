@@ -84,11 +84,6 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
   return query;
 }
 
-/**
- * Abandons the current run for a fresh one. A terminal run takes no further
- * updates, so recovering from a failure needs a new client run id — a new cache
- * identity, and so a new POST — and a new code for the user to hand their agent.
- */
 export function useRestartAgenticRun() {
   const {setAgenticProgressClientRunId, setAgenticProgressOnboardingCode} =
     useOnboardingContext();

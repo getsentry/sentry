@@ -18,10 +18,6 @@ interface AgentInfoProps {
   onboardingCode?: string;
 }
 
-/**
- * What the agent is about to do, and what it reports back. Kept behind a
- * hovercard so the setup card stays short for the people who do not need to ask.
- */
 export function AgentInfo({onboardingCode}: AgentInfoProps) {
   return (
     <Hovercard

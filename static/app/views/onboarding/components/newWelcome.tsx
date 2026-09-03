@@ -123,10 +123,6 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
 ];
 
-/**
- * The headline follows the run once an agent has it: its status while it works,
- * what to do next when it finishes, and how to carry on when it does not.
- */
 function getAgentHeading({
   hasRunFailed,
   isSetupComplete,
@@ -167,10 +163,6 @@ export function NewWelcomeUI(props: StepProps) {
     reportExposure: false,
   });
   const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
-  // The agent experience opens on the setup card itself. The product list is an
-  // interstitial for the paths that still end in a "get started" click, and
-  // WelcomeAgentSetup initializes the agentic run as soon as it mounts — so
-  // there is no separate preload to run first.
   const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
   const {
     run,

@@ -22,17 +22,8 @@ import {ManualSetupCard} from 'sentry/views/onboarding/components/manualSetupCar
 
 const MotionContainer = motion.create(Container);
 
-/**
- * Shared by the card swap so the box resizing and the contents cross-fading
- * finish together, which is what sells them as one card rather than two.
- */
 const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 
-/**
- * Owns the welcome step's agentic run. useAgenticProgressInit keys its query on
- * a per-hook id until the onboarding context catches up, so exactly one caller
- * may run it — the step reads the run here and hands it down.
- */
 export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
   const initialization = useAgenticProgressInit({enabled});
   const restartRun = useRestartAgenticRun();
@@ -44,9 +35,6 @@ export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
   const connectionStatus = liveRun?.stages.find(
     stage => stage.stage === 'connect_mcp'
   )?.status;
-  // A failed connection is a report, but not a connection. Every other status
-  // means the agent reached us: connect_mcp is not optional, so it is never
-  // skipped, and the backend infers `bypassed` from later stages arriving.
   const liveIsConnected =
     connectionStatus !== null &&
     connectionStatus !== undefined &&
@@ -63,29 +51,17 @@ export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
 }
 
 interface WelcomeAgentSetupProps {
-  /**
-   * Whether an agent has reported in. Drives the swap to the run's progress.
-   */
   isAgentConnected: boolean;
   /**
    * Fired when a command is copied out of one of the code blocks.
    */
   onCopyCommand: (source: AgentSetupCopySource) => void;
-  /**
-   * Abandons a failed run for a fresh one, with a new code to hand the agent.
-   */
   onRetry: () => void;
   /**
    * Leaves the agent path and continues into the step-by-step browser flow.
    */
   onSetupInBrowser: () => void;
-  /**
-   * The step's agentic run, once initialization has returned one.
-   */
   run: AgenticProgressRun | undefined;
-  /**
-   * The code the agent reports progress against, shown in the copied prompt.
-   */
   onboardingCode?: string;
 }
 
@@ -98,14 +74,8 @@ export function WelcomeAgentSetup({
   run,
 }: WelcomeAgentSetupProps) {
   const organization = useOrganization();
-  // Once an agent reports in, the run's progress is the whole step. Offering the
-  // manual path alongside it would be offering a choice already made — until the
-  // run fails, at which point the choice is open again and the step needs a way
-  // forward. The progress stays up either way, since it shows what went wrong.
   const showsProgress = Boolean(run) && isAgentConnected;
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
-  // Built as separate lines rather than one sentence: the code block renders
-  // with `white-space: pre-wrap`, so the breaks survive into what gets copied.
   const prompt = onboardingCode
     ? [
         t('Help me setup Sentry'),
@@ -116,11 +86,6 @@ export function WelcomeAgentSetup({
 
   return (
     <Stack gap="2xl" width="100%" position="relative" align="center">
-      {/* Both states occupy one slot inside a box that animates its own height,
-          so the setup card grows into the progress list instead of being
-          swapped for it. popLayout lifts the outgoing card out of flow, letting
-          the incoming one take the slot while the two cross-fade in place —
-          their borders line up, so what reads is a single card changing. */}
       <MotionContainer
         layout
         width="100%"
@@ -160,16 +125,12 @@ export function WelcomeAgentSetup({
         </AnimatePresence>
       </MotionContainer>
 
-      {/* A terminal run cannot be resumed, so retrying starts a fresh one and
-          returns the step to the setup card with a new code to hand the agent. */}
       <ScmCollapsibleReveal open={hasRunFailed}>
         <Button variant="primary" onClick={onRetry}>
           {t('Try again')}
         </Button>
       </ScmCollapsibleReveal>
 
-      {/* Collapsing the height rather than just fading keeps the card above from
-          jumping into the vacated space. */}
       <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
         <Stack gap="2xl" align="center" width="100%">
           <Text variant="muted" size="md" bold uppercase>

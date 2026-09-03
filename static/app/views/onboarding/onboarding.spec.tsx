@@ -695,11 +695,8 @@ describe('Onboarding', () => {
       expect(
         screen.getByRole('button', {name: /Set up manually instead/})
       ).toBeInTheDocument();
-      // The product list and its "get started" button belong to the paths that
-      // still show an interstitial.
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
-      // Capabilities live behind the hovercard, so they stay hidden until hover.
       expect(
         screen.queryByText('Detect your framework and language')
       ).not.toBeInTheDocument();
@@ -724,7 +721,6 @@ describe('Onboarding', () => {
       act(resolveAgenticRunRequest);
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
-      // The manual path and its divider give way to the run's progress.
       expect(
         screen.queryByRole('button', {name: /Set up manually instead/})
       ).not.toBeInTheDocument();

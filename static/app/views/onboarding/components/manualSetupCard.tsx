@@ -47,11 +47,6 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
   );
 }
 
-/**
- * The whole card is the click target, and ScmCardButton strips the browser's
- * button chrome without putting anything back — so the card's own border picks
- * up the hover cue.
- */
 const CardButton = styled(ScmCardButton)`
   width: 100%;
 `;
