@@ -14,15 +14,13 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const DEFAULT_PARALLEL_LIMIT = 20;
+const PARALLEL_LIMIT_ERROR = 'Parallel limit must be at least 1';
 
 const schema = z.object({
   dashboardsAsyncQueueParallelLimit: z
     .number()
     .nullable()
-    .refine(
-      value => value !== null && value >= 1,
-      'Parallel limit must be at least 1'
-    ),
+    .pipe(z.number({error: PARALLEL_LIMIT_ERROR}).min(1, PARALLEL_LIMIT_ERROR)),
 });
 
 interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
@@ -67,8 +65,7 @@ function ChangeDashboardsParallelLimitModal({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: ({value}) =>
-      mutation.mutateAsync(schema.parse(value)).catch(() => {}),
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (
