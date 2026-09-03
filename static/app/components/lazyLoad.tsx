@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
+import {InitialLoadingIndicator} from 'sentry/components/initialLoadingIndicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -62,11 +63,17 @@ export function LazyLoad<C extends React.LazyExoticComponent<any>>({
       <Suspense
         fallback={
           loadingFallback ?? (
-            <Flex flex="1" align="center" column="1 / -1">
-              <DeferredLoader fallback={<LoadingIndicator style={{display: 'none'}} />}>
-                <LoadingIndicator />
-              </DeferredLoader>
-            </Flex>
+            <InitialLoadingIndicator
+              fallback={
+                <Flex flex="1" align="center" column="1 / -1">
+                  <DeferredLoader
+                    fallback={<LoadingIndicator style={{display: 'none'}} />}
+                  >
+                    <LoadingIndicator />
+                  </DeferredLoader>
+                </Flex>
+              }
+            />
           )
         }
       >

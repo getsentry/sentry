@@ -467,6 +467,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // Invalidate any in-flight region probe from the previous search.
     this.probeToken += 1;
 
+    // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
     this.setState(
       {
         cursor: extractQuery(cursor),

@@ -43,7 +43,7 @@ export function OrganizationAuth({
         name: organization.name,
       } as const);
   const description = provider
-    ? tct('Members log in with [icon] [provider]', {
+    ? tct('Members sign in with [icon] [provider]', {
         icon: <InlineIdentityIcon providerId={provider.key} />,
         provider: provider.name,
       })
