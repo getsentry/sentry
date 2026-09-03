@@ -79,12 +79,6 @@ export const sortInterfaceKeys = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function compare(left: SortableMember, right: SortableMember): number {
-      const leftIsIndexSignature = left.type === AST_NODE_TYPES.TSIndexSignature;
-      const rightIsIndexSignature = right.type === AST_NODE_TYPES.TSIndexSignature;
-      if (leftIsIndexSignature !== rightIsIndexSignature) {
-        return leftIsIndexSignature ? 1 : -1;
-      }
-
       if (options.requiredFirst && isOptional(left) !== isOptional(right)) {
         return isOptional(left) ? 1 : -1;
       }
@@ -96,7 +90,9 @@ export const sortInterfaceKeys = ESLintUtils.RuleCreator.withoutDocs({
       }
       const [firstName, secondName] =
         direction === 'asc' ? [leftName, rightName] : [rightName, leftName];
-      return compareNames(firstName, secondName);
+      const firstWeight = firstName.startsWith('[index:') ? 100 : 0;
+      const secondWeight = secondName.startsWith('[index:') ? 100 : 0;
+      return compareNames(firstName, secondName) - firstWeight + secondWeight;
     }
 
     function checkMembers(
