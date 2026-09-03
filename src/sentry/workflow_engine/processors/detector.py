@@ -51,12 +51,15 @@ def get_all_projects_detector(organization_id: int) -> Detector | None:
             metrics_tags["detector_found"] = "true" if cached is not None else "false"
             return cached
         try:
-            result = Detector.objects.get(
+            result = Detector.objects.get_or_none(
                 project__isnull=True,
                 type=IssueStreamGroupType.slug,
                 config__organization_id=organization_id,
             )
-        except (Detector.DoesNotExist, Detector.MultipleObjectsReturned):
+        except Detector.MultipleObjectsReturned:
+            logger.exception(
+                "get_all_projects_detector.many_exist", extra={"organization_id": organization_id}
+            )
             result = None
         metrics_tags["cache_hit"] = "false"
         metrics_tags["detector_found"] = "true" if result is not None else "false"
