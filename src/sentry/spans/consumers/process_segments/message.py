@@ -83,6 +83,8 @@ EVIDENCE_SPAN_DATA_KEYS = frozenset(
         "http.request.request_start",
         "http.request.response_start",
         "http.response_content_length",
+        "sentry.category",
+        "sentry.group",
         "url",
     )
 )
@@ -581,6 +583,13 @@ def _get_evidence_span_for_occurrence(span: dict[str, Any]) -> dict[str, Any]:
         for key, value in (span.get("data") or {}).items()
         if key in EVIDENCE_SPAN_DATA_KEYS
     }
+
+    # The span's `hash` value is used in the FE for the Span Evidence and Grouping Info sections of
+    # the issue details page, but gets dropped during normalization. Transaction-based spans
+    # calculate it and add it in post-normalization, so that doesn't matter, but for segment-based
+    # spans normalization happens after hash calculation, meaning the value will be lost unless we
+    # store it somewhere which survives normalization.
+    filtered_data["hash"] = span.get("hash")
 
     return {
         "span_id": span["span_id"],

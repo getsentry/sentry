@@ -205,13 +205,11 @@ def adapt_response(presp: punkreq.Response) -> Any:
     return response.stream(presp.iter_raw(CHUNK_SIZE))
 
 
-async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = None) -> Any:
-    target_url = build_proxied_url(get_cell_address(cell), request.path)
-    headers = build_proxied_cell_headers(request, cell.address)
-    timeout = timeout or app.config.proxy.timeout
-
+async def proxy_request(
+    request: Any, target_label: str, target_url: str, headers: Any, timeout: Any = None
+) -> Any:
     try:
-        async with circuitbreakers.get(cell.name) as circuitbreaker:
+        async with circuitbreakers.get(target_label) as circuitbreaker:
             try:
                 req = build_proxied_request(
                     proxy_client,
@@ -222,64 +220,45 @@ async def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = N
                     content=request.body,
                     timeout=timeout,
                 )
-                ProxyLatencyPipe.track(cell.name)
+                ProxyLatencyPipe.track(target_label)
                 resp = await proxy_client.send(req, follow_redirects=False)
                 if resp.status_code >= 502:
                     circuitbreaker.incr_failures()
                 return await adapt_response(resp)
             except asyncio.CancelledError:
-                metric_abort.labels(route=request.name, target=cell.name).inc()
+                metric_abort.labels(route=request.name, target=target_label).inc()
                 raise
             except punkreq.NetworkError:
-                metric_failed.labels(route=request.name, target=cell.name).inc()
+                metric_failed.labels(route=request.name, target=target_label).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(
                     503, {"error": "apigateway", "detail": "Downstream service unavailable"}
                 )
             except punkreq.TimeoutException:
-                metric_timeout.labels(route=request.name, target=cell.name).inc()
+                metric_timeout.labels(route=request.name, target=target_label).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(504, {"error": "apigateway", "detail": "Downstream timeout"})
             except punkreq.RequestError:
-                app.log.exception("APIGateway(cell) upstream request error")
-                metric_failed.labels(route=request.name, target=cell.name).inc()
+                app.log.exception(f"APIGateway({target_label}) upstream request error")
+                metric_failed.labels(route=request.name, target=target_label).inc()
                 circuitbreaker.incr_failures()
                 abort_with_json(502, {"error": "apigateway", "detail": "Downstream error"})
     except CircuitBreakerOverflow:
-        metric_cb_overflow.labels(target=cell.name).inc()
+        metric_cb_overflow.labels(target=target_label).inc()
         abort_with_json(429, {"error": "apigateway", "detail": "Too many requests"})
     except CircuitBreakerWindowOverflow:
-        metric_cb_reject.labels(target=cell.name).inc()
+        metric_cb_reject.labels(target=target_label).inc()
         abort_with_json(503, {"error": "apigateway", "detail": "Downstream service unavailable"})
 
 
-async def proxy_control_request(request: Any) -> Any:
+def proxy_cell_request(cell: Cell, request: Any, timeout: float | None = None) -> Any:
+    target_url = build_proxied_url(get_cell_address(cell), request.path)
+    headers = build_proxied_cell_headers(request, cell.address)
+    timeout = timeout or app.config.proxy.timeout
+    return proxy_request(request, cell.name, target_url, headers, timeout)
+
+
+def proxy_control_request(request: Any) -> Any:
     target_url = build_proxied_url(app.config.endpoints.control, request.path)
     headers = build_proxied_headers(request, app.config.endpoints.control, pass_host=True)
-
-    try:
-        req = build_proxied_request(
-            proxy_client,
-            target_url,
-            method=request.method,
-            headers=headers,
-            params=dict(request.query_params),
-            content=request.body,
-            timeout=app.config.proxy.timeout,
-        )
-        ProxyLatencyPipe.track("control")
-        resp = await proxy_client.send(req, follow_redirects=False)
-        return await adapt_response(resp)
-    except asyncio.CancelledError:
-        metric_abort.labels(route=request.name, target="control").inc()
-        raise
-    except punkreq.NetworkError:
-        metric_failed.labels(route=request.name, target="control").inc()
-        abort_with_json(503, {"error": "apigateway", "detail": "Downstream service unavailable"})
-    except punkreq.TimeoutException:
-        metric_timeout.labels(route=request.name, target="control").inc()
-        abort_with_json(504, {"error": "apigateway", "detail": "Downstream timeout"})
-    except punkreq.RequestError:
-        app.log.exception("APIGateway(control) upstream request error")
-        metric_failed.labels(route=request.name, target="control").inc()
-        abort_with_json(502, {"error": "apigateway", "detail": "Downstream error"})
+    return proxy_request(request, "control", target_url, headers, app.config.proxy.timeout)

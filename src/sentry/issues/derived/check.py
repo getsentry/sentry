@@ -213,7 +213,7 @@ def check_derived_data(
             _check_cache.set(check_id, replayed_derived)
             raise CheckTimeout(check_id)
 
-    current = GroupDerivedData.objects.filter(group_id=check_id.group_id).first()
+    current = GroupDerivedData.objects.get_or_none(group_id=check_id.group_id)
     if current is None or not check_id.matches(current):
         _check_cache.delete(check_id)
         return CheckInvalidated()

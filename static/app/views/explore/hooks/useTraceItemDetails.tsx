@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -214,26 +214,38 @@ function useTraceItemDetailsPrefetch({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
+  const queryClient = useQueryClient();
   const [shouldFetch, setShouldFetch] = useState(false);
 
+  const detailsApiOptions = traceItemDetailsApiOptions({
+    organizationSlug: organization.slug,
+    projectSlug: project?.slug ?? '',
+    traceItemId,
+    traceItemType,
+    referrer,
+    traceId,
+    ...(timestamp
+      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+      : normalizeDateTimeParams(selection.datetime)),
+  });
+
   const {data, isFetching} = useQuery({
-    ...traceItemDetailsApiOptions({
-      organizationSlug: organization.slug,
-      projectSlug: project?.slug ?? '',
-      traceItemId,
-      traceItemType,
-      referrer,
-      traceId,
-      ...(timestamp
-        ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-        : normalizeDateTimeParams(selection.datetime)),
-    }),
+    ...detailsApiOptions,
     enabled: shouldFetch && !!project?.slug,
   });
 
   const prefetch = useCallback(() => setShouldFetch(true), []);
 
+  const fetchDetails = async () => {
+    if (!project?.slug) {
+      return;
+    }
+    const response = await queryClient.fetchQuery(detailsApiOptions);
+    return response.json;
+  };
+
   return {
+    fetchDetails,
     prefetch,
     project,
     traceItemMeta: data?.meta,
@@ -267,7 +279,7 @@ export function usePrefetchTraceItemDetailsOnHover({
    */
   hoverPrefetchDisabled?: boolean;
 }) {
-  const {prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
+  const {fetchDetails, prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
       traceItemId,
       projectId,
@@ -312,6 +324,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   );
 
   return {
+    fetchTraceItemDetails: fetchDetails,
     hoverProps,
     prefetch,
     isProjectReady: Boolean(project?.slug),

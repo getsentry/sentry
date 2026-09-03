@@ -909,5 +909,6 @@ class AvatarPhotoView(View):
             res["Access-Control-Allow-Origin"] = "*"
         else:
             res["Access-Control-Allow-Origin"] = origin
+            res["Vary"] = "Origin"
 
         return res

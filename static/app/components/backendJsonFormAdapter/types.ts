@@ -1,5 +1,11 @@
 import type {PlatformKey} from 'sentry/types/platform';
 
+export type JsonFormAdapterChoiceValue = string | number;
+export type JsonFormAdapterChoice = readonly [
+  value: JsonFormAdapterChoiceValue,
+  label: string,
+];
+
 /**
  * Field configuration returned by the backend's `get_organization_config()`.
  * All values are JSON-serializable — no functions, no React nodes.
@@ -40,11 +46,20 @@ interface JsonFormAdapterSecret extends JsonFormAdapterBase {
 
 interface JsonFormAdapterSelect extends JsonFormAdapterBase {
   type: 'select' | 'choice';
-  choices?: Array<[value: string, label: string]>;
+  choices?: readonly JsonFormAdapterChoice[];
+  /**
+   * Field names that must have values before prefetched options can be fetched.
+   */
+  dependsOn?: string[];
   /**
    * When true, allows selecting multiple values.
    */
   multiple?: boolean;
+  /**
+   * When true, fetches async options as soon as the field mounts, including
+   * when the search input is empty.
+   */
+  prefetch?: boolean;
   /**
    * URL for async select fields. When set, options are fetched from this
    * endpoint as the user types instead of using static `choices`.
@@ -121,8 +136,9 @@ interface JsonFormAdapterProjectMapper extends JsonFormAdapterBase {
  * A blank field is used to signal errors in the form config.
  * It renders nothing but can be detected to disable form submission.
  */
-interface JsonFormAdapterBlank extends JsonFormAdapterBase {
+interface JsonFormAdapterBlank extends Omit<JsonFormAdapterBase, 'label'> {
   type: 'blank';
+  label?: string;
 }
 
 export type JsonFormAdapterFieldConfig =
@@ -147,7 +163,7 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
       : T extends JsonFormAdapterNumber
         ? number
         : T extends JsonFormAdapterSelect
-          ? string | null
+          ? JsonFormAdapterChoiceValue | null
           : T extends JsonFormAdapterChoiceMapper
             ? Record<string, Record<string, unknown>>
             : T extends JsonFormAdapterTable

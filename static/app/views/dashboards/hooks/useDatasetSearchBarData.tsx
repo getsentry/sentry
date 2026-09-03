@@ -1,4 +1,8 @@
+import {useState} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {
   getDatasetConfig,
   type SearchBarData,
@@ -6,18 +10,37 @@ import {
 import {useGlobalFilterTraceMetricsSearchBarDataProvider} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
-export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBarData {
+type FilterKeySearch = {
+  query: string;
+  widgetType: WidgetType;
+};
+
+export function useDatasetSearchBarData(): {
+  getSearchBarData: (widgetType: WidgetType) => SearchBarData;
+  onFilterKeySearch: (widgetType: WidgetType, query: string) => void;
+} {
   const {selection} = usePageFilters();
+  const [filterKeySearch, setFilterKeySearch] = useState<FilterKeySearch | null>(null);
+  const [debouncedFilterKeySearch] = useDebouncedValue(filterKeySearch, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
+
+  const getFilterKeySearch = (widgetType: WidgetType) =>
+    debouncedFilterKeySearch?.widgetType === widgetType
+      ? debouncedFilterKeySearch.query
+      : undefined;
 
   const errorsData = getDatasetConfig(WidgetType.ERRORS).useSearchBarDataProvider!({
     pageFilters: selection,
   });
 
   const logsData = getDatasetConfig(WidgetType.LOGS).useSearchBarDataProvider!({
+    filterKeySearch: getFilterKeySearch(WidgetType.LOGS),
     pageFilters: selection,
   });
 
   const spansData = getDatasetConfig(WidgetType.SPANS).useSearchBarDataProvider!({
+    filterKeySearch: getFilterKeySearch(WidgetType.SPANS),
     pageFilters: selection,
   });
 
@@ -30,6 +53,7 @@ export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBar
   });
 
   const traceMetricsData = useGlobalFilterTraceMetricsSearchBarDataProvider({
+    filterKeySearch: getFilterKeySearch(WidgetType.TRACEMETRICS),
     pageFilters: selection,
   });
 
@@ -56,5 +80,10 @@ export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBar
     }
   };
 
-  return getSearchBarData;
+  return {
+    getSearchBarData,
+    onFilterKeySearch: (widgetType, query) => {
+      setFilterKeySearch({query, widgetType});
+    },
+  };
 }
