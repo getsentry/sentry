@@ -151,7 +151,9 @@ export function WebAuthn2FAMethod({
     <Stack gap="lg" align="center">
       <AuthenticatorIconCarousel isActive={isActive} />
       <Text as="p" align="center">
-        {t('Waiting for passkey, biometric, or hardware key')}
+        {isProcessing
+          ? t('Authorizing...')
+          : t('Waiting for passkey, biometric, or hardware key')}
       </Text>
     </Stack>
   );
