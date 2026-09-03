@@ -8,7 +8,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -25,6 +24,7 @@ from sentry.issues.action_log.types import (
     GroupActionActor,
     GroupActionType,
 )
+from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -58,7 +58,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def get(self, request: Request, group: Group) -> Response:
-        if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
+        if should_serve_action_log_activity(group.project, request.user):
             edit_entries = GroupActionLogEntry.objects.filter(
                 group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
             ).order_by("-date_added", "-id")
@@ -187,7 +187,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             sender="post",
         )
 
-        if features.has("projects:issue-action-log-activity", group.project, actor=request.user):
+        if should_serve_action_log_activity(group.project, request.user):
             entry = GroupActionLogEntry.objects.filter(
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(activity),

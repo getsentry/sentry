@@ -6,7 +6,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -24,6 +23,7 @@ from sentry.issues.action_log import (
     resolve_action_source,
 )
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
+from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -80,8 +80,8 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             idempotency_key=activity_action_idempotency_key(note),
         ).first()
-        if original_comment_log_action is None and features.has(
-            "projects:issue-action-log-activity", group.project, actor=request.user
+        if original_comment_log_action is None and should_serve_action_log_activity(
+            group.project, request.user
         ):
             raise ResourceDoesNotExist
 
@@ -164,8 +164,8 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 idempotency_key=activity_action_idempotency_key(note),
             ).first()
-            if original_comment_log_action is None and features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
+            if original_comment_log_action is None and should_serve_action_log_activity(
+                group.project, request.user
             ):
                 raise ResourceDoesNotExist
 
@@ -208,9 +208,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 sender="put",
             )
 
-            if features.has(
-                "projects:issue-action-log-activity", group.project, actor=request.user
-            ):
+            if should_serve_action_log_activity(group.project, request.user):
                 if original_comment_log_action is not None:
                     # editing a note doesn't update its COMMENT entry (instead it
                     # appends a separate COMMENT_EDIT entry), so patch in the fresh
