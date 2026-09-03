@@ -19,7 +19,11 @@ jobs:
     name: snapshot tests
     # Skip 'edited' events that aren't a base branch change (e.g. title/body edits).
     # When the base branch changes, the diff target changes so we need a fresh run.
-    if: github.event.action != 'edited' || github.event.changes.base != ''
+    # Skip external fork PRs — snapshot upload needs secrets forks can't access.
+    if: >-
+      (github.event.action != 'edited' || github.event.changes.base != '') &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.owner.login == 'getsentry')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
