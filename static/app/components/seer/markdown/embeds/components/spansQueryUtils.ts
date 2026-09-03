@@ -43,6 +43,40 @@ export function getSpansQueryFields(data: SpansQueryData): string[] {
   return Array.from(new Set([...(data.groupBy ?? []).filter(Boolean), ...yAxes]));
 }
 
+// Seer sends one `sort`, but its two consumers spell an aggregate
+// differently: the events API wants the alias `p95_span_duration`, while
+// Explore's `aggregateSort` param is validated by exact match against the
+// page's own y-axis and group-by values and so only accepts
+// `p95(span.duration)`. Neither side reports a mismatch — the events API is
+// fed the sort verbatim, and Explore silently drops one it doesn't recognise
+// and falls back to its default ordering. So normalize at each edge instead
+// of trusting the spelling that arrived.
+
+/** Finds which of `fields` a sort names, in either spelling. */
+function findSortedField(sort: string, fields: string[]): string | undefined {
+  const field = sort.startsWith('-') ? sort.slice(1) : sort;
+  return fields.find(item => item === field || getAggregateAlias(item) === field);
+}
+
+/** Alias spelling, for the events API. Unrecognised sorts pass through. */
+function toEventsApiSort(sort: string, fields: string[]): string {
+  const field = findSortedField(sort, fields);
+  return field ? `${sort.startsWith('-') ? '-' : ''}${getAggregateAlias(field)}` : sort;
+}
+
+/** Field spelling, for Explore's URL. Unrecognised sorts are dropped. */
+function toExploreAggregateSort(
+  sort: string | undefined,
+  aggregateFields: string[]
+): string | undefined {
+  if (!sort) {
+    return undefined;
+  }
+
+  const field = findSortedField(sort, aggregateFields);
+  return field ? `${sort.startsWith('-') ? '-' : ''}${field}` : undefined;
+}
+
 export function buildSpansEventView(data: SpansQueryData): EventView {
   const fields = getSpansQueryFields(data);
   const defaultSort =
@@ -53,7 +87,7 @@ export function buildSpansEventView(data: SpansQueryData): EventView {
     id: undefined,
     name: data.title ?? 'Spans',
     fields,
-    orderby: [data.sort ?? defaultSort],
+    orderby: [data.sort ? toEventsApiSort(data.sort, fields) : defaultSort],
     query: data.query,
     version: 2,
     dataset: DiscoverDatasets.SPANS,
@@ -77,7 +111,13 @@ export function getSpansQueryHref(
     mode: toMode(mode),
     field: fields,
     sort: mode === 'samples' ? sort : undefined,
-    aggregateSort: mode === 'aggregate' ? sort : undefined,
+    aggregateSort:
+      mode === 'aggregate'
+        ? toExploreAggregateSort(sort, [
+            ...(groupBy ?? []).filter(Boolean),
+            ...(aggregateYAxes ?? []),
+          ])
+        : undefined,
     aggregateField: toAggregateFields({groupBy, yAxes: aggregateYAxes}),
   });
 }
@@ -107,11 +147,6 @@ export function hasNoGroupBy(data: SpansQueryData): boolean {
  */
 export function resolveChartYAxes(data: SpansQueryData): string[] {
   return data.yAxes?.length ? data.yAxes : [DEFAULT_AGGREGATE];
-}
-
-function sortsOneOf(sort: string, fields: string[]): boolean {
-  const field = sort.startsWith('-') ? sort.slice(1) : sort;
-  return fields.some(item => item === field || getAggregateAlias(item) === field);
 }
 
 /**
@@ -151,11 +186,14 @@ export function buildSpansChartQuery(
   // The endpoint ranks the top groups by `sort`, which has to name one of the
   // fields it was given. A query sorted by a y-axis this chart left out does
   // not, so fall back to ranking by the aggregate actually being plotted.
+  //
+  // Unlike the Explore link, the sort stays in its alias spelling here — the
+  // events API is what Explore's own `formatSort` aliases for.
   const sorts = (Array.isArray(sort) ? sort : [sort]).filter(
     (item): item is string => typeof item === 'string' && item !== ''
   );
   const chartSort =
-    sorts.find(item => sortsOneOf(item, fields)) ?? `-${getAggregateAlias(yAxis)}`;
+    sorts.find(item => findSortedField(item, fields)) ?? `-${getAggregateAlias(yAxis)}`;
 
   return {
     ...rest,

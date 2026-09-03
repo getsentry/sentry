@@ -160,6 +160,108 @@ describe('spans query embed', () => {
     });
   });
 
+  it('links an aggregate sort in the spelling Explore validates', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
+    });
+
+    renderEmbed({
+      data: {
+        query: '',
+        mode: 'aggregate',
+        groupBy: ['span.op'],
+        yAxes: ['p95(span.duration)'],
+        // The spelling the events API wants, which Explore's URL param does not.
+        sort: '-p95_span_duration',
+        statsPeriod: '7d',
+        title: 'p95 by span op',
+      },
+    });
+
+    const link = await screen.findByRole('link', {name: 'p95 by span op'});
+    const {searchParams} = new URL(
+      link.getAttribute('href')!,
+      'https://sentry.io' // the href is relative; the base is only to parse it
+    );
+
+    // Explore validates `aggregateSort` by exact match against its own group-by
+    // and y-axis values, so an alias here is dropped and the page silently
+    // falls back to its default ordering.
+    expect(searchParams.get('aggregateSort')).toBe('-p95(span.duration)');
+  });
+
+  it('sends an aggregate sort to the events API in its alias spelling', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
+    });
+
+    renderEmbed({
+      data: {
+        query: '',
+        mode: 'aggregate',
+        groupBy: ['span.op'],
+        yAxes: ['p95(span.duration)'],
+        // The spelling Explore's URL wants, which the events API does not.
+        sort: '-p95(span.duration)',
+        statsPeriod: '7d',
+        title: 'p95 by span op',
+      },
+    });
+
+    expect(await screen.findByText('http.server')).toBeInTheDocument();
+
+    // Seer may send either spelling, so each edge normalizes rather than
+    // trusting what arrived.
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({sort: '-p95_span_duration'}),
+        })
+      );
+    });
+  });
+
+  it('drops an aggregate sort that names no aggregate field', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
+    });
+
+    renderEmbed({
+      data: {
+        query: '',
+        mode: 'aggregate',
+        groupBy: ['span.op'],
+        yAxes: ['p95(span.duration)'],
+        sort: '-count_span_duration',
+        statsPeriod: '7d',
+        title: 'p95 by span op',
+      },
+    });
+
+    const link = await screen.findByRole('link', {name: 'p95 by span op'});
+    const {searchParams} = new URL(link.getAttribute('href')!, 'https://sentry.io');
+
+    // Explore would reject it anyway, so leave it off rather than ship a param
+    // that does nothing.
+    expect(searchParams.get('aggregateSort')).toBeNull();
+  });
+
   it('charts a grouped query as one series per top group', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
