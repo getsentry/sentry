@@ -20,7 +20,19 @@ const DEFAULT_SAMPLE_FIELDS = [
   'transaction',
   'timestamp',
 ];
+
+/**
+ * Explore's own default visualization, so a query that names no aggregate
+ * charts the same series it would on the page the embed links to.
+ */
 const DEFAULT_AGGREGATE = 'count(span.duration)';
+
+/**
+ * How many groups a grouped chart plots. Explore allows nine; the preview
+ * matches the row limit of the table underneath it instead, so every series
+ * in the legend has a row to read it against.
+ */
+const CHART_TOP_EVENTS = 5;
 
 export function getSpansQueryFields(data: SpansQueryData): string[] {
   if (data.mode === 'samples') {
@@ -71,37 +83,90 @@ export function getSpansQueryHref(
 }
 
 /**
+ * The columns the chart splits its series on. Only an aggregate query groups;
+ * a samples query always charts a single total series for the period.
+ */
+function getChartGroupBy(data: SpansQueryData): string[] {
+  return data.mode === 'aggregate' ? (data.groupBy ?? []).filter(Boolean) : [];
+}
+
+/**
  * An aggregate spans query has "no group by" when the schema's explicit
  * `groupBy` is empty or absent. That collapses the results to a single row
  * per y-axis today, which reads better as a chart than a one-row table.
  */
 export function hasNoGroupBy(data: SpansQueryData): boolean {
-  return data.mode === 'aggregate' && !data.groupBy?.length;
+  return data.mode === 'aggregate' && getChartGroupBy(data).length === 0;
 }
 
 /**
- * Resolves which fields should drive the chart's y-axis: the schema's
- * explicit `yAxes` hint when provided, otherwise the resolved query fields
- * themselves (all of `fields` is aggregate when there is no group by).
+ * Resolves which aggregates drive the chart's y-axis: the schema's explicit
+ * `yAxes` hint when provided, otherwise Explore's default visualization —
+ * which is also what a samples query, having named no aggregate at all,
+ * charts.
  */
-export function resolveChartYAxes(data: SpansQueryData, fields: string[]): string[] {
-  return data.yAxes?.length ? data.yAxes : fields;
+export function resolveChartYAxes(data: SpansQueryData): string[] {
+  return data.yAxes?.length ? data.yAxes : [DEFAULT_AGGREGATE];
+}
+
+function sortsOneOf(sort: string, fields: string[]): boolean {
+  const field = sort.startsWith('-') ? sort.slice(1) : sort;
+  return fields.some(item => item === field || getAggregateAlias(item) === field);
 }
 
 /**
  * Builds the query params for the events-stats timeseries request, reusing
  * the same query/page-filter params already built for the events table
  * fetch and swapping in the aggregate fields as the y-axis.
+ *
+ * A grouped query charts the way Explore does: `field` carries the grouping
+ * columns, which is what makes the endpoint break the result into a series
+ * per group, and `topEvents` keeps only the leading few. An ungrouped query
+ * drops `field` and `sort` instead — the endpoint groups by whatever `field`
+ * it is given, so passing the table's columns along would split a plain total
+ * into a series per column value.
  */
-export function buildSpansChartQuery(eventView: EventView, yAxis: string[]): Query {
+export function buildSpansChartQuery(
+  eventView: EventView,
+  data: SpansQueryData,
+  yAxes: string[]
+): Query {
   const {
     field: _field,
-    sort: _sort,
+    sort,
     widths: _widths,
     ...rest
   } = eventView.generateQueryStringObject();
 
-  return {...rest, yAxis};
+  const groupBy = getChartGroupBy(data);
+  if (groupBy.length === 0) {
+    return {...rest, yAxis: yAxes};
+  }
+
+  // Grouping already spends a series per group, so the chart plots a single
+  // aggregate rather than multiplying that out by every y-axis.
+  const yAxis = yAxes[0] ?? DEFAULT_AGGREGATE;
+  const fields = [...groupBy, yAxis];
+
+  // The endpoint ranks the top groups by `sort`, which has to name one of the
+  // fields it was given. A query sorted by a y-axis this chart left out does
+  // not, so fall back to ranking by the aggregate actually being plotted.
+  const sorts = (Array.isArray(sort) ? sort : [sort]).filter(
+    (item): item is string => typeof item === 'string' && item !== ''
+  );
+  const chartSort =
+    sorts.find(item => sortsOneOf(item, fields)) ?? `-${getAggregateAlias(yAxis)}`;
+
+  return {
+    ...rest,
+    yAxis: [yAxis],
+    field: fields,
+    sort: chartSort,
+    topEvents: String(CHART_TOP_EVENTS),
+    // The table below lists these same leading groups, so an "Other" series
+    // would be the one line in the legend with no row to read it against.
+    excludeOther: '1',
+  };
 }
 
 export function toChartUnit(outputType: AggregationOutputType): ChartUnit {

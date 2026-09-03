@@ -6,6 +6,11 @@ jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
 }));
 
+const SERIES = [
+  [1_700_000_000, [{count: 5}]],
+  [1_700_003_600, [{count: 8}]],
+];
+
 function renderEmbed({
   data,
   level = 'block',
@@ -18,7 +23,7 @@ function renderEmbed({
 }
 
 describe('spans query embed', () => {
-  it('previews five span samples', async () => {
+  it('previews five span samples under a count timeseries', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -29,6 +34,10 @@ describe('spans query embed', () => {
           'span.op': 'http.server',
         })),
       },
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -52,6 +61,10 @@ describe('spans query embed', () => {
     );
     expect(screen.getAllByLabelText('span.op:http.server').length).toBeGreaterThan(0);
 
+    // The chart accompanies the sample rows rather than replacing them.
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
@@ -67,6 +80,28 @@ describe('spans query embed', () => {
         })
       );
     });
+
+    // A samples query names no aggregate, so it charts Explore's own default
+    // visualization as a single total for the period.
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+            query: 'span.op:http.server',
+            statsPeriod: '24h',
+            yAxis: ['count(span.duration)'],
+          }),
+        })
+      );
+    });
+
+    // Without group-by columns there is nothing to break the total into, so the
+    // grouping params must stay off the request.
+    const [, options] = statsRequest.mock.calls.at(-1)!;
+    expect(options.query).not.toHaveProperty('field');
+    expect(options.query).not.toHaveProperty('topEvents');
   });
 
   it('previews aggregate spans using API field aliases', async () => {
@@ -79,6 +114,13 @@ describe('spans query embed', () => {
             p95_span_duration: 1234,
           },
         ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        'http.server': {data: SERIES, order: 0},
+        'db.query': {data: SERIES, order: 1},
       },
     });
 
@@ -97,10 +139,10 @@ describe('spans query embed', () => {
     expect(await screen.findByText('http.server')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
     expect(screen.getByText('Aggregate')).toBeInTheDocument();
-    // A group-by column is present, so the table still renders instead of a
-    // chart.
+    // A group-by column is present, so the table is still worth rendering —
+    // now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();
-    expect(screen.queryByTestId('seer-chart-content')).not.toBeInTheDocument();
+    expect(screen.getByTestId('seer-chart-content')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -118,6 +160,96 @@ describe('spans query embed', () => {
     });
   });
 
+  it('charts a grouped query as one series per top group', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'span.op': 'http.server', p95_span_duration: 1234}]},
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        'http.server': {data: SERIES, order: 0},
+        'db.query': {data: SERIES, order: 1},
+      },
+    });
+
+    renderEmbed({
+      data: {
+        query: 'span.op:http.server',
+        mode: 'aggregate',
+        groupBy: ['span.op'],
+        yAxes: ['p95(span.duration)'],
+        sort: '-p95_span_duration',
+        statsPeriod: '24h',
+        title: 'p95 by span op',
+      },
+    });
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+
+    // The grouping column has to reach events-stats: `field` is what makes the
+    // endpoint break the result into a series per group, and `topEvents` is
+    // what caps how many come back. This is the split Explore's own chart
+    // shows, and it lines the series up with the table's rows.
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'spans',
+            excludeOther: '1',
+            field: ['span.op', 'p95(span.duration)'],
+            query: 'span.op:http.server',
+            sort: '-p95_span_duration',
+            statsPeriod: '24h',
+            topEvents: '5',
+            yAxis: ['p95(span.duration)'],
+          }),
+        })
+      );
+    });
+  });
+
+  it('ranks top groups by the charted aggregate when the sort names another', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'span.op': 'http.server', count_span_duration: 12}]},
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {'http.server': {data: SERIES, order: 0}},
+    });
+
+    renderEmbed({
+      data: {
+        query: '',
+        mode: 'aggregate',
+        groupBy: ['span.op'],
+        // Grouping already spends a series per group, so only the first y-axis
+        // is charted — and the sort naming the second cannot rank it.
+        yAxes: ['count(span.duration)', 'p95(span.duration)'],
+        sort: '-p95_span_duration',
+        statsPeriod: '24h',
+      },
+    });
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(statsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: ['span.op', 'count(span.duration)'],
+            sort: '-count_span_duration',
+            topEvents: '5',
+            yAxis: ['count(span.duration)'],
+          }),
+        })
+      );
+    });
+  });
+
   it('renders a chart instead of a table when aggregate mode has no groupBy', async () => {
     const eventsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -125,12 +257,7 @@ describe('spans query embed', () => {
     });
     const statsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [
-          [1_700_000_000, [{count: 5}]],
-          [1_700_003_600, [{count: 8}]],
-        ],
-      },
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -146,7 +273,7 @@ describe('spans query embed', () => {
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.getAllByLabelText('span.op:http.server').length).toBeGreaterThan(0);
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    // The table's own fetch is skipped entirely in chart mode.
+    // The table's own fetch is skipped entirely in chart-only mode.
     expect(eventsRequest).not.toHaveBeenCalled();
 
     await waitFor(() => {
@@ -162,12 +289,19 @@ describe('spans query embed', () => {
         })
       );
     });
+
+    const [, options] = statsRequest.mock.calls.at(-1)!;
+    expect(options.query).not.toHaveProperty('topEvents');
   });
 
   it('does not fetch data for an inline embed', () => {
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: []},
+    });
+    const statsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -177,5 +311,6 @@ describe('spans query embed', () => {
 
     expect(screen.getByRole('link', {name: 'Span search'})).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
+    expect(statsRequest).not.toHaveBeenCalled();
   });
 });
