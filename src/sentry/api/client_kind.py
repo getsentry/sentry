@@ -21,7 +21,7 @@ from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent_token import is_agent_auth
-from sentry.utils.http import get_mcp_client_family, is_mcp_request
+from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 
 FEATURE_FLAG = "organizations:api-client-kind-check"
 
@@ -77,16 +77,32 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
     if is_system_auth(auth):
         return ClientKind.INTERNAL_SERVICE
 
-    # Seer reaches us two ways: its own capability token, or by echoing back the
-    # viewer context Sentry signed for it (which leaves `request.auth` unset).
-    if is_agent_auth(auth) or request.META.get("HTTP_X_VIEWER_CONTEXT"):
-        return ClientKind.SEER
-
     # The first-party MCP server is only identifiable by its user agent today.
+    # Checked ahead of Seer, mirroring `resolve_action_source`: an MCP call that also
+    # carries a Seer signal is still an MCP call.
     # TODO: derive from the OAuth client_id of the MCP app instead, once MCP
     # traffic reliably carries one -- a user agent is strippable.
     if is_mcp_request(request):
         return ClientKind.MCP
+
+    # Seer reaches us four ways: its own capability token, the viewer context Sentry
+    # signed for it (which leaves `request.auth` unset), the referrer header it sets on
+    # API calls it makes for a user, or its RPC signature. Keep this list in step with
+    # `resolve_action_source` -- the two drifting is what let Seer read as UNKNOWN.
+    if (
+        is_agent_auth(auth)
+        or request.META.get("HTTP_X_VIEWER_CONTEXT")
+        or request.META.get(SEER_REFERRER_HEADER)
+    ):
+        return ClientKind.SEER
+
+    # Imported here, not at module load, to avoid a circular import.
+    from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
+
+    if isinstance(
+        getattr(request, "successful_authenticator", None), SeerRpcSignatureAuthentication
+    ):
+        return ClientKind.SEER
 
     if auth is None:
         # Cookies and no token is the web UI. Share `is_frontend_request` with the
@@ -117,6 +133,16 @@ def get_client_kind(request: Request, organization: Organization) -> ClientKind 
         return ClientKind.SCRIPT
 
     return ClientKind.UNKNOWN
+
+
+def get_user_agent(request: Request) -> str | None:
+    """The raw user agent the caller sent, or None when it sent none.
+
+    Recorded alongside `client_kind` so a bucket can be explained without guessing:
+    `unknown` and `script` are only actionable next to the string that produced them.
+    Attacker-controlled, like every user agent here -- read it as a hint, not a fact.
+    """
+    return request.META.get("HTTP_USER_AGENT") or None
 
 
 def get_client_host(request: Request) -> str | None:
