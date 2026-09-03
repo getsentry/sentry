@@ -201,8 +201,8 @@ describe('ReplayDetails', () => {
       screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
     ).toEqual([
       'Copy replay ID to clipboard',
-      'Download JSON',
       'Share',
+      'Download JSON',
       'Delete',
       'Configure Replay',
       expect.stringContaining('Download Replay Record'),

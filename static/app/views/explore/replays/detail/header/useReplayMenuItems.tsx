@@ -128,6 +128,13 @@ export function useReplayMenuItems({
       disabled: !replayId,
     },
     {
+      key: 'share',
+      label: t('Share'),
+      leadingItems: <IconUpload variant="muted" />,
+      onAction: onShareReplay,
+      disabled: !replayId,
+    },
+    {
       key: 'download-rrweb',
       label: t('Download JSON'),
       leadingItems: <IconDownload variant="muted" />,
@@ -146,13 +153,6 @@ export function useReplayMenuItems({
         }
       },
       disabled: !canDownload,
-    },
-    {
-      key: 'share',
-      label: t('Share'),
-      leadingItems: <IconUpload variant="muted" />,
-      onAction: onShareReplay,
-      disabled: !replayId,
     },
     {
       key: 'delete',
