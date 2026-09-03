@@ -475,6 +475,24 @@ def _drain_queued_autofix_feedback(
         )
         return
 
+    # The previous iteration's push (triggered separately, from the
+    # on_completion_hook) races this drain. If it left unpushed changes
+    # behind, wait for it rather than starting a new iteration against a PR
+    # that's about to change underneath it. has_code_changes() reports
+    # synced when there was nothing to push, so that case is unaffected.
+    _, all_changes_pushed = state.has_code_changes()
+    if not all_changes_pushed:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="push_pending",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        return
+
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
     iteration_id = trigger_pr_iteration_details(
         log_ctx=log_ctx, run_id=run_id, organization_id=organization_id
