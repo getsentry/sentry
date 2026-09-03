@@ -63,6 +63,7 @@ export function addMessage(
     (msg as any)?.extra !== undefined
   ) {
     Sentry.captureException(new Error('Attempt to XHR response to Indicators'));
+    msg = (msg as any).message;
   }
   if (type === 'undo' && typeof options.undo !== 'function') {
     Sentry.captureException(
