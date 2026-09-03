@@ -72,7 +72,7 @@ describe('SecondFactorAuth', () => {
     expect(challengeRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('completes a WebAuthn challenge without additional UI', async () => {
+  it('keeps showing authorization progress while completing a WebAuthn challenge', async () => {
     const user = UserFixture();
     const onComplete = jest.fn();
     const webAuthnResponse = {
@@ -135,6 +135,7 @@ describe('SecondFactorAuth', () => {
     await waitFor(() =>
       expect(onComplete).toHaveBeenCalledWith({nextUri: '/organizations/', user})
     );
+    expect(screen.getByText('Authorizing...')).toBeInTheDocument();
   });
 
   it('requests a fresh WebAuthn challenge after submission fails', async () => {
@@ -307,7 +308,7 @@ describe('SecondFactorAuth', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('disables navigation while authentication is pending', async () => {
+  it('disables navigation while authentication is processing', async () => {
     const response = Promise.withResolvers<{
       nextUri: string;
       user: ReturnType<typeof UserFixture>;
@@ -335,6 +336,7 @@ describe('SecondFactorAuth', () => {
     expect(screen.getByRole('button', {name: 'Use recovery code'})).toBeDisabled();
     response.resolve({nextUri: '/organizations/', user: UserFixture()});
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', {name: 'Back to Login'})).toBeDisabled();
   });
 
   it('disables authentication controls while cancellation is pending', async () => {
