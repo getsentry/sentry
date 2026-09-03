@@ -365,7 +365,7 @@ def _metric_issue(**evidence_overrides: Any) -> dict[str, Any]:
     evidence: dict[str, Any] = {
         "alertId": 77,
         "value": 812.4,
-        "conditions": [{"type": 0, "comparison": 500}],
+        "conditions": [{"type": "gt", "comparison": 500}],
         "dataSources": [
             {
                 "queryObj": {
@@ -430,11 +430,15 @@ def test_metric_alert_reads_the_keys_the_serializer_emits() -> None:
 @pytest.mark.parametrize(
     "condition,expected",
     [
-        ({"type": 0, "comparison": 500}, "above 500"),
-        ({"type": 1, "comparison": 2}, "below 2"),
+        ({"type": "gt", "comparison": 500}, "above 500"),
+        ({"type": "lt", "comparison": 2}, "below 2"),
         ({"type": "gte", "comparison": 10}, "at or above 10"),
         ({"type": "lte", "comparison": 10}, "at or below 10"),
-        ({"comparison": 7}, "7"),  # no operator recorded
+        # DataConditionSnapshot types `type` as str, so a Condition value is what arrives;
+        # anything else (including a legacy int) falls through to the bare comparison
+        ({"comparison": 7}, "7"),
+        ({"type": "eq", "comparison": 7}, "7"),
+        ({"type": 0, "comparison": 7}, "7"),
     ],
 )
 def test_metric_alert_threshold_labels(condition: Any, expected: str) -> None:

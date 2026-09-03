@@ -111,8 +111,20 @@ def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     ]
 
 
-# occurrence type for a metric issue (sentry.incidents.grouptype.MetricIssue)
+# ``MetricIssue.type_id``, inlined: sentry.incidents.grouptype pulls in sentry.features, the
+# alert rule models and a wildcard condition import, and this module is otherwise free of
+# Django so it stays cheap to import and to test.
 _METRIC_ISSUE_TYPE = 8001
+
+# ``Condition`` values (sentry.workflow_engine.models.data_condition), inlined for the same
+# reason. Only the comparison operators appear on a detector trigger; anything else falls
+# through to the bare comparison below.
+_COMPARISON_LABELS = {
+    "gt": "above",
+    "gte": "at or above",
+    "lt": "below",
+    "lte": "at or below",
+}
 
 
 def _metric_alert_threshold(conditions: Any) -> str | None:
@@ -126,15 +138,8 @@ def _metric_alert_threshold(conditions: Any) -> str | None:
         comparison = condition.get("comparison")
         if comparison is None:
             continue
-        # detector conditions store the operator as an id or a name
-        label = {
-            0: "above",
-            1: "below",
-            "gt": "above",
-            "gte": "at or above",
-            "lt": "below",
-            "lte": "at or below",
-        }.get(condition.get("type"))
+        condition_type = condition.get("type")
+        label = _COMPARISON_LABELS.get(condition_type) if isinstance(condition_type, str) else None
         parts.append(f"{label} {comparison}" if label else str(comparison))
     return ", ".join(parts) or None
 
