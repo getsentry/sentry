@@ -173,11 +173,16 @@ export function SeerExplorerContent({
   };
 
   // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer).
-  const [showThinking, setShowThinking] = useLocalStorageState(
+  // into the picture-in-picture window, or reopening the drawer). Code mode
+  // always shows thinking — no preference or toggle can hide it.
+  const [showThinkingPreference, setShowThinking] = useLocalStorageState(
     'seer-explorer-show-thinking',
     false
   );
+  const hasCodeModeTools = !!organization?.features.includes(
+    'seer-explorer-code-mode-tools'
+  );
+  const showThinking = hasCodeModeTools || showThinkingPreference;
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);

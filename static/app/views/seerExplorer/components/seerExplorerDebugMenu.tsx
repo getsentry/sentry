@@ -34,9 +34,12 @@ export function SeerExplorerDebugMenu({
   const showContextEngineToggle = !!organization?.features.includes(
     'seer-explorer-context-engine-fe-override-ui-flag'
   );
-  const showThinkingToggle = !!organization?.features.includes(
-    'seer-explorer-thinking-blocks'
-  );
+  // Code mode always shows thinking with no opt-out, so keep the toggle off the
+  // menu whenever that flag is on. The dedicated thinking-blocks flag still owns
+  // the manual toggle for non-code-mode orgs.
+  const showThinkingToggle =
+    !!organization?.features.includes('seer-explorer-thinking-blocks') &&
+    !organization?.features.includes('seer-explorer-code-mode-tools');
   const showBashModeToggle = !!organization?.features.includes(
     'seer-explorer-allow-bash-mode'
   );
