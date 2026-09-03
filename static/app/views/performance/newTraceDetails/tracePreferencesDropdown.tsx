@@ -156,6 +156,10 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       }
       onChange={onChange}
       menuWidth={300}
+      // The trigger sits flush against the toolbar's right edge, so the menu has
+      // to grow leftward. Popper is configured not to flip start/end variations,
+      // and embedded waterfalls clip the overlay at their own boundary.
+      position="bottom-end"
     />
   );
 }
