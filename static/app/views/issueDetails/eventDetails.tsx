@@ -1,5 +1,6 @@
-import {useLayoutEffect, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Sticky} from 'sentry/components/sticky';
@@ -39,38 +40,62 @@ export function EventDetails({group, event, project}: EventDetailsContentProps) 
 }
 
 function StickyEventNav({event, group}: {event: Event; group: Group}) {
-  const [nav, setNav] = useState<HTMLDivElement | null>(null);
-  const {dispatch} = useIssueDetails();
+  const navRef = useRef<HTMLDivElement>(null);
+  const {dispatch, eventNavigationHeight} = useIssueDetails();
   const {pageContentTop} = useTopOffset();
   const stickyTopOffset = Number.parseInt(pageContentTop, 10);
 
-  useLayoutEffect(() => {
-    if (!nav) {
-      return;
-    }
-    const navHeight = nav.offsetHeight ?? 0;
+  const updateNavScrollMargin = useCallback(() => {
+    const navHeight = navRef.current?.offsetHeight ?? 0;
     dispatch({
       type: 'UPDATE_NAV_SCROLL_MARGIN',
-      margin: navHeight + stickyTopOffset,
+      margin: navHeight + stickyTopOffset + eventNavigationHeight,
     });
-  }, [nav, dispatch, stickyTopOffset]);
+  }, [dispatch, eventNavigationHeight, stickyTopOffset]);
+
+  useLayoutEffect(updateNavScrollMargin, [updateNavScrollMargin]);
+  useResizeObserver({ref: navRef, onResize: updateNavScrollMargin});
 
   return (
-    <FloatingEventNavigation>
-      <EventTitle event={event} group={group} ref={setNav} />
+    <FloatingEventNavigation topOffset={eventNavigationHeight}>
+      <EventTitle event={event} group={group} ref={navRef} />
     </FloatingEventNavigation>
   );
 }
 
 const FloatingEventNavigation = styled(Sticky)`
+  isolation: isolate;
   background: ${p => p.theme.tokens.background.primary};
   z-index: ${p => p.theme.zIndex.header};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * var(--issue-details-inset, ${p => p.theme.space['2xl']}));
+    z-index: 0;
+    background: ${p => p.theme.tokens.background.primary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity ${p => p.theme.motion.smooth.slow};
+    will-change: opacity;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
 
   &[data-stuck] {
     border-radius: 0;
     /* Content dropdowns should scroll underneath the floating event navigation. */
     z-index: ${p => p.theme.zIndex.stickyHeader};
+
+    &::before {
+      opacity: 1;
+    }
   }
 `;
 

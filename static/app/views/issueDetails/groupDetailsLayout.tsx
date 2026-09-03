@@ -1,8 +1,11 @@
+import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
+import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -60,6 +63,44 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
     >
       {children}
     </Stack>
+  );
+}
+
+function StickyIssueEventNavigation({
+  event,
+  group,
+  hasToggleSidebar,
+}: {
+  event: Event | undefined;
+  group: Group;
+  hasToggleSidebar: boolean;
+}) {
+  const navigationRef = useRef<HTMLDivElement>(null);
+  const {dispatch} = useIssueDetails();
+
+  const updateNavigationHeight = useCallback(() => {
+    dispatch({
+      type: 'UPDATE_EVENT_NAVIGATION_HEIGHT',
+      height: navigationRef.current?.offsetHeight ?? 0,
+    });
+  }, [dispatch]);
+
+  useLayoutEffect(() => {
+    updateNavigationHeight();
+
+    return () => {
+      dispatch({type: 'UPDATE_EVENT_NAVIGATION_HEIGHT', height: 0});
+    };
+  }, [dispatch, updateNavigationHeight]);
+
+  useResizeObserver({ref: navigationRef, onResize: updateNavigationHeight});
+
+  return (
+    <NavigationSidebarWrapper ref={navigationRef} hasToggleSidebar={hasToggleSidebar}>
+      <IssueEventNavigation event={event} group={group} />
+      {/* Since the event details header is disabled, display the sidebar toggle here */}
+      {hasToggleSidebar && <ToggleSidebar size="sm" />}
+    </NavigationSidebarWrapper>
   );
 }
 
@@ -126,11 +167,11 @@ export function GroupDetailsLayout({
                   <EventDetailsSection>
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (
-                        <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                          <IssueEventNavigation event={event} group={group} />
-                          {/* Since the event details header is disabled, display the sidebar toggle here */}
-                          {!hasFilterBar && <ToggleSidebar size="sm" />}
-                        </NavigationSidebarWrapper>
+                        <StickyIssueEventNavigation
+                          event={event}
+                          group={group}
+                          hasToggleSidebar={!hasFilterBar}
+                        />
                       )}
                     <ContentPadding>{children}</ContentPadding>
                   </EventDetailsSection>
@@ -145,16 +186,41 @@ export function GroupDetailsLayout({
   );
 }
 
-const NavigationSidebarWrapper = styled('div')<{
-  hasToggleSidebar: boolean;
-}>`
-  position: relative;
+const NavigationSidebarWrapper = styled(Sticky, {
+  shouldForwardProp: prop => prop !== 'hasToggleSidebar',
+})<{hasToggleSidebar: boolean}>`
+  isolation: isolate;
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
     p.hasToggleSidebar
       ? `${p.theme.space.md} 0 ${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']})`
       : `${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']}) ${p.theme.space.xs} var(--issue-details-inset, ${p.theme.space['2xl']})`};
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: ${p => p.theme.tokens.background.primary};
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
+    will-change: opacity;
+  }
+
+  & > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  &[data-stuck] {
+    z-index: ${p => p.theme.zIndex.stickyHeader};
+
+    &::before {
+      opacity: 1;
+    }
+  }
 `;
 
 const ContentPadding = styled('div')`
