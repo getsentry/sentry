@@ -3,7 +3,7 @@ import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -20,6 +20,7 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -65,6 +66,7 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 const RESULT_LIMIT = 50;
@@ -345,23 +347,28 @@ export function MetricPanel({
                         traceMetric={traceMetric}
                         isMetricOptionsEmpty={isMetricOptionsEmpty}
                         additionalActions={
-                          mode === Mode.AGGREGATE ? (
-                            <MetricsAggregateExportModalButton
-                              isError={metricAggregatesTableResult.result.isError}
-                              isLoading={metricAggregatesTableResult.result.isPending}
-                              pageLinks={metricAggregatesTableResult.result.pageLinks}
-                              tableData={metricAggregatesTableResult.result.data ?? []}
-                              traceMetric={traceMetric}
+                          <Flex gap="xs">
+                            <ExploreShareButton
+                              traceItemDataset={TraceItemDataset.TRACEMETRICS}
                             />
-                          ) : (
-                            <MetricsSamplesExportModalButton
-                              fields={fields}
-                              isError={Boolean(metricSamplesTableResult.isError)}
-                              isLoading={Boolean(metricSamplesTableResult.isPending)}
-                              tableData={metricSamplesTableResult.result.data ?? []}
-                              traceMetric={traceMetric}
-                            />
-                          )
+                            {mode === Mode.AGGREGATE ? (
+                              <MetricsAggregateExportModalButton
+                                isError={metricAggregatesTableResult.result.isError}
+                                isLoading={metricAggregatesTableResult.result.isPending}
+                                pageLinks={metricAggregatesTableResult.result.pageLinks}
+                                tableData={metricAggregatesTableResult.result.data ?? []}
+                                traceMetric={traceMetric}
+                              />
+                            ) : (
+                              <MetricsSamplesExportModalButton
+                                fields={fields}
+                                isError={Boolean(metricSamplesTableResult.isError)}
+                                isLoading={Boolean(metricSamplesTableResult.isPending)}
+                                tableData={metricSamplesTableResult.result.data ?? []}
+                                traceMetric={traceMetric}
+                              />
+                            )}
+                          </Flex>
                         }
                       />
                     </Container>
