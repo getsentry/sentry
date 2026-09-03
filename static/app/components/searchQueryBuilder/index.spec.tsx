@@ -6090,7 +6090,12 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard('transaction');
+
+        // React Aria dispatches virtual focus from a passive effect during selection.
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation(jest.fn());
         await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+        errorSpy.mockRestore();
+
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard(',');
         await userEvent.click(screen.getByRole('option', {name: 'greater'}));

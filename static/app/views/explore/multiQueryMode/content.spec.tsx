@@ -1058,6 +1058,8 @@ describe('MultiQueryModeContent', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'None'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
 
+    // The picker stays open after selection, so close it before clicking the link.
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getAllByTestId('unstack-link')[0]!);
 
     expect(queries).toEqual([
