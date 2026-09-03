@@ -68,6 +68,9 @@ export function Sms2FAMethod({
             </Alert>
           </Alert.Container>
           <Button
+            analyticsEventKey="auth.login.retry_clicked"
+            analyticsEventName="Auth: Login Retry Clicked"
+            analyticsParams={{stage: 'mfa_challenge', method: 'sms'}}
             disabled={isProcessing}
             size="xs"
             variant="transparent"
@@ -81,6 +84,9 @@ export function Sms2FAMethod({
           {tct('A code has been sent by text message. [resend]', {
             resend: (
               <Button
+                analyticsEventKey="auth.login.mfa_challenge_requested"
+                analyticsEventName="Auth: MFA Challenge Requested"
+                analyticsParams={{method: 'sms', request: 'resend'}}
                 disabled={isProcessing || resendCooldown > 0}
                 size="zero"
                 variant="transparent"
