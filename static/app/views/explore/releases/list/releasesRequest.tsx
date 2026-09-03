@@ -86,8 +86,6 @@ type Props = {
   organization: Organization;
   releases: string[];
   selection: PageFilters;
-  defaultStatsPeriod?: string;
-  disable?: boolean;
   healthStatsPeriod?: HealthStatsPeriodOption;
   releasesReloading?: boolean;
 };
@@ -136,7 +134,7 @@ class ReleasesRequest extends Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, selection, defaultStatsPeriod, releases} = this.props;
+    const {location, selection, releases} = this.props;
 
     return {
       query: new MutableSearch(
@@ -150,18 +148,12 @@ class ReleasesRequest extends Component<Props, State> {
         }, [])
       ).formatString(),
       interval: getInterval(selection.datetime),
-      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM)), {
-        defaultStatsPeriod,
-      }),
+      ...normalizeDateTimeParams(pick(location.query, Object.values(URL_PARAM))),
     };
   }
 
   fetchData = async () => {
-    const {api, healthStatsPeriod, disable} = this.props;
-
-    if (disable) {
-      return;
-    }
+    const {api, healthStatsPeriod} = this.props;
 
     api.clear();
     this.setState({

@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {UptimeRule} from 'sentry/views/detectors/components/uptime/types';
 
@@ -25,7 +26,16 @@ export async function updateUptimeRule(
 
   try {
     const resp = await api.requestPromise(
-      `/projects/${org.slug}/${project.slug}/uptime/${detector.id}/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/',
+        {
+          path: {
+            organizationIdOrSlug: org.slug,
+            projectIdOrSlug: project.slug,
+            uptimeDetectorId: detector.id,
+          },
+        }
+      ),
       {
         method: 'PUT',
         data,
@@ -68,7 +78,16 @@ export async function deleteUptimeRule(
 
   try {
     await api.requestPromise(
-      `/projects/${org.slug}/${uptimeRule.projectSlug}/uptime/${uptimeRule.id}/`,
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/uptime/$uptimeDetectorId/',
+        {
+          path: {
+            organizationIdOrSlug: org.slug,
+            projectIdOrSlug: uptimeRule.projectSlug,
+            uptimeDetectorId: uptimeRule.id,
+          },
+        }
+      ),
       {
         method: 'DELETE',
       }

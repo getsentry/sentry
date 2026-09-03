@@ -1,8 +1,8 @@
-import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2, type mat3} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
@@ -28,7 +28,6 @@ interface FlamegraphPreviewProps {
   flamegraph: FlamegraphModel;
   relativeStartTimestamp: number;
   relativeStopTimestamp: number;
-  renderText?: boolean;
   updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
@@ -36,7 +35,6 @@ export function FlamegraphPreview({
   flamegraph,
   relativeStartTimestamp,
   relativeStopTimestamp,
-  renderText = true,
   updateFlamegraphView,
 }: FlamegraphPreviewProps) {
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
@@ -159,38 +157,25 @@ export function FlamegraphPreview({
       );
     };
 
-    const drawText = renderText
-      ? () => {
-          textRenderer.draw(
-            flamegraphView.toOriginConfigView(flamegraphView.configView),
-            flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
-          );
-        }
-      : null;
+    const drawText = () => {
+      textRenderer.draw(
+        flamegraphView.toOriginConfigView(flamegraphView.configView),
+        flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
+      );
+    };
 
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerBeforeFrameCallback(drawRectangles);
-    if (drawText) {
-      scheduler.registerBeforeFrameCallback(drawText);
-    }
+    scheduler.registerBeforeFrameCallback(drawText);
 
     scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
-      if (drawText) {
-        scheduler.unregisterBeforeFrameCallback(drawText);
-      }
+      scheduler.unregisterBeforeFrameCallback(drawText);
     };
-  }, [
-    flamegraphRenderer,
-    flamegraphView,
-    flamegraphCanvas,
-    renderText,
-    scheduler,
-    textRenderer,
-  ]);
+  }, [flamegraphRenderer, flamegraphView, flamegraphCanvas, scheduler, textRenderer]);
 
   const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
@@ -246,8 +231,7 @@ export function FlamegraphPreview({
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
       />
-      {renderText &&
-      flamegraphCanvas &&
+      {flamegraphCanvas &&
       flamegraphRenderer &&
       flamegraphView &&
       configSpaceCursor &&
@@ -364,8 +348,8 @@ export function computePreviewConfigView(
 }
 
 const Canvas = styled('canvas')<{
-  cursor?: CSSProperties['cursor'];
-  pointerEvents?: CSSProperties['pointerEvents'];
+  cursor?: CSS['cursor'];
+  pointerEvents?: CSS['pointerEvents'];
 }>`
   left: 0;
   top: 0;

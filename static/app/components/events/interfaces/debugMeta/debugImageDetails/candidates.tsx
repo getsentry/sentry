@@ -6,11 +6,12 @@ import pick from 'lodash/pick';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
@@ -311,6 +312,8 @@ export class Candidates extends Component<Props, State> {
     const haveCandidatesAtLeastOneAction =
       haveCandidatesOkOrDeletedDebugFile || hasReprocessWarning;
 
+    const {emptyMessage, emptyAction} = this.getEmptyMessage();
+
     return (
       <Wrapper>
         <Header>
@@ -341,30 +344,40 @@ export class Candidates extends Component<Props, State> {
             />
           )}
         </Header>
-        <StyledPanelTable
-          headers={
-            haveCandidatesAtLeastOneAction
-              ? [t('Status'), t('Information'), '']
-              : [t('Status'), t('Information')]
+        <StyledSimpleTable
+          hasActions={haveCandidatesAtLeastOneAction}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
+              {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
+            </SimpleTable.HeaderRow>
           }
-          isEmpty={!filteredCandidatesByFilter.length}
-          isLoading={isLoading}
-          {...this.getEmptyMessage()}
         >
-          {filteredCandidatesByFilter.map((candidate, index) => (
-            <Candidate
-              key={index}
-              candidate={candidate}
-              organization={organization}
-              baseUrl={baseUrl}
-              projSlug={projSlug}
-              eventDateReceived={eventDateReceived}
-              hasReprocessWarning={hasReprocessWarning}
-              haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
-              onDelete={onDelete}
-            />
-          ))}
-        </StyledPanelTable>
+          {isLoading && <SimpleTable.Loading />}
+          {!isLoading && !filteredCandidatesByFilter.length && (
+            <SimpleTable.Empty>
+              <Stack align="center" gap="xl">
+                {emptyMessage}
+                {emptyAction}
+              </Stack>
+            </SimpleTable.Empty>
+          )}
+          {!isLoading &&
+            filteredCandidatesByFilter.map((candidate, index) => (
+              <Candidate
+                key={index}
+                candidate={candidate}
+                organization={organization}
+                baseUrl={baseUrl}
+                projSlug={projSlug}
+                eventDateReceived={eventDateReceived}
+                hasReprocessWarning={hasReprocessWarning}
+                haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
+                onDelete={onDelete}
+              />
+            ))}
+        </StyledSimpleTable>
       </Wrapper>
     );
   }
@@ -399,9 +412,11 @@ const Title = styled('div')`
   }
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'hasActions',
+})<{hasActions: boolean}>`
   grid-template-columns: ${p =>
-    p.headers.length === 3 ? 'max-content 1fr max-content' : 'max-content 1fr'};
+    p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
 
   height: 100%;
 

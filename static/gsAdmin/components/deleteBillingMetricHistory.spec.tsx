@@ -259,7 +259,7 @@ describe('DeleteBillingMetricHistory', () => {
     });
   });
 
-  it('disables Submit button when no data category is selected', async () => {
+  it('keeps the Submit button enabled when no data category is selected', async () => {
     // Mock the billing config API call
     MockApiClient.addMockResponse({
       url: '/billing-config/',
@@ -283,27 +283,19 @@ describe('DeleteBillingMetricHistory', () => {
 
     openDeleteModal();
 
-    // Wait for the component to load
-    await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
+    const dataCategory = await screen.findByRole('textbox', {name: 'Data Category'});
+    const deleteButton = screen.getByRole('button', {name: 'Delete'});
 
-    // Wait for the form to be visible
-    await waitFor(() => {
-      expect(screen.getByRole('textbox', {name: 'Data Category'})).toBeInTheDocument();
-    });
+    expect(deleteButton).toBeEnabled();
 
-    // Check that the Delete button is disabled when no data category is selected
-    expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+    await userEvent.click(deleteButton);
+
+    expect(await screen.findByText('Please select a data category.')).toBeInTheDocument();
 
     // Select a data category
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Category'}),
-      'Errors (1)'
-    );
+    await selectEvent.select(dataCategory, 'Errors (1)');
 
-    // Now the Delete button should be enabled
-    expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
+    expect(deleteButton).toBeEnabled();
   });
 
   it('closes modal when Cancel button is clicked', async () => {

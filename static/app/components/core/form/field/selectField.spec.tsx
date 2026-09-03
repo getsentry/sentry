@@ -453,6 +453,22 @@ describe('SelectField auto-save', () => {
     expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
   });
 
+  it('restores focus after selecting an option with the keyboard', async () => {
+    const mutationFn = jest.fn((data: {fruit: string}) => Promise.resolve(data));
+
+    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
+
+    const input = screen.getByRole('textbox');
+    await userEvent.click(input);
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
+    });
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+    expect(input).toHaveFocus();
+  });
+
   it('disables select while auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{fruit: string}>(() => {}));
 

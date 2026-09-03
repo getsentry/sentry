@@ -110,9 +110,21 @@ interface TakeSnapshotOptions {
   metadata: SnapshotTestMetadata;
   renderFn: () => ReactElement;
   testFilePath: string;
+  interaction?: SnapshotInteraction;
   theme?: 'light' | 'dark';
   viewport?: {width: number; height?: number};
   viewportLabel?: string;
+}
+
+/**
+ * A pointer interaction to perform before capturing, so snapshots can cover
+ * `:hover` / `:active` states. Each value is a CSS selector; the first match is
+ * used. `:focus-visible` is intentionally unsupported — Chromium only applies it
+ * to keyboard-driven focus, so it cannot be forced reliably from a screenshot.
+ */
+export interface SnapshotInteraction {
+  active?: string;
+  hover?: string;
 }
 
 export async function takeSnapshot({
@@ -125,6 +137,7 @@ export async function takeSnapshot({
   metadata,
   viewport,
   viewportLabel,
+  interaction,
 }: TakeSnapshotOptions): Promise<void> {
   const element = renderFn();
   const fullHTML = renderToHTML(element, viewport ? 'block' : 'inline-block');
@@ -144,8 +157,21 @@ export async function takeSnapshot({
     // Wait for fonts to load
     await page.evaluate(() => document.fonts.ready);
 
+    // Drive pointer states (:hover / :active) before capturing, if requested.
+    let releaseActive: (() => Promise<void>) | undefined;
+    if (interaction?.hover) {
+      await page.locator(interaction.hover).first().hover();
+    }
+    if (interaction?.active) {
+      await page.locator(interaction.active).first().hover();
+      await page.mouse.down();
+      releaseActive = () => page.mouse.up();
+    }
+
     const rootElement = page.locator('#root');
     const screenshot = await rootElement.screenshot({type: 'png', omitBackground: true});
+
+    await releaseActive?.();
 
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);

@@ -28,7 +28,7 @@ export default Storybook.story('ReplayPlayerMeasurer', story => {
           </p>
 
           <NegativeSpaceContainer style={{height: 500}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>

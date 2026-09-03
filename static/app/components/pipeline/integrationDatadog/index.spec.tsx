@@ -19,6 +19,24 @@ describe('DatadogCredentialsStep', () => {
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
+  it('points key help links at the selected site settings pages', async () => {
+    render(<DatadogCredentialsStep {...makeStepProps({stepData: {}})} />);
+
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Datadog Site'}),
+      'us3.datadoghq.com (US3)'
+    );
+
+    expect(screen.getByRole('link', {name: /API Keys/})).toHaveAttribute(
+      'href',
+      'https://app.us3.datadoghq.com/organization-settings/api-keys'
+    );
+    expect(screen.getByRole('link', {name: /Application Keys/})).toHaveAttribute(
+      'href',
+      'https://app.us3.datadoghq.com/organization-settings/application-keys'
+    );
+  });
+
   it('calls advance with credentials on submit', async () => {
     const advance = jest.fn();
     render(<DatadogCredentialsStep {...makeStepProps({stepData: {}, advance})} />);

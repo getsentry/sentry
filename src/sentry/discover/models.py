@@ -10,6 +10,7 @@ from django.utils import timezone
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -210,3 +211,48 @@ class TeamKeyTransaction(Model):
         app_label = "sentry"
         db_table = "sentry_performanceteamkeytransaction"
         unique_together = (("project_team", "transaction"),)
+
+
+@cell_silo_model
+class DiscoverSavedQueryStarred(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    discover_saved_query = FlexibleForeignKey("discover.DiscoverSavedQuery")
+
+    position = models.PositiveSmallIntegerField(null=True, db_default=None)
+    starred = models.BooleanField(db_default=True)
+
+    class Meta:
+        app_label = "discover"
+        db_table = "sentry_discoversavedquerystarred"
+        constraints = [
+            # A position appears at most once in an organization user's list, starred or not.
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "position"],
+                name="sentry_discoversavedquerystarred_unique_query_per_org_user",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
+        ]
+
+
+@cell_silo_model
+class DiscoverSavedQueryLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    discover_saved_query = FlexibleForeignKey("discover.DiscoverSavedQuery")
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "discover"
+        db_table = "sentry_discoversavedquerylastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "discover_saved_query_id"],
+                name="sentry_disc_savedquery_lastvisited_uniq",
+            )
+        ]

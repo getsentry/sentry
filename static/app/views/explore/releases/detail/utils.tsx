@@ -80,13 +80,12 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  perPage?: number;
 };
 
-export function getQuery({location, perPage = 40}: GetQueryProps) {
+export function getQuery({location}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-    per_page: perPage,
+    per_page: 40,
   };
 
   return query;

@@ -8,9 +8,7 @@ import {
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import {t} from 'sentry/locale';
-import type {FormSize} from 'sentry/utils/theme';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {inputStyles} from './inputStyles';
 
@@ -58,7 +56,6 @@ export interface OTPInputProps<Format extends string> {
   format: OTPFormat<Format>;
   onComplete: (value: string) => void;
   disabled?: boolean;
-  size?: FormSize;
   /** Converts alphanumeric input to uppercase as it is entered. */
   uppercase?: boolean;
 }
@@ -68,9 +65,9 @@ export function OTPInput<const Format extends string>({
   format,
   onComplete,
   disabled = false,
-  size = 'md',
   uppercase = false,
 }: OTPInputProps<Format>) {
+  const {t} = useTranslation();
   const [value, setValue] = useState('');
   const normalizeValue = (newValue: string) =>
     uppercase ? newValue.toUpperCase() : newValue;
@@ -124,7 +121,6 @@ export function OTPInput<const Format extends string>({
                 data-input-otp-slot
                 justify="center"
                 $isActive={slot.isActive}
-                $size={size}
               >
                 {slot.char ?? slot.placeholderChar}
               </OTPInputSlot>
@@ -137,12 +133,12 @@ export function OTPInput<const Format extends string>({
   );
 }
 
-const OTPInputSlot = styled(Flex)<{$isActive: boolean; $size: FormSize}>`
-  ${p => inputStyles({theme: p.theme, size: p.$size})};
+const OTPInputSlot = styled(Flex)<{$isActive: boolean}>`
+  ${p => inputStyles({theme: p.theme})};
   display: flex;
-  min-width: ${p => p.theme.form[p.$size].height};
+  min-width: ${p => p.theme.form.md.height};
   padding: 0;
-  width: ${p => p.theme.form[p.$size].height};
+  width: ${p => p.theme.form.md.height};
 
   ${p =>
     p.$isActive &&

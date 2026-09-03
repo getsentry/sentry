@@ -79,7 +79,7 @@ def is_activity_tracking_enabled(
     The gates are meant to stop *post*-terminal accumulation, not the terminal
     event itself.
     """
-    if not features.has("organizations:pr-metrics-activity", organization):
+    if not features.has("organizations:pr-metrics", organization):
         return False
 
     if pr is not None:

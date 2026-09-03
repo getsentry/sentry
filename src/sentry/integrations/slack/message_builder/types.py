@@ -30,6 +30,8 @@ class SlackAction(StrEnum):
     SEER_AUTOFIX_HANDOFF = "seer_autofix_handoff"
     SEER_AUTOFIX_VIEW_IN_SENTRY = "seer_autofix_view_in_sentry"
     SEER_AUTOFIX_VIEW_PR = "seer_autofix_view_pr"
+    SEER_AGENT_WRITE_APPROVE = "seer_agent_write_approve"
+    SEER_AGENT_WRITE_REJECT = "seer_agent_write_reject"
 
 
 INCIDENT_COLOR_MAPPING = {

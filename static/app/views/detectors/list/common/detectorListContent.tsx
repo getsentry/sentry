@@ -1,6 +1,6 @@
 import {useCallback, type ReactNode} from 'react';
 
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -27,6 +27,7 @@ export function DetectorListContent({
   isError,
   isSuccess,
 }: DetectorListContentProps) {
+  const getPaginationCaption = useGetPaginationCaption();
   const location = useLocation();
   const navigate = useNavigate();
 

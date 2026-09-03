@@ -1,21 +1,7 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type Size = 'xs' | 'sm' | 'md' | 'lg';
-
-const SIZES: Record<Size, number> = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 24,
-};
-
-interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
-  /**
-   * Diameter of the spinner. Matches the icon size scale.
-   */
-  size?: Size;
-}
+interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {}
 
 /**
  * A small, inline activity spinner for chat and agent surfaces — used next to a
@@ -27,10 +13,10 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Decorative by default (`aria-hidden`). Pass an `aria-label` (and typically
  * `role="status"`) when the spinner is the only signal that work is in progress.
  */
-export function Spinner({size = 'xs', ...props}: SpinnerProps) {
+export function Spinner({...props}: SpinnerProps) {
   return (
     <Ring
-      $size={SIZES[size]}
+      $size={12}
       aria-hidden={!props['aria-label'] && !props.role ? true : undefined}
       {...props}
     />

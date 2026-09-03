@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import dompurify from 'dompurify';
 import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
@@ -47,10 +47,6 @@ interface CategoricalSeriesWidgetVisualizationProps {
    */
   plottables: CategoricalPlottable[];
   /**
-   * Reference to the chart instance.
-   */
-  chartRef?: React.Ref<ReactEchartsRef>;
-  /**
    * A mapping of series name to boolean. If the value is `false`, the series is hidden.
    */
   legendSelection?: LegendSelection;
@@ -69,10 +65,6 @@ interface CategoricalSeriesWidgetVisualizationProps {
    * - `always`: Always show the legend.
    */
   showLegend?: 'auto' | 'never' | 'always';
-  /**
-   * Truncate the category labels.
-   */
-  truncateCategoryLabels?: number | boolean;
 }
 
 export function CategoricalSeriesWidgetVisualization(
@@ -146,14 +138,8 @@ export function CategoricalSeriesWidgetVisualization(
     // If the categories are still too long after "smart" truncation, apply naive truncation
     const trimmedTotal = trimmed.reduce((sum, c) => sum + c.length, 0);
 
-    let truncateLength: number | boolean;
-    if (typeof props.truncateCategoryLabels === 'number') {
-      truncateLength = props.truncateCategoryLabels;
-    } else if (trimmedTotal > TOTAL_CHARACTER_THRESHOLD) {
-      truncateLength = TRUNCATED_LABEL_MAX_LENGTH;
-    } else {
-      truncateLength = props.truncateCategoryLabels ?? true;
-    }
+    const truncateLength: number | boolean =
+      trimmedTotal > TOTAL_CHARACTER_THRESHOLD ? TRUNCATED_LABEL_MAX_LENGTH : true;
 
     // NOTE: In the end, ECharts still applies its own legend overlap logic, and
     // might choose to hide some labels. By doing our own truncation and
@@ -164,7 +150,7 @@ export function CategoricalSeriesWidgetVisualization(
         truncationFormatter(trimmed[i]!, truncateLength, false),
       ])
     );
-  }, [allCategories, props.truncateCategoryLabels]);
+  }, [allCategories]);
 
   // Configure the X axis (category axis)
   const xAxis: BaseChartProps['xAxis'] = {
@@ -293,13 +279,14 @@ export function CategoricalSeriesWidgetVisualization(
               }
             }
 
-            // param.marker is an HTML string with a colored circle, sanitize it
-            const marker = typeof param.marker === 'string' ? param.marker : '';
-
             return (
               <div key={param.seriesIndex}>
                 <span className="tooltip-label">
-                  <span dangerouslySetInnerHTML={{__html: dompurify.sanitize(marker)}} />{' '}
+                  <SeriesMarker
+                    markerColor={
+                      typeof param.color === 'string' ? param.color : 'transparent'
+                    }
+                  />{' '}
                   <strong>{displayName}</strong>
                 </span>{' '}
                 {formattedValue}
@@ -377,7 +364,7 @@ export function CategoricalSeriesWidgetVisualization(
 
   return (
     <BaseChart
-      ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       autoHeightResize
       renderer="canvas"
       series={seriesFromPlottables}
@@ -419,3 +406,16 @@ export function CategoricalSeriesWidgetVisualization(
 
 CategoricalSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
 CategoricalSeriesWidgetVisualization.NoData = WidgetNoDataPanel;
+
+/**
+ * Mirrors the marker ECharts generates for tooltips, which we would otherwise
+ * receive as an HTML string in `param.marker`.
+ */
+const SeriesMarker = styled('span')<{markerColor: string}>`
+  display: inline-block;
+  margin-right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+  background-color: ${p => p.markerColor};
+`;

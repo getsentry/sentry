@@ -14,21 +14,15 @@ type Props = {
   dateUpdated: string | null;
   raw: string;
   type: 'codeowners' | 'issueowners';
-  controls?: React.ReactNode[];
   'data-test-id'?: string;
-  placeholder?: string;
   provider?: string;
-  repoName?: string;
 };
 
 export function RulesPanel({
   raw,
   dateUpdated,
   provider,
-  repoName,
   type,
-  placeholder,
-  controls,
   'data-test-id': dataTestId,
 }: Props) {
   function renderIcon() {
@@ -59,7 +53,6 @@ export function RulesPanel({
         <Flex align="center" gap="sm">
           {renderIcon()}
           {renderTitle()}
-          {repoName && <div>{`- ${repoName}`}</div>}
         </Flex>
         <Flex align="center" gap="sm">
           {dateUpdated && (
@@ -68,7 +61,6 @@ export function RulesPanel({
               <TimeSince date={dateUpdated} />
             </SyncDate>
           )}
-          {controls}
         </Flex>
       </PanelHeader>
 
@@ -82,7 +74,6 @@ export function RulesPanel({
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            placeholder={placeholder}
           />
         </InnerPanelBody>
       </PanelBody>

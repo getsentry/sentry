@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -30,7 +32,9 @@ import {
   CONVERSATIONS_DETAIL_SUB_PATH,
 } from 'sentry/views/explore/conversations/settings';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
+import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -41,29 +45,51 @@ interface TraceAiConversationsProps {
   traceSlug: string;
 }
 
+type SubTab = 'timeline' | 'transcript';
+
 export function TraceAiConversations({
   conversationIds,
   allAiNodes,
   traceSlug,
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
-  const [activeSubTab, setActiveSubTab] = useState('spans');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('transcript');
+  const [selectedConversationId, setSelectedConversationId] = useState<string>(
+    () => conversationIds[0] ?? ''
+  );
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
+  // Fall back to the first conversation if the selection is stale (e.g. the
+  // trace changed and no longer contains the previously selected conversation).
+  const activeConversationId = conversationIds.includes(selectedConversationId)
+    ? selectedConversationId
+    : (conversationIds[0] ?? '');
+
   const handleTabChange = useCallback((key: Key) => {
-    setActiveSubTab(String(key));
+    setActiveSubTab(String(key) as SubTab);
     setSelectedSpanId(null);
   }, []);
+
+  const handleConversationChange = (id: string) => {
+    setSelectedConversationId(id);
+    setSelectedSpanId(null);
+  };
 
   const handleSelectSpan = useCallback((spanId: string) => {
     setSelectedSpanId(spanId);
   }, []);
 
-  const activeConversationId = activeSubTab.startsWith('chat-')
-    ? activeSubTab.slice('chat-'.length)
-    : null;
-
   const traceTimeBounds = useMemo(() => getTimeBoundsFromNodes(allAiNodes), [allAiNodes]);
+
+  // The trace's AI spans scoped to the selected conversation, for the timeline.
+  const selectedTraceAiNodes = useMemo(
+    () =>
+      allAiNodes.filter(
+        node =>
+          getStringAttr(node, SpanFields.GEN_AI_CONVERSATION_ID) === activeConversationId
+      ),
+    [allAiNodes, activeConversationId]
+  );
 
   const {
     nodes: conversationNodes,
@@ -71,7 +97,7 @@ export function TraceAiConversations({
     isLoading,
     error,
   } = useConversation({
-    conversationId: activeConversationId ?? '',
+    conversationId: activeConversationId,
     ...traceTimeBounds,
   });
 
@@ -80,35 +106,19 @@ export function TraceAiConversations({
     [conversationNodes, nodeTraceMap, traceSlug]
   );
 
-  const tabItems = useMemo((): Array<{
-    conversationId: string | null;
-    key: string;
-    label: string;
-  }> => {
-    const spansTab = {
-      key: 'spans',
-      label: t('Timeline'),
-      conversationId: null,
-    };
-    const conversationTabs = conversationIds.map(id => ({
-      key: `chat-${id}`,
-      label:
-        conversationIds.length === 1
-          ? t('Transcript')
-          : t('Transcript %s', id.slice(0, 8)),
-      conversationId: id,
-    }));
+  const conversationOptions = useMemo(
+    () => conversationIds.map(id => ({value: id, label: id.slice(0, 8)})),
+    [conversationIds]
+  );
 
-    return [spansTab, ...conversationTabs];
-  }, [conversationIds]);
-
-  const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
-  const conversationUrl = linkConversationId
+  const conversationUrl = activeConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${linkConversationId}/?${qs.stringify(
+        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${activeConversationId}/?${qs.stringify(
           {
             referrer: 'trace-view',
-            ...(selectedSpanId && activeConversationId ? {spanId: selectedSpanId} : {}),
+            ...(selectedSpanId && activeSubTab === 'transcript'
+              ? {spanId: selectedSpanId}
+              : {}),
           }
         )}`
       )
@@ -117,49 +127,63 @@ export function TraceAiConversations({
   return (
     <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
       <Stack height="100%">
-        {activeConversationId && (
-          <TraceConversationHeader
-            conversationId={activeConversationId}
-            nodes={traceNodes}
-            isLoading={isLoading}
-          />
-        )}
         <StyledTabs value={activeSubTab} onChange={handleTabChange}>
-          <Flex direction="row" justify="between" align="center" borderBottom="primary">
-            <Container width="100%" minWidth="0">
-              <TabList>
-                {tabItems.map(item => (
-                  <TabList.Item key={item.key}>{item.label}</TabList.Item>
-                ))}
+          <Flex
+            direction="row"
+            justify="between"
+            align="center"
+            gap="md"
+            padding="0 lg"
+            borderBottom="primary"
+          >
+            <Flex align="center" gap="md" minWidth="0" flex="1">
+              {conversationIds.length > 1 && (
+                <CompactSelect
+                  size="xs"
+                  value={activeConversationId}
+                  options={conversationOptions}
+                  onChange={option => handleConversationChange(option.value)}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      size="xs"
+                      prefix={t('Conversation')}
+                    />
+                  )}
+                />
+              )}
+              <TabList outerWrapStyles={{flex: 1}}>
+                <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+                <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
               </TabList>
-            </Container>
+            </Flex>
             {conversationUrl && (
-              <Flex flexShrink={0} padding="0 lg">
-                <LinkButton size="xs" to={conversationUrl}>
-                  {t('Show full conversation')}
-                </LinkButton>
-              </Flex>
+              <LinkButton size="xs" to={conversationUrl}>
+                {t('Show full conversation')}
+              </LinkButton>
             )}
           </Flex>
+          {activeConversationId && (
+            <TraceConversationHeader
+              conversationId={activeConversationId}
+              nodes={traceNodes}
+              isLoading={isLoading}
+            />
+          )}
           <FullHeightTabPanels>
-            {tabItems.map(item =>
-              item.conversationId ? (
-                <TabPanels.Item key={item.key}>
-                  <TraceConversationTranscript
-                    nodes={traceNodes}
-                    nodeTraceMap={nodeTraceMap}
-                    isLoading={isLoading}
-                    error={error}
-                    selectedSpanId={selectedSpanId}
-                    onSelectSpan={handleSelectSpan}
-                  />
-                </TabPanels.Item>
-              ) : (
-                <TabPanels.Item key={item.key}>
-                  <AiSpansSplitView nodes={allAiNodes} traceSlug={traceSlug} />
-                </TabPanels.Item>
-              )
-            )}
+            <TabPanels.Item key="transcript">
+              <TraceConversationTranscript
+                nodes={traceNodes}
+                nodeTraceMap={nodeTraceMap}
+                isLoading={isLoading}
+                error={error}
+                selectedSpanId={selectedSpanId}
+                onSelectSpan={handleSelectSpan}
+              />
+            </TabPanels.Item>
+            <TabPanels.Item key="timeline">
+              <AiSpansSplitView nodes={selectedTraceAiNodes} traceSlug={traceSlug} />
+            </TabPanels.Item>
           </FullHeightTabPanels>
         </StyledTabs>
       </Stack>

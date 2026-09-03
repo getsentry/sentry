@@ -15,6 +15,7 @@ import {
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -28,7 +29,9 @@ export function AiFeaturesAreDisabledBanner() {
       addLoadingMessage(t('Saving changes...'));
       return fetchMutation<Organization>({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {hideAiFeatures: false}, // Hard-coded so we only go in the 'enable AI' direction
       });
     },

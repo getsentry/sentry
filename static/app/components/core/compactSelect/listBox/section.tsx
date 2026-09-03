@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import type {AriaListBoxSectionProps} from '@react-aria/listbox';
 import {useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';
 import type {ListState} from '@react-stately/list';
@@ -18,7 +17,7 @@ import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 
-interface ListBoxSectionProps<T extends ListItemBase> extends AriaListBoxSectionProps {
+interface ListBoxSectionProps<T extends ListItemBase> {
   hiddenOptions: Set<SelectKey>;
   item: Node<T>;
   listState: ListState<T>;

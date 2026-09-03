@@ -39,7 +39,6 @@ type Props = {
   totalScreenshots: number;
   onNext?: ReactEventHandler;
   onPrevious?: ReactEventHandler;
-  onlyRenderScreenshot?: boolean;
 };
 
 export function Screenshot({
@@ -51,7 +50,6 @@ export function Screenshot({
   onPrevious,
   totalScreenshots,
   projectSlug,
-  onlyRenderScreenshot,
   onDelete,
   openVisualizationModal,
 }: Props) {
@@ -122,55 +120,52 @@ export function Screenshot({
           />
         </AttachmentComponentWrapper>
       </StyledPanelBody>
-      {!onlyRenderScreenshot && (
-        <StyledPanelFooter>
-          <Grid flow="column" align="center" gap="md">
-            <Button
-              size="xs"
-              onClick={() =>
-                openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
-              }
-            >
-              {t('View screenshot')}
-            </Button>
-            <DropdownMenu
-              position="bottom"
-              offset={4}
-              triggerProps={{
-                showChevron: false,
-                icon: <IconEllipsis />,
-                'aria-label': t('More screenshot actions'),
-              }}
-              size="xs"
-              items={[
-                {
-                  key: 'download',
-                  label: t('Download'),
-                  onAction: () => {
-                    window.location.assign(`${downloadUrl}?download=1`);
-                    trackAnalytics(
-                      'issue_details.issue_tab.screenshot_dropdown_download',
-                      {organization}
-                    );
-                  },
+      <StyledPanelFooter>
+        <Grid flow="column" align="center" gap="md">
+          <Button
+            size="xs"
+            onClick={() =>
+              openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
+            }
+          >
+            {t('View screenshot')}
+          </Button>
+          <DropdownMenu
+            position="bottom"
+            offset={4}
+            triggerProps={{
+              showChevron: false,
+              icon: <IconEllipsis />,
+              'aria-label': t('More screenshot actions'),
+            }}
+            size="xs"
+            items={[
+              {
+                key: 'download',
+                label: t('Download'),
+                onAction: () => {
+                  window.location.assign(`${downloadUrl}?download=1`);
+                  trackAnalytics('issue_details.issue_tab.screenshot_dropdown_download', {
+                    organization,
+                  });
                 },
-                {
-                  key: 'delete',
-                  label: t('Delete'),
-                  onAction: () =>
-                    openConfirmModal({
-                      header: t('Delete this image?'),
-                      message: t(
-                        'This image was captured around the time that the event occurred. Are you sure you want to delete this image?'
-                      ),
-                      onConfirm: () => handleDelete(screenshot.id),
-                    }),
-                },
-              ]}
-            />
-          </Grid>
-        </StyledPanelFooter>
-      )}
+              },
+              {
+                key: 'delete',
+                label: t('Delete'),
+                onAction: () =>
+                  openConfirmModal({
+                    header: t('Delete this image?'),
+                    message: t(
+                      'This image was captured around the time that the event occurred. Are you sure you want to delete this image?'
+                    ),
+                    onConfirm: () => handleDelete(screenshot.id),
+                  }),
+              },
+            ]}
+          />
+        </Grid>
+      </StyledPanelFooter>
     </StyledPanel>
   );
 }

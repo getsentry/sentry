@@ -49,19 +49,17 @@ function useMultiMetricsQueryParamsContext(): MetricQueriesControllerValue {
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
-  allowUpTo?: number;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
-  allowUpTo,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const queries = useMemo(
-    () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
-    [location, allowUpTo]
+    () => getMultiMetricsQueryParamsFromLocation(location),
+    [location]
   );
 
   const setQueries = useCallback(
@@ -82,10 +80,7 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(
-  location: Location,
-  limit?: number
-): BaseMetricQuery[] {
+function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
   const metricQueries = rawQueryParams
@@ -94,7 +89,7 @@ function getMultiMetricsQueryParamsFromLocation(
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
-  return limit ? queries.slice(0, limit) : queries;
+  return queries;
 }
 
 interface LocalMultiMetricsQueryParamsProviderProps {

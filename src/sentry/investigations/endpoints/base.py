@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from collections.abc import Set as AbstractSet
 from typing import Any
 
 from rest_framework import status
@@ -11,22 +13,26 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.investigations.models import Investigation, InvestigationBlock
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationBlockExecutionProject,
+    InvestigationProject,
+)
 from sentry.investigations.services import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
 )
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 
 FEATURE = "organizations:investigations"
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
     """
-    Investigations are organization-visible with no per-investigation access
-    control, so for now they are limited to organizations with open membership.
+    Open organization membership permits summary listing. Full-detail and reuse
+    endpoints also require access to every selected or execution-represented project.
     """
     return (
         features.has(FEATURE, organization, actor=request.user)
@@ -44,22 +50,44 @@ def service_error(error: Exception) -> Response | None:
     return None
 
 
-def required_investigation_project_ids(investigation: Investigation) -> set[int]:
-    selected = set(investigation.projects.values_list("id", flat=True))
-    visible_execution_ids: set[int] = set()
-    for result_execution_id, content_execution_id in InvestigationBlock.objects.filter(
-        investigation=investigation, deleted_at__isnull=True
-    ).values_list("result_execution_id", "content_execution_id"):
-        if result_execution_id is not None:
-            visible_execution_ids.add(result_execution_id)
-        if content_execution_id is not None:
-            visible_execution_ids.add(content_execution_id)
-    represented = set(
-        Project.objects.filter(
-            investigationblockexecutionproject__execution_id__in=visible_execution_ids,
-        ).values_list("id", flat=True)
+def investigation_ids_with_project_access(
+    investigations: Sequence[Investigation], accessible_project_ids: AbstractSet[int]
+) -> set[int]:
+    investigation_ids = {investigation.id for investigation in investigations}
+    inaccessible_ids = set(
+        InvestigationProject.objects.filter(investigation_id__in=investigation_ids)
+        .exclude(project_id__in=accessible_project_ids)
+        .values_list("investigation_id", flat=True)
     )
-    return selected | represented
+    execution_investigation_ids: dict[int, int] = {}
+    for (
+        investigation_id,
+        result_execution_id,
+        content_execution_id,
+    ) in InvestigationBlock.objects.filter(
+        investigation_id__in=investigation_ids, deleted_at__isnull=True
+    ).values_list("investigation_id", "result_execution_id", "content_execution_id"):
+        if result_execution_id is not None:
+            execution_investigation_ids[result_execution_id] = investigation_id
+        if content_execution_id is not None:
+            execution_investigation_ids[content_execution_id] = investigation_id
+    inaccessible_execution_ids = InvestigationBlockExecutionProject.objects.filter(
+        execution_id__in=execution_investigation_ids
+    ).exclude(project_id__in=accessible_project_ids)
+    inaccessible_ids.update(
+        execution_investigation_ids[execution_id]
+        for execution_id in inaccessible_execution_ids.values_list("execution_id", flat=True)
+    )
+    return investigation_ids - inaccessible_ids
+
+
+def require_investigation_project_access(
+    investigation: Investigation, accessible_project_ids: AbstractSet[int]
+) -> None:
+    if investigation.id not in investigation_ids_with_project_access(
+        [investigation], accessible_project_ids
+    ):
+        raise PermissionDenied("You do not have access to every project in this investigation.")
 
 
 def user_id(request: Request) -> int:
@@ -69,18 +97,22 @@ def user_id(request: Request) -> int:
     return resolved
 
 
+def can_request_actor_create_investigation(request: Request) -> bool:
+    return request.user.is_authenticated and not request.user.is_sentry_app
+
+
 def require_authenticated_user(request: Request) -> int:
-    if not request.user.is_authenticated or request.user.is_sentry_app:
+    if not can_request_actor_create_investigation(request):
         raise PermissionDenied
     return user_id(request)
 
 
 class InvestigationPermission(OrganizationPermission):
     """
-    Any organization member may read and edit investigations.
+    Organization members may list investigation summaries.
 
-    There is no per-investigation access control in this pass, so mutations
-    require only ``org:read`` rather than the default ``org:write``.
+    Mutations require ``org:read`` rather than the default ``org:write``; endpoints
+    exposing or reusing a full investigation additionally enforce its project access.
     """
 
     scope_map = {
@@ -131,10 +163,7 @@ class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
         except (Investigation.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         kwargs["investigation"] = investigation
-        if not required_investigation_project_ids(investigation).issubset(
-            request.access.accessible_project_ids
-        ):
-            raise PermissionDenied("You do not have access to every project in this investigation.")
+        require_investigation_project_access(investigation, request.access.accessible_project_ids)
         return args, kwargs
 
 

@@ -59,7 +59,9 @@ describe('OrganizationFeatureFlagsIndex', () => {
 
     expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(secretsTable.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(
+      secretsTable.queryByText("You haven't linked any providers yet.")
+    ).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
@@ -83,7 +85,9 @@ describe('OrganizationFeatureFlagsIndex', () => {
       'Failed to load secrets and providers for the organization.'
     );
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(secretsTable.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(
+      secretsTable.queryByText("You haven't linked any providers yet.")
+    ).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
@@ -101,7 +105,9 @@ describe('OrganizationFeatureFlagsIndex', () => {
 
     const secretsTable = within(screen.getByTestId('secrets-table'));
 
-    expect(await secretsTable.findByTestId('empty-state')).toBeInTheDocument();
+    expect(
+      await secretsTable.findByText("You haven't linked any providers yet.")
+    ).toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(secretsTable.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });

@@ -34,9 +34,10 @@ import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  investigationDetailQueryOptions,
+  getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
   useCreateInvestigationMutation,
   useDeleteInvestigationMutation,
@@ -71,7 +72,7 @@ const TableWrapper = styled('div')`
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
-    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
 }
 
@@ -98,8 +99,9 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationsPage() {
+export function InvestigationsPage() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
   const [{query, cursor}, setQueryParams] = useQueryStates({
@@ -115,10 +117,19 @@ function InvestigationsPage() {
   const {data, isPending, isError, error} = useQuery({
     ...listOptions,
     select: selectJsonWithHeaders,
+    refetchInterval: queryState =>
+      queryState.state.data?.json.some(item =>
+        ['pending', 'running'].includes(item.titleGeneration?.status ?? '')
+      )
+        ? 2000
+        : false,
   });
 
   const createMutation = useCreateInvestigationMutation(organization.slug, {
-    onSuccess: () => addSuccessMessage(t('Investigation created.')),
+    onSuccess: investigation => {
+      addSuccessMessage(t('Investigation created.'));
+      navigate(getInvestigationPath(organization.slug, investigation.id));
+    },
     onError: () => addErrorMessage(t('Unable to create investigation.')),
   });
 
@@ -143,7 +154,7 @@ function InvestigationsPage() {
   const deleteMutation = useDeleteInvestigationMutation(organization.slug, {
     onSuccess: (_data, investigation) => {
       queryClient.removeQueries({
-        queryKey: investigationDetailQueryOptions(organization.slug, investigation.id)
+        queryKey: getInvestigationDetailQueryOptions(organization.slug, investigation.id)
           .queryKey,
         exact: true,
       });
@@ -218,7 +229,7 @@ function InvestigationsPage() {
               to={getInvestigationPath(organization.slug, investigation.id)}
               onClick={() =>
                 void queryClient.prefetchQuery(
-                  investigationDetailQueryOptions(organization.slug, investigation.id)
+                  getInvestigationDetailQueryOptions(organization.slug, investigation.id)
                 )
               }
             >
@@ -259,7 +270,6 @@ function InvestigationsPage() {
                   marginBottom="xl"
                 >
                   <SearchBar
-                    defaultQuery=""
                     query={query ?? ''}
                     placeholder={t('Search Investigations')}
                     onSearch={handleSearch}
@@ -287,7 +297,6 @@ function InvestigationsPage() {
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
-                    columnSortBy={[]}
                     grid={{
                       renderHeadCell: column => column.name,
                       renderBodyCell,

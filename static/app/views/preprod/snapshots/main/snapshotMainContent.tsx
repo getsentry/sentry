@@ -584,7 +584,7 @@ function SingleViewLayout({
                 <Button
                   ref={navButtonRefs.prev}
                   size="sm"
-                  icon={<IconArrow direction="up" />}
+                  icon={<IconArrow />}
                   aria-label={t('Previous snapshot')}
                   disabled={!canNavigatePrev}
                   onClick={() => onNavigateSingleView('prev')}

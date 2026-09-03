@@ -8,6 +8,7 @@ import type {
 } from 'react';
 import {
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -17,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type {LocationDescriptor} from 'history';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
 
@@ -80,12 +82,19 @@ interface TableContextValue {
   onResizeMove: (delta: number) => void;
   onResizeStart: (index: number, cell: HTMLElement | null) => void;
   resizableByIndex: boolean[];
+  tableRef: RefObject<HTMLTableElement | null>;
 }
 
 const TableContext = createContext<TableContextValue | null>(null);
 
 function useTableContext() {
   return useContext(TableContext);
+}
+
+const DETACHED_TABLE_REF: RefObject<HTMLTableElement | null> = {current: null};
+
+export function useTableElement() {
+  return useTableContext()?.tableRef ?? DETACHED_TABLE_REF;
 }
 
 const EMPTY_COLUMNS: TableColumnConfig[] = [];
@@ -214,9 +223,11 @@ export function Table({
       onResizeMove,
       onResizeStart,
       resizableByIndex: columns.map(column => column.resizable !== false),
+      tableRef: gridRef,
     }),
     [
       columns,
+      gridRef,
       minimumColumnWidth,
       onResetColumnSize,
       onResizeEnd,
@@ -262,9 +273,17 @@ interface HeadCellProps extends ThHTMLAttributes<HTMLTableCellElement> {
    * from an ordered list rather than from a keyed column config.
    */
   columnIndex?: number;
-  onSort?: () => void;
+  onSort?: (event: React.MouseEvent) => void;
   overlays?: ReactNode;
+  /**
+   * Whether `to` should replace the history entry rather than pushing a new one.
+   */
+  replace?: boolean;
   sort?: SortDirection;
+  /**
+   * Sort destination to navigate to on sort.
+   */
+  to?: LocationDescriptor;
 }
 
 function HeadCell({
@@ -273,7 +292,9 @@ function HeadCell({
   columnIndex,
   onSort,
   overlays,
+  replace,
   sort,
+  to,
   ...props
 }: HeadCellProps) {
   const context = useTableContext();
@@ -287,7 +308,7 @@ function HeadCell({
     index !== context.lastColumnIndex &&
     context.resizableByIndex[index] === true;
 
-  const sortable = !!onSort || !!sort || !!overlays;
+  const sortable = !!onSort || !!sort || !!overlays || !!to;
 
   const cellRef = useRef<HTMLTableCellElement>(null);
   const {max, width} = useObservedColumnSize(cellRef);
@@ -303,11 +324,20 @@ function HeadCell({
       role="columnheader"
     >
       {sortable ? (
-        <SortableHeaderCell direction={sort} onSort={onSort} overlays={overlays}>
+        <SortableHeaderCell
+          direction={sort}
+          onSort={onSort}
+          overlays={overlays}
+          replace={replace}
+          to={to}
+        >
           {children}
         </SortableHeaderCell>
       ) : (
-        children
+        <Fragment>
+          {overlays}
+          {children}
+        </Fragment>
       )}
       {showResizer && (
         <TableResizer onContextMenu={event => event.preventDefault()}>

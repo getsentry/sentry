@@ -24,6 +24,7 @@ describe('useSpansSaveQuery', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
+      adjustments: {},
       selection: PageFiltersFixture({
         projects: [1],
         environments: ['production'],

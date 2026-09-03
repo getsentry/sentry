@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -429,7 +431,7 @@ function FlamegraphZoomViewMinimap({
   );
 }
 
-const Canvas = styled('canvas')<{cursor?: React.CSSProperties['cursor']}>`
+const Canvas = styled('canvas')<{cursor?: CSS['cursor']}>`
   width: 100%;
   height: 100%;
   position: absolute;

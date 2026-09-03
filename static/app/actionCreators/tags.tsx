@@ -52,10 +52,15 @@ export function loadOrganizationTags(
   }
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/tags/`, {
-      method: 'GET',
-      query,
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'GET',
+        query,
+      }
+    )
     .then(tags => tagFetchSuccess(tags, addAlert))
     .catch(() => {
       addErrorMessage(t('Unable to load tags'));

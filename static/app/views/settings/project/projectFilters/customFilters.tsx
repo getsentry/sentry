@@ -903,31 +903,36 @@ export function CustomFilters({project}: {project: Project}) {
         <LoadingIndicator />
       ) : (
         <Container containerType="inline-size">
-          <CustomFiltersTable>
-            <SimpleTable.Header>
-              <SimpleTable.HeaderCell divider={false}>
-                {t('Active')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false}>{t('Name')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false}>
-                {t('Conditions')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="trend">
-                {t('Trend')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
-                {t('Filtered')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="created">
-                {t('Created')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false} data-column-name="edited">
-                {t('Edited')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell divider={false}>
-                {t('Action')}
-              </SimpleTable.HeaderCell>
-            </SimpleTable.Header>
+          <CustomFiltersTable
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Active')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Name')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Conditions')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="trend">
+                  {t('Trend')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="filtered">
+                  {t('Filtered')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="created">
+                  {t('Created')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false} data-column-name="edited">
+                  {t('Edited')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell divider={false}>
+                  {t('Action')}
+                </SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
             {visibleFilters.length === 0 && (
               <SimpleTable.Empty>
                 {filters.length === 0

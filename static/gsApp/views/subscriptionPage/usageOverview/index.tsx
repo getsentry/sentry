@@ -1,14 +1,18 @@
 import {useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -22,7 +26,7 @@ import {UsageOverviewActions} from 'getsentry/views/subscriptionPage/usageOvervi
 import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 import {
-  SIDE_PANEL_MIN_SCREEN_BREAKPOINT,
+  SIDE_PANEL_MIN_CONTAINER_BREAKPOINT,
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
 } from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
@@ -37,10 +41,10 @@ export function UsageOverview({
   );
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const showSidePanel = useMedia(
-    `(min-width: ${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]})`
-  );
+  const showSidePanel = useResponsivePropValue({
+    zero: false,
+    [SIDE_PANEL_MIN_CONTAINER_BREAKPOINT]: true,
+  });
 
   const startDate = moment(subscription.onDemandPeriodStart);
   const endDate = moment(subscription.onDemandPeriodEnd);
@@ -102,8 +106,8 @@ export function UsageOverview({
   return (
     <Grid
       columns={{
-        'screen:xs': '1fr',
-        [`screen:${SIDE_PANEL_MIN_SCREEN_BREAKPOINT}`]: 'repeat(2, 1fr)',
+        zero: '1fr',
+        [SIDE_PANEL_MIN_CONTAINER_BREAKPOINT]: 'repeat(2, 1fr)',
       }}
       gap="lg"
       align="start"

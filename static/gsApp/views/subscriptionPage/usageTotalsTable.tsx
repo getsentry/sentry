@@ -52,10 +52,6 @@ type RowProps = {
    */
   bold?: boolean;
   /**
-   * Button to expand outcome section
-   */
-  expandButton?: React.ReactNode;
-  /**
    * If the row should be indented
    */
   indent?: boolean;
@@ -71,7 +67,6 @@ function OutcomeRow({
   category,
   totals,
   tooltipTitle,
-  expandButton,
   indent,
   barColor,
   bold,
@@ -92,7 +87,6 @@ function OutcomeRow({
           {barColor && <OutcomeLegend color={barColor} />}
           <OutcomeType indent={!barColor && indent}>
             <TextWrapper>
-              {expandButton}
               <Text bold={bold}>{name}</Text>
             </TextWrapper>
             {tooltipTitle && (
@@ -119,7 +113,6 @@ type OutcomeSectionProps = {
   name: string;
   quantity: number;
   totals: BillingStatTotal;
-  expanded?: boolean;
   isEventBreakdown?: boolean;
 };
 

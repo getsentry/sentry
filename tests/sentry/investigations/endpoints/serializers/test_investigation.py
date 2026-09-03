@@ -4,6 +4,7 @@ from typing import Any
 
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.serializers import (
@@ -28,14 +29,38 @@ class InvestigationSerializerTest(TestCase):
         assert result == {
             "id": str(self.investigation.id),
             "title": "Latency spike",
+            "summary": None,
+            "summaryDescription": None,
             "status": self.investigation.status,
-            "sourceType": self.investigation.source_type,
+            "sourceType": "manual",
             "createdBy": str(self.user.id),
             "dateCreated": self.investigation.date_added,
             "dateUpdated": self.investigation.date_updated,
             "version": 1,
             "blockCount": 0,
             "isFavorited": False,
+            "titleGeneration": {"status": None},
+            "orchestration": None,
+        }
+
+    def test_serializes_compact_orchestration_state_without_a_mode(self) -> None:
+        heartbeat = timezone.now()
+        self.create_investigation_orchestration_run(
+            investigation=self.investigation,
+            phase="investigating",
+            status="processing",
+            notebook_revision=4,
+            heartbeat_at=heartbeat,
+        )
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert "mode" not in result
+        assert result["orchestration"] == {
+            "phase": "investigating",
+            "status": "processing",
+            "heartbeatAt": heartbeat,
+            "notebookRevision": 4,
         }
 
     def test_counts_only_active_blocks(self) -> None:
@@ -68,10 +93,20 @@ class InvestigationSerializerTest(TestCase):
             )
             self.create_investigation_block(investigation=investigation, position=0)
             self.create_investigation_favorite(investigation=investigation, user=self.user)
+            self.create_investigation_orchestration_run(investigation=investigation)
 
         first_batch = list(Investigation.objects.filter(organization=self.organization))
+        serialize(
+            first_batch,
+            self.user,
+            InvestigationSerializer(accessible_project_ids={self.project.id}),
+        )
         with CaptureQueriesContext(connection) as first_queries:
-            serialize(first_batch, self.user, InvestigationSerializer())
+            serialize(
+                first_batch,
+                self.user,
+                InvestigationSerializer(accessible_project_ids={self.project.id}),
+            )
 
         for index in range(3, 12):
             investigation = self.create_investigation(
@@ -79,16 +114,24 @@ class InvestigationSerializerTest(TestCase):
             )
             self.create_investigation_block(investigation=investigation, position=0)
             self.create_investigation_favorite(investigation=investigation, user=self.user)
+            self.create_investigation_orchestration_run(investigation=investigation)
 
         second_batch = list(Investigation.objects.filter(organization=self.organization))
         with CaptureQueriesContext(connection) as second_queries:
-            results = serialize(second_batch, self.user, InvestigationSerializer())
+            results = serialize(
+                second_batch,
+                self.user,
+                InvestigationSerializer(accessible_project_ids={self.project.id}),
+            )
 
         assert len(second_batch) > len(first_batch)
         assert len(second_queries.captured_queries) == len(first_queries.captured_queries)
         counts = sorted(result["blockCount"] for result in results)
         # Only the setUp investigation has no blocks; every created one has exactly one.
         assert counts == [0] + [1] * (len(second_batch) - 1)
+        assert (
+            sum(result["orchestration"] is not None for result in results) == len(second_batch) - 1
+        )
 
 
 class InvestigationDetailsSerializerTest(TestCase):
@@ -131,8 +174,16 @@ class InvestigationDetailsSerializerTest(TestCase):
             assert detail_items[key] == value
 
     def test_serializes_nested_collections(self) -> None:
+        self.investigation.update(
+            summary="Errors crossed alert threshold",
+            summary_description="Checkout failures increased.\nRoll back the latest release.",
+        )
         detail = self.serialize_detail()
 
+        assert detail["summary"] == "Errors crossed alert threshold"
+        assert detail["summaryDescription"] == (
+            "Checkout failures increased.\nRoll back the latest release."
+        )
         assert detail["projectIds"] == [self.project.id]
         assert [parameter["key"] for parameter in detail["parameters"]] == ["environment"]
         assert [block["id"] for block in detail["blocks"]] == [str(self.block.id)]
@@ -161,7 +212,7 @@ class InvestigationDetailsSerializerTest(TestCase):
         detail = self.serialize_detail()
 
         assert detail["template"] is None
-        assert detail["source"]["type"] == self.investigation.source_type
+        assert detail["source"]["type"] == "manual"
         assert detail["titleGeneration"] == {"status": None}
 
     def test_reports_the_template_that_created_the_investigation(self) -> None:

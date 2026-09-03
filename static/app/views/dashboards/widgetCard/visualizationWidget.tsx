@@ -29,6 +29,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -76,7 +77,6 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
-  showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -89,7 +89,6 @@ export function VisualizationWidget({
   onDataFetchStart,
   tableItemLimit,
   widgetInterval,
-  showReleaseAs = 'bubble',
   showConfidenceWarning,
   onZoom,
   legendSelection,
@@ -112,9 +111,7 @@ export function VisualizationWidget({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection, {
-    enabled: showReleaseAs !== 'none',
-  });
+  const {releases: releasesWithDate} = useReleaseStats(selection);
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -158,7 +155,7 @@ export function VisualizationWidget({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs={showReleaseAs}
+            showReleaseAs="bubble"
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
@@ -333,7 +330,10 @@ function VisualizationWidgetContent({
             ],
             query: applyDashboardFilters({
               baseQuery: exploreQuery.formatString(),
-              dashboardFilters,
+              dashboardFilters: withGlobalFilterFallback(
+                dashboardFilters,
+                widget.queries[0]?.globalFilterFallback
+              ),
               widgetType: widget.widgetType,
             }),
           });

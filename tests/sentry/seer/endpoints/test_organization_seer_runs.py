@@ -4,8 +4,7 @@ from unittest.mock import patch
 
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
-from sentry.seer.runs_query import filtered_runs_queryset
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 
@@ -682,35 +681,3 @@ class OrganizationSeerRunsEndpointAccessTest(APITestCase):
     def test_missing_features_returns_403(self) -> None:
         with self.feature({"organizations:seer-explorer": True}):
             self.get_error_response(self.organization.slug, status_code=403)
-
-
-class FilteredRunsQuerysetTest(TestCase):
-    def test_scopes_to_accessible_projects(self) -> None:
-        accessible = self.create_project(organization=self.organization)
-        hidden = self.create_project(organization=self.organization)
-
-        run_accessible = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run=run_accessible, project=accessible)
-        run_hidden = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run=run_hidden, project=hidden)
-        # No project (agent row with null project) and no agent row at all are
-        # both kept regardless of project access.
-        run_null_project = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run=run_null_project, project=None)
-        run_no_agent = self.create_seer_run(organization=self.organization)
-
-        queryset = filtered_runs_queryset(
-            organization=self.organization,
-            query="",
-            user_id=None,
-            accessible_project_ids={accessible.id},
-            start=None,
-            end=None,
-        )
-
-        assert {r.id for r in queryset} == {
-            run_accessible.id,
-            run_null_project.id,
-            run_no_agent.id,
-        }
-        assert run_hidden.id not in {r.id for r in queryset}

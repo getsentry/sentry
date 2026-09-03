@@ -112,7 +112,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
           </div>
           <div>
             <h6 style={{textAlign: 'right'}}>{t('Date Created')}</h6>
-            <DateTime date={release.dateCreated} seconds={false} />
+            <DateTime date={release.dateCreated} />
           </div>
         </Flex>
         {parsedVersion?.package && (

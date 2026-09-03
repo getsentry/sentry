@@ -231,7 +231,7 @@ class TestCreateAndConnectPullRequestWorkflow(TestCase):
 
         condition = conditions[0]
         assert condition.type == Condition.SEER_ACTIVITY_TRIGGER
-        assert condition.comparison == [SeerActivityTriggerStage.PR_CREATED.value]
+        assert condition.comparison == [SeerActivityTriggerStage.PR_READY_FOR_REVIEW.value]
         assert condition.condition_result is True
 
     def test_creates_email_action(self) -> None:

@@ -209,7 +209,7 @@ describe('ActionNodeList', () => {
               {
                 id: 'condition-1',
                 type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-                comparison: ['pr_created'],
+                comparison: ['pr_ready_for_review'],
                 conditionResult: true,
               },
             ],
