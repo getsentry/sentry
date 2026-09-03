@@ -82,7 +82,7 @@ export function NoProjectMessage({
       title={t('Remain Calm')}
       description={t('You need at least one project to use this view')}
       illustration={
-        <Container width={{zero: '300px', xl: '480px'}}>
+        <Container width={{zero: '300px', xl: '480px', '4xl': '683px'}}>
           <StyledNoProjectEmptyState />
         </Container>
       }
