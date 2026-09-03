@@ -453,7 +453,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        title = build_attachment_title(event_or_group)
+        title = " ".join(build_attachment_title(event_or_group).splitlines())
         title_emojis = self.get_title_emoji(has_action)
 
         title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
