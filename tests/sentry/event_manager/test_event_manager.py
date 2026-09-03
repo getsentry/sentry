@@ -4688,6 +4688,7 @@ class SavePendingAttachmentsTest(TestCase):
                 project=self.project,
                 event_id=self.event_id,
                 group_id=group_id if group_id is not None else self.group.id,
+                source="test",
             )
         return track
 
@@ -4739,7 +4740,10 @@ class SavePendingAttachmentsTest(TestCase):
             connections[router.db_for_write(PendingEventAttachment)]
         ) as queries:
             save_pending_attachments(
-                project=self.project, event_id=self.event_id, group_id=self.group.id
+                project=self.project,
+                event_id=self.event_id,
+                group_id=self.group.id,
+                source="test",
             )
 
         assert not [
@@ -4757,7 +4761,10 @@ class SavePendingAttachmentsTest(TestCase):
         ) as queries:
             with self.feature("projects:defer-attachment-storage"):
                 save_pending_attachments(
-                    project=self.project, event_id=self.event_id, group_id=self.group.id
+                    project=self.project,
+                    event_id=self.event_id,
+                    group_id=self.group.id,
+                    source="test",
                 )
 
         # A single unlocked probe, and no `FOR UPDATE` claim behind it.

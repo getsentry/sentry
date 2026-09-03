@@ -630,6 +630,7 @@ class EventManager:
                 project=project,
                 event_id=job["event"].event_id,
                 group_id=group_info.group.id,
+                source="event_manager",
             )
 
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
@@ -2580,7 +2581,9 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
         )
 
 
-def save_pending_attachments(*, project: Project, event_id: str, group_id: int) -> None:
+def save_pending_attachments(
+    *, project: Project, event_id: str, group_id: int, source: str
+) -> None:
     """
     Promote any :class:`PendingEventAttachment` rows for ``event_id`` into real
     :class:`EventAttachment` rows, now that the event they belong to has been saved.
@@ -2592,7 +2595,13 @@ def save_pending_attachments(*, project: Project, event_id: str, group_id: int) 
     attaches the ``group_id``.
 
     Outcomes are only emitted here, on promotion: an attachment whose event never
-    arrives expires without ever being accepted.
+    arrives expires without ever being accepted. That is what keeps the race described
+    in :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
+    customer money -- an attachment we drop is an attachment we never billed for.
+
+    Safe to call more than once for the same event, and called from two places for
+    exactly that reason: once when the event is saved, and again in post-processing.
+    ``source`` tags the metric so the two can be told apart.
     """
     if not features.has("projects:defer-attachment-storage", project):
         return
@@ -2622,6 +2631,15 @@ def save_pending_attachments(*, project: Project, event_id: str, group_id: int) 
         )
         if not pending_attachments:
             return
+
+        # Pair this against `attachments.pending.create` to see how many pending
+        # attachments are actually making it back out of the table, and split it by
+        # `source` to see how many only got there on the second attempt.
+        metrics.incr(
+            "attachments.pending.persist",
+            amount=len(pending_attachments),
+            tags={"source": source},
+        )
 
         EventAttachment.objects.bulk_create(
             EventAttachment(
