@@ -97,7 +97,12 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashrepor
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
-from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventattachment import (
+    CRASH_REPORT_TYPES,
+    EventAttachment,
+    PendingEventAttachment,
+    get_crashreport_key,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -176,6 +181,10 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 HIGH_SEVERITY_THRESHOLD = 0.1
 
 SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
+
+
+# How long attachments may live if their corresponding event is not ingested.
+PENDING_ATTACHMENT_TTL = timedelta(hours=1)
 
 
 @dataclass
@@ -608,6 +617,8 @@ class EventManager:
         # this because of indiv. attachments.
         if not is_reprocessed and attachments:
             save_attachments(cache_key, attachments, job)
+
+        acknowledge_pending_attachments(job["event"].event_id)
 
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
@@ -2399,6 +2410,7 @@ def save_attachment(
     key_id: int | None = None,
     group_id: int | None = None,
     start_time: float | None = None,
+    is_pending: bool = False,
 ) -> None:
     """
     Persists a cached event attachments into the file store.
@@ -2481,7 +2493,7 @@ def save_attachment(
 
     file = EventAttachment.putfile(project.id, attachment)
 
-    EventAttachment.objects.create(
+    db_fields = dict(
         # lookup:
         project_id=project.id,
         group_id=group_id,
@@ -2496,6 +2508,15 @@ def save_attachment(
         blob_path=file.blob_path,
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
+
+    if is_pending:
+        assert group_id is None
+        db_fields.pop("group_id")
+        PendingEventAttachment.objects.create(**db_fields)
+
+        return
+
+    EventAttachment.objects.create()
 
     track_outcome(
         org_id=project.organization_id,
@@ -2533,6 +2554,7 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
             key_id=job["key_id"],
             group_id=event.group_id,
             start_time=job["start_time"],
+            is_pending=False,  # we have an event
         )
 
 
