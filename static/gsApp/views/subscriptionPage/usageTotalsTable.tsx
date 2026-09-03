@@ -78,7 +78,7 @@ function OutcomeRow({
 
   return (
     <tr>
-      <td>
+      <td aria-label={name}>
         <Flex
           gap="xs"
           align="center"
