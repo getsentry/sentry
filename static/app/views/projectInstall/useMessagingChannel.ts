@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
-export type Channel = {
+type Channel = {
   display: string;
   id: string;
   name: string;

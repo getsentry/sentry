@@ -44,8 +44,7 @@ export function ScmMessagingChannelPicker({
 }: ScmMessagingChannelPickerProps) {
   const {channelSelectedBy} = providerDetails[providerKey];
 
-  // The saved destination we're editing, if any. Seeds the workspace and the
-  // channel, whose stored identifiers a no-op save then keeps.
+  // The saved destination we're editing, if any.
   const savedSelection =
     existingSetup?.mode === 'selected' && existingSetup.providerKey === providerKey
       ? existingSetup
