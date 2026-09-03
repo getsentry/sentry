@@ -102,12 +102,13 @@ def shift_positions(
 
 def reorder(organization: Organization, user_id: int, refs: Sequence[SavedQueryRef]) -> None:
     """
-    Reassign ``refs`` across the position slots those rows already occupy.
+    Reorders ``refs`` to positions, in the order given, across both tables.
 
     Caller must hold ``lock_starred_list``.
 
-    Both tables are always read, so ``refs`` has to have every starred query the user has,
-    not just those of one product, otherwise positions may be duplicated or skipped.
+    Both tables are always read, and the positions are normalized to 1...N,
+    where N is the number of starred queries. Therefore, this has to have every
+    starred query the user has, not just those of one product.
 
     Raises:
         ValueError: if ``refs`` is not exactly the set of the user's starred rows, or
@@ -127,7 +128,7 @@ def reorder(organization: Organization, user_id: int, refs: Sequence[SavedQueryR
     if rows.keys() != set(requested):
         raise ValueError("Mismatch between existing and provided starred queries.")
 
-    slots = sorted(row.position for row in rows.values())
+    slots = range(1, len(requested) + 1)
 
     updates: dict[SavedQueryType, list[models.Model]] = defaultdict(list)
     for ref, position in zip(requested, slots):

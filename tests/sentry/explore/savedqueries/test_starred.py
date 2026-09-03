@@ -135,20 +135,25 @@ class ShiftPositionsTest(StarredHelpersTestBase):
 
 
 class ReorderTest(StarredHelpersTestBase):
-    def test_reuses_the_occupied_slots(self) -> None:
-        # Reordering reuses slots, not necessarily contiguous
-        discover = self.discover_star(2)
-        explore = self.explore_star(5)
+    def test_normalizes_positions(self) -> None:
+        discover1 = self.discover_star(2)
+        explore1 = self.explore_star(5)
+        discover2 = self.discover_star(5)
 
-        discover_ref = SavedQueryRef(SavedQueryType.DISCOVER, discover.discover_saved_query_id)
-        explore_ref = SavedQueryRef(SavedQueryType.EXPLORE, explore.explore_saved_query_id)
+        refs = [
+            SavedQueryRef(SavedQueryType.DISCOVER, discover1.discover_saved_query_id),
+            SavedQueryRef(SavedQueryType.EXPLORE, explore1.explore_saved_query_id),
+            SavedQueryRef(SavedQueryType.DISCOVER, discover2.discover_saved_query_id),
+        ]
 
-        starred.reorder(self.org, self.user.id, [explore_ref, discover_ref])
+        starred.reorder(self.org, self.user.id, refs)
 
-        explore.refresh_from_db()
-        discover.refresh_from_db()
-        assert explore.position == 2
-        assert discover.position == 5
+        explore1.refresh_from_db()
+        discover1.refresh_from_db()
+        discover2.refresh_from_db()
+        assert discover1.position == 1
+        assert explore1.position == 2
+        assert discover2.position == 3
 
     def test_moves_a_query_from_the_end_to_the_front(self) -> None:
         first = self.explore_star(1)
