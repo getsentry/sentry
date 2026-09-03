@@ -1,4 +1,4 @@
-import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+import {IssueStreamDetectorFixture, UptimeDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -154,4 +154,17 @@ describe('DetectorLink', () => {
     expect(screen.getByText(/8% higher than previous 1 hour/)).toBeInTheDocument();
     expect(screen.getByText(/15% higher than previous 1 hour/)).toBeInTheDocument();
   });
+
+  it('renders uptime detector details with null dataSources', () => {
+    const uptimeDetector = UptimeDetectorFixture({name: 'Uptime Detector'});
+    // Runtime can return null despite the typed non-empty tuple.
+    (uptimeDetector as {dataSources: unknown}).dataSources = null;
+
+    render(<DetectorLink detector={uptimeDetector} />, {
+      organization,
+    });
+
+    expect(screen.getByText(/uptime detector/i)).toBeInTheDocument();
+  });
+
 });
