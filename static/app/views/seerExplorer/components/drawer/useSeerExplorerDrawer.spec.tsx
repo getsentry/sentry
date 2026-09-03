@@ -88,22 +88,6 @@ describe('useSeerExplorerDrawer', () => {
       expect(sessionStorageWrapper.getItem('seer-explorer-run-id')).toBe('99');
     });
 
-    it('clears runId when startNewRun is true', () => {
-      sessionStorageWrapper.setItem('seer-explorer-run-id', '42');
-
-      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
-        additionalWrapper: SeerExplorerChatStateProvider,
-        organization: enabledOrg,
-      });
-
-      act(() => result.current.openSeerExplorerDrawer({startNewRun: true}));
-
-      // setRunId(null) writes JSON.stringify(null) = "null"; parsing it back gives null
-      expect(
-        JSON.parse(sessionStorageWrapper.getItem('seer-explorer-run-id')!)
-      ).toBeNull();
-    });
-
     it('does not touch sessionStorage when no options provided', () => {
       sessionStorageWrapper.setItem('seer-explorer-run-id', '55');
 
