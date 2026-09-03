@@ -562,8 +562,8 @@ function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useApiQuery<{
+    eapEffectiveSampleRate: number | null;
     effectiveSampleRate: number | null;
-    genericMetricsEffectiveSampleRate: number | null;
   }>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
@@ -605,13 +605,13 @@ function DynamicSampling({organization}: {organization: Organization}) {
   return (
     <Fragment>
       <SampleRateRow
-        label="Sample Rate (24h, stored spans)"
+        label="Sample Rate (24h, sampling decisions)"
         rate={data.effectiveSampleRate}
         desiredSampleRate={desiredSampleRate}
       />
       <SampleRateRow
-        label="Sample Rate (24h, sampling decisions)"
-        rate={data.genericMetricsEffectiveSampleRate}
+        label="Sample Rate (24h, stored spans)"
+        rate={data.eapEffectiveSampleRate}
         desiredSampleRate={desiredSampleRate}
       />
     </Fragment>
