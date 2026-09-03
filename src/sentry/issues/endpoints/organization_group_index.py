@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.http import HttpRequest
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
@@ -30,6 +31,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.helpers.group_index.validators.group import GroupValidator
+from sentry.api.helpers.projects import filter_projects_by_permissions
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
@@ -281,6 +283,23 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             }
         }
     )
+
+    def _filter_projects_by_permissions(
+        self,
+        projects: list[Project],
+        request: HttpRequest,
+        filter_by_membership: bool = False,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+    ) -> list[Project]:
+        return filter_projects_by_permissions(
+            projects=projects,
+            request=request,
+            filter_by_membership=filter_by_membership,
+            force_global_perms=force_global_perms,
+            include_all_accessible=include_all_accessible,
+            allow_staff_access=not (request.method == "GET" and filter_by_membership),
+        )
 
     def _search(
         self,

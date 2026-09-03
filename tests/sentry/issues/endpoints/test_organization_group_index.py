@@ -420,6 +420,25 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(project_id=[-1])
         assert response.status_code == 200
 
+    def test_staff_without_project_filter_uses_team_membership(self) -> None:
+        organization = self.project.organization
+        organization.flags.allow_joinleave = True
+        organization.save()
+
+        team = self.create_team(organization=organization)
+        member_project = self.create_project(organization=organization, teams=[team])
+        other_project = self.create_project(organization=organization)
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(organization=organization, teams=[team], user=staff_user)
+
+        member_group = self.store_event(project_id=member_project.id).group
+        self.store_event(project_id=other_project.id)
+        self.login_as(user=staff_user, staff=True)
+
+        response = self.get_success_response(sort_by="date")
+
+        assert [group["id"] for group in response.data] == [str(member_group.id)]
+
     def test_boolean_search_not_supported(self) -> None:
         self.login_as(user=self.user)
         expected_detail = (
