@@ -46,30 +46,36 @@ export function Main() {
     preload(router.routes, window.location.pathname);
   }, [router.routes]);
 
-  return (
-    <MotionConfig reducedMotion="user">
-      <AppQueryClientProvider>
-        <DocumentTitleManager>
-          <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
-            <ServiceWorkerProvider>
-              <ThemeAndStyleProvider>
-                <NuqsAdapter defaultOptions={{shallow: false}}>
-                  <CommandPaletteProvider>
-                    <RouteConfigProvider value={router.routes}>
-                      <RouterProvider router={router} />
-                    </RouteConfigProvider>
-                  </CommandPaletteProvider>
-                </NuqsAdapter>
-                {SentryTanStackDevtools ? (
-                  <Suspense fallback={null}>
-                    <SentryTanStackDevtools />
-                  </Suspense>
-                ) : null}
-              </ThemeAndStyleProvider>
-            </ServiceWorkerProvider>
-          </FrontendVersionProvider>
-        </DocumentTitleManager>
-      </AppQueryClientProvider>
-    </MotionConfig>
+  const providers: Array<(children: NonNullable<React.ReactNode>) => React.ReactElement> =
+    [
+      children => <MotionConfig reducedMotion="user">{children}</MotionConfig>,
+      children => <AppQueryClientProvider>{children}</AppQueryClientProvider>,
+      children => <DocumentTitleManager>{children}</DocumentTitleManager>,
+      children => (
+        <FrontendVersionProvider releaseVersion={SENTRY_RELEASE_VERSION ?? null}>
+          {children}
+        </FrontendVersionProvider>
+      ),
+      children => <ServiceWorkerProvider>{children}</ServiceWorkerProvider>,
+      children => (
+        <ThemeAndStyleProvider>
+          {children}
+          {SentryTanStackDevtools ? (
+            <Suspense fallback={null}>
+              <SentryTanStackDevtools />
+            </Suspense>
+          ) : null}
+        </ThemeAndStyleProvider>
+      ),
+      children => <NuqsAdapter defaultOptions={{shallow: false}}>{children}</NuqsAdapter>,
+      children => <CommandPaletteProvider>{children}</CommandPaletteProvider>,
+      children => (
+        <RouteConfigProvider value={router.routes}>{children}</RouteConfigProvider>
+      ),
+    ];
+
+  return providers.reduceRight(
+    (children, provider) => provider(children),
+    <RouterProvider router={router} />
   );
 }
