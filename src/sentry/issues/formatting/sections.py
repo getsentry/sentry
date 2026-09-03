@@ -1,5 +1,6 @@
-"""Section functions (each renders one block), the default section order (``EVENT_SECTIONS``),
-and the public ``format_issue`` entry point. Sections apply the size caps as they render.
+"""Section functions (each builds one block), the default section order (``EVENT_SECTIONS``),
+and the public ``format_issue`` entry point. Sections decide what goes in a block and how much
+of it; the formatter decides how it renders. A section with nothing to say returns ``None``.
 """
 
 from __future__ import annotations
@@ -10,46 +11,21 @@ from datetime import UTC
 from typing import Any
 
 from sentry.issues.formatting.adapter import event_response_to_model
-from sentry.issues.formatting.formatter import Format, Formatter, SectionFn, get_formatter
+from sentry.issues.formatting.formatter import (
+    Code,
+    Field,
+    Format,
+    Group,
+    Section,
+    SectionFn,
+    Text,
+    get_formatter,
+    truncate,
+)
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject, Frame, Stacktrace, contains_filtered
 
 logger = logging.getLogger(__name__)
-
-
-_TRUNCATED = "... (truncated)"
-
-
-def _truncate(text: str, max_chars: int | None) -> str:
-    """Cap a run of plain text. Only for content the formatter has not marked up yet -- use
-    ``_truncate_items`` once a body is a join of rendered pieces.
-    """
-    if max_chars is None or len(text) <= max_chars:
-        return text
-    return text[:max_chars].rstrip() + f"\n{_TRUNCATED}"
-
-
-def _truncate_items(items: Sequence[str], sep: str, max_chars: int | None) -> str:
-    """Join rendered pieces, dropping whole ones once the cap is hit.
-
-    Slicing a joined body mid-way would cut through a tag a section already emitted and leave
-    the output unparseable, so entire items go instead.
-    """
-    if max_chars is None:
-        return sep.join(items)
-
-    kept: list[str] = []
-    total = 0
-    for item in items:
-        cost = len(item) + (len(sep) if kept else 0)
-        # always keep the first piece: a section rendering nothing but "(truncated)" has lost
-        # its content entirely, which is worse than overshooting the cap once
-        if kept and total + cost > max_chars:
-            kept.append(_TRUNCATED)
-            break
-        kept.append(item)
-        total += cost
-    return sep.join(kept)
 
 
 def _render_frame(frame: Frame) -> str:
@@ -114,76 +90,88 @@ def _render_stacktrace(stacktrace: Stacktrace, limits: Limits) -> str:
     # most-recent frame first, capped to max_frames
     frames = reversed(_select_frames(stacktrace.frames, limits.max_frames))
     body = "\n------\n".join(_render_frame(f) for f in frames)
-    return _truncate(body, limits.max_stacktrace_chars)
+    return truncate(body, limits.max_stacktrace_chars)
 
 
-def exceptions_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def exceptions_section(model: EventObject, limits: Limits) -> Section | None:
     if not model.exceptions:
-        return ""
+        return None
 
-    blocks: list[str] = []
+    groups: list[Group] = []
     for exc in model.exceptions:
         header = ": ".join(p for p in (exc.type, exc.value) if p) or "Error"
-        parts = [header]
+        items: list[Any] = [Text(header)]
         if exc.is_handled is not None:
-            parts.append(fmt.field("Handled", "Yes" if exc.is_handled else "No"))
+            items.append(Field("Handled", "Yes" if exc.is_handled else "No"))
         if exc.stacktrace and exc.stacktrace.frames:
-            parts.append(fmt.code_block(_render_stacktrace(exc.stacktrace, limits)))
-        blocks.append("\n".join(parts))
+            items.append(Code(_render_stacktrace(exc.stacktrace, limits)))
+        groups.append(Group(items=tuple(items)))
 
-    body = _truncate_items(blocks, "\n\n", limits.max_exceptions_chars)
-    return fmt.block("Exception", body)
+    return Section(
+        title="Exception",
+        groups=tuple(groups),
+        max_group_chars=limits.max_exceptions_chars,
+    )
 
 
-def stacktrace_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def stacktrace_section(model: EventObject, limits: Limits) -> Section | None:
     # frames from a bare ``stacktrace`` entry; exception-owned stacktraces render above
     st = model.stacktrace
     if not (st and st.frames):
-        return ""
-    return fmt.block("Stacktrace", fmt.code_block(_render_stacktrace(st, limits)))
+        return None
+    return Section(
+        title="Stacktrace",
+        groups=(Group(items=(Code(_render_stacktrace(st, limits)),)),),
+    )
 
 
-def title_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def title_section(model: EventObject, limits: Limits) -> Section | None:
     # transaction and date belong on the title line rather than blocks of their own
-    lines = [model.title]
+    items: list[Any] = [Text(model.title)]
     if model.transaction_name:
-        lines.append(fmt.field("Transaction", model.transaction_name))
+        items.append(Field("Transaction", model.transaction_name))
     if model.culprit:
-        lines.append(fmt.field("Culprit", model.culprit))
+        items.append(Field("Culprit", model.culprit))
     if model.timestamp:
-        lines.append(
-            fmt.field("Date", model.timestamp.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"))
+        items.append(
+            Field("Date", model.timestamp.astimezone(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"))
         )
-    return fmt.block("Title", "\n".join(lines))
+    return Section(title="Title", groups=(Group(items=tuple(items)),))
 
 
-def message_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def message_section(model: EventObject, limits: Limits) -> Section | None:
     # only render the message when it adds something beyond the title
     if not model.message or model.message in model.title:
-        return ""
-    return fmt.block("Message", model.message)
+        return None
+    return Section(title="Message", groups=(Group(items=(Text(model.message),)),))
 
 
-def detection_context_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def detection_context_section(model: EventObject, limits: Limits) -> Section | None:
     # why a detector opened the issue; only detector-backed issue types carry it
     if not model.detection_context:
-        return ""
-    return fmt.block("Detection Context", model.detection_context)
+        return None
+    return Section(
+        title="Detection Context",
+        groups=(Group(items=(Text(model.detection_context),)),),
+    )
 
 
-def troubleshooting_hint_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def troubleshooting_hint_section(model: EventObject, limits: Limits) -> Section | None:
     if not model.troubleshooting_hint:
-        return ""
-    return fmt.block("Troubleshooting Hint", model.troubleshooting_hint)
+        return None
+    return Section(
+        title="Troubleshooting Hint",
+        groups=(Group(items=(Text(model.troubleshooting_hint),)),),
+    )
 
 
-def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def breadcrumbs_section(model: EventObject, limits: Limits) -> Section | None:
     # a zero cap has to bail here: the slice below is ``[-0:]`` at that point, which is ``[0:]``
     # and would render every breadcrumb instead of none
     if not model.breadcrumbs or not limits.max_breadcrumbs:
-        return ""
+        return None
 
-    lines: list[str] = []
+    lines: list[Any] = []
     for crumb in model.breadcrumbs[-limits.max_breadcrumbs :]:  # most recent N
         if contains_filtered(crumb.message) or contains_filtered(crumb.data):
             continue
@@ -193,71 +181,74 @@ def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> s
         if crumb.data:
             line += f" {crumb.data}"
         if line:
-            lines.append(_truncate(line, limits.max_single_breadcrumb_chars))
+            lines.append(Text(truncate(line, limits.max_single_breadcrumb_chars)))
 
     if not lines:
-        return ""
-    return fmt.block("Breadcrumbs", _truncate("\n".join(lines), limits.max_breadcrumbs_chars))
+        return None
+    return Section(
+        title="Breadcrumbs",
+        groups=(Group(items=tuple(lines), max_chars=limits.max_breadcrumbs_chars),),
+    )
 
 
-def request_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def request_section(model: EventObject, limits: Limits) -> Section | None:
     req = model.request
     if not req or not (req.method or req.url or req.data):
-        return ""
+        return None
 
-    parts: list[str] = []
+    items: list[Any] = []
     if req.method or req.url:
-        parts.append(f"{req.method or ''} {req.url or ''}".strip())
+        items.append(Text(f"{req.method or ''} {req.url or ''}".strip()))
     if req.data:
-        parts.append(fmt.code_block(_truncate(str(req.data), limits.max_request_chars)))
-    return fmt.block("Request", "\n".join(parts))
+        items.append(Code(truncate(str(req.data), limits.max_request_chars)))
+    return Section(title="Request", groups=(Group(items=tuple(items)),))
 
 
-def csp_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def csp_section(model: EventObject, limits: Limits) -> Section | None:
     csp = model.csp
     if not csp:
-        return ""
+        return None
     fields = {
         "Blocked": csp.blocked_uri,
         "Directive": csp.effective_directive,
         "Document": csp.document_uri,
     }
-    present = [fmt.field(k, v) for k, v in fields.items() if v]
+    present = tuple(Field(k, v) for k, v in fields.items() if v)
     if not present:
-        return ""
-    return fmt.block("CSP", "\n".join(present))
+        return None
+    return Section(title="CSP", groups=(Group(items=present),))
 
 
-def tags_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def tags_section(model: EventObject, limits: Limits) -> Section | None:
     # ingest derives a `sentry:user` tag from the EventUser and the serializer exposes it as
     # plain `user` ("email:someone@example.com"), so leaving it here would put an identifier in
     # the default output that ``user_section`` is held back to keep out. It carries nothing
     # ``user_section`` doesn't render properly for the callers that do opt in.
     tags = [(key, value) for key, value in model.tags if key != "user"]
     if not tags:
-        return ""
-    body = "\n".join(fmt.field(key, value or "") for key, value in tags)
-    return fmt.block("Tags", body)
+        return None
+    items = tuple(Field(key, value or "") for key, value in tags)
+    return Section(title="Tags", groups=(Group(items=items),))
 
 
-def user_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def user_section(model: EventObject, limits: Limits) -> Section | None:
     user = model.user
     if not user:
-        return ""
+        return None
     fields = {
         "ID": user.id,
         "Email": user.email,
         "Username": user.username,
         "IP": user.ip_address,
     }
-    present = [fmt.field(k, v) for k, v in fields.items() if v]
+    present = tuple(Field(k, v) for k, v in fields.items() if v)
     if not present:
-        return ""
-    return fmt.block("User", "\n".join(present))
+        return None
+    return Section(title="User", groups=(Group(items=present),))
 
 
-def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    blocks: list[str] = []
+def threads_section(model: EventObject, limits: Limits) -> Section | None:
+    groups: list[Group] = []
     for thread in model.threads:
         # only threads that carry a stacktrace are worth rendering
         st = thread.stacktrace
@@ -265,58 +256,66 @@ def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
             continue
         # checked before appending, not after: testing at the bottom lets a zero cap through
         # with one thread already rendered
-        if len(blocks) >= limits.max_threads:  # bound total output by thread count
+        if len(groups) >= limits.max_threads:  # bound total output by thread count
             break
         label = thread.name or (str(thread.id) if thread.id is not None else "Thread")
-        parts = [label]
+        items: list[Any] = [Text(label)]
         if thread.crashed:
-            parts.append(fmt.field("Crashed", "Yes"))
-        parts.append(fmt.code_block(_render_stacktrace(st, limits)))
-        blocks.append("\n".join(parts))
+            items.append(Field("Crashed", "Yes"))
+        items.append(Code(_render_stacktrace(st, limits)))
+        groups.append(Group(items=tuple(items)))
 
-    if not blocks:
-        return ""
-    return fmt.block("Threads", "\n\n".join(blocks))
+    if not groups:
+        return None
+    return Section(title="Threads", groups=tuple(groups))
 
 
-def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    lines: list[str] = []
+def spans_section(model: EventObject, limits: Limits) -> Section | None:
+    lines: list[Any] = []
     for span in model.spans:
         label = ": ".join(p for p in (span.op, span.description) if p)
         timing = f" ({span.exclusive_time}ms)" if span.exclusive_time is not None else ""
         line = f"{label}{timing}".strip()
         if line:
-            lines.append(line)
+            lines.append(Text(line))
 
     if not lines:
-        return ""
-    return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
+        return None
+    return Section(
+        title="Span Evidence",
+        groups=(Group(items=tuple(lines), max_chars=limits.max_spans_chars),),
+    )
 
 
-def evidence_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+def evidence_section(model: EventObject, limits: Limits) -> Section | None:
     if not model.evidence:
-        return ""
-    # occurrence.evidenceDisplay is an arbitrary-length list of arbitrary-length pairs, so it
-    # needs the same cap the other open-ended sections get.
-    # Cap each value before marking it up -- _truncate_items always keeps the first piece, so a
-    # single oversized value would otherwise carry the whole section past the cap.
-    rendered = [
-        fmt.field(name, _truncate(value, limits.max_evidence_chars))
-        for name, value in model.evidence
-    ]
-    return fmt.block("Evidence", _truncate_items(rendered, "\n", limits.max_evidence_chars))
+        return None
+    # evidenceDisplay is arbitrary-length pairs, so it needs the same cap the other open-ended
+    # sections get. Cap each value first: the item cap always keeps the first piece, so one
+    # oversized value would otherwise carry the section past the cap.
+    items = tuple(
+        Field(name, truncate(value, limits.max_evidence_chars)) for name, value in model.evidence
+    )
+    return Section(
+        title="Evidence",
+        groups=(Group(items=items, max_item_chars=limits.max_evidence_chars),),
+    )
 
 
-def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    groups: list[str] = []
+def contexts_section(model: EventObject, limits: Limits) -> Section | None:
+    groups: list[Group] = []
     for name, data in model.contexts.items():
         # drop the redundant "type" key each context echoes (e.g. browser -> type: "browser")
         fields = [f"{key}: {value}" for key, value in data.items() if key != "type"]
         if fields:
-            groups.append("\n".join([name, *fields]))
+            groups.append(Group(items=(Text(name), *(Text(f) for f in fields))))
     if not groups:
-        return ""
-    return fmt.block("Contexts", _truncate("\n\n".join(groups), limits.max_contexts_chars))
+        return None
+    return Section(
+        title="Contexts",
+        groups=tuple(groups),
+        max_chars=limits.max_contexts_chars,
+    )
 
 
 # every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
@@ -358,7 +357,7 @@ def format_issue(
     sections: Sequence[SectionFn] = EVENT_SECTIONS,
     limits: Limits = LIMITS_DEFAULT,
 ) -> str:
-    """Render a serialized event into text. The single path used by every consumer.
+    """Render a serialized event into text or JSON. The single path used by every consumer.
 
     Returns "" when the payload can't be adapted, matching how ``Formatter.render`` absorbs
     per-section failures, so a malformed event never takes down the caller.
@@ -368,5 +367,6 @@ def format_issue(
         model = event_response_to_model(data)
     except Exception:
         logger.exception("formatter.adapter_failed")
-        return ""
+        # degrade to an empty render the requested format can still parse
+        return formatter.join([])
     return formatter.render(model, sections, limits)
