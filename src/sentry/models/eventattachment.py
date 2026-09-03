@@ -119,7 +119,7 @@ class EventAttachmentBase(Model):
     # NOTE: when adding new fields with db index,
     #       add them to `EventAttachment` and / or `PendingEventAttachment`,
     #       not to the base class (unless the index is needed for both tables).
-    
+
     class Meta:
         abstract = True
 
