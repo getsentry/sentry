@@ -1,3 +1,4 @@
+import base64
 import datetime
 import hashlib
 import hmac
@@ -50,6 +51,12 @@ from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.cursor_origin.git import (
+    CursorOriginGitError,
+    archive_ref,
+    build_clone_url,
+    commit_and_push,
+)
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
@@ -133,6 +140,7 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     AttributeBucket,
     AttributesAndValuesResponse,
+    CursorOriginGitResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -867,6 +875,128 @@ def get_repo_installation_id(
     )
 
 
+def _cursor_origin_clone_url(
+    *, organization_id: int, provider: str, external_id: str, owner: str, name: str
+) -> tuple[str | None, str | None]:
+    """Resolve a repository to an authenticated Origin clone URL.
+
+    Returns ``(clone_url, error)``. The token is minted here and embedded in the URL
+    that is handed straight to git -- it is never returned to the caller and never
+    crosses the seer-rpc boundary, which is the whole point of doing this in Sentry.
+    """
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    if not repo:
+        return None, "repository_not_found"
+
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return None, "organization_not_found"
+
+    if repo.provider not in get_supported_scm_providers(organization):
+        logger.warning("seer.cursor_origin.unsupported_provider", extra={"provider": repo.provider})
+        return None, "unsupported_provider"
+
+    if repo.provider != f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}":
+        return None, "unsupported_provider"
+
+    if repo.integration_id is None:
+        return None, "no_integration"
+
+    integration = integration_service.get_integration(
+        integration_id=repo.integration_id, organization_id=organization_id
+    )
+    if integration is None:
+        return None, "integration_not_found"
+
+    installation = integration.get_installation(organization_id=organization_id)
+    access_token = installation.get_client().get_access_token()
+    return build_clone_url(repo.name, access_token), None
+
+
+def cursor_origin_archive_repo(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    owner: str,
+    name: str,
+    ref: str,
+) -> CursorOriginGitResponse:
+    """Return a gzipped tar of ``ref``, base64-encoded, for Seer to materialize.
+
+    Origin has no archive endpoint, so this clones and runs ``git archive``. Seer's
+    other providers get their tarball streamed through the SCM proxy; Origin cannot,
+    because git is not REST. Base64 in JSON is the cost of reusing the seer-rpc
+    channel rather than adding a binary-streaming endpoint for one provider.
+    """
+    clone_url, error = _cursor_origin_clone_url(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        owner=owner,
+        name=name,
+    )
+    if clone_url is None:
+        return CursorOriginGitResponse(error=error)
+
+    try:
+        content = archive_ref(clone_url, ref, prefix=f"{owner}-{name}-{ref}")
+    except CursorOriginGitError as e:
+        logger.warning("seer.cursor_origin.archive_failed", extra={"error": str(e)})
+        return CursorOriginGitResponse(error=str(e))
+
+    return CursorOriginGitResponse(content_base64=base64.b64encode(content).decode())
+
+
+def cursor_origin_create_commit(
+    *,
+    organization_id: int,
+    provider: str,
+    external_id: str,
+    owner: str,
+    name: str,
+    branch: str,
+    base_sha: str,
+    message: str,
+    actions: list[dict[str, Any]],
+    author_name: str | None = None,
+    author_email: str | None = None,
+) -> CursorOriginGitResponse:
+    """Create ``branch`` at ``base_sha`` with ``actions`` applied and push it.
+
+    Origin has no REST route to write a commit, branch, ref, blob or tree, so this is
+    the only way Seer can land changes there before opening a pull request.
+    """
+    clone_url, error = _cursor_origin_clone_url(
+        organization_id=organization_id,
+        provider=provider,
+        external_id=external_id,
+        owner=owner,
+        name=name,
+    )
+    if clone_url is None:
+        return CursorOriginGitResponse(error=error)
+
+    try:
+        sha = commit_and_push(
+            clone_url=clone_url,
+            branch=branch,
+            base_sha=base_sha,
+            message=message,
+            actions=actions,
+            author_name=author_name,
+            author_email=author_email,
+        )
+    except CursorOriginGitError as e:
+        # Expected outcomes live here too -- a colliding branch name, or an autofix
+        # that produced no net change. Seer distinguishes them from the message.
+        logger.warning("seer.cursor_origin.commit_failed", extra={"error": str(e)})
+        return CursorOriginGitResponse(error=str(e))
+
+    return CursorOriginGitResponse(sha=sha)
+
+
 def get_project_preferences(*, organization_id: int, project_id: int) -> SeerProjectPreference:
     """Get Seer project preferences for a single project.
 
@@ -1025,6 +1155,10 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_organization_features": seer_rpc(get_organization_features),
     "deliver_investigation_event": seer_rpc(deliver_investigation_event),
     "get_repo_installation_id": seer_rpc(get_repo_installation_id),
+    #
+    # Cursor Origin git-over-HTTPS (no archive route, no REST commit write)
+    "cursor_origin_archive_repo": seer_rpc(cursor_origin_archive_repo),
+    "cursor_origin_create_commit": seer_rpc(cursor_origin_create_commit),
     #
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
