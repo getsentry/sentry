@@ -80,7 +80,11 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         return "{}#{}".format(data["repo"], data["key"])
 
     def get_issue_url(self, key: str) -> str:
-        domain_name, user = self.model.metadata["domain_name"].split("/")
+        # Older/broken installations may lack domain_name metadata. Fall back to
+        # github.com so linked issues still resolve instead of 500ing the group
+        # integrations endpoint.
+        domain_name = self.model.metadata.get("domain_name") or "github.com"
+        domain_name = domain_name.split("/", 1)[0]
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 

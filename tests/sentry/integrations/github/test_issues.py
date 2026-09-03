@@ -896,3 +896,33 @@ def _get_link_header(api_url: str, page: int, per_page_limit: int, pages: int) -
         list_of_links.append(prev_link)
 
     return ", ".join(list_of_links) if len(list_of_links) > 0 else ""
+
+
+class GitHubGetIssueUrlTest(TestCase):
+    def test_get_issue_url_missing_domain_name(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github_external_id",
+            name="getsentry",
+            metadata={},
+        )
+        install = cast(GitHubIntegration, integration.get_installation(self.organization.id))
+        assert (
+            install.get_issue_url("getsentry/sentry#123")
+            == "https://github.com/getsentry/sentry/issues/123"
+        )
+
+    def test_get_issue_url_with_account_path(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github_external_id_2",
+            name="getsentry",
+            metadata={"domain_name": "github.com/getsentry"},
+        )
+        install = cast(GitHubIntegration, integration.get_installation(self.organization.id))
+        assert (
+            install.get_issue_url("getsentry/sentry#123")
+            == "https://github.com/getsentry/sentry/issues/123"
+        )
