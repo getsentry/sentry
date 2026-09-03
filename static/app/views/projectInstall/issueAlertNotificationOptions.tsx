@@ -339,7 +339,9 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
         // MS Teams is resolved by channel name on the backend, while the
         // picker keys it by id.
         channel:
-          provider === 'msteams' ? (channel?.channelName ?? channel?.value) : channel?.value,
+          provider === 'msteams'
+            ? (channel?.channelName ?? channel?.value)
+            : channel?.value,
       });
       if (!integrationAction) {
         return;
