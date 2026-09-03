@@ -11,6 +11,7 @@ from sentry.integrations.datadog.integration import (
     DatadogIntegration,
     DatadogIntegrationProvider,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
@@ -112,6 +113,27 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
 
         integration.refresh_from_db()
         assert integration.debug_data == {"site": "datadoghq.com"}
+
+    def test_post_install_stores_connection_health(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+
+        self._provider().post_install(integration, self.pipeline.organization, extra={})
+
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration_id=integration.id
+        )
+        # Datadog is healthy-by-construction at install (creds validated in build_integration)
+        # and has no per-resource breakdown.
+        health = org_integration.config["connection_health"]
+        assert health["status"] == "connected"
+        assert health["error_detail"] is None
+        assert health["resources"] == []
+        assert health["last_checked_at"]
 
     def test_get_organization_config_and_config_data(self) -> None:
         integration = self.create_integration(

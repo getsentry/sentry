@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.http.request import HttpRequest
 from django.utils import timezone
@@ -39,6 +39,7 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.agent.monitoring_providers import (
+    ConnectionHealth,
     OrgMonitoringProvider,
     org_monitoring_provider_registry,
 )
@@ -74,9 +75,7 @@ class GcpConfig(TypedDict):
     sentry_sa_email: str
     customer_sa_email: str
     projects: list[str]
-    connection_status: str
-    project_statuses: list[GcpProjectVerification]
-    last_verified_at: str | None
+    connection_health: NotRequired[ConnectionHealth]
 
 
 class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
@@ -262,9 +261,13 @@ class GcpIntegration(IntegrationInstallation):
             "sentry_sa_email": config.get("sentry_sa_email", ""),
             "customer_sa_email": config.get("customer_sa_email", ""),
             "projects": ", ".join(config.get("projects", [])),
-            "connection_status": config.get("connection_status", GCP_STATUS_UNVERIFIED),
-            "project_statuses": config.get("project_statuses", []),
-            "last_verified_at": config.get("last_verified_at"),
+            "connection_health": config.get("connection_health")
+            or {
+                "status": GCP_STATUS_UNVERIFIED,
+                "last_checked_at": None,
+                "error_detail": None,
+                "resources": [],
+            },
         }
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
@@ -290,16 +293,19 @@ class GcpIntegration(IntegrationInstallation):
         if not changed:
             return
 
-        new_config["connection_status"] = GCP_STATUS_UNVERIFIED
-        new_config["project_statuses"] = [
-            {
-                "gcp_project_id": project_id,
-                "connection_status": GCP_STATUS_UNVERIFIED,
-                "error_detail": None,
-            }
-            for project_id in new_config["projects"]
-        ]
-        new_config["last_verified_at"] = None
+        new_config["connection_health"] = {
+            "status": GCP_STATUS_UNVERIFIED,
+            "last_checked_at": None,
+            "error_detail": None,
+            "resources": [
+                {
+                    "resource_id": project_id,
+                    "status": GCP_STATUS_UNVERIFIED,
+                    "error_detail": None,
+                }
+                for project_id in new_config["projects"]
+            ],
+        }
 
         integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
@@ -368,6 +374,7 @@ class GcpIntegrationProvider(IntegrationProvider):
         )
         verification: GcpVerification | None = extra.get("verification")
         last_verified_at = timezone.now().isoformat() if verification is not None else None
+        connection_error: str | None = None
         if verification is None:
             logger.error(
                 "gcp.post_install_missing_verification",
@@ -376,25 +383,37 @@ class GcpIntegrationProvider(IntegrationProvider):
                     "integration_id": integration.id,
                 },
             )
+            connection_error = "Verification failed to run during setup."
             verification = {
                 "connection_status": "error",
                 "projects": [
                     {
                         "gcp_project_id": project_id,
                         "connection_status": "error",
-                        "error_detail": "Verification failed to run during setup.",
+                        "error_detail": None,
                     }
                     for project_id in extra["projects"]
                 ],
             }
 
+        connection_health: ConnectionHealth = {
+            "status": verification["connection_status"],
+            "last_checked_at": last_verified_at,
+            "error_detail": connection_error,
+            "resources": [
+                {
+                    "resource_id": project["gcp_project_id"],
+                    "status": project["connection_status"],
+                    "error_detail": project.get("error_detail"),
+                }
+                for project in verification["projects"]
+            ],
+        }
         gcp_config: GcpConfig = {
             "sentry_sa_email": extra["sentry_sa_email"],
             "customer_sa_email": extra["customer_sa_email"],
             "projects": extra["projects"],
-            "connection_status": verification["connection_status"],
-            "project_statuses": verification["projects"],
-            "last_verified_at": last_verified_at,
+            "connection_health": connection_health,
         }
         org_integration.update(config=gcp_config)
 

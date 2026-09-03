@@ -86,16 +86,19 @@ class GcpIntegrationTest(TestCase):
             "sentry_sa_email": sa_email,
             "customer_sa_email": _CUSTOMER_SA,
             "projects": project_ids,
-            "connection_status": connection_status,
-            "project_statuses": [
-                {
-                    "gcp_project_id": project_id,
-                    "connection_status": connection_status,
-                    "error_detail": None,
-                }
-                for project_id in project_ids
-            ],
-            "last_verified_at": "2026-08-01T00:00:00+00:00",
+            "connection_health": {
+                "status": connection_status,
+                "last_checked_at": "2026-08-01T00:00:00+00:00",
+                "error_detail": None,
+                "resources": [
+                    {
+                        "resource_id": project_id,
+                        "status": connection_status,
+                        "error_detail": None,
+                    }
+                    for project_id in project_ids
+                ],
+            },
         }
         integration = self.create_integration(
             organization=self.organization,
@@ -495,15 +498,17 @@ class GcpIntegrationTest(TestCase):
             organization_id=self.organization.id,
             integration_id=integration.id,
         )
-        assert org_integration.config["connection_status"] == "permission_denied"
-        assert org_integration.config["project_statuses"] == [
+        health = org_integration.config["connection_health"]
+        assert health["status"] == "permission_denied"
+        assert health["error_detail"] is None
+        assert health["resources"] == [
             {
-                "gcp_project_id": "my-gcp-project",
-                "connection_status": "permission_denied",
+                "resource_id": "my-gcp-project",
+                "status": "permission_denied",
                 "error_detail": "IAM roles not granted",
             }
         ]
-        assert org_integration.config["last_verified_at"]
+        assert health["last_checked_at"]
 
     def test_post_install_records_error_when_verification_missing(self) -> None:
         integration = self.create_integration(
@@ -529,13 +534,15 @@ class GcpIntegrationTest(TestCase):
             organization_id=self.organization.id,
             integration_id=integration.id,
         )
-        assert org_integration.config["connection_status"] == "error"
-        assert org_integration.config["last_verified_at"] is None
-        assert org_integration.config["project_statuses"] == [
+        health = org_integration.config["connection_health"]
+        assert health["status"] == "error"
+        assert health["last_checked_at"] is None
+        assert health["error_detail"] == "Verification failed to run during setup."
+        assert health["resources"] == [
             {
-                "gcp_project_id": "my-gcp-project",
-                "connection_status": "error",
-                "error_detail": "Verification failed to run during setup.",
+                "resource_id": "my-gcp-project",
+                "status": "error",
+                "error_detail": None,
             }
         ]
 
@@ -579,12 +586,14 @@ class GcpIntegrationTest(TestCase):
         config = self._stored_config()
         assert config["customer_sa_email"] == "new@customer.com"
         assert config["sentry_sa_email"] == _SA_EMAIL
-        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
-        assert config["last_verified_at"] is None
-        assert config["project_statuses"] == [
+        health = config["connection_health"]
+        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["last_checked_at"] is None
+        assert health["error_detail"] is None
+        assert health["resources"] == [
             {
-                "gcp_project_id": "my-gcp-project",
-                "connection_status": GCP_STATUS_UNVERIFIED,
+                "resource_id": "my-gcp-project",
+                "status": GCP_STATUS_UNVERIFIED,
                 "error_detail": None,
             }
         ]
@@ -598,11 +607,12 @@ class GcpIntegrationTest(TestCase):
 
         config = self._stored_config()
         assert config["projects"] == ["project-prod", "project-staging"]
-        assert [p["gcp_project_id"] for p in config["project_statuses"]] == [
+        health = config["connection_health"]
+        assert [d["resource_id"] for d in health["resources"]] == [
             "project-prod",
             "project-staging",
         ]
-        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
+        assert health["status"] == GCP_STATUS_UNVERIFIED
 
     def test_update_config_reordering_projects_is_not_a_change(self) -> None:
         installation = self._create_installed_integration(
@@ -613,8 +623,9 @@ class GcpIntegrationTest(TestCase):
 
         config = self._stored_config()
         assert config["projects"] == ["project-prod", "project-staging"]
-        assert config["connection_status"] == "connected"
-        assert config["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+        health = config["connection_health"]
+        assert health["status"] == "connected"
+        assert health["last_checked_at"] == "2026-08-01T00:00:00+00:00"
 
     def test_update_config_changing_the_project_set_marks_unverified(self) -> None:
         installation = self._create_installed_integration(
@@ -624,8 +635,9 @@ class GcpIntegrationTest(TestCase):
         installation.update_organization_config({"projects": "project-staging, project-new"})
 
         config = self._stored_config()
-        assert config["connection_status"] == GCP_STATUS_UNVERIFIED
-        assert config["last_verified_at"] is None
+        health = config["connection_health"]
+        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["last_checked_at"] is None
 
     def test_update_config_rejects_invalid_project_id(self) -> None:
         installation = self._create_installed_integration()
@@ -666,8 +678,9 @@ class GcpIntegrationTest(TestCase):
         )
 
         config = self._stored_config()
-        assert config["connection_status"] == "connected"
-        assert config["last_verified_at"] == "2026-08-01T00:00:00+00:00"
+        health = config["connection_health"]
+        assert health["status"] == "connected"
+        assert health["last_checked_at"] == "2026-08-01T00:00:00+00:00"
 
     def test_update_config_requires_existing_config(self) -> None:
         self._create_installed_integration()
@@ -699,16 +712,17 @@ class GcpIntegrationTest(TestCase):
         assert data["customer_sa_email"] == _CUSTOMER_SA
         assert data["projects"] == "project-a, project-b, project-c"
 
-    def test_get_config_data_exposes_the_connection_status(self) -> None:
+    def test_get_config_data_exposes_connection_health(self) -> None:
         installation = self._create_installed_integration()
         data = installation.get_config_data()
 
-        assert data["connection_status"] == "connected"
-        assert data["last_verified_at"] == "2026-08-01T00:00:00+00:00"
-        assert data["project_statuses"] == [
+        health = data["connection_health"]
+        assert health["status"] == "connected"
+        assert health["last_checked_at"] == "2026-08-01T00:00:00+00:00"
+        assert health["resources"] == [
             {
-                "gcp_project_id": "my-gcp-project",
-                "connection_status": "connected",
+                "resource_id": "my-gcp-project",
+                "status": "connected",
                 "error_detail": None,
             }
         ]
@@ -728,9 +742,11 @@ class GcpIntegrationTest(TestCase):
         assert isinstance(installation, GcpIntegration)
         data = installation.get_config_data()
 
-        assert data["connection_status"] == GCP_STATUS_UNVERIFIED
-        assert data["project_statuses"] == []
-        assert data["last_verified_at"] is None
+        health = data["connection_health"]
+        assert health["status"] == GCP_STATUS_UNVERIFIED
+        assert health["resources"] == []
+        assert health["last_checked_at"] is None
+        assert health["error_detail"] is None
 
     def test_get_config_data_empty_without_config(self) -> None:
         self._create_installed_integration()
