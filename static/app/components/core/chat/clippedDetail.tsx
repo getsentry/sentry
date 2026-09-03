@@ -22,10 +22,11 @@ const DETAIL_CLIP_HEIGHT = 180;
 export function ClippedDetail({children}: {children: ReactNode}) {
   const [isClipped, setIsClipped] = useState(false);
 
-  const handleReveal = useCallback(() => setIsClipped(false), []);
-
-  // ponytail: ref callback fires in commit phase when clipFade mounts, safe for setState
-  const onClipFadeMount = useCallback(() => setIsClipped(true), []);
+  // ponytail: ref callback — mount sets inert, unmount (node=null on reveal) clears it
+  const onClipFadeRef = useCallback(
+    (node: HTMLElement | null) => setIsClipped(node !== null),
+    []
+  );
 
   return (
     <Container minWidth="0" maxWidth="100%" padding="0">
@@ -34,10 +35,9 @@ export function ClippedDetail({children}: {children: ReactNode}) {
           {...containerProps}
           clipHeight={DETAIL_CLIP_HEIGHT}
           buttonProps={{size: 'xs'}}
-          onReveal={handleReveal}
           clipFade={({showMoreButton}) => (
             <Container
-              ref={onClipFadeMount}
+              ref={onClipFadeRef}
               position="absolute"
               left={0}
               bottom={0}
