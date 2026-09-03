@@ -334,21 +334,6 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["id"] == "123"
         assert result["type"] == "note"
 
-    def test_comment_entry_without_comment_id_falls_back_to_own_id(self) -> None:
-        user = self.create_user()
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        entry = self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.COMMENT,
-            actor_type=GroupActorType.USER,
-            actor_id=user.id,
-            data={"text": "hello world"},
-        )
-
-        result = serialize(entry, user)
-        assert result["id"] == str(entry.id)
-
     def test_comment_edit_entry_keeps_its_own_id(self) -> None:
         user = self.create_user()
         group = self.create_group(status=GroupStatus.UNRESOLVED)

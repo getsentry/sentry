@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -12,6 +11,7 @@ from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
+    CommentAction,
     GroupActionType,
     GroupActorType,
 )
@@ -34,8 +34,6 @@ from sentry.utils.action_log.activity_translator import (
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-
-logger = logging.getLogger(__name__)
 
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
@@ -79,13 +77,9 @@ def _serialized_id(obj: GroupActionLogEntry) -> str:
     at the GALE id of the COMMENT they supersede, so they keep their own.
     """
     if obj.type == GroupActionType.COMMENT.value:
-        comment_id = (obj.data or {}).get("comment_id")
-        if comment_id is not None:
-            return str(comment_id)
-        logger.warning(
-            "group_action_log.comment_missing_comment_id",
-            extra={"group_id": obj.group_id, "entry_id": obj.id},
-        )
+        match obj.action:
+            case CommentAction(comment_id=comment_id):
+                return str(comment_id)
     return str(obj.id)
 
 
