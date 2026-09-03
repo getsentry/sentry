@@ -1,13 +1,18 @@
-import {Activity, useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {AnimatedActivity} from 'sentry/components/animatedActivity';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   type SecondFactorAuthResult,
   type SecondFactorCredentials,
@@ -49,11 +54,19 @@ const USE_METHOD_LABELS: Record<MfaMethod['id'], string> = {
   recovery: t('Use recovery code'),
 };
 
+const METHOD_INITIAL = {opacity: 0, x: -10};
+const METHOD_ANIMATE = {opacity: 1, x: 0};
+const METHOD_EXIT = {opacity: 0, x: 10};
+
 export function SecondFactorAuth({
   methods: providedMethods,
   onBack,
   onComplete,
 }: SecondFactorAuthProps) {
+  const theme = useTheme();
+  const [methodElement, setMethodElement] = useState<HTMLDivElement | null>(null);
+  const methodElementRef = useMemo(() => ({current: methodElement}), [methodElement]);
+  const {height: methodHeight} = useDimensions({elementRef: methodElementRef});
   const methodsQuery = useSecondFactorMethods(providedMethods === undefined);
   const methods = providedMethods ?? methodsQuery.data?.mfaMethods ?? [];
   const sortedMethods = SECOND_FACTOR_PRIORITY.flatMap(id =>
@@ -108,61 +121,87 @@ export function SecondFactorAuth({
         </Alert.Container>
       )}
 
-      {/* Preserve each method's local state across switches. Remounting the SMS
-          method would automatically request another challenge. */}
-      {sortedMethods.map(method => (
-        <Activity
-          key={method.id}
-          mode={method.id === activeMethod ? 'visible' : 'hidden'}
-        >
-          <MethodInput
-            method={method.id}
-            isActive={method.id === activeMethod}
-            isProcessing={isProcessing}
-            resetKey={auth.errorMessage}
-            onAuthenticate={authenticate}
-            onResetAuthentication={auth.reset}
-          />
-        </Activity>
-      ))}
+      <MotionContainer
+        initial={false}
+        animate={methodHeight ? {height: methodHeight} : undefined}
+        transition={theme.motion.framer.spring.moderate}
+      >
+        <Grid columns="1fr" position="relative">
+          {/* Preserve each method's local state across switches. Remounting the SMS
+              method would automatically request another challenge. */}
+          {sortedMethods.map(method => {
+            const isActive = method.id === activeMethod;
 
-      <Flex align="center" justify="between">
-        <Button
-          variant="transparent"
-          size="xs"
-          icon={<IconArrow direction="left" />}
-          busy={cancellation.isPending}
-          disabled={auth.isPending}
-          onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
-        >
-          {t('Back to Login')}
-        </Button>
-        {otherMethods.length > 1 ? (
-          <DropdownMenu
-            size="xs"
-            triggerLabel={t('Use Different Method')}
-            triggerProps={{
-              disabled: isProcessing,
-              size: 'xs',
-              variant: 'transparent',
-            }}
-            items={otherMethods.map(method => ({
-              key: method.id,
-              label: METHOD_LABELS[method.id],
-              onAction: () => selectMethod(method.id),
-            }))}
-          />
-        ) : onlyOtherMethod ? (
+            return (
+              <AnimatedActivity
+                key={method.id}
+                mode={isActive ? 'visible' : 'hidden'}
+                layoutMode="pop"
+                elementRef={isActive ? setMethodElement : undefined}
+                initial={METHOD_INITIAL}
+                animate={METHOD_ANIMATE}
+                exit={METHOD_EXIT}
+                transition={theme.motion.framer.smooth.moderate}
+              >
+                <MethodInput
+                  method={method.id}
+                  isActive={isActive}
+                  isProcessing={isProcessing}
+                  resetKey={auth.errorMessage}
+                  onAuthenticate={authenticate}
+                  onResetAuthentication={auth.reset}
+                />
+              </AnimatedActivity>
+            );
+          })}
+        </Grid>
+      </MotionContainer>
+
+      <Stack gap="3xl">
+        <Flex align="center" justify="between">
           <Button
-            size="xs"
             variant="transparent"
-            disabled={isProcessing}
-            onClick={() => selectMethod(onlyOtherMethod.id)}
+            size="xs"
+            icon={<IconArrow direction="left" />}
+            busy={cancellation.isPending}
+            disabled={auth.isPending}
+            onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
           >
-            {USE_METHOD_LABELS[onlyOtherMethod.id]}
+            {t('Back to Login')}
           </Button>
-        ) : null}
-      </Flex>
+          {otherMethods.length > 1 ? (
+            <DropdownMenu
+              size="xs"
+              triggerLabel={t('Use Different Method')}
+              triggerProps={{
+                disabled: isProcessing,
+                size: 'xs',
+                variant: 'transparent',
+              }}
+              items={otherMethods.map(method => ({
+                key: method.id,
+                label: METHOD_LABELS[method.id],
+                onAction: () => selectMethod(method.id),
+              }))}
+            />
+          ) : onlyOtherMethod ? (
+            <Button
+              size="xs"
+              variant="transparent"
+              disabled={isProcessing}
+              onClick={() => selectMethod(onlyOtherMethod.id)}
+            >
+              {USE_METHOD_LABELS[onlyOtherMethod.id]}
+            </Button>
+          ) : null}
+        </Flex>
+
+        <Text as="p" align="center" size="sm" variant="muted">
+          {tct('Having trouble logging in? [support:Contact support].', {
+            support: <ExternalLink href="https://www.sentry.help/" />,
+          })}
+        </Text>
+      </Stack>
     </Stack>
   );
 }
@@ -222,3 +261,5 @@ function MethodInput({
       );
   }
 }
+
+const MotionContainer = motion.create(Container);
