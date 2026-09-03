@@ -62,7 +62,11 @@ from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
-from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.relay.datascrubbing import (
+    validate_pii_config_update,
+    validate_pii_selectors,
+    validate_sensitive_fields_update,
+)
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
@@ -468,6 +472,9 @@ E.g. `['release', 'environment']`""",
     def validate_relayPiiConfig(self, value):
         organization = self.context["project"].organization
         return validate_pii_config_update(organization, value)
+
+    def validate_sensitiveFields(self, value):
+        return validate_sensitive_fields_update(value)
 
     def validate_builtinSymbolSources(self, value):
         return value

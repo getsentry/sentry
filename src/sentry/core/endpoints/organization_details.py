@@ -108,7 +108,11 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
-from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.relay.datascrubbing import (
+    validate_pii_config_update,
+    validate_pii_selectors,
+    validate_sensitive_fields_update,
+)
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import get_valid_automated_run_stopping_points
@@ -390,6 +394,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
+
+    def validate_sensitiveFields(self, value):
+        return validate_sensitive_fields_update(value)
 
     def validate_defaultCodingAgent(self, value: str | None) -> str:
         if value is None:
