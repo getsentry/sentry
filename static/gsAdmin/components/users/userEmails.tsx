@@ -1,6 +1,6 @@
+import {ResultTable} from 'sentry/components/resultTable';
 import type {User} from 'sentry/types/user';
 
-import {ResultTable} from 'admin/components/resultTable';
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
 type Props = {

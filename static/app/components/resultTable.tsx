@@ -23,6 +23,15 @@ export const ResultTable = styled('table')`
     padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg};
   }
 
+  td small {
+    font-size: ${p => p.theme.font.size.xs};
+  }
+
+  td br + small {
+    display: inline-block;
+    margin-top: ${p => p.theme.space.xs};
+  }
+
   th,
   td {
     &:first-of-type {
@@ -79,6 +88,11 @@ export const ResultTable = styled('table')`
 
       &:last-child {
         padding-right: 0;
+      }
+
+      /* The column already stacks children; a <br> would become a blank flex item. */
+      > br {
+        display: none;
       }
     }
 

@@ -85,7 +85,6 @@ export default function AdminRelays() {
       <ResultGrid
         path="/manage/relays/"
         endpoint="/relays/"
-        method="GET"
         columns={columns}
         columnsForRow={getRow}
         hasSearch={false}
