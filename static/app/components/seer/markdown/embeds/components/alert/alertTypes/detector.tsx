@@ -150,15 +150,16 @@ function DetectorAlertPreview({detector}: {detector: PreviewableDetector}) {
   );
 }
 
-export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
+export function DetectorAlertBlock({id, detectorId, kind, name}: EmbedOutput<'alert'>) {
   const organization = useOrganization();
-  const href = makeMonitorDetailsPathname(organization.slug, id);
+  const resourceId = detectorId ?? id;
+  const href = makeMonitorDetailsPathname(organization.slug, resourceId);
   const {
     data: detector,
     isError,
     isPending,
   } = useQuery({
-    ...detectorAlertApiOptions(organization.slug, id),
+    ...detectorAlertApiOptions(organization.slug, resourceId),
     retry: false,
   });
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
@@ -180,7 +181,7 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
       icon={Icon}
       linkLabel={t('View Alert')}
       testId="seer-alert-embed"
-      title={detector?.name ?? name ?? t('Alert %s', id)}
+      title={detector?.name ?? name ?? t('Alert %s', resourceId)}
     >
       {isPending ? (
         <LoadingIndicator />

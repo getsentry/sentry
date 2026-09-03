@@ -12,6 +12,7 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 export function AlertLink({
   format,
   id,
+  detectorId,
   kind,
   name,
 }: EmbedOutput<'alert'> & ResourceLinkFormatProps) {
@@ -19,17 +20,18 @@ export function AlertLink({
 
   // Under the workflow engine an issue alert is an automation, while metric,
   // uptime and cron alerts are all detectors.
+  const resourceId = kind === 'issue' ? id : (detectorId ?? id);
   const href =
     kind === 'issue'
-      ? makeAutomationDetailsPathname(organization.slug, id)
-      : makeMonitorDetailsPathname(organization.slug, id);
+      ? makeAutomationDetailsPathname(organization.slug, resourceId)
+      : makeMonitorDetailsPathname(organization.slug, resourceId);
 
   return (
     <ResourceLink
       format={format}
       icon={IconSiren}
       href={href}
-      title={name ?? t('Alert %s', id)}
+      title={name ?? t('Alert %s', resourceId)}
     />
   );
 }
