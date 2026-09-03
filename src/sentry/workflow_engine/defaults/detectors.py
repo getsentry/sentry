@@ -284,15 +284,13 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
     """
     Ensure that an org-scoped all-project detector exists for the organization.
     This detector has project=NULL and config={"organization_id": org_id}.
+
+    Raises on Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
     """
-    existing = (
-        Detector.objects.filter(
-            type=IssueStreamGroupType.slug,
-            project__isnull=True,
-            config__organization_id=organization_id,
-        )
-        .order_by("id")
-        .first()
+    existing = Detector.objects.get_or_none(
+        type=IssueStreamGroupType.slug,
+        project__isnull=True,
+        config__organization_id=organization_id,
     )
     if existing:
         return existing
@@ -307,14 +305,10 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Detector)),
         ):
-            existing = (
-                Detector.objects.filter(
-                    type=IssueStreamGroupType.slug,
-                    project__isnull=True,
-                    config__organization_id=organization_id,
-                )
-                .order_by("id")
-                .first()
+            existing = Detector.objects.get_or_none(
+                type=IssueStreamGroupType.slug,
+                project__isnull=True,
+                config__organization_id=organization_id,
             )
             if existing:
                 return existing
@@ -331,6 +325,9 @@ def ensure_default_all_projects_detector(organization_id: int) -> Detector:
 
 
 def ensure_default_organization_detectors(organization: Organization) -> dict[str, Detector]:
+    """
+    Raises on Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
+    """
     detectors: dict[str, Detector] = {}
     if options.get("workflow_engine.auto_creation.all_projects_detector"):
         detectors[IssueStreamGroupType.slug] = ensure_default_all_projects_detector(
