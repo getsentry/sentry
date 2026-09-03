@@ -356,6 +356,10 @@ class SearchResolver:
                 return self._resolve_terms([terms[0]])
             elif isinstance(terms[0], event_search.AggregateFilter):
                 return self._resolve_terms([terms[0]])
+            elif event_search.SearchBoolean.is_operator(terms[0]):
+                raise InvalidSearchQuery(
+                    f"Invalid query: operator '{terms[0]}' has no conditions on one or both sides"
+                )
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
 
