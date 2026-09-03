@@ -152,8 +152,7 @@ def _msteams_list_channels(
     """
     List Microsoft Teams channels for a given team.
 
-    The Teams API returns all channels at once.
-    Only standard and private channels are included.
+    The Teams API returns all channels at once, each as `id`, `name` and `type`.
     """
 
     client = MsTeamsClient(integration)
@@ -194,18 +193,20 @@ def _msteams_list_channels(
             continue
 
         ch_id = item.get("id")
-        display_name = item.get("displayName")
-        if not ch_id or not display_name:
+        if not ch_id:
             continue
 
-        ch_type = str(item.get("membershipType") or "standard")
+        # A channel without a name is General, which is also how
+        # `find_channel_id` resolves the name "General" back to it.
+        name = str(item.get("name") or "General")
+        ch_type = str(item.get("type") or "standard")
 
         results.append(
             {
                 "id": str(ch_id),
-                "name": str(display_name),
-                "display": str(display_name),
-                "type": ch_type,  # "standard" or "private"
+                "name": name,
+                "display": name,
+                "type": ch_type,  # "standard", "private" or "shared"
             }
         )
 
