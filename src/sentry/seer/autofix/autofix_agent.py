@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
+from scm.errors import ResourceNotFound
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 
 from sentry import analytics, features, quotas
@@ -448,6 +449,11 @@ def _resolve_default_branch(
         scm = scm_factory.new(group.organization.id, repo.repository_id, referrer.value)
         if isinstance(scm, GetRepositoryProtocol):
             return scm.get_repository()["data"]["default_branch"]
+    except ResourceNotFound:
+        logger.info(
+            "autofix.resolve_default_branch_failed",
+            extra={"repo": f"{repo.owner}/{repo.name}", "group_id": group.id},
+        )
     except Exception:
         logger.exception(
             "autofix.resolve_default_branch_failed",
@@ -482,6 +488,12 @@ def _build_base_shas_metadata(group: Group, referrer: AutofixReferrer) -> str | 
             if not isinstance(scm, GetBranchProtocol):
                 continue
             base_sha = scm.get_branch(base_branch)["data"]["sha"]
+        except ResourceNotFound:
+            logger.info(
+                "autofix.base_shas.resolve_failed",
+                extra={"repo": full_name, "group_id": group.id},
+            )
+            continue
         except Exception:
             logger.exception(
                 "autofix.base_shas.resolve_failed",
