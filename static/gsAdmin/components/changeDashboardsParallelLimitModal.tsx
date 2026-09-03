@@ -17,7 +17,11 @@ const DEFAULT_PARALLEL_LIMIT = 20;
 const PARALLEL_LIMIT_ERROR = 'Parallel limit must be at least 1';
 
 const schema = z.object({
-  dashboardsAsyncQueueParallelLimit: z.number().min(1, PARALLEL_LIMIT_ERROR).nullable(),
+  dashboardsAsyncQueueParallelLimit: z
+    .number()
+    .min(1, PARALLEL_LIMIT_ERROR)
+    .nullable()
+    .refine(value => value !== null, PARALLEL_LIMIT_ERROR),
 });
 
 interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
