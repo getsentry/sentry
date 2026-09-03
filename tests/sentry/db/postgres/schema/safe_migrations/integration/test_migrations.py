@@ -495,3 +495,104 @@ class DeletionFieldGoodDeleteSimpleLockTimeoutTest(BaseSafeMigrationTest):
                 "SET statement_timeout TO '0ms';",
                 "SET lock_timeout TO '0ms';",
             ]
+
+
+class SquashBakedPendingFieldPreservedTest(BaseSafeMigrationTest, ColExistsMixin):
+    """A squash that bakes the pending op (AddField + SafeRemoveField MOVE_TO_PENDING)
+    keeps the column physically present and repopulates the pending registry when the
+    graph is replayed, so the later step-2 DELETE completes on a real database. Proves
+    both the drift fix (the applied squash schema carries the column) and the stranding
+    fix (the pending state survives the squash)."""
+
+    app = "squash_bake_pending_field_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_squashed")
+        assert self.col_exists("field")
+        self._run_migration(self.app, "0002_delete")
+        assert not self.col_exists("field")
+
+
+class SquashUnbakedPendingFieldStrandedTest(BaseSafeMigrationTest, ColExistsMixin):
+    """The identical squash WITHOUT the baked MOVE_TO_PENDING op: the column exists but
+    the pending registry is never repopulated, so the step-2 DELETE is refused and the
+    column is stranded. This is the failure #121291 fixes; the only difference from the
+    test above is the single baked SafeRemoveField operation."""
+
+    app = "squash_unbaked_pending_field_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_squashed")
+        assert self.col_exists("field")
+        with pytest.raises(
+            UnsafeOperationException,
+            match="must be in the pending deletion state before full deletion",
+        ):
+            self._run_migration(self.app, "0002_delete")
+
+
+class SquashBakedPendingModelPreservedTest(BaseSafeMigrationTest):
+    """The model equivalent: a squash that bakes CreateModel + SafeDeleteModel
+    MOVE_TO_PENDING keeps the table and repopulates the model pending registry on
+    replay, so the step-2 DELETE drops the table on a real database."""
+
+    app = "squash_bake_pending_model_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_squashed")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        self._run_migration(self.app, "0002_delete")
+        assert f"{self.app}_testtable" not in connection.introspection.table_names()
+
+
+class SquashUnbakedPendingModelStrandedTest(BaseSafeMigrationTest):
+    """The same squash without the baked SafeDeleteModel MOVE_TO_PENDING op: the table
+    exists but is never re-pended, so the step-2 DELETE is refused and the table is
+    stranded — the model-level version of the failure #121291 fixes."""
+
+    app = "squash_unbaked_pending_model_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_squashed")
+        assert f"{self.app}_testtable" in connection.introspection.table_names()
+        with pytest.raises(
+            UnsafeOperationException,
+            match="must be in the pending deletion state before full deletion",
+        ):
+            self._run_migration(self.app, "0002_delete")
+
+
+class SquashBakedInterdependentModelsApplyTest(BaseSafeMigrationTest):
+    """A baked squash for two pending models where one relates to the other applies on
+    a real database: the bake orders the relation target's CreateModel before the
+    referencing model's, so the relation resolves, and both tables then delete."""
+
+    app = "squash_bake_related_models_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_squashed")
+        tables = connection.introspection.table_names()
+        assert f"{self.app}_alpha" in tables
+        assert f"{self.app}_zebra" in tables
+        self._run_migration(self.app, "0002_delete")
+        tables = connection.introspection.table_names()
+        assert f"{self.app}_alpha" not in tables
+        assert f"{self.app}_zebra" not in tables
+
+
+class SquashBakedCyclicModelsApplyTest(BaseSafeMigrationTest):
+    """The investigations cell-model shape: two mutually-referencing pending models. The
+    bake creates both tables without their circular FKs and adds the FKs afterward, so
+    the squash applies on a fresh database despite the reference cycle; both then delete."""
+
+    app = "squash_bake_cyclic_models_app"
+
+    def test(self) -> None:
+        self._run_migration(self.app, "0001_squashed")
+        tables = connection.introspection.table_names()
+        assert f"{self.app}_cell" in tables
+        assert f"{self.app}_execution" in tables
+        self._run_migration(self.app, "0002_delete")
+        tables = connection.introspection.table_names()
+        assert f"{self.app}_cell" not in tables
+        assert f"{self.app}_execution" not in tables
