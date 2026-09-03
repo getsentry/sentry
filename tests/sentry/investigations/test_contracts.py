@@ -1,20 +1,25 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import orjson
 import pytest
 from rest_framework.exceptions import ValidationError
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_ARTIFACT_BYTES,
+    MAX_PROJECTION_BYTES,
     OrchestrationProjectionSerializer,
     RelaxedContractSerializer,
     ReportBlockStartedPayloadSerializer,
     ReportBlockUpsertedPayloadSerializer,
     ReportClearPayloadSerializer,
+    ReportTextDeltaPayloadSerializer,
+    json_byte_size,
     validate_query_result,
     validate_text_result,
 )
@@ -195,6 +200,10 @@ def block_payload(**overrides: Any) -> dict[str, Any]:
         "projectIds": [162342],
         **overrides,
     }
+
+
+def delta_payload(**overrides: Any) -> dict[str, Any]:
+    return {"reportRevision": 0, "stableAgentKey": "block", **overrides}
 
 
 def validated(serializer: type[RelaxedContractSerializer], payload: dict[str, Any]) -> Any:
@@ -418,3 +427,100 @@ def test_other_cancellation_scopes_may_not_fence_on_generation_zero() -> None:
             ]
         ),
     )
+
+
+def test_strings_keep_the_whitespace_seer_sent() -> None:
+    first = validated(ReportTextDeltaPayloadSerializer, {**delta_payload(), "delta": "Hello "})
+    second = validated(ReportTextDeltaPayloadSerializer, {**delta_payload(), "delta": " world\n"})
+
+    assert first["delta"] + second["delta"] == "Hello  world\n"
+
+
+def test_sizes_are_measured_in_the_bytes_seer_counted() -> None:
+    # Seer budgets with orjson, which does not escape non-ASCII.
+    payload = projection(seerAddedThisLater="错误率升高 🚨" * 20_000)
+
+    assert len(json.dumps(payload).encode()) > MAX_PROJECTION_BYTES
+    assert len(orjson.dumps(payload)) < MAX_PROJECTION_BYTES
+    validated(OrchestrationProjectionSerializer, payload)
+
+
+def test_block_upsert_requires_project_provenance() -> None:
+    rejects(ReportBlockUpsertedPayloadSerializer, block_payload(projectIds=None))
+    rejects(ReportBlockUpsertedPayloadSerializer, block_payload(projectIds=[]))
+    rejects(ReportBlockUpsertedPayloadSerializer, block_payload(projectIds=[1, 1]))
+
+
+def test_floats_reject_the_strings_drf_would_parse() -> None:
+    hypothesis = {
+        "id": "hypothesis-1",
+        "order": 0,
+        "statement": "A release caused the regression",
+        "rationale": "The timing lines up.",
+        "status": "completed",
+        "effectiveStatus": "supported",
+        "decisionSource": "agent",
+        "confidence": "0.5",
+    }
+
+    rejects(OrchestrationProjectionSerializer, projection(hypotheses=[hypothesis]))
+
+
+def test_block_upsert_returns_the_normalized_query_result() -> None:
+    result = {**golden_payload(), "chart": None, "preferredView": "chart"}
+    validated_block = validated(
+        ReportBlockUpsertedPayloadSerializer,
+        block_payload(kind="query", result=result),
+    )
+
+    assert validated_block["result"]["preferredView"] == "table"
+
+
+def hypothesis_with(**overrides: Any) -> dict[str, Any]:
+    return {
+        "id": "hypothesis-1",
+        "order": 0,
+        "statement": "A release caused the regression",
+        "rationale": "The timing lines up.",
+        "status": "completed",
+        "effectiveStatus": "supported",
+        "decisionSource": "user",
+        **overrides,
+    }
+
+
+def test_user_disposition_is_validated() -> None:
+    for bad in (
+        "accepted",
+        {"disposition": "maybe"},
+        {},
+        {"disposition": "accepted", "userId": 0},
+        {"disposition": "accepted", "userId": "12"},
+        {"disposition": "accepted", "decidedAt": 12},
+    ):
+        rejects(
+            OrchestrationProjectionSerializer,
+            projection(hypotheses=[hypothesis_with(userDisposition=bad)]),
+        )
+
+    result = validated(
+        OrchestrationProjectionSerializer,
+        projection(
+            hypotheses=[
+                hypothesis_with(
+                    userDisposition={
+                        "disposition": "rejected",
+                        "userId": 42,
+                        "decidedAt": "2025-01-01T00:00:00+00:00",
+                    }
+                )
+            ]
+        ),
+    )
+
+    assert result["hypotheses"][0]["userDisposition"]["disposition"] == "rejected"
+
+
+def test_size_measurement_tolerates_values_orjson_cannot_serialize() -> None:
+    # Query results reach this from Snuba, which returns Decimals.
+    assert json_byte_size({"total": Decimal("1.5")}) > 0

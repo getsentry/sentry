@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import orjson
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
@@ -12,7 +13,6 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
-from sentry.utils import json
 
 MAX_TABLE_ROWS = 100
 MAX_CHART_SERIES = 5
@@ -20,6 +20,16 @@ MAX_POINTS_PER_SERIES = 200
 MAX_ARTIFACT_BYTES = 1024 * 1024
 MAX_MARKDOWN_CHARS = 100_000
 MAX_PROJECTION_BYTES = 512 * 1024
+
+
+def json_byte_size(value: Any) -> int:
+    """Measure a payload in the UTF-8 JSON bytes Seer budgets against.
+
+    `default` keeps the tolerance the previous encoder had for types orjson
+    cannot serialize, such as the Decimals a query result can carry.
+    """
+
+    return len(orjson.dumps(value, default=str))
 
 
 class StrictContractSerializer(serializers.Serializer[Any]):
@@ -263,7 +273,7 @@ class InvestigationTextResultSerializer(StrictContractSerializer):
 
 
 def validate_query_result(value: Any) -> dict[str, Any]:
-    if len(json.dumps(value).encode()) > MAX_ARTIFACT_BYTES:
+    if json_byte_size(value) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Query result exceeds the maximum artifact size.")
     serializer = InvestigationQueryResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
@@ -271,7 +281,7 @@ def validate_query_result(value: Any) -> dict[str, Any]:
 
 
 def validate_text_result(value: Any) -> dict[str, Any]:
-    if len(json.dumps(value).encode()) > MAX_ARTIFACT_BYTES:
+    if json_byte_size(value) > MAX_ARTIFACT_BYTES:
         raise serializers.ValidationError("Text result exceeds the maximum artifact size.")
     serializer = InvestigationTextResultSerializer(data=value)
     serializer.is_valid(raise_exception=True)
@@ -336,6 +346,12 @@ MAX_PROJECTION_INTENTS = 50
 
 
 class StrictCharField(serializers.CharField):
+    """A string that rejects the numbers DRF would stringify, and keeps its whitespace."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        kwargs.setdefault("trim_whitespace", False)
+        super().__init__(**kwargs)
+
     def to_internal_value(self, data: Any) -> str:
         if not isinstance(data, str):
             self.fail("invalid")
@@ -343,6 +359,8 @@ class StrictCharField(serializers.CharField):
 
 
 class StrictIntegerField(serializers.IntegerField):
+    """An integer that rejects the numeric strings DRF would otherwise parse."""
+
     def to_internal_value(self, data: Any) -> int:
         if isinstance(data, bool) or not isinstance(data, int):
             self.fail("invalid")
@@ -350,8 +368,10 @@ class StrictIntegerField(serializers.IntegerField):
 
 
 class StrictFloatField(serializers.FloatField):
+    """A number that rejects the booleans and numeric strings DRF would coerce."""
+
     def to_internal_value(self, data: Any) -> float:
-        if isinstance(data, bool):
+        if isinstance(data, bool) or not isinstance(data, (int, float)):
             self.fail("invalid")
         return super().to_internal_value(data)
 
@@ -430,7 +450,7 @@ class EvidenceSerializer(ProjectScopedSerializer):
         return attrs.get("kind") in PROJECT_BACKED_EVIDENCE_KINDS
 
     def validate_data(self, value: dict[str, Any]) -> dict[str, Any]:
-        if len(json.dumps(value).encode()) > MAX_EVIDENCE_DATA_BYTES:
+        if json_byte_size(value) > MAX_EVIDENCE_DATA_BYTES:
             raise serializers.ValidationError("Evidence data is too large.")
         return value
 
@@ -463,6 +483,12 @@ class VerificationStepSerializer(RelaxedContractSerializer):
         child=EvidenceSerializer(), required=False, max_length=MAX_EVIDENCE_ITEMS
     )
     error = ProjectionErrorSerializer(required=False, allow_null=True)
+
+
+class UserDispositionSerializer(RelaxedContractSerializer):
+    disposition = serializers.ChoiceField(choices=["accepted", "rejected"])
+    userId = StrictIntegerField(required=False, allow_null=True, min_value=1, max_value=I64_MAX)
+    decidedAt = OptionalStrictCharField(64)
 
 
 class HypothesisSerializer(RelaxedContractSerializer):
@@ -499,6 +525,7 @@ class HypothesisSerializer(RelaxedContractSerializer):
         max_length=MAX_VERIFICATION_STEPS,
     )
     agentVerdict = AgentVerdictSerializer(required=False, allow_null=True)
+    userDisposition = UserDispositionSerializer(required=False, allow_null=True)
     error = ProjectionErrorSerializer(required=False, allow_null=True)
 
 
@@ -623,7 +650,7 @@ class OrchestrationProjectionSerializer(RelaxedContractSerializer):
     """The projection blob Seer sends with every orchestration event."""
 
     def to_internal_value(self, data: Any) -> dict[str, Any]:
-        if len(json.dumps(data).encode()) > MAX_PROJECTION_BYTES:
+        if json_byte_size(data) > MAX_PROJECTION_BYTES:
             raise serializers.ValidationError("Projection is too large.")
         return super().to_internal_value(data)
 
@@ -773,11 +800,12 @@ class ReportBlockUpsertedPayloadSerializer(_BlockKeyMixin, ProjectScopedSerializ
         return super().to_internal_value(data)
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        attrs = super().validate(attrs)
         if attrs.get("kind") != InvestigationBlockKind.QUERY:
             return attrs
         if "result" not in attrs:
             raise serializers.ValidationError({"result": "A query result is required."})
-        validate_query_result(attrs["result"])
+        attrs["result"] = validate_query_result(attrs["result"])
         return attrs
 
 
