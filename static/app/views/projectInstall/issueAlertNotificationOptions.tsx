@@ -114,9 +114,9 @@ export function getChannelSelectedBy(provider: string | undefined): ChannelIdent
 
 /**
  * The value an action carries for a channel: the field the provider's backend
- * resolves (`channelTargetedBy`) when the channel came from the `/channels/`
- * list, else the value itself. A typed channel, or one restored from a
- * persisted target, already is that value.
+ * resolves (`channelTargetedBy`) when the channel carries both identifiers,
+ * else `value`, which for a typed channel or one restored from an action
+ * target already is the target.
  */
 export function getChannelTarget(
   provider: string | undefined,
@@ -139,9 +139,9 @@ export type IntegrationChannel = {
   /** The picker key: the field named by the provider's `channelSelectedBy`. */
   value: string;
   /**
-   * Both identifiers of a channel chosen from the `/channels/` list. Absent
-   * for a typed channel and for one restored from a persisted target, whose
-   * `value` already is the target.
+   * Both identifiers, when the channel was resolved from the `/channels/` list
+   * or seeded from a saved destination. Absent for a typed channel and for one
+   * restored from an action target alone, whose `value` already is the target.
    */
   channelId?: string;
   channelName?: string;

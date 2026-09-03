@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
-export type Channel = {
+type Channel = {
   display: string;
   id: string;
   name: string;
@@ -80,9 +80,6 @@ export type UseMessagingChannelResult = {
  *   - channelOptions shaping (Slack keyed by display name; Discord and MS Teams
  *     keyed by id with `display (id)` labels, since the name alone cannot
  *     disambiguate same-named channels)
- *   - A channel chosen from the list carries both `channelId` and
- *     `channelName`, so a caller can target whichever field the provider's
- *     backend resolves (`channelTargetedBy`)
  *   - Label-upgrade effect: restores raw-id labels to human-readable once the
  *     channel list loads; never touches user-created (channel.new) entries
  *   - onChannelChange / onCreateChannel with optional variant analytics
