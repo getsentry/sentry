@@ -558,6 +558,25 @@ function SampleRateRow({label, rate, desiredSampleRate}: SampleRateRowProps) {
   );
 }
 
+const SAMPLE_RATE_SOURCES = [
+  {key: 'effectiveSampleRate', label: 'Sample Rate (24h, Generic Metrics)'},
+  {key: 'eapEffectiveSampleRate', label: 'Sample Rate (24h, EAP)'},
+] as const;
+
+// Every state renders one row per source, so the label column keeps its width
+// when the request resolves.
+function SampleRateStatusRows({children}: {children: React.ReactNode}) {
+  return (
+    <Fragment>
+      {SAMPLE_RATE_SOURCES.map(({key, label}) => (
+        <ThresholdLabel key={key} label={label} positive={false}>
+          {children}
+        </ThresholdLabel>
+      ))}
+    </Fragment>
+  );
+}
+
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
@@ -577,25 +596,13 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 
   if (!dynamicSamplingEnabled) {
-    return (
-      <ThresholdLabel label="Sample Rate (24h)" positive={false}>
-        Disabled
-      </ThresholdLabel>
-    );
+    return <SampleRateStatusRows>Disabled</SampleRateStatusRows>;
   }
   if (isError) {
-    return (
-      <ThresholdLabel label="Sample Rate (24h)" positive={false}>
-        Error loading data
-      </ThresholdLabel>
-    );
+    return <SampleRateStatusRows>Error loading data</SampleRateStatusRows>;
   }
   if (isPending) {
-    return (
-      <ThresholdLabel label="Sample Rate (24h)" positive={false}>
-        Loading...
-      </ThresholdLabel>
-    );
+    return <SampleRateStatusRows>Loading...</SampleRateStatusRows>;
   }
 
   const desiredSampleRate = organization.desiredSampleRate
@@ -604,16 +611,14 @@ function DynamicSampling({organization}: {organization: Organization}) {
 
   return (
     <Fragment>
-      <SampleRateRow
-        label="Sample Rate (24h, Generic Metrics)"
-        rate={data.effectiveSampleRate}
-        desiredSampleRate={desiredSampleRate}
-      />
-      <SampleRateRow
-        label="Sample Rate (24h, EAP)"
-        rate={data.eapEffectiveSampleRate}
-        desiredSampleRate={desiredSampleRate}
-      />
+      {SAMPLE_RATE_SOURCES.map(({key, label}) => (
+        <SampleRateRow
+          key={key}
+          label={label}
+          rate={data[key]}
+          desiredSampleRate={desiredSampleRate}
+        />
+      ))}
     </Fragment>
   );
 }

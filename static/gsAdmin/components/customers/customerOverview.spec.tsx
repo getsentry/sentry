@@ -884,6 +884,43 @@ describe('CustomerOverview', () => {
     });
   });
 
+  it('renders both sample rate rows while the request is pending', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.75,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 0.75, eapEffectiveSampleRate: 0.75},
+      asyncDelay: 1,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(
+      screen.getByText('Sample Rate (24h, Generic Metrics):').nextElementSibling
+    ).toHaveTextContent('Loading...');
+    expect(
+      screen.getByText('Sample Rate (24h, EAP):').nextElementSibling
+    ).toHaveTextContent('Loading...');
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Sample Rate (24h, EAP):').nextElementSibling
+      ).toHaveTextContent('75.00%');
+    });
+  });
+
   it('renders retention settings', () => {
     const organization = OrganizationFixture({});
     const subscription = SubscriptionFixture({
