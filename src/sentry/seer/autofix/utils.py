@@ -562,7 +562,7 @@ def build_repo_definition_from_project_repo(
     repo = seer_project_repo.project_repository.repository
     repo_name_sections = get_repo_url_path(repo).split("/")
     if len(repo_name_sections) < 2:
-        sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
+        logger.warning("Invalid repository name format: %s", repo.name)
         return None
 
     return SeerRepoDefinition(
