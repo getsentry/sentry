@@ -33,5 +33,17 @@ describe('Badge', () => {
       ),
       variant => ({tags: {variant: String(variant), area: 'core'}})
     );
+
+    it.snapshot(
+      'snapshot upload workflow test',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Badge variant="highlight">Snapshot upload workflow test</Badge>
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {area: 'core', purpose: 'workflow-test'}}
+    );
   });
 });
