@@ -461,6 +461,24 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
         )
 
 
+@control_silo_function
+def find_cell_by_org_id(org_ids: Iterable[int]) -> dict[int, str]:
+    """Maps each org id to its cell name (one DB lookup, no RPC).
+
+    Use ``find_cells_for_orgs`` instead if you only need the distinct cell set.
+    """
+    from sentry.models.organizationmapping import OrganizationMapping
+
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {org_id: settings.SENTRY_FALLBACK_CELL for org_id in org_ids}
+
+    return dict(
+        OrganizationMapping.objects.filter(organization_id__in=org_ids).values_list(
+            "organization_id", "cell_name"
+        )
+    )
+
+
 def find_cells_for_org_mappings(organizations: Iterable[RpcOrganizationMapping]) -> set[str]:
     """The cells for organizations whose mappings the caller already holds.
 

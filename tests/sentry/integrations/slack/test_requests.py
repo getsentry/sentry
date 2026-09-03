@@ -21,6 +21,7 @@ from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
@@ -432,6 +433,74 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.organization_id == self.organization.id
         assert result.halt_reason is None
         mock_has_access.assert_not_called()
+
+    @patch(
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
+        return_value=True,
+    )
+    def test_control_silo_dedupes_rpc_by_cell(self, mock_access):
+        """
+        On control, once a valid membership is confirmed for a cell, further orgs mapped
+        to that same cell are skipped entirely -- no RPC needed, since the cell the
+        request is forwarded to always re-resolves/authorizes the real organization
+        itself regardless of which org control's loop happened to check.
+        """
+        other_org = self._add_second_org()
+        # Resolve org1's context in the test's default (monolith) mode, then feed it back
+        # through the mock under simulated CONTROL -- this test is about the RPC dedupe
+        # logic, not about the mechanics of a genuine cross-cell round trip.
+        org1_ctx = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=self.slack_user.id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            with (
+                mock.patch(
+                    "sentry.integrations.slack.requests.event.find_cell_by_org_id",
+                    return_value={self.organization.id: "cell-a", other_org.id: "cell-a"},
+                ),
+                mock.patch(
+                    "sentry.integrations.slack.requests.event.organization_service.get_organization_by_id",
+                    return_value=org1_ctx,
+                ) as mock_get_organization,
+            ):
+                result = self.slack_request.resolve_seer_organization()
+
+        assert result.organization_id == self.organization.id
+        assert result.halt_reason is None
+        mock_get_organization.assert_called_once_with(
+            id=self.organization.id, user_id=self.slack_user.id
+        )
+
+    @patch(
+        "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
+        return_value=True,
+    )
+    def test_control_silo_checks_each_distinct_cell(self, mock_access):
+        """
+        Orgs mapped to different cells each still need a representative RPC -- the dedupe
+        only skips orgs whose cell has already been confirmed.
+        """
+        other_org = self._add_second_org()
+        org1_ctx = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=self.slack_user.id
+        )
+        org2_ctx = organization_service.get_organization_by_id(
+            id=other_org.id, user_id=self.slack_user.id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            with (
+                mock.patch(
+                    "sentry.integrations.slack.requests.event.find_cell_by_org_id",
+                    return_value={self.organization.id: "cell-a", other_org.id: "cell-b"},
+                ),
+                mock.patch(
+                    "sentry.integrations.slack.requests.event.organization_service.get_organization_by_id",
+                    side_effect=[org1_ctx, org2_ctx],
+                ) as mock_get_organization,
+            ):
+                self.slack_request.resolve_seer_organization()
+
+        assert mock_get_organization.call_count == 2
 
     @patch(
         "sentry.integrations.slack.requests.event.SeerAgentOperator.has_access",
