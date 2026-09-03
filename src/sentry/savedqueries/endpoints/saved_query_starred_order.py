@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import transaction
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
@@ -19,17 +21,17 @@ class MemberPermission(OrganizationPermission):
     }
 
 
-class SavedQueryRefSerializer(serializers.Serializer):
+class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):
     type = serializers.ChoiceField(
         choices=[query_type.value for query_type in starred_queries.SavedQueryType]
     )
     id = serializers.IntegerField()
 
 
-class SavedQueryStarredOrderSerializer(serializers.Serializer):
+class SavedQueryStarredOrderSerializer(serializers.Serializer[dict[str, Any]]):
     queries = serializers.ListField(child=SavedQueryRefSerializer(), required=True, min_length=0)
 
-    def validate_queries(self, queries):
+    def validate_queries(self, queries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         refs = [(query["type"], query["id"]) for query in queries]
         if len(refs) != len(set(refs)):
             raise serializers.ValidationError("Single query cannot take up multiple positions")
@@ -53,7 +55,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EXPLORE
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         ) and features.has(

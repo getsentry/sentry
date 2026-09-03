@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any
 
 from django.apps import apps
 from django.db import connections, models, router, transaction
@@ -124,11 +125,8 @@ def reorder(organization: Organization, user_id: int, refs: Sequence[SavedQueryR
 
     Caller must hold ``lock_starred_list``.
 
-    Both tables are always read, so ``refs`` has to name every starred query the user has,
-    not just those of one product. A payload covering a single product would otherwise be
-    accepted and quietly permute that product's queries among the slots it already holds,
-    leaving them unable to cross a star belonging to the other product — silently dropping
-    part of the reorder the user asked for. Requiring the whole list turns that into an error.
+    Both tables are always read, so ``refs`` has to have every starred query the user has,
+    not just those of one product, otherwise positions may be duplicated or skipped.
 
     Raises:
         ValueError: if ``refs`` is not exactly the set of the user's starred rows, or
@@ -138,7 +136,7 @@ def reorder(organization: Organization, user_id: int, refs: Sequence[SavedQueryR
     if len(requested) != len(set(requested)):
         raise ValueError("Single query cannot take up multiple positions.")
 
-    rows: dict[SavedQueryRef, models.Model] = {}
+    rows: dict[SavedQueryRef, Any] = {}
     for query_type, model, fk_column in _tables():
         for row in model.objects.filter(
             organization=organization, user_id=user_id, position__isnull=False, starred=True

@@ -73,7 +73,8 @@ class SavedQueryStarredOrderTest(APITestCase):
             )
         ]
         return [
-            (query_type, query_id) for query_type, query_id, _ in sorted(rows, key=lambda r: r[2])
+            (query_type, query_id)
+            for query_type, query_id, _ in sorted(rows, key=lambda r: r[2] or 0)
         ]
 
     def test_moves_a_discover_query_above_an_explore_query(self) -> None:

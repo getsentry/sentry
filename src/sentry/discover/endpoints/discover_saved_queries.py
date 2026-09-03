@@ -13,6 +13,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.expressions import OrderBy
+from django.db.models.query import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -53,6 +54,100 @@ from sentry.discover.models import (
 )
 from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
+
+
+def explore_sort_saved_queries(
+    request: Request,
+    organization: Organization,
+    queryset: QuerySet[DiscoverSavedQuery],
+    user_id: int,
+) -> QuerySet[DiscoverSavedQuery]:
+    """
+    Order a user's saved queries the way the Explore endpoint does, which allows multiple
+    sorts. Eventually, this should replace the old sorting method
+    """
+    order_by: list[OrderBy | Case | str] = []
+
+    sort_by_list = request.query_params.getlist("sortBy")
+    for sort_by in sort_by_list:
+        if sort_by.startswith("-"):
+            sort_by, desc = sort_by[1:], True
+        else:
+            desc = False
+
+        if sort_by == "name":
+            order_by.append("-lower_name" if desc else "lower_name")
+
+        # Explore calls it dataAdded, but the Discover endpoint calls it dateCreated
+        elif sort_by == "dateCreated" or sort_by == "dateAdded":
+            order_by.append("-date_created" if desc else "date_created")
+
+        elif sort_by == "dateUpdated":
+            order_by.append("-date_updated" if desc else "date_updated")
+
+        elif sort_by == "mostPopular":
+            order_by.append("visits" if desc else "-visits")
+
+        elif sort_by == "recentlyViewed":
+            order_by.append(
+                F("user_last_visited").asc(nulls_last=True)
+                if desc
+                else F("user_last_visited").desc(nulls_last=True)
+            )
+
+        elif sort_by == "myqueries":
+            order_by.append(
+                Case(
+                    When(created_by_id=user_id, then=-1),
+                    default="created_by_id",
+                    output_field=IntegerField(),
+                ),
+            )
+
+        elif sort_by == "mostStarred":
+            queryset = queryset.annotate(starred_count=Count("discoversavedquerystarred"))
+            order_by.append("-starred_count")
+
+        elif sort_by == "starred":
+            queryset = queryset.annotate(
+                is_starred=Exists(
+                    DiscoverSavedQueryStarred.objects.filter(
+                        discover_saved_query_id=OuterRef("id"),
+                        user_id=user_id,
+                        starred=True,
+                    )
+                )
+            )
+            order_by.append("-is_starred")
+
+    if not order_by:
+        order_by.append("lower_name")
+
+    # Finally we always at least secondarily sort by dateCreated
+    if "dateCreated" not in sort_by_list and "-dateCreated" not in sort_by_list:
+        order_by.append("-date_created")
+
+    if request.query_params.get("starred") == "1":
+        queryset = queryset.filter(
+            id__in=DiscoverSavedQueryStarred.objects.filter(
+                organization=organization, user_id=user_id, starred=True
+            ).values_list("discover_saved_query_id", flat=True)
+        ).annotate(
+            position=Subquery(
+                DiscoverSavedQueryStarred.objects.filter(
+                    discover_saved_query_id=OuterRef("id"),
+                    user_id=user_id,
+                    starred=True,
+                ).values("position")[:1]
+            )
+        )
+        order_by = ["position", "-date_created"]
+
+    # Entries with null last visited need a deterministic tiebreaker,
+    # hence adding id to serve this purpose.
+    order_by.append("-id")
+
+    return queryset.order_by(*order_by)
 
 
 @extend_schema(tags=["Discover"])
@@ -129,8 +224,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        has_migrate_feature = self.has_migrate_feature(organization, request)
-        if has_migrate_feature:
+        # New sorting method, behind feature flag
+        if self.has_migrate_feature(organization, request):
             last_visited_query: Subquery | Value = Value(
                 None, output_field=DateTimeField(null=True)
             )
@@ -144,6 +239,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 )
             queryset = queryset.annotate(user_last_visited=last_visited_query)
 
+            if request.user.is_authenticated:
+                queryset = explore_sort_saved_queries(
+                    request, organization, queryset, request.user.id
+                )
+            else:
+                queryset = queryset.order_by("lower_name", "-date_created", "-id")
+
+            return self._respond_with_queries(request, queryset)
+
+        # Old sorting method
         sort_by = request.query_params.get("sortBy")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -169,17 +274,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            if has_migrate_feature:
-                order_by = [
-                    (
-                        F("user_last_visited").asc(nulls_last=True)
-                        if desc
-                        else F("user_last_visited").desc(nulls_last=True)
-                    ),
-                    "-date_updated",
-                ]
-            else:
-                order_by = ["last_visited" if desc else "-last_visited"]
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "myqueries":
             order_by = [
@@ -191,54 +286,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 "-date_created",
             ]
 
-        elif has_migrate_feature and sort_by == "mostStarred":
-            queryset = queryset.annotate(starred_count=Count("discoversavedquerystarred"))
-            order_by = ["-starred_count"]
-
-        elif has_migrate_feature and sort_by == "starred":
-            queryset = queryset.annotate(
-                is_starred=Exists(
-                    DiscoverSavedQueryStarred.objects.filter(
-                        discover_saved_query_id=OuterRef("id"),
-                        user_id=request.user.id,
-                        starred=True,
-                    )
-                )
-            )
-            order_by = ["-is_starred"]
-
         else:
             order_by = ["lower_name"]
 
-        if has_migrate_feature:
-            starred = request.query_params.get("starred")
-
-            if starred == "1":
-                queryset = (
-                    queryset.filter(
-                        id__in=DiscoverSavedQueryStarred.objects.filter(
-                            organization=organization, user_id=request.user.id, starred=True
-                        ).values_list("discover_saved_query_id", flat=True)
-                    )
-                    .annotate(
-                        position=Subquery(
-                            DiscoverSavedQueryStarred.objects.filter(
-                                discover_saved_query_id=OuterRef("id"),
-                                user_id=request.user.id,
-                                starred=True,
-                            ).values("position")[:1]
-                        )
-                    )
-                    .order_by("position")
-                )
-                order_by = ["position", "-date_created"]
-
-            # Entries with null last visited need a deterministic tiebreaker,
-            # hence adding id to serve this purpose.
-            order_by.append("-id")
-
         queryset = queryset.order_by(*order_by)
 
+        return self._respond_with_queries(request, queryset)
+
+    def _respond_with_queries(
+        self, request: Request, queryset: QuerySet[DiscoverSavedQuery]
+    ) -> Response[list[DiscoverSavedQueryResponse]]:
         # Old discover expects all queries and uses this parameter.
         if request.query_params.get("all") == "1":
             saved_queries = list(queryset.all())

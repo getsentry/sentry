@@ -470,14 +470,30 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[-1]["starred"] is False
         assert response.data[-1]["position"] is None
 
-    def test_get_sortby_starred(self) -> None:
+    def test_get_sortby_multiple(self) -> None:
         query = {"fields": ["message"], "query": "", "limit": 10}
+
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=DiscoverSavedQuery.objects.get(
+                organization=self.org, name="Test query"
+            ),
+            last_visited=before_now(),
+        )
+
         model_a = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,
             name="Query A",
             query=query,
             version=2,
+        )
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_a,
+            last_visited=before_now(minutes=30),
         )
         model_a.set_projects(self.project_ids)
 
@@ -488,6 +504,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             query=query,
             version=2,
         )
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_b,
+            last_visited=before_now(minutes=20),
+        )
         model_b.set_projects(self.project_ids)
 
         model_c = DiscoverSavedQuery.objects.create(
@@ -496,6 +518,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             name="Query C",
             query=query,
             version=2,
+        )
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_c,
+            last_visited=before_now(minutes=10),
         )
         model_c.set_projects(self.project_ids)
 
@@ -519,6 +547,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             query=query,
             version=2,
         )
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model_d,
+            last_visited=before_now(minutes=15),
+        )
         model_d.set_projects(self.project_ids)
         DiscoverSavedQueryStarred.objects.create(
             organization=self.org,
@@ -534,7 +568,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         )
 
         with self.feature([self.feature_name, self.migrate_feature_name]):
-            response = self.client.get(self.url, data={"sortBy": "starred"})
+            response = self.client.get(self.url, data={"sortBy": ["starred", "recentlyViewed"]})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 5
@@ -544,13 +578,13 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data[1]["name"] == "Query A"
         assert response.data[1]["starred"] is True
         assert response.data[1]["position"] == 1
-        assert response.data[2]["name"] == "Query D"
+        assert response.data[2]["name"] == "Test query"
         assert response.data[2]["starred"] is False
         assert response.data[2]["position"] is None
         assert response.data[3]["name"] == "Query C"
         assert response.data[3]["starred"] is False
         assert response.data[3]["position"] is None
-        assert response.data[4]["name"] == "Test query"
+        assert response.data[4]["name"] == "Query D"
         assert response.data[4]["starred"] is False
         assert response.data[4]["position"] is None
 
