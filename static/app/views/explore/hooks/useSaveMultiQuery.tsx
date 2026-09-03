@@ -9,7 +9,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
@@ -29,6 +32,7 @@ export function useSaveMultiQuery() {
 
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
+  const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const data = useMemo(() => {
     return {
@@ -82,6 +86,10 @@ export function useSaveMultiQuery() {
         method: 'PUT',
         data,
       }),
+    onSuccess: () => {
+      invalidateSavedQueries();
+      invalidateSavedQuery();
+    },
   });
 
   return {saveQuery, updateQuery};

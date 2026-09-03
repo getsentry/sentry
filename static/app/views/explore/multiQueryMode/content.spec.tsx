@@ -11,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
@@ -1116,7 +1117,11 @@ describe('MultiQueryModeContent', () => {
     expect(await screen.findByText('New Query')).toBeInTheDocument();
   });
 
-  it('highlights save button when query has changes', async () => {
+  it('clears the save highlight and refreshes saved queries after updating', async () => {
+    const listRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',
@@ -1151,7 +1156,12 @@ describe('MultiQueryModeContent', () => {
       method: 'POST',
     });
 
-    render(<MultiQueryModeContent />, {
+    function Component() {
+      useGetSavedQueries({});
+      return <MultiQueryModeContent />;
+    }
+
+    render(<Component />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -1160,11 +1170,48 @@ describe('MultiQueryModeContent', () => {
             queries:
               '{"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["avg(span.duration)"]}',
             id: '123',
+            project: project.id,
+            statsPeriod: '7d',
           },
         },
       },
     });
     // No good way to check for highlighted css, so we just check for the text
     expect(await screen.findByText('Save')).toBeInTheDocument();
+    await waitFor(() => expect(listRequest).toHaveBeenCalledTimes(1));
+
+    const updatedQuery = {
+      id: '123',
+      query: [
+        {
+          query: '',
+          fields: ['id', 'span.duration', 'timestamp'],
+          groupby: [],
+          orderby: '-timestamp',
+          visualize: [{yAxes: ['avg(span.duration)']}],
+          mode: 'samples',
+        },
+      ],
+      range: '7d',
+      projects: [Number(project.id)],
+      environment: [],
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      method: 'PUT',
+      body: updatedQuery,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/123/`,
+      body: updatedQuery,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Existing Query'})
+    );
+
+    expect(await screen.findByText('Save as…')).toBeInTheDocument();
+    await waitFor(() => expect(listRequest).toHaveBeenCalledTimes(2));
   });
 });
