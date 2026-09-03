@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1161_drop_organizationmapping_require_email_verification_pending"),
+        ("sentry", "1162_pendingeventattachment"),
     ]
 
     operations = [
