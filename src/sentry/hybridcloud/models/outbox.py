@@ -201,11 +201,23 @@ class OutboxBase(Model):
             )
 
         if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+            transaction.on_commit(
+                self._drain_shard_with_metrics, using=router.db_for_write(type(self))
+            )
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(*args, **kwargs)
+
+    def _drain_shard_with_metrics(self) -> None:
+        with metrics.timer(
+            "outbox.sync_shard_drain.duration",
+            tags={
+                "category": OutboxCategory(self.category).name,
+                "outbox_name": self._meta.label,
+            },
+        ):
+            self.drain_shard()
 
     @contextlib.contextmanager
     def process_shard(self, latest_shard_row: OutboxBase | None) -> Generator[OutboxBase | None]:

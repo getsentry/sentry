@@ -138,6 +138,12 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
+  'issue_inbox.resolve_clicked': IssueDetailsWithAlert & {
+    action_type: GroupStatus;
+    org_streamline_only: boolean | undefined;
+    action_status_details?: string;
+    action_substatus?: string;
+  };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
@@ -192,6 +198,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
+  'issue_inbox.resolve_clicked': 'Issue Inbox: Resolve Action Clicked',
   'issue_details.attachment_tab.screenshot_modal_deleted':
     'Attachment Tab: Screenshot deleted from modal',
   'issue_details.attachment_tab.screenshot_modal_download':

@@ -8,6 +8,8 @@ name, so a per-repo pause cannot find its own entries.
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
+from typing import Any
 
 from django.utils import timezone
 
@@ -20,6 +22,11 @@ logger = logging.getLogger(__name__)
 
 # Run-level SeerRun.extras key. No key means that the run iterates.
 PAUSED_EXTRA = "pr_iteration_paused"
+
+
+class PauseReason(StrEnum):
+    USER_STOP = "user_stop"
+    RUN_ERRORED = "run_errored"
 
 
 def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:
@@ -38,8 +45,34 @@ def is_pr_iteration_paused(*, run_id: int, organization_id: int) -> bool:
     return get_run_extra(seer_run, PAUSED_EXTRA) is not None
 
 
+def pause_reason_from_marker(marker: Any | None) -> PauseReason | None:
+    """Read the reason off a marker a caller already holds, sparing the query.
+
+    Markers written before the reason existed record a user stop.
+    """
+    if marker is None:
+        return None
+
+    try:
+        return PauseReason(marker.get("reason", PauseReason.USER_STOP))
+    except ValueError:
+        return None
+
+
+def get_pause_reason(*, run_id: int, organization_id: int) -> PauseReason | None:
+    seer_run = _get_seer_run(run_id, organization_id)
+    if seer_run is None:
+        return None
+
+    return pause_reason_from_marker(get_run_extra(seer_run, PAUSED_EXTRA))
+
+
 def pause_pr_iteration(
-    *, run_id: int, organization_id: int, actor_user_id: int | None = None
+    *,
+    run_id: int,
+    organization_id: int,
+    reason: PauseReason,
+    actor_user_id: int | None = None,
 ) -> bool:
     seer_run = _get_seer_run(run_id, organization_id)
     if seer_run is None:
@@ -52,18 +85,21 @@ def pause_pr_iteration(
                 extras[PAUSED_EXTRA] = {
                     "paused_at": timezone.now().isoformat(),
                     "actor_user_id": actor_user_id,
+                    "reason": reason.value,
                 }
     except SeerRun.DoesNotExist:
         # The run was deleted between the lookup and the marker write.
         return False
     clear_queued_autofix_feedback(run_id)
 
+    metrics.incr("autofix.pr_iteration.paused", tags={"reason": reason.value})
     logger.info(
         "autofix.pr_iteration.paused",
         extra={
             "run_id": run_id,
             "organization_id": organization_id,
             "actor_user_id": actor_user_id,
+            "reason": reason.value,
         },
     )
     return True

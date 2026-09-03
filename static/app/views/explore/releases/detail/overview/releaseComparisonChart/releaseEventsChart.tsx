@@ -74,15 +74,9 @@ export function ReleaseEventsChart({
       case ReleaseComparisonChartType.ERROR_COUNT:
         return new MutableSearch(['event.type:error', releaseFilter]).formatString();
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return new MutableSearch([
-          'event.type:transaction',
-          releaseFilter,
-        ]).formatString();
+        return new MutableSearch(['is_transaction:true', releaseFilter]).formatString();
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return new MutableSearch([
-          'event.type:transaction',
-          releaseFilter,
-        ]).formatString();
+        return new MutableSearch(['is_transaction:true', releaseFilter]).formatString();
       default:
         return '';
     }
@@ -144,11 +138,12 @@ export function ReleaseEventsChart({
       start={start}
       end={end}
       interval={getInterval({start, end, period, utc}, 'high')}
-      query="event.type:transaction"
+      query="is_transaction:true"
       includePrevious={false}
       currentSeriesNames={[t('All Releases')]}
       yAxis={getYAxis()}
       field={getField()}
+      dataset={DiscoverDatasets.SPANS}
       confirmedQuery={chartType === ReleaseComparisonChartType.FAILURE_RATE}
       partial
       referrer="api.releases.release-details-chart"
@@ -169,7 +164,7 @@ export function ReleaseEventsChart({
           dataset={
             chartType === ReleaseComparisonChartType.ERROR_COUNT
               ? DiscoverDatasets.ERRORS
-              : DiscoverDatasets.METRICS_ENHANCED
+              : DiscoverDatasets.SPANS
           }
           environments={environments}
           start={start ?? null}

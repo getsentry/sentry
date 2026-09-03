@@ -95,6 +95,9 @@ const restrictedThemeImportPattern = {
     "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
 };
 
+const CSS_TYPES_MESSAGE =
+  "Use the matching property from the CSS type exported by @sentry/scraps/cssTypes, for example CSS['width'].";
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -395,6 +398,16 @@ export default typescript.config([
           selector:
             'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
           message: 'Do not use IIFEs inside JSX.',
+        },
+        {
+          selector:
+            "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
+          message: CSS_TYPES_MESSAGE,
+        },
+        {
+          selector:
+            "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
+          message: CSS_TYPES_MESSAGE,
         },
         {
           selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
@@ -866,6 +879,41 @@ export default typescript.config([
             'analyze-styled\\.ts$',
             'type-coverage\\.ts$',
             'type-coverage-diff\\.ts$',
+            // Legacy filenames that are referenced throughout the application.
+            // Keep these exceptions here instead of scattering file-level
+            // disables across each module.
+            'AiSetupDataConsent\\.tsx$',
+            'CredentialRow\\.tsx$',
+            'DevKitSettings\\.tsx$',
+            'DurationCell\\.tsx$',
+            'EmptyState\\.tsx$',
+            'ErrorRateCell\\.tsx$',
+            'FlamegraphWarnings\\.spec\\.tsx$',
+            'FlamegraphWarnings\\.tsx$',
+            'FormSearch\\.tsx$',
+            'IssueListCacheStore\\.tsx$',
+            'IssueStreamHeaderLabel\\.tsx$',
+            'NoProjectEmptyState\\.tsx$',
+            'NumberCell\\.tsx$',
+            'PinnedLogs\\.spec\\.tsx$',
+            'PinnedLogs\\.tsx$',
+            'PlayStationSettings\\.tsx$',
+            'RequestIntegrationButton\\.tsx$',
+            'RequestIntegrationModal\\.tsx$',
+            'RequestSdkAccessButton\\.tsx$',
+            'SplitInstallationIdModal\\.tsx$',
+            'ThresholdCell\\.tsx$',
+            'VirtualizedTreeNode\\.spec\\.tsx$',
+            'VirtualizedTreeNode\\.tsx$',
+            'VirtualizedTree\\.spec\\.tsx$',
+            'VirtualizedTree\\.tsx$',
+            'build-chartcuterie\\.ts$',
+            'build-js-loader\\.ts$',
+            'dev-ui-server\\.ts$',
+            'sentry-jest-environment\\.d\\.ts$',
+            'snapshot-framework\\.ts$',
+            'snapshot-image-metadata\\.ts$',
+            'snapshot-setup\\.ts$',
           ],
         },
       ],
@@ -999,7 +1047,6 @@ export default typescript.config([
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      'import/no-duplicates': 'off',
     },
   },
   {
@@ -1104,7 +1151,13 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [restrictedThemeImportPattern],
+          patterns: [
+            restrictedThemeImportPattern,
+            {
+              group: ['csstype', 'csstype/*'],
+              message: CSS_TYPES_MESSAGE,
+            },
+          ],
           // Allow color package only in the components/core directory
           paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
         },

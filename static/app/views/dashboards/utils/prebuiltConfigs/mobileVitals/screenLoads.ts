@@ -1,8 +1,10 @@
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {PrebuiltWidget} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import type {
+  PrebuiltWidget,
+  PrebuiltDashboard,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   SCREEN_LOAD_CONDITION,
   SCREEN_LOAD_SPAN_OPERATIONS_CONDITION,

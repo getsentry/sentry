@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from django.urls import reverse
 
 from sentry.investigations.models import (
@@ -50,6 +52,21 @@ class OrganizationInvestigationBaseTest(APITestCase):
         )
         assert response.status_code == 404
 
+    def test_feature_is_required_for_orchestration(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Agentic"
+        )
+        self.create_investigation_orchestration_run(investigation=investigation)
+        url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        assert self.client.get(url).status_code == 404
+
 
 @with_feature(FEATURE)
 class OrganizationInvestigationsEndpointTest(APITestCase):
@@ -66,6 +83,63 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             self.client.logout()
         response = self.client.get(self.collection_url)
         assert response.status_code in {401, 403}
+
+    def test_orchestration_routes_reject_an_investigation_from_another_organization(self) -> None:
+        other_organization = self.create_organization()
+        investigation = self.create_investigation(
+            organization=other_organization, created_by=self.user, title="Other tenant"
+        )
+        self.create_investigation_orchestration_run(investigation=investigation)
+        url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        assert self.client.get(url).status_code == 404
+
+    def test_orchestration_routes_require_every_selected_project(self) -> None:
+        restricted_team = self.create_team(organization=self.organization)
+        restricted_project = self.create_project(
+            organization=self.organization, teams=[restricted_team]
+        )
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Restricted"
+        )
+        self.create_investigation_project(investigation=investigation, project=restricted_project)
+        self.create_investigation_orchestration_run(investigation=investigation)
+        viewer = self.create_user()
+        self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
+        self.login_as(viewer)
+        orchestration_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        command_url = reverse(
+            "sentry-api-0-organization-investigation-orchestration-commands",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        assert self.client.get(orchestration_url).status_code == 403
+        response = self.client.post(
+            command_url,
+            data={
+                "requestId": str(uuid4()),
+                "expectedWorkflowVersion": 1,
+                "command": {"type": "cancel"},
+            },
+            format="json",
+        )
+        assert response.status_code == 403
 
     def test_empty_project_scope_does_not_require_every_organization_project(self) -> None:
         investigation = self.create_investigation(

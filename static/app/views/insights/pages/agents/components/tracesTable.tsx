@@ -94,8 +94,6 @@ interface TableData {
   isSpanDataLoading?: boolean;
 }
 
-const EMPTY_ARRAY: never[] = [];
-
 const defaultColumnOrder: Array<GridColumnOrder<string>> = [
   {key: 'traceId', name: t('Trace ID'), width: 110},
   {key: 'agents', name: t('Agents / Trace Root'), width: COL_WIDTH_UNDEFINED},
@@ -124,7 +122,6 @@ interface TracesTableProps {
   dashboardFilters?: DashboardFilters;
   frameless?: boolean;
   limit?: number;
-  linkToTraceView?: boolean;
   tableWidths?: number[];
 }
 
@@ -309,7 +306,7 @@ export function TracesTable({
         bodyStyle: FRAMELESS_STYLES,
         resizable: true,
         scrollable: true,
-        height: '100%',
+        height: '100%' as const,
       }
     : {};
 
@@ -320,7 +317,6 @@ export function TracesTable({
       data={tableData}
       stickyHeader
       columnOrder={columnOrder}
-      columnSortBy={EMPTY_ARRAY}
       grid={{
         renderBodyCell,
         renderHeadCell,

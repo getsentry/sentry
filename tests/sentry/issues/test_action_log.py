@@ -692,7 +692,7 @@ class TestPublishActionWrite(TestCase):
         ).exists()
         assert GroupActionLogOutbox.objects.count() == 1
         mock_in_rollout_group.assert_called_once_with(
-            "issues.action_log.dedicated_outbox_rollout_rate", self.group.id
+            "issues.action_log.dedicated_outbox_rollout_rate", str(self.group.id)
         )
         mock_incr.assert_any_call("issues.action_log.outbox_write", tags={"route": "dedicated"})
 

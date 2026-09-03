@@ -2,12 +2,15 @@ import pytest
 from django.utils import timezone
 
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
-from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
+from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, SpanTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, BaseMetricsLayerTestCase):
+class OrganizationSamplingEffectiveSampleRateEndpointTest(
+    APITestCase, BaseMetricsLayerTestCase, SpanTestCase
+):
     endpoint = "sentry-api-0-organization-sampling-effective-sample-rate"
     method = "GET"
 
@@ -26,8 +29,21 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, BaseMetri
     def test_get(self) -> None:
         project = self.create_project(teams=[self.team])
 
-        # Create 3 root transactions in the last minute: 2 dropped, 1 kept → rate = 1/3
-        for decision in ["drop", "drop", "keep"]:
+        # One stored segment sampled at 1/2 extrapolates to 2 received segments → EAP rate = 1/2
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True},
+                    organization=self.organization,
+                    project=project,
+                    start_ts=before_now(minutes=15),
+                    measurements={"server_sample_rate": {"value": 0.5}},
+                )
+            ]
+        )
+
+        # 4 root segments, 1 of them kept → generic metrics rate = 1/4
+        for decision in ["drop", "drop", "drop", "keep"]:
             self.store_performance_metric(
                 name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                 tags={"transaction": "foo_transaction", "decision": decision, "is_segment": "true"},
@@ -40,10 +56,16 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, BaseMetri
         with self.feature("organizations:dynamic-sampling"):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data["effectiveSampleRate"] == pytest.approx(1.0 / 3.0, rel=1e-6)
+        assert response.data["effectiveSampleRate"] == pytest.approx(0.25, rel=1e-6)
+        assert response.data["eapEffectiveSampleRate"] == pytest.approx(0.5, rel=1e-6)
 
     def test_no_data(self) -> None:
+        self.create_project(teams=[self.team])
+
         with self.feature("organizations:dynamic-sampling"):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == {"effectiveSampleRate": None}
+        assert response.data == {
+            "effectiveSampleRate": None,
+            "eapEffectiveSampleRate": None,
+        }
