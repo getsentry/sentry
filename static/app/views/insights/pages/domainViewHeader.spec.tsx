@@ -91,23 +91,6 @@ describe('DomainViewHeader', () => {
     expect(screen.queryByRole('tab', {name: 'Network Requests'})).not.toBeInTheDocument();
   });
 
-  it('does not show overview tab with hasOverviewPage=false', () => {
-    render(
-      <DomainViewHeader
-        domainBaseUrl="domainBaseUrl"
-        domainTitle="domainTitle"
-        modules={[ModuleName.HTTP]}
-        selectedModule={undefined}
-        hasOverviewPage={false}
-      />,
-      {organization, initialRouterConfig: baseRouterConfig}
-    );
-
-    expect(screen.getByText('domainTitle')).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Overview'})).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Network Requests'})).toBeInTheDocument();
-  });
-
   it('renders a new badge only for mobile vitals', () => {
     render(
       <DomainViewHeader
@@ -115,7 +98,6 @@ describe('DomainViewHeader', () => {
         domainTitle="domainTitle"
         modules={[ModuleName.HTTP, ModuleName.MOBILE_VITALS]}
         selectedModule={undefined}
-        hasOverviewPage={false}
       />,
       {organization, initialRouterConfig: baseRouterConfig}
     );

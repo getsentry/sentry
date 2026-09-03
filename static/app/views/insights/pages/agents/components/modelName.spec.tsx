@@ -27,11 +27,4 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('Qwen 2.5')).toBeNull();
     expect(getModelPlatform('random-ai-model')).toBeNull();
   });
-
-  it('returns provider when provider is explicitly provided', () => {
-    expect(getModelPlatform('some-model', 'openai')).toBe('openai');
-    expect(getModelPlatform('some-model', 'google')).toBe('google');
-    expect(getModelPlatform('some-model', 'anthropic')).toBe('anthropic');
-    expect(getModelPlatform('some-model', 'unknown-provider')).toBe('unknown-provider');
-  });
 });

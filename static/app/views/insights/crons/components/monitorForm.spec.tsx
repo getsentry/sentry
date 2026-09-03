@@ -96,7 +96,6 @@ describe('MonitorForm', () => {
         apiMethod="POST"
         apiEndpoint={apiEndpont}
         onSubmitSuccess={mockHandleSubmitSuccess}
-        submitLabel="Add Cron Monitor"
       />,
       {
         organization,
@@ -151,7 +150,7 @@ describe('MonitorForm', () => {
       method: 'POST',
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Add Cron Monitor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     const config = {
       checkinMargin: '5',
@@ -199,7 +198,6 @@ describe('MonitorForm', () => {
         apiMethod="POST"
         apiEndpoint={apiEndpont}
         onSubmitSuccess={jest.fn()}
-        submitLabel="Edit Monitor"
       />,
       {
         organization,
@@ -257,7 +255,7 @@ describe('MonitorForm', () => {
     });
 
     // Monitor form is not submitable until something is changed
-    const submitButton = screen.getByRole('button', {name: 'Edit Monitor'});
+    const submitButton = screen.getByRole('button', {name: 'Save Changes'});
     expect(submitButton).toBeDisabled();
 
     // Change Failure Tolerance

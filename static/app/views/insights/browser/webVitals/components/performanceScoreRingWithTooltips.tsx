@@ -40,7 +40,6 @@ type Props = {
   ringSegmentColors: readonly string[];
   text: React.ReactNode;
   autoSize?: boolean;
-  barWidth?: number;
   height?: number;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
@@ -114,7 +113,6 @@ export function PerformanceScoreRingWithTooltips({
   autoSize = false,
   width = 220,
   height = 200,
-  barWidth = 16,
   inPerformanceWidget = false,
   size = 140,
   y: yProp,
@@ -165,7 +163,7 @@ export function PerformanceScoreRingWithTooltips({
     size,
     x,
     y,
-    barWidth,
+    16,
     weights,
     labelHeightPadding,
     radiusPadding
@@ -259,7 +257,7 @@ export function PerformanceScoreRingWithTooltips({
           ]}
           text={text}
           size={size}
-          barWidth={barWidth}
+          barWidth={16}
           textCss={() => css`
             font-size: 32px;
             font-weight: ${theme.font.weight.sans.medium};
