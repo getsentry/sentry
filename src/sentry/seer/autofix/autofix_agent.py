@@ -678,7 +678,7 @@ def trigger_autofix_agent(
         )
         run_id = run.seer_run_state_id
 
-        if not skip_quota:
+        if not skip_quota_check:
             # Make sure to log billing event for seer autofix whenever a new run is started
             quotas.backend.record_seer_run(
                 group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
