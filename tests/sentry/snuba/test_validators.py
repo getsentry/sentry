@@ -172,3 +172,23 @@ class SnubaQueryValidatorTest(TestCase):
             validator.validated_data["aggregate"]
             == "per_second(value,sentry.apigateway.proxy_request,counter,none)"
         )
+
+    def test_sessions_dataset_returns_validation_error(self) -> None:
+        """Deprecated sessions dataset should 400, not KeyError/500."""
+        self.valid_data.update(
+            {
+                "queryType": SnubaQuery.Type.CRASH_RATE.value,
+                "dataset": Dataset.Sessions.value,
+                "aggregate": "percentage(sessions_crashed, sessions)",
+                "eventTypes": [],
+            }
+        )
+        # queryType may be omitted by clients; either path should validate cleanly
+        data = dict(self.valid_data)
+        data.pop("queryType", None)
+        data["dataset"] = Dataset.Sessions.value
+        data["aggregate"] = "percentage(sessions_crashed, sessions)"
+        data["eventTypes"] = []
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors
