@@ -299,6 +299,9 @@ class EventAttachment(EventAttachmentBase):
 class PendingEventAttachment(EventAttachmentBase):
     """
     An attachment whose corresponding event has not been ingested (yet).
+
+    This model has the same fields as `EventAttachment` except `group_id`, which
+    is missing for pending attachments.
     """
 
     class Meta(EventAttachmentBase.Meta):
