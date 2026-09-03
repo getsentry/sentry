@@ -33,13 +33,18 @@ describe('OrganizationAuth', () => {
       'Requires sign in with SAML'
     );
     const ssoButton = screen.getByRole('button', {name: 'SSO'});
+    const ssoForm = ssoButton.closest('form')!;
     expect(ssoButton).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Request to join'})).toHaveAttribute(
       'href',
       '/join-request/acme/'
     );
-    expect(ssoButton.closest('form')).toHaveAttribute('method', 'POST');
-    expect(ssoButton.closest('form')).toHaveFormValues({init: '1'});
+    expect(ssoForm).toHaveAttribute('method', 'POST');
+    expect(ssoForm).toHaveFormValues({init: '1'});
+
+    ssoForm.addEventListener('submit', event => event.preventDefault());
+    await userEvent.click(ssoButton);
+    expect(ssoButton).toHaveAttribute('aria-busy', 'true');
 
     const clearButton = screen.getByRole('button', {
       name: 'Clear organization login context',
