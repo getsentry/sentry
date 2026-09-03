@@ -72,7 +72,7 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
                     f"Trace metrics aggregate {term} must specify metric name, type, and unit"
                 )
         except InvalidSearchQuery as e:
-            logger.exception(f"Invalid trace metrics aggregate: {term} {e}")
+            logger.warning(f"Invalid trace metrics aggregate: {term} {e}")
             raise serializers.ValidationError(
                 {"aggregate": f"Invalid trace metrics aggregate: {term}"}
             )
