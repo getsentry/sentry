@@ -40,12 +40,6 @@ def bounded_rebalance_factor(factor: float) -> float | None:
     return None
 
 
-# Parameters to bound the execution time of queries in Snuba.
-MAX_SECONDS = 60
-
-# The maximum time a dynamic sampling task can run.
-MAX_TASK_SECONDS = 7 * 60  # 7 minutes
-
 # Snuba's limit is 10000, and we fetch CHUNK_SIZE + 1.
 CHUNK_SIZE = 9998
 
