@@ -241,7 +241,12 @@ def _apply_event(
     generation = _event_generation(event)
     if generation < run.generation:
         return False, "stale_generation"
-    if generation > run.generation and event.type not in {"workflow_updated", "state_snapshot"}:
+    # A projection is what establishes a new generation, so only an event carrying
+    # one may move the run forward.
+    carries_projection = event.type in {"workflow_updated", "state_snapshot"} or (
+        event.type == "workflow_failed" and isinstance(payload.get("projection"), dict)
+    )
+    if generation > run.generation and not carries_projection:
         return False, "future_generation_without_projection"
 
     if event.type in {"workflow_updated", "state_snapshot"}:
@@ -249,8 +254,12 @@ def _apply_event(
             return False, "stale_workflow_version"
         _set_projection(run, payload["projection"], event_generation=generation)
     elif event.type == "workflow_failed":
+        # A delayed failure still fails the run, but it must not replace state
+        # that a newer projection has already established.
         projection = payload.get("projection")
-        if projection is not None:
+        if isinstance(projection, dict) and not _projection_is_stale(
+            run, projection, event_generation=generation
+        ):
             _set_projection(run, projection, event_generation=generation)
         run.phase = InvestigationOrchestrationPhase.FAILED
         run.status = InvestigationOrchestrationStatus.FAILED

@@ -327,6 +327,46 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.heartbeat_at >= before
 
+    def test_workflow_failure_carrying_a_projection_may_advance_the_generation(self) -> None:
+        receipt = self.deliver(
+            self.event(
+                1,
+                "workflow_failed",
+                {
+                    "error": {"code": "seer_failed", "message": "Seer gave up."},
+                    "projection": self.projection(workflow_version=2, generation=2),
+                },
+                generation=2,
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.status == InvestigationOrchestrationStatus.FAILED
+        assert self.orchestration_run.generation == 2
+
+    def test_workflow_failure_does_not_apply_a_stale_projection(self) -> None:
+        self.deliver(
+            self.event(1, "workflow_updated", {"projection": self.projection(workflow_version=5)})
+        )
+
+        self.deliver(
+            self.event(
+                2,
+                "workflow_failed",
+                {
+                    "error": {"code": "seer_failed", "message": "Seer gave up."},
+                    "projection": self.projection(workflow_version=2, phase="planning"),
+                },
+            )
+        )
+
+        self.orchestration_run.refresh_from_db()
+        # The run fails either way; what the stale projection must not do is
+        # replace the stored blob with its older contents.
+        assert self.orchestration_run.projection["workflowVersion"] == 5
+        assert self.orchestration_run.status == InvestigationOrchestrationStatus.FAILED
+
     def test_stale_and_future_generations_are_consumed_without_mutation(self) -> None:
         self.deliver(
             self.event(
