@@ -79,18 +79,19 @@ jobs:
 
           sentry-cli --log-level=debug "${args[@]}"
 
-      # Success is reported by the backend's check-run; only failures are posted here.
-      - name: Post failure status on head commit
-        if: ${{ failure() }}
+      # Posted on every outcome so a successful retry clears an earlier failure.
+      - name: Post upload status on head commit
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           gh api "repos/${{ github.repository }}/statuses/$COMMIT_SHA" \
-            -f state=failure \
+            -f state="$STATE" \
             -f context="snapshots/upload" \
-            -f description="Snapshot upload failed" \
+            -f description="Snapshot upload $STATE" \
             -f target_url="$RUN_URL"
 
       - name: Report upload failure to Sentry
