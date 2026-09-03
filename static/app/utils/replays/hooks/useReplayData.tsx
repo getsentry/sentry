@@ -159,7 +159,7 @@ export function useReplayData({
   } = useQuery({
     ...replayRecordApiOptions({organizationIdOrSlug: orgSlug, replayId}),
     retry: false,
-    select: data => (data?.data ? mapResponseToReplayRecord(data.data) : undefined),
+    select: data => (data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined),
   });
 
   const projectSlug = useReplayProjectSlug({replayRecord});
