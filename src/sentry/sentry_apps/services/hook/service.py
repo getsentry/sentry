@@ -52,20 +52,18 @@ class HookService(RpcService):
         """
         pass
 
-    @cell_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByCellName())
     @abc.abstractmethod
-    def get_service_hook_for_installation(
+    def get_matching_service_hook_installation_ids(
         self,
         *,
-        installation_id: int,
+        cell_name: str,
         application_id: int,
-        organization_id: int,
-    ) -> RpcServiceHook | None:
-        """
-        Look up the existing ServiceHook for one installation, or None if it is missing.
-        Intended for backfills that need to skip installations that already have an
-        up to date hook instead of unconditionally re-enqueueing every installation.
-        """
+        installation_ids: list[int],
+        webhook_url: str,
+        events: list[str],
+    ) -> list[int]:
+        """Return candidate installation IDs whose ServiceHook matches the app config."""
         pass
 
     @cell_rpc_method(ByOrganizationId())

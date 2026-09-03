@@ -57,19 +57,31 @@ class DatabaseBackedHookService(HookService):
                 deletions.exec_sync_many(list(hooks))
                 return []
 
-    def get_service_hook_for_installation(
+    def get_matching_service_hook_installation_ids(
         self,
         *,
-        installation_id: int,
+        cell_name: str,
         application_id: int,
-        organization_id: int,
-    ) -> RpcServiceHook | None:
-        hook = ServiceHook.objects.filter(
-            installation_id=installation_id,
-            application_id=application_id,
-            organization_id=organization_id,
-        ).first()
-        return serialize_service_hook(hook) if hook else None
+        installation_ids: list[int],
+        webhook_url: str,
+        events: list[str],
+    ) -> list[int]:
+        expected_events = expand_events(events)
+        hooks_by_installation_id: dict[int, list[tuple[int | None, str, list[str]]]] = {}
+        hooks = ServiceHook.objects.filter(installation_id__in=installation_ids).values_list(
+            "installation_id", "application_id", "url", "events"
+        )
+        for installation_id, hook_application_id, url, hook_events in hooks:
+            if installation_id is not None:
+                hooks_by_installation_id.setdefault(installation_id, []).append(
+                    (hook_application_id, url, hook_events)
+                )
+
+        matching_installation_ids = []
+        for installation_id, installation_hooks in hooks_by_installation_id.items():
+            if installation_hooks == [(application_id, webhook_url, expected_events)]:
+                matching_installation_ids.append(installation_id)
+        return matching_installation_ids
 
     def create_or_update_webhook_and_events_for_installation(
         self,
