@@ -73,6 +73,13 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             detector="uncompressed_asset",
             number_type=int,
         )
+        try:
+            transfer_size = int(transfer_size) if transfer_size is not None else None  # type: ignore[arg-type]
+            encoded_body_size = int(encoded_body_size) if encoded_body_size is not None else None  # type: ignore[arg-type]
+            decoded_body_size = int(decoded_body_size) if decoded_body_size is not None else None  # type: ignore[arg-type]
+        except (ValueError, TypeError):
+            return
+
         if not (encoded_body_size and decoded_body_size and transfer_size):
             return
 
