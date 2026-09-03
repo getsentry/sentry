@@ -15,6 +15,7 @@ own failures: a caller records what it can and carries on regardless.
 from __future__ import annotations
 
 from dataclasses import fields
+from enum import StrEnum
 
 from django.utils import timezone
 
@@ -37,6 +38,37 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 
 ITERATION_ID_METADATA_KEY = "iteration_id"
+
+
+class PrIterationOutcome(StrEnum):
+    """How a batch ended.
+
+    ``ALREADY_PUSHED`` is the success: the batch is recorded on the hook pass
+    where its changes are on the PR, not on the earlier pass that only asked
+    for the push.
+
+    The failure values are Seer's own ``ExplorerFailureReason`` spellings, so a
+    reason Seer adds since is recorded under its own outcome by
+    :func:`outcome_for_failed_run` rather than folded into ``ERRORED``.
+    """
+
+    ALREADY_PUSHED = "already_pushed"
+    NO_CODE_CHANGES = "no_code_changes"
+    NO_PULL_REQUEST = "no_pull_request"
+    PR_CREATION_ERRORED = "pr_creation_errored"
+    PUSH_FAILED = "push_failed"
+    TIMEOUT = "timeout"
+    STALLED = "stalled"
+    ERRORED = "errored"
+
+
+def outcome_for_failed_run(run_state: SeerRunState) -> str:
+    """Seer's reason for a failed run, or ``ERRORED`` when it did not give one.
+
+    Only a failed run carries a reason; every other ending is decided from what
+    the batch left on the PR.
+    """
+    return run_state.failure_reason or PrIterationOutcome.ERRORED.value
 
 
 def _seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
@@ -194,7 +226,7 @@ def _build_event(
     iteration: SeerRunPrIteration,
     *,
     iteration_index: int,
-    pushed_changes: bool,
+    outcome: str,
 ) -> AiAutofixPrIterationFeedbackBatchCompletedEvent | None:
     """The event for a finished iteration. None when its row is incomplete."""
     known = {f.name for f in fields(AiAutofixPrIterationFeedbackBatchCompletedEvent)}
@@ -205,7 +237,7 @@ def _build_event(
             iteration_id=iteration.id,
             iteration_index=iteration_index,
             duration_ms=duration_ms,
-            pushed_changes=pushed_changes,
+            outcome=outcome,
             **payload,
         )
     except TypeError:
@@ -213,7 +245,7 @@ def _build_event(
             "iteration_id",
             "iteration_index",
             "duration_ms",
-            "pushed_changes",
+            "outcome",
         }
         log_ctx.error(
             "autofix.pr_iteration.details.incomplete_row",
@@ -229,9 +261,13 @@ def complete_pr_iteration_details(
     log_ctx: PrIterationLogContext,
     run_state: SeerRunState,
     organization_id: int,
-    pushed_changes: bool,
+    outcome: str,
 ) -> None:
-    """Emit the row for the iteration that just finished, and drop it."""
+    """Emit the row for the iteration that just ended, and drop it.
+
+    The row goes however the batch ended: leaving it behind would let the next
+    completion hook emit this batch under a later iteration's outcome.
+    """
     iteration_id = state_iteration_id(log_ctx, run_state)
     if iteration_id is None:
         log_ctx.error(
@@ -256,7 +292,7 @@ def complete_pr_iteration_details(
             log_ctx,
             iteration,
             iteration_index=get_latest_iteration_index(run_state),
-            pushed_changes=pushed_changes,
+            outcome=outcome,
         )
         if event is None or not remove_iteration(iteration):
             return
