@@ -123,7 +123,7 @@ class GetMetadataTest(TestCase):
 
         merged = {**inst.get_metadata(synthetic), **inst.get_metadata(real)}
 
-        assert merged["synthetic"] is False
+        assert merged == {"type": "ValueError", "value": "bad", "synthetic": False}
         assert inst.get_title(merged) == "ValueError: bad"
 
     def test_multiple_exceptions_default(self) -> None:
