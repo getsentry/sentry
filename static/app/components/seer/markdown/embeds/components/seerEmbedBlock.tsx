@@ -18,7 +18,7 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
  * them — a chart Seer drew from a message is nothing but the card it sits in.
  * Splitting them apart would allow a label with nowhere to go.
  */
-type SeerEmbedBlockLinkProps =
+export type SeerEmbedBlockLinkProps =
   | {
       /** Where the top-right link points — the resource's own page in Sentry. */
       href: string;

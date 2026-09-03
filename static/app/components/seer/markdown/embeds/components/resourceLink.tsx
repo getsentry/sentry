@@ -137,18 +137,22 @@ export function ResourceLink({
   title,
   format = 'element',
 }: {
-  href: string;
   icon: ComponentType<SVGIconProps>;
   title: string;
   format?: ResourceLinkFormat;
+  /**
+   * Omit when the resource has no page to link to. The title still renders, so
+   * the reference stays readable instead of disappearing entirely.
+   */
+  href?: string;
 }): ReactNode {
-  const resolved = resolveResourceHref(href);
-  if (!resolved) {
+  const resolved = href ? resolveResourceHref(href) : undefined;
+  if (resolved === null) {
     return null;
   }
 
   if (format === 'markdown') {
-    return markdownLink(resolved, title);
+    return resolved ? markdownLink(resolved, title) : title;
   }
 
   const icon = (
@@ -164,6 +168,14 @@ export function ResourceLink({
       <Icon size="xs" />
     </Flex>
   );
+
+  if (!resolved) {
+    return (
+      <span>
+        {icon} {title}
+      </span>
+    );
+  }
 
   if (resolved.isExternal) {
     return (
