@@ -23,10 +23,6 @@ type Props = {
    */
   children: React.ReactNode | ChildFunction;
   /**
-   * Requires superuser
-   */
-  isSuperuser?: boolean;
-  /**
    * Evaluate access against a defined organization. If this is not provided,
    * the access is evaluated against the currently active organization.
    */
@@ -56,7 +52,6 @@ type Props = {
 export function Access({
   children,
   organization: overrideOrganization,
-  isSuperuser,
   access,
   team,
   project,
@@ -79,8 +74,7 @@ export function Access({
     });
   }
 
-  const render = hasAccess && (!isSuperuser || hasSuperuser);
-  return render ? children : null;
+  return hasAccess ? children : null;
 }
 
 export function hasEveryAccess(
