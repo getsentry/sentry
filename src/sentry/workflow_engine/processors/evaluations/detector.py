@@ -97,7 +97,6 @@ class ProcessDetectorsResult:
     detector_type: str
     project_id: int | None
     evaluations: dict[DetectorGroupKey, DetectorEvaluation]
-    evaluation_value: int | float | None = None
     error: ConditionError | None = None
 
     @property
@@ -122,7 +121,6 @@ class ProcessDetectorsResult:
             "detector_id": self.detector_id,
             "detector_type": self.detector_type,
             "project_id": self.project_id,
-            "evaluation_value": self.evaluation_value,
             "outcome": self.outcome,
             "error": self.evaluation_error.msg if self.evaluation_error else None,
         }

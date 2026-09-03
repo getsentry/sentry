@@ -1,8 +1,7 @@
-# pyright: reportMissingImports=false, reportReturnType=false
-
 import abc
 import dataclasses
 import logging
+from datetime import timedelta
 from typing import Any, cast
 from uuid import uuid4
 
@@ -36,23 +35,7 @@ from sentry.workflow_engine.types import (
 
 logger = logging.getLogger(__name__)
 
-REDIS_TTL = 7 * 24 * 60 * 60
-
-
-def _parse_redis_int(value: object) -> int:
-    try:
-        return int(cast(str | bytes | bytearray | int | float, value))
-    except (TypeError, ValueError):
-        logger.exception("workflow_engine.detector.invalid_redis_integer")
-        raise
-
-
-def _parse_detector_priority(value: object) -> DetectorPriorityLevel:
-    try:
-        return DetectorPriorityLevel(int(cast(str | bytes | bytearray | int | float, value)))
-    except (TypeError, ValueError):
-        logger.exception("workflow_engine.detector.invalid_stored_priority")
-        raise
+REDIS_TTL = int(timedelta(days=7).total_seconds())
 
 
 def get_redis_client() -> RetryingRedisCluster:
@@ -296,13 +279,11 @@ class DetectorStateManager:
             group_key, key_type = redis_key_mapping[redis_key]
 
             if key_type == "dedupe":
-                group_key_dedupe_values[group_key] = (
-                    _parse_redis_int(redis_value) if redis_value else 0
-                )
+                group_key_dedupe_values[group_key] = int(redis_value) if redis_value else 0
             else:
                 # key_type is a counter name (DetectorCounter)
                 counter_updates[group_key][key_type] = (
-                    _parse_redis_int(redis_value) if redis_value is not None else redis_value
+                    int(redis_value) if redis_value is not None else redis_value
                 )
 
         # Ensure all group keys have dedupe values (default to 0 if not found)
@@ -317,7 +298,7 @@ class DetectorStateManager:
                 group_key=group_key,
                 is_triggered=detector_state.is_triggered if detector_state else False,
                 status=(
-                    _parse_detector_priority(detector_state.state)
+                    DetectorPriorityLevel(int(detector_state.state))
                     if detector_state
                     else DetectorPriorityLevel.OK
                 ),

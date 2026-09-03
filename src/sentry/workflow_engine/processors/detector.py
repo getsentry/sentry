@@ -1,5 +1,3 @@
-# pyright: reportAttributeAccessIssue=false
-
 from __future__ import annotations
 
 import logging
@@ -28,6 +26,7 @@ from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
 from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.eap import EVALUATION_EAP_FEATURE
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -298,22 +297,6 @@ def _get_detector_organization(detector: Detector) -> Organization | None:
     return detector.project.organization
 
 
-def _get_detector_evaluation_value[T](data_packet: DataPacket[T]) -> int | float | None:
-    if isinstance(data_packet.packet, dict):
-        values = data_packet.packet.get("values") or data_packet.packet.get("group_vals")
-    else:
-        values = getattr(data_packet.packet, "values", None)
-    if not isinstance(values, dict):
-        return None
-
-    value = values.get("value")
-    if value is None and len(values) == 1:
-        value = next(iter(values.values()))
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return value
-    return None
-
-
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
@@ -336,16 +319,21 @@ def process_detectors[T](
         ):
             detector_results = handler.evaluate(data_packet)
 
+        organization = _get_detector_organization(detector)
         emit_detector_evaluation_logs(
             logger,
             organization_id=_get_detector_organization_id(detector),
-            organization=_get_detector_organization(detector),
+            eap_enabled=organization is not None
+            and features.has(
+                EVALUATION_EAP_FEATURE,
+                organization,
+                skip_experiment_exposure=True,
+            ),
             result=ProcessDetectorsResult(
                 detector_id=detector.id,
                 detector_type=detector.type,
                 project_id=detector.project_id,
                 evaluations=detector_results,
-                evaluation_value=_get_detector_evaluation_value(data_packet),
             ),
         )
 

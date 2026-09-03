@@ -1,5 +1,3 @@
-# pyright: reportMissingImports=false
-
 import abc
 import dataclasses
 import logging

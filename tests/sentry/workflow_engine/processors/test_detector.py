@@ -19,6 +19,7 @@ from sentry.models.group import GroupStatus
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
@@ -44,6 +45,7 @@ from sentry.workflow_engine.processors.evaluations import (
     DetectorEvaluationOutcome,
     EvaluationType,
 )
+from sentry.workflow_engine.processors.evaluations.eap import EVALUATION_EAP_FEATURE
 from sentry.workflow_engine.types import (
     ConditionError,
     DetectorPriorityLevel,
@@ -131,7 +133,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "project_id": detector.linked_project.id,
                 "outcome": DetectorEvaluationOutcome.TRIGGERED,
                 "event_id": None,
-                "evaluation_value": 6,
                 "group_key": None,
                 "priority": DetectorPriorityLevel.HIGH.value,
                 "trigger_evaluation": {
@@ -172,34 +173,11 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "detector_id": detector.id,
                 "detector_type": detector.type,
                 "project_id": detector.linked_project.id,
-                "evaluation_value": 6,
                 "outcome": DetectorEvaluationOutcome.NO_RESULTS,
                 "error": None,
                 "organization_id": self.organization.id,
             },
         )
-
-    def test_logs_non_transition_detector_evaluation(self) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
-        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 0}})
-
-        with (
-            override_options(
-                {
-                    "workflow_engine.evaluation_log_sample_rate": 1.0,
-                    "workflow_engine.evaluation_logs_direct_to_sentry": False,
-                }
-            ),
-            mock.patch("sentry.workflow_engine.processors.detector.logger") as mock_logger,
-        ):
-            results = process_detectors(data_packet, [detector])
-
-        assert results == []
-        artifact = mock_logger.info.call_args.kwargs["extra"]
-        assert artifact["detector_id"] == detector.id
-        assert artifact["evaluation_value"] == 0
-        assert artifact["outcome"] == DetectorEvaluationOutcome.NO_RESULTS
-        assert "trigger_evaluation" not in artifact
 
     def test_detector_emitter_samples_once_for_grouped_results(self) -> None:
         detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
@@ -286,25 +264,31 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_project_detector_uses_cached_project_organization_id(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
-        ) as mock_emit:
+        with (
+            Feature({EVALUATION_EAP_FEATURE: True}),
+            mock.patch(
+                "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            ) as mock_emit,
+        ):
             process_detectors(self.build_data_packet(), [detector])
 
         assert mock_emit.call_args.kwargs["organization_id"] == self.organization.id
-        assert mock_emit.call_args.kwargs["organization"] == self.organization
+        assert mock_emit.call_args.kwargs["eap_enabled"] is True
 
     def test_project_detector_without_cached_project_uses_none(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
         detector = Detector.objects.get(id=detector.id)
 
-        with mock.patch(
-            "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
-        ) as mock_emit:
+        with (
+            Feature({EVALUATION_EAP_FEATURE: True}),
+            mock.patch(
+                "sentry.workflow_engine.processors.detector.emit_detector_evaluation_logs"
+            ) as mock_emit,
+        ):
             process_detectors(self.build_data_packet(), [detector])
 
         assert mock_emit.call_args.kwargs["organization_id"] is None
-        assert mock_emit.call_args.kwargs["organization"] is None
+        assert mock_emit.call_args.kwargs["eap_enabled"] is False
 
     def test_all_projects_detector_uses_configured_organization_id(self) -> None:
         detector = self.create_detector(type=self.handler_type.slug)
@@ -372,7 +356,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 "detector_id": 1,
                 "detector_type": self.handler_type.slug,
                 "project_id": None,
-                "evaluation_value": None,
                 "outcome": DetectorEvaluationOutcome.ERROR,
                 "error": "evaluation failed",
             },
