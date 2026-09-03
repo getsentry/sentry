@@ -1,5 +1,3 @@
-# pyright: reportArgumentType=false, reportAttributeAccessIssue=false, reportFunctionMemberAccess=false, reportMissingImports=false
-
 import unittest
 import uuid
 from dataclasses import replace

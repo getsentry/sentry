@@ -1,5 +1,3 @@
-# pyright: reportArgumentType=false, reportAttributeAccessIssue=false, reportFunctionMemberAccess=false, reportMissingImports=false
-
 from dataclasses import asdict
 from unittest import mock
 

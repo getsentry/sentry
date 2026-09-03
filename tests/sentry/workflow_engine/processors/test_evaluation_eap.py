@@ -1,5 +1,3 @@
-# pyright: reportMissingImports=false
-
 from datetime import UTC, datetime
 from unittest import mock
 

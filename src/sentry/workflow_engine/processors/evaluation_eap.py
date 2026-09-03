@@ -1,5 +1,3 @@
-# pyright: reportMissingImports=false, reportMissingModuleSource=false
-
 from __future__ import annotations
 
 import logging
@@ -39,7 +37,7 @@ def _get_eap_items_producer(
 
 _eap_producer = get_future_tracking_producer(
     producer_name="sentry.workflow_engine.processors.evaluation_eap",
-    producer_factory=_get_eap_items_producer,
+    producer_factory=_get_eap_items_producer,  # pyright: ignore[reportArgumentType]
 )
 
 
@@ -84,16 +82,16 @@ def _evaluation_value(artifact: dict[str, object]) -> int | float | None:
     if not isinstance(condition_evaluations, list):
         return None
 
-    values = {
+    unique_values = {
         evaluation.get("input")
         for evaluation in condition_evaluations
         if isinstance(evaluation, dict)
         and isinstance(evaluation.get("input"), (int, float))
         and not isinstance(evaluation.get("input"), bool)
     }
-    if len(values) != 1:
+    if len(unique_values) != 1:
         return None
-    return values.pop()
+    return next(iter(unique_values))
 
 
 def build_evaluation_trace_item(
