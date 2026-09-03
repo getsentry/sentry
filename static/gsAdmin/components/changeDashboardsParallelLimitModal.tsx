@@ -102,9 +102,7 @@ function ChangeDashboardsParallelLimitModal({
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
-          <Button onClick={closeModal} disabled={mutation.isPending}>
-            Cancel
-          </Button>
+          <Button onClick={closeModal}>Cancel</Button>
           <form.SubmitButton>Save</form.SubmitButton>
         </Flex>
       </Footer>
