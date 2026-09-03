@@ -67,7 +67,7 @@ export function FeatureFlagsLogTable({
         isLoading={isPending}
         data={flags ?? []}
         columnOrder={columns}
-        columnSortBy={[]}
+        fit="max-content"
         grid={{
           renderBodyCell,
           onResizeColumn,

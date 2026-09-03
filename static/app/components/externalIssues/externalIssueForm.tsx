@@ -11,14 +11,17 @@ import {Heading} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import type {
+  JsonFormAdapterChoice,
+  JsonFormAdapterChoiceValue,
+  JsonFormAdapterFieldConfig,
+} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
 import {getConfigName} from 'sentry/components/externalIssues/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Choice, Choices} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -186,12 +189,14 @@ export function ExternalIssueForm({
     integrationDetails: integrationDetails ?? null,
   });
 
-  const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
+  const [asyncOptionsCache, setAsyncOptionsCache] = useState<
+    Record<string, JsonFormAdapterChoice[]>
+  >({});
   const handleAsyncOptionsFetched = useCallback(
-    (fieldName: string, options: Array<SelectValue<string>>) => {
+    (fieldName: string, options: Array<SelectValue<JsonFormAdapterChoiceValue>>) => {
       setAsyncOptionsCache(prev => ({
         ...prev,
-        [fieldName]: options.map((o): Choice => {
+        [fieldName]: options.map((o): JsonFormAdapterChoice => {
           const label = typeof o.label === 'string' ? o.label : String(o.value);
           return [o.value, label];
         }),
@@ -327,7 +332,11 @@ export function ExternalIssueForm({
     const config = integrationDetails[getConfigName(action)];
     return (config ?? []).map(field => {
       const cachedChoices = asyncOptionsCache[field.name];
-      if (field.url && cachedChoices) {
+      if (
+        (field.type === 'select' || field.type === 'choice') &&
+        field.url &&
+        cachedChoices
+      ) {
         const existingValues = new Set((field.choices ?? []).map(c => String(c[0])));
         const missingChoices = cachedChoices.filter(
           c => !existingValues.has(String(c[0]))
@@ -340,7 +349,7 @@ export function ExternalIssueForm({
         }
       }
       return field;
-    }) as JsonFormAdapterFieldConfig[];
+    });
   }, [integrationDetails, action, asyncOptionsCache]);
 
   const onFieldChange = useCallback(

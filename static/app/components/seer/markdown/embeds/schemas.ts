@@ -120,7 +120,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Use the dashboard ID exactly as returned by the dashboard API. ' +
       'Include the API-provided title when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders a standalone dashboard reference. ' +
+      'Block: renders a live preview of the dashboard widgets. Do not duplicate ' +
+      'the widget titles, queries, visualizations, or values as text. ' +
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -230,6 +231,27 @@ export const SEER_EMBED_SCHEMAS = {
           id: '4c1f2e3d1234567890',
           eventTimestamp: '2026-08-25T16:37:12Z',
         },
+      },
+    ],
+  },
+  release: {
+    description:
+      'The ONLY way to reference a Sentry release. ' +
+      'Use `version` exactly as the releases API returns it. ' +
+      'Provide `projectId` when the release belongs to a specific project. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders release metadata, new issues, commit authors, the last commit, ' +
+      'and recent deploys. Do not duplicate that data as text. ' +
+      'Never use a markdown link for release references.',
+    level: ['inline', 'block'],
+    schema: z.object({
+      version: z.string().min(1),
+      projectId: idString.optional(),
+    }),
+    examples: [
+      {
+        label: 'Release',
+        data: {version: 'example-app@1.2.3', projectId: '1'},
       },
     ],
   },
@@ -347,6 +369,10 @@ export const SEER_EMBED_SCHEMAS = {
       '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
       'uptime alert, "cron" for a cron alert. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: renders alert conditions and configured actions, plus the ' +
+      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -360,20 +386,37 @@ export const SEER_EMBED_SCHEMAS = {
         data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
+      {
+        label: 'Uptime alert',
+        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+      },
+      {
+        label: 'Cron alert',
+        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+      },
     ],
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (cron, uptime, or metric ' +
-      'detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
+      'or mobile build detector). Use the numeric id from the detectors API ' +
+      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
+      '"id" field from the monitors API, which is a GUID and will not work here. ' +
       'Include the API-provided name when available. ' +
+      'Inline: renders a compact link. ' +
+      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
       name: z.string().min(1).optional(),
     }),
-    examples: [{label: 'Monitor', data: {id: '9931', name: 'nightly-billing-sync'}}],
+    examples: [
+      {
+        label: 'Monitor',
+        data: {id: '9931', name: 'nightly-billing-sync'},
+      },
+    ],
   },
   savedIssueView: {
     description:

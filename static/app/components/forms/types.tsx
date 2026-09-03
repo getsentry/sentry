@@ -1,6 +1,5 @@
 import type {AlertProps} from '@sentry/scraps/alert';
-import type {SelectValue} from '@sentry/scraps/select';
-import type {createFilter} from '@sentry/scraps/select';
+import type {SelectValue, createFilter} from '@sentry/scraps/select';
 
 import type {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import type {FormModel} from 'sentry/components/forms/model';
@@ -179,7 +178,6 @@ export type FieldObject = Field | (() => React.ReactNode);
 
 export type JsonFormObject = {
   fields: FieldObject[];
-  initiallyCollapsed?: boolean;
   title?: React.ReactNode;
 };
 

@@ -5,10 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -20,15 +17,13 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.eap import constants
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.utils import check_attribute_names_exist, serialize_search_type
 from sentry.search.events import fields
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import RPC_DATASETS
-from sentry.utils import snuba_rpc
-from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 class Validation(TypedDict):
@@ -59,61 +54,8 @@ class ValidationResponse(TypedDict):
     query: QueryValidation
 
 
-def serialize_type(search_type: constants.SearchType) -> str:
-    proto_type = constants.TYPE_MAP.get(search_type)
-    if proto_type == constants.STRING:
-        return "string"
-    if proto_type == constants.BOOLEAN:
-        return "boolean"
-    if proto_type == constants.ARRAY:
-        return "array"
-    # DOUBLE, INT, or anything else numeric
-    return "number"
-
-
-MAX_ATTRIBUTE_VALIDATION_THREADS = 3
-
-
-def _check_attributes_by_type(
-    meta: RequestMeta,
-    attr_type: AttributeKey.Type.ValueType,
-    attributes: list[ResolvedAttribute],
-) -> set[tuple[AttributeKey.Type.ValueType, str]]:
-    """Check which typed attribute names exist in storage for the active window."""
-    if not attributes:
-        return set()
-
-    requested_names = set(attribute.internal_name for attribute in attributes)
-    # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
-    # pass names in a OrFilter which means only rows with _all_ attributes will return
-    attrs_request = TraceItemAttributeNamesRequest(
-        meta=meta,
-        limit=10_000,
-        type=attr_type,
-        match_mode=TraceItemAttributeNamesRequest.MatchMode.MATCH_MODE_ANY,
-        # This filter doesn't actually matter snuba just recollects all the columns
-        intersecting_attributes_filter=TraceItemFilter(
-            or_filter=OrFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
-                    )
-                    for name in requested_names
-                ]
-            )
-        ),
-    )
-    attrs_response = snuba_rpc.attribute_names_rpc(attrs_request)
-    return {
-        (attr_type, attribute.name)
-        for attribute in attrs_response.attributes
-        if attribute.name in requested_names
-    }
-
-
 def check_attributes_exist(
     resolver: SearchResolver,
-    dataset: Any,
     attrs_by_type: dict[AttributeKey.Type.ValueType, list[ResolvedAttribute]],
 ) -> set[tuple[AttributeKey.Type.ValueType, str]]:
     """Check which typed attribute internal names exist in storage."""
@@ -122,19 +64,13 @@ def check_attributes_exist(
 
     meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE.value)
 
-    found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
-    with ContextPropagatingThreadPoolExecutor(
-        thread_name_prefix="attr_validate",
-        max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
-    ) as pool:
-        futures = [
-            pool.submit(_check_attributes_by_type, meta, attr_type, names)
-            for attr_type, names in attrs_by_type.items()
-        ]
-        for future in futures:
-            found.update(future.result())
-
-    return found
+    return check_attribute_names_exist(
+        meta,
+        {
+            attr_type: [attribute.internal_name for attribute in attributes]
+            for attr_type, attributes in attrs_by_type.items()
+        },
+    )
 
 
 @extend_schema(tags=["Explore"])
@@ -169,7 +105,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                     resolved, _ = resolver.resolve_function(column, match)
                     validities.append(
                         AttributeValidation(
-                            attrType=serialize_type(resolved.search_type),
+                            attrType=serialize_search_type(resolved.search_type),
                             error=None,
                             name=column,
                             valid=True,
@@ -180,7 +116,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                     if column in definitions.contexts or column in definitions.columns:
                         validities.append(
                             AttributeValidation(
-                                attrType=serialize_type(resolved.search_type),
+                                attrType=serialize_search_type(resolved.search_type),
                                 error=None,
                                 name=column,
                                 valid=True,
@@ -347,12 +283,12 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             # (proto_type, internal_name) — the same display name can exist
             # as both a string and a number attribute simultaneously.
             with handle_query_errors():
-                existing = check_attributes_exist(resolver, dataset, attributes_to_lookup)
+                existing = check_attributes_exist(resolver, attributes_to_lookup)
                 for attribute_type, attributes in attributes_to_lookup.items():
                     for resolved in attributes:
                         if (resolved.proto_type, resolved.internal_name) in existing:
                             validity = AttributeValidation(
-                                attrType=serialize_type(resolved.search_type),
+                                attrType=serialize_search_type(resolved.search_type),
                                 error=None,
                                 name=resolved.public_alias,
                                 valid=True,

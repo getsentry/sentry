@@ -11,12 +11,14 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {UnixTimestamp} from 'sentry/components/unixTimestamp';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {formatDollars} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -34,7 +36,6 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
-  findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
   tryParseJsonRecursive,
@@ -60,6 +61,10 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   }
   return ellipsize(props.item.value, 100);
 };
+
+const preciseTimestampRenderer = (props: CustomRenderersProps) => (
+  <UnixTimestamp value={props.item.value} fallback={props.basicRendered} />
+);
 
 interface AttributesProps {
   attributes: TraceItemResponseAttribute[];
@@ -196,6 +201,8 @@ export function AttributesContent({
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
+    [SpanFields.PRECISE_START_TS]: preciseTimestampRenderer,
+    [SpanFields.PRECISE_FINISH_TS]: preciseTimestampRenderer,
     assertion_failure_data: (props: CustomRenderersProps) => {
       if (props.item.value === null) {
         return <Text variant="muted">null</Text>;
@@ -250,7 +257,7 @@ export function AttributesContent({
             getCustomActions={getTraceAttributesTreeActions({
               location,
               organization,
-              projectIds: findSpanAttributeValue(attributes, 'project_id'),
+              projectIds: getAttributeValue(attributes, 'project_id')?.toString(),
             })}
           />
         </div>

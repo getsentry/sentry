@@ -1619,3 +1619,154 @@ class CheckSuiteFlagGateTest(TestCase):
         resolve_check_suite_repositories(event)
 
         mock_contexts.assert_called_once()
+
+
+def _live_pr_result(head_sha: str = "abc") -> dict:
+    return {
+        "data": {"state": "open", "merged": False, "head": {"sha": head_sha}},
+        "raw": {"headers": None, "data": {}},
+        "type": "github",
+        "meta": {},
+    }
+
+
+class CheckSuiteLiveHeadTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.get_pr = MagicMock(return_value=_live_pr_result())
+        for patcher in (
+            patch(f"{CHECK_SUITES_PATH}.scm_actions.get_pull_request", self.get_pr),
+            patch(f"{CHECK_SUITES_PATH}.GetPullRequestProtocol", object),
+        ):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        scm_patcher = patch("sentry.scm.factory.new", return_value=MagicMock())
+        self.mock_make_scm = scm_patcher.start()
+        self.addCleanup(scm_patcher.stop)
+
+    def _run_state_on_head(self, *, pr_number: int | None = 7) -> SeerRunState:
+        state = _run_state()
+        state.repo_pr_states = {
+            "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc", pr_number=pr_number)
+        }
+        return state
+
+    def test_consumes_when_live_head_is_the_head_the_suite_ran_on(self) -> None:
+        assert _check_suite_source().should_consume(self._run_state_on_head()).ok
+        assert self.get_pr.call_args[0][1] == "7"
+
+    def test_skips_when_live_head_moved_past_the_suite(self) -> None:
+        self.get_pr.return_value = _live_pr_result("def")
+
+        assert not _check_suite_source().should_consume(self._run_state_on_head()).ok
+
+    def test_consumes_when_github_has_no_head_sha(self) -> None:
+        self.get_pr.return_value = _live_pr_result("")
+
+        assert _check_suite_source().should_consume(self._run_state_on_head()).ok
+
+    def test_consumes_when_get_pull_request_raises(self) -> None:
+        self.get_pr.side_effect = Exception("boom")
+
+        assert _check_suite_source().should_consume(self._run_state_on_head()).ok
+
+    def test_consumes_when_scm_init_fails(self) -> None:
+        self.mock_make_scm.side_effect = Exception("boom")
+
+        assert _check_suite_source().should_consume(self._run_state_on_head()).ok
+
+    def test_skips_live_head_read_without_a_pr_number(self) -> None:
+        assert _check_suite_source().should_consume(self._run_state_on_head(pr_number=None)).ok
+        assert not self.get_pr.called
+
+    def test_skips_live_head_read_when_suite_is_not_on_the_run_head(self) -> None:
+        state = self._run_state_on_head()
+        state.repo_pr_states["owner/repo"].commit_sha = "def"
+
+        assert not _check_suite_source().should_consume(state).ok
+        assert not self.get_pr.called
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.metrics")
+    def test_records_the_live_head_result(self, mock_metrics: MagicMock) -> None:
+        self.get_pr.return_value = _live_pr_result("def")
+
+        _check_suite_source().should_consume(self._run_state_on_head())
+
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.check_suite.live_head", tags={"result": "mismatch"}
+        )
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.logger")
+    def test_consumes_and_reports_when_resolving_the_repository_raises(
+        self, mock_logger: MagicMock
+    ) -> None:
+        source = _check_suite_source()
+        with patch.object(
+            type(source),
+            "autofix_run",
+            new_callable=lambda: property(lambda self: (_ for _ in ()).throw(Exception("rpc"))),
+        ):
+            assert source.should_consume(self._run_state_on_head()).ok
+
+        assert mock_logger.exception.call_count == 1
+
+    @patch(f"{CHECK_SUITES_PATH}.logger")
+    def test_consumes_and_reports_when_get_pull_request_raises(
+        self, mock_logger: MagicMock
+    ) -> None:
+        self.get_pr.side_effect = Exception("boom")
+
+        assert _check_suite_source().should_consume(self._run_state_on_head()).ok
+        assert mock_logger.exception.call_count == 1
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    def test_counts_a_pruning_request_as_useful(self, mock_metrics: MagicMock) -> None:
+        self.get_pr.return_value = _live_pr_result("def")
+
+        _check_suite_source().should_consume(self._run_state_on_head())
+
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.check_suite.live_head.github_request",
+            tags={"outcome": "useful"},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    def test_counts_a_confirming_request_as_not_useful(self, mock_metrics: MagicMock) -> None:
+        _check_suite_source().should_consume(self._run_state_on_head())
+
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.check_suite.live_head.github_request",
+            tags={"outcome": "not_useful"},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    def test_counts_a_failed_request_as_not_useful(self, mock_metrics: MagicMock) -> None:
+        self.get_pr.side_effect = Exception("boom")
+
+        _check_suite_source().should_consume(self._run_state_on_head())
+
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.check_suite.live_head.github_request",
+            tags={"outcome": "not_useful"},
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    def test_counts_no_github_request_when_we_never_reach_github(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self.mock_make_scm.side_effect = Exception("boom")
+
+        _check_suite_source().should_consume(self._run_state_on_head())
+
+        assert not mock_metrics.incr.called
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.metrics")
+    def test_records_nothing_when_the_cheap_checks_already_declined(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        state = self._run_state_on_head()
+        state.repo_pr_states["owner/repo"].commit_sha = "def"
+
+        _check_suite_source().should_consume(state)
+
+        assert not mock_metrics.incr.called

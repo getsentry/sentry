@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+from dataclasses import asdict
 from logging import Logger
 from typing import TYPE_CHECKING, cast
 
@@ -87,7 +88,7 @@ def emit_workflow_evaluation_logs(
         return False
 
     artifacts = (
-        [evaluation.to_artifact() for evaluation in result.evaluations.values()]
+        [asdict(evaluation.to_artifact()) for evaluation in result.evaluations.values()]
         if result.evaluations
         else [result.to_artifact()]
     )

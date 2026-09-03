@@ -87,6 +87,14 @@ def serialize_feedback(items: Sequence[Feedback]) -> str:
     return json.dumps([item.dict() for item in items])
 
 
+def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
+    return [
+        feedback
+        for block in blocks
+        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
+    ]
+
+
 def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     """Whether a PR iteration was driven *only* by automated feedback.
 
@@ -94,14 +102,9 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     (and resets the streak); an iteration is automated only when every feedback
     item in it is automated (see ``FeedbackSourceBase.is_automated``).
     """
-    feedbacks = [
-        feedback
-        for block in iteration_blocks
-        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
-    ]
     # An iteration with no parseable feedback isn't a human iteration, so treat it
     # as automated (don't let a metadata gap reset the streak).
-    return all(feedback.source.is_automated for feedback in feedbacks)
+    return all(feedback.source.is_automated for feedback in blocks_feedback(iteration_blocks))
 
 
 def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:

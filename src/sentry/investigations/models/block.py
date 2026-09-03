@@ -80,6 +80,14 @@ class InvestigationBlock(DefaultFieldsModel):
     # from a current one before a replacement execution finishes.
     stale_at = models.DateTimeField(null=True)
 
+    # Agent-generated blocks are revision-fenced; manual and template blocks leave these empty.
+    # The owning investigation identifies the one-to-one orchestration run.
+    report_revision = BoundedPositiveIntegerField(null=True)
+    stable_agent_key = models.CharField(max_length=128, null=True)
+    producing_seer_run = FlexibleForeignKey(
+        "seer.SeerRun", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
     # Blocks are hidden rather than hard-deleted so execution history remains
     # inspectable and stale references retain a stable target.
     deleted_at = models.DateTimeField(null=True)
@@ -90,6 +98,13 @@ class InvestigationBlock(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["investigation", "deleted_at", "position"]),
             models.Index(fields=["investigation", "-date_updated"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["investigation", "report_revision", "stable_agent_key"],
+                condition=Q(stable_agent_key__isnull=False),
+                name="invest_unique_report_block_key",
+            )
         ]
 
     __repr__ = sane_repr("investigation_id", "kind", "position")

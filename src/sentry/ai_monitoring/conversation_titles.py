@@ -27,13 +27,14 @@ MAX_USER_MESSAGE_CHARS = 8 * 1024
 TITLE_MAX_LENGTH = 256
 TITLE_MAX_WORDS = 12
 UNTITLED = "Untitled conversation"
+LEGACY_GEN_AI_REQUEST_MESSAGES = "gen_ai.request.messages"
 # Matches AIConversationMetadata.conversation_id max_length.
 CONVERSATION_ID_MAX_LENGTH = 2048
 CONVERSATION_ID_TRUNCATE_TO = 2040
 # Priority matches organization_ai_conversations list helpers.
 _MESSAGE_ATTRS = (
     ATTRIBUTE_NAMES.GEN_AI_INPUT_MESSAGES,
-    ATTRIBUTE_NAMES.GEN_AI_REQUEST_MESSAGES,
+    LEGACY_GEN_AI_REQUEST_MESSAGES,
 )
 
 

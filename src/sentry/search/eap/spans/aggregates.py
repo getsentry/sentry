@@ -25,6 +25,7 @@ from sentry.search.eap.columns import (
     AggregateDefinition,
     AttributeArgumentDefinition,
     ConditionalAggregateDefinition,
+    OrderedAggregationDefinition,
     ResolvedArguments,
     ValueArgumentDefinition,
     count_argument_resolver_optimized,
@@ -480,6 +481,46 @@ SPAN_AGGREGATE_DEFINITIONS = {
         ],
     ),
     "count_unique": count_unique_aggregate_definition(),
+    "first": OrderedAggregationDefinition(
+        internal_function=Function.FUNCTION_FIRST,
+        default_search_type="string",
+        private=True,
+        arguments=[
+            AttributeArgumentDefinition(),
+            AttributeArgumentDefinition(),
+        ],
+    ),
+    "last": OrderedAggregationDefinition(
+        internal_function=Function.FUNCTION_LAST,
+        default_search_type="string",
+        private=True,
+        arguments=[
+            AttributeArgumentDefinition(),
+            AttributeArgumentDefinition(),
+        ],
+    ),
+    "collect_unique": AggregateDefinition(
+        internal_function=Function.FUNCTION_COLLECT_UNIQUE,
+        default_search_type="array",
+        infer_search_type_from_arguments=False,
+        private=True,
+        # This function cannot support extrapolation since it wouldn't make sense to extrapolate an array of values
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
 }
 
 DEPRECATED_SPAN_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
@@ -701,7 +742,7 @@ DEPRECATED_SPAN_AGGREGATE_DEFINITIONS: dict[str, AggregateDefinition] = {
 
 
 def if_combinator(definition: AggregateDefinition) -> AggregateDefinition:
-    return AggregateDefinition(
+    return definition.__class__(
         internal_function=definition.internal_function,
         default_search_type=definition.default_search_type,
         infer_search_type_from_arguments=definition.infer_search_type_from_arguments,

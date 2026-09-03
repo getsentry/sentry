@@ -5,8 +5,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

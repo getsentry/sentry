@@ -13,7 +13,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -463,6 +463,81 @@ def check_suite_matches_pr_head(
     repo_name = event.repository.full_name
     matched = bool(head_sha and pr_head_sha and head_sha == pr_head_sha)
     return CheckSuiteHeadMatch(head_sha=head_sha, repo_name=repo_name, matched=matched)
+
+
+LivePullRequestHeadResult = Literal[
+    "match",
+    "mismatch",
+    "no_pr_number",
+    "no_autofix_run",
+    "scm_init_failed",
+    "unsupported_provider",
+    "get_pull_request_failed",
+    "no_live_head",
+    "unexpected_error",
+]
+
+
+class LivePullRequestHead(NamedTuple):
+    result: LivePullRequestHeadResult
+    head_sha: str | None = None
+
+
+def _record_github_request(head: LivePullRequestHead) -> LivePullRequestHead:
+    metrics.incr(
+        "autofix.pr_iteration.check_suite.live_head.github_request",
+        tags={"outcome": "useful" if head.result == "mismatch" else "not_useful"},
+    )
+    return head
+
+
+def compare_live_pull_request_head(
+    event: GithubCheckSuiteEvent, run_state: SeerRunState, repository: Repository
+) -> LivePullRequestHead:
+    from sentry.scm.factory import new as make_scm
+
+    repo_name = event.repository.full_name
+    pr_state = run_state.repo_pr_states.get(repo_name) if repo_name else None
+    pr_number = pr_state.pr_number if pr_state else None
+    if pr_number is None:
+        return LivePullRequestHead("no_pr_number")
+
+    log_extra = {
+        "run_id": run_state.run_id,
+        "organization_id": repository.organization_id,
+        "repo_id": repository.id,
+        "pr_number": pr_number,
+    }
+
+    try:
+        scm = make_scm(repository.organization_id, repository.id, referrer="seer")
+    except Exception:
+        logger.exception(
+            "autofix.pr_iteration.check_suite.live_head.scm_init_failed",
+            extra=log_extra,
+        )
+        return LivePullRequestHead("scm_init_failed")
+
+    if not isinstance(scm, GetPullRequestProtocol):
+        return LivePullRequestHead("unsupported_provider")
+
+    try:
+        pull_request = scm_actions.get_pull_request(scm, str(pr_number))
+    except Exception:
+        logger.exception(
+            "autofix.pr_iteration.check_suite.live_head.get_pull_request_failed",
+            extra=log_extra,
+        )
+        return _record_github_request(LivePullRequestHead("get_pull_request_failed"))
+
+    live_head_sha = pull_request["data"]["head"].get("sha")
+    if not live_head_sha:
+        return _record_github_request(LivePullRequestHead("no_live_head"))
+
+    matched = check_suite_matches_pr_head(event, pr_head_sha=live_head_sha).matched
+    return _record_github_request(
+        LivePullRequestHead("match" if matched else "mismatch", live_head_sha)
+    )
 
 
 @dataclass(frozen=True)
