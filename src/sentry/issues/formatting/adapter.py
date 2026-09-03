@@ -143,8 +143,9 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     """The alert definition behind a metric issue.
 
     ``evidenceDisplay`` only summarises the metric by name, so without this a metric issue
-    renders none of the query it fired on. Keys inside ``evidenceData`` are snake_case: the
-    detector serializes the data sources camelCased and converts them back before storing.
+    renders none of the query it fired on. The detector stores ``evidence_data`` snake_cased,
+    but ``EventSerializer`` camelCases the whole occurrence recursively on the way out, so what
+    arrives here is ``dataSources[].queryObj.snubaQuery`` and ``alertId``.
     """
     occurrence = data.get("occurrence") or {}
     if occurrence.get("type") != _METRIC_ISSUE_TYPE:
@@ -152,13 +153,13 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     evidence = occurrence.get("evidenceData") or {}
 
     snuba_query: Mapping[str, Any] = {}
-    for source in evidence.get("data_sources") or []:
-        query = (source or {}).get("query_obj") or {}
-        if isinstance(query.get("snuba_query"), dict):
-            snuba_query = query["snuba_query"]
+    for source in evidence.get("dataSources") or []:
+        query = (source or {}).get("queryObj") or {}
+        if isinstance(query.get("snubaQuery"), dict):
+            snuba_query = query["snubaQuery"]
             break
 
-    time_window = snuba_query.get("time_window")
+    time_window = snuba_query.get("timeWindow")
     value = evidence.get("value")
     if isinstance(value, dict):  # anomaly detection stores {"value": ...}
         value = value.get("value")
@@ -171,7 +172,7 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
         ("Environment", snuba_query.get("environment")),
         ("Evaluated Value", value),
         ("Threshold", _metric_alert_threshold(evidence.get("conditions"))),
-        ("Alert Rule ID", evidence.get("alert_id")),
+        ("Alert Rule ID", evidence.get("alertId")),
     ]
     return [(label, str(v)) for label, v in candidates if v is not None and str(v) != ""]
 

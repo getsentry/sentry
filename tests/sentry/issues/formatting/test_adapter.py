@@ -3,6 +3,10 @@ from typing import Any
 
 import pytest
 
+from sentry.api.serializers.rest_framework.base import (
+    convert_dict_key_case,
+    snake_to_camel_case,
+)
 from sentry.issues.formatting.adapter import event_response_to_model
 from sentry.issues.formatting.sections import EVENT_SECTIONS_WITH_USER, format_issue
 
@@ -359,17 +363,17 @@ def test_non_mapping_context_is_dropped_without_sinking_the_render(value: Any) -
 
 def _metric_issue(**evidence_overrides: Any) -> dict[str, Any]:
     evidence: dict[str, Any] = {
-        "alert_id": 77,
+        "alertId": 77,
         "value": 812.4,
         "conditions": [{"type": 0, "comparison": 500}],
-        "data_sources": [
+        "dataSources": [
             {
-                "query_obj": {
-                    "snuba_query": {
+                "queryObj": {
+                    "snubaQuery": {
                         "dataset": "events_analytics_platform",
                         "aggregate": "p95(span.duration)",
                         "query": "transaction:/api/checkout",
-                        "time_window": 3600,
+                        "timeWindow": 3600,
                         "environment": "prod",
                     }
                 }
@@ -399,19 +403,28 @@ def test_metric_alert_maps_the_whole_alert_definition() -> None:
     ]
 
 
-def test_metric_alert_reads_snake_case_keys() -> None:
-    # the detector serializes data sources camelCased then converts them back before storing,
-    # so camelCase keys here would silently match nothing
-    camel = {
-        "alertId": 77,
-        "dataSources": [{"queryObj": {"snubaQuery": {"dataset": "x", "timeWindow": 60}}}],
+def test_metric_alert_reads_the_keys_the_serializer_emits() -> None:
+    # the detector stores evidence_data snake_cased, but EventSerializer camelCases the whole
+    # occurrence recursively on the way out. Build the fixture through that same conversion so
+    # the shape is the one the adapter really receives, not one written by hand.
+    stored = {
+        "type": 8001,
+        "evidence_data": {
+            "alert_id": 77,
+            "value": 1.5,
+            "conditions": [],
+            "data_sources": [{"query_obj": {"snuba_query": {"dataset": "x", "time_window": 60}}}],
+        },
     }
-    assert (
-        event_response_to_model(
-            {"title": "t", "occurrence": {"type": 8001, "evidenceData": camel}}
-        ).metric_alert
-        == []
+    model = event_response_to_model(
+        {"title": "t", "occurrence": convert_dict_key_case(stored, snake_to_camel_case)}
     )
+    assert ("Dataset", "x") in model.metric_alert
+    assert ("Interval", "60 second(s)") in model.metric_alert
+    assert ("Alert Rule ID", "77") in model.metric_alert
+
+    # the snake_case shape the detector stores matches nothing by the time it reaches here
+    assert event_response_to_model({"title": "t", "occurrence": stored}).metric_alert == []
 
 
 @pytest.mark.parametrize(
@@ -436,7 +449,7 @@ def test_metric_alert_unwraps_anomaly_detection_value() -> None:
 
 
 def test_metric_alert_skips_missing_pieces() -> None:
-    model = event_response_to_model(_metric_issue(data_sources=[], conditions=[]))
+    model = event_response_to_model(_metric_issue(dataSources=[], conditions=[]))
     assert model.metric_alert == [("Evaluated Value", "812.4"), ("Alert Rule ID", "77")]
 
 
