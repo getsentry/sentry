@@ -23,6 +23,7 @@ import {
   canManageIntegrations,
   integrationRequiresUpgrade,
 } from 'sentry/utils/integrationUtil';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -61,6 +62,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
+const SHOW_THINKING_STORAGE_KEY = 'seer-explorer-show-thinking';
 
 /**
  * Wraps the shared header content with the surface's chrome. The drawer passes
@@ -173,12 +175,25 @@ export function SeerExplorerContent({
   };
 
   // Persisted so the toggle survives the drawer remounting (e.g. popping out
-  // into the picture-in-picture window, or reopening the drawer). Default on
-  // when code mode tools are enabled so thinking is visible without a manual flip.
+  // into the picture-in-picture window, or reopening the drawer).
   const [showThinking, setShowThinking] = useLocalStorageState(
-    'seer-explorer-show-thinking',
-    !!organization?.features.includes('seer-explorer-code-mode-tools')
+    SHOW_THINKING_STORAGE_KEY,
+    false
   );
+  const hasCodeModeTools = !!organization?.features.includes(
+    'seer-explorer-code-mode-tools'
+  );
+
+  useEffect(() => {
+    // The organization may load after this component mounts. Only apply the
+    // code-mode default when the user has not already made a choice.
+    if (
+      hasCodeModeTools &&
+      localStorageWrapper.getItem(SHOW_THINKING_STORAGE_KEY) === null
+    ) {
+      setShowThinking(true);
+    }
+  }, [hasCodeModeTools, setShowThinking]);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);

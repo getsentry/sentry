@@ -7,6 +7,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {
   INPUT_STORAGE_KEY_PREFIX,
   SeerExplorerContent,
@@ -49,6 +51,7 @@ describe('SeerExplorerContent', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    localStorage.clear();
     sessionStorage.clear();
     jest.clearAllMocks();
 
@@ -79,6 +82,48 @@ describe('SeerExplorerContent', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe('Show thinking', () => {
+    const content = (currentOrganization: typeof organization | null) => (
+      <OrganizationContext.Provider value={currentOrganization}>
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>
+      </OrganizationContext.Provider>
+    );
+
+    it('defaults on when code mode tools load after mount', async () => {
+      const codeModeOrganization = {
+        ...organization,
+        features: [...organization.features, 'seer-explorer-code-mode-tools'],
+      };
+      const {rerender} = render(content(null), {organization});
+
+      rerender(content(codeModeOrganization));
+      await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
+
+      await waitFor(() => expect(screen.getByRole('checkbox')).toBeChecked());
+    });
+
+    it('preserves an existing preference when code mode tools are enabled', async () => {
+      localStorageWrapper.setItem('seer-explorer-show-thinking', 'false');
+      const codeModeOrganization = {
+        ...organization,
+        features: [...organization.features, 'seer-explorer-code-mode-tools'],
+      };
+
+      render(content(codeModeOrganization), {organization});
+
+      await waitFor(() =>
+        expect(localStorageWrapper.getItem('seer-explorer-show-thinking')).toBe('false')
+      );
+    });
   });
 
   describe('Empty State', () => {
