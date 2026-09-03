@@ -350,8 +350,31 @@ class CursorOriginSetupApiClient(CursorOriginApiMixin, IntegrationProxyClient):
         self._private_key = private_key
         self._access_token: str | None = None
         self._expires_at: float = 0.0
+        # Set for the duration of a request that asked for app-level credentials.
+        self._force_app_auth = False
 
     # -- auth ----------------------------------------------------------------
+
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        """Accept scm-platform's ``credentials_set`` argument.
+
+        Providers in the scm library thread ``credentials_set`` through every
+        call to choose between app-level and installation-level credentials.
+        Sentry's BaseApiClient knows nothing about it, so it has to be consumed
+        here or the call fails with an unexpected-keyword TypeError -- which is
+        how this surfaced: every read through SourceCodeManager blew up before
+        reaching the network.
+
+        "application" means authenticate as the app itself rather than as the
+        installation, which for Origin is the app JWT.
+        """
+        credentials_set = kwargs.pop("credentials_set", None)
+        previous = self._force_app_auth
+        self._force_app_auth = credentials_set == "application"
+        try:
+            return super().request(*args, **kwargs)
+        finally:
+            self._force_app_auth = previous
 
     def _jwt(self) -> str:
         return get_jwt(app_id=self._app_id, private_key=self._private_key)
@@ -411,7 +434,7 @@ class CursorOriginSetupApiClient(CursorOriginApiMixin, IntegrationProxyClient):
         return f"cursor-origin:token:{installation_id}"
 
     def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
-        if self._is_app_route(prepared_request.path_url):
+        if self._force_app_auth or self._is_app_route(prepared_request.path_url):
             token = self._jwt()
         else:
             token = self.get_access_token()
