@@ -22,7 +22,7 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   getTraceMetricAggregateActionType,
-  getTraceMetricAggregateSource,
+  getTraceMetricAggregates,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
@@ -69,7 +69,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     if (state.dataset !== WidgetType.TRACEMETRICS) {
       return false;
     }
-    const aggregateSource = getTraceMetricAggregateSource(
+    const aggregateSource = getTraceMetricAggregates(
       state.displayType,
       state.yAxis,
       state.fields
@@ -84,7 +84,17 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   const restoreSeriesState = useCallback(() => {
     if (seriesSnapshot.current) {
       const actionType = getTraceMetricAggregateActionType(state.displayType);
-      dispatch({type: actionType, payload: seriesSnapshot.current.fields});
+      const fields =
+        actionType === BuilderStateAction.SET_FIELDS
+          ? [
+              ...(state.fields?.filter(field => field.kind === FieldValueKind.FIELD) ??
+                []),
+              ...seriesSnapshot.current.fields.filter(
+                field => field.kind !== FieldValueKind.FIELD
+              ),
+            ]
+          : seriesSnapshot.current.fields;
+      dispatch({type: actionType, payload: fields});
       dispatch({
         type: BuilderStateAction.SET_QUERY,
         payload: seriesSnapshot.current.query,
@@ -119,9 +129,16 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       derivedFields = [getDatasetConfig(WidgetType.TRACEMETRICS).defaultField];
     }
 
-    seriesSnapshot.current = {fields: derivedFields, legendAlias: [], query: []};
     const actionType = getTraceMetricAggregateActionType(state.displayType);
-    dispatch({type: actionType, payload: derivedFields});
+    const fields =
+      actionType === BuilderStateAction.SET_FIELDS
+        ? [
+            ...(state.fields?.filter(field => field.kind === FieldValueKind.FIELD) ?? []),
+            ...derivedFields,
+          ]
+        : derivedFields;
+    seriesSnapshot.current = {fields, legendAlias: [], query: []};
+    dispatch({type: actionType, payload: fields});
     dispatch({
       type: BuilderStateAction.SET_QUERY,
       payload: [],
@@ -130,7 +147,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
-  }, [state.displayType, dispatch]);
+  }, [state.displayType, state.fields, dispatch]);
 
   const restoreEquationState = useCallback(() => {
     let snapshot = equationSnapshot.current;
@@ -138,7 +155,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     if (!snapshot) {
       // If no equation snapshot state, then we need to derive the first state to
       // update the widget builder
-      const aggregateSource = getTraceMetricAggregateSource(
+      const aggregateSource = getTraceMetricAggregates(
         state.displayType,
         state.yAxis,
         state.fields
@@ -204,7 +221,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   // Detect an equation yAxis and restore the cached equation mode if
   // the user was in equation mode when they left.
   const onChangeDatasetToTraceMetrics = useEffectEvent(() => {
-    const aggregateSource = getTraceMetricAggregateSource(
+    const aggregateSource = getTraceMetricAggregates(
       state.displayType,
       state.yAxis,
       state.fields
@@ -236,11 +253,11 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       const currentLegendAlias = state.legendAlias ? [...state.legendAlias] : [];
 
       if (nextIsEquation) {
-        const currentFields = getTraceMetricAggregateSource(
-          state.displayType,
-          state.yAxis,
-          state.fields
-        );
+        const actionType = getTraceMetricAggregateActionType(state.displayType);
+        const currentFields =
+          actionType === BuilderStateAction.SET_FIELDS
+            ? state.fields
+            : getTraceMetricAggregates(state.displayType, state.yAxis, state.fields);
         seriesSnapshot.current = {
           fields: currentFields ? structuredClone(currentFields) : [],
           legendAlias: currentLegendAlias,
