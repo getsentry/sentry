@@ -183,7 +183,6 @@ function AvatarButtonBase({
 }
 
 const StyledAvatarButton = styled(AvatarButtonBase)`
-  display: flex;
   padding: 0;
   width: ${p => p.theme.form[p.size].height};
   min-width: ${p => p.theme.form[p.size].height};

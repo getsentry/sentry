@@ -629,6 +629,7 @@ export function AssigneeSelectorDropdown({
   return (
     <AssigneeWrapper>
       <CompactSelect
+        style={shouldUseNewUI ? {display: 'flex'} : undefined}
         search={{placeholder: 'Search users or teams...'}}
         clearable
         className={className}
