@@ -9,29 +9,20 @@ class CacheVersionBase(Model):
     class Meta:
         abstract = True
 
-    # Deprecated - use keyname instead.
     key = models.CharField(max_length=64, null=False, unique=True)
-    keyname = models.CharField(max_length=200, null=True, unique=True)
     version = models.PositiveBigIntegerField(null=False, default=0)
 
     @classmethod
     def incr_version(cls, key: str) -> int:
         with enforce_constraints(transaction.atomic(router.db_for_write(cls))):
             obj, created = cls.objects.select_for_update().get_or_create(
-                key=key, defaults=dict(version=1, keyname=key)
+                key=key, defaults=dict(version=1)
             )
             if created:
                 return obj.version
 
             obj.version += 1
-            updated = ["version"]
-
-            # Dual write keys to the new longer column
-            if obj.keyname is None:
-                obj.keyname = key
-                updated.append("keyname")
-
-            obj.save(update_fields=updated)
+            obj.save(update_fields=["version"])
             return obj.version
 
     @classmethod

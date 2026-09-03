@@ -399,7 +399,9 @@ export const SEER_EMBED_SCHEMAS = {
   monitor: {
     description:
       'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
-      'or mobile build detector). Use the detector ID exactly as the monitors API returns it. ' +
+      'or mobile build detector). Use the numeric id from the detectors API ' +
+      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
+      '"id" field from the monitors API, which is a GUID and will not work here. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: loads the live monitor and renders its type-specific configuration/rules. ' +

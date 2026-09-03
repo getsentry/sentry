@@ -1,6 +1,6 @@
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
-from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import (
     CursorQueryParam,
     GlobalParams,
@@ -47,7 +48,12 @@ class OrganizationTeamsPermission(OrganizationPermission):
     }
 
 
-@extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "idp_provisioned": "Set by SCIM and identity-provider provisioning, not by API clients.",
+    },
+    deprecate_fields=["name"],
+)
 class TeamPostSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a team and is used for the interface. If not
