@@ -13,8 +13,9 @@ class SavedQueryRef:
     A saved query identified across products.
 
     ``type`` is either discover or explore
-    ``id`` is the associated primary key for that query
+    ``query_id`` is the associated primary key for that query.
+                 Ex. if type is discover, query_id is the primary key of a DiscoverSavedQuery.
     """
 
     type: SavedQueryType
-    id: int
+    query_id: int

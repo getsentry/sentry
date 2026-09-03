@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.db import transaction
+from rb import router
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -11,8 +12,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.explore.savedqueries import starred as starred_queries
-from sentry.explore.savedqueries.types import SavedQueryRef, SavedQueryType
+from sentry.explore import utils
+from sentry.explore.models import ExploreSavedQueryStarred
+from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.models.organization import Organization
 
 
@@ -24,14 +26,14 @@ class MemberPermission(OrganizationPermission):
 
 class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):
     type = serializers.ChoiceField(choices=[query_type.value for query_type in SavedQueryType])
-    id = serializers.IntegerField()
+    query_id = serializers.IntegerField()
 
 
 class SavedQueryStarredOrderSerializer(serializers.Serializer[dict[str, Any]]):
     queries = serializers.ListField(child=SavedQueryRefSerializer(), required=True, min_length=0)
 
     def validate_queries(self, queries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        refs = [(query["type"], query["id"]) for query in queries]
+        refs = [(query["type"], query["query_id"]) for query in queries]
         if len(refs) != len(set(refs)):
             raise serializers.ValidationError("Single query cannot take up multiple positions")
 
@@ -75,14 +77,14 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         refs = [
-            SavedQueryRef(SavedQueryType(query["type"]), query["id"])
+            SavedQueryRef(SavedQueryType(query["type"]), query["query_id"])
             for query in serializer.validated_data["queries"]
         ]
 
         try:
-            with transaction.atomic(using=starred_queries.db_alias()):
-                starred_queries.lock_starred_list(organization.id, request.user.id)
-                starred_queries.reorder(organization, request.user.id, refs)
+            # DiscoverSavedQueryStarred should be in the same db as ExploreSavedQueryStarred.
+            with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
+                utils.reorder_starred_queries(organization, request.user.id, refs)
         except ValueError:
             raise ParseError("Mismatch between existing and provided starred queries.")
 

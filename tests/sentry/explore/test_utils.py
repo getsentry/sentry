@@ -1,9 +1,9 @@
 import pytest
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
+from sentry.explore import utils
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
-from sentry.explore.savedqueries import starred
-from sentry.explore.savedqueries.types import SavedQueryRef, SavedQueryType
+from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 
@@ -86,52 +86,41 @@ class StarredHelpersTestBase(TestCase):
 
 class NextPositionTest(StarredHelpersTestBase):
     def test_no_starred_queries(self) -> None:
-        assert starred.next_position(self.org, self.user.id) == 1
+        assert utils.next_starred_position(self.org, self.user.id) == 1
 
     def test_highest_position_in_discover(self) -> None:
         self.discover_star(4)
         self.explore_star(2)
 
-        assert starred.next_position(self.org, self.user.id) == 5
+        assert utils.next_starred_position(self.org, self.user.id) == 5
 
     def test_highest_position_in_explore(self) -> None:
         self.discover_star(2)
         self.explore_star(4)
 
-        assert starred.next_position(self.org, self.user.id) == 5
+        assert utils.next_starred_position(self.org, self.user.id) == 5
 
     def test_ignores_null_positions(self) -> None:
         self.discover_star(1)
         self.explore_star(None, starred=False)
 
-        assert starred.next_position(self.org, self.user.id) == 2
+        assert utils.next_starred_position(self.org, self.user.id) == 2
 
 
 class ShiftPositionsTest(StarredHelpersTestBase):
-    def test_shift_in_both_tables(self) -> None:
-        below = self.discover_star(1)
-        at = self.explore_star(2)
-        above = self.discover_star(3)
-
-        starred.shift_positions(self.org, self.user.id, from_position=2, delta=1, inclusive=True)
-
-        below.refresh_from_db()
-        at.refresh_from_db()
-        above.refresh_from_db()
-        assert below.position == 1
-        assert at.position == 3
-        assert above.position == 4
-
     def test_negative_delta_closes_a_gap(self) -> None:
         below = self.discover_star(1)
         above = self.explore_star(3)
+        above2 = self.explore_star(4)
 
-        starred.shift_positions(self.org, self.user.id, from_position=2, delta=-1)
+        utils.shift_starred_positions_by_one(self.org, self.user.id, from_position=1)
 
         below.refresh_from_db()
         above.refresh_from_db()
+        above2.refresh_from_db()
         assert below.position == 1
         assert above.position == 2
+        assert above2.position == 3
 
 
 class ReorderTest(StarredHelpersTestBase):
@@ -146,7 +135,7 @@ class ReorderTest(StarredHelpersTestBase):
             SavedQueryRef(SavedQueryType.DISCOVER, discover2.discover_saved_query_id),
         ]
 
-        starred.reorder(self.org, self.user.id, refs)
+        utils.reorder_starred_queries(self.org, self.user.id, refs)
 
         explore1.refresh_from_db()
         discover1.refresh_from_db()
@@ -166,7 +155,7 @@ class ReorderTest(StarredHelpersTestBase):
             SavedQueryRef(SavedQueryType.EXPLORE, second.explore_saved_query_id),
         ]
 
-        starred.reorder(self.org, self.user.id, refs)
+        utils.reorder_starred_queries(self.org, self.user.id, refs)
 
         assert self.ordered_refs() == refs
 
@@ -177,7 +166,7 @@ class ReorderTest(StarredHelpersTestBase):
         ref = SavedQueryRef(SavedQueryType.DISCOVER, discover.discover_saved_query_id)
 
         with pytest.raises(ValueError, match="multiple positions"):
-            starred.reorder(self.org, self.user.id, [ref, ref])
+            utils.reorder_starred_queries(self.org, self.user.id, [ref, ref])
 
     def test_rejects_missing_refs(self) -> None:
         # The failure mode this module exists to prevent: a caller that knows about one
@@ -188,4 +177,4 @@ class ReorderTest(StarredHelpersTestBase):
         explore_ref = SavedQueryRef(SavedQueryType.EXPLORE, explore.explore_saved_query_id)
 
         with pytest.raises(ValueError, match="Mismatch between existing and provided"):
-            starred.reorder(self.org, self.user.id, [explore_ref])
+            utils.reorder_starred_queries(self.org, self.user.id, [explore_ref])
