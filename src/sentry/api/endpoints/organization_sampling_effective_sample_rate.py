@@ -26,7 +26,7 @@ SAMPLE_RATE_WINDOW = timedelta(hours=24)
 
 class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
     effectiveSampleRate: float | None
-    genericMetricsEffectiveSampleRate: float | None
+    eapEffectiveSampleRate: float | None
 
 
 @cell_silo_endpoint
@@ -35,12 +35,12 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
 
     The effective sample rate is computed as indexed / total. It is returned from two sources,
     which do not have to agree:
-    - effectiveSampleRate comes from EAP, where total is the extrapolated number of received
+    - effectiveSampleRate comes from the generic metrics counters, where total is the number of
+      received segments and indexed is the number of segments with a keep decision. It measures
+      the sampling decision alone.
+    - eapEffectiveSampleRate comes from EAP, where total is the extrapolated number of received
       segments and indexed is the number of stored segments. Segments that dynamic sampling kept
       but that a quota or a pipeline drop removed later lower this rate.
-    - genericMetricsEffectiveSampleRate comes from the generic metrics counters, where total is
-      the number of received segments and indexed is the number of segments with a keep decision.
-      It measures the sampling decision alone.
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -82,9 +82,7 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
         return Response(
             status=200,
             data={
-                "effectiveSampleRate": get_effective_sample_rate(eap_volume),
-                "genericMetricsEffectiveSampleRate": get_effective_sample_rate(
-                    generic_metrics_volume
-                ),
+                "effectiveSampleRate": get_effective_sample_rate(generic_metrics_volume),
+                "eapEffectiveSampleRate": get_effective_sample_rate(eap_volume),
             },
         )
