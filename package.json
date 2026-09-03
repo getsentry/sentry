@@ -244,7 +244,7 @@
     "@types/d3-selection": "^3.0.11",
     "@types/d3-zoom": "^3.0.8",
     "@types/gettext-parser": "8.0.0",
-    "@types/node": "24.13.2",
+    "@types/node": "26.4.0",
     "eslint": "10.8.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-import-resolver-typescript": "4.4.5",
