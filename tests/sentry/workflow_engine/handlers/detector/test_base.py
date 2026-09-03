@@ -24,7 +24,6 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorResult,
-    DetectorSettings,
 )
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
@@ -187,33 +186,26 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
                 return data_packet.packet.get("dedupe", 0)
 
+        @detector_settings_registry.register_group_type(handler=MockDetectorHandler)
         class HandlerGroupType(GroupType):
             type_id = 2
             slug = "handler"
             description = "handler"
             category = GroupCategory.METRIC.value
 
+        @detector_settings_registry.register_group_type(handler=MockDetectorStateHandler)
         class HandlerStateGroupType(GroupType):
             type_id = 3
             slug = "handler_with_state"
             description = "handler with state"
             category = GroupCategory.METRIC.value
 
+        @detector_settings_registry.register_group_type(handler=MockDetectorWithUpdateHandler)
         class HandlerUpdateGroupType(GroupType):
             type_id = 4
             slug = "handler_update"
             description = "handler update"
             category = GroupCategory.METRIC.value
-
-        detector_settings_registry.register(HandlerGroupType.slug)(
-            DetectorSettings(handler=MockDetectorHandler)
-        )
-        detector_settings_registry.register(HandlerStateGroupType.slug)(
-            DetectorSettings(handler=MockDetectorStateHandler)
-        )
-        detector_settings_registry.register(HandlerUpdateGroupType.slug)(
-            DetectorSettings(handler=MockDetectorWithUpdateHandler)
-        )
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType

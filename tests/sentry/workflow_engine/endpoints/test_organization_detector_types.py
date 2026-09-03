@@ -17,7 +17,6 @@ from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 
@@ -91,6 +90,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                 )
 
         # TODO - each of these types should be broken out into their individual modules
+        @detector_settings_registry.register_group_type(handler=MockDetectorHandler)
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
@@ -99,6 +99,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category = GroupCategory.METRIC.value
             released = True
 
+        @detector_settings_registry.register_group_type(handler=MockDetectorHandler)
         @dataclass(frozen=True)
         class TestCronsGroupType(GroupType):
             type_id = 2
@@ -107,6 +108,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category = GroupCategory.OUTAGE.value
             released = True
 
+        @detector_settings_registry.register_group_type(handler=MockDetectorHandler)
         @dataclass(frozen=True)
         class TestUptimeGroupType(GroupType):
             type_id = 3
@@ -123,11 +125,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Performance"
             category = GroupCategory.DB_QUERY.value
             released = True
-
-        for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
-            detector_settings_registry.register(group_type.slug)(
-                DetectorSettings(handler=MockDetectorHandler)
-            )
 
         self.expected_type_slugs = sorted(
             [TestMetricGroupType.slug, TestCronsGroupType.slug, TestUptimeGroupType.slug]

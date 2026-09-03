@@ -32,7 +32,6 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -250,6 +249,10 @@ class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
     issue_subtitle = "Minified stack traces detected, making errors harder to debug in Sentry"
 
 
+@detector_settings_registry.register_group_type(
+    handler=SourcemapDetectorHandler,
+    config_schema={},
+)
 @dataclass(frozen=True)
 class SourcemapConfigurationType(GroupType):
     type_id = 13001
@@ -268,15 +271,6 @@ class SourcemapConfigurationType(GroupType):
     enable_workflow_notifications = False
     # We want to show these separately to normal issue types
     in_default_search = False
-
-
-detector_settings_registry.register(SourcemapConfigurationType.slug)(
-    DetectorSettings(
-        handler=SourcemapDetectorHandler,
-        validator=None,
-        config_schema={},
-    )
-)
 
 
 @dataclass(frozen=True)

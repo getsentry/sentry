@@ -8,10 +8,7 @@ from sentry.workflow_engine.handlers.detector.base import DetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import (
-    DetectorGroupKey,
-    DetectorSettings,
-)
+from sentry.workflow_engine.types import DetectorGroupKey
 
 
 class ErrorDetectorHandler(DetectorHandler[object]):
@@ -23,6 +20,11 @@ class ErrorDetectorHandler(DetectorHandler[object]):
         return {}
 
 
+@detector_settings_registry.register_group_type(
+    handler=ErrorDetectorHandler,
+    validator=ErrorDetectorValidator,
+    config_schema={"type": "object", "additionalProperties": False},
+)
 @dataclass(frozen=True)
 class ErrorGroupType(GroupType):
     type_id = DEFAULT_TYPE_ID
@@ -31,12 +33,3 @@ class ErrorGroupType(GroupType):
     category = GroupCategory.ERROR.value
     default_priority = PriorityLevel.MEDIUM
     released = True
-
-
-detector_settings_registry.register(ErrorGroupType.slug)(
-    DetectorSettings(
-        handler=ErrorDetectorHandler,
-        validator=ErrorDetectorValidator,
-        config_schema={"type": "object", "additionalProperties": False},
-    )
-)

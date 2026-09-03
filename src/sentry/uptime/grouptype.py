@@ -30,7 +30,6 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -260,6 +259,35 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         return (occurrence, event_data)
 
 
+@detector_settings_registry.register_group_type(
+    handler=UptimeDetectorHandler,
+    validator=UptimeDomainCheckFailureValidator,
+    config_schema={
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of an uptime alert",
+        "type": "object",
+        "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
+        "properties": {
+            "mode": {
+                "type": ["integer"],
+                "enum": [mode.value for mode in UptimeMonitorMode],
+            },
+            "environment": {"type": ["string", "null"]},
+            "recovery_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive successful checks required to mark monitor as recovered",
+            },
+            "downtime_threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Number of consecutive failed checks required to mark monitor as down",
+            },
+        },
+        "additionalProperties": False,
+    },
+    filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
+)
 @dataclass(frozen=True)
 class UptimeDomainCheckFailure(GroupType):
     type_id = 7001
@@ -271,36 +299,3 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-
-
-detector_settings_registry.register(UptimeDomainCheckFailure.slug)(
-    DetectorSettings(
-        handler=UptimeDetectorHandler,
-        validator=UptimeDomainCheckFailureValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of an uptime alert",
-            "type": "object",
-            "required": ["mode", "environment", "recovery_threshold", "downtime_threshold"],
-            "properties": {
-                "mode": {
-                    "type": ["integer"],
-                    "enum": [mode.value for mode in UptimeMonitorMode],
-                },
-                "environment": {"type": ["string", "null"]},
-                "recovery_threshold": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Number of consecutive successful checks required to mark monitor as recovered",
-                },
-                "downtime_threshold": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Number of consecutive failed checks required to mark monitor as down",
-                },
-            },
-            "additionalProperties": False,
-        },
-        filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
-    )
-)

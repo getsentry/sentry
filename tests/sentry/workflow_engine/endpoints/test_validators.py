@@ -31,7 +31,7 @@ from sentry.workflow_engine.registry import (
     data_source_type_registry,
     detector_settings_registry,
 )
-from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import MockModel
 
 
@@ -130,15 +130,12 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
         self.registry_patcher.__exit__(None, None, None)
 
     def test_validate_type_valid(self) -> None:
+        @detector_settings_registry.register_group_type(validator=MetricIssueDetectorValidator)
         class TestGroupType(GroupType):
             type_id = 1
             slug = "test_type"
             description = "no handler"
             category = GroupCategory.METRIC.value
-
-        detector_settings_registry.register(TestGroupType.slug)(
-            DetectorSettings(validator=MetricIssueDetectorValidator)
-        )
 
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = TestGroupType

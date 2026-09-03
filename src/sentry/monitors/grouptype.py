@@ -8,9 +8,12 @@ from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
 from sentry.monitors.validators import MonitorIncidentDetectorValidator
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorSettings
 
 
+@detector_settings_registry.register_group_type(
+    validator=MonitorIncidentDetectorValidator,
+    config_schema={},
+)
 @dataclass(frozen=True)
 class MonitorIncidentType(GroupType):
     type_id = 4001
@@ -21,12 +24,3 @@ class MonitorIncidentType(GroupType):
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
     notification_config = NotificationConfig(context=[])
-
-
-detector_settings_registry.register(MonitorIncidentType.slug)(
-    DetectorSettings(
-        handler=None,
-        validator=MonitorIncidentDetectorValidator,
-        config_schema={},
-    )
-)

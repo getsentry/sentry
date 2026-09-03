@@ -37,7 +37,6 @@ from sentry.workflow_engine.types import (
     DetectorException,
     DetectorGroupKey,
     DetectorPriorityLevel,
-    DetectorSettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -347,6 +346,26 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
         )
 
 
+@detector_settings_registry.register_group_type(
+    handler=MetricIssueDetectorHandler,
+    validator=MetricIssueDetectorValidator,
+    config_schema={
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of a metric detector config dict",
+        "type": "object",
+        "required": ["detection_type"],
+        "properties": {
+            "comparison_delta": {
+                "type": ["integer", "null"],
+                "enum": COMPARISON_DELTA_CHOICES,
+            },
+            "detection_type": {
+                "type": "string",
+                "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
+            },
+        },
+    },
+)
 @dataclass(frozen=True)
 class MetricIssue(GroupType):
     type_id = 8001
@@ -361,27 +380,3 @@ class MetricIssue(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     enable_user_status_and_priority_changes = False
-
-
-detector_settings_registry.register(MetricIssue.slug)(
-    DetectorSettings(
-        handler=MetricIssueDetectorHandler,
-        validator=MetricIssueDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of a metric detector config dict",
-            "type": "object",
-            "required": ["detection_type"],
-            "properties": {
-                "comparison_delta": {
-                    "type": ["integer", "null"],
-                    "enum": COMPARISON_DELTA_CHOICES,
-                },
-                "detection_type": {
-                    "type": "string",
-                    "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
-                },
-            },
-        },
-    )
-)
