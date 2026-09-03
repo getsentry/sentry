@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -9,6 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   isPrIterationBlock,
   type AutofixSection,
@@ -27,6 +28,7 @@ import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
+import {markdownToPlainText} from 'sentry/utils/marked/marked';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
@@ -101,11 +103,16 @@ type IterationFeedback = ParsedFeedback & {
   status: FeedbackStatus;
 };
 
+// Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
+function toPlainText(text: string): string {
+  return markdownToPlainText(text).replace(/\s+/g, ' ').trim();
+}
+
 function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
   // `ui_text` is the short display label the backend derives per source; fall
   // back to the raw prompt `text` for feedback serialized before it existed.
   const base = {
-    text: parsed.ui_text ?? parsed.text,
+    text: toPlainText(parsed.ui_text ?? parsed.text),
     timestamp: parsed.timestamp,
   };
   const source = parsed.source;
@@ -617,7 +624,9 @@ function GithubReviewBodyComment({item}: {item: IterationFeedback}) {
   }
   const tag = reviewStateTag(item.reviewState);
   return (
-    <Flex align="center" gap="sm" wrap="wrap">
+    // `minWidth="0"` so the nowrap preview inside can't set this row's automatic
+    // minimum size and push past the card.
+    <Flex align="center" gap="sm" wrap="wrap" minWidth="0">
       {tag && <Tag variant={tag.variant}>{tag.label}</Tag>}
       {/* A bare state change has no body — show just the link. */}
       {item.text ? (
@@ -645,6 +654,8 @@ function OtherComment({item}: {item: IterationFeedback}) {
   return <CommentBody text={item.text} />;
 }
 
+const MAX_UNCOLLAPSED_COMMENT_LENGTH = 280;
+
 function CommentBody({
   text,
   externalUrl,
@@ -654,8 +665,14 @@ function CommentBody({
   externalUrl?: string;
   muted?: boolean;
 }) {
-  return (
-    <Text variant={muted ? 'muted' : undefined}>
+  // `anywhere` (not `break-word`) shrinks min-content so a URL can't widen the column.
+  const body = (
+    <Text
+      variant={muted ? 'muted' : undefined}
+      css={css`
+        overflow-wrap: anywhere;
+      `}
+    >
       {text}
       {externalUrl && (
         <ExternalLink href={externalUrl} aria-label={t('Open in GitHub')}>
@@ -663,6 +680,26 @@ function CommentBody({
         </ExternalLink>
       )}
     </Text>
+  );
+
+  if (text.length <= MAX_UNCOLLAPSED_COMMENT_LENGTH) {
+    return body;
+  }
+
+  return (
+    <CollapsibleContent
+      title={isOpen =>
+        isOpen ? null : (
+          <Flex flex="1" minWidth="0">
+            <Text variant={muted ? 'muted' : undefined} ellipsis>
+              {text}
+            </Text>
+          </Flex>
+        )
+      }
+    >
+      {body}
+    </CollapsibleContent>
   );
 }
 
