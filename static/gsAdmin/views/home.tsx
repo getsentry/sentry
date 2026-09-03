@@ -27,7 +27,7 @@ type ProjectSearchResult = Pick<Project, 'id' | 'slug'> & {
   organization: Pick<OrganizationSummary, 'slug'>;
 };
 
-function parseProjectId(query: string): string | null {
+function normalizeProjectIdQuery(query: string): string | null {
   const match = query.match(/^(?:id:)?\s*(\d+)$/);
   return match?.[1] ?? null;
 }

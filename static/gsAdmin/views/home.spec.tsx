@@ -51,7 +51,7 @@ describe('HomePage project search', () => {
     expect(router.location.pathname).toBe('/_admin/customers/my-org/projects/my-proj/');
   });
 
-  it('does not duplicate an existing id: prefix', async () => {
+  it('accepts an existing id: prefix', async () => {
     const projectsMock = MockApiClient.addMockResponse({
       url: '/projects/',
       body: [projectResult],
@@ -83,6 +83,6 @@ describe('HomePage project search', () => {
     await user.type(screen.getByRole('textbox', {name: 'Projects (by ID)'}), 'my-proj');
 
     expect(await screen.findByText('No results found')).toBeInTheDocument();
-    await waitFor(() => expect(projectsMock).not.toHaveBeenCalled());
+   expect(projectsMock).not.toHaveBeenCalled();
   });
 });
