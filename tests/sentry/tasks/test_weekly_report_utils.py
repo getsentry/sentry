@@ -37,6 +37,7 @@ from sentry.tasks.summaries.utils import (
     project_past_resolved_issues,
     user_project_ownership,
 )
+from sentry.tasks.summaries.weekly_reports import get_group_display
 from sentry.testutils.cases import (
     BaseSpansTestCase,
     OccurrenceTestCase,
@@ -883,3 +884,43 @@ class PastResolvedIssuesTest(TestCase):
             "Resolved in release",
             "https://gitlab.com/getsentry/sentry/merge_requests/42",
         )
+
+
+class GetGroupDisplayTest(TestCase):
+    def _display(self, metadata: dict[str, object]) -> dict[str, str]:
+        return get_group_display(self.create_group(data={"type": "error", "metadata": metadata}))
+
+    def test_uses_the_exception_type(self) -> None:
+        assert self._display({"type": "ValueError", "value": "bad"}) == {
+            "title": "ValueError",
+            "message": "bad",
+        }
+
+    def test_synthetic_prefers_the_crash_location(self) -> None:
+        # A synthetic type is a platform label (`SIGSEGV`, `AppHang`), not the identity of what
+        # went wrong, so the weekly report keeps the crash location.
+        assert self._display(
+            {
+                "type": "SIGSEGV",
+                "value": "Signal 11, Code 1",
+                "function": "top_func",
+                "synthetic": True,
+            }
+        ) == {"title": "top_func", "message": "Signal 11, Code 1"}
+
+    def test_synthetic_falls_back_to_the_type(self) -> None:
+        # Nothing symbolicated, so the type is all that is left — still better than `<unknown>`.
+        assert self._display(
+            {"type": "SIGSEGV", "value": "Signal 11, Code 1", "synthetic": True}
+        ) == {"title": "SIGSEGV", "message": "Signal 11, Code 1"}
+
+    def test_custom_title_still_wins(self) -> None:
+        assert self._display(
+            {
+                "title": "Custom",
+                "type": "SIGSEGV",
+                "value": "Signal 11, Code 1",
+                "function": "top_func",
+                "synthetic": True,
+            }
+        ) == {"title": "Custom", "message": "Signal 11, Code 1"}

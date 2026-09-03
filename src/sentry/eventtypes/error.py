@@ -60,8 +60,13 @@ class ErrorEvent(BaseEvent):
         # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`) rather than the
         # identity of what went wrong, so grouping ignores it. Record it anyway: it is all that is
         # left to show when an event has no usable crash location.
-        if get_path(exception, "mechanism", "synthetic"):
-            rv["synthetic"] = True
+        #
+        # Written unconditionally so it stays in lockstep with the `type` above. Group metadata is
+        # merged key by key across a group's events (`_process_existing_aggregate`) and a merge
+        # cannot delete keys, so a flag written only when true would outlive the type it describes:
+        # one synthetic event would mark the group synthetic forever, even after later events
+        # overwrite `type` with a real one.
+        rv["synthetic"] = bool(get_path(exception, "mechanism", "synthetic"))
 
         # Attach crash location if available
         loc = get_crash_location(data)
