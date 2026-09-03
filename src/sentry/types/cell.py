@@ -463,11 +463,9 @@ def find_cells_for_orgs(org_ids: Iterable[int]) -> set[str]:
 
 @control_silo_function
 def find_cell_by_org_id(org_ids: Iterable[int]) -> dict[int, str]:
-    """Maps each of the given organization ids to its cell name (one DB lookup, no RPC).
+    """Maps each org id to its cell name (one DB lookup, no RPC).
 
-    Callers that only need to know which distinct cells are involved should use
-    ``find_cells_for_orgs`` instead; this is for callers that need to know which specific
-    org(s) live in each cell, e.g. to dedupe per-org work by cell.
+    Use ``find_cells_for_orgs`` instead if you only need the distinct cell set.
     """
     from sentry.models.organizationmapping import OrganizationMapping
 

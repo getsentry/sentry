@@ -66,12 +66,8 @@ def _resolve_available_organizations(
     - the user has access to the organization
     - the organization has access to Seer Agent in Slack (varies based on SiloMode)
     """
-    # Cheap DB lookup (no RPC): once a valid membership has been confirmed for a given
-    # cell, further orgs in that same cell can't change which cell control forwards to
-    # (the cell always re-resolves/authorizes the real organization itself for real —
-    # see route_slack_seer_event), so skip their RPC lookups. Only distinct cells need a
-    # representative org checked. Gated to CONTROL: the cell silo runs this same loop to
-    # do the *real* resolution and must check every org for full correctness there.
+    # On control, further orgs in an already-confirmed cell can't change which cell gets
+    # picked (the cell re-resolves/authorizes for real anyway), so skip their RPCs.
     org_id_to_cell_name: dict[int, str] = {}
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         org_id_to_cell_name = find_cell_by_org_id(organization_ids)
