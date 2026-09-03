@@ -20,7 +20,12 @@ import {
   getSpanDuration,
   getSpanFieldBytes,
 } from 'sentry/components/events/interfaces/performance/spanMetrics';
-import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  getSpanCategory,
+  getSpanHash,
+  getSpanInfoFromTransactionEvent,
+  getSpanSentryGroupValue,
+} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
   RawSpanType,
@@ -184,8 +189,13 @@ function NPlusOneDBQueriesSpanEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const dbSpans = offendingSpans.filter(span => (span.op || '').startsWith('db'));
+  // Create one row per distinct query. Our hashing calculation parameterizes query literals, so use
+  // that over the raw span description (which holds a potentially unparameterized query).
   const repeatingSpanRows = dbSpans
-    .filter(span => offendingSpans.find(s => s.hash === span.hash) === span)
+    .filter(
+      (span, i) =>
+        dbSpans.findIndex(other => getSpanHash(other) === getSpanHash(span)) === i
+    )
     .map((span, i) =>
       makeRow(
         i === 0 ? t('Repeating Spans (%s)', dbSpans.length) : '',
@@ -503,8 +513,6 @@ function SlowDBQueryEvidence({
   location,
 }: SpanEvidenceKeyValueListProps) {
   const span = offendingSpans[0]!;
-  const sentryTags = 'sentry_tags' in span ? span.sentry_tags : undefined;
-  const groupHash = sentryTags?.group ?? span.hash ?? '';
   const hasExplore = organization.features.includes('visibility-explore-view');
 
   const queryValue = (
@@ -532,8 +540,10 @@ function SlowDBQueryEvidence({
       <Flex gap="md" padding="md lg" borderTop="muted">
         <SpanSummaryLink
           op={span.op}
-          category={sentryTags?.category}
-          group={groupHash}
+          category={getSpanCategory(span)}
+          // Relay's group specifically, not `getSpanHash` - this becomes a `span.group` filter
+          // against EAP, which has never seen our own span grouping hash
+          group={getSpanSentryGroupValue(span) ?? ''}
           organization={organization}
         />
         {hasExplore && span.description && (

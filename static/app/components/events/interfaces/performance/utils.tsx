@@ -7,10 +7,10 @@ import type {
   TraceContextSpanProxy,
 } from 'sentry/components/events/interfaces/spans/types';
 import {
-  type EntrySpans,
-  type EventTransaction,
   EntryType,
+  type EntrySpans,
   type Event,
+  type EventTransaction,
 } from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
@@ -25,6 +25,72 @@ export function eventHasSyntheticTrace(event: Event): boolean {
   const traceMeta = getContextMeta(event, 'trace');
   return (traceMeta.trace_id?.['']?.err ?? []).some(
     (err: unknown) => (Array.isArray(err) ? err[0] : err) === 'trace_id.missing'
+  );
+}
+
+/**
+ * Get Relay's span group value, which EAP indexes as `span.group`, for use in queries passed to
+ * features like Explore and Insights.
+ *
+ * Note that though the return values do *sometimes* match, this is not interchangeable with
+ * `getSpanHash`, which gets the results of our server-side span grouping algorithm, as EAP doesn't
+ * record the span `hash` value.
+ */
+export function getSpanSentryGroupValue(span: {
+  [key: string]: any;
+  data?: Record<string, any> | null;
+  sentry_tags?: Record<string, string>;
+}): string | undefined {
+  return (
+    // The location for segment-derived occurrences
+    span.data?.['sentry.group'] ??
+    // The location for transaction-derived occurrences
+    // TODO: once we fully switch to segment-based occurrence creation, and all transaction events
+    // have aged out, we can remove this half of expression
+    span.sentry_tags?.group
+  );
+}
+
+/**
+ * Get the span's grouping hash, used for visually grouping spans representing the same operation in
+ * the span evidence section of the issue details page and for explaining occurrence grouping in the
+ * grouping info section.
+ *
+ * Note that though the return values do *sometimes* match, this is not interchangeable with
+ * `getSpanSentryGroupValue`, which returns the `sentry.group` value added to some spans by Relay
+ * for use in queries to EAP.
+ */
+export function getSpanHash(span: {
+  [key: string]: any;
+  data?: Record<string, any> | null;
+  hash?: string;
+}): string | undefined {
+  return (
+    // The location for segment-derived occurrences
+    span.data?.hash ??
+    // The location for transaction-derived occurrences
+    // TODO: once we fully switch to segment-based occurrence creation, and all transaction events
+    // have aged out, we can remove this half of expression
+    span.hash
+  );
+}
+
+/**
+ * Get the span category, used to build the span summary link. Like the span hash, where it lives
+ * depends on which pipeline (transaction or segment processing) created the evidence span.
+ */
+export function getSpanCategory(span: {
+  [key: string]: any;
+  data?: Record<string, any> | null;
+  sentry_tags?: Record<string, string>;
+}): string | undefined {
+  return (
+    // The location for segment-derived occurrences
+    span.data?.['sentry.category'] ??
+    // The location for transaction-derived occurrences
+    // TODO: once we fully switch to segment-based occurrence creation, and all transaction events
+    // have aged out, we can remove this half of expression
+    span.sentry_tags?.category
   );
 }
 
