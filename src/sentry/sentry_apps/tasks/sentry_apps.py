@@ -47,6 +47,8 @@ from sentry.models.project import Project
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.external_issues.kinds import ExternalIssueKind
+from sentry.sentry_apps.external_issues.types import ExternalIssueTrigger
 from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
@@ -80,6 +82,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
 from sentry.taskworker.timeout import InnerTimeoutError
 from sentry.types.rules import RuleFuture
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
@@ -371,14 +374,14 @@ def _process_resource_change(
                     data[name][date_key] = data[name][date_key].isoformat()
 
             for installation in installations:
-                if _is_project_allowed(installation, instance.project_id):
+                if is_project_allowed(installation, instance.project_id):
                     # Trigger a new task for each webhook
                     send_resource_change_webhook.delay(
                         installation_id=installation.id, event=str(event), data=data
                     )
 
 
-def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int) -> bool:
+def is_project_allowed(installation: RpcSentryAppInstallation, project_id: int) -> bool:
     service_hook = _load_service_hook(installation.organization_id, installation.id)
     if not service_hook:
         logger.info("send_webhooks.missing_servicehook", extra={"installation_id": installation.id})
@@ -608,6 +611,48 @@ def workflow_notification(
 
 
 @instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.build_external_issue_webhook",
+    namespace=sentryapp_tasks,
+    retry=Retry(
+        times=3,
+        delay=60 * 5,
+        on=_SENTRY_APP_WEBHOOK_RETRY_ON,
+        ignore=_SENTRY_APP_WEBHOOK_RETRY_IGNORE,
+    ),
+    processing_deadline_duration=15,
+    silo_mode=SiloMode.CELL,
+    silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
+)
+def build_external_issue_webhook(
+    installation_id: int,
+    issue_id: int,
+    type: str,
+    user_id: int | None,
+    external_issue: dict[str, Any],
+    external_issue_kind: str,
+    triggered_by: ExternalIssueTrigger | None = None,
+    **kwargs: Any,
+) -> None:
+    event = SentryAppEventType(type)
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
+    ).capture():
+        install, issue, user = get_webhook_data(installation_id, issue_id, user_id)
+
+        kind = ExternalIssueKind(external_issue_kind)
+        data: dict[str, Any] = {
+            "issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue)),
+            "external_issue": external_issue,
+            "external_issue_kind": kind.value,
+        }
+        if triggered_by is not None:
+            data["triggered_by"] = triggered_by
+
+    send_webhooks(installation=install, event=event, data=data, actor=user)
+
+
+@instrumented_task(
     name="sentry.sentry_apps.tasks.sentry_apps.build_comment_webhook",
     namespace=sentryapp_tasks,
     retry=Retry(
@@ -786,6 +831,29 @@ def _is_sentry_app_disabled_for_webhooks(sentry_app: RpcSentryApp) -> bool:
     return sentry_app.is_disabled
 
 
+def _resolve_webhook_actor(
+    actor: RpcSentryApp | RpcUser | User | None,
+    *,
+    installation: RpcSentryAppInstallation,
+) -> RpcSentryApp | RpcUser | User | None:
+    if actor is None or isinstance(actor, RpcSentryApp) or not actor.is_sentry_app:
+        return actor
+
+    # App actions are fanned out to every subscribed installation, so the recipient may not be
+    # the app whose proxy user performed the action. Keep the existing direct path when they do
+    # match, but resolve cross-app actors so the payload identifies the originating app.
+    if actor.id == installation.sentry_app.proxy_user_id:
+        return installation.sentry_app
+
+    sentry_apps = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=[actor.id])
+    sentry_app = next(iter(sentry_apps), None)
+    if sentry_app is None:
+        raise SentryAppSentryError(
+            message=f"send_webhooks.{SentryAppWebhookFailureReason.MISSING_SENTRY_APP}"
+        )
+    return sentry_app
+
+
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
@@ -845,6 +913,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
         kwargs["resource"] = resource
         kwargs["action"] = action
         kwargs["install"] = installation
+        kwargs["actor"] = _resolve_webhook_actor(kwargs.get("actor"), installation=installation)
 
         request_data = AppPlatformEvent(**kwargs)
 

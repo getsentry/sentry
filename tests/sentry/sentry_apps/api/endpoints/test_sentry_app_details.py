@@ -259,6 +259,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert set(hook.events) == {
             "issue.assigned",
             "issue.created",
+            "issue.external_issue_created",
+            "issue.external_issue_linked",
             "issue.ignored",
             "issue.resolved",
             "issue.unresolved",
@@ -369,6 +371,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == {
                 "issue.assigned",
                 "issue.created",
+                "issue.external_issue_created",
+                "issue.external_issue_linked",
                 "issue.ignored",
                 "issue.resolved",
                 "issue.unresolved",
@@ -383,6 +387,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == {
                 "issue.assigned",
                 "issue.created",
+                "issue.external_issue_created",
+                "issue.external_issue_linked",
                 "issue.ignored",
                 "issue.resolved",
                 "issue.unresolved",
@@ -456,6 +462,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == {
                 "issue.assigned",
                 "issue.created",
+                "issue.external_issue_created",
+                "issue.external_issue_linked",
                 "issue.ignored",
                 "issue.resolved",
                 "issue.unresolved",
@@ -470,6 +478,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == {
                 "issue.assigned",
                 "issue.created",
+                "issue.external_issue_created",
+                "issue.external_issue_linked",
                 "issue.ignored",
                 "issue.resolved",
                 "issue.unresolved",

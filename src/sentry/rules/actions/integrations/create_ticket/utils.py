@@ -21,6 +21,7 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, CreateExt
 from sentry.models.activity import Activity
 from sentry.models.grouplink import GroupLink
 from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.sentry_apps.external_issues.types import ExternalIssueTrigger
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
@@ -29,11 +30,27 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
     IntegrationResourceNotFoundError,
 )
+from sentry.signals import external_issue_created
 from sentry.silo.base import cell_silo_function
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 
 logger = logging.getLogger("sentry.rules")
+
+
+def _get_external_issue_trigger(future: RuleFuture) -> ExternalIssueTrigger:
+    action_data = future.kwargs["data"]
+    legacy_rule_id = action_data.get("legacy_rule_id")
+    if legacy_rule_id is not None:
+        return ExternalIssueTrigger(
+            type="issue_alert", id=str(legacy_rule_id), name=future.rule.label
+        )
+
+    workflow_id = action_data.get("workflow_id")
+    if workflow_id is not None:
+        return ExternalIssueTrigger(type="workflow", id=str(workflow_id), name=future.rule.label)
+
+    return ExternalIssueTrigger(type="issue_alert", id=str(future.rule.id), name=future.rule.label)
 
 
 @cell_silo_function
@@ -42,6 +59,7 @@ def create_link(
     installation: IntegrationInstallation,
     event: GroupEvent,
     response: Response,
+    triggered_by: ExternalIssueTrigger,
 ) -> None:
     """
     After creating the event on a third-party service, create a link to the
@@ -52,6 +70,7 @@ def create_link(
     :param response: The API response from creating the new resource.
         - key: String. The unique ID of the external resource
         - metadata: Optional Object. Can contain `display_name`.
+    :param triggered_by: Rule or workflow that fired this action.
     """
 
     assert isinstance(installation, IssueBasicIntegration), (
@@ -97,6 +116,14 @@ def create_link(
         group_id=event.group.id,
         project=event.group.project,
         actor=SYSTEM_ACTOR,
+    )
+    external_issue_created.send_robust(
+        project=event.group.project,
+        group=event.group,
+        user=None,
+        external_issue=external_issue,
+        triggered_by=triggered_by,
+        sender=create_link,
     )
 
 
@@ -150,6 +177,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
         # In the Notification Action, we store the rule_id in the action_id field
         action_id = rule_id
         rule_id = data.get("legacy_rule_id")
+        triggered_by = _get_external_issue_trigger(future)
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
@@ -218,4 +246,4 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 raise
             # If we successfully created the issue, we want to create the link
             else:
-                create_link(integration, installation, event, response)
+                create_link(integration, installation, event, response, triggered_by)

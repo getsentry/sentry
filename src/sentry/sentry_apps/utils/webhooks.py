@@ -91,6 +91,8 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
     SentryAppResourceType.ISSUE: [
         SentryAppEventType.ISSUE_ASSIGNED,
         SentryAppEventType.ISSUE_CREATED,
+        SentryAppEventType.ISSUE_EXTERNAL_ISSUE_CREATED,
+        SentryAppEventType.ISSUE_EXTERNAL_ISSUE_LINKED,
         SentryAppEventType.ISSUE_IGNORED,
         SentryAppEventType.ISSUE_RESOLVED,
         SentryAppEventType.ISSUE_UNRESOLVED,
