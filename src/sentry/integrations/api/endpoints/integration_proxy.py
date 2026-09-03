@@ -81,36 +81,6 @@ class IntegrationProxyFailureMetricType(StrEnum):
     FAILED_VALIDATION = "failed_validation"
 
 
-def _add_metric(
-    metric_name: str,
-    sample_rate: float | None = None,
-    tags: Tags | None = None,
-) -> None:
-    if sample_rate is None:
-        sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-
-    metrics.incr(
-        f"{METRIC_PREFIX}.{metric_name}",
-        sample_rate=sample_rate,
-        tags=tags,
-    )
-
-
-def _add_failure_metric(
-    failure_type: IntegrationProxyFailureMetricType,
-    additional_tags: dict[str, str] | None = None,
-) -> None:
-    if additional_tags is None:
-        additional_tags = {}
-    tags = {"failure_type": failure_type.value, **additional_tags}
-
-    _add_metric(
-        metric_name="proxy_failure",
-        sample_rate=1.0,
-        tags=tags,
-    )
-
-
 class _PassthroughContentNegotiation(BaseContentNegotiation):
     """
     DRF's initial() method calls perform_content_negotiation() before the handler runs. The default
@@ -373,6 +343,36 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     def client(self, client):
         self._client = client
 
+    def _add_metric(
+        self,
+        metric_name: str,
+        sample_rate: float | None = None,
+        tags: Tags | None = None,
+    ) -> None:
+        if sample_rate is None:
+            sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+
+        metrics.incr(
+            f"{METRIC_PREFIX}.{metric_name}",
+            sample_rate=sample_rate,
+            tags=tags,
+        )
+
+    def _add_failure_metric(
+        self,
+        failure_type: IntegrationProxyFailureMetricType,
+        additional_tags: dict[str, str] | None = None,
+    ) -> None:
+        if additional_tags is None:
+            additional_tags = {}
+        tags = {"failure_type": failure_type.value, **additional_tags}
+
+        self._add_metric(
+            metric_name="proxy_failure",
+            sample_rate=1.0,
+            tags=tags,
+        )
+
     @trace
     def _call_third_party_api(
         self, request: HttpRequest, full_url: str, headers: MutableMapping[str, str]
@@ -428,7 +428,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 lifecycle.record_failure(
                     failure_reason=e.failure_type.value, extra={**e.integration_context}
                 )
-                _add_failure_metric(
+                self._add_failure_metric(
                     failure_type=e.failure_type,
                 )
                 return HttpResponseBadRequest()
@@ -436,7 +436,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             self.proxy_path = validator.proxy_path
             self.client = validator.client
 
-            _add_metric(metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0)
+            self._add_metric(
+                metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0
+            )
 
             base_url = request.headers.get(PROXY_BASE_URL_HEADER)
             base_url = base_url.rstrip("/")
@@ -472,7 +474,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 request=request, full_url=full_url, headers=headers
             )
 
-        _add_metric(
+        self._add_metric(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             sample_rate=1.0,
             tags={"status": response.status_code},
@@ -488,34 +490,34 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
-            _add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
             return self.respond(status=400)
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
-            _add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
-            _add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiUnauthorized):
             logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
-            _add_failure_metric(IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiRateLimitedError):
             logger.info("hybrid_cloud.integration_proxy.rate_limited_error", extra=self.log_extra)
-            _add_failure_metric(IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR)
             return self.respond(status=exc.code)
         elif isinstance(exc, ApiForbiddenError):
             logger.info("hybrid_cloud.integration_proxy.forbidden_error", extra=self.log_extra)
-            _add_failure_metric(IntegrationProxyFailureMetricType.FORBIDDEN_ERROR)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.FORBIDDEN_ERROR)
             return self.respond(status=exc.code)
 
         logger.warning(
             "hybrid_cloud.integration_proxy.unknown_error",
             extra={**self.log_extra, "exception_class": type(exc).__name__},
         )
-        _add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
+        self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)
