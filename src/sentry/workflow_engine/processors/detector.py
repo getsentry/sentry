@@ -1,7 +1,10 @@
+# pyright: reportAttributeAccessIssue=false
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from sentry import features, options
 from sentry.db.models.utils import is_model_attr_cached
@@ -31,6 +34,9 @@ from sentry.workflow_engine.types import (
     WorkflowEventData,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -284,6 +290,30 @@ def _get_detector_organization_id(detector: Detector) -> int | None:
     return detector.config.get("organization_id", None)
 
 
+def _get_detector_organization(detector: Detector) -> Organization | None:
+    if not is_model_attr_cached(detector, "project") or detector.project is None:
+        return None
+    if not is_model_attr_cached(detector.project, "organization"):
+        return None
+    return detector.project.organization
+
+
+def _get_detector_evaluation_value[T](data_packet: DataPacket[T]) -> int | float | None:
+    if isinstance(data_packet.packet, dict):
+        values = data_packet.packet.get("values") or data_packet.packet.get("group_vals")
+    else:
+        values = getattr(data_packet.packet, "values", None)
+    if not isinstance(values, dict):
+        return None
+
+    value = values.get("value")
+    if value is None and len(values) == 1:
+        value = next(iter(values.values()))
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value
+    return None
+
+
 @trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
@@ -309,11 +339,13 @@ def process_detectors[T](
         emit_detector_evaluation_logs(
             logger,
             organization_id=_get_detector_organization_id(detector),
+            organization=_get_detector_organization(detector),
             result=ProcessDetectorsResult(
                 detector_id=detector.id,
                 detector_type=detector.type,
                 project_id=detector.project_id,
                 evaluations=detector_results,
+                evaluation_value=_get_detector_evaluation_value(data_packet),
             ),
         )
 

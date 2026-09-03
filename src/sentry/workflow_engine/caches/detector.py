@@ -46,7 +46,7 @@ def _query_detectors(source_id: str, query_type: str) -> list[Detector]:
             data_sources__source_id=source_id,
             data_sources__type=query_type,
         )
-        .select_related("workflow_condition_group")
+        .select_related("project__organization", "workflow_condition_group")
         .prefetch_related("workflow_condition_group__conditions")
         .distinct()
         .order_by("id")

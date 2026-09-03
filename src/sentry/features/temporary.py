@@ -429,6 +429,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Show top spans chart in weekly email reports
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # Store workflow engine evaluation artifacts in EAP
+    manager.add("organizations:workflow-engine-evaluation-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Disable issue stream detector notifications for metric issues
