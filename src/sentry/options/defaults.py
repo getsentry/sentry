@@ -3591,7 +3591,7 @@ register(
     "delayed_workflow.rollout",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "workflow_engine.associate_error_detectors",
