@@ -1,4 +1,4 @@
-type AgenticProgressStage =
+export type AgenticProgressStage =
   | 'connect_mcp'
   | 'analyze_project'
   | 'create_project'
@@ -9,7 +9,7 @@ type AgenticProgressStage =
   | 'prepare_production'
   | 'check_stack_trace_quality';
 
-type AgenticProgressStageStatus =
+export type AgenticProgressStageStatus =
   | 'active'
   | 'waiting'
   | 'completed'
@@ -17,7 +17,7 @@ type AgenticProgressStageStatus =
   | 'bypassed'
   | 'failed';
 
-type AgenticProgressRunStatus = 'active' | 'completed' | 'failed' | 'cancelled';
+export type AgenticProgressRunStatus = 'active' | 'completed' | 'failed' | 'cancelled';
 
 type Stage<
   Key extends AgenticProgressStage,
