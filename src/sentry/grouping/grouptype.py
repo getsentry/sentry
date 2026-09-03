@@ -15,6 +15,7 @@ from sentry.workflow_engine.processors import (
     DataConditionGroupEvaluation,
     DetectorEvaluation,
 )
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -56,8 +57,12 @@ class ErrorGroupType(GroupType):
     category = GroupCategory.ERROR.value
     default_priority = PriorityLevel.MEDIUM
     released = True
-    detector_settings = DetectorSettings(
+
+
+detector_settings_registry.register(ErrorGroupType.slug)(
+    DetectorSettings(
         handler=ErrorDetectorHandler,
         validator=ErrorDetectorValidator,
         config_schema={"type": "object", "additionalProperties": False},
     )
+)

@@ -26,6 +26,7 @@ from sentry.workflow_engine.handlers.detector.stateful import (
 )
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -270,7 +271,10 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    detector_settings = DetectorSettings(
+
+
+detector_settings_registry.register(UptimeDomainCheckFailure.slug)(
+    DetectorSettings(
         handler=UptimeDetectorHandler,
         validator=UptimeDomainCheckFailureValidator,
         config_schema={
@@ -299,3 +303,4 @@ class UptimeDomainCheckFailure(GroupType):
         },
         filter=~Q(config__mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING),
     )
+)

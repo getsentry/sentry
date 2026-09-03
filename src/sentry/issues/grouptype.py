@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.apps import apps
 from django.db.models import Q
+from django.utils.functional import classproperty
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
@@ -18,7 +19,9 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -262,7 +265,6 @@ class GroupType:
         3600, 60, 5
     )  # default 5 per hour, sliding window of 60 seconds
     notification_config: ClassVar[NotificationConfig] = NotificationConfig()
-    detector_settings: ClassVar[DetectorSettings | None] = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: ClassVar[bool] = True
@@ -275,6 +277,13 @@ class GroupType:
 
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation: ClassVar[bool] = False
+
+    @classproperty
+    def detector_settings(cls) -> DetectorSettings | None:
+        try:
+            return detector_settings_registry.get(cls.slug)
+        except NoRegistrationExistsError:
+            return None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
