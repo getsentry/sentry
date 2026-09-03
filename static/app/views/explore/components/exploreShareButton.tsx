@@ -1,57 +1,57 @@
 import type {Location} from 'history';
-import moment from 'moment-timezone';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 
-import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {getAbsoluteRangeFromPeriod} from 'sentry/utils/duration/getAbsoluteRangeFromPeriod';
+import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export function getExploreShareUrl({
+export function getExploreShareLink({
   datetime,
   location,
-  now = new Date(),
+  now = Date.now(),
 }: {
   datetime: PageFilterDatetime;
   location: Location;
-  now?: Date;
-}): string {
-  const url = new URL(location.pathname, window.location.origin);
-  const params = new URLSearchParams(location.search);
-
+  now?: number;
+}): {frozenRelativePeriod: boolean; url: string} {
   const hasAbsoluteRange = Boolean(datetime.start && datetime.end);
-  const periodHours = datetime.period ? parsePeriodToHours(datetime.period) : -1;
+  const range =
+    !hasAbsoluteRange && datetime.period
+      ? getAbsoluteRangeFromPeriod(datetime.period, now)
+      : null;
 
-  if (!hasAbsoluteRange && periodHours > 0) {
-    const end = moment(now);
-    const start = end.clone().subtract(periodHours, 'hours');
-    params.delete(URL_PARAM.PERIOD);
-    params.set(URL_PARAM.START, getUtcDateString(start));
-    params.set(URL_PARAM.END, getUtcDateString(end));
-  }
+  const url = getPageUrlWithParams(location, params => {
+    if (!range) {
+      return;
+    }
+    for (const key of DATE_TIME_KEYS) {
+      if (key !== URL_PARAM.UTC) {
+        params.delete(key);
+      }
+    }
+    params.set(URL_PARAM.START, getUtcDateString(range.start));
+    params.set(URL_PARAM.END, getUtcDateString(range.end));
+  });
 
-  url.search = params.toString();
-  return url.toString();
+  return {url, frozenRelativePeriod: range !== null};
 }
 
 type ExploreShareButtonProps = {
   traceItemDataset: TraceItemDataset;
-  size?: ButtonProps['size'];
 };
 
-export function ExploreShareButton({
-  traceItemDataset,
-  size = 'xs',
-}: ExploreShareButtonProps) {
+export function ExploreShareButton({traceItemDataset}: ExploreShareButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -59,23 +59,29 @@ export function ExploreShareButton({
 
   return (
     <Button
-      size={size}
+      size="xs"
       variant="secondary"
       icon={<IconUpload />}
       onClick={() => {
-        copy(getExploreShareUrl({datetime: selection.datetime, location}), {
+        const {url, frozenRelativePeriod} = getExploreShareLink({
+          datetime: selection.datetime,
+          location,
+        });
+        copy(url, {
           successMessage: t('Link copied to clipboard'),
           errorMessage: t('Failed to copy link'),
-        }).then(() => {
-          trackAnalytics('explore.share_link_copied', {
-            organization,
-            traceItemDataset,
-            frozen_relative_period: !selection.datetime.start && !selection.datetime.end,
-          });
+        }).then(copied => {
+          if (copied) {
+            trackAnalytics('explore.share_link_copied', {
+              organization,
+              traceItemDataset,
+              frozen_relative_period: frozenRelativePeriod,
+            });
+          }
         });
       }}
       tooltipProps={{
-        title: t('Copy a link to this view with the time range frozen.'),
+        title: t('Copy a link to this view with the current time range.'),
       }}
     >
       {t('Share')}
