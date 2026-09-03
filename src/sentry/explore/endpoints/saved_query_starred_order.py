@@ -11,9 +11,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.explore.savedqueries import starred as starred_queries
+from sentry.explore.savedqueries.types import SavedQueryRef, SavedQueryType
 from sentry.models.organization import Organization
-from sentry.savedqueries import starred as starred_queries
-from sentry.savedqueries.types import SavedQueryRef, SavedQueryType
 
 
 class MemberPermission(OrganizationPermission):

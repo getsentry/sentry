@@ -2,9 +2,9 @@ import pytest
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.explore.savedqueries import starred
+from sentry.explore.savedqueries.types import SavedQueryRef, SavedQueryType
 from sentry.models.organization import Organization
-from sentry.savedqueries import starred
-from sentry.savedqueries.types import SavedQueryRef, SavedQueryType
 from sentry.testutils.cases import TestCase
 
 
