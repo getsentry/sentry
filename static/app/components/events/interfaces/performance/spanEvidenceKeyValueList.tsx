@@ -509,11 +509,7 @@ function SlowDBQueryEvidence({
   const hasExplore = organization.features.includes('visibility-explore-view');
 
   const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
-  const codeLineNumber = getAttributeValue(
-    span.data ?? {},
-    'code.line.number',
-    'number'
-  )?.toString();
+  const codeLineNumber = getAttributeValue(span.data ?? {}, 'code.line.number', 'number');
   const codeFunction = getAttributeValue(span.data ?? {}, 'code.function', 'string');
 
   const queryValue = (

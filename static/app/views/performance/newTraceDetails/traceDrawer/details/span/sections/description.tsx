@@ -80,7 +80,7 @@ export function SpanDescription({
     spanData,
     SpanFields.CODE_LINE_NUMBER,
     'number'
-  )?.toString();
+  );
   const codeFunction = getAttributeValue(spanData, SpanFields.CODE_FUNCTION, 'string');
   const formattedDescription = useMemo(() => {
     if (resolvedModule !== ModuleName.DB) {
