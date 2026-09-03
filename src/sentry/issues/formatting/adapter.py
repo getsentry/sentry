@@ -20,7 +20,9 @@ from sentry.issues.formatting.models import (
     Stacktrace,
     ThreadDetails,
     UserDetails,
+    drop_scrubbed,
 )
+from sentry.utils import json
 
 
 def _entries_by_type(data: Mapping[str, Any]) -> dict[str, Any]:
@@ -182,6 +184,31 @@ def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     return [(label, str(v)) for label, v in candidates if v is not None and str(v) != ""]
 
 
+def _extra(data: Mapping[str, Any]) -> list[tuple[str, str]]:
+    """The response's ``context``: the ``extra`` data a customer's instrumentation attached.
+
+    Distinct from ``contexts``, which is Sentry's own structured device/os/runtime data. Values
+    are arbitrary, so containers are serialized rather than str()'d.
+
+    ``context`` is typed as a mapping but arrives unvalidated, and the adapter runs before any
+    section: raising here would take down the whole render rather than this one block, which is
+    the same trap ``_contexts`` guards against.
+    """
+    context = data.get("context")
+    if not isinstance(context, Mapping):
+        return []
+
+    pairs: list[tuple[str, str]] = []
+    for key, value in context.items():
+        # scrub per leaf rather than per entry, so one filtered key does not drop its siblings
+        cleaned = drop_scrubbed(value)
+        if not key or cleaned is None:
+            continue
+        rendered = cleaned if isinstance(cleaned, str) else json.dumps(cleaned)
+        pairs.append((str(key), rendered))
+    return pairs
+
+
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     entries = _entries_by_type(data)
     tags, transaction_name = _tags(data)
@@ -218,4 +245,5 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         spans=[EvidenceSpan.parse_obj(s) for s in entries.get("spans") or []],
         evidence=_evidence(data),
         metric_alert=_metric_alert(data),
+        extra=_extra(data),
     )
