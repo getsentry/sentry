@@ -31,19 +31,6 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
       <Link to={`/_admin/customers/${row.customer.slug}/`}>{row.customer.name}</Link>
     )}
   </td>,
-  <td key="stripe" style={{textAlign: 'center'}}>
-    <a
-      href={`https://dashboard.stripe.com/search?query=${row.stripeInvoiceID}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`View in Stripe (${row.stripeInvoiceID})`}
-    >
-      View in Stripe
-    </a>
-  </td>,
-  <td key="channel" style={{textAlign: 'center'}}>
-    {row.channel || 'n/a'}
-  </td>,
   <td key="status" style={{textAlign: 'center'}}>
     {row.isPaid ? 'Paid' : row.isClosed ? 'Unpaid' : 'Awaiting payment'}
   </td>,
@@ -125,12 +112,6 @@ export function Invoices() {
           <th key="org">Invoice</th>,
           <th key="customer" style={{width: 150, textAlign: 'center'}}>
             Customer
-          </th>,
-          <th key="stripe" style={{width: 150, textAlign: 'center'}}>
-            View in Stripe
-          </th>,
-          <th key="channel" style={{width: 100, textAlign: 'center'}}>
-            Channel
           </th>,
           <th key="status" style={{width: 100, textAlign: 'center'}}>
             Status
