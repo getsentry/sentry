@@ -21,7 +21,7 @@ function getName(member: SortableMember): string | undefined {
   ) {
     return undefined;
   }
-  if (member.key.type === AST_NODE_TYPES.Identifier) {
+  if (member.key.type === AST_NODE_TYPES.Identifier && !member.computed) {
     return member.key.name;
   }
   if (member.key.type === AST_NODE_TYPES.Literal) {

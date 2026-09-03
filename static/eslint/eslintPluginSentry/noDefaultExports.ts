@@ -90,9 +90,55 @@ function findTopLevelDeclaration(body: TSESTree.ProgramStatement[], name: string
   });
 }
 
-const allowedFilesByConfig = new Map<string, Set<string> | null>();
+interface AllowedFilesCache {
+  allowedFiles: Set<string>;
+  configDirectory: string;
+  importTargetsByFile: Map<string, Set<string>>;
+  modifiedTimesByFile: Map<string, number | undefined>;
+  options: ts.CompilerOptions;
+}
 
-function collectAllowedFiles(configPath: string): Set<string> | undefined {
+const allowedFilesByConfig = new Map<string, AllowedFilesCache | null>();
+// Oxlint keeps JS plugin modules alive in the LSP. Remember each importer so its
+// cached targets can be replaced when that file is linted again.
+const configPathByLazyImporter = new Map<string, string>();
+
+function resolveLazyImportTargets(
+  cache: Pick<AllowedFilesCache, 'configDirectory' | 'options'>,
+  fileName: string,
+  specifiers: string[],
+  resolutionCache = ts.createModuleResolutionCache(
+    cache.configDirectory,
+    name => (ts.sys.useCaseSensitiveFileNames ? name : name.toLowerCase()),
+    cache.options
+  )
+): Set<string> {
+  const targets = new Set<string>();
+  for (const specifier of specifiers) {
+    const resolved = ts.resolveModuleName(
+      specifier,
+      fileName,
+      cache.options,
+      ts.sys,
+      resolutionCache
+    ).resolvedModule?.resolvedFileName;
+    if (resolved) {
+      targets.add(ts.sys.resolvePath(resolved));
+    }
+  }
+  return targets;
+}
+
+function rebuildAllowedFiles(cache: AllowedFilesCache): void {
+  cache.allowedFiles.clear();
+  for (const targets of cache.importTargetsByFile.values()) {
+    for (const target of targets) {
+      cache.allowedFiles.add(target);
+    }
+  }
+}
+
+function collectAllowedFiles(configPath: string): AllowedFilesCache | undefined {
   const config = ts.readConfigFile(configPath, ts.sys.readFile);
   if (config.error) {
     return undefined;
@@ -110,10 +156,16 @@ function collectAllowedFiles(configPath: string): Set<string> | undefined {
     return undefined;
   }
 
-  const allowedFiles = new Set<string>();
+  const cache: AllowedFilesCache = {
+    allowedFiles: new Set(),
+    configDirectory,
+    importTargetsByFile: new Map(),
+    modifiedTimesByFile: new Map(),
+    options: parsed.options,
+  };
   const resolutionCache = ts.createModuleResolutionCache(
     configDirectory,
-    fileName => (ts.sys.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase()),
+    name => (ts.sys.useCaseSensitiveFileNames ? name : name.toLowerCase()),
     parsed.options
   );
 
@@ -126,21 +178,77 @@ function collectAllowedFiles(configPath: string): Set<string> | undefined {
       continue;
     }
 
-    for (const specifier of collectLazyImportSpecifiers(source, fileName)) {
-      const resolved = ts.resolveModuleName(
-        specifier,
-        fileName,
-        parsed.options,
-        ts.sys,
-        resolutionCache
-      ).resolvedModule?.resolvedFileName;
-      if (resolved) {
-        allowedFiles.add(ts.sys.resolvePath(resolved));
-      }
+    const specifiers = collectLazyImportSpecifiers(source, fileName);
+    if (specifiers.length > 0) {
+      const resolvedFileName = ts.sys.resolvePath(fileName);
+      cache.importTargetsByFile.set(
+        resolvedFileName,
+        resolveLazyImportTargets(cache, resolvedFileName, specifiers, resolutionCache)
+      );
+      cache.modifiedTimesByFile.set(
+        resolvedFileName,
+        ts.sys.getModifiedTime?.(resolvedFileName)?.getTime()
+      );
+      configPathByLazyImporter.set(resolvedFileName, configPath);
     }
   }
 
-  return allowedFiles;
+  rebuildAllowedFiles(cache);
+  return cache;
+}
+
+function updateAllowedFilesForSource(fileName: string, source: string): void {
+  if (allowedFilesByConfig.size === 0) {
+    return;
+  }
+
+  const resolvedFileName = ts.sys.resolvePath(fileName);
+  const knownConfigPath = configPathByLazyImporter.get(resolvedFileName);
+  if (!knownConfigPath && !mayContainDynamicImport(source)) {
+    return;
+  }
+
+  const configPath =
+    knownConfigPath ??
+    ts.findConfigFile(getDirectory(resolvedFileName), ts.sys.fileExists, 'tsconfig.json');
+  const cache = configPath ? allowedFilesByConfig.get(configPath) : undefined;
+  if (!configPath || !cache) {
+    return;
+  }
+
+  const specifiers = collectLazyImportSpecifiers(source, resolvedFileName);
+  if (specifiers.length === 0) {
+    cache.importTargetsByFile.delete(resolvedFileName);
+    cache.modifiedTimesByFile.delete(resolvedFileName);
+    configPathByLazyImporter.delete(resolvedFileName);
+  } else {
+    cache.importTargetsByFile.set(
+      resolvedFileName,
+      resolveLazyImportTargets(cache, resolvedFileName, specifiers)
+    );
+    cache.modifiedTimesByFile.set(
+      resolvedFileName,
+      ts.sys.getModifiedTime?.(resolvedFileName)?.getTime()
+    );
+    configPathByLazyImporter.set(resolvedFileName, configPath);
+  }
+  rebuildAllowedFiles(cache);
+}
+
+function refreshChangedImporters(cache: AllowedFilesCache, targetFileName: string): void {
+  if (!cache.allowedFiles.has(targetFileName)) {
+    return;
+  }
+
+  for (const [importer, targets] of [...cache.importTargetsByFile]) {
+    if (!targets.has(targetFileName)) {
+      continue;
+    }
+    const modifiedTime = ts.sys.getModifiedTime?.(importer)?.getTime();
+    if (modifiedTime !== cache.modifiedTimesByFile.get(importer)) {
+      updateAllowedFilesForSource(importer, ts.sys.readFile(importer) ?? '');
+    }
+  }
 }
 
 function getAllowedFiles(fileName: string): Set<string> | undefined {
@@ -156,7 +264,12 @@ function getAllowedFiles(fileName: string): Set<string> | undefined {
   if (!allowedFilesByConfig.has(configPath)) {
     allowedFilesByConfig.set(configPath, collectAllowedFiles(configPath) ?? null);
   }
-  return allowedFilesByConfig.get(configPath) ?? undefined;
+  const cache = allowedFilesByConfig.get(configPath);
+  if (!cache) {
+    return undefined;
+  }
+  refreshChangedImporters(cache, ts.sys.resolvePath(fileName));
+  return cache.allowedFiles;
 }
 
 export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
@@ -175,6 +288,7 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
 
   create(context) {
     const currentFileName = ts.sys.resolvePath(context.filename);
+    updateAllowedFilesForSource(currentFileName, context.sourceCode.text);
 
     function visitDeclaration(
       exported: TSESTree.Node,

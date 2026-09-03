@@ -12,6 +12,10 @@ ruleTester.run('sort-interface-keys', sortInterfaceKeys, {
   valid: [
     {code: 'interface Props { alpha: string; beta?: string }', options},
     {code: 'type Props = { alpha: string; beta?: string }', options},
+    {
+      code: 'declare const key: unique symbol; interface Props { zeta: string; [key]: string; alpha: string }',
+      options,
+    },
   ],
   invalid: [
     {

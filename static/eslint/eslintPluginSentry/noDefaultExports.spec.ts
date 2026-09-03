@@ -1,4 +1,7 @@
+// oxlint-disable-next-line import-js/no-extraneous-dependencies
+import parser from '@typescript-eslint/parser';
 import {RuleTester} from '@typescript-eslint/rule-tester';
+import {TSESLint} from '@typescript-eslint/utils';
 
 import {
   collectLazyImportSpecifiers,
@@ -63,6 +66,35 @@ it.each([
   ],
 ])('does not collect a %s', (_description, source) => {
   expect(collectLazyImportSpecifiers(source)).toEqual([]);
+});
+
+it('updates the cached allowlist when a lazy importer is linted again', () => {
+  const importer = `${__dirname}/fixtures/lazyImporter.ts`;
+  const target = `${__dirname}/fixtures/lazyTarget.ts`;
+  const importerSource = "export const load = () => import('./lazyTarget');";
+  const targetSource = 'export default function Target() { return null; }';
+
+  const lint = (code: string, filename: string) =>
+    new TSESLint.Linter().verify(
+      code,
+      [
+        {
+          files: ['**/*.{ts,tsx}'],
+          languageOptions: {parser},
+          plugins: {sentry: {rules: {'no-default-exports': noDefaultExports}}},
+          rules: {'sentry/no-default-exports': 'error'},
+        },
+      ],
+      {filename}
+    );
+
+  expect(lint(targetSource, target)).toHaveLength(0);
+
+  expect(lint('export const load = () => null;', importer)).toHaveLength(0);
+  expect(lint(targetSource, target)).toHaveLength(1);
+
+  expect(lint(importerSource, importer)).toHaveLength(0);
+  expect(lint(targetSource, target)).toHaveLength(0);
 });
 
 const ruleTester = new RuleTester({

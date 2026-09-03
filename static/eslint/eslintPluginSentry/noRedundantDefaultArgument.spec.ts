@@ -1,4 +1,7 @@
+// oxlint-disable-next-line import-js/no-extraneous-dependencies
+import parser from '@typescript-eslint/parser';
 import {RuleTester} from '@typescript-eslint/rule-tester';
+import {TSESLint} from '@typescript-eslint/utils';
 
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument';
 
@@ -8,6 +11,44 @@ const ruleTester = new RuleTester({
       ecmaFeatures: {jsx: true},
     },
   },
+});
+
+it('refreshes cached imported defaults after the source file changes', () => {
+  const consumer = `${__dirname}/fixtures/consumer.ts`;
+  const dependency = `${__dirname}/fixtures/mutableImportedDefault.ts`;
+  const originalDependency = 'export function mutableDefault(value = 1) {}';
+
+  const lint = (code: string, filename: string) =>
+    new TSESLint.Linter().verify(
+      code,
+      [
+        {
+          files: ['**/*.ts'],
+          languageOptions: {parser},
+          plugins: {
+            sentry: {
+              rules: {'no-redundant-default-argument': noRedundantDefaultArgument},
+            },
+          },
+          rules: {'sentry/no-redundant-default-argument': 'error'},
+        },
+      ],
+      {filename}
+    );
+
+  const callMutableDefault = (value: number) =>
+    lint(
+      `import {mutableDefault} from './mutableImportedDefault'; mutableDefault(${value});`,
+      consumer
+    );
+
+  expect(callMutableDefault(1)).toHaveLength(1);
+  expect(lint('export function mutableDefault(value = 2) {}', dependency)).toHaveLength(
+    0
+  );
+  expect(callMutableDefault(1)).toHaveLength(0);
+  expect(callMutableDefault(2)).toHaveLength(1);
+  expect(lint(originalDependency, dependency)).toHaveLength(0);
 });
 
 ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {

@@ -283,11 +283,19 @@ interface SyntacticResolver {
   defaultsByExport: Map<string, FunctionDefaults | null>;
   moduleResolutionCache: ts.ModuleResolutionCache;
   options: ts.CompilerOptions;
-  sourceFiles: Map<string, ts.SourceFile | null>;
+  sourceFiles: Map<string, CachedSourceFile>;
+}
+
+interface CachedSourceFile {
+  modifiedTime: number | undefined;
+  sourceFile: ts.SourceFile | null;
 }
 
 const configPathByDirectory = new Map<string, string | null>();
 const resolverByConfig = new Map<string, SyntacticResolver | null>();
+// Oxlint keeps JS plugin modules alive in the LSP. Index cached source files so
+// relinting an edited dependency can refresh its AST without rebuilding a Program.
+const resolversBySourceFile = new Map<string, Set<SyntacticResolver>>();
 
 function getDirectory(fileName: string): string {
   return fileName.replace(/[/\\][^/\\]+$/u, '');
@@ -344,26 +352,58 @@ function getSyntacticResolver(fileName: string): SyntacticResolver | undefined {
   return resolverByConfig.get(configPath) ?? undefined;
 }
 
+function parseSourceFile(fileName: string, source: string): ts.SourceFile {
+  return ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    fileName.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+}
+
+function updateCachedSourceFile(fileName: string, source: string): void {
+  const resolvedFileName = ts.sys.resolvePath(fileName);
+  const resolvers = resolversBySourceFile.get(resolvedFileName);
+  if (!resolvers) {
+    return;
+  }
+
+  const staleResolvers = [...resolvers].filter(
+    resolver => resolver.sourceFiles.get(resolvedFileName)?.sourceFile?.text !== source
+  );
+  if (staleResolvers.length === 0) {
+    return;
+  }
+
+  const sourceFile = parseSourceFile(resolvedFileName, source);
+  const modifiedTime = ts.sys.getModifiedTime?.(resolvedFileName)?.getTime();
+  for (const resolver of staleResolvers) {
+    resolver.sourceFiles.set(resolvedFileName, {modifiedTime, sourceFile});
+  }
+}
+
 function getSourceFile(
   resolver: SyntacticResolver,
   fileName: string
 ): ts.SourceFile | undefined {
   const resolvedFileName = ts.sys.resolvePath(fileName);
-  if (resolver.sourceFiles.has(resolvedFileName)) {
-    return resolver.sourceFiles.get(resolvedFileName) ?? undefined;
+  const modifiedTime = ts.sys.getModifiedTime?.(resolvedFileName)?.getTime();
+  const cached = resolver.sourceFiles.get(resolvedFileName);
+  if (cached && modifiedTime !== undefined && cached.modifiedTime === modifiedTime) {
+    return cached.sourceFile ?? undefined;
   }
 
   const source = ts.sys.readFile(resolvedFileName);
-  const sourceFile = source
-    ? ts.createSourceFile(
-        resolvedFileName,
-        source,
-        ts.ScriptTarget.Latest,
-        false,
-        resolvedFileName.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
-      )
-    : undefined;
-  resolver.sourceFiles.set(resolvedFileName, sourceFile ?? null);
+  const sourceFile = source ? parseSourceFile(resolvedFileName, source) : undefined;
+  const cachedSourceFile = sourceFile ?? null;
+  resolver.sourceFiles.set(resolvedFileName, {
+    modifiedTime,
+    sourceFile: cachedSourceFile,
+  });
+  const resolvers = resolversBySourceFile.get(resolvedFileName) ?? new Set();
+  resolvers.add(resolver);
+  resolversBySourceFile.set(resolvedFileName, resolvers);
   return sourceFile;
 }
 
@@ -626,12 +666,12 @@ function getImportedBinding(
 }
 
 function getSyntacticImportedDefaults(
+  resolver: SyntacticResolver,
   fileName: string,
   variable: Scope.Variable
 ): FunctionDefaults | undefined {
   const imported = getImportedBinding(variable);
-  const resolver = imported ? getSyntacticResolver(fileName) : undefined;
-  return imported && resolver
+  return imported
     ? resolveModuleExport(
         resolver,
         fileName,
@@ -735,9 +775,11 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
   },
   create(context) {
     const currentFileName = ts.sys.resolvePath(context.filename);
+    updateCachedSourceFile(currentFileName, context.sourceCode.text);
     const defaultsByVariable = new Map<Scope.Variable, FunctionDefaults>();
     const importedDefaultsByVariable = new Map<Scope.Variable, FunctionDefaults | null>();
     const stableByVariable = new WeakMap<Scope.Variable, boolean>();
+    let syntacticResolver: SyntacticResolver | null | undefined;
     const calls: Array<{
       node: TSESTree.CallExpression;
       variable: Scope.Variable;
@@ -764,7 +806,19 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
         return importedDefaultsByVariable.get(variable);
       }
 
-      const defaults = getSyntacticImportedDefaults(currentFileName, variable);
+      if (!getImportedBinding(variable)) {
+        importedDefaultsByVariable.set(variable, null);
+        return;
+      }
+
+      if (syntacticResolver === undefined) {
+        syntacticResolver = getSyntacticResolver(currentFileName) ?? null;
+        syntacticResolver?.defaultsByExport.clear();
+        syntacticResolver?.moduleResolutionCache.clear();
+      }
+      const defaults = syntacticResolver
+        ? getSyntacticImportedDefaults(syntacticResolver, currentFileName, variable)
+        : undefined;
       importedDefaultsByVariable.set(variable, defaults ?? null);
       return defaults;
     }
