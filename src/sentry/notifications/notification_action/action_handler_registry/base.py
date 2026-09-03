@@ -5,7 +5,7 @@ from typing import Any, override
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
+from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
 from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
 
@@ -73,4 +73,11 @@ class TicketingActionHandler(IntegrationActionHandler, ABC):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        execute_via_issue_alert_handler(invocation)
+        # Route through the group type registry so `Activity` events (e.g. an
+        # issue being resolved) are dispatched to the activity handler
+        # registry instead of always assuming a `GroupEvent`, which raises
+        # loudly in `get_rule_futures`. Ticketing action types are registered
+        # with `UnsupportedActivityHandler` in the activity registry, and
+        # `GroupEvent`s still fall through to the issue alert handler as
+        # before.
+        execute_via_group_type_registry(invocation)
