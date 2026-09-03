@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from typing import TypedDict
 from unittest import mock
 
@@ -42,6 +43,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.redis import clusters
@@ -1374,6 +1376,68 @@ class InactiveUserIdentityTest(AuthIdentityHandlerTest):
         auth_identity.refresh_from_db()
         assert auth_identity.user_id == inactive_user.id
         assert auth_identity.user_id != requesting_user.id
+
+
+@control_silo_test
+class ApplySSOAvatarTest(AuthIdentityHandlerTest):
+    """Tests for syncing the user's profile picture from a SAML identity on login."""
+
+    def _saml_handler_with(self, identity):
+        with assume_test_silo_mode(SiloMode.CELL):
+            rpc_organization = serialize_rpc_organization(self.organization)
+        provider = DummyProvider()
+        # Only SAML providers populate identity["avatar"]; emulate that here.
+        provider.is_saml = True
+        return AuthIdentityHandler(
+            self.auth_provider_inst,
+            provider,
+            rpc_organization,
+            self.request,
+            identity,
+        )
+
+    def test_saml_avatar_applied(self) -> None:
+        user = self.create_user()
+        avatar_b64 = b64encode(self.load_fixture("avatar.jpg")).decode()
+        handler = self._saml_handler_with({**self.identity, "avatar": avatar_b64})
+
+        handler._apply_sso_avatar(user)
+
+        avatar = UserAvatar.objects.get(user_id=user.id)
+        assert avatar.get_avatar_type_display() == "upload"
+        assert avatar.get_file_id()
+
+    def test_non_saml_provider_does_not_apply_avatar(self) -> None:
+        user = self.create_user()
+        avatar_b64 = b64encode(self.load_fixture("avatar.jpg")).decode()
+        # _handler_with uses a plain DummyProvider (is_saml is falsy).
+        handler = self._handler_with({**self.identity, "avatar": avatar_b64})
+
+        handler._apply_sso_avatar(user)
+
+        assert not UserAvatar.objects.filter(user_id=user.id).exists()
+
+    def test_missing_avatar_attribute_is_noop(self) -> None:
+        user = self.create_user()
+        handler = self._saml_handler_with(self.identity)
+
+        handler._apply_sso_avatar(user)
+
+        assert not UserAvatar.objects.filter(user_id=user.id).exists()
+
+    def test_avatar_failure_does_not_break_login(self) -> None:
+        user = self.create_user()
+        avatar_b64 = b64encode(self.load_fixture("avatar.jpg")).decode()
+        handler = self._saml_handler_with({**self.identity, "avatar": avatar_b64})
+
+        with mock.patch(
+            "sentry.auth.helper.user_service.update_user_avatar",
+            side_effect=Exception("boom"),
+        ):
+            # The failure is swallowed so SSO login still completes.
+            handler._apply_sso_avatar(user)
+
+        assert not UserAvatar.objects.filter(user_id=user.id).exists()
 
 
 @control_silo_test
