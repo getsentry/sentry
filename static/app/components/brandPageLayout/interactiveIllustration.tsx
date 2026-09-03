@@ -311,7 +311,7 @@ function InteractiveIllustrationContent({
       >
         <MaskDefinitions aria-hidden="true">
           <defs>
-            <BubblePaths id={bubblePathsId} ref={bubblePaths} />
+            <g id={bubblePathsId} ref={bubblePaths} />
             <mask
               id={bubbleRevealMaskId}
               x="0"
@@ -649,14 +649,6 @@ const MaskDefinitions = styled('svg')`
   width: 100%;
   height: 100%;
   pointer-events: none;
-`;
-
-const BubblePaths = styled('g')`
-  path {
-    transform-box: fill-box;
-    transform-origin: center;
-    will-change: transform, opacity;
-  }
 `;
 
 const BubbleMaskLayer = styled('div')<{$maskId: string}>`
