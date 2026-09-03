@@ -2,6 +2,7 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
@@ -56,6 +57,37 @@ class TestMSTeamsActionValidator(TestCase):
             "all": [
                 ErrorDetail(
                     string='The channel or user "asdf" could not be found in the msteams Team.',
+                    code="invalid",
+                )
+            ]
+        }
+
+    @mock.patch("sentry.integrations.msteams.actions.form.find_channel_id")
+    def test_validate__badsyntax_channel(self, mock_find_channel_id: mock.MagicMock) -> None:
+        mock_find_channel_id.side_effect = ApiInvalidRequestError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+        )
+
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "config": {
+                    "targetType": "specific",
+                    "targetDisplay": "19%3A81337ff5270f4f52a00d16e812c90dff%40",
+                },
+            },
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is False
+        assert validator.errors == {
+            "all": [
+                ErrorDetail(
+                    string=(
+                        'The channel or user "19%3A81337ff5270f4f52a00d16e812c90dff%40" '
+                        "could not be found in the msteams Team."
+                    ),
                     code="invalid",
                 )
             ]
