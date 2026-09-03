@@ -238,24 +238,8 @@ class TestSeerAgentClient(TestCase):
         assert body["agent_run_options"]["code_review_enabled"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    def test_client_init_raises_when_pr_ctx_tools_flag_disabled(self, mock_access):
-        mock_access.return_value = (True, None)
-
-        with pytest.raises(SeerPermissionError):
-            SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @with_feature("organizations:autofix-pr-iteration")
-    def test_client_init_succeeds_when_pr_ctx_tools_flag_enabled(self, mock_access):
-        mock_access.return_value = (True, None)
-
-        client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
-        assert client.enable_pr_context_tools is True
-
-    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
-    @with_feature("organizations:autofix-pr-iteration-manual")
-    def test_client_init_succeeds_when_manual_pr_ctx_tools_flag_enabled(self, mock_access):
-        """PR context tools back both iteration flows, so the manual flag alone grants them."""
+    def test_client_init_leaves_pr_ctx_tools_gate_to_the_caller(self, mock_access):
+        """No iteration flag is set: the client still honours what it was passed."""
         mock_access.return_value = (True, None)
 
         client = SeerAgentClient(self.organization, self.user, enable_pr_context_tools=True)
@@ -280,7 +264,6 @@ class TestSeerAgentClient(TestCase):
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @patch("sentry.seer.agent.client.collect_user_org_context")
-    @with_feature("organizations:autofix-pr-iteration")
     def test_start_run_passes_enable_pr_context_tools(
         self, mock_collect_context, mock_post, mock_access
     ):
@@ -581,7 +564,6 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
-    @with_feature("organizations:autofix-pr-iteration")
     def test_continue_run_passes_enable_pr_context_tools(self, mock_post, mock_access):
         mock_access.return_value = (True, None)
         mock_post.return_value = self._mock_run_response(run_id=789)

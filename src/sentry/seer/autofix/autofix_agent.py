@@ -37,7 +37,6 @@ from sentry.seer.autofix.artifact_schemas import (
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.constants import (
-    ITERATION_FLAG,
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
 )
@@ -87,10 +86,6 @@ class NoSeerQuotaException(Exception):
 
 
 class PrIterationNoPullRequestException(Exception):
-    pass
-
-
-class PrIterationNotEnabledException(Exception):
     pass
 
 
@@ -592,12 +587,6 @@ def trigger_autofix_agent(
 
     config = STEP_CONFIGS[step]
 
-    # Either flag enables the PR_ITERATION step itself: automated CI iteration runs
-    # under `autofix-pr-iteration`, human-triggered iteration under the `-manual`
-    # variant. Both reach this function via `trigger_autofix_agent`.
-    pr_iteration_enabled = features.has(ITERATION_FLAG, group.organization) or features.has(
-        MANUAL_FLAG, group.organization
-    )
     is_iteration_step = step == AutofixStep.PR_ITERATION
 
     client = get_autofix_agent_client(
@@ -614,9 +603,6 @@ def trigger_autofix_agent(
 
     iteration_index: int | None = None
     if is_iteration_step:
-        if not pr_iteration_enabled:
-            raise PrIterationNotEnabledException()
-
         if run_state is None or not run_state.repo_pr_states:
             raise PrIterationNoPullRequestException()
 
