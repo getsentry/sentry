@@ -331,7 +331,7 @@ function AgenticProgressMeta({
   }
 
   return (
-    <Flex align="center" justify={isComplete ? 'end' : 'between'} gap="md">
+    <Flex align="center" justify={isComplete ? 'end' : 'between'} gap="md" padding="0 lg">
       {isComplete ? null : (
         <Flex align="center" gap="sm">
           <StatusIndicator variant="accent" />
