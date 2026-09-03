@@ -275,7 +275,7 @@
     "react-refresh": "0.18.0",
     "run-on-changed": "0.4.0",
     "selfsigned": "5.5.0",
-    "stylelint": "16.10.0",
+    "stylelint": "16.26.1",
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.46.2",
     "tinyglobby": "0.2.16",
