@@ -158,7 +158,6 @@ class IntegrationProxyRequestValidator:
     """
 
     proxy_path: str
-    log_context: dict[str, Any]
 
     # Populated by the validation steps below; each stays None if validation never got that far.
     integration: Integration
@@ -170,11 +169,6 @@ class IntegrationProxyRequestValidator:
         self.request = request
         # Removes leading slashes as it can result in incorrect urls being generated
         self.proxy_path = trim_leading_slashes(request.headers.get(PROXY_PATH, ""))
-        self.log_context = {
-            "method": request.method,
-            "path": self.proxy_path,
-            "host": request.headers.get("Host"),
-        }
 
         self._validate()
 
@@ -206,7 +200,6 @@ class IntegrationProxyRequestValidator:
     def _validate_silo_mode(self):
         is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         if not is_correct_silo:
-            self.log_context["silo_mode"] = SiloMode.get_current_mode().value
             raise IntegrationProxyRequestValidationException(
                 failure_type=IntegrationProxyFailureMetricType.INVALID_MODE,
                 integration_context={
@@ -310,7 +303,6 @@ class IntegrationProxyRequestValidator:
         integration = org_integration.integration
         self.integration = integration
         if not integration or integration.status is not ObjectStatus.ACTIVE:
-            logger.info("integration_proxy.invalid_integration", extra=self.log_context)
             raise IntegrationProxyRequestValidationException(
                 failure_type=IntegrationProxyFailureMetricType.INVALID_INTEGRATION,
                 integration_context={
@@ -442,9 +434,6 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 return HttpResponseBadRequest()
 
             self.proxy_path = validator.proxy_path
-            # Share the validator's dict so keys added on either side are logged together.
-            self.log_extra = validator.log_context
-
             self.client = validator.client
 
             _add_metric(metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0)
@@ -453,7 +442,15 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             base_url = base_url.rstrip("/")
 
             full_url = urljoin(f"{base_url}/", self.proxy_path)
-            self.log_extra["full_url"] = full_url
+
+            self.log_extra = {
+                "full_url": full_url,
+                "method": request.method,
+                "path": self.proxy_path,
+                "host": request.headers.get("Host"),
+                "integration_id": validator.integration.id,
+                "organization_id": validator.organization_integration.organization_id,
+            }
             headers = clean_outbound_headers(request.headers)
 
         with IntegrationProxyEvent(
