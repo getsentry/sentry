@@ -134,8 +134,8 @@ describe('project renders and toggles', () => {
   it('explains how to add notification actions', async () => {
     render(<SpikeProtectionProjects />);
 
-    const projectsHeader = await screen.findByText('Projects');
-    await userEvent.hover(projectsHeader);
+    const infoTip = await screen.findByRole('img', {name: 'More information'});
+    await userEvent.hover(infoTip);
 
     expect(
       await screen.findByText('Expand a project to add a notification action')
