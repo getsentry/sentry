@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,22 +7,34 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 import {ScmMessagingProviderRow} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {
   ScmMessagingActiveRow,
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import {DEFAULT_SCM_FEATURES} from 'sentry/components/onboarding/scm/scmPlatformHelpers';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {
   isEligibleForIssueAlerts,
   isIntegrationActive,
   useScmMessagingSetupValidation,
 } from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
+import {useScmProjectCreation} from 'sentry/components/onboarding/scm/useScmProjectCreation';
 import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
+import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
+import {
+  buildIntegrationAction,
+  providerDetails,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  getRequestDataFragment,
+  type RequestDataFragment,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import type {StepProps} from './types';
 
@@ -35,20 +47,34 @@ export const SCM_MESSAGING_TITLE = t('Get alerts where your team works');
 type MessagingProviderList = ReturnType<typeof useScmMessagingProviders>['providers'];
 
 interface ScmMessagingProps {
+  createdProjectSlug: string | undefined;
   messagingSetup: ScmMessagingSetup;
   onMessagingSetupChange: (messagingSetup: ScmMessagingSetup) => void;
+  onProjectCreated: (slug: string) => void;
+  selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK;
+  selectedRepository: Repository | undefined;
   genBackButton?: StepProps['genBackButton'];
   onComplete?: StepProps['onComplete'];
 }
 
 export function ScmMessaging({
+  createdProjectSlug,
   genBackButton,
   messagingSetup,
   onMessagingSetupChange,
+  onProjectCreated,
   onComplete,
+  selectedFeatures,
   selectedPlatform,
+  selectedRepository,
 }: ScmMessagingProps) {
+  const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
+    createdProjectSlug,
+    onProjectCreated,
+    selectedRepository,
+  });
+  const [submissionMode, setSubmissionMode] = useState<'continue' | 'setup-later'>();
   const validation = useScmMessagingSetupValidation({
     messagingSetup,
     onMessagingSetupChange,
@@ -67,18 +93,75 @@ export function ScmMessaging({
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
+  const getIntegrationAction = useCallback(
+    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
+      if (!shouldCreateRule || messagingSetup.mode !== 'selected') {
+        return;
+      }
 
-  // Continue creates the project and alert rules. It renders as soon as a
-  // destination is selected so Set up later does not shift, but stays disabled
-  // until the destination is conclusively revalidated.
-  const canContinue = validation.isValid;
+      const channelTargetedBy =
+        providerDetails[messagingSetup.providerKey].channelTargetedBy;
+      return buildIntegrationAction({
+        provider: messagingSetup.providerKey,
+        integrationId: messagingSetup.integrationId,
+        channel: messagingSetup[channelTargetedBy],
+      });
+    },
+    [messagingSetup]
+  );
+
+  const isSubmitting = isCreating || submissionMode !== undefined;
+
+  // Continue creates the project and alert rules, so it must wait for a
+  // conclusively revalidated destination — not merely the absence of a
+  // problem, which is briefly true before the stale-check effect runs.
+  const canContinue = validation.isValid && !isDataPending && !isSubmitting;
   const showContinue = messagingSetup.mode === 'selected';
 
-  const handleContinue = () => onComplete?.();
+  const submitProject = async ({
+    includeMessagingRule,
+  }: {
+    includeMessagingRule: boolean;
+  }) => {
+    await createOrReuseProject({
+      platform: selectedPlatform,
+      alertRuleConfig: includeMessagingRule
+        ? getRequestDataFragment()
+        : {defaultRules: true},
+      getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
+      onSuccess: () => {
+        // Record the skip only on success: a failed creation keeps the staged
+        // destination (and the Continue button) intact on the step.
+        if (!includeMessagingRule) {
+          onMessagingSetupChange({mode: 'skipped'});
+        }
+        onComplete?.(selectedPlatform, {
+          product: selectedFeatures ?? DEFAULT_SCM_FEATURES,
+        });
+      },
+    });
+  };
 
-  const handleSetupLater = () => {
-    onMessagingSetupChange({mode: 'skipped'});
-    onComplete?.();
+  const handleContinue = async () => {
+    if (messagingSetup.mode !== 'selected' || !canContinue) {
+      return;
+    }
+
+    setSubmissionMode('continue');
+    try {
+      await submitProject({includeMessagingRule: true});
+    } finally {
+      setSubmissionMode(undefined);
+    }
+  };
+
+  const handleSetupLater = async () => {
+    setSubmissionMode('setup-later');
+    try {
+      await submitProject({includeMessagingRule: false});
+    } finally {
+      setSubmissionMode(undefined);
+    }
   };
 
   const handleInstallComplete = async (providerKey: ScmMessagingProviderKey) => {
@@ -232,6 +315,8 @@ export function ScmMessaging({
                   variant="secondary"
                   analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
                   analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
+                  busy={submissionMode === 'setup-later'}
+                  disabled={isDataPending || isSubmitting}
                   onClick={handleSetupLater}
                 >
                   {t('Set up later')}
@@ -240,9 +325,10 @@ export function ScmMessaging({
                   <Button
                     size="sm"
                     variant="primary"
-                    disabled={!canContinue}
                     analyticsEventKey="onboarding.scm_messaging_continue_clicked"
                     analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
+                    busy={submissionMode === 'continue'}
+                    disabled={!canContinue}
                     onClick={handleContinue}
                   >
                     {t('Continue')}
