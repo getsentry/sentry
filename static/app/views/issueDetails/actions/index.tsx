@@ -266,7 +266,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         itemIds: [group.id],
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
 
           addSuccessMessage(t('Issue deleted'));

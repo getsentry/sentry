@@ -291,6 +291,45 @@ describe('GroupActions', () => {
       );
     });
 
+    it('does not report success or navigate when deletion fails', async () => {
+      const org = OrganizationFixture({
+        ...organization,
+        access: [...organization.access, 'event:admin'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        statusCode: 500,
+      });
+      const initialPath = `/organizations/${org.slug}/issues/${group.id}/`;
+      const {router} = render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions group={group} project={project} disabled={false} event={null} />
+          <Indicators />
+        </Fragment>,
+        {
+          organization: org,
+          initialRouterConfig: {
+            location: {pathname: initialPath},
+            route: '/organizations/:orgId/issues/:groupId/',
+          },
+        }
+      );
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Delete'})
+      );
+
+      expect(
+        await screen.findByText('Unable to delete events. Please try again.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Issue deleted')).not.toBeInTheDocument();
+      expect(router.location.pathname).toBe(initialPath);
+    });
+
     it('delete for issue platform', async () => {
       const org = OrganizationFixture({
         ...organization,
