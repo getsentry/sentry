@@ -18,6 +18,7 @@ from sentry.hybridcloud.tasks.backfill_outboxes import (
     WATERMARK_VERSION_METRIC,
     _backfill_models,
     _get_redis_client,
+    _report_watermark_for_model,
     backfill_outboxes_for,
     get_backfill_key,
     get_processing_state,
@@ -423,3 +424,36 @@ def test_backfill_stops_at_the_budget() -> None:
 
     assert seen, "the walk never reached a model"
     assert [size for size in seen if size <= 0] == []
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_names_the_table_it_lost() -> None:
+    """The counters are what an alert reads, so they have to say which table."""
+    reset_processing_state()
+    kept = AuthProvider._meta.db_table
+    set_processing_state(kept, 7, 1)
+
+    with patch("sentry.hybridcloud.tasks.backfill_outboxes.metrics") as metrics_mock:
+        backfill_outboxes_for(SiloMode.CONTROL, scheduled_count=10_000)
+
+    missing = {
+        call.kwargs["tags"]["table_name"]
+        for call in metrics_mock.incr.call_args_list
+        if call.args[0] == WATERMARK_MISSING_METRIC
+    }
+    assert kept not in missing
+    assert missing == {m._meta.db_table for m in _backfill_models(SiloMode.CONTROL)} - {kept}
+
+
+@django_db_all
+@no_silo_test
+def test_watermark_report_hands_back_the_stored_pair() -> None:
+    """The dual write mirrors this pair, so the report has to return it."""
+    reset_processing_state()
+    table_name = AuthProvider._meta.db_table
+    set_processing_state(table_name, 8080, 2)
+
+    assert _report_watermark_for_model(AuthProvider, force_synchronous=False) == (8080, 2)
+    # An absent key reports itself and yields nothing to mirror.
+    assert _report_watermark_for_model(ApiToken, force_synchronous=False) is None
