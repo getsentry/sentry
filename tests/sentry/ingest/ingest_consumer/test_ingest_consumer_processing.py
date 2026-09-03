@@ -731,10 +731,14 @@ def test_individual_attachments(
 ):
     retention_days = 66
 
+    # This patches `features.has` wholesale, which also switches on
+    # `projects:defer-attachment-storage` and would route the `without_group` cases into
+    # `PendingEventAttachment`. Force just that flag off so this test keeps covering the
+    # non-deferred path; `test_individual_attachment_before_event` covers the other one.
     with patch(
         "sentry.features.has",
         side_effect=lambda name, *a, **kw: (
-            feature_enabled if name == "organizations:event-attachments" else False
+            False if name == "projects:defer-attachment-storage" else feature_enabled
         ),
     ):
         event_id = uuid.uuid4().hex
