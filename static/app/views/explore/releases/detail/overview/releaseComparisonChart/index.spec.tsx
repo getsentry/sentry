@@ -6,11 +6,13 @@ import {
   SessionUserCountByStatusFixture,
 } from 'sentry-fixture/sessions';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 
-import type {ReleaseProject} from 'sentry/types/release';
+import {type ReleaseProject, ReleaseComparisonChartType} from 'sentry/types/release';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ReleaseComparisonChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart';
+import {ReleaseEventsChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart/releaseEventsChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const organization = OrganizationFixture();
@@ -180,5 +182,97 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(await screen.findAllByRole('radio')).toHaveLength(1);
     expect(screen.queryByLabelText(/toggle chart/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/toggle additional/i)).not.toBeInTheDocument();
+  });
+
+  it('queries the spans dataset for transaction totals', async () => {
+    const performanceOrganization = OrganizationFixture({
+      features: [...organization.features, 'performance-view'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${performanceOrganization.slug}/events-stats/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${performanceOrganization.slug}/issues-count/`,
+      body: {},
+    });
+    const eventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${performanceOrganization.slug}/events/`,
+      body: {
+        data: [{'failure_rate()': 0.1, 'count()': 100}],
+        meta: {fields: {'failure_rate()': 'percentage', 'count()': 'integer'}},
+      },
+    });
+
+    render(
+      <ReleaseComparisonChart
+        release={release}
+        releaseSessions={releaseSessions}
+        allSessions={allSessions}
+        loading={false}
+        reloading={false}
+        errored={false}
+        project={project}
+        api={api}
+        hasHealthData
+      />,
+      {
+        organization: performanceOrganization,
+        initialRouterConfig,
+      }
+    );
+
+    await waitFor(() => {
+      expect(eventsRequest).toHaveBeenCalledWith(
+        `/organizations/${performanceOrganization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: DiscoverDatasets.SPANS,
+            query: expect.stringContaining('is_transaction:true'),
+          }),
+        })
+      );
+    });
+  });
+
+  it.each([
+    [ReleaseComparisonChartType.FAILURE_RATE, 2],
+    [ReleaseComparisonChartType.TRANSACTION_COUNT, 1],
+  ])('queries the spans dataset for the %s timeseries', async (chartType, callCount) => {
+    const eventsStatsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      body: {data: []},
+    });
+
+    render(
+      <ReleaseEventsChart
+        release={release}
+        project={project}
+        chartType={chartType}
+        value={null}
+        diff={null}
+        period="14d"
+      />,
+      {
+        organization,
+        initialRouterConfig,
+      }
+    );
+
+    await waitFor(() => {
+      expect(eventsStatsRequest).toHaveBeenCalledTimes(callCount);
+    });
+
+    for (const [, options] of eventsStatsRequest.mock.calls) {
+      expect(options).toEqual(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: DiscoverDatasets.SPANS,
+            query: expect.stringContaining('is_transaction:true'),
+          }),
+        })
+      );
+    }
   });
 });

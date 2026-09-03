@@ -11,6 +11,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 interface AddOrRemoveOrgModalProps extends ModalRenderProps {
   userId: string;
@@ -52,7 +53,7 @@ function AddToOrgModal({
       }),
     onSuccess: () => {
       closeModal();
-      window.location.reload();
+      testableWindowLocation.reload();
     },
     onError: error => {
       const detail =
@@ -129,7 +130,7 @@ function RemoveFromOrgModal({
       }),
     onSuccess: () => {
       closeModal();
-      window.location.reload();
+      testableWindowLocation.reload();
     },
     onError: error => {
       const detail =

@@ -9,7 +9,7 @@ from django.db.models import F
 from django.db.models.functions import TruncMinute
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.fields import empty
 
@@ -309,7 +309,6 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-@extend_schema_serializer(exclude_fields=["alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(
         scope="project:read",
@@ -341,7 +340,10 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Disable creation of monitor incidents",
     )
     config = ConfigValidator(help_text="The configuration for the monitor.")
-    alert_rule = MonitorAlertRuleValidator(required=False)
+    alert_rule = MonitorAlertRuleValidator(
+        required=False,
+        help_text="Alert rule configuration created alongside the monitor.",
+    )
 
     def validate(self, attrs):
         # When creating a new monitor, check if we would exceed the organization limit
@@ -584,7 +586,6 @@ class ContextsValidator(serializers.Serializer):
     trace = TraceContextValidator(required=False)
 
 
-@extend_schema_serializer(exclude_fields=["monitor_config", "contexts"])
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -606,7 +607,11 @@ class MonitorCheckInValidator(serializers.Serializer):
         allow_null=True,
         help_text="Name of the environment.",
     )
-    contexts = ContextsValidator(required=False, allow_null=True)
+    contexts = ContextsValidator(
+        required=False,
+        allow_null=True,
+        help_text="Additional context sent with the check-in, such as the trace it belongs to.",
+    )
 
 
 class MonitorBulkEditValidator(MonitorValidator):

@@ -19,7 +19,7 @@ from django.db.models import (
 from django.db.models.fields import BigIntegerField
 from django.db.models.functions import Cast, Coalesce
 from django.http.response import HttpResponseBase
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -595,7 +595,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         )
 
 
-@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         max_length=256,
@@ -726,7 +725,13 @@ Metric alert rule trigger actions follow the following structure:
         choices=ExtrapolationMode.as_text_choices(),
         help_text="How sampled spans are scaled to estimate the true aggregate. Only applies to alerts on the `events_analytics_platform` dataset. New alerts accept `client_and_server_weighted` and `unknown`; `server_weighted` and `none` are rejected.",
     )
-    thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    thresholdPeriod = serializers.IntegerField(
+        required=False,
+        default=1,
+        min_value=1,
+        max_value=20,
+        help_text="Number of consecutive times the threshold must be met before the alert fires.",
+    )
 
 
 @extend_schema(tags=["Alerts"])

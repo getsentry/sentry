@@ -10,7 +10,6 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_field,
-    extend_schema_serializer,
     inline_serializer,
 )
 from rest_framework import serializers
@@ -112,10 +111,13 @@ class SCIMPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
-@extend_schema_serializer(exclude_fields=("schemas",))
 class SCIMPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
-    schemas = serializers.ListField(child=serializers.CharField(), required=False)
+    schemas = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="SCIM schema URIs identifying the request format. Must be the PatchOp schema.",
+    )
     Operations = serializers.ListField(
         child=SCIMPatchOperationSerializer(),
         required=True,
