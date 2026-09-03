@@ -103,7 +103,7 @@ class TestGetIterationOutcomes(TestCase):
         assert self._outcomes(state) == {"0": IterationOutcome.IN_PROGRESS}
 
     def test_only_the_latest_iteration_is_in_progress(self) -> None:
-        # The older iteration edited nothing and is settled; the newest is still running.
+        # The older iteration edited nothing, and the newest one still runs.
         state = _state(
             [_iteration_block(0), _iteration_block(1)],
             status="processing",
@@ -139,7 +139,7 @@ class TestGetIterationOutcomes(TestCase):
         assert self._outcomes(state) == {"0": IterationOutcome.CHANGES_PUSHED}
 
     def test_unparseable_iterations_report_and_return_nothing(self) -> None:
-        # A PR_ITERATION block without an iteration_index makes get_iterations raise.
+        # `get_iterations` raises when a PR_ITERATION block has no iteration_index.
         with patch.object(self.log_ctx, "error") as mock_error:
             assert self._outcomes(_state([_iteration_block(None)])) == {}
 
