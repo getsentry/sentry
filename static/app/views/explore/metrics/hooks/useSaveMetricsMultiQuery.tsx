@@ -94,7 +94,7 @@ export function useSaveMetricsMultiQuery() {
   }, [title, start, end, period, interval, projects, environments, metricQueries]);
 
   const saveQuery = useCallback(
-    async (newTitle: string, starred = true) => {
+    async ({name, starred = true}: {name: string; starred?: boolean}) => {
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -103,7 +103,7 @@ export function useSaveMetricsMultiQuery() {
           method: 'POST',
           data: {
             ...data,
-            name: newTitle,
+            name,
             starred,
           },
         }

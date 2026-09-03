@@ -88,8 +88,8 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
 
   const saveQuery = useCallback(
-    (newTitle: string, starred = true) => {
-      return saveQueryApi({...requestData, name: newTitle}, starred);
+    ({name, starred = true}: {name: string; starred?: boolean}) => {
+      return saveQueryApi({...requestData, name}, starred);
     },
     [saveQueryApi, requestData]
   );
