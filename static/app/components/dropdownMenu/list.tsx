@@ -62,6 +62,11 @@ export interface DropdownMenuListProps
    */
   disableTextSelection?: boolean;
   /**
+   * Maximum menu height, in pixels. Inherited by any submenus so that a long
+   * list of items scrolls rather than running off the screen.
+   */
+  maxMenuHeight?: number;
+  /**
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
@@ -82,6 +87,7 @@ export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
+  maxMenuHeight,
   menuTitle,
   menuFooter,
   disableTextSelection,
@@ -195,12 +201,14 @@ export function DropdownMenuList({
         closeOnSelect={closeOnSelect}
         disableTextSelection={disableTextSelection}
         menuTitle={submenuOptions.title}
+        menuFooter={submenuOptions.footer}
         shouldCloseOnBlur={false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
         position={submenuOptions.position ?? 'right-start'}
         offset={-4}
         size={size}
+        maxMenuHeight={maxMenuHeight}
       />
     );
   };
@@ -249,20 +257,17 @@ export function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay>
+          <StyledOverlay style={{maxHeight: overlayPositionProps.style?.maxHeight}}>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
               ref={menuRef}
               hasTitle={!!menuTitle}
               disableTextSelection={disableTextSelection}
               {...mergeProps(modifiedMenuProps, keyboardProps)}
-              style={{
-                maxHeight: overlayPositionProps.style?.maxHeight,
-              }}
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>
-            {menuFooter}
+            {menuFooter && <MenuFooter>{menuFooter}</MenuFooter>}
           </StyledOverlay>
         </DropdownMenuContext>
       </PositionWrapper>
@@ -284,6 +289,13 @@ const DropdownMenuListWrap = styled('ul')<{
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+
+  /* The overlay carries the height cap, so the list scrolls inside whatever space
+  is left over once a title and footer have taken theirs. Without min-height a
+  flex item refuses to shrink below its content, which would push the footer out
+  of the overlay. */
+  flex: 1 1 auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&
@@ -313,8 +325,27 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+
+  /* Titles are usually a short string, but may hold interactive content such as
+  a search field, which needs the full width to lay out. */
+  &:has(input) {
+    white-space: normal;
+    padding: ${p => p.theme.space.xs};
+  }
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  z-index: 2;
+`;
+
+/**
+ * Sits outside the scrolling list, so footer actions stay reachable no matter how
+ * many items there are.
+ */
+const MenuFooter = styled('div')`
+  flex-shrink: 0;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 -1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   z-index: 2;
 `;
 

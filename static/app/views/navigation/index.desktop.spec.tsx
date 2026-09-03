@@ -206,19 +206,19 @@ describe('desktop navigation', () => {
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
       const links = within(primaryNav).getAllByRole('link');
 
-      expect(links).toHaveLength(6);
+      // Settings has moved into the organization dropdown, so it is no longer a
+      // primary navigation link.
+      expect(links).toHaveLength(5);
       expect(links[0]).toHaveAccessibleName('Issues');
       expect(links[1]).toHaveAccessibleName('Explore');
       expect(links[2]).toHaveAccessibleName('Dashboards');
       expect(links[3]).toHaveAccessibleName('Insights');
       expect(links[4]).toHaveAccessibleName('Monitors');
-      expect(links[5]).toHaveAccessibleName('Settings');
 
       expect(links[0]).toHaveAttribute('href', '/organizations/org-slug/issues/');
       expect(links[2]).toHaveAttribute('href', '/organizations/org-slug/dashboards/');
       expect(links[3]).toHaveAttribute('href', '/organizations/org-slug/insights/');
       expect(links[4]).toHaveAttribute('href', '/organizations/org-slug/monitors/');
-      expect(links[5]).toHaveAttribute('href', '/settings/org-slug/');
     });
 
     it('hides Insights nav item when insights-to-dashboards-ui-rollout is enabled', () => {
@@ -305,7 +305,8 @@ describe('desktop navigation', () => {
     describe('route inference', () => {
       async function assertNavStructureAndActiveLinksForRoute(
         pathname: string,
-        activePrimaryLink: string,
+        // `null` for routes with no corresponding primary nav item, e.g. settings
+        activePrimaryLink: string | null,
         activeSecondaryLink: string,
         route?: string
       ) {
@@ -320,9 +321,11 @@ describe('desktop navigation', () => {
         );
 
         const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-        assertActivePrimaryNavLink(
-          within(primaryNav).getByRole('link', {name: activePrimaryLink})
-        );
+        if (activePrimaryLink !== null) {
+          assertActivePrimaryNavLink(
+            within(primaryNav).getByRole('link', {name: activePrimaryLink})
+          );
+        }
 
         within(primaryNav).getAllByRole('list').forEach(assertValidListHTML);
         within(primaryNav)
@@ -352,8 +355,8 @@ describe('desktop navigation', () => {
         unmount();
       }
 
-      // [pathname, primary nav label, secondary nav label, route?]
-      type RouteCase = [string, string, string, string?];
+      // [pathname, primary nav label (null if none), secondary nav label, route?]
+      type RouteCase = [string, string | null, string, string?];
 
       it('non-customer domain', async () => {
         const ORG = '/organizations/org-slug';
@@ -391,11 +394,11 @@ describe('desktop navigation', () => {
           [`${ORG}/monitors/metrics/`, 'Monitors', 'Metric'],
           [`${ORG}/monitors/crons/`, 'Monitors', 'Cron'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
-          // Settings
-          ['/settings/org-slug/', 'Settings', 'General Settings'],
+          // Settings (no primary nav item — reached via the org dropdown)
+          ['/settings/org-slug/', null, 'General Settings'],
           [
             '/settings/org-slug/projects/project-slug/teams/',
-            'Settings',
+            null,
             'Project Teams',
             '/settings/:orgId/projects/:projectId/teams/',
           ],
@@ -484,11 +487,11 @@ describe('desktop navigation', () => {
           // Monitors
           ['/monitors/', 'Monitors', 'All Monitors'],
           ['/monitors/my-monitors/', 'Monitors', 'My Monitors'],
-          // Settings
-          ['/settings/organization/', 'Settings', 'General Settings'],
+          // Settings (no primary nav item — reached via the org dropdown)
+          ['/settings/organization/', null, 'General Settings'],
           [
             '/settings/projects/project-slug/',
-            'Settings',
+            null,
             'General Settings',
             '/settings/projects/:projectId/',
           ],

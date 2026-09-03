@@ -13,7 +13,7 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconSettings,
+  // IconSettings, // Prototype: restore with the settings nav item below
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -273,27 +273,32 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </PrimaryNavigation.Link>
       </PrimaryNavigation.ListItem>
 
-      <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
-        {tourProps => (
-          <PrimaryNavigation.ListItem>
-            <PrimaryNavigation.Link
-              to={`/settings/${organization.slug}/`}
-              analyticsKey="settings"
-              label={t('Settings')}
-              {...mergeProps(
-                makeNavigationItemProps(
-                  'settings',
-                  `/settings/${organization.slug}/`,
-                  '/settings/'
-                ),
-                tourProps
-              )}
-            >
-              <IconSettings />
-            </PrimaryNavigation.Link>
-          </PrimaryNavigation.ListItem>
-        )}
-      </NavigationTourElement>
+      {/*
+       * Prototype: settings now live in the organization dropdown, so this
+       * primary nav entry point is temporarily removed.
+       *
+       * <NavigationTourElement id={NavigationTour.SETTINGS} title={null} description={null}>
+       *   {tourProps => (
+       *     <PrimaryNavigation.ListItem>
+       *       <PrimaryNavigation.Link
+       *         to={`/settings/${organization.slug}/`}
+       *         analyticsKey="settings"
+       *         label={t('Settings')}
+       *         {...mergeProps(
+       *           makeNavigationItemProps(
+       *             'settings',
+       *             `/settings/${organization.slug}/`,
+       *             '/settings/'
+       *           ),
+       *           tourProps
+       *         )}
+       *       >
+       *         <IconSettings />
+       *       </PrimaryNavigation.Link>
+       *     </PrimaryNavigation.ListItem>
+       *   )}
+       * </NavigationTourElement>
+       */}
     </Fragment>
   );
 }

@@ -48,6 +48,30 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
 }
 
 /**
+ * Combines an explicit `maxMenuHeight` with the height the overlay actually has
+ * room for, which popper derives from the distance to its boundary.
+ *
+ * These have to be combined rather than one replacing the other: an explicit cap
+ * that exceeds the available space renders the menu past the edge of the screen,
+ * putting anything pinned to its bottom — a footer — out of view.
+ *
+ * Popper's value is ignored when it is not a positive number, which is the case
+ * before it has measured anything.
+ */
+function resolveMaxHeight(
+  maxMenuHeight: number | undefined,
+  availableMaxHeight: React.CSSProperties['maxHeight']
+): React.CSSProperties['maxHeight'] {
+  if (maxMenuHeight === undefined) {
+    return availableMaxHeight;
+  }
+
+  return typeof availableMaxHeight === 'number' && availableMaxHeight > 0
+    ? Math.min(maxMenuHeight, availableMaxHeight)
+    : maxMenuHeight;
+}
+
+/**
  * Recursively finds and returns disabled items
  */
 function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
@@ -102,10 +126,6 @@ export interface DropdownMenuProps
    * Whether the trigger is disabled.
    */
   isDisabled?: boolean;
-  /**
-   * Maximum menu width
-   */
-  maxMenuHeight?: number;
   /**
    * Title for the current menu.
    */
@@ -266,13 +286,14 @@ function DropdownMenu({
         {...props}
         {...resolvedMenuProps}
         size={size}
+        maxMenuHeight={maxMenuHeight}
         disabledKeys={disabledKeys ?? defaultDisabledKeys}
         overlayPositionProps={{
           ...overlayProps,
           style: {
             ...overlayProps.style,
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
-            maxHeight: maxMenuHeight ?? overlayProps.style?.maxHeight,
+            maxHeight: resolveMaxHeight(maxMenuHeight, overlayProps.style?.maxHeight),
           },
         }}
         overlayState={overlayState}
