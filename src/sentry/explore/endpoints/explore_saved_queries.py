@@ -315,8 +315,8 @@ def sync_prebuilt_queries_starred(organization, user_id):
 @cell_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)

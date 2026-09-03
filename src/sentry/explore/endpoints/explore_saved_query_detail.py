@@ -53,9 +53,9 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
 @cell_silo_endpoint
 class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
     publish_status = {
-        "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def has_feature(self, organization, request):
