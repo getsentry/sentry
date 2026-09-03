@@ -1537,6 +1537,10 @@ SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
 
+# Mapping of UserPermission strings to SCIM team slugs.
+# Adding/removing members from these teams grants/revokes the corresponding UserPermission.
+SENTRY_SCIM_PERMISSION_TEAM_SLUGS: dict[str, str] = {}
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
