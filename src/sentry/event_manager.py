@@ -618,13 +618,16 @@ class EventManager:
         if not is_reprocessed and attachments:
             save_attachments(cache_key, attachments, job)
 
+        # Attachments that were ingested before this event became a pending attachment;
+        # now that the event exists, they can be promoted to real attachments.
+        #
         # NOTE: this might work with is_reprocessed, but let's be conservative for now.
+        # Reprocessed events keep their existing attachments and have their `group_id`
+        # fixed up in `post_process_group` instead.
         if not is_reprocessed:
-            # TODO: Is querying `PendingEventAttachment` for every event feasible?
-            #       Do we need to guard this somehow?
             safe_execute(
                 save_pending_attachments,
-                project_id=job["event"].project_id,
+                project=project,
                 event_id=job["event"].event_id,
                 group_id=group_info.group.id,
             )
@@ -2518,9 +2521,16 @@ def save_attachment(
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
-    if is_pending and features.has("projects:defer-attachment-storage", project):
+    if (
+        is_pending
+        and group_id is None
+        and features.has("projects:defer-attachment-storage", project)
+    ):
+        # The event this attachment belongs to has not been ingested (yet), so we do not
+        # know whether it will be accepted at all. Park the attachment in
+        # `PendingEventAttachment` with a short TTL; `save_pending_attachments` promotes it
+        # to an `EventAttachment` (and emits the outcome) once the event is saved.
         metrics.incr("attachments.pending.create")
-        assert group_id is None
         db_fields.pop("group_id")
         db_fields["date_expires_retention"] = db_fields["date_expires"]
         db_fields["date_expires"] = datetime.now(timezone.utc) + PENDING_ATTACHMENT_TTL
@@ -2570,34 +2580,70 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
         )
 
 
-def save_pending_attachments(*, project_id: int, event_id: str, group_id: str | None) -> None:
-    with transaction.atomic():
-        metrics.incr("attachments.pending.persist")
-        pending_attachments = PendingEventAttachment.objects.filter(
-            project_id=project_id, event_id=event_id
-        )
-        summed_attachment_size = 0
-        for pending_attachment in pending_attachments:
-            EventAttachment.objects.create(
-                **pending_attachment,
-                date_expires=pending_attachment.date_expires_retention,
-                group_id=group_id,
-            )
-            summed_attachment_size += pending_attachment.size
-            pending_attachment.delete()
+def save_pending_attachments(*, project: Project, event_id: str, group_id: int) -> None:
+    """
+    Promote any :class:`PendingEventAttachment` rows for ``event_id`` into real
+    :class:`EventAttachment` rows, now that the event they belong to has been saved.
 
-        if summed_attachment_size > 0:
-            track_outcome(  # TODO
-                org_id=project.organization_id,
-                project_id=project_id,
-                key_id=key_id,
-                outcome=Outcome.ACCEPTED,
-                reason=None,
-                timestamp=now(),  # TODO: is it OK to use now time here?
-                event_id=event_id,
-                category=DataCategory.ATTACHMENT,
-                quantity=summed_attachment_size,
+    Pending attachments are written by the standalone attachment consumer when the
+    attachment arrives before its event (see :func:`save_attachment`). They carry a
+    short TTL in ``date_expires`` and the real retention date in
+    ``date_expires_retention``; promoting them restores the retention date and
+    attaches the ``group_id``.
+
+    Outcomes are only emitted here, on promotion: an attachment whose event never
+    arrives expires without ever being accepted.
+    """
+    if not features.has("projects:defer-attachment-storage", project):
+        return
+
+    pending_attachments = list(
+        PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id)
+    )
+    if not pending_attachments:
+        return
+
+    metrics.incr("attachments.pending.persist", amount=len(pending_attachments))
+
+    with transaction.atomic(router.db_for_write(EventAttachment)):
+        EventAttachment.objects.bulk_create(
+            EventAttachment(
+                project_id=pending.project_id,
+                group_id=group_id,
+                event_id=pending.event_id,
+                type=pending.type,
+                name=pending.name,
+                content_type=pending.content_type,
+                size=pending.size,
+                sha1=pending.sha1,
+                blob_path=pending.blob_path,
+                date_added=pending.date_added,
+                date_expires=pending.date_expires_retention,
             )
+            for pending in pending_attachments
+        )
+        # NOTE: A queryset delete does not run `Model.delete`, so the blobs referenced by
+        # these rows survive. That is intentional: the `EventAttachment` rows created above
+        # have taken ownership of them.
+        PendingEventAttachment.objects.filter(
+            id__in=[pending.id for pending in pending_attachments]
+        ).delete()
+
+    for pending in pending_attachments:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            # NOTE: the standalone attachment consumer does not know the DSN that was used,
+            # so pending attachments are never attributed to a key.
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            # Bill the attachment at the time it was ingested, not at promotion time.
+            timestamp=pending.date_added,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=pending.size or 1,
+        )
 
 
 @trace
