@@ -28,7 +28,6 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
-import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type DetectorAlertKind = Exclude<EmbedOutput<'alert'>['kind'], 'issue'>;
 
