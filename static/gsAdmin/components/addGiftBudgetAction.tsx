@@ -34,7 +34,7 @@ function AddGiftBudgetModal({
   Body,
 }: ModalProps) {
   const api = useApi();
-  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
+  const [selectedBudgetApiName, setSelectedBudgetApiName] = useState<string | null>(null);
   const [giftAmount, setGiftAmount] = useState(0);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
@@ -45,25 +45,27 @@ function AddGiftBudgetModal({
   );
 
   useEffect(() => {
-    if (reservedBudgetOptions.length > 0 && !selectedBudgetId) {
-      setSelectedBudgetId(reservedBudgetOptions[0]?.id ?? null);
+    if (reservedBudgetOptions.length > 0 && !selectedBudgetApiName) {
+      setSelectedBudgetApiName(reservedBudgetOptions[0]?.apiName ?? null);
     }
-  }, [reservedBudgetOptions, selectedBudgetId]);
+  }, [reservedBudgetOptions, selectedBudgetApiName]);
 
   const onSubmit = () => {
-    if (!selectedBudgetId || giftAmount <= 0) {
+    if (!selectedBudgetApiName || giftAmount <= 0) {
       return;
     }
 
     const selectedBudget = reservedBudgetOptions.find(
-      budget => budget.id === selectedBudgetId
+      budget => budget.apiName === selectedBudgetApiName
     );
+    if (!selectedBudget) {
+      return;
+    }
 
     const data = {
       freeReservedBudget: {
-        id: selectedBudgetId,
+        apiName: selectedBudget.apiName,
         freeBudget: giftAmount * 100, // convert to cents
-        categories: Object.keys(selectedBudget?.categories ?? []),
       },
       ticketUrl,
       notes,
@@ -105,8 +107,8 @@ function AddGiftBudgetModal({
           {reservedBudgetOptions.map(budget => (
             <BudgetCard
               key={budget.id}
-              isSelected={selectedBudgetId === budget.id}
-              onClick={() => setSelectedBudgetId(budget.id)}
+              isSelected={selectedBudgetApiName === budget.apiName}
+              onClick={() => setSelectedBudgetApiName(budget.apiName)}
             >
               <Flex justify="between" marginBottom="md">
                 <div>
@@ -131,7 +133,7 @@ function AddGiftBudgetModal({
                   )
                   .join(', ') || 'None'}
               </Container>
-              {selectedBudgetId === budget.id && (
+              {selectedBudgetApiName === budget.apiName && (
                 <NumberField
                   inline={false}
                   stacked
