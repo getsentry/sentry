@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
@@ -10,7 +11,6 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   Score,
   ScoreCard,
@@ -140,7 +140,7 @@ export function ProjectCard({
                 >
                   {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
                   {totalTransactions === 0 && (
-                    <QuestionTooltip
+                    <InfoTip
                       title={t('Click here to learn more about performance monitoring')}
                       position="top"
                       size="xs"

@@ -22,11 +22,11 @@ import {captureProjectCreationFailure} from 'sentry/components/onboarding/captur
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
+import type {CreatedProjectRule} from 'sentry/components/onboarding/useCreateProjectRules';
 import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -71,7 +71,7 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<AlertRuleOptions>;
-  notificationRule?: IssueAlertRule;
+  notificationRule?: CreatedProjectRule;
   team?: string;
   wasNameManuallyModified?: boolean;
 };
@@ -161,14 +161,14 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
-  const createNotificationActionParam = useMemo(() => {
+  const notificationActionParam = useMemo(() => {
     return autoFill && createdProject?.notificationRule?.actions
       ? {actions: createdProject.notificationRule.actions}
       : undefined;
   }, [autoFill, createdProject?.notificationRule?.actions]);
 
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
-    createNotificationActionParam
+  const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
+    notificationActionParam
   );
 
   const validateChannel = useQuery({
@@ -314,13 +314,13 @@ export function CreateProject() {
       });
 
       try {
-        const {project, notificationRule, ruleIds} =
+        const {project, notificationRule, workflowIds} =
           await createProjectAndRules.mutateAsync({
             projectName,
             platform: selectedPlatform,
             team,
             alertRuleConfig,
-            createNotificationAction,
+            getIntegrationAction,
           });
 
         trackAnalytics('project_creation_page.created', {
@@ -332,7 +332,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
+          workflow_ids: workflowIds,
           notification_rule_created: !!notificationRule,
           variant: 'legacy',
         });
@@ -386,7 +386,7 @@ export function CreateProject() {
       setCreatedProject,
       navigate,
       createProjectAndRules,
-      createNotificationAction,
+      getIntegrationAction,
       alertRuleConfig,
       accessTeams,
     ]

@@ -1282,6 +1282,18 @@ class TestEventDetectorsAllProject(TestCase):
         assert ed.has_detectors is True
         assert ed.detectors == {self.all_projects_detector}
 
+    def test_missing_all_projects_detector(self) -> None:
+        self.all_projects_detector.delete()
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
+    def test_many_all_projects_detectors(self) -> None:
+        self.create_all_projects_detector(self.organization)
+        self.create_all_projects_detector(self.organization)
+        self.create_all_projects_detector(self.organization)
+        cache.clear()
+        assert get_all_projects_detector(self.organization.id) is None
+
     def test_cached_miss_is_invalidated_when_detector_is_created(self) -> None:
         self.all_projects_detector.delete()
         cache.clear()

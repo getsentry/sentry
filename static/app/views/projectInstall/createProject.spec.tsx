@@ -1,3 +1,4 @@
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -744,13 +745,26 @@ describe('CreateProject', () => {
       body: {id: '1', slug: 'testProj', name: 'Test Project'},
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: '1'})],
+    });
+
     const ruleCreationMockRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/testProj/rules/`,
+      url: `/organizations/${organization.slug}/workflows/`,
       method: 'POST',
       statusCode: 400,
       body: {
-        actions: ['Discord: Discord channel URL is missing or formatted incorrectly'],
+        actionFilters: {
+          nonFieldErrors: ['Integration ID is required for action type discord'],
+        },
       },
+      match: [
+        (_url, options) =>
+          options.data?.actionFilters?.[0]?.actions?.some(
+            (action: {type?: string}) => action.type === 'discord'
+          ),
+      ],
     });
 
     const projectDeletionMockRequest = MockApiClient.addMockResponse({
@@ -772,6 +786,7 @@ describe('CreateProject', () => {
     render(<CreateProject />, {organization});
 
     await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByText(/When there are more than/));
     await userEvent.click(
       screen.getByRole('checkbox', {
         name: /Notify via integration/,
@@ -789,7 +804,11 @@ describe('CreateProject', () => {
       expect(projectDeletionMockRequest).toHaveBeenCalledTimes(1);
     });
 
+    expect(
+      await screen.findByText('Integration ID is required for action type discord')
+    ).toBeInTheDocument();
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
+    expect(addErrorMessage).toHaveBeenCalledTimes(1);
   });
 
   describe('Issue Alerts Options', () => {
