@@ -165,9 +165,12 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
             raise serializers.ValidationError(
                 "Cannot combine anomaly detection conditions with other condition types."
             )
-        if not any(
-            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
-        ) and not has_anomaly_detection:
+        if (
+            not any(
+                condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
+            )
+            and not has_anomaly_detection
+        ):
             raise serializers.ValidationError(
                 "Resolution condition required for metric issue detector."
             )
