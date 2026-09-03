@@ -24,7 +24,9 @@ EventTypeStr = Literal[
 class BaseEvent:
     key: ClassVar[EventTypeStr]  # abstract
 
-    def get_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
+    # Not `dict[str, str]`: error metadata carries a boolean `synthetic` flag alongside the
+    # strings, so the values are only as narrow as the concrete subclass's `extract_metadata`.
+    def get_metadata(self, data: MutableMapping[str, Any]) -> dict[str, Any]:
         metadata = self.extract_metadata(data)
         title = data.get("title")
         if title is not None:
