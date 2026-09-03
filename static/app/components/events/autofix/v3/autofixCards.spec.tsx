@@ -464,7 +464,7 @@ describe('ArtifactCard', () => {
       const patch = makePatch('org/repo', 'src/app.py');
       patch.patch.hunks = [
         {
-          lines: Array.from({length: 51}, (_, index) => ({
+          lines: Array.from({length: 31}, (_, index) => ({
             diff_line_no: index,
             line_type: DiffLineType.CONTEXT,
             source_line_no: index,
@@ -472,9 +472,9 @@ describe('ArtifactCard', () => {
             value: `line ${index}`,
           })),
           section_header: '',
-          source_length: 51,
+          source_length: 31,
           source_start: 1,
-          target_length: 51,
+          target_length: 31,
           target_start: 1,
         },
       ];

@@ -43,7 +43,7 @@ interface CodeChangesCardProps {
   section: AutofixSection;
 }
 
-const MAX_AUTO_EXPANDED_DIFF_LINES = 50;
+const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
