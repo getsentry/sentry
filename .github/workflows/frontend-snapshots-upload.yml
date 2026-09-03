@@ -1,11 +1,7 @@
 name: 'frontend-snapshots-upload'
 
-# Uploads the snapshots built by `frontend-snapshots.yml` to Sentry.
-#
-# Runs as a `workflow_run` workflow so fork PRs work: GitHub withholds secrets
-# from fork `pull_request` runs, but `workflow_run` executes from the default
-# branch with secrets. It only consumes the rendered PNGs + metadata — it never
-# checks out or runs PR code — so the token is never exposed to untrusted code.
+# workflow_run has secrets even for fork PRs, unlike pull_request. This job
+# only consumes rendered PNGs and metadata and never runs PR code.
 on:
   workflow_run:
     workflows: ['frontend-snapshots']
@@ -44,12 +40,8 @@ jobs:
         with:
           version: '3.5.0'
 
-      # head_sha, head_ref and base_repo_name come from the trusted workflow_run
-      # event so a fork can't forge them; head_sha in particular anchors the
-      # check-run to the real PR head commit. pr_number/base_sha/base_ref (not on
-      # the event) and head_repo_name (event value is null for many forks) come
-      # from the artifact; pr_number is validated numeric and no artifact value
-      # is ever interpolated into the script.
+      # Event fields are trusted; artifact fields are fork-writable, so they are
+      # validated and never ${{ }}-interpolated.
       - name: Upload snapshots
         id: upload
         env:
@@ -64,9 +56,7 @@ jobs:
           BASE_REF=$(jq -r '.base_ref // ""' "$VCS_METADATA_FILE")
           BASE_SHA=$(jq -r '.base_sha // ""' "$VCS_METADATA_FILE")
 
-          # Prefer the trusted event value; fall back to the artifact when
-          # head_repository is null (common for forks). Safe because head_sha is
-          # trusted, so a spoofed head_repo_name can't redirect the check-run.
+          # head_repository is null on many fork runs.
           HEAD_REPO_NAME="$HEAD_REPO_NAME_TRUSTED"
           if [ -z "$HEAD_REPO_NAME" ]; then
             HEAD_REPO_NAME=$(jq -r '.head_repo_name // ""' "$VCS_METADATA_FILE")
@@ -94,8 +84,7 @@ jobs:
 
           sentry-cli --log-level=debug "${args[@]}"
 
-      # The backend posts the check-run on success; without this a failed
-      # upload leaves the PR with no snapshot status at all.
+      # Success is reported by the backend's check-run; only failures are posted here.
       - name: Post failure status on head commit
         if: ${{ failure() }}
         env:

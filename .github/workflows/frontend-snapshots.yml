@@ -99,9 +99,8 @@ jobs:
       - name: Compute merge base SHA
         if: github.event_name == 'pull_request' && !cancelled()
         id: merge-base
-        # Don't fail the build on a transient gh-api error: the upload workflow
-        # is gated on conclusion == success. On failure base_sha is empty and
-        # the upload proceeds without --base-sha.
+        # A failed build would suppress the upload workflow entirely; an empty
+        # base_sha only drops the comparison.
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,10 +108,7 @@ jobs:
           MERGE_BASE=$(gh api repos/${{ github.repository }}/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} --jq '.merge_base_commit.sha')
           echo "sha=$MERGE_BASE" >> "$GITHUB_OUTPUT"
 
-      # Hand the PR context the privileged upload workflow can't derive itself
-      # (see frontend-snapshots-upload.yml) to the artifact. Only these four
-      # fields cross the boundary; head_sha/head_ref/base repo come from the
-      # trusted workflow_run event there. jq -n --arg safely encodes them.
+      # PR context the upload workflow can't read from the workflow_run event.
       - name: Write VCS metadata
         if: ${{ !cancelled() }}
         env:
