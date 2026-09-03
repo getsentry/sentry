@@ -582,9 +582,7 @@ describe('InboxPage', () => {
       'suggested-avatar-stack'
     );
     await userEvent.hover(within(suggestedAvatarStack).getByText('JS'));
-    expect(
-      await screen.findByText('Suggested assignee: John Smith')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Suggested assignee: John Smith')).toBeInTheDocument();
   });
 
   it('prefixes assigned team names in tooltips', async () => {
