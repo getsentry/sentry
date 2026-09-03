@@ -21,6 +21,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationEndpoint
+from sentry.api.client_kind import set_client_kind_attributes
 from sentry.api.helpers.error_upsampling import (
     are_any_projects_error_upsampled,
     convert_fields_for_upsampling,
@@ -111,6 +112,19 @@ def resolve_axis_column(
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
+
+    def convert_args(
+        self,
+        request: Request,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        (args, kwargs) = super().convert_args(request, *args, **kwargs)
+        # Runs after authentication, so the credential-based checks in
+        # `get_client_kind` see the resolved auth. Done here rather than in each
+        # handler so every events endpoint reports the caller the same way.
+        set_client_kind_attributes(request, kwargs["organization"])
+        return (args, kwargs)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return (
