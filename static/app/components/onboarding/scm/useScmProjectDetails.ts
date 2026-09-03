@@ -162,9 +162,9 @@ export function useScmProjectDetails({
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
-  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+  // rendered in ScmAlertFrequencySection) and resolves its selected action for
+  // the workflow created alongside the project.
+  const {getIntegrationAction, notificationProps} = useScmNotificationAction(
     restoredNotificationSelectionRef.current
   );
 
@@ -397,7 +397,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform.key,
           issue_alert: issueAlert,
           notification_rule_created: false,
-          rule_ids: [],
+          workflow_ids: [],
           variant: 'scm',
         });
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
@@ -410,7 +410,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform,
           team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
           alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-          createNotificationAction,
+          getIntegrationAction,
         })
         .catch(error => {
           trackAnalytics('project_creation.project_details_create_failed', {
@@ -430,7 +430,7 @@ export function useScmProjectDetails({
       if (!creation) {
         return;
       }
-      const {project, ruleIds, notificationRule} = creation;
+      const {project, workflowIds, notificationRule} = creation;
 
       if (selectedRepository?.id) {
         await linkProjectToRepository({
@@ -446,7 +446,7 @@ export function useScmProjectDetails({
         platform: selectedPlatform.key,
         issue_alert: issueAlert,
         notification_rule_created: !!notificationRule,
-        rule_ids: ruleIds,
+        workflow_ids: workflowIds,
         variant: 'scm',
       });
 
@@ -459,7 +459,7 @@ export function useScmProjectDetails({
     accessTeams,
     alertRuleConfig,
     canSubmit,
-    createNotificationAction,
+    getIntegrationAction,
     createProjectAndRules,
     existingProject,
     hasNotificationAction,
