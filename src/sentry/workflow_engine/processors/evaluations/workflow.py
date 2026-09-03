@@ -77,13 +77,13 @@ class DeferredWorkflowData:
 
 @dataclass(frozen=True)
 class WorkflowEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
-    detector_type: str
+    detector_type: str | None
     evaluation_phase: EvaluationPhase
     evaluation_type: EvaluationType
     filter_evaluations: Sequence[DataConditionGroupEvaluationArtifact]
     group_id: GroupId
     outcome: WorkflowEvaluationOutcome
-    project_id: int
+    project_id: int | None
     trigger_evaluation: DataConditionGroupEvaluationArtifact
     triggered_action_ids: Sequence[ActionId]
     workflow_id: WorkflowId
