@@ -34,8 +34,8 @@ export type ScmMessagingSetup =
       channelId: string;
       /**
        * Human-readable display name shown in the UI.
-       * Also the channel-validate param for Slack and msteams, which both
-       * resolve channels by name rather than ID.
+       * Also the channel-validate param and the action value for Slack and
+       * msteams, which both resolve channels by name rather than ID.
        */
       channelName: string;
       integrationId: string;

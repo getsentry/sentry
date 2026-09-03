@@ -18,6 +18,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
   buildIntegrationAction,
   buildNotificationSelection,
+  getChannelTarget,
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
@@ -47,11 +48,11 @@ describe('buildIntegrationAction', () => {
     ],
     [
       'msteams',
-      '19:abc@thread.tacv2',
+      'General',
       {
         id: IssueAlertActionType.MS_TEAMS,
         team: '15',
-        channel: '19:abc@thread.tacv2',
+        channel: 'General',
       },
     ],
   ])('serializes a %s destination', (provider, channel, expectedAction) => {
@@ -69,6 +70,44 @@ describe('buildIntegrationAction', () => {
         channel: '#alerts',
       })
     ).toBeUndefined();
+  });
+});
+
+describe('getChannelTarget', () => {
+  it.each([
+    [
+      'slack',
+      {label: '#alerts', value: '#alerts', channelId: 'C123', channelName: '#alerts'},
+      '#alerts',
+    ],
+    [
+      'discord',
+      {
+        label: '#alerts (123456789)',
+        value: '123456789',
+        channelId: '123456789',
+        channelName: '#alerts',
+      },
+      '123456789',
+    ],
+    [
+      'msteams',
+      {
+        label: 'General (19:abc@thread.tacv2)',
+        value: '19:abc@thread.tacv2',
+        channelId: '19:abc@thread.tacv2',
+        channelName: 'General',
+      },
+      'General',
+    ],
+  ])('targets the field the %s backend resolves', (provider, channel, target) => {
+    expect(getChannelTarget(provider, channel)).toBe(target);
+  });
+
+  it('falls back to the picker value for a typed channel', () => {
+    expect(
+      getChannelTarget('msteams', {label: 'General', value: 'General', new: true})
+    ).toBe('General');
   });
 });
 
@@ -658,5 +697,21 @@ describe('buildNotificationSelection', () => {
         channel: {label: '#eng', value: '#eng'},
       })
     ).toEqual({provider: 'slack', integrationId: '5', channel: '#eng'});
+  });
+
+  it('stores the action target rather than the picker key', () => {
+    const integration = OrganizationIntegrationsFixture({id: '5'});
+    expect(
+      buildNotificationSelection({
+        provider: 'msteams',
+        integration,
+        channel: {
+          label: 'General (19:abc@thread.tacv2)',
+          value: '19:abc@thread.tacv2',
+          channelId: '19:abc@thread.tacv2',
+          channelName: 'General',
+        },
+      })
+    ).toEqual({provider: 'msteams', integrationId: '5', channel: 'General'});
   });
 });

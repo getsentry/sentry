@@ -695,6 +695,68 @@ describe('ScmMessaging', () => {
     );
   });
 
+  it('Continue targets an MS Teams channel by its name', async () => {
+    // The picker keys Teams channels by id, but the backend resolves a Teams
+    // channel by name only, so the workflow must carry the name.
+    const msteamsSetup: ScmMessagingSetup = {
+      mode: 'selected',
+      providerKey: 'msteams',
+      integrationId: '15',
+      channelId: '19:abc@thread.tacv2',
+      channelName: 'General',
+    };
+    mockIntegration({
+      provider: msteamsIntegration.provider,
+      configData: msteamsIntegration.configData,
+    });
+    mockChannelValidate(true, 'General');
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+      method: 'POST',
+      body: createdProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: createdProject.id})],
+    });
+    const createWorkflowRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture({id: 'workflow-id'}),
+    });
+    const onCreatedProjectChange = jest.fn();
+    renderMessaging({messagingSetup: msteamsSetup, onCreatedProjectChange});
+
+    const continueButton = screen.getByRole('button', {name: 'Continue'});
+    await waitFor(() => expect(continueButton).toBeEnabled());
+    await userEvent.click(continueButton);
+
+    await waitFor(() => expect(createWorkflowRequest).toHaveBeenCalled());
+    expect(createWorkflowRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/workflows/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          actionFilters: [
+            expect.objectContaining({
+              actions: [
+                expect.objectContaining({type: 'email'}),
+                expect.objectContaining({
+                  type: 'msteams',
+                  integrationId: '15',
+                  config: expect.objectContaining({targetDisplay: 'General'}),
+                }),
+              ],
+            }),
+          ],
+        }),
+      })
+    );
+    expect(onCreatedProjectChange).toHaveBeenCalledWith({
+      slug: createdProject.slug,
+      messagingSelection: {provider: 'msteams', integrationId: '15', channel: 'General'},
+    });
+  });
+
   it('Set up later creates the email-only project before completing', async () => {
     const createProjectRequest = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,

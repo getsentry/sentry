@@ -30,7 +30,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
-type ChannelIdentityField = 'channelId' | 'channelName';
+export type ChannelIdentityField = 'channelId' | 'channelName';
 
 interface MessagingProviderDetail {
   action: IssueAlertActionType;
@@ -43,18 +43,10 @@ interface MessagingProviderDetail {
 }
 
 /**
- * Maps a stored destination field onto its counterpart in the raw `/channels/`
- * response, so a stored value can be matched back to a channel.
- */
-export const RAW_CHANNEL_FIELD = {
-  channelName: 'display',
-  channelId: 'id',
-} as const satisfies Record<ChannelIdentityField, 'display' | 'id'>;
-
-/**
  * Providers disagree on what identifies a channel. MS Teams is the only row
- * that is not uniform: it validates by name but is addressed by id, because
- * Sentry built a name-to-id resolver for it while all three send by id.
+ * that is not uniform: the picker keys it by id, since two Teams channels can
+ * share a name, but the backend resolves a Teams channel by name only
+ * (`find_channel_id`), so it is validated and targeted by name.
  */
 export const providerDetails = {
   slack: {
@@ -97,7 +89,7 @@ export const providerDetails = {
     placeholder: t('channel name'),
     channelSelectedBy: 'channelId',
     channelValidatedBy: 'channelName',
-    channelTargetedBy: 'channelId',
+    channelTargetedBy: 'channelName',
     makeSentence: ({providerName, integrationName, target}: any) =>
       tct('Send [providerName] notification to the [integrationName] team to [target]', {
         providerName,
@@ -120,6 +112,23 @@ export function getChannelSelectedBy(provider: string | undefined): ChannelIdent
   );
 }
 
+/**
+ * The value an action carries for a channel: the field the provider's backend
+ * resolves (`channelTargetedBy`) when the channel came from the `/channels/`
+ * list, else the value itself. A typed channel, or one restored from a
+ * persisted target, already is that value.
+ */
+export function getChannelTarget(
+  provider: string | undefined,
+  channel: IntegrationChannel | undefined
+): string | undefined {
+  if (!channel) {
+    return undefined;
+  }
+  const targetedBy = providerDetails[provider as MessagingProviderKey]?.channelTargetedBy;
+  return (targetedBy && channel[targetedBy]) || channel.value;
+}
+
 export const enum MultipleCheckboxOptions {
   EMAIL = 'email',
   INTEGRATION = 'integration',
@@ -127,7 +136,14 @@ export const enum MultipleCheckboxOptions {
 
 export type IntegrationChannel = {
   label: ReactNode;
+  /** The picker key: the field named by the provider's `channelSelectedBy`. */
   value: string;
+  /**
+   * Both identifiers of a channel chosen from the `/channels/` list. Absent
+   * for a typed channel and for one restored from a persisted target, whose
+   * `value` already is the target.
+   */
+  channelId?: string;
   channelName?: string;
   new?: boolean;
 };
@@ -148,6 +164,7 @@ export type IssueAlertNotificationProps = {
 };
 
 export type NotificationSelection = {
+  /** The action target for the channel (see `getChannelTarget`). */
   channel: string;
   integrationId: string;
   provider: string;
@@ -193,7 +210,8 @@ export function buildIntegrationAction({
 
 /**
  * Builds the raw {provider, integrationId, channel} snapshot of the current
- * messaging selection. Returns undefined if any of the three fields are absent.
+ * messaging selection, with `channel` as the action target. Returns undefined
+ * if any of the three fields are absent.
  */
 export function buildNotificationSelection({
   provider,
@@ -202,10 +220,11 @@ export function buildNotificationSelection({
 }: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
   | NotificationSelection
   | undefined {
-  if (!provider || !integration || !channel?.value) {
+  const target = getChannelTarget(provider, channel);
+  if (!provider || !integration || !target) {
     return undefined;
   }
-  return {provider, integrationId: integration.id, channel: channel.value};
+  return {provider, integrationId: integration.id, channel: target};
 }
 
 /**
@@ -336,10 +355,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
       const integrationAction = buildIntegrationAction({
         provider,
         integrationId: integration?.id,
-        // MS Teams is resolved by channel name on the backend, while the
-        // picker keys it by id.
-        channel:
-          provider === 'msteams' ? (channel?.channelName ?? channel?.value) : channel?.value,
+        channel: getChannelTarget(provider, channel),
       });
       if (!integrationAction) {
         return;
