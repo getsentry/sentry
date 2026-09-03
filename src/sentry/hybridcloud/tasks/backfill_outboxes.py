@@ -206,7 +206,6 @@ WATERMARK_VERSION_METRIC = "backfill_outboxes.watermark_version"
 # version the backfill is working towards (per-table)
 WATERMARK_TARGET_VERSION_METRIC = "backfill_outboxes.watermark_target_version"
 
-# detects dropped watermarks
 WATERMARK_MISSING_METRIC = "backfill_outboxes.watermark_missing"
 
 # reporting errors, debugging only
@@ -323,21 +322,23 @@ def backfill_outboxes_for(
         extra={"remaining": remaining_to_backfill, "scheduled": scheduled_count},
     )
 
-    if remaining_to_backfill > 0:
-        for model in _backfill_models(silo_mode):
-            # If we find some backfill work to perform, do it.
-            batch = process_outbox_backfill_batch(
-                model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
-            )
-            if batch is None:
-                continue
+    try:
+        if remaining_to_backfill > 0:
+            for model in _backfill_models(silo_mode):
+                # If we find some backfill work to perform, do it.
+                batch = process_outbox_backfill_batch(
+                    model, batch_size=remaining_to_backfill, force_synchronous=force_synchronous
+                )
+                if batch is None:
+                    continue
 
-            remaining_to_backfill -= batch.count
-            backfilled += batch.count
-            if remaining_to_backfill <= 0:
-                break
-
-    report_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
+                remaining_to_backfill -= batch.count
+                backfilled += batch.count
+                if remaining_to_backfill <= 0:
+                    break
+    finally:
+        # report the newest values from this cycle
+        report_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
 
     metrics.incr(
         "backfill_outboxes.backfilled",
