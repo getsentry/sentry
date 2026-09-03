@@ -278,13 +278,6 @@ class GroupType:
     # Controls whether Seer automation is always triggered for this group type.
     always_trigger_seer_automation: ClassVar[bool] = False
 
-    @classproperty
-    def detector_settings(cls) -> DetectorSettings | None:
-        try:
-            return detector_settings_registry.get(cls.slug)
-        except NoRegistrationExistsError:
-            return None
-
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         valid_categories = [category.value for category in GroupCategory]
@@ -297,6 +290,13 @@ class GroupType:
                 features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
+
+    @classproperty
+    def detector_settings(cls) -> DetectorSettings | None:
+        try:
+            return detector_settings_registry.get(cls.slug)
+        except NoRegistrationExistsError:
+            return None
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:
