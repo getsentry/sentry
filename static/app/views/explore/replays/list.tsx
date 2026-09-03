@@ -35,8 +35,8 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
+  useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
 import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';

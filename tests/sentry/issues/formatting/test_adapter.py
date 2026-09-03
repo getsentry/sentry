@@ -169,6 +169,21 @@ def test_maps_breadcrumbs_request_spans_user_tags() -> None:
     assert m.user.ip_address == "1.2.3.4"  # ipAddress -> ip_address
 
 
+def test_skips_tags_with_null_keys() -> None:
+    # EventSerializer can emit {key: null, value: ...} for scrubbed/raw tag pairs.
+    # null values are fine; null keys must not fail EventObject validation.
+    data = _serialized_event()
+    data["tags"] = [
+        {"key": None, "value": "orphan"},
+        {"key": "environment", "value": "prod"},
+        {"key": None, "value": None},
+        {"key": "level", "value": None},
+    ]
+    m = event_response_to_model(data)
+    assert m.tags == [("environment", "prod"), ("level", None)]
+    assert m.transaction_name is None
+
+
 def test_no_truncation_in_adapter() -> None:
     # adapter is pure mapping: all breadcrumbs come through, capping is a render concern
     data = _serialized_event()

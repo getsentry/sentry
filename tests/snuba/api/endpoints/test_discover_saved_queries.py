@@ -1,6 +1,10 @@
 from django.urls import reverse
 
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DiscoverSavedQuery,
+    DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryTypes,
+)
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.explore.translation.discover_translation import (
     translate_discover_query_to_explore_query,
@@ -37,6 +41,7 @@ class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
 @thread_leak_allowlist(reason="sentry sdk background worker", issue=97042)
 class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
+    migrate_feature_name = "organizations:discover-queries-in-all-queries"
 
     def setUp(self) -> None:
         super().setUp()
@@ -190,21 +195,143 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             date_updated=before_now(minutes=10),
             last_visited=before_now(minutes=5),
         )
-
         model.set_projects(self.project_ids)
-        for forward_sort in [True, False]:
-            sorting = "recentlyViewed" if forward_sort else "-recentlyViewed"
-            with self.feature(self.feature_name):
+
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            last_visited=before_now(minutes=10),
+        )
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model,
+            last_visited=before_now(minutes=5),
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+        assert response.status_code == 200
+        assert [row["name"] for row in response.data] == ["My query", "Test query"]
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"sortBy": "-recentlyViewed"})
+        assert response.status_code == 200
+        assert [row["name"] for row in response.data] == ["Test query", "My query"]
+
+    def test_get_sortby_recently_viewed_is_per_user(self) -> None:
+        """Another user's visit must not affect the caller's ordering."""
+        other_user = self.create_user()
+        self.create_member(organization=self.org, user=other_user)
+
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My query",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+        # The caller has only viewed "Test query"...
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            last_visited=before_now(minutes=10),
+        )
+        # ...while another user viewed "My query" more recently.
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=other_user.id,
+            discover_saved_query=model,
+            last_visited=before_now(minutes=1),
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+
+        assert response.status_code == 200
+        # "My query" has no last visited row for the caller, so it sorts last.
+        assert [row["name"] for row in response.data] == ["Test query", "My query"]
+        assert response.data[0]["lastVisited"] is not None
+        assert response.data[1]["lastVisited"] is None
+
+    def test_get_sortby_recently_viewed_never_visited_sorts_last(self) -> None:
+        query = {"fields": ["message"], "query": "", "limit": 10}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="My query",
+            query=query,
+            version=2,
+            date_created=before_now(minutes=10),
+            date_updated=before_now(minutes=10),
+        )
+        model.set_projects(self.project_ids)
+
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=model,
+            last_visited=before_now(minutes=5),
+        )
+
+        for sorting in ["recentlyViewed", "-recentlyViewed"]:
+            with self.feature([self.feature_name, self.migrate_feature_name]):
                 response = self.client.get(self.url, data={"sortBy": sorting})
 
             assert response.status_code == 200
-            values = [row["name"] for row in response.data]
-            expected = ["Test query", "My query"]
+            assert [row["name"] for row in response.data] == ["My query", "Test query"]
 
-            if not forward_sort:
-                expected = list(reversed(expected))
+    def test_get_last_visited_serialized_per_user(self) -> None:
+        other_user = self.create_user()
+        self.create_member(organization=self.org, user=other_user)
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
 
-            assert values == expected
+        last_visited = before_now(minutes=5)
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            last_visited=last_visited,
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["lastVisited"] == last_visited
+
+        self.login_as(user=other_user)
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["lastVisited"] is None
+
+    def test_get_last_visited_ignores_other_organization_rows(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        test_query = DiscoverSavedQuery.objects.get(organization=self.org, name="Test query")
+
+        DiscoverSavedQueryLastVisited.objects.create(
+            organization=other_org,
+            user_id=self.user.id,
+            discover_saved_query=test_query,
+            last_visited=before_now(minutes=5),
+        )
+
+        with self.feature([self.feature_name, self.migrate_feature_name]):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["lastVisited"] is None
 
     def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")

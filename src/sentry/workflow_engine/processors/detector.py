@@ -11,6 +11,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -161,8 +162,8 @@ def get_detectors_for_event_data(
             extra={"project_id": event_data.group.project_id, "group_id": event_data.group.id},
         )
 
-    if options.get("workflow_engine.all_projects_detectors_enabled"):
-        organization_id = event_data.event.project.organization_id
+    organization_id = event_data.event.project.organization_id
+    if in_rollout_group("workflow_engine.all_projects_detectors.rollout-rate", organization_id):
         all_projects_detector = get_all_projects_detector(organization_id)
         if all_projects_detector:
             issue_stream_detectors.append(all_projects_detector)

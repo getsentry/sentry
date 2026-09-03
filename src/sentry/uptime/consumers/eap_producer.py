@@ -28,6 +28,7 @@ def _get_eap_items_producer(name: str = "sentry.uptime.consumers.eap_producer"):
         name,
         Topic.SNUBA_ITEMS,
         exclude_config_keys=["compression.type", "message.max.bytes"],
+        additional_config={"queue.buffering.max.messages": 10_000},
     )
 
 

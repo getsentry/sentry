@@ -40,11 +40,7 @@ export function ActivityList({activities}: Props) {
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: repeat(3, 2fr);
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    grid-template-columns: 2fr repeat(2, 1fr);
-  }
+  grid-template-columns: minmax(max-content, 2fr) repeat(2, minmax(max-content, 1fr));
 `;
 
 const Version = styled('div')`

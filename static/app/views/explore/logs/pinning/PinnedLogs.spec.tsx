@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 

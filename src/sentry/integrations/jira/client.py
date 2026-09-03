@@ -78,10 +78,11 @@ class JiraCloudClient(ApiClient):
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
+        now = datetime.datetime.now(datetime.UTC)
         jwt_payload = {
             "iss": JIRA_KEY,
-            "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "iat": now,
+            "exp": now + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(
                 uri=path,
                 method=prepared_request.method.upper(),

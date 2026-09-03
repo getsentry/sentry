@@ -3,8 +3,10 @@ from __future__ import annotations
 from django.urls import reverse
 
 from sentry.investigations.models import (
+    InvestigationBlock,
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
+    InvestigationOrchestrationRun,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -58,6 +60,15 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
         )
         second.current_execution = execution
         second.save(update_fields=["current_execution"])
+        seer_run = self.create_seer_run(organization=self.organization)
+        self.create_investigation_orchestration_run(
+            investigation=source, seer_run=seer_run, source={"type": "manual"}
+        )
+        first.update(
+            report_revision=1,
+            stable_agent_key="summary",
+            producing_seer_run=seer_run,
+        )
         duplicate_url = reverse(
             "sentry-api-0-organization-investigation-duplicate",
             kwargs={
@@ -78,3 +89,10 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
         assert response.data["blocks"][1]["dependencies"] == [response.data["blocks"][0]["id"]]
         assert response.data["blocks"][1]["parameterKeys"] == ["environment"]
         assert all(block["outputStatus"] == "notRun" for block in response.data["blocks"])
+        assert not InvestigationOrchestrationRun.objects.filter(
+            investigation_id=response.data["id"]
+        ).exists()
+        copied_first = InvestigationBlock.objects.get(id=response.data["blocks"][0]["id"])
+        assert copied_first.report_revision is None
+        assert copied_first.stable_agent_key is None
+        assert copied_first.producing_seer_run_id is None

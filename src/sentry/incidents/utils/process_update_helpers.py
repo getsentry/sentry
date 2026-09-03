@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from snuba_sdk import Column, Condition, Limit, Op
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.search.exceptions import InvalidIssueSearchQuery
@@ -64,16 +65,46 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
     return aggregation_value
 
 
-def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float:
+def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
+    """
+    Normalize a Snuba/EAP aggregate to float | None.
+
+    Subscription and comparison queries can return None, empty strings, or other
+    non-numeric values for some aggregates (e.g. max/min with no matching rows).
+    Callers should skip the update when this returns None rather than doing type
+    checks later.
+    """
+    if value is None:
+        return 0.0 if none_defaults_to_zero else None
+
+    if isinstance(value, bool):
+        # bool is a subclass of int; treat explicitly before numeric checks.
+        return float(value)
+
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    # Snuba occasionally returns empty/non-numeric strings for max/min-style
+    # aggregates when no matching rows exist. Skip those updates rather than
+    # crashing in math.isnan() or coercing to 0 (which can false-trigger alerts).
+    if isinstance(value, str):
+        if value.strip() == "":
+            return None
+        try:
+            return float(value)
+        except ValueError:
+            return None
+
+    return None
+
+
+def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float | None:
     aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
     # In some cases Snuba can return a None value for an aggregation. This means
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
     # the update in the future.
-    if aggregation_value is None:
-        aggregation_value = 0
-
-    return aggregation_value
+    return coerce_aggregation_value(aggregation_value, none_defaults_to_zero=True)
 
 
 def get_eap_aggregation_value(
@@ -105,6 +136,18 @@ def get_eap_aggregation_value(
         if len(rpc_response.result_timeseries):
             comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
 
+    except InvalidSearchQuery:
+        # Queries with invalid search syntax are user configuration errors and
+        # are not unexpected. Log at info level to avoid noisy error alerts.
+        logger.info(
+            "EAP comparison query has an invalid search query",
+            extra={
+                "alert_rule_id": alert_rule_id,
+                "subscription_id": subscription_update.get("subscription_id"),
+                "organization_id": organization_id,
+            },
+        )
+        return None
     except Exception:
         logger.exception(
             "Failed to run RPC comparison query",
@@ -115,7 +158,7 @@ def get_eap_aggregation_value(
             },
         )
         return None
-    return comparison_aggregate
+    return coerce_aggregation_value(comparison_aggregate)
 
 
 def get_aggregation_value(
@@ -174,7 +217,7 @@ def get_aggregation_value(
             },
         )
         return None
-    return comparison_aggregate
+    return coerce_aggregation_value(comparison_aggregate)
 
 
 def get_comparison_aggregation_value(
@@ -187,6 +230,8 @@ def get_comparison_aggregation_value(
 ) -> float | None:
     # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
     aggregation_value = get_aggregation_value_helper(subscription_update)
+    if aggregation_value is None:
+        return None
     if comparison_delta is None:
         return aggregation_value
 

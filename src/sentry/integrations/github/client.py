@@ -68,6 +68,7 @@ from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.iterators import chunked
+from sentry.utils.safe import get_path
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.integrations.github")
@@ -76,6 +77,31 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+
+SEARCH_ASSIGNABLE_USERS_QUERY = """
+query SearchAssignableUsers($owner: String!, $name: String!, $search: String!) {
+  repository(owner: $owner, name: $name) {
+    results: assignableUsers(first: 100, query: $search) {
+      nodes {
+        login
+        name
+      }
+    }
+  }
+}
+"""
+
+SEARCH_LABELS_QUERY = """
+query SearchLabels($owner: String!, $name: String!, $search: String!) {
+  repository(owner: $owner, name: $name) {
+    results: labels(first: 100, query: $search) {
+      nodes {
+        name
+      }
+    }
+  }
+}
+"""
 
 # When Github advertises the total page count up front, the pages after the
 # first are fetched concurrently. Bounded to keep the fan-out comfortably under
@@ -179,6 +205,8 @@ class GitHubApiRequestType(StrEnum):
     REFRESH_ACCESS_TOKEN = "refresh_access_token"
     REPO_HOOKS = "repo_hooks"
     SEARCH_ISSUES = "search_issues"
+    SEARCH_ISSUE_ASSIGNEES = "search_issue_assignees"
+    SEARCH_ISSUE_LABELS = "search_issue_labels"
     SEARCH_REPOSITORIES = "search_repositories"
     UPDATE_COMMENT = "update_comment"
     UPDATE_ISSUE_ASSIGNEES = "update_issue_assignees"
@@ -799,6 +827,54 @@ class GitHubBaseClient(
             page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_ASSIGNEES,
         )
+
+    def search_issue_assignees(self, repo: str, query: str) -> list[Any]:
+        return self._search_issue_field(
+            repo,
+            query,
+            graphql_query=SEARCH_ASSIGNABLE_USERS_QUERY,
+            api_request_type=GitHubApiRequestType.SEARCH_ISSUE_ASSIGNEES,
+        )
+
+    def search_issue_labels(self, repo: str, query: str) -> list[Any]:
+        return self._search_issue_field(
+            repo,
+            query,
+            graphql_query=SEARCH_LABELS_QUERY,
+            api_request_type=GitHubApiRequestType.SEARCH_ISSUE_LABELS,
+        )
+
+    def _search_issue_field(
+        self,
+        repo: str,
+        query: str,
+        *,
+        graphql_query: str,
+        api_request_type: GitHubApiRequestType,
+    ) -> list[Any]:
+        owner, repo_name = repo.split("/", 1)
+        response = self.post(
+            path="/graphql",
+            data={
+                "query": graphql_query,
+                "variables": {"owner": owner, "name": repo_name, "search": query},
+            },
+            allow_text=False,
+            api_request_type=api_request_type,
+        )
+        if not is_graphql_response(response):
+            raise ApiError("Response is not JSON")
+
+        errors = response.get("errors", [])
+        if any(error.get("type") == "RATE_LIMITED" for error in errors):
+            raise ApiRateLimitedError("GitHub rate limit exceeded")
+
+        nodes = get_path(response, "data", "repository", "results", "nodes")
+        if nodes is None:
+            message = "\n".join(error.get("message", "") for error in errors).strip()
+            raise ApiError(message or "Invalid GitHub GraphQL response")
+
+        return nodes
 
     def _get_with_pagination(
         self,

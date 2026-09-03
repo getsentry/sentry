@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
-from typing import Any
+from typing import Any, final
 
 from sentry.workflow_engine.types import ConditionError
 
@@ -17,16 +17,25 @@ class EvaluationPhase(StrEnum):
     DELAYED = "delayed"
 
 
+type AnyWorkflowEngineEvaluation = BaseWorkflowEngineEvaluation[Any, Any, Any]
+
+
 def _find_error(
-    items: list["BaseWorkflowEngineEvaluation[Any, Any]"],
-    predicate: Callable[["BaseWorkflowEngineEvaluation[Any, Any]"], bool],
+    items: list[AnyWorkflowEngineEvaluation],
+    predicate: Callable[[AnyWorkflowEngineEvaluation], bool],
 ) -> ConditionError | None:
     """Helper to find an error from items matching the predicate."""
     return next((item.error for item in items if predicate(item)), None)
 
 
+@dataclass(frozen=True)
+class BaseWorkflowEngineEvaluationArtifact:
+    triggered: bool
+    error: str | None
+
+
 @dataclass(frozen=True, kw_only=True)
-class BaseWorkflowEngineEvaluation[R, D](ABC):
+class BaseWorkflowEngineEvaluation[R, D, A: BaseWorkflowEngineEvaluationArtifact](ABC):
     """
     This is a shared base class for all Evaluation classes.
 
@@ -43,8 +52,8 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
     algebra over evaluations: when an input had an error that could affect the result, the returned
     `(triggered, error)` carries a representative error so the taint propagates.
 
-    Concrete evaluations provide `artifact_fields` to select safe, useful fields from their
-    result and data. `to_artifact` combines those fields with the common evaluation state.
+    `to_artifact` provides the common evaluation state to each concrete evaluation's
+    `_build_artifact` implementation.
     """
 
     result: R
@@ -60,20 +69,19 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
         """
         return self.error is not None
 
-    def to_artifact(self) -> dict[str, Any]:
-        return {
-            **self.artifact_fields,
-            "triggered": self.triggered,
-            "error": self.error.msg if self.error else None,
-        }
+    @final
+    def to_artifact(self) -> A:
+        return self._build_artifact(
+            triggered=self.triggered,
+            error=self.error.msg if self.error else None,
+        )
 
-    @property
     @abstractmethod
-    def artifact_fields(self) -> dict[str, Any]:
-        """The evaluation-specific fields included in the artifact."""
+    def _build_artifact(self, *, triggered: bool, error: str | None) -> A:
+        """Build an artifact with the common evaluation fields provided by the base class."""
         raise NotImplementedError
 
-    def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D]":
+    def with_error(self, error: ConditionError) -> "BaseWorkflowEngineEvaluation[R, D, A]":
         """
         Returns a copy of this evaluation with the given error. If the evaluation is
         already tainted, the error is ignored.
@@ -83,7 +91,7 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
         return replace(self, error=error)
 
     @staticmethod
-    def choose_tainted[E: "BaseWorkflowEngineEvaluation[Any, Any]"](a: E, b: E) -> E:
+    def choose_tainted[E: AnyWorkflowEngineEvaluation](a: E, b: E) -> E:
         """
         Returns the first tainted evaluation, or `a` if neither is tainted.
         Useful for tracking whether any evaluation in a series was tainted.
@@ -96,7 +104,7 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
 
     @staticmethod
     def any(
-        items: Iterable["BaseWorkflowEngineEvaluation[Any, Any]"],
+        items: Iterable[AnyWorkflowEngineEvaluation],
     ) -> tuple[bool, ConditionError | None]:
         """
         Like `any()`, but taint-aware. Returns the combined `(triggered, error)`; if any inputs
@@ -118,7 +126,7 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
 
     @staticmethod
     def all(
-        items: Iterable["BaseWorkflowEngineEvaluation[Any, Any]"],
+        items: Iterable[AnyWorkflowEngineEvaluation],
     ) -> tuple[bool, ConditionError | None]:
         """
         Like `all()`, but taint-aware. Returns the combined `(triggered, error)`; if any inputs
@@ -140,7 +148,7 @@ class BaseWorkflowEngineEvaluation[R, D](ABC):
 
     @staticmethod
     def none(
-        items: Iterable["BaseWorkflowEngineEvaluation[Any, Any]"],
+        items: Iterable[AnyWorkflowEngineEvaluation],
     ) -> tuple[bool, ConditionError | None]:
         """
         Like `not any()`, but taint-aware. Returns the combined `(triggered, error)`; if any inputs

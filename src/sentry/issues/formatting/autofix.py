@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.issues.formatting.formatter import Format, Formatter, get_formatter
+from sentry.issues.formatting.formatter import Consumer, Format, Formatter, get_formatter
 
 
 def _artifacts(autofix: Mapping[str, Any]) -> dict[str, Any]:
@@ -60,8 +60,14 @@ def _pull_requests(autofix: Mapping[str, Any], fmt: Formatter) -> str:
     return fmt.block("Pull Requests", "\n".join(lines)) if lines else ""
 
 
-def format_autofix(data: Mapping[str, Any], format: Format = "markdown") -> str:
-    """Render a serialized autofix state response (``{"autofix": {...}}``) into text."""
+def format_autofix(
+    data: Mapping[str, Any], format: Format = "markdown", consumer: Consumer = "ui"
+) -> str:
+    """Render a serialized autofix state response (``{"autofix": {...}}``) into text.
+
+    Takes ``consumer`` to satisfy the adapter signature; the autofix body is the same for the UI
+    and for API clients, so nothing varies on it yet.
+    """
     autofix = data.get("autofix")
     if not autofix:  # no autofix run on this issue yet
         return ""

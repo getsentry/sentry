@@ -11,7 +11,9 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     CheckSuiteHeadMatch,
     GithubCheckSuiteEvent,
+    LivePullRequestHead,
     check_suite_head_match,
+    compare_live_pull_request_head,
     get_check_suite_url,
     resolve_check_suite_autofix_run,
     sweep_check_runs,
@@ -22,6 +24,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     FeedbackSourceBase,
     TriggerDecision,
 )
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         autofix_run = resolve_check_suite_autofix_run(self.event)
         if autofix_run is None:
             raise MissingCheckSuiteAutofixRun
+
         self._autofix_run = autofix_run
         return autofix_run
 
@@ -159,10 +163,30 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             return Decision(ok=False, reason="hard_cap_reached")
         return Decision(ok=True, reason="head_matches")
 
+    def _live_head(self, run_state: SeerRunState) -> LivePullRequestHead:
+        try:
+            return compare_live_pull_request_head(
+                self.event, run_state, self.autofix_run.repository
+            )
+        except MissingCheckSuiteAutofixRun:
+            return LivePullRequestHead("no_autofix_run")
+        except Exception:
+            logger.exception(
+                "autofix.pr_iteration.check_suite.live_head.unexpected_error",
+                extra={"run_id": run_state.run_id, "check_suite_id": self.event.check_suite.id},
+            )
+            return LivePullRequestHead("unexpected_error")
+
     def should_consume(self, run_state: SeerRunState) -> Decision:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
         attempt_key = self.check_suite_attempt_key()
         already_processed = attempt_key in _processed_check_suite_attempts(run_state)
+        live_head = self._live_head(run_state) if matched and not already_processed else None
+        if live_head is not None:
+            metrics.incr(
+                "autofix.pr_iteration.check_suite.live_head",
+                tags={"result": live_head.result},
+            )
         logger.info(
             "autofix.pr_iteration.check_suite.should_consume.evaluated",
             extra={
@@ -173,6 +197,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "check_suite_id": self.event.check_suite.id,
                 "updated_at": self.updated_at,
                 "already_processed": already_processed,
+                "live_head_result": live_head.result if live_head else None,
+                "live_head_sha": live_head.head_sha if live_head else None,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
         )
@@ -182,6 +208,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         # suite attempt can't burn iterations when the PR head is unchanged.
         if already_processed:
             return Decision(ok=False, reason="already_processed")
+        if live_head is not None and live_head.result == "mismatch":
+            return Decision(ok=False, reason="live_head_mismatch")
         return Decision(ok=True, reason="head_matches")
 
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
