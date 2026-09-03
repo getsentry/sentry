@@ -1,12 +1,11 @@
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -104,9 +103,7 @@ type IterationFeedback = ParsedFeedback & {
   status: FeedbackStatus;
 };
 
-// The collapsed-state summary line and the collapse-length decision both need
-// plain prose, not markdown source — this is where bot control markers like
-// `<!-- BUGBOT_REVIEW -->` get dropped for that purpose.
+// Bot comments arrive as HTML-flavored markdown; keep only the visible prose.
 function toPlainText(text: string): string {
   return markdownToPlainText(text).replace(/\s+/g, ' ').trim();
 }
@@ -115,7 +112,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
   // `ui_text` is the short display label the backend derives per source; fall
   // back to the raw prompt `text` for feedback serialized before it existed.
   const base = {
-    text: parsed.ui_text ?? parsed.text,
+    text: toPlainText(parsed.ui_text ?? parsed.text),
     timestamp: parsed.timestamp,
   };
   const source = parsed.source;
@@ -668,28 +665,24 @@ function CommentBody({
   externalUrl?: string;
   muted?: boolean;
 }) {
-  // The disclosure preview and the collapse decision both read the flattened
-  // prose length, not the markdown source's — a short comment wrapped in a lot
-  // of bot HTML shouldn't collapse, and a long one written in terse markdown
-  // should.
-  const plainText = useMemo(() => toPlainText(text), [text]);
-
+  // `anywhere` (not `break-word`) shrinks min-content so a URL can't widen the column.
   const body = (
-    <Stack gap="xs">
-      <MarkdownColor muted={muted}>
-        <Markdown raw={text} />
-      </MarkdownColor>
+    <Text
+      variant={muted ? 'muted' : undefined}
+      css={css`
+        overflow-wrap: anywhere;
+      `}
+    >
+      {text}
       {externalUrl && (
-        <Flex justify="end">
-          <ExternalLink href={externalUrl} aria-label={t('Open in GitHub')}>
-            <InlineOpenIcon size="xs" />
-          </ExternalLink>
-        </Flex>
+        <ExternalLink href={externalUrl} aria-label={t('Open in GitHub')}>
+          <InlineOpenIcon size="xs" />
+        </ExternalLink>
       )}
-    </Stack>
+    </Text>
   );
 
-  if (plainText.length <= MAX_UNCOLLAPSED_COMMENT_LENGTH) {
+  if (text.length <= MAX_UNCOLLAPSED_COMMENT_LENGTH) {
     return body;
   }
 
@@ -699,7 +692,7 @@ function CommentBody({
         isOpen ? null : (
           <Flex flex="1" minWidth="0">
             <Text variant={muted ? 'muted' : undefined} ellipsis>
-              {plainText}
+              {text}
             </Text>
           </Flex>
         )
@@ -709,18 +702,6 @@ function CommentBody({
     </CollapsibleContent>
   );
 }
-
-// `Markdown` sets `overflow-wrap: break-word` on its own root, which (unlike
-// `anywhere`) doesn't shrink min-content — override it so a long URL can't
-// widen the column. `overflow-wrap` is inherited, so this reaches every
-// paragraph/heading `Markdown` renders underneath.
-const MarkdownColor = styled('div')<{muted?: boolean}>`
-  color: ${p => p.theme.tokens.content[p.muted ? 'secondary' : 'primary']};
-
-  & > div {
-    overflow-wrap: anywhere !important;
-  }
-`;
 
 // One-avatar-square frame that positions a corner badge against its avatar.
 function AvatarFrame({children}: {children: React.ReactNode}) {
