@@ -75,9 +75,6 @@ describe('ReplayDetails', () => {
       body: {
         data: {
           id: 'test-replay-id',
-          // The live-refresh poll maps this response into a replay record, so
-          // it needs timestamps it can parse. Mirrors ReplayRecordFixture, and
-          // matching `count_segments` keeps the refresh chip hidden.
           started_at: '2022-09-22T16:58:39Z',
           finished_at: '2022-09-22T17:00:03Z',
           count_segments: 14,
@@ -134,11 +131,9 @@ describe('ReplayDetails', () => {
     expect(
       screen.getByRole('menuitemradio', {name: 'Configure Replay'})
     ).toBeInTheDocument();
-    // Copying a link to the current timestamp is no longer offered.
     expect(
       screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
     ).not.toBeInTheDocument();
-    // The default viewer is not an employee, so that section is absent.
     expect(
       screen.queryByRole('group', {name: 'Sentry Employee Features'})
     ).not.toBeInTheDocument();
@@ -159,8 +154,6 @@ describe('ReplayDetails', () => {
   });
 
   it('groups the employee-only actions into their own section', async () => {
-    // useIsSentryEmployee reads the user off ConfigStore, keyed on a verified
-    // sentry.io address.
     ConfigStore.set(
       'user',
       UserFixture({
@@ -176,7 +169,6 @@ describe('ReplayDetails', () => {
     const section = await screen.findByRole('group', {
       name: 'Sentry Employee Features',
     });
-    // A section is a labelled group, not a selectable row of its own.
     expect(
       screen.queryByRole('menuitemradio', {name: 'Sentry Employee Features'})
     ).not.toBeInTheDocument();
@@ -191,12 +183,10 @@ describe('ReplayDetails', () => {
       screen.getByRole('menuitemradio', {name: /Sentry Replay Debugger/})
     );
 
-    // The actions everyone sees stay outside the section.
     expect(section).not.toContainElement(
       screen.getByRole('menuitemradio', {name: 'Download JSON'})
     );
 
-    // The section sits last, after the shared actions and the configure submenu.
     expect(
       screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
     ).toEqual([
@@ -214,7 +204,6 @@ describe('ReplayDetails', () => {
     renderDetails();
 
     await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
-    // Submenus open on hover, not on click.
     await userEvent.hover(
       await screen.findByRole('menuitemradio', {name: 'Configure Replay'})
     );

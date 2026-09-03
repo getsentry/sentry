@@ -8,12 +8,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-/**
- * The "Configure Replay" entry of the page-title menu: a submenu of links into
- * the Session Replay docs for the SDK that recorded this replay. Mobile SDKs
- * have their own guides, so the link set depends on the platform; an SDK we
- * have no guide for renders the items disabled rather than linking nowhere.
- */
 export function useConfigureReplayMenuItem({
   isMobile,
   replayRecord,
@@ -30,8 +24,6 @@ export function useConfigureReplayMenuItem({
     label: t('Configure Replay'),
     leadingItems: <IconSettings variant="muted" />,
     submenu: true,
-    // Tracking lives on each link rather than the menu's `onAction`, which
-    // fires for every sibling action once this shares a menu with them.
     children: items.map(item => ({
       ...item,
       onAction: () =>

@@ -40,17 +40,11 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const menuItems = useReplayMenuItems({
     projectSlug,
-    // Read before the reader is withheld below: a partially-readable replay is
-    // still a mobile one, and its actions and docs should say so.
     isMobile: replay?.isVideoReplay() ?? false,
-    // A replay with processing errors is only partially readable, so the
-    // actions that need its frames stay disabled.
     replay: replay?.hasProcessingErrors() ? undefined : (replay ?? undefined),
     replayRecord: replayRecord ?? undefined,
   });
 
-  // An archived replay has nothing left to act on, and until the record loads
-  // there is nothing to identify what the actions would apply to.
   const hasActionsMenu = !!replayRecord && !replayRecord.is_archived;
 
   // We use a ref to store the initial location so that we can navigate to the
@@ -140,9 +134,6 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   }),
               },
             },
-            // Rendered in the order declared. The menu leads so it keeps a
-            // fixed spot next to the title, with the transient refresh chip
-            // appearing after it rather than pushing it along.
             trailingActions: [
               hasActionsMenu
                 ? {

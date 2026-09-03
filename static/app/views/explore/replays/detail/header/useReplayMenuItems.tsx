@@ -18,12 +18,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
-  /**
-   * Whether this replay was recorded as video (i.e. by a mobile SDK). Passed in
-   * rather than read off `replay`, which the caller withholds when the replay is
-   * only partially readable — the replay is still a mobile one either way, and
-   * this decides which actions apply and which docs to link.
-   */
   isMobile: boolean;
   projectSlug: string | null;
   replay: ReplayReader | undefined;
@@ -32,16 +26,6 @@ interface Props {
   replayRecord: ReplayRecord | undefined;
 }
 
-/**
- * The page-level actions for a replay, as entries for the page-title menu.
- *
- * Two kinds of gate, deliberately behaving differently. An action the viewer
- * has no business seeing (employee-only tooling) or that cannot apply to this
- * replay (a video-segment download on a web replay) is omitted entirely. An
- * action that does apply but cannot run yet — the replay is still loading, or
- * only partially readable — renders disabled, so the menu keeps a stable shape
- * rather than growing rows as data arrives.
- */
 export function useReplayMenuItems({
   isMobile,
   projectSlug,
@@ -65,8 +49,6 @@ export function useReplayMenuItems({
 
   const configureReplayItem = useConfigureReplayMenuItem({isMobile, replayRecord});
 
-  // Kept together so it reads as one clearly-labelled group rather than
-  // employee-only rows scattered among the actions everyone sees.
   const employeeItems = canSeeEmployeeLinks
     ? [
         {
@@ -134,8 +116,6 @@ export function useReplayMenuItems({
       key: 'copy-replay-id',
       label: t('Copy replay ID to clipboard'),
       leadingItems: <IconCopyId variant="muted" />,
-      // The full ID, not the shortened form shown in the page title — the
-      // short one is not what anything else accepts as input.
       onAction: () => copy(replayId ?? ''),
       disabled: !replayId,
     },
@@ -174,8 +154,6 @@ export function useReplayMenuItems({
       disabled: !canDelete,
     },
     configureReplayItem,
-    // An item with `children` and no `submenu` renders as a section; the menu
-    // draws the divider above it for us.
     employeeItems.length > 0
       ? {
           key: 'sentry-employee-features',

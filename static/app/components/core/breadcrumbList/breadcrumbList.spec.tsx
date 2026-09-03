@@ -281,8 +281,6 @@ describe('BreadcrumbList rich page-title items', () => {
   });
 
   it('keeps an open dropdown open when an action declared before it appears', async () => {
-    // A conditional slot ahead of the menu, e.g. the replay live-refresh chip
-    // that shows up on its own once a new segment lands.
     function Title({showUpdate}: {showUpdate: boolean}) {
       return (
         <BreadcrumbList.Title
@@ -314,8 +312,6 @@ describe('BreadcrumbList rich page-title items', () => {
     rerender(<Title showUpdate />);
 
     expect(screen.getByRole('button', {name: 'Update'})).toBeInTheDocument();
-    // The menu must survive the slot filling in beside it, rather than being
-    // remounted and losing its open state.
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
   });
 

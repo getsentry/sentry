@@ -21,11 +21,6 @@ function findItem(items: MenuItemProps[], key: string): MenuItemProps | undefine
   return undefined;
 }
 
-/**
- * The shape the breadcrumbs pass for a replay with processing errors: the
- * reader is withheld so the actions needing its frames disable themselves,
- * but `isMobile` still reflects what the replay actually is.
- */
 function renderMenuItems(isMobile: boolean) {
   const {result} = renderHookWithProviders(useReplayMenuItems, {
     organization: OrganizationFixture(),
@@ -53,14 +48,11 @@ describe('useReplayMenuItems', () => {
   it('offers the video-segment download disabled, not hidden, when the reader is withheld', () => {
     const videoItem = findItem(renderMenuItems(true), 'download-1st-video');
 
-    // The action applies — this really is a mobile replay — it just cannot run
-    // until the frames are readable.
     expect(videoItem).toBeDefined();
     expect(videoItem?.disabled).toBe(true);
   });
 
   it('omits the video-segment download for a web replay', () => {
-    // Not applicable rather than unavailable, so it is absent entirely.
     expect(findItem(renderMenuItems(false), 'download-1st-video')).toBeUndefined();
   });
 
