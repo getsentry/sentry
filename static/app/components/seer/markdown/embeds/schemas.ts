@@ -581,11 +581,16 @@ export const SEER_EMBED_SCHEMAS = {
   spansQuery: {
     description:
       'Preview an Explore > Traces (spans) query. ' +
-      'Use mode "samples" for individual spans; inline renders a link and block ' +
-      'renders the first five matching rows. ' +
-      'Use mode "aggregate" for grouped results; supply `groupBy` and `yAxes`, and ' +
-      'the block renders the first five grouped rows. ' +
-      '`query` uses span search syntax, e.g. "span.op:http.client".',
+      'Use mode "samples" for individual spans and mode "aggregate" for grouped ' +
+      'results, supplying `groupBy` and `yAxes`. ' +
+      '`query` uses span search syntax, e.g. "span.op:http.client". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the same query. A query with `groupBy` charts the ' +
+      'top five groups as one series each, matching the rows below it; every ' +
+      'other query charts a single total for the period. Provide `yAxes` to pick ' +
+      'which aggregate is charted — samples mode, and any query naming none, ' +
+      'charts "count(span.duration)". When aggregate mode supplies no `groupBy` ' +
+      'there is only one row to show, so the chart replaces the table.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -610,6 +615,18 @@ export const SEER_EMBED_SCHEMAS = {
           sort: '-p95_span_duration',
           statsPeriod: '7d',
           title: 'p95 by span op',
+        },
+      },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total spans',
+        data: {
+          query: 'span.op:http.client',
+          mode: 'aggregate',
+          yAxes: ['count(span.duration)'],
+          statsPeriod: '24h',
+          title: 'Total spans',
         },
       },
     ],

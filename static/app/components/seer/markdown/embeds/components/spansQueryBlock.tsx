@@ -35,6 +35,10 @@ import {
 
 const ROW_LIMIT = 5;
 
+// Matches the height `ChartContent` renders into, so the chart's loading state
+// holds the block's shape instead of collapsing it.
+const CHART_HEIGHT = '220px';
+
 function formatCellValue(value: unknown): string {
   if (value === undefined || value === null || value === '') {
     return '—';
@@ -64,6 +68,8 @@ function chartSeriesFromStatsResponse(
     return [transformEventsStatsToSeries(responseData, field, field)];
   }
 
+  // A grouped query comes back keyed by group name — one entry per top group —
+  // and a multi-axis query keyed by aggregate. Either way the key is the label.
   if (isMultiSeriesEventsStats(responseData)) {
     return Object.entries(responseData)
       .filter(([key]) => key !== 'order')
@@ -78,21 +84,21 @@ function chartSeriesFromStatsResponse(
 function SpansQueryChart({
   data,
   eventView,
-  fields,
+  hasTable,
 }: {
   data: SpansQueryData;
   eventView: ReturnType<typeof buildSpansEventView>;
-  fields: string[];
+  hasTable: boolean;
 }) {
   const organization = useOrganization();
-  const yAxisFields = resolveChartYAxes(data, fields);
+  const yAxisFields = resolveChartYAxes(data);
 
   const query = useQuery({
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: buildSpansChartQuery(eventView, yAxisFields),
+        query: buildSpansChartQuery(eventView, data, yAxisFields),
         staleTime: 30_000,
       }
     ),
@@ -100,7 +106,11 @@ function SpansQueryChart({
   });
 
   if (query.isPending) {
-    return <LoadingIndicator />;
+    return (
+      <Flex align="center" height={CHART_HEIGHT} justify="center" width="100%">
+        <LoadingIndicator />
+      </Flex>
+    );
   }
 
   if (query.isError) {
@@ -120,7 +130,9 @@ function SpansQueryChart({
   }));
 
   if (series.every(item => item.data.length === 0)) {
-    return (
+    // When a table follows, its own empty state already says this — drop the
+    // chart rather than repeat the message.
+    return hasTable ? null : (
       <Alert role="alert" variant="muted">
         {t('No matching spans')}
       </Alert>
@@ -145,11 +157,14 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
   const organization = useOrganization();
   const eventView = buildSpansEventView(data);
   const fields = getSpansQueryFields(data);
-  const isChartMode = hasNoGroupBy(data);
+  // An aggregate with no grouping columns collapses to a single row, so the
+  // chart already says everything a table would. Every other query keeps its
+  // table and gains the chart above it.
+  const isChartOnly = hasNoGroupBy(data);
 
   const tableQuery = useQuery({
     ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
-      path: isChartMode ? skipToken : {organizationIdOrSlug: organization.slug},
+      path: isChartOnly ? skipToken : {organizationIdOrSlug: organization.slug},
       query: {
         ...eventView.generateQueryStringObject(),
         per_page: ROW_LIMIT,
@@ -167,9 +182,11 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
 
   return (
     <Container
+      as="section"
       background="primary"
       border="primary"
       data-test-id={`seer-spans-query-${data.mode}-embed`}
+      margin="lg 0"
       padding="lg"
       radius="md"
       width="100%"
@@ -182,9 +199,8 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
           </Tag>
         </Flex>
         {data.query ? <ProvidedFormattedQuery query={data.query} /> : null}
-        {isChartMode ? (
-          <SpansQueryChart data={data} eventView={eventView} fields={fields} />
-        ) : (
+        <SpansQueryChart data={data} eventView={eventView} hasTable={!isChartOnly} />
+        {isChartOnly ? null : (
           <SimpleTable
             columns={columns}
             header={
