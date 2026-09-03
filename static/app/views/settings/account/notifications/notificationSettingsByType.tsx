@@ -409,7 +409,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     }
     const help =
       notificationType === 'spikeProtection'
-        ? t('This is the default for all projects under all Organizations.')
+        ? t('This is the default for all projects under all organizations.')
         : isGroupedByProject(notificationType)
           ? t('This is the default for all projects.')
           : t('This is the default for all organizations.');
