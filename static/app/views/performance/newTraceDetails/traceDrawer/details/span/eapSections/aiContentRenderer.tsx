@@ -105,7 +105,6 @@ interface AIContentRendererProps {
    * defaults to clipped and JSON defaults to flowing (matching prior behavior).
    */
   clip?: boolean;
-  collapsibleXmlTags?: boolean;
   inline?: boolean;
   maxJsonDepth?: number;
 }
@@ -213,7 +212,6 @@ export function AIContentRenderer({
   inline = false,
   maxJsonDepth = 2,
   autoCollapseLimit,
-  collapsibleXmlTags = true,
   clip,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
@@ -238,18 +236,13 @@ export function AIContentRenderer({
 
     case 'markdown-with-xml':
       if (inline) {
-        return (
-          <MarkdownWithXmlRenderer text={text} collapsibleXmlTags={collapsibleXmlTags} />
-        );
+        return <MarkdownWithXmlRenderer text={text} collapsibleXmlTags />;
       }
       return (
         <TraceDrawerComponents.MultilineText
           clip={clipText}
           renderFormatted={rawText => (
-            <MarkdownWithXmlRenderer
-              text={rawText}
-              collapsibleXmlTags={collapsibleXmlTags}
-            />
+            <MarkdownWithXmlRenderer text={rawText} collapsibleXmlTags />
           )}
         >
           {text}
