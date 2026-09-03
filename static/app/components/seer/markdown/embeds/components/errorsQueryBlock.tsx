@@ -26,7 +26,6 @@ import {ErrorsQueryLink} from './errorsQueryLink';
 import {
   buildErrorsChartQuery,
   buildErrorsEventView,
-  getGroupByFields,
   hasNoGroupBy,
   resolveChartYAxes,
   toChartUnit,
@@ -36,10 +35,8 @@ import {
 
 const ROW_LIMIT = 5;
 
-// Roughly the height `ChartContent` renders into, so the chart's loading state
-// holds the block's shape instead of collapsing it. Exact only for a
-// single-series chart — a legend adds a row we can't know about until the
-// series arrive.
+// Matches the height `ChartContent` renders into, so the chart's loading state
+// holds the block's shape instead of collapsing it.
 const CHART_HEIGHT = '220px';
 
 interface ErrorsQueryBlockProps {
@@ -102,28 +99,16 @@ function ErrorsQueryChart({
 }) {
   const organization = useOrganization();
 
-  // Only a grouped aggregate query has groups to break the timeseries down by.
-  // Event queries chart their total over time, matching the chart Discover
-  // shows above the same results.
-  const groupBy = kind === 'aggregate' ? getGroupByFields(fields) : [];
-  const isTopEvents = groupBy.length > 0;
-
-  const resolvedYAxes = resolveChartYAxes(data, fields, kind);
-  // A top-N response is already keyed by group; asking for more than one
-  // y-axis would nest a second level of keys under each one, so chart the
-  // primary aggregate alone.
-  const yAxisFields = isTopEvents ? resolvedYAxes.slice(0, 1) : resolvedYAxes;
+  // The chart is the total across the period, never a per-group breakdown —
+  // the table below is what breaks the results out by group.
+  const yAxisFields = resolveChartYAxes(data, fields, kind);
 
   const query = useQuery({
     ...apiOptions.as<EventsStats | MultiSeriesEventsStats>()(
       '/organizations/$organizationIdOrSlug/events-stats/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: buildErrorsChartQuery(
-          eventView,
-          yAxisFields,
-          isTopEvents ? ROW_LIMIT : undefined
-        ),
+        query: buildErrorsChartQuery(eventView, yAxisFields),
         staleTime: 30_000,
       }
     ),

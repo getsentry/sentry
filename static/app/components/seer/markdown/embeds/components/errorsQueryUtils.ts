@@ -8,7 +8,6 @@ import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 
 export type ErrorsQueryKind = 'aggregate' | 'events';
 export type ErrorsQueryData =
@@ -81,14 +80,6 @@ function isAggregateFieldName(field: string): boolean {
 }
 
 /**
- * The plain (non-aggregate) columns of a query — for an aggregate query these
- * are the columns its results are grouped by.
- */
-export function getGroupByFields(fields: string[]): string[] {
-  return fields.filter(field => !isAggregateFieldName(field));
-}
-
-/**
  * An aggregate errors query has "no group by" when every resolved field is
  * an aggregate function call (no plain grouping columns remain). That
  * collapses the results to a single row today, which reads better as a
@@ -123,30 +114,19 @@ export function resolveChartYAxes(
  * the same query/page-filter params already built for the events table
  * fetch and swapping in the aggregate fields as the y-axis.
  *
- * Passing `topEvents` switches the endpoint into top-N mode: it groups by
- * `field`, keeps the top N groups by `orderby`, and returns one series per
- * group. `excludeOther` drops the catch-all bucket so the chart's series are
- * exactly the rows rendered in the table beneath it.
+ * Dropping `field` and `sort` is what keeps this a total for the period: the
+ * endpoint groups by whatever `field` it is given, so sending the query's
+ * grouping columns would break the chart into a series per group.
  */
-export function buildErrorsChartQuery(
-  eventView: EventView,
-  yAxis: string[],
-  topEvents?: number
-): Query {
-  const {field, sort, widths: _widths, ...rest} = eventView.generateQueryStringObject();
+export function buildErrorsChartQuery(eventView: EventView, yAxis: string[]): Query {
+  const {
+    field: _field,
+    sort: _sort,
+    widths: _widths,
+    ...rest
+  } = eventView.generateQueryStringObject();
 
-  if (!topEvents) {
-    return {...rest, yAxis};
-  }
-
-  return {
-    ...rest,
-    field,
-    orderby: decodeScalar(sort),
-    topEvents: String(topEvents),
-    excludeOther: '1',
-    yAxis,
-  };
+  return {...rest, yAxis};
 }
 
 export function toChartUnit(outputType: AggregationOutputType): ChartUnit {

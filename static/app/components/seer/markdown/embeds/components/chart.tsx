@@ -1,5 +1,3 @@
-import {useTheme} from '@emotion/react';
-
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -36,23 +34,6 @@ const DISPLAY_TYPES = {
   bar: DisplayType.BAR,
 } satisfies Record<TimeSeriesVisualization, DisplayType>;
 
-/** Height of the plotting area itself, in px, before any legend. */
-const CHART_HEIGHT = 220;
-
-/**
- * Height of the box the visualization renders into.
- *
- * Both visualizations lay an interactive legend out *inside* that box, as a row
- * above the plot, as soon as there is more than one series. The ECharts canvas
- * is sized in pixels and doesn't give that row its space back, so a height
- * fixed at the plot's leaves the chart spilling out the bottom of the box and
- * over whatever follows it. Give the legend its own height instead of letting
- * it eat into the plot's.
- */
-export function getChartContentHeight(seriesCount: number, legendHeight: number) {
-  return seriesCount > 1 ? CHART_HEIGHT + legendHeight : CHART_HEIGHT;
-}
-
 function getInterval(timestamps: number[]): number {
   const intervals = timestamps
     .slice(1)
@@ -76,11 +57,7 @@ export function ChartContent({
   data: EmbedOutput<'chart'>;
   showHeader?: boolean;
 }) {
-  const theme = useTheme();
   const metadata = UNIT_METADATA[yAxisUnit];
-
-  // `ChartLegend` pins its row to `form.xs.height`.
-  const height = getChartContentHeight(series.length, parseInt(theme.form.xs.height, 10));
 
   const visualizationComponent =
     xAxis === 'category' ? (
@@ -168,29 +145,7 @@ export function ChartContent({
           ) : null}
         </Stack>
       ) : null}
-      {/*
-        The legend lays its items out at their natural width — each one
-        `flex-shrink: 0` and up to 180px — and only collapses them into a
-        "+N more" dropdown after it has measured the room it actually has. That
-        natural width becomes this box's min-content width, which no ancestor
-        can then shrink below, so a five-series chart widens the whole embed
-        past its container. `overflow` can't hold it back: a non-visible
-        overflow only zeroes the automatic minimum size of a *flex item*, while
-        a block's min-content width keeps depending on its children regardless.
-
-        Inline-axis size containment is what actually detaches the two — the
-        box's width is computed as if it had no contents, so it takes its width
-        from the embed and the legend measures against that instead of dictating
-        it. `overflow: hidden` then clips a canvas that is briefly stale between
-        a resize and ECharts' own ResizeObserver catching up.
-      */}
-      <Container
-        containerType="inline-size"
-        data-test-id="seer-chart-content"
-        height={`${height}px`}
-        overflow="hidden"
-        width="100%"
-      >
+      <Container data-test-id="seer-chart-content" height="220px" width="100%">
         {visualizationComponent}
       </Container>
     </Stack>

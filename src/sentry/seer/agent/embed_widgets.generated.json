@@ -859,7 +859,7 @@
   },
   {
     "name": "errorsQueryAggregate",
-    "description": "Preview grouped results from an aggregate errors (Discover) query. Use this when comparing error groups or aggregate values. `query` uses event search syntax. `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders a timeseries chart above the first five grouped rows, with one series per group. When `fields` names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted.",
+    "description": "Preview grouped results from an aggregate errors (Discover) query. Use this when comparing error groups or aggregate values. `query` uses event search syntax. `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five grouped rows beneath a timeseries chart of the aggregate totalled across the period — the chart is not broken out per group. When `fields` names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",

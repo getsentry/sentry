@@ -82,7 +82,7 @@ describe('errors query embeds', () => {
     });
 
     // A non-aggregate query has no aggregate of its own, so it charts a plain
-    // event count over time — ungrouped, so no top-N params.
+    // event count over the period.
     await waitFor(() => {
       expect(statsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
@@ -95,12 +95,6 @@ describe('errors query embeds', () => {
         })
       );
     });
-    expect(statsRequest).not.toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        query: expect.objectContaining({topEvents: expect.anything()}),
-      })
-    );
   });
 
   it('previews aggregate results using API field aliases', async () => {
@@ -156,17 +150,14 @@ describe('errors query embeds', () => {
     });
   });
 
-  it('charts a grouped aggregate as a top-N breakdown matching the table rows', async () => {
+  it('charts a grouped aggregate as one total for the period', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {data: [{title: 'TypeError', project: 'web', 'count()': 12}]},
     });
     const statsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        TypeError: {data: SERIES},
-        ValueError: {data: SERIES},
-      },
+      body: {data: SERIES},
     });
 
     renderEmbed({
@@ -187,19 +178,20 @@ describe('errors query embeds', () => {
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
-            field: ['title', 'project', 'count()'],
-            orderby: '-count',
             query: 'event.type:error',
             statsPeriod: '24h',
-            // One series per group, capped at the five rows the table shows,
-            // with the catch-all "Other" bucket dropped.
-            topEvents: '5',
-            excludeOther: '1',
             yAxis: ['count()'],
           }),
         })
       );
     });
+
+    // The grouping columns must not reach events-stats: the endpoint groups by
+    // whatever `field` it is given, which would split the total into a series
+    // per group. Breaking results out by group is the table's job.
+    const [, options] = statsRequest.mock.calls.at(-1)!;
+    expect(options.query).not.toHaveProperty('field');
+    expect(options.query).not.toHaveProperty('topEvents');
   });
 
   it('renders a chart instead of a table when every aggregate field is a function call', async () => {
