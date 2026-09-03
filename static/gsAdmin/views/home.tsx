@@ -227,7 +227,7 @@ export function HomePage() {
             ]}
             onSelectResult={projSelect}
             queryOptions={query => {
-              const projectId = parseProjectId(query);
+              const projectId = normalizeProjectIdQuery(query);
               return {
                 ...apiOptions.as<ProjectSearchResult[]>()('/projects/', {
                   query: {query: `id:${projectId}`, per_page: 10, show: 'all'},
