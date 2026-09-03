@@ -41,6 +41,7 @@ from sentry.api.exceptions import (
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
 from sentry.middleware import is_frontend_request
@@ -112,6 +113,23 @@ DEFAULT_AUTHENTICATION = (
     ViewerContextAuthentication,
     SessionAuthentication,
 )
+
+
+def _with_endpoint_scope_declaration(
+    func: Callable[..., Response],
+) -> Callable[..., Response]:
+    @functools.wraps(func)
+    def wrapper(self: Endpoint, request: Request, *args: Any, **kwargs: Any) -> Response:
+        assert request.method is not None
+        endpoint = f"{type(self).__module__}.{type(self).__qualname__}"
+        with bind_endpoint_scope_declaration(
+            endpoint=endpoint,
+            method=request.method,
+            permission_classes=self.permission_classes,
+        ):
+            return func(self, request, *args, **kwargs)
+
+    return wrapper
 
 
 def allow_cors_options(func):
@@ -413,6 +431,7 @@ class Endpoint(APIView):
 
     @csrf_exempt
     @allow_cors_options
+    @_with_endpoint_scope_declaration
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         """
         Identical to rest framework's dispatch except we add the ability

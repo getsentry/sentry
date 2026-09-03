@@ -2,7 +2,7 @@
 {% load sentry_assets %}
 
 {% block css %}
-{% if show_login_banner or show_partner_login_banner %}
+{% if login_banner_legacy_html or show_partner_login_banner %}
 <style type="text/css">
   .alert-banner {
     padding-top: 0.75rem;
@@ -87,8 +87,8 @@
   <div class="alert-banner partner">
     <div class="alert-message">Complete your registration by checking your inbox for our email and following the sign-in link.</div>
   </div>
-  {% elif show_login_banner %}
+  {% elif login_banner_legacy_html %}
   <div class="alert-banner default">
-    <div class="alert-message">Did you know you can use Sentry to monitor your agents? Well you can, <a target="_blank" href="https://docs.sentry.io/product/agents/?utm_source=website">learn more about agent tracing now</a>.</div>
+    <div class="alert-message">{{ login_banner_legacy_html|safe }}</div>
   </div>
 {% endif %}

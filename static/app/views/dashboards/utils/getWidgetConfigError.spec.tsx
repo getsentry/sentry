@@ -36,6 +36,18 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeUndefined();
   });
 
+  it('returns an error for trace metrics tables with no aggregates', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric aggregation to visualize.'
+    );
+  });
+
   it('returns undefined for big number widgets with no aggregates', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.BIG_NUMBER,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import random
 import re
@@ -3333,7 +3334,7 @@ class SpanTestCase(BaseTestCase):
             start_ts = datetime.now() - timedelta(minutes=1)
         if extra_data is None:
             extra_data = {}
-        span = self.base_span.copy()
+        span = copy.deepcopy(self.base_span)
         # Load some defaults
         span.update(
             {

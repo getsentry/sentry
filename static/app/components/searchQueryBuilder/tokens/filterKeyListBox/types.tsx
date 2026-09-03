@@ -59,17 +59,6 @@ export interface ConvertHumanizedItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface AskSeerItem extends SelectOptionWithKey<string> {
-  hideCheck: boolean;
-  type: 'ask-seer';
-  value: string;
-}
-
-interface AskSeerConsentItem extends SelectOptionWithKey<string> {
-  type: 'ask-seer-consent';
-  value: string;
-}
-
 export interface LogicFilterItem extends SelectOptionWithKey<string> {
   type: 'logic-filter';
   value: 'AND' | 'OR' | '(' | ')';
@@ -81,8 +70,6 @@ export type SearchKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | AskSeerItem
-  | AskSeerConsentItem
   | LogicFilterItem;
 
 export type FilterKeyItem =
@@ -94,8 +81,6 @@ export type FilterKeyItem =
   | RawSearchItem
   | FilterValueItem
   | RawSearchFilterIsValueItem
-  | AskSeerItem
-  | AskSeerConsentItem
   | LogicFilterItem;
 
 export type Section = {

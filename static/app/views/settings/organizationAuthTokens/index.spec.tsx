@@ -78,7 +78,9 @@ describe('OrganizationAuthTokensIndex', () => {
 
     expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("You haven't created any authentication tokens yet.")
+    ).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(ENDPOINT, expect.objectContaining({method: 'GET'}));
@@ -139,7 +141,9 @@ describe('OrganizationAuthTokensIndex', () => {
       'Failed to load organization tokens.'
     );
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("You haven't created any authentication tokens yet.")
+    ).not.toBeInTheDocument();
 
     expect(mock).toHaveBeenCalledTimes(1);
   });
@@ -157,7 +161,9 @@ describe('OrganizationAuthTokensIndex', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+    expect(
+      screen.getByText("You haven't created any authentication tokens yet.")
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });

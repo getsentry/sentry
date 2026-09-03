@@ -275,24 +275,15 @@ export function collapseFlappingStatusActivities(
 
 interface BuildActivityFeedItemsOptions {
   activities: GroupActivity[];
-  showSeerActivities: boolean;
-  showStatusFlappingRollups: boolean;
   filterComments?: boolean;
 }
 
 export function buildActivityFeedItems({
   activities,
   filterComments,
-  showSeerActivities,
-  showStatusFlappingRollups,
 }: BuildActivityFeedItemsOptions): DisplayedActivityFeedItem[] {
-  // Apply Seer visibility first so a hidden Seer PR activity cannot be attached as the actor
-  // for an otherwise visible pull request activity during deduplication.
-  const visibleActivities = showSeerActivities
-    ? activities
-    : activities.filter(item => !SEER_ACTIVITY_TYPES.has(item.type));
   const {activities: deduplicatedActivities, actorActivityById} =
-    deduplicatePullRequestActivities(visibleActivities);
+    deduplicatePullRequestActivities(activities);
   const filteredActivities = deduplicatedActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );
@@ -302,7 +293,5 @@ export function buildActivityFeedItems({
   });
 
   // Collapse status flapping last so expanding a rollup restores the fully processed feed items.
-  return showStatusFlappingRollups
-    ? collapseFlappingStatusActivities(activityFeedItems)
-    : activityFeedItems;
+  return collapseFlappingStatusActivities(activityFeedItems);
 }

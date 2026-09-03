@@ -81,6 +81,7 @@ class IntegrationService(RpcService):
         organization_id: int | None = None,
         organization_integration_id: int | None = None,
         status: int | None = None,
+        using_replica: bool = False,
     ) -> RpcIntegration | None:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
@@ -101,6 +102,7 @@ class IntegrationService(RpcService):
         grace_period_expired: bool | None = None,
         limit: int | None = None,
         name: str | None = None,
+        using_replica: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         """
         Returns all RpcOrganizationIntegrations from the matching kwargs.
@@ -316,6 +318,15 @@ class IntegrationService(RpcService):
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
         pass
 
 

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ProgressRing} from 'sentry/components/progressRing';
@@ -11,7 +11,6 @@ import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
-import {useMedia} from 'sentry/utils/useMedia';
 
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -36,7 +35,7 @@ import {
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
 import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import {ProductTrialRibbon} from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
-import {SIDE_PANEL_MIN_SCREEN_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
+import {SIDE_PANEL_MIN_CONTAINER_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
 interface ChildProductRowProps {
@@ -71,9 +70,10 @@ export function UsageOverviewTableRow({
   usageData,
 }: UsageOverviewTableRowProps) {
   const theme = useTheme();
-  const showPanelInline = useMedia(
-    `(max-width: calc(${theme.breakpoints[SIDE_PANEL_MIN_SCREEN_BREAKPOINT]} - 1px))`
-  );
+  const showPanelInline = useResponsivePropValue({
+    zero: true,
+    [SIDE_PANEL_MIN_CONTAINER_BREAKPOINT]: false,
+  });
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
 

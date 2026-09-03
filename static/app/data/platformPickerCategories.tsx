@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 
-const popularPlatformCategories = new Set<PlatformKey>([
+export const popularPlatformCategories = new Set<PlatformKey>([
   'javascript-nextjs',
   'javascript-react',
   'react-native',

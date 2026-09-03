@@ -55,7 +55,6 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
     to: makeReleasesUrl(organization.slug, projectId, {
       display: PreprodBuildsDisplay.DISTRIBUTION,
       query: 'installable:true',
-      tab: 'mobile-builds',
     }),
     label: t('Releases'),
   };

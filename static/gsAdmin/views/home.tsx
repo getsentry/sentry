@@ -1,14 +1,15 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {skipToken} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -130,32 +131,27 @@ export function HomePage() {
   }
   return (
     <Container padding="2xl">
-      <Flex align="center" margin="3xl 0">
-        <HeaderTitle>Welcome to the Admin Portal!</HeaderTitle>
-      </Flex>
-      <div>
-        <strong>
-          This is an internal tool meant to enable Sentry Employees (you!) to better
-          assist and resolve issues that may arise for our customers.
-        </strong>
-        <div>
-          If you have any questions, ask us in{' '}
-          <a
-            href="https://app.slack.com/client/T024ZCV9U/CQDHVRS2W"
-            target="_blank"
-            rel="noreferrer"
-          >
-            #triage-product
-          </a>
-          .
-        </div>
-      </div>
-      <Flex justify="center" margin="xl 0">
-        <Warning>
-          <strong>NOTE:</strong>&nbsp;
-          <span>All actions are logged and audited</span>
-        </Warning>
-      </Flex>
+      <Stack gap="lg" margin="3xl 0 2xl 0">
+        <Heading as="h1" size="2xl">
+          Welcome to the Admin Portal!
+        </Heading>
+        <Stack gap="xs">
+          <Text>
+            This is an internal tool meant to enable Sentry Employees (you!) to better
+            assist and resolve issues that may arise for our customers.
+          </Text>
+          <Text variant="muted">
+            If you have any questions, ask us in{' '}
+            <ExternalLink href="https://app.slack.com/client/T024ZCV9U/CQDHVRS2W">
+              #triage-product
+            </ExternalLink>
+            .
+          </Text>
+        </Stack>
+        <Alert variant="danger">
+          <Text bold>All actions are logged and audited.</Text>
+        </Alert>
+      </Stack>
       <Container paddingTop="xl">
         <AdminSearchCombobox
           label="Users"
@@ -237,24 +233,12 @@ export function HomePage() {
         </Container>
       </Container>
 
-      <Container margin="xl 0">
-        <div>Looking for the old overview page?</div>
+      <Flex align="center" gap="md" margin="xl 0">
+        <Text variant="muted">Looking for the old overview page?</Text>
         <Button size="xs" onClick={() => setOldSplash(true)}>
-          click here
+          Click here
         </Button>
-      </Container>
+      </Flex>
     </Container>
   );
 }
-
-const HeaderTitle = styled('h3')`
-  margin: 0;
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: normal;
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
-const Warning = styled('div')`
-  color: red;
-  font-size: large;
-`;

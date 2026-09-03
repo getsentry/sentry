@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import timedelta
 from unittest.mock import patch
+from uuid import uuid4
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
@@ -14,8 +15,10 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
     get_group_type_by_slug,
     get_group_types_by_category,
+    should_create_group,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils.redis import redis_clusters
 
 
 class BaseGroupTypeTest(TestCase):
@@ -124,6 +127,46 @@ class GroupTypeTest(BaseGroupTypeTest):
 
         assert TestGroupType.noise_config.ignore_limit == 100
         assert TestGroupType.noise_config.expiry_time == timedelta(hours=12)
+
+
+class ShouldCreateGroupTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.redis_client = redis_clusters.get("default")
+        self.grouphash = uuid4().hex
+        self.key = f"grouphash:{self.grouphash}:{self.project.id}"
+        self.addCleanup(self.redis_client.delete, self.key)
+
+    def test_no_noise_config_leaves_no_key(self) -> None:
+        with patch.object(PerformanceSlowDBQueryGroupType, "noise_config", None):
+            assert should_create_group(
+                PerformanceSlowDBQueryGroupType, self.redis_client, self.grouphash, self.project
+            )
+
+        assert not self.redis_client.exists(self.key)
+
+    def test_below_ignore_limit_key_expires(self) -> None:
+        with patch.object(
+            PerformanceSlowDBQueryGroupType, "noise_config", NoiseConfig(ignore_limit=2)
+        ):
+            assert not should_create_group(
+                PerformanceSlowDBQueryGroupType, self.redis_client, self.grouphash, self.project
+            )
+
+        assert self.redis_client.ttl(self.key) > 0
+
+    def test_at_ignore_limit_key_is_deleted(self) -> None:
+        with patch.object(
+            PerformanceSlowDBQueryGroupType, "noise_config", NoiseConfig(ignore_limit=2)
+        ):
+            assert not should_create_group(
+                PerformanceSlowDBQueryGroupType, self.redis_client, self.grouphash, self.project
+            )
+            assert should_create_group(
+                PerformanceSlowDBQueryGroupType, self.redis_client, self.grouphash, self.project
+            )
+
+        assert not self.redis_client.exists(self.key)
 
 
 class GroupTypeReleasedTest(BaseGroupTypeTest):

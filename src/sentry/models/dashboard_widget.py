@@ -206,6 +206,20 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
+SHORT_WIDGET_DISPLAY_TYPES = frozenset(
+    {
+        DashboardWidgetDisplayTypes.BIG_NUMBER,
+        DashboardWidgetDisplayTypes.DETAILS,
+        DashboardWidgetDisplayTypes.TEXT,
+    }
+)
+DEFAULT_WIDGET_MIN_HEIGHT = 2
+
+
+def get_min_widget_height(display_type_id: int) -> int:
+    return 1 if display_type_id in SHORT_WIDGET_DISPLAY_TYPES else DEFAULT_WIDGET_MIN_HEIGHT
+
+
 DEFAULT_MAX_WIDGET_LIMIT = 10
 MAX_WIDGET_LIMIT_BY_DISPLAY_TYPE: dict[int, int] = {
     DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART: 25,

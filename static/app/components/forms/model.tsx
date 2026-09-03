@@ -410,17 +410,9 @@ export class FormModel {
     return (this.getError(id) || []).length === 0;
   }
 
-  doApiRequest({
-    apiEndpoint,
-    apiMethod,
-    data,
-  }: {
-    data: Record<PropertyKey, unknown>;
-    apiEndpoint?: string;
-    apiMethod?: RequestMethod;
-  }) {
-    const endpoint = apiEndpoint || this.options.apiEndpoint || '';
-    const method = apiMethod || this.options.apiMethod;
+  doApiRequest({data}: {data: Record<PropertyKey, unknown>}) {
+    const endpoint = this.options.apiEndpoint || '';
+    const method = this.options.apiMethod;
 
     return this.api.requestPromise(endpoint, {
       method,
@@ -430,18 +422,13 @@ export class FormModel {
 
   /**
    * Set the value of the form field
-   * if quiet is true, we skip callbacks, validations
    */
-  setValue(id: string, value: FieldValue, {quiet}: {quiet?: boolean} = {}) {
+  setValue(id: string, value: FieldValue) {
     const transformInput = this.getDescriptor(id, 'transformInput');
     const finalValue =
       typeof transformInput === 'function' ? transformInput(value) : value;
 
     this.fields.set(id, finalValue);
-
-    if (quiet) {
-      return;
-    }
 
     if (this.options.onFieldChange) {
       this.options.onFieldChange(id, finalValue);

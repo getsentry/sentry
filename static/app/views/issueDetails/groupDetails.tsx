@@ -22,7 +22,7 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, IssueType} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -41,6 +41,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
@@ -219,7 +220,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+            expandDerivedData: orgHasIssueInbox(organization),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
@@ -739,9 +740,7 @@ interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
 
 function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const projectSlug = props.group?.project?.slug;
-  const api = useApi();
   const organization = useOrganization();
-  const [injectedEvent, setInjectedEvent] = useState(null);
   const {
     projects,
     initiallyLoaded: projectsLoaded,
@@ -770,9 +769,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
 
-  const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
-
   useEffect(() => {
     if (props.group && projectsLoaded && !project) {
       Sentry.withScope(scope => {
@@ -786,25 +782,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       });
     }
   }, [props.group, project, projects, projectsLoaded]);
-
-  useEffect(() => {
-    const fetchLatestEvent = async () => {
-      const event = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/${props.group?.id}/events/latest/`
-      );
-      setInjectedEvent(event);
-    };
-    if (isRegressionIssue && !defined(props.event)) {
-      fetchLatestEvent();
-    }
-  }, [
-    api,
-    organization.slug,
-    props.event,
-    props.group,
-    props.group?.id,
-    isRegressionIssue,
-  ]);
 
   if (props.error) {
     return (
@@ -822,13 +799,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
     );
   }
 
-  const regressionIssueLoaded = defined(injectedEvent ?? props.event);
-  if (
-    !projectsLoaded ||
-    !projectWithFallback ||
-    !props.group ||
-    (isRegressionIssue && !regressionIssueLoaded)
-  ) {
+  if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
 
@@ -844,7 +815,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
         <GroupDetailsContent
           project={projectWithFallback}
           group={props.group}
-          event={props.event ?? injectedEvent}
+          event={props.event}
         >
           {props.children}
         </GroupDetailsContent>

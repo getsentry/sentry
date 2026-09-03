@@ -12,6 +12,7 @@ import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -29,7 +30,9 @@ export default function OrganizationJoinRequest() {
   const mutation = useMutation({
     mutationFn: (data: {email: string}) =>
       fetchMutation({
-        url: `/organizations/${orgId}/join-request/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/join-request/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
         method: 'POST',
         data,
       }),

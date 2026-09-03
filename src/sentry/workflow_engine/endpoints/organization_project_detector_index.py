@@ -4,7 +4,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -23,7 +22,6 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
-from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.organization_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
@@ -75,22 +73,10 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
         """
         Create a Monitor for a project
         """
-        organization = project.organization
 
         detector_type = request.data.get("type")
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
-
-        # Restrict creating metric issue detectors by plan type.
-        # This is a coarse pre-check; the validator enforces the dataset-specific
-        # is_metric_subscription_allowed check after the dataset is validated.
-        if detector_type == MetricIssue.slug and not features.has(
-            "organizations:incidents", organization, actor=request.user
-        ):
-            return Response(
-                {"detail": "Unable to process request, confirm payment options."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         validator = get_detector_validator(request, project, detector_type)
         if not validator.is_valid():

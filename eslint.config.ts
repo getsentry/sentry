@@ -95,6 +95,9 @@ const restrictedThemeImportPattern = {
     "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
 };
 
+const CSS_TYPES_MESSAGE =
+  "Use the matching property from the CSS type exported by @sentry/scraps/cssTypes, for example CSS['width'].";
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -139,7 +142,7 @@ const restrictedImportPaths = [
   },
   {
     name: 'react-select',
-    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+    message: "Use '@sentry/scraps/select' instead.",
   },
   {
     name: 'qs',
@@ -397,6 +400,16 @@ export default typescript.config([
           message: 'Do not use IIFEs inside JSX.',
         },
         {
+          selector:
+            "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
+          message: CSS_TYPES_MESSAGE,
+        },
+        {
+          selector:
+            "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
+          message: CSS_TYPES_MESSAGE,
+        },
+        {
           selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
           message:
             "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
@@ -483,6 +496,7 @@ export default typescript.config([
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
       '@sentry/no-query-data-type-parameters': 'error',
+      '@sentry/no-redundant-default-argument': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-raw-css-in-styled': 'error',
       '@sentry/no-styled-shortcut': 'error',
@@ -865,6 +879,41 @@ export default typescript.config([
             'analyze-styled\\.ts$',
             'type-coverage\\.ts$',
             'type-coverage-diff\\.ts$',
+            // Legacy filenames that are referenced throughout the application.
+            // Keep these exceptions here instead of scattering file-level
+            // disables across each module.
+            'AiSetupDataConsent\\.tsx$',
+            'CredentialRow\\.tsx$',
+            'DevKitSettings\\.tsx$',
+            'DurationCell\\.tsx$',
+            'EmptyState\\.tsx$',
+            'ErrorRateCell\\.tsx$',
+            'FlamegraphWarnings\\.spec\\.tsx$',
+            'FlamegraphWarnings\\.tsx$',
+            'FormSearch\\.tsx$',
+            'IssueListCacheStore\\.tsx$',
+            'IssueStreamHeaderLabel\\.tsx$',
+            'NoProjectEmptyState\\.tsx$',
+            'NumberCell\\.tsx$',
+            'PinnedLogs\\.spec\\.tsx$',
+            'PinnedLogs\\.tsx$',
+            'PlayStationSettings\\.tsx$',
+            'RequestIntegrationButton\\.tsx$',
+            'RequestIntegrationModal\\.tsx$',
+            'RequestSdkAccessButton\\.tsx$',
+            'SplitInstallationIdModal\\.tsx$',
+            'ThresholdCell\\.tsx$',
+            'VirtualizedTreeNode\\.spec\\.tsx$',
+            'VirtualizedTreeNode\\.tsx$',
+            'VirtualizedTree\\.spec\\.tsx$',
+            'VirtualizedTree\\.tsx$',
+            'build-chartcuterie\\.ts$',
+            'build-js-loader\\.ts$',
+            'dev-ui-server\\.ts$',
+            'sentry-jest-environment\\.d\\.ts$',
+            'snapshot-framework\\.ts$',
+            'snapshot-image-metadata\\.ts$',
+            'snapshot-setup\\.ts$',
           ],
         },
       ],
@@ -998,7 +1047,6 @@ export default typescript.config([
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      'import/no-duplicates': 'off',
     },
   },
   {
@@ -1103,7 +1151,13 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [restrictedThemeImportPattern],
+          patterns: [
+            restrictedThemeImportPattern,
+            {
+              group: ['csstype', 'csstype/*'],
+              message: CSS_TYPES_MESSAGE,
+            },
+          ],
           // Allow color package only in the components/core directory
           paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
         },
@@ -1520,6 +1574,23 @@ export default typescript.config([
             {
               from: {element: {type: 'scraps'}},
               allow: [{to: {element: {type: 'sentry*'}}}],
+            },
+            // Keep the temporary Sentry allowance above, but do not allow
+            // scraps to import the legacy locale module. Use useTranslation()
+            // from the scraps translation context instead.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {categories: 'sentry-locale'}}},
+              message:
+                'Scraps components must use useTranslation() instead of importing from sentry/locale',
+            },
+            // Track Scraps interactions through the injected tracking context
+            // instead of coupling components to Sentry's analytics module.
+            {
+              from: {element: {type: 'scraps'}},
+              disallow: {to: {file: {path: 'static/app/utils/analytics.tsx'}}},
+              message:
+                'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
             },
           ],
         },

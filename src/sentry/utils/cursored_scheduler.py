@@ -54,9 +54,10 @@ It runs on every item of every tick, and an item it rejects is not dispatched.
 Use it for a check that must see the state at dispatch time.
 
 Optional prevalidate_batch callback, for a batched check at cycle start. It
-receives the queryset's rows and returns the PKs to keep:
+receives the queryset's rows and returns the PKs to keep, in the order it got
+them:
 
-    def has_my_feature(orgs: Sequence[Organization]) -> Collection[int]:
+    def has_my_feature(orgs: Sequence[Organization]) -> Sequence[int]:
         results = features.batch_has_for_organizations("organizations:my-feature", orgs)
         return [org.id for org in orgs if results[f"organization:{org.id}"]]
 
@@ -65,10 +66,11 @@ receives the queryset's rows and returns the PKs to keep:
         prevalidate_batch=has_my_feature,
     )
 
-It runs once per cycle, when the PK list is snapshotted. Only the PKs it keeps
-reach Redis, so the rest never occupy a batch and the check costs one
-cycle-start rather than time on every tick. The tradeoff is staleness: an item
-that stops qualifying mid-cycle is still dispatched until the next snapshot.
+It runs at cycle start, when the PK list is snapshotted, over chunks of at most
+PREVALIDATE_CHUNK_SIZE rows. Only the PKs it keeps reach Redis, so the rest
+never occupy a batch and the check costs one cycle-start rather than time on
+every tick. The tradeoff is staleness: an item that stops qualifying mid-cycle
+is still dispatched until the next snapshot.
 
 Getting the rows rather than their PKs means a check that needs more than the PK —
 a feature flag, an option — does not have to fetch them back. Setting it makes the
@@ -77,6 +79,11 @@ cycle-start query load full rows instead of the PK column alone.
 By default, the scheduler snapshots PKs in ascending PK order. Set
 preserve_queryset_order=True to retain an explicit, deterministic ordering on
 the queryset instead.
+
+A new cycle starts no sooner than cycle_duration after the previous one began.
+A set too small to fill every tick finishes early and then waits, so each item is
+dispatched about once per cycle_duration rather than once per pass. An empty
+queryset likewise costs one cycle-start query per cycle instead of one per tick.
 """
 
 from __future__ import annotations
@@ -85,8 +92,9 @@ import logging
 import math
 import random
 import time
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Callable, Sequence
 from datetime import timedelta
+from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
@@ -97,6 +105,7 @@ from sentry.locks import locks
 from sentry.utils import metrics, redis
 from sentry.utils.iterators import chunked
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -105,10 +114,13 @@ BATCH_SIZE_CACHE_KEY_PREFIX = "cursored_scheduler_batch_size"
 CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_cycle_start"
 PK_LIST_CACHE_KEY_PREFIX = "cursored_scheduler_pks"
 TICK_INTERVAL_CACHE_KEY_PREFIX = "cursored_scheduler_tick_interval"
+NEXT_CYCLE_START_CACHE_KEY_PREFIX = "cursored_scheduler_next_cycle_start"
 LOCK_PREFIX = "cursored_scheduler_lock"
 DEFAULT_LOCK_DURATION_SECONDS = 120
 MIN_BATCH_SIZE = 1
 RPUSH_CHUNK_SIZE = 10_000
+# How many rows a single prevalidate_batch call gets.
+PREVALIDATE_CHUNK_SIZE = 10_000
 
 
 def _get_tick_interval(schedule_key: str) -> timedelta:
@@ -140,8 +152,8 @@ class CursoredScheduler[M: Model]:
 
     Each call to tick() acquires a lock, fetches the next batch of rows by PK,
     dispatches the configured task for each row's PK, and advances the cursor.
-    When all rows have been processed, the cursor resets and a new cycle
-    begins on the next tick().
+    When all rows have been processed, the cursor resets. A new cycle begins
+    on the first tick() at least cycle_duration after the previous cycle began.
 
     At cycle start, all matching PKs are snapshotted into a Redis list.
     Subsequent ticks read pages from this snapshot via LRANGE, ensuring
@@ -164,7 +176,7 @@ class CursoredScheduler[M: Model]:
         cycle_duration: timedelta,
         lock_duration: int = DEFAULT_LOCK_DURATION_SECONDS,
         validate_item: Callable[[int], bool] | None = None,
-        prevalidate_batch: Callable[[Sequence[M]], Collection[int]] | None = None,
+        prevalidate_batch: Callable[[Sequence[M]], Sequence[int]] | None = None,
         shuffle: bool = False,
         preserve_queryset_order: bool = False,
     ):
@@ -175,6 +187,7 @@ class CursoredScheduler[M: Model]:
         self.cycle_start_cache_key = f"{CYCLE_START_CACHE_KEY_PREFIX}:{name}"
         self.pk_list_cache_key = f"{PK_LIST_CACHE_KEY_PREFIX}:{name}"
         self.tick_interval_cache_key = f"{TICK_INTERVAL_CACHE_KEY_PREFIX}:{name}"
+        self.next_cycle_start_cache_key = f"{NEXT_CYCLE_START_CACHE_KEY_PREFIX}:{name}"
         self.lock_key = f"{LOCK_PREFIX}:{name}"
         self.queryset = queryset
         self.task = task
@@ -226,6 +239,9 @@ class CursoredScheduler[M: Model]:
         cursor = self._get_cursor()
 
         if cursor == 0:
+            if not self._is_cycle_start_due():
+                metrics.incr("cursored_scheduler.cycle_start_deferred", tags=self._metric_tags)
+                return False
             batch_size = self._initialize_cycle()
         elif self._has_tick_interval_changed():
             batch_size = self._recalculate_batch_size(cursor)
@@ -264,15 +280,25 @@ class CursoredScheduler[M: Model]:
 
     def _prevalidated_pks(self, queryset: QuerySet[M]) -> list[int]:
         """
-        Apply the batch prevalidation function to the queryset.
-        If no prevalidation function is provided, return the PKs in queryset order.
+        Apply the batch prevalidation function to the queryset, one chunk at a time.
+        Chunks are fetched by PK range (RangeQuerySetWrapper) because server-side
+        cursors from QuerySet.iterator() do not work through pgbouncer.
+        The returned PKs follow the queryset order.
         """
         if self.prevalidate_batch is None:
             return list(queryset.values_list("pk", flat=True))
 
-        rows = list(queryset)
-        kept = set(self.prevalidate_batch(rows))
-        return [row.pk for row in rows if row.pk in kept]
+        unordered: QuerySet[Any] = queryset.order_by()
+        rows_by_pk = RangeQuerySetWrapper[M](unordered, step=PREVALIDATE_CHUNK_SIZE)
+        kept_pks: list[int] = []
+        for rows in chunked(rows_by_pk, PREVALIDATE_CHUNK_SIZE):
+            kept_pks.extend(self.prevalidate_batch(rows))
+
+        if not self.preserve_queryset_order:
+            return kept_pks
+
+        kept = set(kept_pks)
+        return [pk for pk in queryset.values_list("pk", flat=True) if pk in kept]
 
     def _initialize_cycle(self) -> int:
         init_start = time.time()
@@ -306,7 +332,12 @@ class CursoredScheduler[M: Model]:
             self.tick_interval.total_seconds(),
             self.cache_ttl,
         )
-        cache.set(self.cycle_start_cache_key, time.time(), self.cache_ttl)
+        cache.set(self.cycle_start_cache_key, init_start, self.cache_ttl)
+        cache.set(
+            self.next_cycle_start_cache_key,
+            init_start + self.cycle_duration.total_seconds(),
+            self.cache_ttl,
+        )
 
         metrics.timing(
             "cursored_scheduler.init_duration", time.time() - init_start, tags=self._metric_tags
@@ -314,8 +345,18 @@ class CursoredScheduler[M: Model]:
 
         return batch_size
 
+    def _is_cycle_start_due(self) -> bool:
+        """
+        A cycle that finishes early waits out the rest of cycle_duration, so a set
+        smaller than the ticks per cycle is not re-dispatched on every pass.
+        """
+        next_start_at = cache.get(self.next_cycle_start_cache_key)
+        if next_start_at is None:
+            return True
+        return time.time() >= float(next_start_at)
+
     def _finalize_cycle(self):
-        """Reset cursor, batch size, and PK list, starting a new cycle on the next tick."""
+        """Reset cursor, batch size, and PK list. The next cycle starts once it is due."""
         self._emit_cycle_duration()
         cache.set(self.cache_key, 0, self.cache_ttl)
         cache.set(self.batch_size_cache_key, 0, self.cache_ttl)

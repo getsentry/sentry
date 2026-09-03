@@ -8,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
@@ -29,7 +30,9 @@ function EndPeriodEarlyModal({
   const mutation = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/customers/${orgId}/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
         method: 'PUT',
         data: {endPeriodEarly: true},
       }),
@@ -66,9 +69,7 @@ function EndPeriodEarlyModal({
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
-          <Button disabled={mutation.isPending} onClick={closeModal}>
-            Cancel
-          </Button>
+          <Button onClick={closeModal}>Cancel</Button>
           <form.SubmitButton>Submit</form.SubmitButton>
         </Flex>
       </Footer>

@@ -45,7 +45,10 @@ import {
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
-jest.unmock('@tanstack/react-pacer');
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  useDebouncedValue: <T,>(value: T) => [value] as const,
+}));
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -225,6 +228,89 @@ describe('SearchQueryBuilder', () => {
   it('displays a placeholder when empty', async () => {
     render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
     expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
+  });
+
+  it('hides the leading search icon when showSearchIcon is false', async () => {
+    const {rerender} = render(
+      <SearchQueryBuilder {...defaultProps} showSearchIcon={false} />
+    );
+
+    await screen.findByTestId('search-query-builder');
+    expect(screen.queryByTestId('search-query-builder-icon')).not.toBeInTheDocument();
+
+    rerender(<SearchQueryBuilder {...defaultProps} />);
+    expect(screen.getByTestId('search-query-builder-icon')).toBeInTheDocument();
+  });
+
+  describe('portalTarget', () => {
+    function expectMenusPortaled() {
+      const builder = screen.getByTestId('search-query-builder');
+      for (const menu of screen.getAllByRole('listbox')) {
+        expect(builder).not.toContainElement(menu);
+      }
+    }
+
+    it('anchors the full width filter key menu inside the search bar', async () => {
+      render(<SearchQueryBuilder {...defaultProps} portalTarget={document.body} />);
+
+      await userEvent.click(getLastInput());
+
+      // The full width menu sizes itself against the search bar, so it opts out of
+      // `portalTarget` and stays inside the wrapper.
+      const builder = screen.getByTestId('search-query-builder');
+      expect(builder).toContainElement(await screen.findByRole('listbox'));
+    });
+
+    it('portals the filter key menu when the full width menu is disabled', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+
+      expect(
+        await screen.findByRole('option', {name: 'browser.name'})
+      ).toBeInTheDocument();
+      expectMenusPortaled();
+    });
+
+    it('portals the filter value menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(await screen.findByRole('option', {name: 'browser.name'}));
+
+      expect(await screen.findByRole('option', {name: 'Chrome'})).toBeInTheDocument();
+      expectMenusPortaled();
+    });
+
+    it('applies a filter key and value clicked in a portaled menu', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          portalTarget={document.body}
+          disableFullWidthFilterKeyMenu
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(await screen.findByRole('option', {name: 'browser.name'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:Chrome'})
+      ).toBeInTheDocument();
+    });
   });
 
   it('syncs external initial query changes while disabled', async () => {
@@ -6322,6 +6408,84 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('invalidFilterKeys', () => {
+    it('marks listed simple keys as invalid', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          invalidFilterKeys={['browser']}
+          initialQuery="browser:Chrome"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'browser:Chrome'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Invalid key. "browser" is not a supported search key.')
+      ).toBeInTheDocument();
+    });
+
+    it('marks aggregate filters invalid when the bare aggregate name is listed', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          invalidFilterKeys={['p95']}
+          invalidMessages={{
+            [InvalidReason.INVALID_KEY]:
+              'Aggregates cannot be used in conditional filters',
+          }}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            p95: {
+              key: 'p95',
+              name: 'p95',
+              kind: FieldKind.FUNCTION,
+            },
+            'transaction.duration': {
+              key: 'transaction.duration',
+              name: 'transaction.duration',
+              kind: FieldKind.FIELD,
+            },
+          }}
+          fieldDefinitionGetter={key => {
+            if (key === 'p95') {
+              return {
+                kind: FieldKind.FUNCTION,
+                valueType: FieldValueType.DURATION,
+                parameters: [
+                  {
+                    name: 'column',
+                    kind: 'column' as const,
+                    columnTypes: [FieldValueType.DURATION],
+                    defaultValue: 'transaction.duration',
+                    required: true,
+                  },
+                ],
+              };
+            }
+            return defaultProps.fieldDefinitionGetter?.(key) ?? null;
+          }}
+          initialQuery="p95(transaction.duration):>100"
+        />
+      );
+
+      expect(
+        screen.getByRole('row', {name: 'p95(transaction.duration):>100'})
+      ).toHaveAttribute('aria-invalid', 'true');
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        await screen.findByText('Aggregates cannot be used in conditional filters')
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('invalidMessages', () => {
     it('should customize invalid messages', async () => {
       render(
@@ -7082,27 +7246,10 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('ask seer', () => {
-    it('renders ask seer as an option without the UX rework', async () => {
+    it('renders ask seer in the footer', async () => {
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
           features: ['gen-ai-features'],
-        },
-      });
-
-      await userEvent.click(getLastInput());
-
-      expect(
-        await screen.findByRole('option', {name: /Ask AI to build your query/})
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: /Ask AI to build your query/})
-      ).not.toBeInTheDocument();
-    });
-
-    it('moves ask seer to the footer with the UX rework', async () => {
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
         },
       });
 
@@ -7129,7 +7276,7 @@ describe('SearchQueryBuilder', () => {
         </Fragment>,
         {
           organization: {
-            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -7171,7 +7318,7 @@ describe('SearchQueryBuilder', () => {
         />,
         {
           organization: {
-            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+            features: ['gen-ai-features'],
           },
         }
       );
@@ -7189,7 +7336,7 @@ describe('SearchQueryBuilder', () => {
     it('does not render ask seer in the footer when AI search is disabled', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
         organization: {
-          features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+          features: ['gen-ai-features'],
         },
       });
 
@@ -7296,7 +7443,7 @@ describe('SearchQueryBuilder', () => {
           </AskSeerWrapper>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -7378,32 +7525,10 @@ describe('SearchQueryBuilder', () => {
         );
       }
 
-      it('displays ask seer option when searching free text without the UX rework', async () => {
-        const mockOnSearch = jest.fn();
-        render(
-          <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
-        );
-
-        await userEvent.click(getLastInput());
-        await userEvent.type(screen.getByRole('combobox'), 'some free text');
-
-        expect(
-          screen.getByRole('option', {name: /Ask AI to build your query/i})
-        ).toBeInTheDocument();
-        expect(
-          screen.queryByRole('button', {name: /Ask AI to build your query/i})
-        ).not.toBeInTheDocument();
-      });
-
-      it('moves ask seer to the footer when searching free text with the UX rework', async () => {
+      it('keeps ask seer in the footer when searching free text', async () => {
         render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
           organization: {
-            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+            features: ['gen-ai-features'],
           },
         });
 
@@ -7418,47 +7543,7 @@ describe('SearchQueryBuilder', () => {
         ).not.toBeInTheDocument();
       });
 
-      it('submits typed free text from the footer with the UX rework', async () => {
-        const mockAskSeer = makeMockAskSeer();
-        const props = {
-          ...defaultProps,
-          enableAISearch: true,
-          initialQuery: 'browser.name:firefox',
-        };
-
-        render(
-          <SearchQueryBuilderProvider {...props}>
-            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
-              <SearchQueryBuilder {...props} />
-            </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
-            },
-          }
-        );
-
-        await userEvent.click(getLastInput());
-        await userEvent.type(getLastInput(), 'find slow spans');
-        await userEvent.click(
-          screen.getByRole('button', {name: /Ask AI to build your query/})
-        );
-
-        expect(
-          await screen.findByRole('combobox', {
-            name: 'Ask Seer with Natural Language',
-          })
-        ).toHaveValue('browser.name is firefox find slow spans ');
-        await waitFor(() => {
-          expect(mockAskSeer).toHaveBeenCalledWith(
-            'browser.name is firefox find slow spans',
-            expect.anything()
-          );
-        });
-      });
-
-      it('submits typed free text when opening ask seer from the dropdown', async () => {
+      it('submits typed free text from the footer', async () => {
         const mockAskSeer = makeMockAskSeer();
         const props = {
           ...defaultProps,
@@ -7481,11 +7566,9 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
         await userEvent.type(getLastInput(), 'find slow spans');
-
-        const askSeer = await screen.findByRole('option', {
-          name: /Ask AI to build your query/,
-        });
-        await userEvent.click(askSeer);
+        await userEvent.click(
+          screen.getByRole('button', {name: /Ask AI to build your query/})
+        );
 
         expect(
           await screen.findByRole('combobox', {
@@ -7518,7 +7601,7 @@ describe('SearchQueryBuilder', () => {
           </SearchQueryBuilderProvider>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -7560,7 +7643,7 @@ describe('SearchQueryBuilder', () => {
           </SearchQueryBuilderProvider>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -7593,7 +7676,7 @@ describe('SearchQueryBuilder', () => {
           </SearchQueryBuilderProvider>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -7635,7 +7718,7 @@ describe('SearchQueryBuilder', () => {
           </SearchQueryBuilderProvider>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -7671,7 +7754,7 @@ describe('SearchQueryBuilder', () => {
           </SearchQueryBuilderProvider>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -7708,38 +7791,6 @@ describe('SearchQueryBuilder', () => {
           </SearchQueryBuilderProvider>,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
-            },
-          }
-        );
-
-        await userEvent.click(getLastInput());
-        await userEvent.type(getLastInput(), 'some free text{enter}');
-
-        await waitFor(() => {
-          expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
-        });
-        expect(mockAskSeer).not.toHaveBeenCalled();
-      });
-
-      it('does not submit free text to ask seer without the defaulting feature flag', async () => {
-        const mockOnSearch = jest.fn();
-        const mockAskSeer = makeMockAskSeer();
-        const props = {
-          ...defaultProps,
-          defaultToAskSeerOnFreeTextSearch: true,
-          enableAISearch: true,
-          onSearch: mockOnSearch,
-        };
-
-        render(
-          <SearchQueryBuilderProvider {...props}>
-            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
-              <SearchQueryBuilder {...props} />
-            </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
               features: ['gen-ai-features'],
             },
           }
@@ -7752,41 +7803,6 @@ describe('SearchQueryBuilder', () => {
           expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
         });
         expect(mockAskSeer).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('consent flow changes enabled', () => {
-      it('renders tooltip', async () => {
-        const mockOnSearch = jest.fn();
-
-        render(
-          <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
-        );
-
-        await userEvent.click(getLastInput());
-        await userEvent.type(screen.getByRole('combobox'), 'some free text');
-
-        const askSeerText = screen.getByText(/Ask AI to build your query/);
-        expect(askSeerText).toBeInTheDocument();
-
-        await userEvent.hover(askSeerText);
-
-        const tooltipTitle = await screen.findByText(/Powered by genAI/);
-        expect(tooltipTitle).toBeInTheDocument();
-        expect(tooltipTitle).toBeVisible();
-
-        const tooltipLink = screen.getByText(/Learn more/);
-        expect(tooltipLink).toBeInTheDocument();
-        expect(tooltipLink).toBeVisible();
-        expect(tooltipLink).toHaveAttribute(
-          'href',
-          'https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/'
-        );
       });
     });
   });

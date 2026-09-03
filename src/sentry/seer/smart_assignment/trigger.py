@@ -9,6 +9,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun
 from sentry.seer.smart_assignment.models import (
@@ -180,7 +181,16 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         "triggering_activity_id": activity.id,
     }
 
-    payload = SmartAssignmentPayload(group_id=group.id, project_slug=group.project.slug)
+    preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
+    preference = preferences.get(group.project_id)
+    connected_repos = (
+        [f"{repo.owner}/{repo.name}" for repo in preference.repositories] if preference else []
+    )
+    payload = SmartAssignmentPayload(
+        group_id=group.id,
+        project_slug=group.project.slug,
+        connected_repos=connected_repos,
+    )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:
         run = client.start_feature_run(

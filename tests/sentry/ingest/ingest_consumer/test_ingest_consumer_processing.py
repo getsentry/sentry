@@ -35,7 +35,7 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.factories import get_fixture_path
@@ -602,7 +602,7 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
         )
         attachment_metadata["chunks"] = 1
     else:
-        session = get_attachments_session(project.organization_id, project.id)
+        session = get_session(UsecaseId.ATTACHMENTS, project)
         stored_id = session.put(attachment_payload)
         attachment_metadata["stored_id"] = stored_id
 
@@ -667,9 +667,7 @@ def test_process_stored_attachment(
         with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
             attachment_payload = f.read()
 
-        stored_id = get_attachments_session(default_project.organization_id, project_id).put(
-            attachment_payload
-        )
+        stored_id = get_session(UsecaseId.ATTACHMENTS, default_project).put(attachment_payload)
 
         with task_runner():
             process_event(

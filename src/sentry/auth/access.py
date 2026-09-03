@@ -13,6 +13,7 @@ from rest_framework.request import Request
 
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
+from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
@@ -128,6 +129,7 @@ class Access(abc.ABC):
         Return bool representing if the user has the given scope.
         >>> access.has_project('org:read')
         """
+        check_scope_declaration(scope)
         return scope in self.scopes
 
     def get_organization_role(self) -> OrganizationRole | None:
@@ -322,6 +324,7 @@ class DbAccess(Access):
 
         >>> access.has_team_scope(team, 'team:read')
         """
+        check_scope_declaration(scope)
         if not self.has_team_access(team):
             return False
         if self.has_scope(scope):
@@ -357,6 +360,7 @@ class DbAccess(Access):
 
         For performance's sake, prefer this over multiple calls to `has_project_scope`.
         """
+        check_scope_declarations(scopes)
         if not self.has_project_access(project):
             return False
         if any(self.has_scope(scope) for scope in scopes):
@@ -522,6 +526,7 @@ class RpcBackedAccess(Access):
         return None
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
+        check_scope_declaration(scope)
         if not self.has_team_access(team):
             return False
         if self.has_scope(scope):
@@ -570,6 +575,7 @@ class RpcBackedAccess(Access):
 
         For performance's sake, prefer this over multiple calls to `has_project_scope`.
         """
+        check_scope_declarations(scopes)
         if not self.has_project_access(project):
             return False
         if any(self.has_scope(scope) for scope in scopes):
@@ -859,12 +865,14 @@ class OrganizationlessAccess(Access):
         return frozenset()
 
     def has_team_scope(self, team: Team, scope: str) -> bool:
+        check_scope_declaration(scope)
         return False
 
     def get_team_role(self, team: Team) -> TeamRole | None:
         return None
 
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
+        check_scope_declarations(scopes)
         if not self.has_project_access(project):
             return False
 
@@ -888,6 +896,7 @@ class SystemAccess(OrganizationlessAccess):
         return True
 
     def has_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
         return True
 
     def has_team_access(self, team: Team) -> bool:

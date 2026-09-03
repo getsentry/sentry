@@ -94,11 +94,13 @@ function removeChildLevel(max: number, collection: HTMLCollection, current = 0) 
       child.textContent = '/* Inline CSS */';
     }
     if (child.nodeName === 'svg') {
-      child.innerHTML = '<!-- SVG -->';
+      child.replaceChildren(document.createComment(' SVG '));
     }
     if (max <= current) {
       if (child.childElementCount > 0) {
-        child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+        child.replaceChildren(
+          document.createComment(` ${child.childElementCount} descendents `)
+        );
       }
     } else {
       removeChildLevel(max, child.children, current + 1);

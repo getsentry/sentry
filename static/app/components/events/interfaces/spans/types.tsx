@@ -232,7 +232,7 @@ export type OrphanTreeDepth = {
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
 
-export type IndexedFusedSpan = {
+type IndexedFusedSpan = {
   dataKeys: string[];
   dataValues: string[];
   indexed: string[];

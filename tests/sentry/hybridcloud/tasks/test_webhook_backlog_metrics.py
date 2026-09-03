@@ -113,7 +113,7 @@ class WebhookBacklogMetricsTest(TestCase):
         create_payloads(1, "github:123", provider="github")
 
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics._statement_timeout",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_webhook_backlog_metrics()
@@ -134,7 +134,7 @@ class WebhookBacklogMetricsTest(TestCase):
         # average down) -- and must not take out the unrelated age gauge below it,
         # which comes from an independent query. Only the first cursor (the raw
         # pg_class lookup) is faked; everything after -- including the age
-        # lookup's own cursor use inside `_statement_timeout` -- runs for real, so
+        # lookup's own cursor use inside `statement_timeout` -- runs for real, so
         # a regression that coupled the two would fail this test rather than the
         # `db_table`-patching approach this replaced, which broke the age query
         # too and couldn't tell the difference.
@@ -182,24 +182,39 @@ class MailboxDepthMetricsTest(TestCase):
     def test_depth_is_grouped_by_provider(self, mock_metrics: MagicMock) -> None:
         create_payloads(3, "github:123:push", provider="github")
         create_payloads(1, "github:456:push", provider="github")
-        create_payloads(2, "gitlab:789", provider="gitlab")
+        create_payloads(2, "jira:789", provider="jira")
 
         record_mailbox_depth_metrics()
 
         assert sorted(gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC)) == [
-            (2, {"provider": "gitlab", "event_type": "none"}),
+            (2, {"provider": "jira", "event_type": "none"}),
             (4, {"provider": "github", "event_type": "push"}),
         ]
         # Only pending_count carries event_type; the rest would cost a series per
         # event type per control worker to say something they already say.
         assert sorted(gauge_calls(mock_metrics, MAILBOX_ACTIVE_METRIC)) == [
-            (1, {"provider": "gitlab"}),
+            (1, {"provider": "jira"}),
             (2, {"provider": "github"}),
         ]
         # The deepest github mailbox holds 3 of its 4 payloads.
         assert sorted(gauge_calls(mock_metrics, MAILBOX_MAX_DEPTH_METRIC)) == [
-            (2, {"provider": "gitlab"}),
+            (2, {"provider": "jira"}),
             (3, {"provider": "github"}),
+        ]
+
+    @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
+    def test_gitlab_event_types_are_read_from_the_mailbox_name(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        create_payloads(2, "gitlab:123:4:merge_request", provider="gitlab")
+        # Queued before gitlab mailboxed by event type, and still draining.
+        create_payloads(1, "gitlab:123:4", provider="gitlab")
+
+        record_mailbox_depth_metrics()
+
+        assert sorted(gauge_calls(mock_metrics, MAILBOX_PENDING_METRIC)) == [
+            (1, {"provider": "gitlab", "event_type": "unknown"}),
+            (2, {"provider": "gitlab", "event_type": "merge_request"}),
         ]
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
@@ -380,7 +395,7 @@ class MailboxDepthMetricsTest(TestCase):
         # A backlog deep enough to blow the statement timeout must cost us the
         # breakdown, not the task — record_webhook_backlog_metrics still reports.
         with patch(
-            "sentry.hybridcloud.tasks.webhook_backlog_metrics.transaction.atomic",
+            "sentry.hybridcloud.tasks.webhook_backlog_metrics.statement_timeout",
             side_effect=OperationalError("canceling statement due to statement timeout"),
         ):
             record_mailbox_depth_metrics()

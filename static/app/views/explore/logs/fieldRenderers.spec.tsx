@@ -8,8 +8,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DateTimeProvider} from '@sentry/scraps/datetime';
+
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
-import {TimezoneProvider} from 'sentry/components/timezoneProvider';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -74,26 +75,23 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/)).toBeInTheDocument();
     });
 
     it('renders timestamp in 24h format when user preference is set', () => {
       expect(TimestampRenderer).toBeDefined();
-      const user = UserFixture();
-      user.options.clock24Hours = true;
-      ConfigStore.set('user', user);
 
       const props = makeRendererProps(timestamp);
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 14:30:45\.123/)).toBeInTheDocument();
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
@@ -105,9 +103,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/\.123/)).toBeInTheDocument();
     });
@@ -121,9 +119,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/2:30:45\.123/)).toBeInTheDocument();
     });
@@ -138,27 +136,23 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/)).toBeInTheDocument();
     });
 
     it('renders in 24h format with different timezone', () => {
       expect(TimestampRenderer).toBeDefined();
-      const user = UserFixture();
-      user.options.timezone = 'Asia/Tokyo';
-      user.options.clock24Hours = true;
-      ConfigStore.set('user', user);
 
       const props = makeRendererProps(timestamp);
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="Asia/Tokyo">
+        <DateTimeProvider value={{timezone: 'Asia/Tokyo', clockDisplay: '24'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
       expect(screen.getByText(/Jan 15, 2024 23:30:45\.123/)).toBeInTheDocument();
       expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument();
@@ -170,9 +164,9 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <TimezoneProvider timezone="UTC">
+        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
           <Fragment>{result}</Fragment>
-        </TimezoneProvider>
+        </DateTimeProvider>
       );
 
       const timestampElement = screen.getByText(/Jan 15, 2024 2:30:45\.123 PM/);
