@@ -2470,14 +2470,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# No longer read. Kept registered until the options automator stops setting it.
-register(
-    "dynamic-sampling.per_org.recalibration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Deterministic % rollout of serving the per-org pipeline's results, keyed on organization
 # id. Above 0.0, rule generation reads the project, transaction and recalibration sample
 # rates of the selected orgs from the per-org caches instead of the legacy ones. An org
