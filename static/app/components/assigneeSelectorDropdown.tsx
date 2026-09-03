@@ -570,7 +570,7 @@ export function AssigneeSelectorDropdown({
         : suggestedActors[0]?.assignee;
 
       return (
-        <AvatarButton
+        <AssigneeAvatarButton
           {...triggerProps}
           aria-label={t('Modify issue assignee')}
           avatar={
@@ -675,6 +675,10 @@ const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: left;
+`;
+
+const AssigneeAvatarButton = styled(AvatarButton)`
+  display: flex;
 `;
 
 const AssigneeTrigger = styled(OverlayTrigger.Button)`
