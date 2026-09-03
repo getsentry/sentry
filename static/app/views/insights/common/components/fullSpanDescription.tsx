@@ -20,22 +20,15 @@ const formatter = new SQLishFormatter();
 
 interface Props {
   moduleName: ModuleName;
-  filters?: Record<string, string>;
   group?: string | null;
   shortDescription?: string;
 }
 
-export function FullSpanDescription({
-  group,
-  shortDescription,
-  filters = {},
-  moduleName,
-}: Props) {
+export function FullSpanDescription({group, shortDescription, moduleName}: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': group ?? undefined,
-        ...filters,
       }),
       limit: 1,
       fields: [

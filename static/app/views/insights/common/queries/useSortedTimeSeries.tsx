@@ -14,7 +14,6 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import {decodeSorts} from 'sentry/utils/queryString';
 import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterval';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
-import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
@@ -42,7 +41,6 @@ interface Options<Fields> {
   logQuery?: string[];
   metricQuery?: string[];
   orderby?: string | string[];
-  referrer?: string;
   samplingMode?: SamplingMode;
   search?: MutableSearch;
   spanQuery?: string[];
@@ -149,8 +147,7 @@ export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;
 
 export function transformToSeriesMap(
   result: MultiSeriesEventsStats | GroupedMultiSeriesEventsStats | undefined,
-  yAxis: string[],
-  fields?: string[]
+  yAxis: string[]
 ): SeriesMap {
   if (!result) {
     return {};
@@ -188,13 +185,6 @@ export function transformToSeriesMap(
           seriesData.order
         );
 
-        if (fields) {
-          const groupByFields = fields.filter(field => !yAxis.includes(field));
-          const groupBy = parseGroupBy(groupName, groupByFields);
-          timeSeries.groupBy = groupBy;
-          timeSeries.meta.isOther = groupName === 'Other';
-        }
-
         allTimeSeries.push(timeSeries);
       });
     }
@@ -217,13 +207,6 @@ export function transformToSeriesMap(
           seriesData,
           groupData.order as unknown as number // `order` is always present
         );
-
-        if (fields) {
-          const groupByFields = fields.filter(field => !yAxis.includes(field));
-          const groupBy = parseGroupBy(groupName, groupByFields);
-          timeSeries.groupBy = groupBy;
-          timeSeries.meta.isOther = groupName === 'Other';
-        }
 
         allTimeSeries.push(timeSeries);
       });
