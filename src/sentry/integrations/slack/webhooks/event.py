@@ -409,7 +409,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 }
             )
 
-            organization_id, halt_reason, _ = slack_request.resolve_seer_organization()  # cell_name is control-only
+            organization_id, halt_reason, _ = (
+                slack_request.resolve_seer_organization()
+            )  # cell_name is control-only
             if halt_reason:
                 # The control parser route Seer events through `route_slack_seer_event`. It'll send
                 # messages about re-installing, checking settings, or linking before proceeding.
@@ -494,7 +496,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             spec=SlackMessagingSpec(),
         ).capture() as lifecycle:
             lifecycle.add_extra("integration_id", slack_request.integration.id)
-            organization_id, halt_reason, _ = slack_request.resolve_seer_organization()  # cell_name is control-only
+            organization_id, halt_reason, _ = (
+                slack_request.resolve_seer_organization()
+            )  # cell_name is control-only
             if halt_reason:
                 lifecycle.record_halt(halt_reason)
                 return self.respond()
@@ -586,7 +590,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 lifecycle.record_halt(SeerSlackHaltReason.MISSING_EVENT_DATA)
                 return self.respond()
 
-            organization_id, halt_reason, _ = slack_request.resolve_seer_organization()  # cell_name is control-only
+            organization_id, halt_reason, _ = (
+                slack_request.resolve_seer_organization()
+            )  # cell_name is control-only
             if halt_reason:
                 lifecycle.record_halt(halt_reason)
                 # We should consider telling the user to link their account for feedback to be it.
