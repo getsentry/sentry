@@ -21,9 +21,7 @@ class InCommitValidator(serializers.Serializer[InCommitResult]):
 
     def validate_repository(self, value: str) -> Repository | list[Repository]:
         project = self.context["project"]
-        repos = list(
-            Repository.objects.filter(organization_id=project.organization_id, name=value)
-        )
+        repos = list(Repository.objects.filter(organization_id=project.organization_id, name=value))
         if not repos:
             raise serializers.ValidationError("Unable to find the given repository.")
         if len(repos) == 1:
@@ -46,9 +44,7 @@ class InCommitValidator(serializers.Serializer[InCommitResult]):
         # When multiple repos share the same name, use the commit SHA to identify the right one.
         if isinstance(repository, list):
             repo_ids = [r.id for r in repository]
-            matching_commits = list(
-                Commit.objects.filter(repository_id__in=repo_ids, key=commit_key)
-            )
+            matching_commits = list(Commit.objects.filter(repository_id__in=repo_ids, key=commit_key))
             if not matching_commits:
                 raise serializers.ValidationError({"commit": ["Unable to find the given commit."]})
             if len(matching_commits) > 1:
