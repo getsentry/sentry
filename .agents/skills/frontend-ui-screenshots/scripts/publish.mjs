@@ -98,7 +98,7 @@ function attachArgs(pairs) {
   ]);
 }
 
-// ponytail: gh pr edit --attach rewrites local path refs in the body to asset URLs
+// gh pr edit --attach rewrites local path refs in the body to asset URLs
 function updatePullRequestBody(pullRequest, pairs) {
   const table = renderTable(pairs);
   const markerPattern = new RegExp(`\\n?${MARKER_START}[\\s\\S]*?${MARKER_END}\\n?`, 'g');
@@ -131,7 +131,7 @@ function updatePullRequestBody(pullRequest, pairs) {
   return updated.url;
 }
 
-// ponytail: file-level review comments need a temp PR comment to upload, then API post
+// file-level review comments need a temp PR comment to upload, then API post
 function updateFileComment(pullRequest, pairs, commentPath) {
   const table = renderTable(pairs);
   const bodyFile = path.join(os.tmpdir(), `ui-screenshots-upload-${process.pid}.md`);
