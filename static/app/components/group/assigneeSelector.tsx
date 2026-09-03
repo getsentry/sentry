@@ -112,6 +112,7 @@ export function AssigneeSelector({
       loading={assigneeLoading || (memberList === undefined && defaultMemberListLoading)}
       memberList={currentMemberList}
       owners={owners}
+      showLabel={showLabel}
       onAssign={(assignedActor: AssignableEntity | null) =>
         handleAssigneeChange(assignedActor)
       }

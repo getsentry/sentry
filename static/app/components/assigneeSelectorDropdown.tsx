@@ -113,6 +113,10 @@ interface AssigneeSelectorDropdownProps {
    */
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   /**
+   * Show the assignee name next to the avatar.
+   */
+  showLabel?: boolean;
+  /**
    * Maximum number of teams/users to display in the dropdown
    */
   sizeLimit?: number;
@@ -294,6 +298,7 @@ export function AssigneeSelectorDropdown({
   onAssign,
   onClear,
   owners,
+  showLabel = false,
   sizeLimit = 150,
   trigger,
   additionalMenuFooterItems,
@@ -568,11 +573,23 @@ export function AssigneeSelectorDropdown({
           ? currentMemberList.find(member => member.id === group.assignedTo?.id)
           : getAssignableTeams().find(team => team.team.id === group.assignedTo?.id)
         : suggestedActors[0]?.assignee;
+      const triggerLabel = loading
+        ? t('Loading…')
+        : actor
+          ? `${actor.type === 'team' ? '#' : ''}${actor.name}`
+          : t('Unassigned');
+      const tooltipTitle = (
+        <AvatarButtonTooltip
+          assignedTo={group.assignedTo}
+          assignmentDetails={assignmentDetails}
+          suggestedActors={suggestedActors}
+        />
+      );
 
-      return (
+      const avatarButton = (
         <AvatarButton
           {...triggerProps}
-          aria-label={t('Modify issue assignee')}
+          aria-label={t('Modify issue assignee: %s', triggerLabel)}
           avatar={
             actor
               ? getAvatarButtonAvatar({
@@ -587,18 +604,25 @@ export function AssigneeSelectorDropdown({
           disabled={loading}
           ref={ref as Ref<HTMLButtonElement>}
           size="xs"
-          tooltipProps={{
-            isHoverable: true,
-            maxWidth: 300,
-            title: (
-              <AvatarButtonTooltip
-                assignedTo={group.assignedTo}
-                assignmentDetails={assignmentDetails}
-                suggestedActors={suggestedActors}
-              />
-            ),
-          }}
+          tooltipProps={
+            showLabel
+              ? undefined
+              : {isHoverable: true, maxWidth: 300, title: tooltipTitle}
+          }
         />
+      );
+
+      if (!showLabel) {
+        return avatarButton;
+      }
+
+      return (
+        <Tooltip isHoverable maxWidth={300} skipWrapper title={tooltipTitle}>
+          <Flex as="label" align="center" gap="sm" htmlFor={triggerProps.id}>
+            {avatarButton}
+            <AssigneeLabel ellipsis>{triggerLabel}</AssigneeLabel>
+          </Flex>
+        </Tooltip>
       );
     }
 
@@ -682,6 +706,10 @@ const AssigneeTrigger = styled(OverlayTrigger.Button)`
   z-index: 0;
   padding-left: ${p => p.theme.space.xs};
   padding-right: ${p => p.theme.space.xs};
+`;
+
+const AssigneeLabel = styled(Text)`
+  max-width: 114px;
 `;
 
 const StyledIconUser = styled(IconUser)`

@@ -171,7 +171,10 @@ export function GroupPriorityDropdown({
         shouldUseNewUI ? (
           <Button
             {...triggerProps}
-            aria-label={t('Modify issue priority')}
+            aria-label={t(
+              'Modify issue priority: %s',
+              PRIORITY_KEY_TO_LABEL[value] ?? t('Unknown')
+            )}
             disabled={disabled}
             icon={<IconCellSignal bars={GROUP_PRIORITY_BARS[value]} />}
             size="xs"
