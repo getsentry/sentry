@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -6,8 +6,11 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconChevron} from 'sentry/icons';
+import {useApi} from 'sentry/utils/useApi';
 
+import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
@@ -41,7 +44,32 @@ function getStatusLabel(status: number): string {
 }
 
 export function CustomerIntegrationDebugDetails({orgId}: Props) {
+  const api = useApi();
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const resetIntegrations = () => {
+    openAdminConfirmModal({
+      header: <h4>Reset Integrations</h4>,
+      confirmText: 'Reset Integrations',
+      priority: 'danger',
+      modalSpecificContent:
+        "Reconcile this organization's integrations with its current plan. Supported integrations will be enabled and their grace periods cleared.",
+      onConfirm: data => {
+        api.request(`/_admin/customers/${orgId}/integrations/reset/`, {
+          method: 'POST',
+          data,
+          success: () => {
+            addSuccessMessage('Integrations reset successfully.');
+            setRefreshKey(value => value + 1);
+          },
+          error: error => {
+            addErrorMessage(error.responseText || 'Failed to reset integrations.');
+          },
+        });
+      },
+    });
+  };
 
   const toggleRow = (id: number) => {
     setExpandedRows(prev => {
@@ -56,15 +84,22 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
   };
 
   return (
-    <ResultGrid
-      inPanel
-      panelTitle="Integration Debug Details"
-      path={`/_admin/customers/${orgId}/`}
-      endpoint={`/customers/${orgId}/integrations/`}
-      method="GET"
-      defaultParams={{per_page: 10}}
-      useQueryString={false}
-      rowsFromData={(data: IntegrationRow[]) => {
+    <Fragment>
+      <Actions>
+        <Button variant="danger" onClick={resetIntegrations}>
+          Reset Integrations
+        </Button>
+      </Actions>
+      <ResultGrid
+        key={refreshKey}
+        inPanel
+        panelTitle="Integration Debug Details"
+        path={`/_admin/customers/${orgId}/`}
+        endpoint={`/customers/${orgId}/integrations/`}
+        method="GET"
+        defaultParams={{per_page: 10}}
+        useQueryString={false}
+        rowsFromData={(data: IntegrationRow[]) => {
         const transformedRows: any[] = [];
         data.forEach(row => {
           transformedRows.push(row, {
@@ -149,10 +184,17 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
             {row.integration.externalId || 'n/a'}
           </td>,
         ];
-      }}
-    />
+        }}
+      />
+    </Fragment>
   );
 }
+
+const Actions = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${p => p.theme.space.md};
+`;
 
 const MetadataContent = styled('pre')`
   margin: 0;
