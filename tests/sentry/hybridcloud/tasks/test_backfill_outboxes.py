@@ -300,10 +300,12 @@ def test_watermark_report_covers_a_finished_table() -> None:
     assert _gauge_values(metrics_mock, WATERMARK_VERSION_METRIC)[table_name] == finished_version
     assert _gauge_values(metrics_mock, WATERMARK_TARGET_VERSION_METRIC)[table_name] == 0
     assert _counter_calls(metrics_mock, WATERMARK_REPORT_ERROR_METRIC) == 0
-    # Every other control table was cleared, so only they count as missing.
-    assert _counter_calls(metrics_mock, WATERMARK_MISSING_METRIC) == (
-        len(_backfill_models(SiloMode.CONTROL)) - 1
-    )
+    # The report sits below the loop, so it sees the keys the loop just created and every
+    # control table reports a pair. Only a tick that skips the loop can report a missing key.
+    assert _counter_calls(metrics_mock, WATERMARK_MISSING_METRIC) == 0
+    assert _gauge_values(metrics_mock, WATERMARK_STATE_METRIC).keys() == {
+        model._meta.db_table for model in _backfill_models(SiloMode.CONTROL)
+    }
 
 
 @django_db_all

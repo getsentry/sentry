@@ -323,8 +323,6 @@ def backfill_outboxes_for(
         extra={"remaining": remaining_to_backfill, "scheduled": scheduled_count},
     )
 
-    report_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
-
     if remaining_to_backfill > 0:
         for model in _backfill_models(silo_mode):
             # If we find some backfill work to perform, do it.
@@ -338,6 +336,8 @@ def backfill_outboxes_for(
             backfilled += batch.count
             if remaining_to_backfill <= 0:
                 break
+
+    report_backfill_watermarks(silo_mode, force_synchronous=force_synchronous)
 
     metrics.incr(
         "backfill_outboxes.backfilled",
