@@ -2,6 +2,7 @@ import pytest
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.models.organization import Organization
 from sentry.savedqueries import starred
 from sentry.savedqueries.types import SavedQueryRef, SavedQueryType
 from sentry.testutils.cases import TestCase
@@ -20,7 +21,7 @@ class StarredHelpersTestBase(TestCase):
         *,
         starred: bool = True,
         user_id: int | None = None,
-        organization=None,
+        organization: Organization | None = None,
     ) -> DiscoverSavedQueryStarred:
         organization = organization or self.org
         query = DiscoverSavedQuery.objects.create(
@@ -40,7 +41,7 @@ class StarredHelpersTestBase(TestCase):
         *,
         starred: bool = True,
         user_id: int | None = None,
-        organization=None,
+        organization: Organization | None = None,
     ) -> ExploreSavedQueryStarred:
         organization = organization or self.org
         query = ExploreSavedQuery.objects.create(
@@ -59,17 +60,27 @@ class StarredHelpersTestBase(TestCase):
         Every positioned row the user has, across both tables, ordered by position.
         """
         user_id = user_id or self.user.id
-        rows: list[tuple[int, SavedQueryRef]] = [
-            (row.position, SavedQueryRef(SavedQueryType.DISCOVER, row.discover_saved_query_id))
-            for row in DiscoverSavedQueryStarred.objects.filter(
-                organization=self.org, user_id=user_id, position__isnull=False
+        rows: list[tuple[int, SavedQueryRef]] = []
+        for discover_row in DiscoverSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=user_id, position__isnull=False
+        ):
+            assert discover_row.position is not None
+            rows.append(
+                (
+                    discover_row.position,
+                    SavedQueryRef(SavedQueryType.DISCOVER, discover_row.discover_saved_query_id),
+                )
             )
-        ] + [
-            (row.position, SavedQueryRef(SavedQueryType.EXPLORE, row.explore_saved_query_id))
-            for row in ExploreSavedQueryStarred.objects.filter(
-                organization=self.org, user_id=user_id, position__isnull=False
+        for explore_row in ExploreSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=user_id, position__isnull=False
+        ):
+            assert explore_row.position is not None
+            rows.append(
+                (
+                    explore_row.position,
+                    SavedQueryRef(SavedQueryType.EXPLORE, explore_row.explore_saved_query_id),
+                )
             )
-        ]
         return [ref for _, ref in sorted(rows)]
 
 
