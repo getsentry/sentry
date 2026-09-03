@@ -12,7 +12,7 @@ const InputDiv = Input.withComponent('div') as React.ComponentType<
   React.ComponentPropsWithRef<'div'> & {size?: FormSize}
 >;
 
-export const MentionEditor = styled(InputDiv)`
+export const ComposerEditor = styled(InputDiv)`
   height: auto;
   overflow: auto;
   resize: none;

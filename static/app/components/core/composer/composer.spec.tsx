@@ -2,18 +2,21 @@ import {useState} from 'react';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {MentionInput} from 'sentry/components/mentionInput/mentionInput';
-import type {Mention, MentionInputValue} from 'sentry/components/mentionInput/model';
-import type {MentionSource} from 'sentry/components/mentionInput/types';
+import {
+  Composer,
+  type Mention,
+  type ComposerValue,
+  type ComposerSource,
+} from '@sentry/scraps/composer';
 
 interface PersonSuggestion {
   id: string;
   label: string;
 }
 
-type TestMentionSource = MentionSource<PersonSuggestion>;
+type TestComposerSource = ComposerSource<PersonSuggestion>;
 
-const MEMBER_SOURCE: TestMentionSource = {
+const MEMBER_SOURCE: TestComposerSource = {
   id: 'members',
   label: 'Members',
   trigger: '@',
@@ -29,23 +32,23 @@ const MEMBER_SOURCE: TestMentionSource = {
   renderSuggestion: suggestion => suggestion.label,
 };
 
-function ControlledMentionInput({
+function ControlledComposer({
   sources = [MEMBER_SOURCE],
   initialValue = '',
   initialMentions = [],
 }: {
   initialMentions?: readonly Mention[];
   initialValue?: string;
-  sources?: readonly TestMentionSource[];
+  sources?: readonly TestComposerSource[];
 }) {
-  const [value, setValue] = useState<MentionInputValue>({
+  const [value, setValue] = useState<ComposerValue>({
     text: initialValue,
     mentions: initialMentions,
   });
 
   return (
     <div>
-      <MentionInput
+      <Composer
         aria-label="Comment"
         sources={sources}
         value={value}
@@ -65,11 +68,11 @@ function getEditor() {
   return editor;
 }
 
-describe('MentionInput', () => {
+describe('Composer', () => {
   it('keeps the editor aligned with a controlled value that rejects an edit', async () => {
     const onChange = jest.fn();
     render(
-      <MentionInput
+      <Composer
         aria-label="Comment"
         sources={[MEMBER_SOURCE]}
         value={{text: 'Fixed', mentions: []}}
@@ -88,7 +91,7 @@ describe('MentionInput', () => {
   it('allows typing with an input method', () => {
     const onChange = jest.fn();
     const renderInput = () => (
-      <MentionInput
+      <Composer
         aria-label="Comment"
         sources={[MEMBER_SOURCE]}
         value={{text: '', mentions: []}}
@@ -124,7 +127,7 @@ describe('MentionInput', () => {
   });
 
   it('selects a suggestion with the arrow keys', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
@@ -144,7 +147,7 @@ describe('MentionInput', () => {
   });
 
   it('dismisses suggestions without changing the draft', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
@@ -158,7 +161,7 @@ describe('MentionInput', () => {
   });
 
   it('selects the current suggestion with Tab', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -170,7 +173,7 @@ describe('MentionInput', () => {
   });
 
   it('turns a mention into ordinary text when its label is edited', async () => {
-    render(<ControlledMentionInput />);
+    render(<ControlledComposer />);
 
     const textbox = getEditor();
     await userEvent.type(textbox, '@ali');
@@ -194,7 +197,7 @@ describe('MentionInput', () => {
     };
 
     render(
-      <ControlledMentionInput
+      <ControlledComposer
         initialValue="Continue with @Alice Example"
         initialMentions={[restoredMention]}
       />
@@ -209,7 +212,7 @@ describe('MentionInput', () => {
   });
 
   it('shows an empty state when a source has no matches', async () => {
-    render(<ControlledMentionInput initialValue="@missing" />);
+    render(<ControlledComposer initialValue="@missing" />);
     await userEvent.click(getEditor());
     await userEvent.keyboard('{End}');
     expect(await screen.findByText('No suggestions found')).toBeVisible();

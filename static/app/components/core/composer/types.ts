@@ -3,9 +3,9 @@ import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
 import type {FormSize} from 'sentry/utils/theme';
 
-import type {MentionInputValue} from './model';
+import type {ComposerValue} from './model';
 
-interface MentionSourceBase<TSuggestion> {
+interface ComposerSourceBase<TSuggestion> {
   /** Returns a stable identity for a suggestion. */
   getId: (suggestion: TSuggestion) => string;
   /** Returns the exact text inserted into the editor. */
@@ -20,30 +20,30 @@ interface MentionSourceBase<TSuggestion> {
   renderSuggestion?: (suggestion: TSuggestion) => React.ReactNode;
 }
 
-interface LocalMentionSource<TSuggestion> extends MentionSourceBase<TSuggestion> {
+interface LocalComposerSource<TSuggestion> extends ComposerSourceBase<TSuggestion> {
   /** Filters local suggestions for the text between the trigger and caret. */
   getSuggestions: (query: string) => readonly TSuggestion[];
 }
 
-interface AsyncMentionSource<TSuggestion> extends MentionSourceBase<TSuggestion> {
+interface AsyncComposerSource<TSuggestion> extends ComposerSourceBase<TSuggestion> {
   /** Returns query options whose selected data is the suggestion list. */
   queryOptions: (query: string) => AnyUseQueryOptions;
 }
 
-export type MentionSource<TSuggestion> =
-  | LocalMentionSource<TSuggestion>
-  | AsyncMentionSource<TSuggestion>;
+export type ComposerSource<TSuggestion> =
+  | LocalComposerSource<TSuggestion>
+  | AsyncComposerSource<TSuggestion>;
 
-export interface MentionInputProps<TSuggestion> extends Omit<
+export interface ComposerProps<TSuggestion> extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
   'children' | 'contentEditable' | 'defaultValue' | 'onBeforeInput' | 'onChange'
 > {
   /** Called with plain text and structured mention ranges after an edit. */
-  onChange: (value: MentionInputValue) => void;
+  onChange: (value: ComposerValue) => void;
   /** Local and queried suggestion sources. */
-  sources: ReadonlyArray<MentionSource<TSuggestion>>;
+  sources: ReadonlyArray<ComposerSource<TSuggestion>>;
   /** Controlled editor text and structured mention ranges. */
-  value: MentionInputValue;
+  value: ComposerValue;
   minHeight?: number;
   placeholder?: string;
   ref?: React.Ref<HTMLDivElement>;

@@ -71,12 +71,12 @@ describe('MentionComposer', () => {
     const textbox = getEditor();
     await userEvent.type(textbox, 'Thanks @ali');
     await userEvent.click(await screen.findByRole('option', {name: /Alice Example/}));
-    await userEvent.type(textbox, 'and #front');
-    await userEvent.keyboard('{Enter}');
+    await userEvent.type(textbox, 'and @front');
+    await userEvent.click(await screen.findByRole('option', {name: 'frontend'}));
     await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
 
     expect(onSubmit).toHaveBeenCalledWith({
-      text: 'Thanks **@Alice Example** and **#frontend** ',
+      text: 'Thanks **@Alice Example** and **@frontend** ',
       mentions: ['user:1', 'team:1'],
     });
     await waitFor(() => expect(textbox).toHaveTextContent(''));
