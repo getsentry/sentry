@@ -355,3 +355,100 @@ def test_non_mapping_context_is_dropped_without_sinking_the_render(value: Any) -
     m = event_response_to_model(data)
     assert m.contexts == {"browser": {"name": "Firefox"}}
     assert "boom" in format_issue(data, sections=EVENT_SECTIONS_WITH_USER)
+
+
+def _metric_issue(**evidence_overrides: Any) -> dict[str, Any]:
+    evidence: dict[str, Any] = {
+        "alert_id": 77,
+        "value": 812.4,
+        "conditions": [{"type": 0, "comparison": 500}],
+        "data_sources": [
+            {
+                "query_obj": {
+                    "snuba_query": {
+                        "dataset": "events_analytics_platform",
+                        "aggregate": "p95(span.duration)",
+                        "query": "transaction:/api/checkout",
+                        "time_window": 3600,
+                        "environment": "prod",
+                    }
+                }
+            }
+        ],
+    }
+    evidence.update(evidence_overrides)
+    return {
+        "title": "transaction.duration above 500",
+        "occurrence": {"type": 8001, "evidenceData": evidence, "evidenceDisplay": []},
+    }
+
+
+def test_metric_alert_maps_the_whole_alert_definition() -> None:
+    # evidenceDisplay only names the metric, so without evidenceData a metric issue renders
+    # none of the query it fired on
+    model = event_response_to_model(_metric_issue())
+    assert model.metric_alert == [
+        ("Dataset", "events_analytics_platform"),
+        ("Aggregate", "p95(span.duration)"),
+        ("Query", "transaction:/api/checkout"),
+        ("Interval", "3600 second(s)"),
+        ("Environment", "prod"),
+        ("Evaluated Value", "812.4"),
+        ("Threshold", "above 500"),
+        ("Alert Rule ID", "77"),
+    ]
+
+
+def test_metric_alert_reads_snake_case_keys() -> None:
+    # the detector serializes data sources camelCased then converts them back before storing,
+    # so camelCase keys here would silently match nothing
+    camel = {
+        "alertId": 77,
+        "dataSources": [{"queryObj": {"snubaQuery": {"dataset": "x", "timeWindow": 60}}}],
+    }
+    assert (
+        event_response_to_model(
+            {"title": "t", "occurrence": {"type": 8001, "evidenceData": camel}}
+        ).metric_alert
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "condition,expected",
+    [
+        ({"type": 0, "comparison": 500}, "above 500"),
+        ({"type": 1, "comparison": 2}, "below 2"),
+        ({"type": "gte", "comparison": 10}, "at or above 10"),
+        ({"type": "lte", "comparison": 10}, "at or below 10"),
+        ({"comparison": 7}, "7"),  # no operator recorded
+    ],
+)
+def test_metric_alert_threshold_labels(condition: Any, expected: str) -> None:
+    model = event_response_to_model(_metric_issue(conditions=[condition]))
+    assert ("Threshold", expected) in model.metric_alert
+
+
+def test_metric_alert_unwraps_anomaly_detection_value() -> None:
+    # anomaly detection stores the evaluated value as {"value": ...}
+    model = event_response_to_model(_metric_issue(value={"value": 9.5, "source_id": "s"}))
+    assert ("Evaluated Value", "9.5") in model.metric_alert
+
+
+def test_metric_alert_skips_missing_pieces() -> None:
+    model = event_response_to_model(_metric_issue(data_sources=[], conditions=[]))
+    assert model.metric_alert == [("Evaluated Value", "812.4"), ("Alert Rule ID", "77")]
+
+
+def test_metric_alert_only_applies_to_metric_issues() -> None:
+    event = _metric_issue()
+    event["occurrence"]["type"] = 1001  # a perf issue
+    assert event_response_to_model(event).metric_alert == []
+    assert event_response_to_model({"title": "t"}).metric_alert == []
+
+
+def test_metric_alert_renders_in_the_output() -> None:
+    out = format_issue(_metric_issue(), sections=EVENT_SECTIONS_WITH_USER)
+    assert "## Metric Alert Details" in out
+    assert "**Aggregate:** p95(span.duration)" in out
+    assert "**Threshold:** above 500" in out

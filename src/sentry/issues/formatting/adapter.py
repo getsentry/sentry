@@ -111,6 +111,71 @@ def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     ]
 
 
+# occurrence type for a metric issue (sentry.incidents.grouptype.MetricIssue)
+_METRIC_ISSUE_TYPE = 8001
+
+
+def _metric_alert_threshold(conditions: Any) -> str | None:
+    """The triggered condition(s), as "above 500"."""
+    if not isinstance(conditions, list):
+        return None
+    parts: list[str] = []
+    for condition in conditions:
+        if not isinstance(condition, dict):
+            continue
+        comparison = condition.get("comparison")
+        if comparison is None:
+            continue
+        # detector conditions store the operator as an id or a name
+        label = {
+            0: "above",
+            1: "below",
+            "gt": "above",
+            "gte": "at or above",
+            "lt": "below",
+            "lte": "at or below",
+        }.get(condition.get("type"))
+        parts.append(f"{label} {comparison}" if label else str(comparison))
+    return ", ".join(parts) or None
+
+
+def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
+    """The alert definition behind a metric issue.
+
+    ``evidenceDisplay`` only summarises the metric by name, so without this a metric issue
+    renders none of the query it fired on. Keys inside ``evidenceData`` are snake_case: the
+    detector serializes the data sources camelCased and converts them back before storing.
+    """
+    occurrence = data.get("occurrence") or {}
+    if occurrence.get("type") != _METRIC_ISSUE_TYPE:
+        return []
+    evidence = occurrence.get("evidenceData") or {}
+
+    snuba_query: Mapping[str, Any] = {}
+    for source in evidence.get("data_sources") or []:
+        query = (source or {}).get("query_obj") or {}
+        if isinstance(query.get("snuba_query"), dict):
+            snuba_query = query["snuba_query"]
+            break
+
+    time_window = snuba_query.get("time_window")
+    value = evidence.get("value")
+    if isinstance(value, dict):  # anomaly detection stores {"value": ...}
+        value = value.get("value")
+
+    candidates = [
+        ("Dataset", snuba_query.get("dataset")),
+        ("Aggregate", snuba_query.get("aggregate")),
+        ("Query", snuba_query.get("query")),
+        ("Interval", f"{time_window} second(s)" if time_window is not None else None),
+        ("Environment", snuba_query.get("environment")),
+        ("Evaluated Value", value),
+        ("Threshold", _metric_alert_threshold(evidence.get("conditions"))),
+        ("Alert Rule ID", evidence.get("alert_id")),
+    ]
+    return [(label, str(v)) for label, v in candidates if v is not None and str(v) != ""]
+
+
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     entries = _entries_by_type(data)
     tags, transaction_name = _tags(data)
@@ -146,4 +211,5 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         user=UserDetails.parse_obj(user) if user else None,
         spans=[EvidenceSpan.parse_obj(s) for s in entries.get("spans") or []],
         evidence=_evidence(data),
+        metric_alert=_metric_alert(data),
     )
