@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {SESSION_ID} from '@sentry/conventions/attributes';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
@@ -63,6 +64,7 @@ import {
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {SessionIdLink} from 'sentry/views/explore/usersessions/sessionLink';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -656,6 +658,15 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function SessionIDRenderer(props: LogFieldRendererProps) {
+  return (
+    <SessionIdLink
+      organization={props.extra.organization}
+      sessionId={props.item.value as string}
+    />
+  );
+}
+
 function TimeStampRenderer(props: LogFieldRendererProps) {
   if (props.extra.timestampRelativeTo) {
     // Check if we should use relative timestamps (eg. in replay)
@@ -679,6 +690,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.PROJECT]: ProjectRenderer,
   [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
   [OurLogKnownFieldKey.REPLAY_ID]: ReplayIDRenderer,
+  [SESSION_ID]: SessionIDRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {

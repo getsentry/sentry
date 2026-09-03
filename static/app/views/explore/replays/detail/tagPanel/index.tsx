@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {SESSION_ID} from '@sentry/conventions/attributes';
 import type {LocationDescriptor} from 'history';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -15,6 +16,7 @@ import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemConta
 import {TagFilters} from 'sentry/views/explore/replays/detail/tagPanel/tagFilters';
 import {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {getSessionDetailUrl} from 'sentry/views/explore/usersessions/sessionLink';
 
 export function TagPanel() {
   const organization = useOrganization();
@@ -52,17 +54,24 @@ export function TagPanel() {
   const {items} = filterProps;
 
   const generateUrl = useCallback(
-    (name: string, value: string): LocationDescriptor => ({
-      pathname: makeReplaysPathname({
-        path: '/',
-        organization,
-      }),
-      query: {
-        // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
-        query: `${name}:"${value}"`,
-        project: replayRecord?.project_id,
-      },
-    }),
+    (name: string, value: string): LocationDescriptor => {
+      // `session.id` links back to the session this replay belongs to, rather than
+      // to a replay search filtered by the tag.
+      if (name === SESSION_ID) {
+        return getSessionDetailUrl(organization, value);
+      }
+      return {
+        pathname: makeReplaysPathname({
+          path: '/',
+          organization,
+        }),
+        query: {
+          // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
+          query: `${name}:"${value}"`,
+          project: replayRecord?.project_id,
+        },
+      };
+    },
     [organization, replayRecord?.project_id]
   );
 
