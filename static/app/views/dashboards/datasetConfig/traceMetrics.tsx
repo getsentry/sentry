@@ -387,9 +387,7 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = stripEquationPrefix(
-          formatTraceMetricsFunction(aggregate) as string
-        );
+        acc[aggregate] = stripEquationPrefix(formatTraceMetricsFunction(aggregate));
         return acc;
       }, {}) ?? {}
     );
@@ -431,16 +429,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 

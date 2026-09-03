@@ -66,6 +66,12 @@ repos:
         pass_filenames: true
         files: ^src/sentry/.*endpoints/.*\.py$
         require_serial: false
+      - id: check-schema-omissions
+        name: check schema omissions have a stated reason
+        language: system
+        entry: .venv/bin/python src/sentry/apidocs/_check_schema_omissions.py
+        files: ^src/sentry/.*\.py$
+        pass_filenames: false
       - id: sort-mypy-weaklist
         name: sort mypy weaklist
         entry: python3 -m tools.mypy_helpers.sort_weaklist

@@ -109,7 +109,7 @@ export function WidgetQueries({
   let setIsMetricsData: undefined | ((value?: boolean) => void);
   let setIsMetricsExtractedData:
     | undefined
-    | ((mapKey: MetricsResultsMetaMapKey, value?: boolean) => void);
+    | ((mapKey: MetricsResultsMetaMapKey, value: boolean) => void);
 
   if (context) {
     setIsMetricsData = context.setIsMetricsData;

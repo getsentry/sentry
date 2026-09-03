@@ -5,7 +5,13 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
 
-from sentry.api.client_kind import FEATURE_FLAG, ClientKind, get_client_host, get_client_kind
+from sentry.api.client_kind import (
+    FEATURE_FLAG,
+    ClientKind,
+    get_client_host,
+    get_client_kind,
+    get_user_agent,
+)
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
@@ -69,6 +75,21 @@ class GetClientKindTest(TestCase):
         request = make_request(user=session_user(), headers={"X-Viewer-Context": "a.b.c"})
         assert self.classify(request) == ClientKind.SEER
 
+    def test_seer_referrer_header_is_seer(self) -> None:
+        # Seer sets this on API calls it makes for a user; without it those calls
+        # carry an ordinary user token and used to read as UNKNOWN.
+        request = make_request(auth=api_token(), headers={"X-Seer-Referrer": "explorer"})
+        assert self.classify(request) == ClientKind.SEER
+
+    def test_mcp_wins_over_a_seer_signal(self) -> None:
+        # Priority matches `resolve_action_source`: MCP is checked before Seer.
+        request = make_request(
+            auth=api_token(application_id=42),
+            user_agent="sentry-mcp/0.35.0 (https://mcp.sentry.dev)",
+            headers={"X-Seer-Referrer": "explorer"},
+        )
+        assert self.classify(request) == ClientKind.MCP
+
     def test_mcp_user_agent_wins_over_the_oauth_token_it_carries(self) -> None:
         # MCP authenticates via OAuth, so its token would otherwise read as INTEGRATION.
         request = make_request(
@@ -105,6 +126,18 @@ class GetClientKindTest(TestCase):
         # Shares `is_frontend_request` with the `ui_request` tag on `view.response`.
         request = make_request(user=session_user(), cookies=False)
         assert self.classify(request) == ClientKind.UNKNOWN
+
+
+class GetUserAgentTest(TestCase):
+    def test_returns_the_raw_user_agent(self) -> None:
+        assert get_user_agent(make_request(user_agent="curl/8.7.1")) == "curl/8.7.1"
+
+    def test_absent_user_agent_is_none(self) -> None:
+        assert get_user_agent(make_request()) is None
+
+    def test_empty_user_agent_is_none(self) -> None:
+        # An empty header and no header at all mean the same thing to a reader.
+        assert get_user_agent(make_request(user_agent="")) is None
 
 
 class GetClientHostTest(TestCase):

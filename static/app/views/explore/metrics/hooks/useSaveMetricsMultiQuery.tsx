@@ -10,7 +10,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  useInvalidateSavedQueries,
+  useInvalidateSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
@@ -35,6 +38,7 @@ export function useSaveMetricsMultiQuery() {
   const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
+  const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const data = useMemo(() => {
     return {
@@ -120,8 +124,10 @@ export function useSaveMetricsMultiQuery() {
         data,
       }
     );
+    invalidateSavedQueries();
+    invalidateSavedQuery();
     return response;
-  }, [api, organization.slug, id, data]);
+  }, [api, organization.slug, id, data, invalidateSavedQueries, invalidateSavedQuery]);
 
   return {saveQuery, updateQuery};
 }
