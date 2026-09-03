@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -55,6 +55,14 @@ describe('ReplayDetails', () => {
     route: '/organizations/:orgId/replays/:replaySlug/',
   };
 
+  function renderDetails() {
+    return render(<ReplayDetails />, {
+      organization: OrganizationFixture({features: ['session-replay']}),
+      initialRouterConfig,
+      additionalWrapper: TopBarWrapper,
+    });
+  }
+
   beforeEach(() => {
     ConfigStore.set('user', user);
     mockUseLoadReplayReader.mockClear();
@@ -64,6 +72,12 @@ describe('ReplayDetails', () => {
       body: {
         data: {
           id: 'test-replay-id',
+          // The live-refresh poll maps this response into a replay record, so
+          // it needs timestamps it can parse. Mirrors ReplayRecordFixture, and
+          // matching `count_segments` keeps the refresh chip hidden.
+          started_at: '2022-09-22T16:58:39Z',
+          finished_at: '2022-09-22T17:00:03Z',
+          count_segments: 14,
         },
       },
     });
@@ -90,16 +104,8 @@ describe('ReplayDetails', () => {
     expect(mockUseLoadReplayReader).toHaveBeenCalled();
   });
 
-  it('renders pagination chevrons and a copy action in the replay crumb', () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
-
-    render(<ReplayDetails />, {
-      organization,
-      initialRouterConfig,
-      additionalWrapper: TopBarWrapper,
-    });
+  it('renders pagination chevrons in the replay crumb', () => {
+    renderDetails();
 
     expect(
       screen.getByRole('button', {name: 'Previous replay based on search query'})
@@ -107,8 +113,38 @@ describe('ReplayDetails', () => {
     expect(
       screen.getByRole('button', {name: 'Next replay based on search query'})
     ).toBeInTheDocument();
+  });
+
+  it('offers the replay actions from the title menu', async () => {
+    renderDetails();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
+
     expect(
-      screen.getByRole('button', {name: 'Copy link to replay at current timestamp'})
+      await screen.findByRole('menuitemradio', {name: 'Download JSON'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Share'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Configure Replay'})
+    ).toBeInTheDocument();
+    // Copying a link to the current timestamp is no longer offered.
+    expect(
+      screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('nests the configure docs behind a submenu', async () => {
+    renderDetails();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
+    // Submenus open on hover, not on click.
+    await userEvent.hover(
+      await screen.findByRole('menuitemradio', {name: 'Configure Replay'})
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: /General/})
     ).toBeInTheDocument();
   });
 

@@ -1,44 +1,46 @@
-import type {ReactNode} from 'react';
-import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 import * as Sentry from '@sentry/react';
 
-import {Flex} from '@sentry/scraps/layout';
-
-import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconOpen} from 'sentry/icons';
+import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-export function ConfigureReplayCard({
+/**
+ * The "Configure Replay" entry of the page-title menu: a submenu of links into
+ * the Session Replay docs for the SDK that recorded this replay. Mobile SDKs
+ * have their own guides, so the link set depends on the platform; an SDK we
+ * have no guide for renders the items disabled rather than linking nowhere.
+ */
+export function useConfigureReplayMenuItem({
   isMobile,
   replayRecord,
 }: {
   isMobile: boolean;
   replayRecord: ReplayRecord | undefined;
-}) {
+}): MenuItemProps {
   const organization = useOrganization();
 
-  return (
-    <DropdownMenu
-      onAction={key => {
+  const items = isMobile ? getMobileItems(replayRecord) : getWebItems();
+
+  return {
+    key: 'configure-replay',
+    label: t('Configure Replay'),
+    leadingItems: <IconSettings variant="muted" />,
+    submenu: true,
+    // Tracking lives on each link rather than the menu's `onAction`, which
+    // fires for every sibling action once this shares a menu with them.
+    children: items.map(item => ({
+      ...item,
+      onAction: () =>
         trackAnalytics('replay.details-resource-docs-clicked', {
           organization,
-          title: keyToTitle(key),
-        });
-      }}
-      items={isMobile ? getMobileItems(replayRecord) : getWebItems()}
-      trigger={(triggerProps, isOpen) => (
-        <DropdownButton {...triggerProps} isOpen={isOpen} size="sm">
-          {t('Configure Replay')}
-        </DropdownButton>
-      )}
-    />
-  );
+          title: keyToTitle(item.key),
+        }),
+    })),
+  };
 }
 
 function getPath(sdkName: string | null | undefined) {
@@ -85,64 +87,44 @@ function getWebItems(): MenuItemProps[] {
   return [
     {
       key: 'general',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={keyToTitle('general')}
-          subTitle={t('Configure sampling rates and recording thresholds')}
-        />
-      ),
-      textValue: keyToTitle('general'),
+      label: keyToTitle('general'),
+      details: t('Configure sampling rates and recording thresholds'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref:
         'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#general-integration-configuration',
     },
     {
       key: 'masking',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={keyToTitle('masking')}
-          subTitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
-        />
-      ),
-      textValue: keyToTitle('masking'),
+      label: keyToTitle('masking'),
+      details: t('Unmask text (****) and unblock media (img, svg, video, etc.)'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref:
         'https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration',
     },
     {
       key: 'users',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={keyToTitle('users')}
-          subTitle={t('Identify your users through a specific attribute, such as email')}
-        />
-      ),
-      textValue: keyToTitle('users'),
+      label: keyToTitle('users'),
+      details: t('Identify your users through a specific attribute, such as email'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref:
         'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users',
     },
     {
       key: 'network',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={keyToTitle('network')}
-          subTitle={t('Capture request and response headers or bodies')}
-        />
-      ),
-      textValue: keyToTitle('network'),
+      label: keyToTitle('network'),
+      details: t('Capture request and response headers or bodies'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref:
         'https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details',
     },
     {
       key: 'canvas',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={keyToTitle('canvas')}
-          subTitle={tct(
-            'Opt-in to record HTML [code:canvas] elements, added in SDK version 7.98.0',
-            {code: <code />}
-          )}
-        />
+      label: keyToTitle('canvas'),
+      details: tct(
+        'Opt-in to record HTML [code:canvas] elements, added in SDK version 7.98.0',
+        {code: <code />}
       ),
-      textValue: keyToTitle('canvas'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref:
         'https://docs.sentry.io/platforms/javascript/session-replay/#canvas-recording',
     },
@@ -155,75 +137,27 @@ function getMobileItems(replayRecord: ReplayRecord | undefined): MenuItemProps[]
   return [
     {
       key: 'general',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={t('General')}
-          subTitle={t('Configure sampling rates and recording thresholds')}
-        />
-      ),
-      textValue: keyToTitle('general'),
+      label: keyToTitle('general'),
+      details: t('Configure sampling rates and recording thresholds'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref: `https://docs.sentry.io/platforms/${path}/session-replay/#sampling`,
       disabled: !path,
     },
     {
       key: 'masking',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={t('Element Masking/Blocking')}
-          subTitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
-        />
-      ),
-      textValue: keyToTitle('masking'),
+      label: keyToTitle('masking'),
+      details: t('Unmask text (****) and unblock media (img, svg, video, etc.)'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref: `https://docs.sentry.io/platforms/${path}/session-replay/#privacy`,
       disabled: !path,
     },
     {
       key: 'users',
-      label: (
-        <ReplayConfigureDropdownItem
-          title={t('Identify Users')}
-          subTitle={t('Identify your users through a specific attribute, such as email')}
-        />
-      ),
-      textValue: keyToTitle('users'),
+      label: keyToTitle('users'),
+      details: t('Identify your users through a specific attribute, such as email'),
+      leadingItems: <IconOpen variant="muted" />,
       externalHref: `https://docs.sentry.io/platforms/${path}/enriching-events/identify-user/`,
       disabled: !path,
     },
   ] satisfies MenuItemProps[];
 }
-
-function ReplayConfigureDropdownItem({
-  title,
-  subTitle,
-}: {
-  subTitle: ReactNode;
-  title: ReactNode;
-}) {
-  return (
-    <Flex gap="md" align="center">
-      <IconOpen />
-      <ButtonContent>
-        <ButtonTitle>{title}</ButtonTitle>
-        <ButtonSubtitle>{subTitle}</ButtonSubtitle>
-      </ButtonContent>
-    </Flex>
-  );
-}
-
-const ButtonContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  white-space: pre-line;
-  gap: ${p => p.theme.space['2xs']};
-`;
-
-const ButtonTitle = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const ButtonSubtitle = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  font-size: ${p => p.theme.font.size.sm};
-`;

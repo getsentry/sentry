@@ -1,13 +1,12 @@
 import * as Sentry from '@sentry/react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ExternalLink} from 'sentry/components/links/externalLink';
-import {IconBug, IconDelete, IconDownload, IconEllipsis, IconUpload} from 'sentry/icons';
+import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
+import {IconBug, IconDelete, IconDownload, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
@@ -27,13 +26,22 @@ interface Props {
   replayRecord: ReplayRecord | undefined;
 }
 
-export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
+/**
+ * The page-level actions for a replay, as entries for the page-title menu.
+ * Items the viewer cannot act on render disabled rather than hidden, so the
+ * menu keeps a stable shape while the replay loads.
+ */
+export function useReplayMenuItems({
+  projectSlug,
+  replay,
+  replayRecord,
+}: Props): MenuItemProps[] {
   const organization = useOrganization();
   const isEmployee = useIsSentryEmployee();
   const isSuperUser = isActiveSuperuser();
 
   const replayId = replayRecord?.id;
-  const isMobile = replay?.isVideoReplay();
+  const isMobile = replay?.isVideoReplay() ?? false;
 
   const canSeeEmployeeLinks = isEmployee || isSuperUser;
   const canDownload = projectSlug && replay;
@@ -43,15 +51,13 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
   const canDelete = replayId && projectSlug;
   const onDeleteReplay = useDeleteReplay({replayId, projectSlug});
 
-  const dropdownItems: MenuItemProps[] = [
+  const configureReplayItem = useConfigureReplayMenuItem({isMobile, replayRecord});
+
+  return [
     {
       key: 'download-rrweb',
-      label: (
-        <Flex align="center" gap="md">
-          <IconDownload />
-          {t('Download JSON')}
-        </Flex>
-      ),
+      label: t('Download JSON'),
+      leadingItems: <IconDownload variant="muted" />,
       onAction: () => {
         try {
           if (!replay) {
@@ -71,13 +77,9 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
     canSeeEmployeeLinks
       ? {
           key: 'download-replay-record',
-          label: (
-            <Flex align="center" gap="md">
-              <IconDownload />
-              {t('Download Replay Record')}
-              <FeatureBadge type="debug" />
-            </Flex>
-          ),
+          label: t('Download Replay Record'),
+          leadingItems: <IconDownload variant="muted" />,
+          trailingItems: <FeatureBadge type="debug" />,
           onAction: () => {
             try {
               if (!replay) {
@@ -96,21 +98,16 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
     canSeeEmployeeLinks
       ? {
           key: 'open-in-replay-debugger',
-          label: (
-            <Flex align="center" gap="md">
-              <IconBug />
-              <span>
-                {tct('Debug in [link]', {
-                  link: (
-                    <ExternalLink href="https://github.com/getsentry/replay-debugger/releases">
-                      {t('Sentry Replay Debugger')}
-                    </ExternalLink>
-                  ),
-                })}
-              </span>
-              <FeatureBadge type="debug" />
-            </Flex>
-          ),
+          label: tct('Debug in [link]', {
+            link: (
+              <ExternalLink href="https://github.com/getsentry/replay-debugger/releases">
+                {t('Sentry Replay Debugger')}
+              </ExternalLink>
+            ),
+          }),
+          textValue: t('Debug in Sentry Replay Debugger'),
+          leadingItems: <IconBug variant="muted" />,
+          trailingItems: <FeatureBadge type="debug" />,
           onAction: async () => {
             try {
               if (!replay) {
@@ -131,12 +128,8 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
     canSeeEmployeeLinks && isMobile
       ? {
           key: 'download-1st-video',
-          label: (
-            <Flex align="center" gap="md">
-              <IconDownload />
-              {t('Download 1st video segment (superuser)')}
-            </Flex>
-          ),
+          label: t('Download 1st video segment (superuser)'),
+          leadingItems: <IconDownload variant="muted" />,
           onAction: () =>
             window.location.assign(
               `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replayId}/videos/0/`
@@ -146,38 +139,18 @@ export function ReplayItemDropdown({projectSlug, replay, replayRecord}: Props) {
       : null,
     {
       key: 'share',
-      label: (
-        <Flex align="center" gap="md">
-          <IconUpload />
-          {t('Share')}
-        </Flex>
-      ),
+      label: t('Share'),
+      leadingItems: <IconUpload variant="muted" />,
       onAction: onShareReplay,
       disabled: !replayId,
     },
     {
       key: 'delete',
-      label: (
-        <Flex align="center" gap="md">
-          <IconDelete />
-          {t('Delete')}
-        </Flex>
-      ),
+      label: t('Delete'),
+      leadingItems: <IconDelete variant="muted" />,
       onAction: onDeleteReplay,
       disabled: !canDelete,
     },
+    configureReplayItem,
   ].filter(defined);
-
-  return (
-    <DropdownMenu
-      position="bottom-end"
-      triggerProps={{
-        showChevron: false,
-        icon: <IconEllipsis variant="muted" />,
-      }}
-      size="sm"
-      items={dropdownItems}
-      isDisabled={dropdownItems.length === 0}
-    />
-  );
 }
