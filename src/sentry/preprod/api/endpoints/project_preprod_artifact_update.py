@@ -250,6 +250,7 @@ def find_release_by_commit_sha(project: Project, head_sha: str) -> Release | Non
         )
         return None
 
+
 @internal_cell_silo_endpoint
 class ProjectPreprodArtifactUpdateEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
