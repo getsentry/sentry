@@ -201,6 +201,10 @@ export const Chart = defineSeerEmbed({
         border="primary"
         data-test-id="seer-chart-embed"
         margin="lg 0"
+        // Same guarantee as every other chart-bearing embed: the canvas doesn't
+        // get to widen the conversation around it. See `getChartContentHeight`.
+        minWidth="0"
+        overflow="hidden"
         padding="lg xl md"
         radius="md"
       >
