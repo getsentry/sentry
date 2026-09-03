@@ -18,6 +18,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
+  /**
+   * Whether this replay was recorded as video (i.e. by a mobile SDK). Passed in
+   * rather than read off `replay`, which the caller withholds when the replay is
+   * only partially readable — the replay is still a mobile one either way, and
+   * this decides which actions apply and which docs to link.
+   */
+  isMobile: boolean;
   projectSlug: string | null;
   replay: ReplayReader | undefined;
   // Accept the replay and replayRecord in case the replay doesn't load properly,
@@ -27,10 +34,16 @@ interface Props {
 
 /**
  * The page-level actions for a replay, as entries for the page-title menu.
- * Items the viewer cannot act on render disabled rather than hidden, so the
- * menu keeps a stable shape while the replay loads.
+ *
+ * Two kinds of gate, deliberately behaving differently. An action the viewer
+ * has no business seeing (employee-only tooling) or that cannot apply to this
+ * replay (a video-segment download on a web replay) is omitted entirely. An
+ * action that does apply but cannot run yet — the replay is still loading, or
+ * only partially readable — renders disabled, so the menu keeps a stable shape
+ * rather than growing rows as data arrives.
  */
 export function useReplayMenuItems({
+  isMobile,
   projectSlug,
   replay,
   replayRecord,
@@ -40,7 +53,6 @@ export function useReplayMenuItems({
   const isSuperUser = isActiveSuperuser();
 
   const replayId = replayRecord?.id;
-  const isMobile = replay?.isVideoReplay() ?? false;
 
   const canSeeEmployeeLinks = isEmployee || isSuperUser;
   const canDownload = projectSlug && replay;

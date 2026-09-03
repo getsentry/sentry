@@ -40,6 +40,9 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const menuItems = useReplayMenuItems({
     projectSlug,
+    // Read before the reader is withheld below: a partially-readable replay is
+    // still a mobile one, and its actions and docs should say so.
+    isMobile: replay?.isVideoReplay() ?? false,
     // A replay with processing errors is only partially readable, so the
     // actions that need its frames stay disabled.
     replay: replay?.hasProcessingErrors() ? undefined : (replay ?? undefined),
