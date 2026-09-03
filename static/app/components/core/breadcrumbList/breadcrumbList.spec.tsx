@@ -4,6 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {Button} from '@sentry/scraps/button';
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
@@ -277,6 +278,45 @@ describe('BreadcrumbList rich page-title items', () => {
 
     expect(screen.getByRole('button', {name: 'Copy Short-ID'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'More actions'})).not.toBeInTheDocument();
+  });
+
+  it('keeps an open dropdown open when an action declared before it appears', async () => {
+    // A conditional slot ahead of the menu, e.g. the replay live-refresh chip
+    // that shows up on its own once a new segment lands.
+    function Title({showUpdate}: {showUpdate: boolean}) {
+      return (
+        <BreadcrumbList.Title
+          item={{
+            type: 'page-title',
+            label: 'JAVASCRIPT-2X9',
+            trailingActions: [
+              showUpdate
+                ? {type: 'button', element: <Button size="zero">Update</Button>}
+                : null,
+              {
+                type: 'menu',
+                triggerLabel: 'More actions',
+                items: [{key: 'delete', label: 'Delete'}],
+              },
+            ],
+          }}
+        />
+      );
+    }
+
+    const {rerender} = render(<Title showUpdate={false} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Delete'})
+    ).toBeInTheDocument();
+
+    rerender(<Title showUpdate />);
+
+    expect(screen.getByRole('button', {name: 'Update'})).toBeInTheDocument();
+    // The menu must survive the slot filling in beside it, rather than being
+    // remounted and losing its open state.
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
   });
 
   it('renders an editable-title as a click-to-edit field', async () => {
