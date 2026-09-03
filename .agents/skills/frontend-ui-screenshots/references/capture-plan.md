@@ -52,4 +52,4 @@ Also compare the representative Before/After state at the same measured containe
 
 These values are query-container content-box widths, not viewport or border-box widths. Choose viewport widths or safe actions—such as opening and resizing the Seer Explorer drawer—that place the query container on both sides of the boundary. Set each viewport's `containerWidth` to the expected rendered width; the helper measures the accessible `container` element in both versions and fails when it differs by more than 1px. The default container locator is `{"role":"main"}`.
 
-For a nested query container, identify it by an accessible `label` or by `role` and optional accessible `name`. Name each planned viewport for the container width it produces.
+For a nested query container, identify it by an accessible `label` or by `role` and optional accessible `name`. Name each planned viewport with the shortest useful distinction, such as `below 3xl (1023px)` and `3xl (1024px)`. These names become the published table labels; do not put route names, measurement explanations, or sentence-length descriptions in them.

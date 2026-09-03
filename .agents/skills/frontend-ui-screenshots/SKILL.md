@@ -14,14 +14,16 @@ Use these defaults unless the user asks for broader coverage:
 - Capture the product in light mode at one representative viewport.
 - Use a Scraps story when the user requests one or product context cannot demonstrate a changed primitive honestly.
 - Add dark mode when theme behavior is relevant.
-- When responsive coverage is requested, test both sides of each affected container boundary using the [container breakpoint matrix](references/capture-plan.md#container-breakpoints). Include widths created by consequential product states, such as the Seer Explorer drawer reducing the content container.
+- For every responsive change, test both sides of each affected container boundary using the [container breakpoint matrix](references/capture-plan.md#container-breakpoints). Cover every responsive declaration changed by the diff, even when the user does not explicitly request breakpoint coverage. Include widths created by consequential product states, such as the Seer Explorer drawer reducing the content container.
 
 ## Boundaries
 
 - Use only the synthetic `demo` organization through `demo.dev.getsentry.net`, including Scraps routes. Stop if an interaction leaves the planned local origin or, for stories, the Scraps route.
 - Do not capture `sentry.sentry.io/_admin` or any admin page backed by real Sentry data. Admin UI evidence is out of scope for now; a future workflow must run Sentry locally with synthetic or mock data.
 - Explicit invocation authorizes replacing this skill's marked screenshot table in the current PR description, or in file-level review comments when the user requests them. Do not publish anywhere else.
-- Use the dedicated localhost-only Chrome profile in [references/chrome-setup.md](references/chrome-setup.md).
+- Keep published evidence to the screenshot table. Do not add narrative capture summaries such as which demo page was used or how widths were measured. Use only concise labels needed to distinguish pairs, such as the affected breakpoint, theme, or interaction state.
+- Capture with the dedicated Chrome profile in [references/chrome-setup.md](references/chrome-setup.md). The helper runs headlessly and must not open or foreground a browser window during normal capture.
+- Do not publish authenticated personal UI such as a real user name, email address, or avatar. Prefer a crop or story that excludes account chrome; otherwise use a synthetic identity in both builds. Treat identity chrome as customer information even when the product data comes from the `demo` organization.
 - Capture PNG at device scale factor 2. Wait for fonts and lazy-loaded images; reject broken images.
 - Preserve the user's worktree. Put the merge-base build in a temporary detached worktree and remove only that worktree and its server afterward.
 
@@ -41,14 +43,15 @@ Use these defaults unless the user asks for broader coverage:
 node .agents/skills/frontend-ui-screenshots/scripts/capture.mjs --plan .artifacts/ui-capture/plan.json
 ```
 
-8. Inspect every Before/After pair. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior. At matched container widths, treat unexplained changes in column count, visible labels, counts, wrapping, or content as possible regressions: investigate and fix or explain them before publishing. For responsive changes, verify the rendered query-container content box at the exact boundary pixels, not only the viewport size.
-9. Publish the accepted pairs:
+8. Inspect every Before/After pair from the final manifest immediately before publishing. Reject login redirects, loading skeletons, broken assets, mismatched state/data, clipped UI, customer information, or evidence that does not expose the changed behavior. Do not rely on an earlier inspection when a later capture may have overwritten the same paths. At matched container widths, treat unexplained changes in column count, visible labels, counts, wrapping, or content as possible regressions: investigate and fix or explain them before publishing. For responsive changes, verify the rendered query-container content box at the exact boundary pixels, not only the viewport size, and confirm the manifest includes both sides of every affected boundary.
+9. Treat screenshots as derived from the current code. If code changes after capture and could affect a captured surface or state, recapture and reinspect every affected After pair before publishing or completing the task. If evidence was already published, replace each old affected pair with its refreshed pair in the existing table; never append duplicate evidence or leave the stale image referenced in the PR. Reuse only pairs demonstrably unaffected by the code update.
+10. Publish the accepted pairs:
 
 ```bash
 node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs --manifest .artifacts/ui-capture/<name>/manifest.json
 ```
 
-By default, the publisher replaces its marked Before/After table in the current PR description. When the user wants evidence beside a changed file, publish one manifest per file:
+By default, the publisher replaces its marked Before/After table in the current PR description. Do not add an introduction or capture description around the table. When the user wants evidence beside a changed file, publish one manifest per file:
 
 ```bash
 node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs \
@@ -56,6 +59,6 @@ node .agents/skills/frontend-ui-screenshots/scripts/publish.mjs \
   --comment-path static/app/path/to/component.tsx
 ```
 
-File mode creates or replaces the skill's marked file-level review comment without changing the PR description. In either mode, the publisher verifies the returned body and retains the local artifacts so a reviewer-requested correction can reuse the unaffected images. If upload or PR editing fails, report how to retry. Remove capture artifacts only when the user asks or confirms the evidence is accepted.
+File mode creates or replaces the skill's marked file-level review comment without changing the PR description. In either mode, verify the returned body and retrieve the uploaded assets to confirm they are the inspected local PNGs, not merely that their URLs appear in the comment. Retain the local artifacts so a reviewer-requested correction can reuse the unaffected images. If upload or PR editing fails, report how to retry. Remove capture artifacts only when the user asks or confirms the evidence is accepted.
 
-After publication, stop only the merge-base dev-ui process started for the capture and remove its temporary worktree. Do not stop either persistent browser profile or the current dev-ui.
+After publication, stop only the merge-base dev-ui process started for the capture and remove its temporary worktree. Do not stop the current dev-ui.

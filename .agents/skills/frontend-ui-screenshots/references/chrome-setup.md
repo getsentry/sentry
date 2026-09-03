@@ -1,15 +1,13 @@
 # Dedicated Chrome setup
 
-Use a separate persistent Chrome directory so screenshot automation never controls a developer's everyday browser profile.
+Use a separate persistent Chrome directory so screenshot automation never controls a developer's everyday browser profile. Normal captures launch this profile headlessly, so they do not open or foreground a Chrome window.
 
 ## One-time setup
 
-Launch Chrome on macOS with CDP restricted to localhost:
+Launch the dedicated Chrome window only to authenticate or refresh an expired session:
 
 ```bash
 open -na "Google Chrome" --args \
-  --remote-debugging-address=127.0.0.1 \
-  --remote-debugging-port=9222 \
   --user-data-dir="$HOME/.sentry-ui-capture-chrome"
 ```
 
@@ -19,18 +17,12 @@ In that Chrome window:
 2. Authenticate to Sentry manually. Never ask the developer to paste credentials into an agent conversation or terminal command.
 3. Open the current dev-ui's actual `https://demo.dev.getsentry.net:<port>/` URL, sync cookies, and confirm the demo organization renders.
 
-The directory persists cookies, extension state, and preferences across restarts. Start this Chrome when the verification endpoint is unavailable; manual intervention should otherwise be needed only when the corporate session expires.
+The directory persists cookies, extension state, and preferences across captures. Close the window after setup so the headless capture helper can use the profile. Manual intervention should otherwise be needed only when the corporate session expires.
 
 ## Verification
 
-Check the local endpoint without reading cookies:
-
-```bash
-curl --fail --silent http://127.0.0.1:9222/json/version
-```
-
-If it is unavailable, launch the dedicated Chrome command again. If dev-ui redirects to login, stop and ask the developer to refresh authentication in that window.
+Run the capture helper normally. If dev-ui redirects to login, stop and ask the developer to refresh authentication in the dedicated window, close it, and retry. If the helper reports that the profile is already in use, ask the developer to close the dedicated window; do not close any browser process automatically.
 
 ## Security boundary
 
-Anyone who can reach CDP can control the authenticated browser. Keep the address on `127.0.0.1`, do not expose or forward port 9222, do not use this profile for unrelated websites, and close Chrome to revoke access. Never inspect or print cookies, unrelated local storage, authorization headers, passwords, or profile files. The capture helper accesses only `feature-flag-overrides` when a plan requests flags and restores its exact prior value.
+Do not use this profile for unrelated websites. Close its visible window after authentication, and delete the profile to remove the saved session. Never inspect or print cookies, unrelated local storage, authorization headers, passwords, or profile files. The capture helper accesses only `feature-flag-overrides` when a plan requests flags and restores its exact prior value.
