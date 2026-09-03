@@ -76,11 +76,9 @@ export function NoProjectMessage({
   return (
     <EmptyState
       flex="1"
-      align="center"
       justify="center"
       gap="3xl"
       padding="lg"
-      direction={{zero: 'column', xl: 'row'}}
       title={t('Remain Calm')}
       description={t('You need at least one project to use this view')}
       illustration={
