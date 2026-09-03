@@ -21,6 +21,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type GroupPriorityDropdownProps = {
@@ -148,12 +149,11 @@ export function GroupPriorityDropdown({
   lastEditedBy,
   disabled = false,
 }: GroupPriorityDropdownProps) {
-  const organization = useOrganization();
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const options: MenuItemProps[] = useMemo(
     () => makeGroupPriorityDropdownOptions({onChange}),
     [onChange]
   );
-  const useCompactButton = organization.features.includes('issue-priority-assignee-ui');
   const tooltip = disabled
     ? t('You cannot manually update the priority of a metric issue.')
     : t('Update the priority of this issue.');
@@ -168,7 +168,7 @@ export function GroupPriorityDropdown({
       }
       minMenuWidth={230}
       trigger={(triggerProps, isOpen) =>
-        useCompactButton ? (
+        shouldUseNewUI ? (
           <Button
             {...triggerProps}
             aria-label={t('Modify issue priority')}

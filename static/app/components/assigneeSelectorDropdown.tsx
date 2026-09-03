@@ -39,6 +39,7 @@ import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useUser} from 'sentry/utils/useUser';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
@@ -120,7 +121,6 @@ interface AssigneeSelectorDropdownProps {
    * the default trigger will be used
    */
   trigger?: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
-  useAvatarButton?: boolean;
 }
 
 function AssigneeAvatar({
@@ -296,9 +296,9 @@ export function AssigneeSelectorDropdown({
   owners,
   sizeLimit = 150,
   trigger,
-  useAvatarButton = false,
   additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const sessionUser = useUser();
 
   const currentMemberList = memberList ?? [];
@@ -559,7 +559,7 @@ export function AssigneeSelectorDropdown({
   };
 
   const makeTrigger = (props: TriggerProps) => {
-    if (useAvatarButton) {
+    if (shouldUseNewUI) {
       const {children: _, ref, ...triggerProps} = props;
       const suggestedActors = getSuggestedAssignees();
       const actor = group.assignedTo ?? suggestedActors[0];
@@ -570,7 +570,7 @@ export function AssigneeSelectorDropdown({
         : suggestedActors[0]?.assignee;
 
       return (
-        <AssigneeAvatarButton
+        <AvatarButton
           {...triggerProps}
           aria-label={t('Modify issue assignee')}
           avatar={
@@ -675,10 +675,6 @@ const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: left;
-`;
-
-const AssigneeAvatarButton = styled(AvatarButton)`
-  display: flex;
 `;
 
 const AssigneeTrigger = styled(OverlayTrigger.Button)`

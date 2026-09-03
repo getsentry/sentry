@@ -16,7 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {selectUsersFromMembers} from 'sentry/utils/members/shared';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 
 interface AssigneeSelectorProps {
@@ -90,7 +90,7 @@ export function AssigneeSelector({
   showLabel = false,
   useOwnerAssignmentDetails = true,
 }: AssigneeSelectorProps) {
-  const organization = useOrganization();
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
   const {data: defaultMemberList = [], isPending: defaultMemberListLoading} = useQuery({
     ...useProjectMembersQueryOptions([group.project.id]),
     select: resp => selectUsersFromMembers(resp.json),
@@ -104,7 +104,6 @@ export function AssigneeSelector({
   const currentAssignmentDetails =
     assignmentDetails ??
     (useOwnerAssignmentDetails ? getOwnerAssignmentDetails(group) : undefined);
-  const useAvatarButton = organization.features.includes('issue-priority-assignee-ui');
 
   return (
     <AssigneeSelectorDropdown
@@ -118,7 +117,7 @@ export function AssigneeSelector({
       }
       onClear={() => handleAssigneeChange(null)}
       trigger={
-        useAvatarButton
+        shouldUseNewUI
           ? undefined
           : (props, isOpen) => (
               <StyledTrigger
@@ -138,7 +137,6 @@ export function AssigneeSelector({
               </StyledTrigger>
             )
       }
-      useAvatarButton={useAvatarButton}
       additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
