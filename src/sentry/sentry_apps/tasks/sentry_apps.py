@@ -915,26 +915,13 @@ def regenerate_service_hooks_for_installation(
         lifecycle.add_extras(
             {"installation_id": installation.id, "sentry_app": installation.sentry_app.id}
         )
-        hooks = hook_service.update_webhook_and_events(
+        hook_service.create_or_update_webhook_and_events_for_installation(
+            installation_id=installation.id,
             organization_id=installation.organization_id,
             application_id=installation.sentry_app.application_id,
             webhook_url=webhook_url,
             events=events,
         )
-        if webhook_url and not hooks:
-            # Note that because the update transaction is disjoint with this transaction, it is still
-            # possible we redundantly create service hooks in the face of two concurrent requests.
-            # If this proves a problem, we would need to add an additional semantic, "only create if does not exist".
-            # But I think, it should be fine.
-            hook_service.create_service_hook(
-                application_id=installation.sentry_app.application_id,
-                actor_id=installation.id,
-                installation_id=installation.id,
-                organization_id=installation.organization_id,
-                project_ids=[],
-                events=events,
-                url=webhook_url,
-            )
 
 
 def _record_metric_alert_sent_analytics(
