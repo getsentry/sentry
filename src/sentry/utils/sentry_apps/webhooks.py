@@ -320,7 +320,8 @@ def send_and_save_webhook_request(
             }
         )
 
-        assert url is not None
+        if not url:
+            return Response()
 
         subject_id, subject_type = extract_webhook_subject(
             app_platform_event.resource, event, app_platform_event.data
