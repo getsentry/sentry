@@ -12,6 +12,7 @@ import {
   IconSentry,
   IconVsts,
 } from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
@@ -207,6 +208,11 @@ export const getIntegrationIcon = (
       return <IconJira size={iconSize} />;
     case 'perforce':
       return <IconPerforce size={iconSize} />;
+    case 'cursor':
+    case 'cursor_origin':
+      // sentry/icons has no monochrome brand glyph for Cursor, so use the real
+      // logo asset rather than falling through to IconGeneric.
+      return <PluginIcon pluginId="cursor" size={iconSize === 'sm' ? 16 : 20} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
     default:
@@ -232,6 +238,10 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
       return 'Jira Server';
     case 'perforce':
       return 'Perforce';
+    case 'cursor':
+      return 'Cursor';
+    case 'cursor_origin':
+      return 'Cursor Origin';
     case 'vsts':
       return 'Azure DevOps';
     default:
