@@ -25,6 +25,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.cell import Cell, get_local_cell
@@ -798,7 +799,7 @@ class OutboxAggregationTest(TestCase):
             sample_rate=1.0,
         )
 
-    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.DEEP_SHARD_LOG_THRESHOLD", 5)
+    @override_options({"hybridcloud.outbox.deep_shard_logging.threshold": 5})
     @patch("sentry.hybridcloud.tasks.deliver_from_outbox.logger")
     def test_deep_shard_log_attributes_dominant_category(self, mock_logger: Mock) -> None:
         # Add a second deep shard (shard_identifier=99, depth 6) with multiple
@@ -844,4 +845,46 @@ class OutboxAggregationTest(TestCase):
         assert (
             deep_shard_calls[99].kwargs["extra"]["category"]
             == OutboxCategory.ORGANIZATION_UPDATE.name
+        )
+
+    @override_options({"hybridcloud.outbox.category_depth_metric.enabled": False})
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_category_shard_depth_gauge_disabled(self, mock_metrics: Mock) -> None:
+        with patch.object(ControlOutbox, "get_category_depths") as mock_depths:
+            schedule_outbox_model(
+                silo_mode=SiloMode.CONTROL,
+                outbox_model=ControlOutbox,
+                drain_task=Mock(),
+            )
+
+        mock_depths.assert_not_called()
+        assert not any(
+            gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.category_shard_depth"
+            for gauge_call in mock_metrics.gauge.mock_calls
+        )
+        # The pre-existing gauges are unaffected by the kill switch.
+        assert any(
+            gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.maximum_shard_depth"
+            for gauge_call in mock_metrics.gauge.mock_calls
+        )
+
+    @override_options(
+        {
+            "hybridcloud.outbox.deep_shard_logging.enabled": False,
+            "hybridcloud.outbox.deep_shard_logging.threshold": 5,
+        }
+    )
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.logger")
+    def test_deep_shard_log_disabled(self, mock_logger: Mock) -> None:
+        with patch.object(ControlOutbox, "get_shard_category_breakdown") as mock_breakdown:
+            schedule_outbox_model(
+                silo_mode=SiloMode.CONTROL,
+                outbox_model=ControlOutbox,
+                drain_task=Mock(),
+            )
+
+        mock_breakdown.assert_not_called()
+        assert not any(
+            warning_call.args and warning_call.args[0] == "deliver_from_outbox.deep_shard"
+            for warning_call in mock_logger.warning.mock_calls
         )

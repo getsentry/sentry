@@ -10,6 +10,7 @@ from django.conf import settings
 from django.db.models import Max, Min
 from taskbroker_client.task import Task
 
+from sentry import options
 from sentry.hybridcloud.models.outbox import (
     CellOutboxBase,
     ControlOutboxBase,
@@ -68,10 +69,6 @@ def enqueue_outbox_jobs(
 # relationship between the id space of shard_identifiers and the amount of unique,
 # non coalesced work.
 CONCURRENCY = 5
-
-# Above this depth, a shard is backed up enough that we log which shard it is,
-# since the maximum_shard_depth metric alone doesn't identify it.
-DEEP_SHARD_LOG_THRESHOLD = 10_000
 
 
 def schedule_batch(
@@ -153,8 +150,32 @@ def schedule_outbox_model(
         sample_rate=1.0,
     )
 
+    if options.get("hybridcloud.outbox.deep_shard_logging.enabled"):
+        _log_deep_shards(outbox_model, deepest_shards, metrics_tags)
+
+    outbox_count = outbox_model.get_total_outbox_count()
+    metrics.gauge(
+        "deliver_from_outbox.total_outbox_count",
+        value=outbox_count,
+        tags=metrics_tags,
+        sample_rate=1.0,
+    )
+
+    if options.get("hybridcloud.outbox.category_depth_metric.enabled"):
+        _record_category_depths(silo_mode, outbox_model)
+    return scheduled_count
+
+
+def _log_deep_shards(
+    outbox_model: type[OutboxBase],
+    deepest_shards: list[dict[str, int | str]],
+    metrics_tags: Mapping[str, str],
+) -> None:
+    # The maximum_shard_depth metric alone doesn't identify which shard is
+    # backed up, so log the sharding columns of any shard over the threshold.
+    threshold = options.get("hybridcloud.outbox.deep_shard_logging.threshold")
     for shard in deepest_shards:
-        if int(shard["depth"]) < DEEP_SHARD_LOG_THRESHOLD:
+        if int(shard["depth"]) < threshold:
             break
         shard_key = {column: shard[column] for column in outbox_model.sharding_columns}
         category_breakdown = outbox_model.get_shard_category_breakdown(shard_key)
@@ -168,14 +189,8 @@ def schedule_outbox_model(
             },
         )
 
-    outbox_count = outbox_model.get_total_outbox_count()
-    metrics.gauge(
-        "deliver_from_outbox.total_outbox_count",
-        value=outbox_count,
-        tags=metrics_tags,
-        sample_rate=1.0,
-    )
 
+def _record_category_depths(silo_mode: SiloMode, outbox_model: type[OutboxBase]) -> None:
     category_depths = outbox_model.get_category_depths()
     for category, depth in category_depths.items():
         metrics.gauge(
@@ -188,7 +203,6 @@ def schedule_outbox_model(
             },
             sample_rate=1.0,
         )
-    return scheduled_count
 
 
 @instrumented_task(
