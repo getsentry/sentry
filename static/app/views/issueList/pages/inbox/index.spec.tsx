@@ -547,6 +547,46 @@ describe('InboxPage', () => {
     expect(suggestedOwnerRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('singularizes the suggested assignee tooltip for one owner', async () => {
+    const suggestedOwner = UserFixture({id: '11', name: 'John Smith'});
+    const groupWithSuggestedOwner = GroupFixture({
+      ...diagnosedGroup,
+      owners: [
+        {
+          type: 'seerSuggested',
+          owner: `user:${suggestedOwner.id}`,
+          date_added: '',
+        },
+      ],
+    });
+    mockSection('issue.progress:fix_proposed is:unresolved assigned_or_suggested:me', []);
+    mockSection('issue.progress:diagnosed is:unresolved assigned_or_suggested:me', [
+      groupWithSuggestedOwner,
+    ]);
+    mockSection(
+      'issue.progress:[assigned,identified] is:unresolved assigned_or_suggested:me',
+      []
+    );
+    mockSection('issue.progress:fix_applied is:unresolved assigned_or_suggested:me', []);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      match: [MockApiClient.matchQuery({query: `user.id:${suggestedOwner.id}`})],
+      body: [MemberFixture({id: suggestedOwner.id, user: suggestedOwner})],
+    });
+    mockIssuePreview({group: groupWithSuggestedOwner});
+
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
+
+    const issueCard = await screen.findByRole('link', {name: /Diagnosed issue/});
+    const suggestedAvatarStack = await within(issueCard).findByTestId(
+      'suggested-avatar-stack'
+    );
+    await userEvent.hover(within(suggestedAvatarStack).getByText('JS'));
+    expect(
+      await screen.findByText('Suggested assignee: John Smith')
+    ).toBeInTheDocument();
+  });
+
   it('prefixes assigned team names in tooltips', async () => {
     const assignedTeam = TeamFixture({id: '13', name: 'frontend', slug: 'frontend'});
     const teamAssignedGroup = GroupFixture({
