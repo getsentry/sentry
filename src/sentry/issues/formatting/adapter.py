@@ -111,6 +111,77 @@ def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
     ]
 
 
+# ``MetricIssue.type_id``, inlined: sentry.incidents.grouptype pulls in sentry.features, the
+# alert rule models and a wildcard condition import, and this module is otherwise free of
+# Django so it stays cheap to import and to test.
+_METRIC_ISSUE_TYPE = 8001
+
+# ``Condition`` values (sentry.workflow_engine.models.data_condition), inlined for the same
+# reason. Only the comparison operators appear on a detector trigger; anything else falls
+# through to the bare comparison below.
+_COMPARISON_LABELS = {
+    "gt": "above",
+    "gte": "at or above",
+    "lt": "below",
+    "lte": "at or below",
+}
+
+
+def _metric_alert_threshold(conditions: Any) -> str | None:
+    """The triggered condition(s), as "above 500"."""
+    if not isinstance(conditions, list):
+        return None
+    parts: list[str] = []
+    for condition in conditions:
+        if not isinstance(condition, dict):
+            continue
+        comparison = condition.get("comparison")
+        if comparison is None:
+            continue
+        condition_type = condition.get("type")
+        label = _COMPARISON_LABELS.get(condition_type) if isinstance(condition_type, str) else None
+        parts.append(f"{label} {comparison}" if label else str(comparison))
+    return ", ".join(parts) or None
+
+
+def _metric_alert(data: Mapping[str, Any]) -> list[tuple[str, str]]:
+    """The alert definition behind a metric issue.
+
+    ``evidenceDisplay`` only summarises the metric by name, so without this a metric issue
+    renders none of the query it fired on. The detector stores ``evidence_data`` snake_cased,
+    but ``EventSerializer`` camelCases the whole occurrence recursively on the way out, so what
+    arrives here is ``dataSources[].queryObj.snubaQuery`` and ``alertId``.
+    """
+    occurrence = data.get("occurrence") or {}
+    if occurrence.get("type") != _METRIC_ISSUE_TYPE:
+        return []
+    evidence = occurrence.get("evidenceData") or {}
+
+    snuba_query: Mapping[str, Any] = {}
+    for source in evidence.get("dataSources") or []:
+        query = (source or {}).get("queryObj") or {}
+        if isinstance(query.get("snubaQuery"), dict):
+            snuba_query = query["snubaQuery"]
+            break
+
+    time_window = snuba_query.get("timeWindow")
+    value = evidence.get("value")
+    if isinstance(value, dict):  # anomaly detection stores {"value": ...}
+        value = value.get("value")
+
+    candidates = [
+        ("Dataset", snuba_query.get("dataset")),
+        ("Aggregate", snuba_query.get("aggregate")),
+        ("Query", snuba_query.get("query")),
+        ("Interval", f"{time_window} second(s)" if time_window is not None else None),
+        ("Environment", snuba_query.get("environment")),
+        ("Evaluated Value", value),
+        ("Threshold", _metric_alert_threshold(evidence.get("conditions"))),
+        ("Alert Rule ID", evidence.get("alertId")),
+    ]
+    return [(label, str(v)) for label, v in candidates if v is not None and str(v) != ""]
+
+
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     entries = _entries_by_type(data)
     tags, transaction_name = _tags(data)
@@ -146,4 +217,5 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         user=UserDetails.parse_obj(user) if user else None,
         spans=[EvidenceSpan.parse_obj(s) for s in entries.get("spans") or []],
         evidence=_evidence(data),
+        metric_alert=_metric_alert(data),
     )

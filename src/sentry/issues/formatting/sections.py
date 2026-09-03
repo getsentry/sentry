@@ -287,6 +287,14 @@ def spans_section(model: EventObject, limits: Limits) -> Section | None:
     )
 
 
+def metric_alert_section(model: EventObject, limits: Limits) -> Section | None:
+    # the query a metric issue fired on; evidence_section only names the metric
+    if not model.metric_alert:
+        return None
+    items = tuple(Field(label, value) for label, value in model.metric_alert)
+    return Section(title="Metric Alert Details", groups=(Group(items=items),))
+
+
 def evidence_section(model: EventObject, limits: Limits) -> Section | None:
     if not model.evidence:
         return None
@@ -330,6 +338,7 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     csp_section,
     threads_section,
     spans_section,
+    metric_alert_section,
     evidence_section,
     breadcrumbs_section,
     request_section,
