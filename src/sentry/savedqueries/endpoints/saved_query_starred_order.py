@@ -13,6 +13,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.savedqueries import starred as starred_queries
+from sentry.savedqueries.types import SavedQueryRef, SavedQueryType
 
 
 class MemberPermission(OrganizationPermission):
@@ -22,9 +23,7 @@ class MemberPermission(OrganizationPermission):
 
 
 class SavedQueryRefSerializer(serializers.Serializer[dict[str, Any]]):
-    type = serializers.ChoiceField(
-        choices=[query_type.value for query_type in starred_queries.SavedQueryType]
-    )
+    type = serializers.ChoiceField(choices=[query_type.value for query_type in SavedQueryType])
     id = serializers.IntegerField()
 
 
@@ -76,9 +75,7 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         refs = [
-            starred_queries.SavedQueryRef(
-                starred_queries.SavedQueryType(query["type"]), query["id"]
-            )
+            SavedQueryRef(SavedQueryType(query["type"]), query["id"])
             for query in serializer.validated_data["queries"]
         ]
 
