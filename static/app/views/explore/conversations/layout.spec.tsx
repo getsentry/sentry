@@ -49,6 +49,7 @@ describe('ConversationsLayout', () => {
     expect(
       await within(topBar).findByText(CONVERSATIONS_LANDING_TITLE)
     ).toBeInTheDocument();
+    expect(within(topBar).getByLabelText('new')).toBeInTheDocument();
   });
 
   it('renders saved query breadcrumbs on the list page', async () => {
@@ -82,7 +83,7 @@ describe('ConversationsLayout', () => {
     ).toBeInTheDocument();
     // The saved query title is the page heading, owned by the TopBar title slot.
     expect(
-      within(topBar).getByRole('heading', {name: 'My saved query'})
+      within(topBar).getByRole('heading', {name: /My saved query/})
     ).toBeInTheDocument();
   });
 

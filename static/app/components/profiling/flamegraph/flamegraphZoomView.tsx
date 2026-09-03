@@ -1,8 +1,8 @@
-import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -830,8 +830,8 @@ function FlamegraphZoomView({
 }
 
 const Canvas = styled('canvas')<{
-  cursor?: CSSProperties['cursor'];
-  pointerEvents?: CSSProperties['pointerEvents'];
+  cursor?: CSS['cursor'];
+  pointerEvents?: CSS['pointerEvents'];
 }>`
   left: 0;
   top: 0;

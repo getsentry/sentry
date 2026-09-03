@@ -331,6 +331,10 @@ from sentry.investigations.endpoints.organization_investigation_favorite import 
 from sentry.investigations.endpoints.organization_investigation_index import (
     OrganizationInvestigationsIndexEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_orchestration import (
+    OrganizationInvestigationOrchestrationCommandsEndpoint,
+    OrganizationInvestigationOrchestrationEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_parameters import (
     OrganizationInvestigationParametersEndpoint,
 )
@@ -937,8 +941,12 @@ __all__ = ("urlpatterns",)
 
 # NOTE: Start adding to ISSUES_URLS instead of here because (?:issues|groups)
 # cannot be reversed and we prefer to always use issues instead of groups
-def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
-    return [
+def create_group_urls(
+    name_prefix: str, is_legacy_path: bool = False
+) -> list[URLPattern | URLResolver]:
+    # Served on both the org-scoped path and the legacy unprefixed `/issues/` path.
+    # New routes should be added to the org-scoped path only.
+    shared: list[URLPattern | URLResolver] = [
         re_path(
             r"^(?P<issue_id>[^/]+)/$",
             GroupDetailsEndpoint.as_view(),
@@ -1060,16 +1068,24 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-autofix-repos",
         ),
         re_path(
-            r"^(?P<issue_id>[^/]+)/summarize/$",
-            GroupAiSummaryEndpoint.as_view(),
-            name=f"{name_prefix}-group-ai-summary",
-        ),
-        re_path(
             r"^(?P<issue_id>[^/]+)/related-issues/$",
             RelatedIssuesEndpoint.as_view(),
             name=f"{name_prefix}-related-issues",
         ),
     ]
+
+    # Served only under `/organizations/{org}/issues/`.
+    org_scoped_only: list[URLPattern | URLResolver] = [
+        re_path(
+            r"^(?P<issue_id>[^/]+)/summarize/$",
+            GroupAiSummaryEndpoint.as_view(),
+            name=f"{name_prefix}-group-ai-summary",
+        ),
+    ]
+
+    if is_legacy_path:
+        return shared
+    return shared + org_scoped_only
 
 
 AUTH_URLS = [
@@ -2467,6 +2483,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-details",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/orchestration/$",
+        OrganizationInvestigationOrchestrationEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-orchestration",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/orchestration/commands/$",
+        OrganizationInvestigationOrchestrationCommandsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-orchestration-commands",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/$",
         OrganizationInvestigationBlocksEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-blocks",
@@ -3830,7 +3856,7 @@ urlpatterns = [
     # Groups / Issues
     re_path(
         r"^(?:issues|groups)/",
-        include(create_group_urls("sentry-api-0")),
+        include(create_group_urls("sentry-api-0", is_legacy_path=True)),
     ),
     # Organizations
     re_path(

@@ -1,5 +1,7 @@
 import {mergeProps} from '@react-aria/utils';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import type {Orientation} from './dragHandle';
 import {useDragMove} from './useDragMove';
 
@@ -10,7 +12,7 @@ function getDragSeparatorCursor(
   atMin: boolean,
   atMax: boolean,
   isSizedFirst: boolean
-): React.CSSProperties['cursor'] {
+): CSS['cursor'] {
   if (orientation === 'horizontal') {
     if (atMin) {
       return isSizedFirst ? 'e-resize' : 'w-resize';

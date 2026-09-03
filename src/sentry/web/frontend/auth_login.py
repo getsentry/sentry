@@ -592,7 +592,6 @@ class AuthLoginView(BaseView, ReactMixin):
             "join_request_link": self.get_join_request_link(
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
-            "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
         }
