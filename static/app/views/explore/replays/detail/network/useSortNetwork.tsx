@@ -19,23 +19,24 @@ const SortStrategies: Record<string, (row: any) => any> = {
   startTimestamp: row => row.startTimestamp,
 };
 
+const sortAscParser = parseAsBoolean
+  .withDefault(true)
+  .withOptions({history: 'push', throttleMs: 0});
+
+const sortByParser = parseAsStringLiteral(Object.keys(SortStrategies))
+  .withDefault('startTimestamp')
+  .withOptions({history: 'push', throttleMs: 0});
+
+const detailRowParser = parseAsString
+  .withDefault('')
+  .withOptions({history: 'push', throttleMs: 0});
+
 type Opts = {items: SpanFrame[]};
 
 export function useSortNetwork({items}: Opts) {
-  const [sortAsc, setSortAsc] = useQueryState(
-    's_n_asc',
-    parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})
-  );
-  const [sortBy, setSortBy] = useQueryState(
-    's_n_by',
-    parseAsStringLiteral(Object.keys(SortStrategies))
-      .withDefault('startTimestamp')
-      .withOptions({history: 'push', throttleMs: 0})
-  );
-  const [, setDetailRow] = useQueryState(
-    'n_detail_row',
-    parseAsString.withDefault('').withOptions({history: 'push', throttleMs: 0})
-  );
+  const [sortAsc, setSortAsc] = useQueryState('s_n_asc', sortAscParser);
+  const [sortBy, setSortBy] = useQueryState('s_n_by', sortByParser);
+  const [, setDetailRow] = useQueryState('n_detail_row', detailRowParser);
 
   const sortConfig = useMemo(
     () =>
