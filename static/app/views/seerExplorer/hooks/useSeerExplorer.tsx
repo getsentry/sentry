@@ -441,7 +441,7 @@ export const useSeerExplorer = () => {
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
-    (newRunId: SeerExplorerRunId | null, {onSuccess}: {onSuccess?: () => void} = {}) => {
+    (newRunId: SeerExplorerRunId | null) => {
       if (newRunId === runId) {
         return;
       }
@@ -457,19 +457,14 @@ export const useSeerExplorer = () => {
           queryKey: makeSeerExplorerQueryKey(orgSlug, newRunId),
         });
       }
-
-      onSuccess?.();
     },
     [orgSlug, queryClient, runId, dispatch]
   );
 
   /** Resets the hook state. The session isn't actually created until the user sends a message. */
-  const startNewSession = useCallback(
-    ({onSuccess}: {onSuccess?: () => void} = {}) => {
-      switchToRun(null, {onSuccess});
-    },
-    [switchToRun]
-  );
+  const startNewSession = useCallback(() => {
+    switchToRun(null);
+  }, [switchToRun]);
 
   const sendMessage = useCallback(
     (

@@ -19,7 +19,6 @@ interface BlockProps {
   blocks?: Block[];
   getPageReferrer?: () => string;
   interactionPending?: boolean;
-  onClick?: () => void;
   pendingInput?: PendingUserInput | null;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
@@ -28,7 +27,7 @@ interface BlockProps {
   showThinking?: boolean;
 }
 
-export function BlockComponent({onClick, ref, ...props}: BlockProps) {
+export function BlockComponent({ref, ...props}: BlockProps) {
   return (
     <Container
       width="100%"
@@ -36,7 +35,6 @@ export function BlockComponent({onClick, ref, ...props}: BlockProps) {
       flexShrink={0}
       data-block-wrapper=""
       ref={ref}
-      onClick={onClick}
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         <BlockVariant {...props} />
@@ -45,7 +43,7 @@ export function BlockComponent({onClick, ref, ...props}: BlockProps) {
   );
 }
 
-function BlockVariant(props: Omit<BlockProps, 'onClick' | 'ref'>) {
+function BlockVariant(props: Omit<BlockProps, 'ref'>) {
   const {block} = props;
 
   switch (block.message.role) {
