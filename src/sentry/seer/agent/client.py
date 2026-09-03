@@ -354,14 +354,6 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        # PR context tools back both the automated CI and the manual iteration flows,
-        # so either flag grants them.
-        if enable_pr_context_tools and not (
-            features.has("organizations:autofix-pr-iteration", organization, actor=user)
-            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
-        ):
-            raise SeerPermissionError("PR context tools are not enabled for this organization")
-
         self.enable_pr_context_tools = enable_pr_context_tools
 
         self.viewer_context = self._build_viewer_context()

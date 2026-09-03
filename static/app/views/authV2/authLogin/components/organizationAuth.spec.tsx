@@ -29,17 +29,20 @@ describe('OrganizationAuth', () => {
     render(<OrganizationAuth authOrganization={authOrganization} onClear={onClear} />);
 
     expect(screen.getByText('Acme')).toBeInTheDocument();
-    expect(screen.getByText('Requires').parentElement).toHaveTextContent(
-      'Requires sign in with SAML'
-    );
+    expect(screen.getByText('Members log in with SAML')).toBeInTheDocument();
     const ssoButton = screen.getByRole('button', {name: 'SSO'});
+    const ssoForm = ssoButton.closest('form')!;
     expect(ssoButton).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Request to join'})).toHaveAttribute(
       'href',
       '/join-request/acme/'
     );
-    expect(ssoButton.closest('form')).toHaveAttribute('method', 'POST');
-    expect(ssoButton.closest('form')).toHaveFormValues({init: '1'});
+    expect(ssoForm).toHaveAttribute('method', 'POST');
+    expect(ssoForm).toHaveFormValues({init: '1'});
+
+    ssoForm.addEventListener('submit', event => event.preventDefault());
+    await userEvent.click(ssoButton);
+    expect(ssoButton).toHaveAttribute('aria-busy', 'true');
 
     const clearButton = screen.getByRole('button', {
       name: 'Clear organization login context',
@@ -82,17 +85,5 @@ describe('OrganizationAuth', () => {
     expect(
       screen.queryByRole('button', {name: 'Request to join'})
     ).not.toBeInTheDocument();
-  });
-
-  it('describes optional SSO for members', () => {
-    render(
-      <OrganizationAuth
-        authOrganization={{...authOrganization, ssoRequired: false}}
-        onClear={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText('Members sign in with SAML')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'SSO'})).toBeEnabled();
   });
 });

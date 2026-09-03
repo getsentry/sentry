@@ -14,6 +14,7 @@ interface InteractiveIllustrationProps {
 }
 
 interface TrailBubble {
+  center: Point;
   driftX: number;
   driftY: number;
   duration: number;
@@ -159,8 +160,8 @@ function InteractiveIllustrationContent({
     function appendBubble(bubble: TrailBubble, now: number) {
       const element = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       element.setAttribute('d', bubble.path);
-      element.style.opacity = '0.95';
-      element.style.transform = 'translate(0, 0) rotate(0deg) scale(0.7)';
+      element.setAttribute('opacity', '0.95');
+      element.setAttribute('transform', getBubbleTransform(bubble.center, 0, 0, 0, 0.7));
       animationPaths.appendChild(element);
       activeBubbles.push({...bubble, element, startedAt: now});
     }
@@ -220,8 +221,11 @@ function InteractiveIllustrationContent({
         const translateX = bubble.driftX * easedProgress;
         const translateY = bubble.driftY * easedProgress;
         const rotation = bubble.rotation * easedProgress;
-        bubble.element.style.opacity = String(opacity);
-        bubble.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotation}deg) scale(${scale})`;
+        bubble.element.setAttribute('opacity', String(opacity));
+        bubble.element.setAttribute(
+          'transform',
+          getBubbleTransform(bubble.center, translateX, translateY, rotation, scale)
+        );
 
         return true;
       });
@@ -307,7 +311,7 @@ function InteractiveIllustrationContent({
       >
         <MaskDefinitions aria-hidden="true">
           <defs>
-            <BubblePaths id={bubblePathsId} ref={bubblePaths} />
+            <g id={bubblePathsId} ref={bubblePaths} />
             <mask
               id={bubbleRevealMaskId}
               x="0"
@@ -519,6 +523,7 @@ function createTrailBubble(
   const driftDistance = 10 + ((id * 5) % 22);
 
   return {
+    center: jitteredPoint,
     driftX: Math.cos(driftAngle) * driftDistance,
     driftY: Math.sin(driftAngle) * driftDistance,
     duration: 1.5 + ((id * 11) % 90) / 100 + speedFactor * 0.35,
@@ -526,6 +531,22 @@ function createTrailBubble(
     path: makeOrganicBubblePath(jitteredPoint, width, height, id, direction),
     rotation: ((id * 47) % 41) - 20,
   };
+}
+
+function getBubbleTransform(
+  center: Point,
+  translateX: number,
+  translateY: number,
+  rotation: number,
+  scale: number
+) {
+  const radians = (rotation * Math.PI) / 180;
+  const cosine = Math.cos(radians) * scale;
+  const sine = Math.sin(radians) * scale;
+  const offsetX = center.x + translateX - cosine * center.x + sine * center.y;
+  const offsetY = center.y + translateY - sine * center.x - cosine * center.y;
+
+  return `matrix(${cosine} ${sine} ${-sine} ${cosine} ${offsetX} ${offsetY})`;
 }
 
 function getSpeedFactor(velocity: number) {
@@ -628,14 +649,6 @@ const MaskDefinitions = styled('svg')`
   width: 100%;
   height: 100%;
   pointer-events: none;
-`;
-
-const BubblePaths = styled('g')`
-  path {
-    transform-box: fill-box;
-    transform-origin: center;
-    will-change: transform, opacity;
-  }
 `;
 
 const BubbleMaskLayer = styled('div')<{$maskId: string}>`

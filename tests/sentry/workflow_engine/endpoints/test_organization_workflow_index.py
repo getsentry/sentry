@@ -1536,6 +1536,105 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow", enabled=False
         )
 
+    def test_team_admin_can_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.workflow.id)},
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+    def test_team_contributor_cannot_update_project_scoped_workflow(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_contributor = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "contributor")],
+            user=team_contributor,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_contributor)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.workflow.id)},
+            raw_data={"enabled": True},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is False
+
+    def test_team_admin_project_filter_excludes_detached_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": str(self.project.id)},
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        self.workflow_three.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert self.workflow_two.enabled is False
+        assert self.workflow_three.enabled is False
+
+    def test_team_admin_cannot_partially_update_mixed_scope_workflows(self) -> None:
+        detector = self.create_detector(project=self.project)
+        self.create_detector_workflow(workflow=self.workflow, detector=detector)
+        team_admin = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin,
+            role="member",
+            organization=self.organization,
+        )
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.workflow.id)),
+                ("id", str(self.workflow_two.id)),
+            ],
+            raw_data={"enabled": True},
+            status_code=403,
+        )
+
+        self.workflow.refresh_from_db()
+        self.workflow_two.refresh_from_db()
+        assert self.workflow.enabled is False
+        assert self.workflow_two.enabled is False
+
     def test_bulk_enable_workflows_by_ids_success(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
@@ -2143,6 +2242,24 @@ class OrganizationWorkflowPutProjectAccessTest(
         # Verify the workflow WAS modified
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.enabled is True
+
+    def test_put_cannot_partially_modify_accessible_and_inaccessible_workflows(self) -> None:
+        self.login_as(self.limited_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.user_workflow.id)),
+                ("id", str(self.other_workflow.id)),
+            ],
+            raw_data={"enabled": True},
+            status_code=403,
+        )
+
+        self.user_workflow.refresh_from_db()
+        self.other_workflow.refresh_from_db()
+        assert self.user_workflow.enabled is False
+        assert self.other_workflow.enabled is False
 
     def test_put_cannot_modify_mixed_all_projects_workflow_without_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)

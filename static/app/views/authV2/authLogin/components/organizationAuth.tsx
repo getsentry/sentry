@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -25,9 +26,10 @@ export function OrganizationAuth({
   hideClearButton = false,
   onClear,
 }: OrganizationAuthProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const theme = useTheme();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-  const {organization, provider, joinRequestUrl, ssoRequired} = authOrganization;
+  const {organization, provider, joinRequestUrl} = authOrganization;
   const avatarProps = organization.avatarUrl
     ? ({
         type: 'upload',
@@ -41,20 +43,10 @@ export function OrganizationAuth({
         name: organization.name,
       } as const);
   const description = provider
-    ? ssoRequired
-      ? tct('[requires:Requires] sign in with [icon] [provider]', {
-          requires: (
-            <Text as="span" bold>
-              {null}
-            </Text>
-          ),
-          icon: <InlineIdentityIcon providerId={provider.key} />,
-          provider: provider.name,
-        })
-      : tct('Members sign in with [icon] [provider]', {
-          icon: <InlineIdentityIcon providerId={provider.key} />,
-          provider: provider.name,
-        })
+    ? tct('Members log in with [icon] [provider]', {
+        icon: <InlineIdentityIcon providerId={provider.key} />,
+        provider: provider.name,
+      })
     : t('Members sign in with email and password');
   const orgBadge = (
     <Flex align="center" gap="md" flex="1" minWidth="0">
@@ -70,7 +62,7 @@ export function OrganizationAuth({
     </Flex>
   );
   const ssoAction = (
-    <form method="POST">
+    <form method="POST" onSubmit={() => setIsSubmitting(true)}>
       <input type="hidden" name="csrfmiddlewaretoken" value={getCsrfToken()} />
       <input type="hidden" name="init" value="1" />
       <Tooltip
@@ -78,6 +70,7 @@ export function OrganizationAuth({
         title={t('This organization does not have Single Sign-On configured')}
       >
         <Button
+          busy={isSubmitting}
           disabled={!provider}
           type="submit"
           variant={provider ? 'primary' : undefined}
