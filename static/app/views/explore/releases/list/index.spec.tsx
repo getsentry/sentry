@@ -633,6 +633,17 @@ describe('ReleasesList', () => {
     expect(router.location.query.query).toBeFalsy();
   });
 
+  it('recognizes installable as a boolean filter without fetched attributes', async () => {
+    renderMobileBuildsTab({
+      display: 'distribution',
+      query: 'installable:true',
+    });
+
+    expect(
+      await screen.findByRole('row', {name: 'installable:true'})
+    ).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
   it('shows the Download CSV button on the distribution display', async () => {
     renderMobileBuildsTab({display: 'distribution'});
     expect(await screen.findByRole('button', {name: 'Download CSV'})).toBeInTheDocument();
