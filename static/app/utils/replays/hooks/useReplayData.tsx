@@ -10,6 +10,7 @@ import {
 
 import {getBootstrapProjectsQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -40,8 +41,8 @@ export function replayRecordApiOptions({
   );
 }
 
-function selectReplayRecord(data: {data: unknown} | undefined) {
-  return data?.data ? mapResponseToReplayRecord(data.data) : undefined;
+function selectReplayRecord(data: ApiResponse<{data: unknown}>) {
+  return data.json.data ? mapResponseToReplayRecord(data.json.data) : undefined;
 }
 
 export function replayAttachmentsApiOptions({
