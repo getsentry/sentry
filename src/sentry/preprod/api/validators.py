@@ -4,7 +4,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.preprod.build_distribution_utils import parse_build_number
+from sentry.preprod.build_distribution_utils import ParsedBuildNumber
 
 
 class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
@@ -43,10 +43,10 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
             return value.lower()
         return value
 
-    def validate_buildNumber(self, value: str | None) -> int | None:
+    def validate_buildNumber(self, value: str | None) -> ParsedBuildNumber | None:
         if value is None or value == "":
             return None
-        parsed = parse_build_number(value)
+        parsed = ParsedBuildNumber.parse(value)
         if parsed is None:
             raise serializers.ValidationError(
                 "buildNumber must be an integer or two or more period-separated "
