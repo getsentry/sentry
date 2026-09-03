@@ -458,6 +458,8 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
       'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
+      'Inline: renders a compact link. Block: renders the live trace waterfall. ' +
+      'Do not duplicate the waterfall spans or duration details as text. ' +
       'Never use a markdown link for trace references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -467,7 +469,8 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Trace',
+        label: 'Trace waterfall',
+        level: 'block',
         data: {
           traceId: 'a1b2c3d4e5f678901234567890abcdef',
           timestamp: '2026-08-25T16:37:12Z',
@@ -580,9 +583,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   spansQuery: {
     description:
-      'Link to an Explore > Traces (spans) query. ' +
-      'Use mode "samples" to show individual spans and "aggregate" to group and ' +
-      'chart them. In aggregate mode supply `groupBy` and `yAxes`. ' +
+      'Preview an Explore > Traces (spans) query. ' +
+      'Use mode "samples" for individual spans; inline renders a link and block ' +
+      'renders the first five matching rows. ' +
+      'Use mode "aggregate" for grouped results; supply `groupBy` and `yAxes`, and ' +
+      'the block renders the first five grouped rows. ' +
       '`query` uses span search syntax, e.g. "span.op:http.client".',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
@@ -592,8 +597,10 @@ export const SEER_EMBED_SCHEMAS = {
         data: {
           query: 'span.op:http.client',
           mode: 'samples',
+          fields: ['span.description', 'span.op', 'span.duration', 'timestamp'],
           sort: '-span.duration',
           statsPeriod: '24h',
+          title: 'Slow HTTP spans',
         },
       },
       {
@@ -603,7 +610,9 @@ export const SEER_EMBED_SCHEMAS = {
           mode: 'aggregate',
           groupBy: ['span.op'],
           yAxes: ['p95(span.duration)'],
+          sort: '-p95_span_duration',
           statsPeriod: '7d',
+          title: 'p95 by span op',
         },
       },
     ],

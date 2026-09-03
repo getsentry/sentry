@@ -15,6 +15,7 @@ import {EmbedStory} from './__stories__/embedStory';
 import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
 import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
+import {TraceEmbedStory} from './__stories__/traceEmbedStory';
 
 `<SeerMarkdown>` wraps the core [`<Markdown>`](/scraps/core/markdown/) component with Seer-specific overrides: issue short ID linkification, origin-relative links, flattened headings, and an **embed system** that renders structured widgets inline from tag syntax.
 
@@ -104,7 +105,7 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 ### trace
 
-<EmbedStory name="trace" />
+<TraceEmbedStory />
 
 ### profile
 
