@@ -1178,3 +1178,37 @@ class E:
 """)
         == []
     )
+
+
+def test_S023_chained_meta_fields_assignment_is_enumerated() -> None:
+    assert (
+        _omit("""\
+@sentry_schema_serializer(omit_from_public_schema={"modelfield": "a stated reason"})
+class S(serializers.Serializer):
+    class Meta:
+        default_fields = fields = ["modelfield"]
+""")
+        == []
+    )
+
+
+def test_S023_chained_meta_fields_all_skips_existence_check() -> None:
+    assert (
+        _omit("""\
+@sentry_schema_serializer(omit_from_public_schema={"whatever": "a stated reason"})
+class S(serializers.Serializer):
+    class Meta:
+        default_fields = fields = "__all__"
+""")
+        == []
+    )
+
+
+def test_S023_meta_assignment_without_fields_target_is_ignored() -> None:
+    assert _omit("""\
+@sentry_schema_serializer(omit_from_public_schema={"nope": "a stated reason"})
+class S(serializers.Serializer):
+    class Meta:
+        model = something
+        exclude = ["nope"]
+""") == ["1:S023"]

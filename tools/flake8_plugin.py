@@ -458,24 +458,20 @@ def _class_field_names(cls: ast.ClassDef, classes: dict[str, ast.ClassDef]) -> s
                 names.add(stmt.target.id)
             elif isinstance(stmt, ast.ClassDef) and stmt.name == "Meta":
                 for m in stmt.body:
-                    if (
-                        isinstance(m, ast.Assign)
-                        and isinstance(m.targets[0], ast.Name)
-                        and m.targets[0].id == "fields"
-                        and isinstance(m.value, (ast.List, ast.Tuple))
-                    ):
+                    if not isinstance(m, ast.Assign):
+                        continue
+                    # Every target, so a chained `x = fields = [...]` still counts.
+                    if not any(isinstance(t, ast.Name) and t.id == "fields" for t in m.targets):
+                        continue
+                    if isinstance(m.value, (ast.List, ast.Tuple)):
                         names.update(
                             e.value
                             for e in m.value.elts
                             if isinstance(e, ast.Constant) and isinstance(e.value, str)
                         )
-                    elif (
-                        isinstance(m, ast.Assign)
-                        and isinstance(m.targets[0], ast.Name)
-                        and m.targets[0].id == "fields"
-                    ):
-                        # Meta.fields = "__all__" (or any non-literal): the field set
-                        # comes from the model, so we cannot enumerate it
+                    else:
+                        # `fields = "__all__"` or any non-literal: the field set comes
+                        # from the model, so it cannot be enumerated here.
                         names.add("*")
         for base in node.bases:
             bn = _base_name(base)
