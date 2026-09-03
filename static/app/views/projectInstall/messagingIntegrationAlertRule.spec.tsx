@@ -162,10 +162,11 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
     await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
-      channelName: 'alerts',
       label: '#alerts (2)',
       value: '2',
       new: false,
+      channelId: '2',
+      channelName: '#alerts',
     });
   });
 
@@ -355,7 +356,7 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(mockSetIntegration).toHaveBeenCalledWith(slackIntegrations[1]);
   });
 
-  it('keeps the channel name when selecting a Microsoft Teams channel', async () => {
+  it('keys Microsoft Teams channels by id and keeps the name for the action', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
       body: {
@@ -382,10 +383,11 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
     await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
-      channelName: 'alerts',
       label: '#alerts (2)',
       value: '2',
       new: false,
+      channelId: '2',
+      channelName: '#alerts',
     });
   });
 });

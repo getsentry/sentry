@@ -1,3 +1,4 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -144,6 +145,101 @@ describe('CreateProject', () => {
     );
 
     return {organization, routeAnalytics};
+  }
+
+  /**
+   * Mocks the requests made when a project is created with a messaging
+   * integration selected, up to the workflow request each test controls.
+   */
+  function mockMessagingProjectCreation({
+    provider,
+    channels,
+  }: {
+    channels: Array<{display: string; id: string; name: string; type: string}>;
+    provider: {key: string; name: string};
+  }) {
+    const {organization} = initializeOrg({
+      organization: {
+        access: ['project:read'],
+        features: ['team-roles'],
+        allowMemberProjectCreation: true,
+      },
+    });
+
+    const messagingIntegration = OrganizationIntegrationsFixture({
+      id: '338731',
+      name: "Moo Deng's Workspace",
+      provider: {
+        key: provider.key,
+        slug: provider.key,
+        name: provider.name,
+        canAdd: true,
+        canDisable: false,
+        features: ['alert-rule', 'chat-unfurl'],
+        aspects: {
+          alerts: [],
+        },
+      },
+    });
+
+    TeamStore.loadUserTeams([teamWithAccess]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [TeamFixture({slug: teamWithAccess.slug})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [messagingIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${messagingIntegration.id}/channels/`,
+      body: {results: channels},
+    });
+
+    const projectCreationMockRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: {id: '1', slug: 'testProj', name: 'Test Project'},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: '1'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [
+        {
+          id: '1',
+          slug: 'testProj',
+          name: 'Test Project',
+        },
+      ],
+    });
+
+    return {organization, messagingIntegration, projectCreationMockRequest};
+  }
+
+  async function createProjectWithChannel(channelLabel: string | RegExp) {
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByText(/When there are more than/));
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: /Notify via integration/,
+      })
+    );
+    await selectEvent.select(screen.getByLabelText('channel'), channelLabel);
+    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
   }
 
   it('sets page-view origin to org_creation from the org-create seed param', () => {
@@ -683,71 +779,16 @@ describe('CreateProject', () => {
   });
 
   it('should rollback project when rule creation fails', async () => {
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:read'],
-        features: ['team-roles'],
-        allowMemberProjectCreation: true,
-      },
-    });
-
-    const discordIntegration = OrganizationIntegrationsFixture({
-      id: '338731',
-      name: "Moo Deng's Server",
-      provider: {
-        key: 'discord',
-        slug: 'discord',
-        name: 'Discord',
-        canAdd: true,
-        canDisable: false,
-        features: ['alert-rule', 'chat-unfurl'],
-        aspects: {
-          alerts: [],
+    const {organization, projectCreationMockRequest} = mockMessagingProjectCreation({
+      provider: {key: 'discord', name: 'Discord'},
+      channels: [
+        {
+          id: '1437461639900303454',
+          name: 'general',
+          display: '#general',
+          type: 'text',
         },
-      },
-    });
-
-    TeamStore.loadUserTeams([teamWithAccess]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/teams/`,
-      body: [TeamFixture({slug: teamWithAccess.slug})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      body: organization,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      body: [discordIntegration],
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${discordIntegration.id}/channels/`,
-      body: {
-        results: [
-          {
-            id: '1437461639900303454',
-            name: 'general',
-            display: '#general',
-            type: 'text',
-          },
-        ],
-      },
-    });
-
-    const projectCreationMockRequest = MockApiClient.addMockResponse({
-      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
-      method: 'POST',
-      body: {id: '1', slug: 'testProj', name: 'Test Project'},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/detectors/`,
-      body: [IssueStreamDetectorFixture({projectId: '1'})],
+      ],
     });
 
     const ruleCreationMockRequest = MockApiClient.addMockResponse({
@@ -772,28 +813,9 @@ describe('CreateProject', () => {
       method: 'DELETE',
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [
-        {
-          id: '1',
-          slug: 'testProj',
-          name: 'Test Project',
-        },
-      ],
-    });
-
     render(<CreateProject />, {organization});
 
-    await userEvent.click(screen.getByTestId('platform-apple-ios'));
-    await userEvent.click(screen.getByText(/When there are more than/));
-    await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: /Notify via integration/,
-      })
-    );
-    await selectEvent.select(screen.getByLabelText('channel'), /#general/);
-    await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+    await createProjectWithChannel(/#general/);
     await waitFor(() => {
       expect(projectCreationMockRequest).toHaveBeenCalledTimes(1);
     });
@@ -809,6 +831,54 @@ describe('CreateProject', () => {
     ).toBeInTheDocument();
     expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
     expect(addErrorMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('targets an MS Teams channel picked from the list by its name', async () => {
+    // The picker keys Teams channels by id, but the backend resolves a Teams
+    // channel by name only, so the workflow must carry the name.
+    const {organization, messagingIntegration} = mockMessagingProjectCreation({
+      provider: {key: 'msteams', name: 'MS Teams'},
+      channels: [
+        {
+          id: '19:abc@thread.tacv2',
+          name: 'General',
+          display: 'General',
+          type: 'standard',
+        },
+      ],
+    });
+
+    const ruleCreationMockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture(),
+    });
+
+    render(<CreateProject />, {organization});
+
+    await createProjectWithChannel('General (19:abc@thread.tacv2)');
+
+    await waitFor(() => {
+      expect(ruleCreationMockRequest).toHaveBeenCalled();
+    });
+    expect(ruleCreationMockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/workflows/`,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          actionFilters: [
+            expect.objectContaining({
+              actions: expect.arrayContaining([
+                expect.objectContaining({
+                  type: 'msteams',
+                  integrationId: messagingIntegration.id,
+                  config: expect.objectContaining({targetDisplay: 'General'}),
+                }),
+              ]),
+            }),
+          ],
+        }),
+      })
+    );
   });
 
   describe('Issue Alerts Options', () => {

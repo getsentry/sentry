@@ -7,12 +7,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  type ChannelIdentityField,
   getChannelSelectedBy,
   type IntegrationChannel,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
-export type Channel = {
+type Channel = {
   display: string;
   id: string;
   name: string;
@@ -22,6 +23,25 @@ export type Channel = {
 type ChannelListResponse = {
   results: Channel[];
 };
+
+/**
+ * A picker entry for a raw channel, carrying both identifiers so a caller can
+ * target whichever field the provider's backend resolves (`channelTargetedBy`).
+ * Id-keyed providers show the id alongside the name, since the name alone
+ * cannot tell two same-named channels apart.
+ */
+function toChannelOption(
+  channel: Channel,
+  channelSelectedBy: ChannelIdentityField
+): IntegrationChannel {
+  const keyedByName = channelSelectedBy === 'channelName';
+  return {
+    label: keyedByName ? channel.display : `${channel.display} (${channel.id})`,
+    value: keyedByName ? channel.display : channel.id,
+    channelId: channel.id,
+    channelName: channel.display,
+  };
+}
 
 type Input = {
   channel: IntegrationChannel | undefined;
@@ -60,6 +80,9 @@ export type UseMessagingChannelResult = {
  *   - channelOptions shaping (Slack keyed by display name; Discord and MS Teams
  *     keyed by id with `display (id)` labels, since the name alone cannot
  *     disambiguate same-named channels)
+ *   - A channel chosen from the list carries both `channelId` and
+ *     `channelName`, so a caller can target whichever field the provider's
+ *     backend resolves (`channelTargetedBy`)
  *   - Label-upgrade effect: restores raw-id labels to human-readable once the
  *     channel list loads; never touches user-created (channel.new) entries
  *   - onChannelChange / onCreateChannel with optional variant analytics
@@ -117,29 +140,25 @@ export function useMessagingChannel({
   const clearChannelValidation = () =>
     queryClient.removeQueries({queryKey: validateChannelOptions.queryKey});
 
-  const channelOptions = useMemo(() => {
-    // Id-keyed providers show the id alongside the name, since the name alone
-    // cannot tell two same-named channels apart.
-    const keyedByName = getChannelSelectedBy(provider) === 'channelName';
-    return channels?.results.map(ch => ({
-      channelName: ch.name,
-      label: keyedByName ? ch.display : `${ch.display} (${ch.id})`,
-      value: keyedByName ? ch.display : ch.id,
-    }));
-  }, [channels, provider]);
+  const channelSelectedBy = getChannelSelectedBy(provider);
+  const channelOptions = useMemo(
+    () => channels?.results.map(ch => toChannelOption(ch, channelSelectedBy)),
+    [channels, channelSelectedBy]
+  );
 
   useEffect(() => {
     // A restored channel (e.g. from persisted/default actions) only has a raw
     // id as its label until the channel list loads. Upgrade it to the
-    // human-readable label once we can resolve it. Skips user-created
-    // channels, which intentionally keep their typed-in label.
-    if (!channel || channel.new || !channelOptions) {
+    // human-readable label, and both identifiers, once we can resolve it.
+    // Skips user-created channels, which intentionally keep their typed-in
+    // label.
+    if (!channel || channel.new) {
       return;
     }
-    const match = channelOptions.find(option => option.value === channel.value);
+    const match = channelOptions?.find(option => option.value === channel.value);
     if (
       match &&
-      (match.label !== channel.label || match.channelName !== channel.channelName)
+      (match.label !== channel.label || match.channelId !== channel.channelId)
     ) {
       setChannel({...match, new: false});
     }

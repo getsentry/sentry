@@ -73,7 +73,8 @@ describe('useMessagingChannel', () => {
       await waitFor(() => expect(result.current.channelOptions).toBeDefined());
       expect(result.current.channelOptions).toEqual([
         {
-          channelName: 'general',
+          channelId: 'C123',
+          channelName: '#general',
           label: '#general',
           value: '#general',
         },
@@ -90,7 +91,8 @@ describe('useMessagingChannel', () => {
       await waitFor(() => expect(result.current.channelOptions).toBeDefined());
       expect(result.current.channelOptions).toEqual([
         {
-          channelName: 'general',
+          channelId: '1234567890',
+          channelName: '#general',
           label: '#general (1234567890)',
           value: '1234567890',
         },
@@ -112,10 +114,11 @@ describe('useMessagingChannel', () => {
 
       await waitFor(() =>
         expect(mockSetChannel).toHaveBeenCalledWith({
-          channelName: 'alerts',
           label: '#alerts (2)',
           value: '2',
           new: false,
+          channelId: '2',
+          channelName: '#alerts',
         })
       );
     });
@@ -128,7 +131,8 @@ describe('useMessagingChannel', () => {
       const mockSetChannel = jest.fn();
       const {result} = renderChannel('slack', slackIntegration, {
         channel: {
-          channelName: 'general',
+          channelId: '1',
+          channelName: '#general',
           label: '#general',
           value: '#general',
           new: false,
@@ -181,7 +185,8 @@ describe('useMessagingChannel', () => {
       expect(result.current.isChannelsError).toBe(false);
       expect(result.current.channelOptions).toEqual([
         {
-          channelName: 'general',
+          channelId: 'C123',
+          channelName: '#general',
           label: '#general',
           value: '#general',
         },
