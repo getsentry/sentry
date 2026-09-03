@@ -1,5 +1,4 @@
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
-import {getParserServices} from '@typescript-eslint/utils/eslint-utils';
 import type {RuleFix, RuleFixer, Scope} from '@typescript-eslint/utils/ts-eslint';
 import ts from 'typescript';
 
@@ -280,25 +279,367 @@ function getFunctionLikeDeclaration(
     : undefined;
 }
 
-function getTypeScriptSymbolDefaults(
-  checker: ts.TypeChecker,
-  symbol: ts.Symbol
-): FunctionDefaults | undefined {
-  const resolvedSymbol =
-    symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+interface SyntacticResolver {
+  defaultsByExport: Map<string, FunctionDefaults | null>;
+  moduleResolutionCache: ts.ModuleResolutionCache;
+  options: ts.CompilerOptions;
+  sourceFiles: Map<string, ts.SourceFile | null>;
+}
 
-  for (const declaration of resolvedSymbol.getDeclarations() ?? []) {
-    const functionDeclaration = getFunctionLikeDeclaration(declaration);
-    if (!functionDeclaration) {
+const configPathByDirectory = new Map<string, string | null>();
+const resolverByConfig = new Map<string, SyntacticResolver | null>();
+
+function getDirectory(fileName: string): string {
+  return fileName.replace(/[/\\][^/\\]+$/u, '');
+}
+
+function getConfigPath(fileName: string): string | undefined {
+  const directory = getDirectory(fileName);
+  if (!configPathByDirectory.has(directory)) {
+    configPathByDirectory.set(
+      directory,
+      ts.findConfigFile(directory, ts.sys.fileExists, 'tsconfig.json') ?? null
+    );
+  }
+  return configPathByDirectory.get(directory) ?? undefined;
+}
+
+function createSyntacticResolver(configPath: string): SyntacticResolver | undefined {
+  const parsed = ts.getParsedCommandLineOfConfigFile(
+    configPath,
+    {},
+    {
+      ...ts.sys,
+      // Module resolution only needs the inherited compiler options. Avoid
+      // enumerating every project file for each new lint process.
+      readDirectory: () => [],
+      onUnRecoverableConfigFileDiagnostic: () => {},
+    }
+  );
+  if (!parsed) {
+    return undefined;
+  }
+
+  const configDirectory = getDirectory(configPath);
+  return {
+    defaultsByExport: new Map(),
+    moduleResolutionCache: ts.createModuleResolutionCache(
+      configDirectory,
+      fileName => (ts.sys.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase()),
+      parsed.options
+    ),
+    options: parsed.options,
+    sourceFiles: new Map(),
+  };
+}
+
+function getSyntacticResolver(fileName: string): SyntacticResolver | undefined {
+  const configPath = getConfigPath(fileName);
+  if (!configPath) {
+    return undefined;
+  }
+  if (!resolverByConfig.has(configPath)) {
+    resolverByConfig.set(configPath, createSyntacticResolver(configPath) ?? null);
+  }
+  return resolverByConfig.get(configPath) ?? undefined;
+}
+
+function getSourceFile(
+  resolver: SyntacticResolver,
+  fileName: string
+): ts.SourceFile | undefined {
+  const resolvedFileName = ts.sys.resolvePath(fileName);
+  if (resolver.sourceFiles.has(resolvedFileName)) {
+    return resolver.sourceFiles.get(resolvedFileName) ?? undefined;
+  }
+
+  const source = ts.sys.readFile(resolvedFileName);
+  const sourceFile = source
+    ? ts.createSourceFile(
+        resolvedFileName,
+        source,
+        ts.ScriptTarget.Latest,
+        false,
+        resolvedFileName.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+      )
+    : undefined;
+  resolver.sourceFiles.set(resolvedFileName, sourceFile ?? null);
+  return sourceFile;
+}
+
+function hasModifier(node: ts.Node, kind: ts.SyntaxKind): boolean {
+  return Boolean(
+    ts.canHaveModifiers(node) &&
+    ts.getModifiers(node)?.some(modifier => modifier.kind === kind)
+  );
+}
+
+function getVariableDefaults(
+  declarations: ts.NodeArray<ts.VariableDeclaration>,
+  name: string
+): FunctionDefaults | undefined {
+  for (const declaration of declarations) {
+    if (!ts.isIdentifier(declaration.name) || declaration.name.text !== name) {
       continue;
     }
-
-    const defaults = getTypeScriptFunctionDefaults(functionDeclaration);
-    if (hasDefaults(defaults)) {
-      return defaults;
+    const functionDeclaration = getFunctionLikeDeclaration(declaration);
+    if (functionDeclaration) {
+      const defaults = getTypeScriptFunctionDefaults(functionDeclaration);
+      if (hasDefaults(defaults)) {
+        return defaults;
+      }
     }
   }
   return undefined;
+}
+
+function resolveModuleExport(
+  resolver: SyntacticResolver,
+  containingFile: string,
+  moduleSpecifier: string,
+  exportName: string,
+  seen: Set<string>
+): FunctionDefaults | undefined {
+  const resolvedFileName = ts.resolveModuleName(
+    moduleSpecifier,
+    containingFile,
+    resolver.options,
+    ts.sys,
+    resolver.moduleResolutionCache
+  ).resolvedModule?.resolvedFileName;
+  return resolvedFileName
+    ? resolveExportedDefaults(resolver, resolvedFileName, exportName, seen)
+    : undefined;
+}
+
+function resolveLocalDefaults(
+  resolver: SyntacticResolver,
+  sourceFile: ts.SourceFile,
+  name: string,
+  seen: Set<string>
+): FunctionDefaults | undefined {
+  for (const statement of sourceFile.statements) {
+    if (ts.isFunctionDeclaration(statement) && statement.name?.text === name) {
+      const defaults = getTypeScriptFunctionDefaults(statement);
+      if (hasDefaults(defaults)) {
+        return defaults;
+      }
+    }
+
+    if (ts.isVariableStatement(statement)) {
+      const defaults = getVariableDefaults(statement.declarationList.declarations, name);
+      if (defaults) {
+        return defaults;
+      }
+    }
+
+    if (
+      ts.isImportDeclaration(statement) &&
+      ts.isStringLiteralLike(statement.moduleSpecifier)
+    ) {
+      const importClause = statement.importClause;
+      if (importClause?.name?.text === name) {
+        return resolveModuleExport(
+          resolver,
+          sourceFile.fileName,
+          statement.moduleSpecifier.text,
+          'default',
+          seen
+        );
+      }
+
+      const imports = importClause?.namedBindings;
+      if (imports && ts.isNamedImports(imports)) {
+        const imported = imports.elements.find(element => element.name.text === name);
+        if (imported) {
+          return resolveModuleExport(
+            resolver,
+            sourceFile.fileName,
+            statement.moduleSpecifier.text,
+            (imported.propertyName ?? imported.name).text,
+            seen
+          );
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+function resolveExportedDefaults(
+  resolver: SyntacticResolver,
+  fileName: string,
+  exportName: string,
+  seen: Set<string>
+): FunctionDefaults | undefined {
+  const resolvedFileName = ts.sys.resolvePath(fileName);
+  const cacheKey = `${resolvedFileName}\0${exportName}`;
+  if (resolver.defaultsByExport.has(cacheKey)) {
+    return resolver.defaultsByExport.get(cacheKey) ?? undefined;
+  }
+  if (seen.has(cacheKey)) {
+    return undefined;
+  }
+  seen.add(cacheKey);
+
+  const sourceFile = getSourceFile(resolver, resolvedFileName);
+  if (!sourceFile) {
+    seen.delete(cacheKey);
+    resolver.defaultsByExport.set(cacheKey, null);
+    return undefined;
+  }
+
+  let defaults: FunctionDefaults | undefined;
+  if (exportName === 'default') {
+    for (const statement of sourceFile.statements) {
+      if (
+        ts.isFunctionDeclaration(statement) &&
+        hasModifier(statement, ts.SyntaxKind.DefaultKeyword)
+      ) {
+        const candidate = getTypeScriptFunctionDefaults(statement);
+        if (hasDefaults(candidate)) {
+          defaults = candidate;
+          break;
+        }
+      }
+      if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
+        const expression = unwrapTypeScriptExpression(statement.expression);
+        if (ts.isFunctionExpression(expression) || ts.isArrowFunction(expression)) {
+          const candidate = getTypeScriptFunctionDefaults(expression);
+          if (hasDefaults(candidate)) {
+            defaults = candidate;
+            break;
+          }
+        } else if (ts.isIdentifier(expression)) {
+          defaults = resolveLocalDefaults(resolver, sourceFile, expression.text, seen);
+          if (defaults) {
+            break;
+          }
+        }
+      }
+    }
+  } else {
+    for (const statement of sourceFile.statements) {
+      if (
+        ts.isFunctionDeclaration(statement) &&
+        statement.name?.text === exportName &&
+        hasModifier(statement, ts.SyntaxKind.ExportKeyword)
+      ) {
+        const candidate = getTypeScriptFunctionDefaults(statement);
+        if (hasDefaults(candidate)) {
+          defaults = candidate;
+          break;
+        }
+      }
+      if (
+        ts.isVariableStatement(statement) &&
+        hasModifier(statement, ts.SyntaxKind.ExportKeyword)
+      ) {
+        defaults = getVariableDefaults(
+          statement.declarationList.declarations,
+          exportName
+        );
+        if (defaults) {
+          break;
+        }
+      }
+    }
+  }
+
+  if (!defaults) {
+    for (const statement of sourceFile.statements) {
+      if (!ts.isExportDeclaration(statement)) {
+        continue;
+      }
+
+      const moduleSpecifier =
+        statement.moduleSpecifier && ts.isStringLiteralLike(statement.moduleSpecifier)
+          ? statement.moduleSpecifier.text
+          : undefined;
+      if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
+        const exported = statement.exportClause.elements.find(
+          element => element.name.text === exportName
+        );
+        if (!exported) {
+          continue;
+        }
+        const localName = (exported.propertyName ?? exported.name).text;
+        defaults = moduleSpecifier
+          ? resolveModuleExport(
+              resolver,
+              sourceFile.fileName,
+              moduleSpecifier,
+              localName,
+              seen
+            )
+          : resolveLocalDefaults(resolver, sourceFile, localName, seen);
+      } else if (moduleSpecifier && exportName !== 'default') {
+        defaults = resolveModuleExport(
+          resolver,
+          sourceFile.fileName,
+          moduleSpecifier,
+          exportName,
+          seen
+        );
+      }
+
+      if (defaults) {
+        break;
+      }
+    }
+  }
+
+  seen.delete(cacheKey);
+  resolver.defaultsByExport.set(cacheKey, defaults ?? null);
+  return defaults;
+}
+
+function getImportedBinding(
+  variable: Scope.Variable
+): {exportName: string; moduleSpecifier: string} | undefined {
+  const definition = variable.defs.find(candidate => candidate.type === 'ImportBinding');
+  if (
+    !definition ||
+    definition.parent?.type !== AST_NODE_TYPES.ImportDeclaration ||
+    typeof definition.parent.source.value !== 'string'
+  ) {
+    return undefined;
+  }
+
+  switch (definition.node.type) {
+    case AST_NODE_TYPES.ImportDefaultSpecifier:
+      return {
+        exportName: 'default',
+        moduleSpecifier: definition.parent.source.value,
+      };
+    case AST_NODE_TYPES.ImportSpecifier:
+      return {
+        exportName:
+          definition.node.imported.type === AST_NODE_TYPES.Identifier
+            ? definition.node.imported.name
+            : String(definition.node.imported.value),
+        moduleSpecifier: definition.parent.source.value,
+      };
+    default:
+      return undefined;
+  }
+}
+
+function getSyntacticImportedDefaults(
+  fileName: string,
+  variable: Scope.Variable
+): FunctionDefaults | undefined {
+  const imported = getImportedBinding(variable);
+  const resolver = imported ? getSyntacticResolver(fileName) : undefined;
+  return imported && resolver
+    ? resolveModuleExport(
+        resolver,
+        fileName,
+        imported.moduleSpecifier,
+        imported.exportName,
+        new Set()
+      )
+    : undefined;
 }
 
 function objectExpressionHasHardcodedCandidate(node: TSESTree.ObjectExpression): boolean {
@@ -393,18 +734,10 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
     },
   },
   create(context) {
-    const parserServices =
-      context.sourceCode.parserServices?.esTreeNodeToTSNodeMap &&
-      context.sourceCode.parserServices.tsNodeToESTreeNodeMap
-        ? getParserServices(context, true)
-        : undefined;
+    const currentFileName = ts.sys.resolvePath(context.filename);
     const defaultsByVariable = new Map<Scope.Variable, FunctionDefaults>();
-    const typeAwareDefaultsByVariable = new Map<
-      Scope.Variable,
-      FunctionDefaults | null
-    >();
+    const importedDefaultsByVariable = new Map<Scope.Variable, FunctionDefaults | null>();
     const stableByVariable = new WeakMap<Scope.Variable, boolean>();
-    let checker: ts.TypeChecker | undefined;
     const calls: Array<{
       node: TSESTree.CallExpression;
       variable: Scope.Variable;
@@ -426,35 +759,18 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
       return;
     }
 
-    function getTypeAwareDefaults(
-      identifier: TSESTree.Identifier | TSESTree.JSXIdentifier,
-      variable: Scope.Variable
-    ) {
-      if (typeAwareDefaultsByVariable.has(variable)) {
-        return typeAwareDefaultsByVariable.get(variable);
+    function getImportedDefaults(variable: Scope.Variable) {
+      if (importedDefaultsByVariable.has(variable)) {
+        return importedDefaultsByVariable.get(variable);
       }
 
-      const program = parserServices?.program;
-      if (!program) {
-        typeAwareDefaultsByVariable.set(variable, null);
-        return;
-      }
-
-      checker ??= program.getTypeChecker();
-      const typeScriptNode = parserServices.esTreeNodeToTSNodeMap.get(identifier);
-      const symbol = checker.getSymbolAtLocation(typeScriptNode);
-      const defaults = symbol ? getTypeScriptSymbolDefaults(checker, symbol) : undefined;
-      typeAwareDefaultsByVariable.set(variable, defaults ?? null);
+      const defaults = getSyntacticImportedDefaults(currentFileName, variable);
+      importedDefaultsByVariable.set(variable, defaults ?? null);
       return defaults;
     }
 
-    function getDefaults(
-      identifier: TSESTree.Identifier | TSESTree.JSXIdentifier,
-      variable: Scope.Variable
-    ) {
-      return (
-        defaultsByVariable.get(variable) ?? getTypeAwareDefaults(identifier, variable)
-      );
+    function getDefaults(variable: Scope.Variable) {
+      return defaultsByVariable.get(variable) ?? getImportedDefaults(variable);
     }
 
     function registerFunction(
@@ -840,7 +1156,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           if (node.callee.type !== AST_NODE_TYPES.Identifier) {
             continue;
           }
-          const defaults = getDefaults(node.callee, variable);
+          const defaults = getDefaults(variable);
           if (defaults) {
             checkCall(node, defaults);
           }
@@ -852,7 +1168,7 @@ export const noRedundantDefaultArgument = ESLintUtils.RuleCreator.withoutDocs({
           if (node.name.type !== AST_NODE_TYPES.JSXIdentifier) {
             continue;
           }
-          const defaults = getDefaults(node.name, variable);
+          const defaults = getDefaults(variable);
           if (defaults) {
             checkElement(node, defaults);
           }

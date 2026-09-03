@@ -1,5 +1,4 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
-import {TSESLint} from '@typescript-eslint/utils';
 
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument';
 
@@ -266,16 +265,7 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
   ],
 });
 
-const crossFileRuleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      project: './tsconfig.json',
-      tsconfigRootDir: `${__dirname}/fixtures`,
-    },
-  },
-});
-
-crossFileRuleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
+ruleTester.run('no-redundant-default-argument with imports', noRedundantDefaultArgument, {
   valid: [
     {
       name: 'imported function argument differs from default',
@@ -283,7 +273,7 @@ crossFileRuleTester.run('no-redundant-default-argument', noRedundantDefaultArgum
 import {a} from './importedDefault';
 a(1);
 `,
-      filename: 'consumer.ts',
+      filename: `${__dirname}/fixtures/consumer.ts`,
     },
     {
       name: 'imported component prop differs from default',
@@ -291,7 +281,7 @@ a(1);
 import {Component} from './importedDefault';
 <Component value={6} />;
 `,
-      filename: 'componentConsumer.tsx',
+      filename: `${__dirname}/fixtures/componentConsumer.tsx`,
     },
   ],
   invalid: [
@@ -301,7 +291,7 @@ import {Component} from './importedDefault';
 import {a} from './importedDefault';
 a(0);
 `,
-      filename: 'consumer.ts',
+      filename: `${__dirname}/fixtures/consumer.ts`,
       output: `
 import {a} from './importedDefault';
 a();
@@ -319,7 +309,7 @@ a();
 import {withOptions} from './importedDefault';
 withOptions({value: 5});
 `,
-      filename: 'consumer.ts',
+      filename: `${__dirname}/fixtures/consumer.ts`,
       output: `
 import {withOptions} from './importedDefault';
 withOptions({});
@@ -337,7 +327,7 @@ withOptions({});
 import {Component} from './importedDefault';
 <Component value={5} />;
 `,
-      filename: 'componentConsumer.tsx',
+      filename: `${__dirname}/fixtures/componentConsumer.tsx`,
       output: `
 import {Component} from './importedDefault';
 <Component />;
@@ -349,18 +339,25 @@ import {Component} from './importedDefault';
         },
       ],
     },
-  ],
-});
-
-const nonTypeScriptRuleTester = new TSESLint.RuleTester();
-
-nonTypeScriptRuleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
-  valid: [],
-  invalid: [
     {
-      name: 'parser without TypeScript parser services',
-      code: 'function foo(value = 5) {} foo(5);',
-      output: 'function foo(value = 5) {} foo();',
+      name: 'aliased barrel export',
+      code: "import {aliasedA} from './reexportedDefault'; aliasedA(0);",
+      filename: `${__dirname}/fixtures/consumer.ts`,
+      output: "import {aliasedA} from './reexportedDefault'; aliasedA();",
+      errors: [{messageId: 'redundantDefaultValue'}],
+    },
+    {
+      name: 'export star',
+      code: "import {a} from './reexportedDefault'; a(0);",
+      filename: `${__dirname}/fixtures/consumer.ts`,
+      output: "import {a} from './reexportedDefault'; a();",
+      errors: [{messageId: 'redundantDefaultValue'}],
+    },
+    {
+      name: 'default import',
+      code: "import defaulted from './importedDefault'; defaulted(10);",
+      filename: `${__dirname}/fixtures/consumer.ts`,
+      output: "import defaulted from './importedDefault'; defaulted();",
       errors: [{messageId: 'redundantDefaultValue'}],
     },
   ],
