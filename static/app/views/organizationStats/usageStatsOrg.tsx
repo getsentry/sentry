@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
@@ -15,7 +16,6 @@ import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
@@ -178,7 +178,7 @@ export function getChartProps({
     title: (
       <Fragment>
         {t('Project(s) Stats')}
-        <QuestionTooltip
+        <InfoTip
           size="xs"
           title={tct(
             'You can find more information about each category in our [link:docs]',
@@ -191,7 +191,6 @@ export function getChartProps({
               ),
             }
           )}
-          isHoverable
         />
       </Fragment>
     ),

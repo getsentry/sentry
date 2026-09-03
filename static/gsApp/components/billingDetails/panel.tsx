@@ -4,12 +4,12 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {CSS} from '@sentry/scraps/cssTypes';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -154,7 +154,7 @@ export function BillingDetailsPanel({
                 <Text>
                   {taxFieldInfo.label}: {billingDetails.taxNumber}
                 </Text>
-                <QuestionTooltip
+                <InfoTip
                   title={tct(
                     "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                     {taxNumberName: <Text bold>{taxFieldInfo.taxNumberName}</Text>}
