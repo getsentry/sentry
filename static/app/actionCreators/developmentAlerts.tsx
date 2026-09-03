@@ -43,9 +43,13 @@ export function displayExperimentalSpaAlert(addAlert: AddAlert) {
 
   addAlert({
     id: 'develop-proxy',
-    message: t(
-      'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
-    ),
+    message: window.__SENTRY_DEV_UI_READ_ONLY
+      ? t(
+          'Read-only dev-ui mode is enabled. Production data can be viewed, but write requests are blocked locally.'
+        )
+      : t(
+          'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
+        ),
     variant: 'warning',
     opaque: true,
     neverExpire: true,

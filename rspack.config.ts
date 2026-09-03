@@ -7,6 +7,7 @@ import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
   DevServer,
+  DevServerMiddlewareHandler,
   OptimizationSplitChunksCacheGroup,
   SwcLoaderOptions,
 } from '@rspack/core';
@@ -44,7 +45,29 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
+const IS_UI_DEV_READ_ONLY =
+  IS_UI_DEV_ONLY && env.SENTRY_DEV_UI_READ_ONLY === '1';
 const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
+
+const DEV_UI_READ_ONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+const devUiReadOnlyMiddleware: DevServerMiddlewareHandler = (req, res, next) => {
+  const method = req.method?.toUpperCase();
+  if (!method || DEV_UI_READ_ONLY_METHODS.has(method)) {
+    next();
+    return;
+  }
+
+  res.statusCode = 405;
+  res.setHeader('Allow', [...DEV_UI_READ_ONLY_METHODS].join(', '));
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('X-Sentry-Dev-UI-Read-Only', 'true');
+  res.end(
+    JSON.stringify({
+      detail: `Blocked ${method} request in read-only dev-ui mode.`,
+    })
+  );
+};
 
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
@@ -823,6 +846,18 @@ if (IS_UI_DEV_ONLY) {
   appConfig.devServer = {
     ...appConfig.devServer,
     compress: true,
+    setupMiddlewares: middlewares => {
+      if (!IS_UI_DEV_READ_ONLY) {
+        return middlewares;
+      }
+
+      middlewares.unshift({
+        name: 'sentry-dev-ui-read-only',
+        middleware: devUiReadOnlyMiddleware,
+      });
+
+      return middlewares;
+    },
     server: {
       type: 'https',
       options: httpsOptions,
@@ -926,6 +961,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
+        __SENTRY_DEV_UI_READ_ONLY: IS_UI_DEV_READ_ONLY,
       },
     })
   );
