@@ -25,7 +25,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {
+  partitionLinkedPullRequests,
+  useLinkedPullRequests,
+} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -833,7 +836,11 @@ const PULL_REQUEST_BADGE_VARIANTS = {
 
 function InboxPullRequestBadges({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
-  const pullRequests = data?.pullRequests.filter(
+  const {currentPullRequests} = partitionLinkedPullRequests(
+    data?.pullRequests ?? [],
+    data?.latestRegressionAt
+  );
+  const pullRequests = currentPullRequests.filter(
     pullRequest => pullRequest.status !== 'closed'
   );
 

@@ -171,6 +171,53 @@ describe('LinkedPullRequests', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps active pull requests visible and collapses completed pull requests linked before the latest regression', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        latestRegressionAt: '2026-06-08T23:11:32.000000Z',
+        pullRequests: [
+          {
+            ...PullRequestFixture({id: '123', repository}),
+            attribution: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'draft',
+          },
+          {
+            ...PullRequestFixture({id: '122', repository}),
+            attribution: null,
+            dateLinked: '2026-06-08T23:10:32.000000Z',
+            status: 'merged',
+          },
+        ],
+      },
+    });
+
+    render(<LinkedPullRequests collapseBeforeLatestRegression group={group} />, {
+      organization,
+    });
+
+    const currentPullRequests = await screen.findByRole('list', {
+      name: 'Linked pull requests',
+    });
+    expect(
+      within(currentPullRequests).getByRole('link', {name: /Pull request #123/})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: /Pull request #122/})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show other PRs'}));
+
+    const historicalPullRequests = screen.getByRole('list', {
+      name: 'Other linked pull requests',
+    });
+    expect(
+      within(historicalPullRequests).getByRole('link', {name: /Pull request #122/})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Hide other PRs'})).toBeInTheDocument();
+  });
+
   it('deduplicates pull request ids from group activity', () => {
     const activityGroup = GroupFixture({
       activity: [

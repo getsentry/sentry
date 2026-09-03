@@ -425,6 +425,7 @@ describe('InboxPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       body: {
+        latestRegressionAt: '2026-07-20T12:00:00Z',
         pullRequests: [
           {
             ...PullRequestFixture({
@@ -433,7 +434,7 @@ describe('InboxPage', () => {
             }),
             attribution: null,
             checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
+            dateLinked: '2026-07-20T13:00:00Z',
             reviewStatus: null,
             status: 'closed',
           },
@@ -455,7 +456,29 @@ describe('InboxPage', () => {
             }),
             attribution: null,
             checksStatus: null,
-            dateLinked: '2026-07-20T12:00:00Z',
+            dateLinked: '2026-07-20T11:00:00Z',
+            reviewStatus: null,
+            status: 'merged',
+          },
+          {
+            ...PullRequestFixture({
+              id: '13',
+              externalUrl: 'https://github.com/org/repository/pull/13',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T13:00:00Z',
+            reviewStatus: null,
+            status: 'draft',
+          },
+          {
+            ...PullRequestFixture({
+              id: '14',
+              externalUrl: 'https://github.com/org/repository/pull/14',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T14:00:00Z',
             reviewStatus: null,
             status: 'merged',
           },
@@ -470,10 +493,16 @@ describe('InboxPage', () => {
       await within(fixSection).findByRole('link', {name: 'Pull request #10, Open'})
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
     expect(
-      within(fixSection).getByRole('link', {name: 'Pull request #11, Merged'})
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/11');
+      within(fixSection).getByRole('link', {name: 'Pull request #13, Draft'})
+    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/13');
+    expect(
+      within(fixSection).queryByRole('link', {name: 'Pull request #11, Merged'})
+    ).not.toBeInTheDocument();
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #12, Closed'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();

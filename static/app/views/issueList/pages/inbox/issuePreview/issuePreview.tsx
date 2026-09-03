@@ -265,7 +265,11 @@ function IssuePreviewContent() {
             <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
               <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
               <IssuePreviewSection.Content>
-                <LinkedPullRequests group={group} showEmptyState={false} />
+                <LinkedPullRequests
+                  collapseBeforeLatestRegression
+                  group={group}
+                  showEmptyState={false}
+                />
               </IssuePreviewSection.Content>
             </IssuePreviewSection>
           ) : null}
