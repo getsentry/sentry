@@ -758,6 +758,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Cursor Origin Integration
+register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("cursor-origin-app.name", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("cursor-origin-app.webhook-secret", flags=FLAG_CREDENTIAL)
+
 # GitHub Console SDK App (separate app for repository invitations)
 register("github-console-sdk-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-console-sdk-app.installation-id", default="", flags=FLAG_CREDENTIAL)
