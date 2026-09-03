@@ -83,6 +83,6 @@ describe('HomePage project search', () => {
     await user.type(screen.getByRole('textbox', {name: 'Projects (by ID)'}), 'my-proj');
 
     expect(await screen.findByText('No results found')).toBeInTheDocument();
-   expect(projectsMock).not.toHaveBeenCalled();
+    expect(projectsMock).not.toHaveBeenCalled();
   });
 });
