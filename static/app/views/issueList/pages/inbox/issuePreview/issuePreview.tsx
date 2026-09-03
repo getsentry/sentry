@@ -23,6 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
@@ -158,6 +159,7 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
@@ -246,7 +248,7 @@ function IssuePreviewContent() {
           onContinueInSeer={() => openSeerDrawer()}
           onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
         />
-        <Flex align="center" wrap="wrap" gap="lg">
+        <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
             group={group}
