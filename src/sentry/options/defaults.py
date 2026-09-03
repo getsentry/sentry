@@ -2762,6 +2762,15 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables bulk-loading the reads a batch of clock tasks needs before fanning
+# out to the thread pool, instead of each task issuing its own. Only has an
+# effect when the clock tasks consumer runs in batched-parallel mode.
+register(
+    "crons.clock_tasks.prefetch_batch",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables recording tick volume metrics and tick decisions based on those
 # metrics. Decisions are used to delay notifications in a system incident.
 register(

@@ -6,6 +6,7 @@ from datetime import datetime
 from arroyo.backends.kafka import KafkaPayload
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkTimeout
 
+from sentry.monitors.clock_tasks.prefetch import ClockTaskPrefetch
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.monitor_environment import monitor_has_newer_status_affecting_checkins
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
@@ -63,16 +64,25 @@ def dispatch_check_timeout(ts: datetime) -> None:
         produce_task(payload)
 
 
-def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
+def mark_checkin_timeout(
+    checkin_id: int, ts: datetime, prefetch: ClockTaskPrefetch | None = None
+) -> None:
     logger.info("checkin_timeout", extra={"checkin_id": checkin_id})
 
-    try:
-        checkin: MonitorCheckIn = (
-            MonitorCheckIn.objects.select_related("monitor_environment")
-            .select_related("monitor_environment__monitor")
-            .get(id=checkin_id)
-        )
-    except MonitorCheckIn.DoesNotExist:
+    checkin: MonitorCheckIn | None
+    if prefetch is not None:
+        checkin = prefetch.checkins.get(checkin_id)
+    else:
+        try:
+            checkin = (
+                MonitorCheckIn.objects.select_related("monitor_environment")
+                .select_related("monitor_environment__monitor")
+                .get(id=checkin_id)
+            )
+        except MonitorCheckIn.DoesNotExist:
+            checkin = None
+
+    if checkin is None:
         # The monitor may have been deleted or the timeout may have reached
         # it's retention period (less likely)
         metrics.incr("sentry.monitors.tasks.check_timeout.not_found")
@@ -88,7 +98,15 @@ def mark_checkin_timeout(checkin_id: int, ts: datetime) -> None:
 
     # If the monitor has had any newer OK/ERROR status check-ins than this
     # timeout, then this timeout cannot affect the status of the monitor.
-    if monitor_has_newer_status_affecting_checkins(monitor_environment, checkin.date_added):
+    if prefetch is not None:
+        has_newer = prefetch.has_newer_status_affecting_checkin(
+            monitor_environment.id, checkin.date_added
+        )
+    else:
+        has_newer = monitor_has_newer_status_affecting_checkins(
+            monitor_environment, checkin.date_added
+        )
+    if has_newer:
         return
 
     # Similar to mark_missed we compute when the most recent check-in should

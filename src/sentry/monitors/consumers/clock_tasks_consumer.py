@@ -22,10 +22,12 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import (
     MonitorsClockTasks,
 )
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_tasks.check_missed import mark_environment_missing
 from sentry.monitors.clock_tasks.check_timeout import mark_checkin_timeout
 from sentry.monitors.clock_tasks.mark_unknown import mark_checkin_unknown
+from sentry.monitors.clock_tasks.prefetch import ClockTaskPrefetch, prefetch_clock_tasks
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.tracing import start_span
@@ -47,13 +49,15 @@ def is_mark_missing(wrapper: MonitorsClockTasks) -> TypeGuard[MarkMissing]:
     return wrapper["type"] == "mark_missing"
 
 
-def dispatch_clock_task(wrapper: MonitorsClockTasks) -> None:
+def dispatch_clock_task(
+    wrapper: MonitorsClockTasks, prefetch: ClockTaskPrefetch | None = None
+) -> None:
     """Execute a single decoded clock task."""
     try:
         ts = datetime.fromtimestamp(wrapper["ts"], tz=timezone.utc)
 
         if is_mark_timeout(wrapper):
-            mark_checkin_timeout(int(wrapper["checkin_id"]), ts)
+            mark_checkin_timeout(int(wrapper["checkin_id"]), ts, prefetch)
             return
 
         if is_mark_unknown(wrapper):
@@ -61,7 +65,7 @@ def dispatch_clock_task(wrapper: MonitorsClockTasks) -> None:
             return
 
         if is_mark_missing(wrapper):
-            mark_environment_missing(int(wrapper["monitor_environment_id"]), ts)
+            mark_environment_missing(int(wrapper["monitor_environment_id"]), ts, prefetch)
             return
 
         logger.error("Unsupported clock-tick task type: %s", wrapper["type"])
@@ -82,13 +86,15 @@ def process_clock_task(message: Message[KafkaPayload | FilteredPayload]) -> None
     dispatch_clock_task(wrapper)
 
 
-def process_clock_task_group(tasks: list[MonitorsClockTasks]) -> None:
+def process_clock_task_group(
+    tasks: list[MonitorsClockTasks], prefetch: ClockTaskPrefetch | None = None
+) -> None:
     """
     Process a group of clock tasks for the same monitor environment completely
     serially.
     """
     for wrapper in tasks:
-        dispatch_clock_task(wrapper)
+        dispatch_clock_task(wrapper, prefetch)
 
 
 def process_clock_task_batch(
@@ -132,8 +138,24 @@ def process_clock_task_batch(
         name="monitors.clock_tasks_consumer",
         transaction=True,
     ):
+        # Bulk-load across the batch, before groups fan out. On failure tasks
+        # fall back to their own reads rather than losing the batch.
+        prefetch: ClockTaskPrefetch | None = None
+        if options.get("crons.clock_tasks.prefetch_batch"):
+            try:
+                with start_span(op="prefetch", name="monitors.clock_tasks_consumer"):
+                    prefetch = prefetch_clock_tasks(task_mapping)
+            except Exception:
+                logger.exception("Failed to prefetch clock task batch")
+                prefetch = None
+            metrics.incr(
+                "monitors.clock_tasks.prefetch",
+                tags={"result": "miss" if prefetch is None else "hit"},
+            )
+
         futures = [
-            executor.submit(process_clock_task_group, group) for group in task_mapping.values()
+            executor.submit(process_clock_task_group, group, prefetch)
+            for group in task_mapping.values()
         ]
         wait(futures)
 
