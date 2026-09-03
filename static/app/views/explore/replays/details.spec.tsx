@@ -65,6 +65,9 @@ describe('ReplayDetails', () => {
 
   beforeEach(() => {
     ConfigStore.set('user', user);
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue('')},
+    });
     mockUseLoadReplayReader.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -121,7 +124,10 @@ describe('ReplayDetails', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
 
     expect(
-      await screen.findByRole('menuitemradio', {name: 'Download JSON'})
+      await screen.findByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Download JSON'})
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Share'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
@@ -139,6 +145,17 @@ describe('ReplayDetails', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Download Replay Record'})
     ).not.toBeInTheDocument();
+  });
+
+  it('copies the full replay ID, not the shortened form in the title', async () => {
+    renderDetails();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
+    );
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-replay-id');
   });
 
   it('groups the employee-only actions into their own section', async () => {
@@ -183,6 +200,7 @@ describe('ReplayDetails', () => {
     expect(
       screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
     ).toEqual([
+      'Copy replay ID to clipboard',
       'Download JSON',
       'Share',
       'Delete',

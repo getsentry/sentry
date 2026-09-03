@@ -4,7 +4,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
-import {IconBug, IconDelete, IconDownload, IconUpload} from 'sentry/icons';
+import {IconBug, IconCopyId, IconDelete, IconDownload, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
@@ -12,6 +12,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useDeleteReplay} from 'sentry/utils/replays/hooks/useDeleteReplay';
 import {useShareReplayAtTimestamp} from 'sentry/utils/replays/hooks/useShareReplayAtTimestamp';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
@@ -45,6 +46,7 @@ export function useReplayMenuItems({
   const canDownload = projectSlug && replay;
 
   const onShareReplay = useShareReplayAtTimestamp();
+  const {copy} = useCopyToClipboard();
 
   const canDelete = replayId && projectSlug;
   const onDeleteReplay = useDeleteReplay({replayId, projectSlug});
@@ -116,6 +118,15 @@ export function useReplayMenuItems({
     : [];
 
   return [
+    {
+      key: 'copy-replay-id',
+      label: t('Copy replay ID to clipboard'),
+      leadingItems: <IconCopyId variant="muted" />,
+      // The full ID, not the shortened form shown in the page title — the
+      // short one is not what anything else accepts as input.
+      onAction: () => copy(replayId ?? ''),
+      disabled: !replayId,
+    },
     {
       key: 'download-rrweb',
       label: t('Download JSON'),
