@@ -36,8 +36,6 @@ export function AgentSetupCard({
         gap="xl lg"
         align="center"
         padding="xl"
-        // The body hangs off the title's column rather than the card's edge, so
-        // the icon is the only thing outdented.
         areas={`
           "icon title"
           ".    body"

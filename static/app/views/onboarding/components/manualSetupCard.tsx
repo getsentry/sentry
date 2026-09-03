@@ -22,8 +22,6 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
         radius="xl"
         padding="xl"
         width="100%"
-        // Matches the agent card: the copy hangs off the title's column, with
-        // only the icon outdented.
         areas={`
           "icon title"
           ".    body"
@@ -33,8 +31,6 @@ export function ManualSetupCard({onSetupInBrowser}: ManualSetupCardProps) {
           <IconSliders size="sm" variant="secondary" />
         </Flex>
         <Container area="title">
-          {/* A heading element can't live inside a button, so the card's title
-              carries the heading's weight and size without its semantics. */}
           <Text bold size="lg">
             {t('Set up manually instead')}
           </Text>
