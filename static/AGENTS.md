@@ -101,3 +101,21 @@ For worked examples of all of the above, use the **`design-system`** skill.
 ## React Testing
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
+
+## Sentry SDK Instrumentation
+
+Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reusing a convention name keeps the attribute queryable and consistent with what other producers (SDKs, Relay) already emit for the same concept — a bespoke name fragments the same data across two keys. This mirrors the Python-side rule in the **`backend-conventions`** skill; the two must stay in sync since a frontend and backend span can describe the same request.
+
+The individual name constants (e.g. `USER_AGENT_ORIGINAL`) live at the `/attributes` subpath, not the package root — the root only re-exports the metadata tables: `ATTRIBUTE_METADATA` (the full per-attribute record — brief, type, aliases, deprecation) and `ATTRIBUTE_SEARCH_METADATA` (the descriptions the search-field UI renders, see `static/app/utils/fields/`). Both are a separate concern from the name itself.
+
+```tsx
+import {USER_AGENT_ORIGINAL} from '@sentry/conventions/attributes';
+
+// WRONG: inventing a name for a concept the conventions already cover
+span.setAttribute('request_user_agent', navigator.userAgent);
+
+// RIGHT: use the existing convention name
+span.setAttribute(USER_AGENT_ORIGINAL, navigator.userAgent);
+```
+
+These are generated from the OTel semantic conventions plus Sentry's own model — grep `node_modules/@sentry/conventions/dist/attributes.d.ts` for candidate keywords before adding a new one.
