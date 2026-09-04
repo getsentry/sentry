@@ -72,9 +72,8 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     title = obj.title
 
     if ev_type == "error":
-        # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`) rather than the
-        # identity of what went wrong, so it makes a poor title. Leave those on `obj.title`, which
-        # prefers the crash location and only falls back to the type when nothing symbolicated.
+        # A synthetic exception's type is a platform label, not the identity of what went wrong,
+        # so it makes a poor title.
         if "type" in ev_metadata and not ev_metadata.get("synthetic"):
             title = ev_metadata["type"]
 

@@ -57,15 +57,10 @@ class ErrorEvent(BaseEvent):
         rv = {"value": trim(get_path(exception, "value", default=""), 1024)}
         rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
 
-        # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`) rather than the
-        # identity of what went wrong, so grouping ignores it. Record it anyway: it is all that is
-        # left to show when an event has no usable crash location.
-        #
-        # Written unconditionally so it stays in lockstep with the `type` above. Group metadata is
-        # merged key by key across a group's events (`_process_existing_aggregate`) and a merge
-        # cannot delete keys, so a flag written only when true would outlive the type it describes:
-        # one synthetic event would mark the group synthetic forever, even after later events
-        # overwrite `type` with a real one.
+        # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`), not the identity
+        # of what went wrong. Keep it as a last-resort title, flagged so readers can tell it apart.
+        # Always written: group metadata never deletes keys, so an omitted flag would outlive
+        # the type it describes.
         rv["synthetic"] = bool(get_path(exception, "mechanism", "synthetic"))
 
         # Attach crash location if available
@@ -86,8 +81,8 @@ class ErrorEvent(BaseEvent):
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 256)}"
 
-        # The type says little about what went wrong, so the crash location makes the better
-        # title. Falling back to it keeps unsymbolicated events from being titled `<unknown>`.
+        # The crash location identifies a synthetic exception better than its type, and the type
+        # still beats `<unknown>` when nothing symbolicated.
         if metadata.get("synthetic"):
             return metadata.get("function") or title or "<unknown>"
 

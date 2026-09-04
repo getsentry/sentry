@@ -24,8 +24,7 @@ EventTypeStr = Literal[
 class BaseEvent:
     key: ClassVar[EventTypeStr]  # abstract
 
-    # Not `dict[str, str]`: error metadata carries a boolean `synthetic` flag alongside the
-    # strings, so the values are only as narrow as the concrete subclass's `extract_metadata`.
+    # Error metadata carries a boolean `synthetic` flag alongside its strings.
     def get_metadata(self, data: MutableMapping[str, Any]) -> dict[str, Any]:
         metadata = self.extract_metadata(data)
         title = data.get("title")

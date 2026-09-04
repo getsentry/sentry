@@ -242,8 +242,7 @@ class BuildAttachmentTitleTest(TestCase):
         assert build_attachment_title(group) == "ValueError"
 
     def test_synthetic_prefers_the_crash_location(self) -> None:
-        # A synthetic type is a platform label (`SIGSEGV`, `AppHang`), not the identity of what
-        # went wrong, so the notification keeps the crash-location title instead.
+        # The type is a platform label, so the crash-location title is better.
         group = self.create_group(
             data={
                 "type": "error",
