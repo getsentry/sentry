@@ -4,23 +4,22 @@ import {motion} from 'framer-motion';
 const StepperContainer = styled('div')`
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: ${p => p.theme.space.md};
-  border-radius: 4px;
   position: relative;
-  overflow: hidden;
 `;
 
 const StepperIndicator = styled('span')<{clickable?: boolean}>`
-  height: 5px;
-  width: 48px;
+  height: 6px;
+  width: 6px;
   background-color: ${p => p.theme.tokens.graphics.neutral.muted};
   cursor: ${p => (p.clickable ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.full};
 `;
 
 const StepperTransitionIndicator = styled(motion.span)`
-  height: 5px;
-  width: 48px;
+  height: 6px;
+  width: 6px;
   background-color: ${p => p.theme.tokens.background.accent.vibrant};
   position: absolute;
   border-radius: ${p => p.theme.radius.full};

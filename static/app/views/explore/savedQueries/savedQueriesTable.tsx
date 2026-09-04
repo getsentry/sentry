@@ -118,7 +118,7 @@ export function SavedQueriesTable({
 
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: SavedQuery) => {
-      return (name: string) => {
+      return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
           name,
@@ -357,23 +357,28 @@ const Container = styled('div')`
 `;
 
 const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hasLogsEnabled: boolean}>`
-  grid-template-areas: 'star name project envs query created-by last-visited actions';
+  /* stylelint-disable named-grid-areas-no-invalid */
+  grid-template-areas: ${p =>
+    p.hasLogsEnabled
+      ? "'star name dataset project envs query created-by last-visited actions'"
+      : "'star name project envs query created-by last-visited actions'"};
   grid-template-columns: ${p =>
     p.hasLogsEnabled
       ? '40px 20% min-content minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto auto 48px'
       : '40px 20% minmax(auto, 120px) minmax(auto, 120px) minmax(0, 1fr) auto auto 48px'};
 
   @container (max-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-areas: 'star name project query created-by actions';
+    grid-template-areas: ${p =>
+      p.hasLogsEnabled
+        ? "'star name dataset project query created-by actions'"
+        : "'star name project query created-by actions'"};
     grid-template-columns: ${p =>
       p.hasLogsEnabled
         ? '40px 20% min-content minmax(auto, 120px) minmax(0, 1fr) auto 48px'
-        : '40px 20%  minmax(auto, 120px) minmax(0, 1fr) auto 48px'};
+        : '40px 20% minmax(auto, 120px) minmax(0, 1fr) auto 48px'};
 
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'] {
+    [data-column='envs'],
+    [data-column='last-visited'] {
       display: none;
     }
   }
@@ -382,13 +387,11 @@ const SavedEntityTableWithColumns = styled(SavedEntityTable)<{hasLogsEnabled: bo
     grid-template-areas: 'star name query actions';
     grid-template-columns: 40px 30% minmax(0, 1fr) 48px;
 
-    div[data-column='envs'],
-    div[data-column='last-visited'],
-    div[data-column='created'],
-    div[data-column='stars'],
-    div[data-column='created-by'],
-    div[data-column='project'],
-    div[data-column='dataset'] {
+    [data-column='envs'],
+    [data-column='last-visited'],
+    [data-column='created-by'],
+    [data-column='project'],
+    [data-column='dataset'] {
       display: none;
     }
   }

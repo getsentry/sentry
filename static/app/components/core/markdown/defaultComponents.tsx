@@ -104,7 +104,7 @@ export function DefaultOrderedList({children}: {children: ReactNode}) {
   );
 }
 
-export function DefaultListItem({children}: {children: ReactNode; checked?: boolean}) {
+export function DefaultListItem({children}: {children: ReactNode}) {
   // Match DefaultParagraph so tight list items (inline-only content, no nested
   // <p>) keep md body size instead of inheriting a smaller parent size.
   return (

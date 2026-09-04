@@ -1,5 +1,4 @@
 import {useQueryClient} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
@@ -15,7 +14,6 @@ import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import {openChangeEffectiveAtModal} from 'admin/components/changeEffectiveAtAction';
 import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
@@ -100,36 +98,24 @@ export function InvoiceDetails() {
     }
   };
 
-  const handleEffectiveAt = async (effectiveAt: string) => {
-    try {
-      const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/effective-at/`,
-        {
-          method: 'PUT',
-          data: {effectiveAt},
-        }
-      );
-      updateCache(updatedInvoice);
-      addSuccessMessage('Invoice effective at date updated');
-    } catch {
-      addErrorMessage(ERR_MESSAGE);
-    }
-  };
-
   const getItemDescription = (item: InvoiceItem) => {
     if (item.description) {
       return item.description;
     }
 
-    const {plan, period} = item.data;
+    const {plan, period} = item.data ?? {};
 
     if (item.type === 'subscription') {
+      if (!plan) {
+        return 'Unlabeled item';
+      }
+      if (!period) {
+        return `${plan.name} subscription`;
+      }
       const from = prettyDate(period.start * 1000);
       const until = prettyDate(period.end * 1000);
 
-      return period
-        ? `${plan.name} subscription from ${from} until ${until}`
-        : `${plan.name} subscription`;
+      return `${plan.name} subscription from ${from} until ${until}`;
     }
 
     return 'Unlabeled item';
@@ -179,17 +165,6 @@ export function InvoiceDetails() {
       </DetailList>
       <DetailList>
         <DetailLabel title="ID">{invoice.id}</DetailLabel>
-        <DetailLabel title="Type">{invoice.type || 'n/a'}</DetailLabel>
-        <DetailLabel title="Channel">{invoice.channel || 'n/a'}</DetailLabel>
-        <DetailLabel title="Stripe ID">
-          {invoice.stripeInvoiceID ? (
-            <a href={`https://dashboard.stripe.com/invoices/${invoice.stripeInvoiceID}`}>
-              {invoice.stripeInvoiceID}
-            </a>
-          ) : (
-            'n/a'
-          )}
-        </DetailLabel>
         <DetailLabel title="Effective At">
           {invoice.effectiveAt ? prettyDate(invoice.effectiveAt) : 'n/a'}
         </DetailLabel>
@@ -208,15 +183,7 @@ export function InvoiceDetails() {
       <tbody>
         {invoice.items.map((item, num) => (
           <tr key={num}>
-            <td>
-              {getItemDescription(item)}
-              <br />
-              {item.periodStart && item.periodEnd && (
-                <small>{`${moment(item.periodStart).format('ll')} › ${moment(
-                  item.periodEnd
-                ).format('ll')}`}</small>
-              )}
-            </td>
+            <td>{getItemDescription(item)}</td>
             <td data-label="Amount" style={{textAlign: 'right'}}>
               ${(item.amount / 100).toLocaleString()}
             </td>
@@ -304,17 +271,6 @@ export function InvoiceDetails() {
               ? 'Invoice is paid'
               : 'Requires billing admin permission',
           onAction: handleRetry,
-        },
-        {
-          key: 'changeEffectiveAt',
-          name: 'Change Effective At Date',
-          help: 'Change date used for ARR calculations.',
-          disabled: isDeleted || !isBillingAdmin(),
-          disabledReason: isDeleted
-            ? 'Organization is deleted'
-            : 'Requires billing admin permission',
-          skipConfirmModal: true,
-          onAction: () => openChangeEffectiveAtModal({onAction: handleEffectiveAt}),
         },
       ]}
       sections={[

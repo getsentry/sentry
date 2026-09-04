@@ -269,6 +269,12 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "auth.email-verification-at-signup.social-auth-enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -2431,6 +2437,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When True, a recalibration factor outside the rebalance bounds is clamped to the
+# nearest bound instead of deleted. Deletion drops the factor back to 1.0 for a full
+# cycle, which makes the effective sample rate oscillate; clamping keeps it steady.
+register(
+    "dynamic-sampling.recalibration.clamp-factor",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Stops dynamic sampling rules from being emitted in relay config.
 # This is required for ST instances that have flakey flags as we want to be able kill DS ruining customer data if necessary.
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
@@ -2450,14 +2465,6 @@ register(
 # subset so toggling the rate up and down does not reshuffle which orgs run.
 register(
     "dynamic-sampling.per_org.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# No longer read. Kept registered until the options automator stops setting it.
-register(
-    "dynamic-sampling.per_org.recalibration-rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2639,6 +2646,15 @@ register(
         "gitlab",
     ],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# How many chained drains a strict provider's mailbox may run per lineage,
+# counting the ordinary dispatch as the first link: at 1 a finished drain never
+# chains, and each increment lets a busy mailbox re-dispatch itself once more
+# before falling back to the scheduler.
+register(
+    "hybridcloud.webhookpayload.max_chain_depth",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Dispatch skip-on-failure providers' mailboxes from their oldest due record
 # instead of gating on the absolute head, so one record in retry backoff cannot
@@ -4360,6 +4376,14 @@ register(
     "issues.derived.check-task-count",
     default=5,
     type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When enabled, check_fresh_derived_data_batch also observes status consistency
+# for projects where derived data should cover full history.
+register(
+    "issues.derived.status-consistency-check-enabled",
+    default=True,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -39,6 +39,7 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import failed_tool_calls
+from sentry.seer.autofix.pr_iteration.emit import complete_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -46,6 +47,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -165,10 +167,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
-
-    Keep dispatching this hook without ``call_on_failure`` until the failure
-    handling below is fully deployed: a mixed rollout that fired this hook on
-    error used to continue the pipeline as if the step succeeded.
+    - No-op'ing when the run did not complete (errors / timeouts), so Seer can
+      invoke this hook with ``call_on_failure=True`` without advancing the pipeline
     """
 
     @classmethod
@@ -853,6 +853,21 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
             log_ctx = cls._iteration_log_context(organization, group, state)
+
+            if state.status == "error":
+                paused = pause_pr_iteration(
+                    run_id=run_id,
+                    organization_id=organization.id,
+                    reason=PauseReason.RUN_ERRORED,
+                )
+                log_ctx.info(
+                    "autofix.pr_iteration.paused_on_error",
+                    run_status=state.status,
+                    paused=paused,
+                    failure_reason=state.failure_reason,
+                )
+                return
+
             pushed = cls._push_iteration_changes(
                 log_ctx,
                 group,
@@ -866,6 +881,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # we want to consume queued feedback _after_ we know changes have been pushed
                 # because some feedback in the queue could be filtered out
                 cls._consume_queued_feedback(log_ctx, organization, run_id)
+
+            complete_pr_iteration_details(
+                log_ctx=log_ctx,
+                run_state=state,
+                organization_id=organization.id,
+                pushed_changes=pushed,
+            )
             return
 
         if stopping_point is None or reached_stopping_point:

@@ -5,6 +5,7 @@ from unittest.mock import call, patch
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
 from sentry.issues.derived.check import CheckId, CheckTimeout
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
@@ -20,7 +21,7 @@ from sentry.issues.derived.tasks_util import (
     group_id_ranges_for_hash,
 )
 from sentry.issues.models.groupderiveddata import GroupDerivedData
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -585,6 +586,96 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             sample_rate=1.0,
             tags={"result": "no_result"},
         )
+
+    def test_records_status_inconsistency_for_backfilled_project(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(
+            data={"status": "open"},
+        )
+
+        with patch("sentry.issues.derived.check.metrics.incr") as mock_incr:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        assert (
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={
+                    "result": "diverged",
+                    "derived_status": "open",
+                    "actual_status": "closed",
+                    "source": "batch_check",
+                },
+            )
+            in mock_incr.call_args_list
+        )
+
+    def test_skips_status_check_when_not_derived_should_be_correct(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+
+        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_not_called()
+
+    @override_options({"issues.derived.status-consistency-check-enabled": False})
+    def test_skips_status_check_when_option_disabled(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+
+        with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_not_called()
+
+    def test_status_check_runs_before_derived_check_timeout(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash is not None
+        group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
+        GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
+        check_id = CheckId(
+            "invocation-id",
+            group.id,
+            derived.generated_at,
+            derived.cursor_date,
+            derived.cursor_id,
+            derived.pipeline_hash,
+        )
+
+        with (
+            patch(
+                "sentry.issues.derived.check.check_derived_data",
+                side_effect=CheckTimeout(check_id),
+            ),
+            patch.object(check_fresh_derived_data_batch, "delay"),
+            patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status,
+        ):
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        mock_record_status.assert_called_once()
 
 
 @with_feature("projects:issue-action-log-write-to-db")

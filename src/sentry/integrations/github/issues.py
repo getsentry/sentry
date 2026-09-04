@@ -37,6 +37,12 @@ PAGE_LIMIT = 1
 
 
 class GitHubIssuesSpec(SourceCodeIssueIntegration):
+    @staticmethod
+    def _format_assignee(user: Mapping[str, Any]) -> tuple[str, str]:
+        login = user["login"]
+        name = user.get("name")
+        return login, f"{name} (@{login})" if name else login
+
     def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
         if isinstance(exc, ApiError):
             if exc.code == 422:
@@ -382,9 +388,19 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         except Exception as e:
             self.raise_error(e)
 
-        users = tuple((u["login"], u["login"]) for u in response)
+        users = tuple(self._format_assignee(user) for user in response)
 
         return (("", "Unassigned"),) + users
+
+    def search_allowed_assignees(self, repo: str, query: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.search_issue_assignees(repo, query)
+        except Exception as e:
+            self.raise_error(e)
+
+        user_choices = tuple(self._format_assignee(user) for user in response)
+        return user_choices if query else (("", "Unassigned"),) + user_choices
 
     def get_repo_labels(
         self, owner: str, repo: str, page_number_limit: int | None = None
@@ -407,3 +423,12 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         )
 
         return labels
+
+    def search_repo_labels(self, repo: str, query: str) -> Sequence[tuple[str, str]]:
+        client = self.get_client()
+        try:
+            response = client.search_issue_labels(repo, query)
+        except Exception as e:
+            self.raise_error(e)
+
+        return tuple((label["name"], label["name"]) for label in response)

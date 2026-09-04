@@ -35,6 +35,7 @@ function isCustomTag(key: string): boolean {
 }
 
 export function createOnDemandFilterWarning(warning: React.ReactNode) {
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return (key: string) => {
     const fieldKey = key as FieldKey;
     if (isCustomTag(fieldKey)) {

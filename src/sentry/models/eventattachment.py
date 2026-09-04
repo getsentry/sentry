@@ -77,8 +77,7 @@ def can_store_inline(data: bytes) -> bool:
     return len(data) < 192 and all(byte > 0x00 and byte < 0x7F for byte in data)
 
 
-@cell_silo_model
-class EventAttachment(Model):
+class EventAttachmentBase(Model):
     """
     Attachment Metadata and Storage
 
@@ -95,19 +94,20 @@ class EventAttachment(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
+    # NOTE: `event_id`, `type` and `date_added` are indexed on `EventAttachment` but not
+    # on `PendingEventAttachment`, so they are declared on the concrete models instead.
+    # Django does not allow overriding a field inherited from an abstract base, so
+    # `db_index` cannot be varied per subclass.
+
     # the things we want to look up attachments by:
     project_id = BoundedBigIntegerField()
-    group_id = BoundedBigIntegerField(null=True, db_index=True)
-    event_id = models.CharField(max_length=32, db_index=True)
 
     # attachment and file metadata:
-    type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
     content_type = models.TextField(null=True)
     size = BoundedIntegerField(null=True)
     sha1 = models.CharField(max_length=40, null=True)
 
-    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     date_expires = models.DateTimeField(
         db_default=Now() + timedelta(days=30),
         db_index=True,
@@ -116,7 +116,26 @@ class EventAttachment(Model):
     # storage:
     blob_path = models.TextField(null=True)
 
+    # NOTE: when adding new fields with db index,
+    #       add them to `EventAttachment` and / or `PendingEventAttachment`,
+    #       not to the base class (unless the index is needed for both tables).
+
     class Meta:
+        abstract = True
+
+
+@cell_silo_model
+class EventAttachment(EventAttachmentBase):
+    """
+    An attachment belonging to an event that has been ingested.
+    """
+
+    group_id = BoundedBigIntegerField(null=True, db_index=True)
+    event_id = models.CharField(max_length=32, db_index=True)
+    type = models.CharField(max_length=64, db_index=True)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta(EventAttachmentBase.Meta):
         app_label = "sentry"
         db_table = "sentry_eventattachment"
         indexes = (
@@ -283,6 +302,30 @@ class EventAttachment(Model):
         return PutfileResult(
             content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
         )
+
+
+@cell_silo_model
+class PendingEventAttachment(EventAttachmentBase):
+    """
+    An attachment whose corresponding event has not been ingested (yet).
+
+    This model has the same fields as `EventAttachment` except `group_id`, which
+    is missing for pending attachments.
+    """
+
+    event_id = models.CharField(max_length=32)
+    type = models.CharField(max_length=64)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    #: A non-indexed long-term expiry date for retention purposes. This will be copied into `EventAttachment.date_expires`.
+    date_expires_retention = models.DateTimeField(db_default=Now() + timedelta(days=30))
+
+    class Meta(EventAttachmentBase.Meta):
+        app_label = "sentry"
+        db_table = "sentry_pendingeventattachment"
+        indexes = (models.Index(fields=("project_id", "event_id")),)
+
+    __repr__ = sane_repr("event_id", "name")
 
 
 def normalize_content_type(content_type: str | None, name: str) -> str:

@@ -384,7 +384,7 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
   return userMessage.content;
 }
 
-export interface InputMessageStats {
+interface InputMessageStats {
   totalMessageCount: number;
   userMessageCount: number;
 }
