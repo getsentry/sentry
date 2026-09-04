@@ -7,6 +7,7 @@ import {
   Container,
   Flex,
   Stack,
+  useHasContainerQuery,
   useResponsivePropValue,
   type FlexProps,
 } from '@sentry/scraps/layout';
@@ -24,7 +25,8 @@ interface RowLayoutProps extends LayoutProps {
 }
 
 function RowLayout(props: RowLayoutProps) {
-  const isStackLayout = useResponsivePropValue({zero: true, md: false});
+  const isStackAtBreakpoint = useResponsivePropValue({zero: true, md: false});
+  const isStackLayout = useHasContainerQuery() && isStackAtBreakpoint;
 
   return isStackLayout ? <StackLayout {...props} /> : <RowLayoutContent {...props} />;
 }
