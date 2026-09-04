@@ -20,6 +20,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
+export const PR_ITERATION_PAUSED_TOOLTIP = t(
+  'PR iteration has been stopped for this Autofix run'
+);
+
 interface PrIterationFeedbackFormProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
@@ -45,7 +49,7 @@ export function PrIterationFeedbackForm({
   const prompt = t('Anything else you want to see on your PR?');
   // A disabled control fires no pointer events, so the tooltip hangs off the
   // wrapper element rather than the control itself.
-  const pausedTooltip = t('PR iteration has been stopped for this Autofix run');
+  const pausedTooltip = PR_ITERATION_PAUSED_TOOLTIP;
 
   const handleSubmit = async () => {
     // Also guards the Enter hotkey, which clicks the button directly.
