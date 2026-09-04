@@ -16,7 +16,7 @@ interface ChangeContractEndDateModalProps extends ModalRenderProps {
 }
 
 const schema = z.object({
-  contractPeriodEnd: z.string().min(1, 'End date is required'),
+  contractPeriodEnd: z.iso.date('Enter a valid end date'),
 });
 
 function ChangeContractEndDateModal({
