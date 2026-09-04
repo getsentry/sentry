@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
+from collections.abc import Mapping
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -37,6 +38,7 @@ from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -389,6 +391,18 @@ class BaseRequestParser(ABC):
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
+
+    @staticmethod
+    def bucket_key_at(data: Mapping[str, Any], *path: str) -> int | None:
+        """Read a bucket key out of `data`, or None if it is missing or not numeric.
+
+        Shared so every provider degrades the same way rather than raising out of the
+        parser on a body it did not expect.
+        """
+        try:
+            return int(get_path(data, *path))
+        except (TypeError, ValueError):
+            return None
 
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
         """Validation lives here, not in the subclass: the discriminator comes out of
