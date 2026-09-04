@@ -160,7 +160,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       await submitSuccess();
     });
 
-    it('preserves a searched option after reloading the form fields', async () => {
+    it('preserves options after reloading and searching again', async () => {
       const searchUrl = '/extensions/example/search';
       onSubmitAction.mockClear();
 
@@ -198,6 +198,17 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         ],
         method: 'GET',
         body: [{label: 'Selected Project', value: 'project-99'}],
+      });
+      const laterSearchQuery = MockApiClient.addMockResponse({
+        url: searchUrl,
+        match: [
+          MockApiClient.matchQuery({
+            field: 'project',
+            query: 'Other',
+          }),
+        ],
+        method: 'GET',
+        body: [{label: 'Other Project', value: 'project-100'}],
       });
       const dynamicQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
@@ -258,6 +269,21 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       );
 
       const detailsField = screen.getByRole('textbox', {name: 'Details'});
+      const reloadedProjectField = screen.getByRole('textbox', {name: 'Project'});
+      await userEvent.click(reloadedProjectField);
+      await userEvent.type(reloadedProjectField, 'Other');
+      expect(await screen.findByText('Other Project')).toBeInTheDocument();
+      expect(laterSearchQuery).toHaveBeenCalledTimes(1);
+      await userEvent.clear(reloadedProjectField);
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Initial Project'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Selected Project'})
+      ).toBeInTheDocument();
+      await userEvent.click(detailsField);
+      expect(screen.getByText('Selected Project')).toBeInTheDocument();
+
       await userEvent.clear(detailsField);
       await userEvent.type(detailsField, 'Updated details');
       await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));

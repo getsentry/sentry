@@ -39,6 +39,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 const IGNORED_FIELDS = ['Sprint'];
 
+function mergeChoices(
+  ...choiceGroups: Array<readonly JsonFormAdapterChoice[]>
+): JsonFormAdapterChoice[] {
+  return [
+    ...new Map(choiceGroups.flat().map(choice => [String(choice[0]), choice])).values(),
+  ];
+}
+
 interface TicketRuleModalProps extends ModalRenderProps {
   instance: TicketActionData;
   link: string | null;
@@ -97,11 +105,14 @@ export function TicketRuleModal({
   >({});
   const handleAsyncOptionsFetched = useCallback(
     (fieldName: string, options: Array<SelectValue<JsonFormAdapterChoiceValue>>) => {
+      const fetchedChoices = options.map((option): JsonFormAdapterChoice => {
+        const label =
+          typeof option.label === 'string' ? option.label : String(option.value);
+        return [option.value, label];
+      });
       setAsyncOptionsCache(prev => ({
         ...prev,
-        [fieldName]: options.map(
-          o => [o.value, typeof o.label === 'string' ? o.label : String(o.value)] as const
-        ),
+        [fieldName]: mergeChoices(prev[fieldName] ?? [], fetchedChoices),
       }));
     },
     []
@@ -285,14 +296,16 @@ export function TicketRuleModal({
     const configFields = (integrationDetails?.[getConfigName(action)] || []).map(
       field => {
         const cachedChoices = asyncOptionsCache[field.name];
-        // A dynamic reload can omit the searched selection from its limited choices.
-        // Keep the fetched options so the remounted select can still render its label.
+        // Keep backend and prior search options so later searches cannot hide the selection.
         if (
           (field.type === 'select' || field.type === 'choice') &&
           field.url &&
           cachedChoices
         ) {
-          return {...field, choices: cachedChoices};
+          return {
+            ...field,
+            choices: mergeChoices(field.choices ?? [], cachedChoices),
+          };
         }
         return field;
       }
