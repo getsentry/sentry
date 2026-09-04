@@ -5,6 +5,7 @@ from abc import ABC
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
+import orjson
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -13,11 +14,13 @@ from rest_framework import status
 
 from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.hybridcloud.tasks.deliver_webhooks import maybe_trigger_drain
+from sentry.hybridcloud.webhook_event_types import MAILBOX_EVENT_TYPES
 from sentry.integrations.middleware.metrics import (
     MiddlewareHaltReason,
     MiddlewareOperationEvent,
@@ -26,12 +29,12 @@ from sentry.integrations.middleware.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.killswitches import get_killswitch_value, value_matches
+from sentry.killswitches import KillswitchConfig, get_killswitch_value, value_matches
 from sentry.logging.handlers import SamplingFilter
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
-from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
+from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -76,6 +79,17 @@ class BaseRequestParser(ABC):
     webhook_identifier: ClassVar[WebhookProviderIdentifier]
     """The webhook provider identifier"""
 
+    mailbox_bucket_count: ClassVar[int] = 100
+    """How many sub-mailboxes `mailbox_bucket_id` is spread over.
+
+    Every mailbox costs a scheduler row and a dispatch slot, so splitting past what
+    the volume needs buys queue rows rather than parallelism.
+    """
+
+    always_bucket: ClassVar[bool] = False
+    """Split every integration's mailbox by `mailbox_bucket_id` instead of waiting
+    for it to exceed the hourly rate limit first."""
+
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
         self.match: ResolverMatch = resolve(self.request.path)
@@ -84,6 +98,9 @@ class BaseRequestParser(ABC):
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
         self._shed_decisions: dict[int | None, bool] = {}
+        self._targeted_shed_conditions: KillswitchConfig | None = None
+        self._integration: Integration | None = None
+        self._integration_fetched = False
 
     # Common Helpers
 
@@ -102,6 +119,18 @@ class BaseRequestParser(ABC):
                 raise SiloLimit.AvailabilityError(
                     "Integration Request Parsers should only be run on the control silo."
                 )
+
+    def integration_for_request(self) -> Integration | None:
+        """``get_integration_from_request`` memoized for the life of the parser.
+
+        A parser is built once per request, so its callers share one query and one
+        decrypt of the integration's encrypted metadata. Subclasses override the
+        uncached ``get_integration_from_request``; nothing else should call it.
+        """
+        if not self._integration_fetched:
+            self._integration = self.get_integration_from_request()
+            self._integration_fetched = True
+        return self._integration
 
     def is_json_request(self) -> bool:
         if not self.request.headers:
@@ -173,12 +202,20 @@ class BaseRequestParser(ABC):
     def get_response_from_webhookpayload(
         self,
         cells: list[Cell],
-        identifier: int | str | None = None,
+        mailbox: MailboxName | None = None,  # TODO(getsentry): make required
         integration_id: int | None = None,
+        identifier: int | str | None = None,  # TODO(getsentry): remove
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
+
+        A provider that resolved nothing to key its mailbox on falls back to its
+        own webhook identifier, which puts every one of its payloads in one mailbox.
+
+        `identifier` is the older spelling of a subject-only `mailbox`, kept while the
+        parsers in getsentry still pass it -- the two repos cannot change in one commit.
+        The fallback to `webhook_identifier` goes when it does; no caller relies on it.
         """
         shed_response = self.get_shed_response(integration_id=integration_id)
         if shed_response is not None:
@@ -187,14 +224,14 @@ class BaseRequestParser(ABC):
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        shard_identifier = identifier or self.webhook_identifier.value
+        target = mailbox or MailboxName(
+            self.provider, str(identifier or self.webhook_identifier.value)
+        )
         # Create all payloads first, then trigger one drain per (cell-scoped) mailbox.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_CELL,
-                cell=cell.name,
-                provider=self.provider,
-                identifier=shard_identifier,
+                mailbox=target.in_cell(cell.name),
                 integration_id=integration_id,
                 request=self.request,
             )
@@ -212,6 +249,9 @@ class BaseRequestParser(ABC):
         trigger, the writes that make a flood expensive. Use the
         `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
         and integrations are dropped. Returns None to handle the request normally.
+
+        Called without an ``integration_id`` only provider-wide conditions can match,
+        which is what lets a parser shed before resolving the integration.
         """
         if not self._should_shed(integration_id):
             return None
@@ -230,18 +270,28 @@ class BaseRequestParser(ABC):
             self._shed_decisions[integration_id] = self._evaluate_shed(integration_id)
         return self._shed_decisions[integration_id]
 
-    def _evaluate_shed(self, integration_id: int | None) -> bool:
-        conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
-        # A condition with no provider matches every provider. There are few enough
-        # providers to name them, so drop those rather than let one option typo shed
-        # all inbound traffic. Counted so an ignored condition is not a silent no-op.
-        targeted = [condition for condition in conditions if condition.get("provider") is not None]
-        if len(targeted) != len(conditions):
-            metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+    def _get_targeted_shed_conditions(self) -> KillswitchConfig:
+        """Shed conditions that name a provider, read once per request.
 
+        A condition with no provider would match every one of them, so it is dropped
+        rather than let one option typo shed all inbound traffic, and counted so it is
+        not a silent no-op. Counted here because it is a property of the config, not of
+        any one check, and a parser may consult the killswitch several times.
+        """
+        if self._targeted_shed_conditions is None:
+            conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
+            self._targeted_shed_conditions = [
+                condition for condition in conditions if condition.get("provider") is not None
+            ]
+            if len(self._targeted_shed_conditions) != len(conditions):
+                metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+
+        return self._targeted_shed_conditions
+
+    def _evaluate_shed(self, integration_id: int | None) -> bool:
         if not value_matches(
             SHED_INBOUND_KILLSWITCH,
-            targeted,
+            self._get_targeted_shed_conditions(),
             {"provider": self.provider, "integration_id": integration_id},
             emit_metrics=False,
         ):
@@ -258,62 +308,105 @@ class BaseRequestParser(ABC):
         )
         return True
 
-    def get_mailbox_identifier(
+    def get_request_body(self) -> dict[str, Any]:
+        """Empty when the body is not a JSON object. A payload that does not parse
+        still has to be queued, so callers fall back to the integration-level mailbox.
+        """
+        try:
+            body = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
+            return {}
+        return body if isinstance(body, dict) else {}
+
+    def get_mailbox(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
+    ) -> MailboxName:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement
         `mailbox_bucket_id`
+
+        The cell is left for the fanout to add -- one mailbox is built for all of
+        them.
         """
+        return self._bucketed(
+            MailboxName(
+                provider=self.provider,
+                subject=str(integration.id),
+                event_type=self._mailbox_event_type(data),
+            ),
+            integration,
+            data,
+        )
+
+    def _bucketed(
+        self,
+        mailbox: MailboxName,
+        integration: RpcIntegration | Integration,
+        data: dict[str, Any],
+    ) -> MailboxName:
+        """`mailbox` in a bucket, or unchanged where the integration is below the
+        volume that warrants buckets, or the payload carries no key to bucket it on."""
+        if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
+            self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
+            return mailbox
+
+        mailbox_bucket_id = self.mailbox_bucket_id(data)
+        if mailbox_bucket_id is None:
+            self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
+            return mailbox
+
+        self._record_mailbox_routing(bucketed=True, reason="bucketed")
+
+        return mailbox.in_bucket(mailbox_bucket_id % self.mailbox_bucket_count)
+
+    def _exceeds_bucketing_volume(self, integration: RpcIntegration | Integration) -> bool:
         # If we get fewer than 3000 in 1 hour we don't need to split into buckets
         ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
         use_buckets_key = f"{ratelimit_key}:use_buckets"
 
-        use_buckets = cache.get(use_buckets_key)
-        if not use_buckets and ratelimiter.is_limited(
-            key=ratelimit_key, window=60 * 60, limit=3000
-        ):
+        if cache.get(use_buckets_key):
+            return True
+        if ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
             # Once we have gone over the rate limit in a day, we use smaller
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
-            use_buckets = True
-        if not use_buckets:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
-            return str(integration.id)
+            return True
+        return False
 
-        return self._build_bucketed_identifier(integration, data)
-
-    def _build_bucketed_identifier(
-        self, integration: RpcIntegration | Integration, data: dict[str, Any]
-    ) -> str:
-        """Compute a sub-mailbox identifier from mailbox_bucket_id, falling back to
-        the integration-level mailbox when no bucket ID is available."""
-        mailbox_bucket_id = self.mailbox_bucket_id(data)
-        if mailbox_bucket_id is None:
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
-            return str(integration.id)
-
-        # Split high volume integrations into 100 buckets.
-        # 100 is arbitrary but we can't leave it unbounded.
-        bucket_number = mailbox_bucket_id % 100
+    def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
+        """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
         metrics.incr(
             "hybridcloud.webhookpayload.mailbox_routing",
-            tags={"provider": self.provider, "bucketed": "true"},
+            tags={
+                "provider": self.provider,
+                "bucketed": "true" if bucketed else "false",
+                "reason": reason,
+            },
         )
-
-        return f"{integration.id}:{bucket_number}"
 
     def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
+
+    def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
+        """Validation lives here, not in the subclass: the discriminator comes out of
+        a body control has not verified — gitlab and bitbucket resolve their handlers
+        on the cell — so an unvalidated one would put an attacker-chosen string into
+        `mailbox_name`, and with it unbounded mailboxes and scheduler entries.
+        """
+        known_event_types = MAILBOX_EVENT_TYPES.get(self.provider)
+        if not known_event_types:
+            return None
+        event_type = self.mailbox_event_type(data)
+        return event_type if event_type in known_event_types else None
+
+    def mailbox_event_type(self, data: dict[str, Any]) -> str | None:
+        """Returned unvalidated; `_mailbox_event_type` checks it against the
+        registry.
+        """
+        return None
 
     def get_response_from_first_cell(self):
         cells = self.get_cells_from_organizations()
@@ -377,7 +470,7 @@ class BaseRequestParser(ABC):
         self, integration: Integration | RpcIntegration | None = None
     ) -> list[RpcOrganizationMapping]:
         """
-        Use the get_integration_from_request() method to identify organizations associated with
+        Use the integration_for_request() method to identify organizations associated with
         the integration request.
         """
         with MiddlewareOperationEvent(
@@ -390,24 +483,26 @@ class BaseRequestParser(ABC):
                 }
             )
             if not integration:
-                integration = self.get_integration_from_request()
+                integration = self.integration_for_request()
             if not integration:
                 raise Integration.DoesNotExist()
 
             lifecycle.add_extra("integration_id", integration.id)
 
-            organization_integrations = OrganizationIntegration.objects.filter(
-                integration_id=integration.id,
-                status=ObjectStatus.ACTIVE,
+            # Only the ids are read, so one column beats a COUNT plus a discarded fetch.
+            organization_ids = list(
+                OrganizationIntegration.objects.filter(
+                    integration_id=integration.id,
+                    status=ObjectStatus.ACTIVE,
+                ).values_list("organization_id", flat=True)
             )
 
-            if organization_integrations.count() == 0:
+            if not organization_ids:
                 lifecycle.record_halt(
                     halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
                 )
                 return []
 
-            organization_ids = [oi.organization_id for oi in organization_integrations]
             all_organizations = organization_mapping_service.get_many(
                 organization_ids=organization_ids
             )
@@ -437,7 +532,7 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        cell_names = find_cells_for_orgs([org.id for org in organizations])
+        cell_names = find_cells_for_org_mappings(organizations)
         return sorted([get_cell_by_name(name) for name in cell_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:

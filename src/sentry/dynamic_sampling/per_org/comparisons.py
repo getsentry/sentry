@@ -34,6 +34,7 @@ from sentry.dynamic_sampling.per_org.queries import (
 from sentry.dynamic_sampling.tasks.common import (
     OrganizationDataVolume,
     compute_sliding_window_sample_rate,
+    get_effective_sample_rate,
     get_organization_volume,
 )
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
@@ -95,12 +96,6 @@ def get_relative_deviation(
     if calculated_sample_rate == 0:
         return 0.0 if cached_sample_rate == 0 else None
     return abs(cached_sample_rate - calculated_sample_rate) / abs(calculated_sample_rate)
-
-
-def get_effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
-    if volume is None or volume.indexed is None or volume.total <= 0:
-        return None
-    return volume.indexed / volume.total
 
 
 def compare_rebalanced_projects_with_cache(config: BaseDynamicSamplingConfiguration) -> None:
@@ -320,7 +315,9 @@ def compare_organization_sliding_window_sample_rates(
     window: timedelta = timedelta(hours=24),
 ) -> None:
     end = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
-    eap_volume = get_eap_organization_volume(config, time_interval=window, end=end)
+    eap_volume = get_eap_organization_volume(
+        config.organization, config.projects, time_interval=window, end=end
+    )
     outcomes_volume = get_outcomes_organization_volume(config, time_interval=window, end=end)
     generic_metrics_volume = get_generic_metrics_organization_volume(
         config.organization.id, time_interval=window, end=end

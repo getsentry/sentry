@@ -6,14 +6,68 @@ import type {
   RawSpanType,
 } from 'sentry/components/events/interfaces/spans/types';
 import {
-  boundsGenerator,
   generateRootSpan,
   parseTrace,
+} from 'sentry/components/events/interfaces/spans/utils';
+import type {
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
 } from 'sentry/components/events/interfaces/spans/utils';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+
+function boundsGenerator({
+  traceEndTimestamp,
+  traceStartTimestamp,
+  viewEnd,
+  viewStart,
+}: {
+  traceEndTimestamp: number;
+  traceStartTimestamp: number;
+  viewEnd: number;
+  viewStart: number;
+}) {
+  const traceStart = Math.min(traceStartTimestamp, traceEndTimestamp);
+  const traceEnd = Math.max(traceStartTimestamp, traceEndTimestamp);
+  const traceDuration = traceEnd - traceStart;
+  const viewStartTimestamp = traceStart + viewStart * traceDuration;
+  const viewDuration = (viewEnd - viewStart) * traceDuration;
+
+  return (bounds: SpanBoundsType): SpanGeneratedBoundsType => {
+    if (traceDuration <= 0) {
+      return {type: 'TRACE_TIMESTAMPS_EQUAL', isSpanVisibleInView: true};
+    }
+    if (viewDuration <= 0) {
+      return {type: 'INVALID_VIEW_WINDOW', isSpanVisibleInView: true};
+    }
+
+    const timestampsEqual = bounds.startTimestamp === bounds.endTimestamp;
+    const timestampsReversed = bounds.startTimestamp > bounds.endTimestamp;
+    const startTimestamp = Math.min(bounds.startTimestamp, bounds.endTimestamp);
+    const endTimestamp = Math.max(bounds.startTimestamp, bounds.endTimestamp);
+    const start = (startTimestamp - viewStartTimestamp) / viewDuration;
+    const end = (endTimestamp - viewStartTimestamp) / viewDuration;
+    const isSpanVisibleInView = end > 0 && start < 1;
+
+    if (timestampsEqual) {
+      return {
+        type: 'TIMESTAMPS_EQUAL',
+        start,
+        width: 1,
+        isSpanVisibleInView: end >= 0 && start <= 1,
+      };
+    }
+
+    return {
+      type: timestampsReversed ? 'TIMESTAMPS_REVERSED' : 'TIMESTAMPS_STABLE',
+      start,
+      end,
+      isSpanVisibleInView,
+    };
+  };
+}
 
 describe('SpanTreeModel', () => {
   const api = new MockApiClient();

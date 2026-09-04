@@ -18,7 +18,7 @@ describe('Link', () => {
   describe('disabled links', () => {
     it('renders links with string to prop render as <a> with no href', () => {
       render(
-        // eslint-disable-next-line no-restricted-syntax
+        // eslint-disable-next-line eslint-js/no-restricted-syntax
         <Link disabled to="https://www.sentry.io/">
           Link
         </Link>
@@ -41,7 +41,7 @@ describe('Link', () => {
   });
 
   it('links render as <a> with href', () => {
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line eslint-js/no-restricted-syntax
     render(<Link to="https://www.sentry.io/">Link</Link>);
     expect(screen.getByText('Link')).toHaveAttribute('href', 'https://www.sentry.io/');
   });

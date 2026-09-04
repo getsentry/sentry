@@ -1,4 +1,4 @@
-/* eslint-disable typescript-sort-keys/interface */
+/* eslint-disable @sentry/sort-interface-keys */
 import type {
   BuildDetailsVcsInfo,
   SnapshotApprovalStatus,

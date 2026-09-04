@@ -30,6 +30,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.pause import (
+    PauseReason,
+    get_pause_reason,
+    is_pr_iteration_paused,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
@@ -44,11 +49,18 @@ from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
-def run_state(run_id=123, blocks: list[MemoryBlock] | None = None, metadata=None):
+def run_state(
+    run_id=123,
+    blocks: list[MemoryBlock] | None = None,
+    metadata=None,
+    status="completed",
+    failure_reason=None,
+):
     return SeerRunState(
         run_id=run_id,
         blocks=blocks if blocks is not None else [],
-        status="completed",
+        status=status,
+        failure_reason=failure_reason,
         updated_at="2026-02-10T00:00:00Z",
         metadata=metadata,
     )
@@ -742,6 +754,36 @@ class TestPrIterationCompletionHook(TestCase):
         mock_consume.assert_called_once()
         assert mock_consume.call_args.args[1:] == (self.organization, 123)
 
+    @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_errored_iteration_pauses_instead_of_pushing(self, mock_push, mock_consume):
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        state = self._unsynced()
+        state.status = "error"
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push.assert_not_called()
+        mock_consume.assert_not_called()
+        assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is True
+        assert (
+            get_pause_reason(run_id=123, organization_id=self.organization.id)
+            == PauseReason.RUN_ERRORED
+        )
+
+    @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_errored_iteration_without_a_run_row_still_stops(self, mock_push, mock_consume):
+        state = self._unsynced()
+        state.status = "error"
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push.assert_not_called()
+        mock_consume.assert_not_called()
+
     @patch(f"{HOOK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_the_hand_back_to_the_queue_schedules_the_drain(self, mock_apply):
         state = self._synced()
@@ -1230,6 +1272,43 @@ class AutofixOnCompletionHookTest(TestCase):
         seer_run.refresh_from_db()
         group.refresh_from_db()
         assert seer_run.last_triggered_at == group.seer_explorer_autofix_last_triggered
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._maybe_continue_pipeline"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._send_step_webhook")
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    def test_error_status_skips_success_path(
+        self, mock_fetch_run_status, mock_send_webhook, mock_continue_pipeline
+    ):
+        mock_fetch_run_status.return_value = run_state(
+            status="error",
+            failure_reason="timeout",
+            metadata={"group_id": 1},
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_send_webhook.assert_not_called()
+        mock_continue_pipeline.assert_not_called()
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._maybe_continue_pipeline"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._send_step_webhook")
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    def test_unclassified_error_still_skips_success_path(
+        self, mock_fetch_run_status, mock_send_webhook, mock_continue_pipeline
+    ):
+        mock_fetch_run_status.return_value = run_state(
+            status="error",
+            metadata={"group_id": 1},
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_send_webhook.assert_not_called()
+        mock_continue_pipeline.assert_not_called()
 
 
 REACT_PATH = "sentry.seer.autofix.on_completion_hook"

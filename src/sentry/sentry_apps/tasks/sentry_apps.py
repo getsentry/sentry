@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Protocol, SupportsInt, cast
 
 import sentry_sdk
@@ -206,8 +206,11 @@ def send_alert_webhook_v2(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
     ).capture() as lifecycle:
-        group = Group.objects.get_from_cache(id=group_id)
-        assert group, "Group must exist to get related attributes"
+        try:
+            group = Group.objects.get_from_cache(id=group_id)
+        except Group.DoesNotExist:
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_GROUP)
+            return
         project = Project.objects.get_from_cache(id=group.project_id)
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         extra: dict[str, int | str] = {
@@ -396,6 +399,7 @@ def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int)
             lambda service_hook: (service_hook.organization_id, service_hook.actor_id),
         )
     ],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def _load_service_hook(organization_id: int | None, installation_id: int) -> ServiceHook | None:
@@ -416,6 +420,7 @@ def _load_service_hook(organization_id: int | None, installation_id: int) -> Ser
 
 @cache_func_for_models(
     [(ServiceHookProject, lambda hook_project: (hook_project.service_hook_id,))],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def _is_project_filtering_enabled(service_hook_id: int) -> bool:
@@ -429,6 +434,7 @@ def _is_project_filtering_enabled(service_hook_id: int) -> bool:
             lambda hook_project: (hook_project.service_hook_id, hook_project.project_id),
         )
     ],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def _does_project_filter_allow_project(service_hook_id: int, project_id: int) -> bool:

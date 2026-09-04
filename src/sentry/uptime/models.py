@@ -162,7 +162,7 @@ def get_org_from_detector(detector: Detector) -> tuple[Organization] | None:
         return None
 
 
-@cache_func_for_models([(Detector, get_org_from_detector)])
+@cache_func_for_models([(Detector, get_org_from_detector)], cache_ttl=timedelta(days=7))
 def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
     return Detector.objects.filter(
         status=ObjectStatus.ACTIVE,
@@ -191,6 +191,7 @@ def get_top_hosting_provider_names(limit: int) -> set[str]:
 
 @cache_func_for_models(
     [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
+    cache_ttl=timedelta(days=7),
     recalculate=False,
 )
 def load_regions_for_uptime_subscription(

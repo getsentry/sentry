@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
@@ -28,7 +28,6 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
   const [initialOnboardingCode] = useState(createOnboardingCode);
   const clientRunId = agenticProgressClientRunId ?? initialClientRunId;
   const onboardingCode = agenticProgressOnboardingCode ?? initialOnboardingCode;
-  const onboardingCodeRef = useRef(onboardingCode);
 
   const initializeRun = (nextClientRunId: string, nextOnboardingCode: string) =>
     fetchMutation<InitializedAgenticProgressRun>({
@@ -48,14 +47,13 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
     queryKey: ['agentic-progress-init', organization.slug, clientRunId],
     queryFn: async () => {
       try {
-        return await initializeRun(clientRunId, onboardingCodeRef.current);
+        return await initializeRun(clientRunId, onboardingCode);
       } catch (error) {
         if (!(error instanceof RequestError) || error.status !== 409) {
           throw error;
         }
 
         const replacementOnboardingCode = createOnboardingCode();
-        onboardingCodeRef.current = replacementOnboardingCode;
         setAgenticProgressOnboardingCode(replacementOnboardingCode);
 
         return initializeRun(clientRunId, replacementOnboardingCode);
@@ -84,4 +82,14 @@ export function useAgenticProgressInit({enabled}: UseAgenticProgressInitOptions)
   ]);
 
   return query;
+}
+
+export function useRestartAgenticRun() {
+  const {setAgenticProgressClientRunId, setAgenticProgressOnboardingCode} =
+    useOnboardingContext();
+
+  return useCallback(() => {
+    setAgenticProgressOnboardingCode(createOnboardingCode());
+    setAgenticProgressClientRunId(uuid4());
+  }, [setAgenticProgressClientRunId, setAgenticProgressOnboardingCode]);
 }

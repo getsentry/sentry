@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.test import RequestFactory
 from django.utils import timezone
 
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.models import WebhookPayload
 from sentry.hybridcloud.models.webhookpayload import (
     BACKOFF_INTERVAL,
@@ -26,9 +27,7 @@ class WebhookPayloadTest(TestCase):
         )
         hook = WebhookPayload.create_from_request(
             destination_type=DestinationType.SENTRY_CELL,
-            cell="us",
-            provider="github",
-            identifier=123,
+            mailbox=MailboxName("github", "123", cell="us"),
             request=request,
             integration_id=123,
         )
@@ -51,9 +50,7 @@ class WebhookPayloadTest(TestCase):
         )
         hook = WebhookPayload.create_from_request(
             destination_type=DestinationType.SENTRY_CELL,
-            cell="us",
-            provider="github",
-            identifier="123:45:check_run",
+            mailbox=MailboxName("github", "123", cell="us", event_type="check_run", bucket=45),
             request=request,
             integration_id=123,
         )

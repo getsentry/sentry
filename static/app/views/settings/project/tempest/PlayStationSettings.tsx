@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';

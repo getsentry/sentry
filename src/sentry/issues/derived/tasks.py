@@ -522,34 +522,42 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     task_count = max_tasks - remaining
     if task_count == 0:
         logger.info("heal_stale_derived_data.nothing_to_heal")
-        check_ranges = _pick_random_fresh_group_ranges(
-            current_hash,
-            batch_size=batch_size,
-            task_count=options.get("issues.derived.check-task-count"),
-        )
-        for start, end in check_ranges:
-            check_fresh_derived_data_batch.delay(
-                group_id_start=start,
-                group_id_end=end,
-            )
-
+    else:
         logger.info(
-            "heal_stale_derived_data.checks_scheduled",
+            "heal_stale_derived_data.scheduled",
             extra={
-                "task_count": len(check_ranges),
+                "stale_hashes": stale_hashes,
+                "task_count": task_count,
+                "tasks_per_hash": scheduled_per_hash,
+                "batch_size": batch_size,
                 "pipeline_hash": current_hash,
             },
         )
+
+    # Checks share the heal fan-out budget. Schedule them whenever leftover
+    # capacity remains, not only when there is nothing stale to regenerate.
+    check_budget = min(remaining, options.get("issues.derived.check-task-count"))
+    if check_budget <= 0:
         return
 
+    check_ranges = _pick_random_fresh_group_ranges(
+        current_hash,
+        batch_size=batch_size,
+        task_count=check_budget,
+    )
+    for start, end in check_ranges:
+        check_fresh_derived_data_batch.delay(
+            group_id_start=start,
+            group_id_end=end,
+        )
+
     logger.info(
-        "heal_stale_derived_data.scheduled",
+        "heal_stale_derived_data.checks_scheduled",
         extra={
-            "stale_hashes": stale_hashes,
-            "task_count": task_count,
-            "tasks_per_hash": scheduled_per_hash,
-            "batch_size": batch_size,
+            "task_count": len(check_ranges),
             "pipeline_hash": current_hash,
+            "heal_task_count": task_count,
+            "remaining_budget": remaining,
         },
     )
 
@@ -582,7 +590,13 @@ def check_fresh_derived_data_batch(
     )
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.check import CheckInvalidated, CheckTimeout, check_derived_data
+    from sentry import options
+    from sentry.issues.derived.check import (
+        CheckInvalidated,
+        CheckTimeout,
+        check_derived_data,
+        record_batch_status_consistency,
+    )
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
     from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -610,14 +624,20 @@ def check_fresh_derived_data_batch(
         resume_pipeline_hash,
     )
 
+    status_check_enabled = options.get("issues.derived.status-consistency-check-enabled")
+    project_should_check: dict[int, bool] = {}
     derived_rows = GroupDerivedData.objects.filter(
         pipeline_hash=PIPELINE.pipeline_hash,
         group_id__gte=group_id_start,
         group_id__lt=group_id_end,
     ).order_by("group_id")
+    if status_check_enabled:
+        derived_rows = derived_rows.select_related("group")
     start = time.monotonic()
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     for derived in derived_rows.iterator():
+        if status_check_enabled:
+            record_batch_status_consistency(derived, derived.group, project_should_check)
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             result = check_derived_data(

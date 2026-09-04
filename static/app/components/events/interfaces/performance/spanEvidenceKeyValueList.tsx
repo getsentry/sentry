@@ -44,6 +44,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -309,11 +310,9 @@ function MainThreadFunctionEvidence({
 }
 
 function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
-  const organization = useOrganization();
   const data = useMemo(
-    () =>
-      issueType ? getRegressionIssueKeyValueList(organization, issueType, event) : null,
-    [organization, event, issueType]
+    () => (issueType ? getRegressionIssueKeyValueList(issueType, event) : null),
+    [event, issueType]
   );
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
@@ -423,7 +422,6 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: LargeHTTPPayloadSpanEvidence,
   [IssueType.PERFORMANCE_HTTP_OVERHEAD]: HTTPOverheadSpanEvidence,
-  [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: RegressionEvidence,
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: MainThreadFunctionEvidence,
@@ -510,6 +508,10 @@ function SlowDBQueryEvidence({
   const groupHash = sentryTags?.group ?? span.hash ?? '';
   const hasExplore = organization.features.includes('visibility-explore-view');
 
+  const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
+  const codeLineNumber = getAttributeValue(span.data ?? {}, 'code.line.number', 'number');
+  const codeFunction = getAttributeValue(span.data ?? {}, 'code.function', 'string');
+
   const queryValue = (
     <QueryCard>
       <Stack minWidth={0}>
@@ -518,14 +520,14 @@ function SlowDBQueryEvidence({
             {formatter.toString(span.description ?? '')}
           </StyledCodeSnippet>
         </NoPaddingClippedBox>
-        {span.data?.['code.filepath'] ? (
+        {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={event.projectID}
             event={event}
             frame={{
-              filename: span.data['code.filepath'],
-              lineNo: span.data['code.lineno'],
-              function: span.data['code.function'],
+              filename: codeFilepath,
+              lineNo: codeLineNumber === undefined ? undefined : Number(codeLineNumber),
+              function: codeFunction,
             }}
           />
         ) : (

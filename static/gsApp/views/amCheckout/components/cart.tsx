@@ -7,12 +7,12 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -477,7 +477,7 @@ function SubtotalSummary({
                   price={
                     <Fragment>
                       {t('Variable cost')}{' '}
-                      <QuestionTooltip
+                      <InfoTip
                         size="xs"
                         position="bottom"
                         title={t(

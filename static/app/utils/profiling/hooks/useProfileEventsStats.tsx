@@ -13,19 +13,15 @@ interface UseProfileEventsStatsOptions<F> {
   referrer: string;
   yAxes: readonly F[];
   datetime?: PageFilterDatetime;
-  enabled?: boolean;
-  interval?: string;
   query?: string;
 }
 
 export function useProfileEventsStats<F extends string>({
   dataset,
   datetime,
-  interval,
   query,
   referrer,
   yAxes,
-  enabled = true,
 }: UseProfileEventsStatsOptions<F>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -50,13 +46,11 @@ export function useProfileEventsStats<F extends string>({
         environment: selection.environments,
         ...normalizeDateTimeParams(datetime ?? selection.datetime),
         yAxis: yAxes,
-        interval,
         query,
         partial: 1,
       },
       staleTime: Infinity,
     }),
-    enabled,
   });
 
   const transformed = useMemo(

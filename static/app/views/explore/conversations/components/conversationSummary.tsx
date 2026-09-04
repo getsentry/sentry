@@ -59,6 +59,16 @@ interface ConversationSummaryProps {
 
 const VISIBLE_TOOL_COUNT = 6;
 
+// Rendered heights of the content the loading skeletons stand in for. Text trims
+// to its font's ascender and descender, so those values are the trimmed boxes
+// rather than the line heights.
+const TEXT_XL_HEIGHT = '23px'; // `Text size="xl"`, and `Heading as="h2"` with it
+const TEXT_MD_HEIGHT = '16px'; // the `ProjectBadge` name, at the body font size
+const TEXT_SM_HEIGHT = '14px';
+const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
+// The zero-size dropdown button the trace link renders for several traces.
+const TRACE_LINK_HEIGHT = '24px';
+
 export function ConversationSummary({
   nodes,
   conversationId,
@@ -113,11 +123,14 @@ export function ConversationSummary({
       minWidth={0}
     >
       <Stack gap="md" minWidth={0} flex={1}>
-        <Container minWidth={0}>
+        {/* A flex box rather than a block: Tooltip wraps the heading in an
+            inline-block span, and as a block this would size to a line box,
+            adding the font strut's descender under the heading. */}
+        <Container minWidth={0} display="flex">
           {isLoading ? (
             // The title is only known once the conversation loads, so show a
             // skeleton rather than briefly flashing the id and swapping it out.
-            <Placeholder width="240px" height="28px" />
+            <Placeholder width="240px" height={TEXT_XL_HEIGHT} />
           ) : (
             <Tooltip
               title={headingTooltip}
@@ -132,30 +145,30 @@ export function ConversationSummary({
         {isLoading ? (
           <Fragment>
             <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-              <Placeholder width="40px" height="14px" />
-              <Placeholder width="72px" height="20px" />
-              <Placeholder width="72px" height="20px" />
+              <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
             </Flex>
-            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+            <MetaRow>
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
-                <Placeholder width="140px" height="14px" />
+                <Placeholder width="140px" height={TEXT_SM_HEIGHT} />
               </Flex>
               <Flex align="center" gap="xs">
                 <Placeholder width="12px" height="12px" />
-                <Placeholder width="40px" height="14px" />
+                <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
               </Flex>
-              {project && (
-                <Flex align="center" gap="xs">
-                  <Placeholder width="16px" height="16px" />
-                  <Placeholder width="80px" height="14px" />
-                </Flex>
-              )}
+              {/* The project comes from the conversation's spans, so it is only
+                  known once they load; its space is reserved either way. */}
+              <Flex align="center" gap="sm">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="80px" height={TEXT_MD_HEIGHT} />
+              </Flex>
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
-                <Placeholder width="120px" height="14px" />
+                <Placeholder width="120px" height={TEXT_SM_HEIGHT} />
               </Flex>
-            </Flex>
+            </MetaRow>
           </Fragment>
         ) : (
           <Fragment>
@@ -193,7 +206,7 @@ export function ConversationSummary({
                 )}
               </Flex>
             )}
-            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+            <MetaRow>
               {aggregates.startTimestamp !== null && (
                 <Flex align="center" gap="xs">
                   <IconCalendar size="md" />
@@ -233,7 +246,7 @@ export function ConversationSummary({
                   </InfoText>
                 )}
               </Flex>
-            </Flex>
+            </MetaRow>
           </Fragment>
         )}
       </Stack>
@@ -285,6 +298,19 @@ export function ConversationSummary({
   );
 }
 
+/**
+ * The row of conversation metadata under the title. Its minHeight matches the
+ * trace link's dropdown button, the tallest thing it holds, so the row keeps
+ * its height whether the link renders as a button, a plain link, or a skeleton.
+ */
+function MetaRow({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" gap="xl" minWidth={0} wrap="wrap" minHeight={TRACE_LINK_HEIGHT}>
+      {children}
+    </Flex>
+  );
+}
+
 function Stat({
   label,
   value,
@@ -322,7 +348,7 @@ function Stat({
         {label}
       </Text>
       {isLoading ? (
-        <Placeholder width="32px" height="24px" />
+        <Placeholder width="32px" height={TEXT_XL_HEIGHT} />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
           {valueContent}

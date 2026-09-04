@@ -4,8 +4,15 @@ import os
 from unittest import mock
 from uuid import uuid4
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.attachments.base import CachedAttachment
-from sentry.models.eventattachment import EventAttachment, normalize_content_type
+from sentry.models.eventattachment import (
+    EventAttachment,
+    PendingEventAttachment,
+    normalize_content_type,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -50,6 +57,73 @@ class EventAttachmentDeleteTest(TestCase):
 
         mock_get_session.return_value.delete.assert_not_called()
         assert not EventAttachment.objects.filter(id=attachment.id).exists()
+
+
+class PendingEventAttachmentDeleteTest(TestCase):
+    """
+    `cleanup` deletes pending attachments through a stale instance: it selects ids in one
+    pass and deletes them in a later one. `save_pending_attachments` can promote the row
+    in between, handing the blob to the `EventAttachment` it creates -- so deleting the
+    blob is only safe while we still own the row.
+    """
+
+    def _create_pending(self) -> PendingEventAttachment:
+        return PendingEventAttachment.objects.create(
+            event_id=uuid4().hex,
+            project_id=self.project.id,
+            type="event.attachment",
+            name="test.txt",
+            blob_path="eventattachments/v1/some-key",
+        )
+
+    @mock.patch("sentry.models.eventattachment.get_storage")
+    def test_delete_removes_the_blob_it_still_owns(self, mock_get_storage: mock.Mock) -> None:
+        pending = self._create_pending()
+
+        pending.delete()
+
+        assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
+        mock_get_storage.return_value.delete.assert_called_once_with("eventattachments/v1/some-key")
+
+    @mock.patch("sentry.models.eventattachment.get_storage")
+    def test_delete_keeps_the_blob_a_promotion_took_over(self, mock_get_storage: mock.Mock) -> None:
+        pending = self._create_pending()
+
+        # Promotion, as `save_pending_attachments` performs it: the blob moves to a new
+        # `EventAttachment`, and the pending row goes away via a queryset delete so that
+        # `Model.delete` -- and with it `delete_blob` -- never runs.
+        promoted = EventAttachment.objects.create(
+            event_id=pending.event_id,
+            project_id=pending.project_id,
+            type=pending.type,
+            name=pending.name,
+            blob_path=pending.blob_path,
+        )
+        PendingEventAttachment.objects.filter(id=pending.id).delete()
+
+        # `pending` is now the stale instance `cleanup` is holding.
+        pending.delete()
+
+        mock_get_storage.return_value.delete.assert_not_called()
+        assert EventAttachment.objects.filter(id=promoted.id).exists()
+
+    def test_delete_locks_the_row_before_dropping_the_blob(self) -> None:
+        pending = self._create_pending()
+
+        with (
+            mock.patch("sentry.models.eventattachment.get_storage"),
+            CaptureQueriesContext(
+                connections[router.db_for_write(PendingEventAttachment)]
+            ) as queries,
+        ):
+            pending.delete()
+
+        claims = [
+            q["sql"]
+            for q in queries.captured_queries
+            if "sentry_pendingeventattachment" in q["sql"] and "FOR UPDATE" in q["sql"]
+        ]
+        assert len(claims) == 1, [q["sql"] for q in queries.captured_queries]
 
 
 class EventAttachmentPutfileTest(TestCase):

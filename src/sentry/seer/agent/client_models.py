@@ -263,8 +263,12 @@ class SeerRunState(BaseModel):
     run_id: int
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error", "awaiting_user_input"]
-    updated_at: str
+    # Set only for the failures Seer can classify (currently "timeout" and
+    # "stalled"); every other failure leaves it None, so `status` is the signal
+    # for whether a run failed and this is only ever extra detail. Kept as a
+    # plain str so a new Seer reason does not fail validation mid-deploy.
     failure_reason: str | None = None
+    updated_at: str
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)

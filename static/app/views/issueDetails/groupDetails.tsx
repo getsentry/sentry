@@ -22,10 +22,9 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, IssueType} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -741,9 +740,7 @@ interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
 
 function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const projectSlug = props.group?.project?.slug;
-  const api = useApi();
   const organization = useOrganization();
-  const [injectedEvent, setInjectedEvent] = useState(null);
   const {
     projects,
     initiallyLoaded: projectsLoaded,
@@ -772,9 +769,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
 
-  const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
-
   useEffect(() => {
     if (props.group && projectsLoaded && !project) {
       Sentry.withScope(scope => {
@@ -788,34 +782,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       });
     }
   }, [props.group, project, projects, projectsLoaded]);
-
-  useEffect(() => {
-    const fetchLatestEvent = async () => {
-      const event = await api.requestPromise(
-        getApiUrl(
-          '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              issueId: String(props.group?.id),
-              eventId: 'latest',
-            },
-          }
-        )
-      );
-      setInjectedEvent(event);
-    };
-    if (isRegressionIssue && !defined(props.event)) {
-      fetchLatestEvent();
-    }
-  }, [
-    api,
-    organization.slug,
-    props.event,
-    props.group,
-    props.group?.id,
-    isRegressionIssue,
-  ]);
 
   if (props.error) {
     return (
@@ -833,13 +799,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
     );
   }
 
-  const regressionIssueLoaded = defined(injectedEvent ?? props.event);
-  if (
-    !projectsLoaded ||
-    !projectWithFallback ||
-    !props.group ||
-    (isRegressionIssue && !regressionIssueLoaded)
-  ) {
+  if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
 
@@ -855,7 +815,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
         <GroupDetailsContent
           project={projectWithFallback}
           group={props.group}
-          event={props.event ?? injectedEvent}
+          event={props.event}
         >
           {props.children}
         </GroupDetailsContent>

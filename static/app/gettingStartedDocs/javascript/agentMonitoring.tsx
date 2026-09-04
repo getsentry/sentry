@@ -9,9 +9,11 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
+  eveOnboarding,
   getAgentIntegration,
   getInstallStep,
   getManualConfigureStep,
+  getMinRequiredVersion,
   mastraOnboarding,
   MIN_REQUIRED_VERSION,
   agentMonitoring as nodeAgentMonitoring,
@@ -375,7 +377,7 @@ export function agentMonitoring({
     introduction: params => (
       <SdkUpdateAlert
         projectId={params.project.id}
-        minVersion={minVersion}
+        minVersion={getMinRequiredVersion(params, minVersion)}
         packageName={packageName}
       />
     ),
@@ -388,9 +390,10 @@ export function agentMonitoring({
       const selected = getAgentIntegration(params);
 
       // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
-      // Therefore, Node.js instructions is returned for this option.
-      // This option is only available in meta frameworks.
-      if (selected === AgentIntegration.VERCEL_AI) {
+      // Flue is likewise a server-side framework (with its own blueprint setup).
+      // Both reuse the Node.js instructions rather than the client-side config below.
+      // These options are only available in meta frameworks.
+      if (selected === AgentIntegration.VERCEL_AI || selected === AgentIntegration.FLUE) {
         return nodeAgentMonitoring({
           packageName,
           configFileName: serverConfigFileName,
@@ -411,6 +414,24 @@ export function agentMonitoring({
         return mastraOnboarding.configure(params);
       }
 
+      // Eve is a Node/server-side framework, so it reuses the Node setup.
+      if (selected === AgentIntegration.EVE) {
+        return eveOnboarding.configure(params);
+      }
+
+      // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers.
+      // Selecting either pins the runtime to Cloudflare, so reuse the Node
+      // package's Cloudflare setup instead of the browser init flow.
+      if (
+        selected === AgentIntegration.WORKERS_AI ||
+        selected === AgentIntegration.CLOUDFLARE_AGENTS
+      ) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).configure(params);
+      }
+
       return [
         {
           title: t('Configure'),
@@ -427,9 +448,10 @@ export function agentMonitoring({
       const selected = getAgentIntegration(params);
 
       // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
-      // Therefore, Node.js instructions is returned for this option.
-      // This option is only available in meta frameworks.
-      if (selected === AgentIntegration.VERCEL_AI) {
+      // Flue is likewise a server-side framework (with its own blueprint setup).
+      // Both reuse the Node.js instructions rather than the client-side config below.
+      // These options are only available in meta frameworks.
+      if (selected === AgentIntegration.VERCEL_AI || selected === AgentIntegration.FLUE) {
         return nodeAgentMonitoring({
           packageName,
           configFileName: serverConfigFileName,
@@ -438,6 +460,24 @@ export function agentMonitoring({
 
       if (selected === AgentIntegration.MASTRA) {
         return mastraOnboarding.verify(params);
+      }
+
+      // Eve is a Node/server-side framework, so it reuses the Node setup.
+      if (selected === AgentIntegration.EVE) {
+        return eveOnboarding.verify(params);
+      }
+
+      // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers.
+      // Selecting either pins the runtime to Cloudflare, so reuse the Node
+      // package's Cloudflare verification instead of the browser flow.
+      if (
+        selected === AgentIntegration.WORKERS_AI ||
+        selected === AgentIntegration.CLOUDFLARE_AGENTS
+      ) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).verify(params);
       }
 
       return [

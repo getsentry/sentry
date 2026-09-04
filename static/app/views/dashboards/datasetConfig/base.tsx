@@ -60,6 +60,7 @@ export type WidgetBuilderSearchBarProps = {
 
 export type SearchBarDataProviderProps = {
   pageFilters: PageFilters;
+  filterKeySearch?: string;
   widgetQuery?: WidgetQuery;
 };
 
@@ -67,6 +68,7 @@ export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
   getFilterKeys: () => TagCollection;
   getTagValues: GetTagValues;
+  isFetchingFilterKeys?: boolean;
 }
 
 /**

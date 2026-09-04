@@ -12,6 +12,8 @@ import {
   useSecondFactorChallenge,
 } from 'sentry/views/authV2/authLogin/hooks/useSecondFactorAuth';
 
+import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
+
 interface WebAuthn2FAMethodProps {
   isActive: boolean;
   isProcessing: boolean;
@@ -137,7 +139,18 @@ export function WebAuthn2FAMethod({
           </Text>
         )}
         {retry && (
-          <Button disabled={isProcessing} size="xs" variant="transparent" onClick={retry}>
+          <Button
+            analyticsEventKey="auth.login.retry_clicked"
+            analyticsEventName="Auth: Login Retry Clicked"
+            analyticsParams={{
+              stage: submissionFailed ? 'mfa_verify' : 'mfa_challenge',
+              method: 'u2f',
+            }}
+            disabled={isProcessing}
+            size="xs"
+            variant="transparent"
+            onClick={retry}
+          >
             {t('Try again')}
           </Button>
         )}
@@ -146,8 +159,13 @@ export function WebAuthn2FAMethod({
   }
 
   return (
-    <Text as="p" align="center">
-      {t('Waiting for passkey, biometric, or hardware key authentication...')}
-    </Text>
+    <Stack gap="lg" align="center">
+      <AuthenticatorIconCarousel isActive={isActive} />
+      <Text as="p" align="center">
+        {isProcessing
+          ? t('Authorizing...')
+          : t('Waiting for passkey, biometric, or hardware key')}
+      </Text>
+    </Stack>
   );
 }

@@ -8,12 +8,17 @@ from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
 )
 from sentry.workflow_engine.defaults.workflows import ensure_default_organization_workflows
+from sentry.workflow_engine.models import Detector, Workflow
 
 
 def create_organization_workflows(organization: Organization, **kwargs: Any) -> None:
     try:
         ensure_default_organization_workflows(organization)
-    except UnableToAcquireLockApiError as e:
+    except (
+        UnableToAcquireLockApiError,
+        Detector.MultipleObjectsReturned,
+        Workflow.MultipleObjectsReturned,
+    ) as e:
         sentry_sdk.capture_exception(e)
 
 

@@ -183,6 +183,27 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)
+    def test_email_kind_resolves_by_unverified_email(self, mock_metrics: MagicMock) -> None:
+        carol = self.create_user(email="carol@example.com")
+        self.create_member(user=carol, organization=self.organization)
+        self.create_useremail(user=carol, email="carol-secondary@example.com", is_verified=False)
+        result = {
+            "candidates": [
+                {
+                    "identifier": "carol-secondary@example.com",
+                    "identifier_kind": "email",
+                    "reason": "unlinked commit author",
+                    "confidence": "low",
+                },
+            ]
+        }
+
+        self._deliver(result)
+
+        assert self._extras()["predicted_assignee_user_ids"] == [carol.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
     def test_unresolvable_identifier_records_no_user(self, mock_metrics: MagicMock) -> None:
         result = {
             "candidates": [

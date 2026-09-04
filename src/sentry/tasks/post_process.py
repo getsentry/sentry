@@ -454,14 +454,47 @@ def update_existing_attachments(job: PostProcessJob) -> None:
 
     1) ingested prior to the event via the standalone attachment endpoint.
     2) part of a different group before reprocessing started.
+
+    Also makes a second attempt at promoting pending attachments, for projects on
+    `projects:defer-attachment-storage`. See the comment below for why.
     """
+    from sentry.event_manager import save_pending_attachments
     from sentry.models.eventattachment import EventAttachment
 
     event = job["event"]
 
-    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+    # NOTE: This update can probably be removed once `defer-attachment-storage` has graduated
+    # (need to verify post_processing behavior). See INGEST-1173.
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
         group_id=event.group_id
-    )
+    ).update(group_id=event.group_id)
+
+    # `process_individual_attachment` decides whether an attachment is "pending" by asking
+    # eventstore -- i.e. Snuba -- whether the event exists yet. Snuba lags, so an
+    # attachment arriving in the seconds right after its event still looks orphaned and
+    # gets parked in `PendingEventAttachment`. If that happens *after* the promotion pass
+    # in `EventManager.save_error_events`, nobody promotes the row and it expires.
+    #
+    # Retrying here narrows that window a lot, because post-processing is dispatched
+    # through the same eventstream that feeds Snuba: by the time we run, the attachment
+    # consumer can usually see the event and never takes the pending path at all.
+    #
+    # It does NOT close the window. An attachment can still be parked after this runs, and
+    # it will be dropped when `PENDING_ATTACHMENT_TTL` expires. What that costs is the
+    # attachment, not the customer's money: `save_pending_attachments` only emits the
+    # ACCEPTED outcome on promotion, so an attachment we lose is one we never billed for.
+    # Closing it properly needs a periodic sweep over pending rows that re-checks
+    # eventstore once Snuba has certainly caught up.
+    #
+    # NOTE: guarded on `is_reprocessed` to match the call in `save_error_events`.
+    if not job["is_reprocessed"] and event.group_id is not None:
+        safe_execute(
+            save_pending_attachments,
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
 
 
 def fetch_buffered_group_stats(group: Group) -> None:

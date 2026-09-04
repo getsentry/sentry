@@ -23,6 +23,7 @@ from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 from .json_config import JSONConfigBase
 
@@ -134,6 +135,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints
+        indexes = [
+            models.Index(
+                models.F("config__organization_id"),
+                name="detector_all_projects_org_idx",
+                condition=models.Q(project__isnull=True, type=IssueStreamGroupType.slug),
+            )
+        ]
 
     error_detector_project_options = {
         "fingerprinting_rules": "sentry:fingerprinting_rules",
