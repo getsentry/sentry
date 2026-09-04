@@ -4,6 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {Button} from '@sentry/scraps/button';
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
@@ -277,6 +278,39 @@ describe('BreadcrumbList rich page-title items', () => {
 
     expect(screen.getByRole('button', {name: 'Copy Short-ID'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'More actions'})).not.toBeInTheDocument();
+  });
+
+  it('keeps the menu open when an action declared before it appears', async () => {
+    function TestTitle({showUpdate}: {showUpdate: boolean}) {
+      return (
+        <BreadcrumbList.Title
+          item={{
+            type: 'page-title',
+            label: 'JAVASCRIPT-2X9',
+            trailingActions: [
+              showUpdate
+                ? {type: 'button', element: <Button size="zero">Update</Button>}
+                : null,
+              {
+                type: 'menu',
+                triggerLabel: 'More actions',
+                items: [{key: 'delete', label: 'Delete'}],
+              },
+            ],
+          }}
+        />
+      );
+    }
+
+    const {rerender} = render(<TestTitle showUpdate={false} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(await screen.findByRole('menuitemradio', {name: 'Delete'})).toBeVisible();
+
+    rerender(<TestTitle showUpdate />);
+
+    expect(screen.getByRole('button', {name: 'Update'})).toBeVisible();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeVisible();
   });
 
   it('renders an editable-title as a click-to-edit field', async () => {
