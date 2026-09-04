@@ -29,40 +29,59 @@ describe('useConfigureReplayMenuItem', () => {
     captureSpy.mockRestore();
   });
 
-  it('nests the doc links behind a single submenu item', () => {
-    const item = renderMenuItem({sdkName: 'sentry.javascript.react', isMobile: false});
+  it('returns the configuration documentation submenu', () => {
+    const item = renderMenuItem({
+      sdkName: 'sentry.javascript.react',
+      isMobile: false,
+    });
 
-    expect(item.label).toBe('Configure Replay');
-    expect(item.submenu).toBe(true);
-    expect(item.children?.length).toBeGreaterThan(0);
+    expect(item).toMatchObject({
+      key: 'configure-replay',
+      label: 'Configure Replay',
+      submenu: true,
+    });
+
+    expect(item.children?.map(child => child.key)).toEqual([
+      'general',
+      'masking',
+      'users',
+      'network',
+      'canvas',
+    ]);
   });
 
   describe('getPath — mobile SDK routing', () => {
-    it('enables doc links for sentry.cocoa (iOS)', () => {
+    it('enables iOS documentation links for sentry.cocoa', () => {
       const item = renderMenuItem({sdkName: 'sentry.cocoa', isMobile: true});
 
       expect(captureSpy).not.toHaveBeenCalled();
-      expect(item.children).not.toHaveLength(0);
-      item.children?.forEach(child => expect(child.disabled).toBeFalsy());
+      expect(item.children).toHaveLength(3);
+      expect(item.children?.every(child => child.disabled === false)).toBe(true);
+      expect(
+        item.children?.every(child => child.externalHref?.includes('/apple/guides/ios/'))
+      ).toBe(true);
     });
 
-    it('enables doc links for sentry.cocoa.unreal (iOS Unreal via embedded Cocoa SDK)', () => {
+    it('enables iOS documentation links for sentry.cocoa.unreal', () => {
       const item = renderMenuItem({sdkName: 'sentry.cocoa.unreal', isMobile: true});
 
       // Should NOT fall through to the default case — no captureMessage call
       expect(captureSpy).not.toHaveBeenCalled();
-      expect(item.children).not.toHaveLength(0);
-      item.children?.forEach(child => expect(child.disabled).toBeFalsy());
+      expect(item.children).toHaveLength(3);
+      expect(item.children?.every(child => child.disabled === false)).toBe(true);
+      expect(
+        item.children?.every(child => child.externalHref?.includes('/apple/guides/ios/'))
+      ).toBe(true);
     });
 
-    it('logs and disables doc links for unknown mobile platforms', () => {
+    it('logs and disables documentation links for an unknown mobile platform', () => {
       const item = renderMenuItem({sdkName: 'sentry.unknown.platform', isMobile: true});
 
       expect(captureSpy).toHaveBeenCalledWith(
         'Unknown mobile platform in configure card: sentry.unknown.platform'
       );
-      expect(item.children).not.toHaveLength(0);
-      item.children?.forEach(child => expect(child.disabled).toBe(true));
+      expect(item.children).toHaveLength(3);
+      expect(item.children?.every(child => child.disabled === true)).toBe(true);
     });
   });
 });

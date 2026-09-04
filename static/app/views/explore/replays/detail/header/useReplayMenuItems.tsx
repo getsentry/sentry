@@ -56,15 +56,17 @@ export function useReplayMenuItems({
           label: t('Download Replay Record'),
           leadingItems: <IconDownload variant="muted" />,
           onAction: () => {
+            if (!replay) {
+              addErrorMessage(t('Replay not found'));
+              return;
+            }
             try {
-              if (!replay) {
-                addErrorMessage(t('Replay not found'));
-                return;
-              }
               downloadObjectAsJson(replay.getReplay(), 'replay-record');
             } catch (error) {
               Sentry.captureException(error);
-              addErrorMessage('Could not export replay record. Please wait or try again');
+              addErrorMessage(
+                t('Could not export replay record. Please wait or try again')
+              );
             }
           },
           disabled: !canDownload,
@@ -81,11 +83,11 @@ export function useReplayMenuItems({
           textValue: t('Debug in Sentry Replay Debugger'),
           leadingItems: <IconBug variant="muted" />,
           onAction: async () => {
+            if (!replay) {
+              addErrorMessage(t('Replay not found'));
+              return;
+            }
             try {
-              if (!replay) {
-                addErrorMessage(t('Replay not found'));
-                return;
-              }
               const json = JSON.stringify(replay.getRRWebFrames());
               await navigator.clipboard.writeText(json);
               window.location.href = 'sentry-replay-debugger://open';
@@ -131,16 +133,16 @@ export function useReplayMenuItems({
       label: t('Download JSON'),
       leadingItems: <IconDownload variant="muted" />,
       onAction: () => {
+        if (!replay) {
+          addErrorMessage(t('Replay not found'));
+          return;
+        }
         try {
-          if (!replay) {
-            addErrorMessage(t('Replay not found'));
-            return;
-          }
           downloadObjectAsJson(replay.getRRWebFrames(), 'rrweb');
         } catch (error) {
           Sentry.captureException(error);
           addErrorMessage(
-            'Could not export replay as rrweb data. Please wait or try again'
+            t('Could not export replay as rrweb data. Please wait or try again')
           );
         }
       },

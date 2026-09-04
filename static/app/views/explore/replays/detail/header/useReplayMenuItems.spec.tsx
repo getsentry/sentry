@@ -45,11 +45,13 @@ describe('useReplayMenuItems', () => {
     );
   });
 
-  it('offers the video-segment download disabled, not hidden, when the reader is withheld', () => {
+  it('returns a disabled video-segment item when the replay reader is unavailable', () => {
     const videoItem = findItem(renderMenuItems(true), 'download-1st-video');
 
-    expect(videoItem).toBeDefined();
-    expect(videoItem?.disabled).toBe(true);
+    expect(videoItem).toMatchObject({
+      key: 'download-1st-video',
+      disabled: true,
+    });
   });
 
   it('omits the video-segment download for a web replay', () => {

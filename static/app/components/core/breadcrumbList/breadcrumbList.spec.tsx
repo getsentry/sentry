@@ -280,8 +280,8 @@ describe('BreadcrumbList rich page-title items', () => {
     expect(screen.queryByRole('button', {name: 'More actions'})).not.toBeInTheDocument();
   });
 
-  it('keeps an open dropdown open when an action declared before it appears', async () => {
-    function Title({showUpdate}: {showUpdate: boolean}) {
+  it('keeps the menu open when an action declared before it appears', async () => {
+    function TestTitle({showUpdate}: {showUpdate: boolean}) {
       return (
         <BreadcrumbList.Title
           item={{
@@ -302,17 +302,15 @@ describe('BreadcrumbList rich page-title items', () => {
       );
     }
 
-    const {rerender} = render(<Title showUpdate={false} />);
+    const {rerender} = render(<TestTitle showUpdate={false} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Delete'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('menuitemradio', {name: 'Delete'})).toBeVisible();
 
-    rerender(<Title showUpdate />);
+    rerender(<TestTitle showUpdate />);
 
-    expect(screen.getByRole('button', {name: 'Update'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Update'})).toBeVisible();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeVisible();
   });
 
   it('renders an editable-title as a click-to-edit field', async () => {

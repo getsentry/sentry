@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -63,11 +63,27 @@ describe('ReplayDetails', () => {
     });
   }
 
+  let writeText: jest.SpiedFunction<typeof navigator.clipboard.writeText>;
+
+  async function openReplayActions() {
+    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
+    return await screen.findByRole('menu');
+  }
+
+  function setEmployeeUser() {
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        id: '1',
+        emails: [{id: '1', email: 'someone@sentry.io', is_verified: true}],
+      })
+    );
+  }
+
   beforeEach(() => {
     ConfigStore.set('user', user);
-    Object.assign(navigator, {
-      clipboard: {writeText: jest.fn().mockResolvedValue('')},
-    });
+    userEvent.setup();
+    writeText = jest.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
     mockUseLoadReplayReader.mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -81,6 +97,10 @@ describe('ReplayDetails', () => {
         },
       },
     });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should render replay details when user has access', () => {
@@ -117,20 +137,18 @@ describe('ReplayDetails', () => {
 
   it('offers the replay actions from the title menu', async () => {
     renderDetails();
+    const menu = await openReplayActions();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
+    for (const name of [
+      'Copy replay ID to clipboard',
+      'Share',
+      'Download JSON',
+      'Delete',
+      'Configure Replay',
+    ]) {
+      expect(within(menu).getByRole('menuitemradio', {name})).toBeVisible();
+    }
 
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Download JSON'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Share'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Configure Replay'})
-    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
     ).not.toBeInTheDocument();
@@ -142,50 +160,10 @@ describe('ReplayDetails', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('copies the full replay ID, not the shortened form in the title', async () => {
+  it('lists the actions in the order the design calls for', async () => {
+    setEmployeeUser();
     renderDetails();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
-    );
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-replay-id');
-  });
-
-  it('groups the employee-only actions into their own section', async () => {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        id: '1',
-        emails: [{id: '1', email: 'someone@sentry.io', is_verified: true}],
-      })
-    );
-
-    renderDetails();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
-
-    const section = await screen.findByRole('group', {
-      name: 'Sentry Employee Features',
-    });
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Sentry Employee Features'})
-    ).not.toBeInTheDocument();
-
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'Download Replay Record'})
-    ).toBeInTheDocument();
-    expect(section).toContainElement(
-      screen.getByRole('menuitemradio', {name: 'Download Replay Record'})
-    );
-    expect(section).toContainElement(
-      screen.getByRole('menuitemradio', {name: /Sentry Replay Debugger/})
-    );
-
-    expect(section).not.toContainElement(
-      screen.getByRole('menuitemradio', {name: 'Download JSON'})
-    );
+    await openReplayActions();
 
     expect(
       screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
@@ -198,6 +176,40 @@ describe('ReplayDetails', () => {
       expect.stringContaining('Download Replay Record'),
       expect.stringContaining('Sentry Replay Debugger'),
     ]);
+  });
+
+  it('copies the full replay ID, not the shortened form in the title', async () => {
+    renderDetails();
+
+    expect(screen.getByText('test-rep')).toBeVisible();
+
+    await openReplayActions();
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
+    );
+
+    expect(writeText).toHaveBeenCalledWith('test-replay-id');
+  });
+
+  it('shows employee actions in a separate section', async () => {
+    setEmployeeUser();
+    renderDetails();
+    await openReplayActions();
+
+    const section = screen.getByRole('group', {name: 'Sentry Employee Features'});
+
+    expect(
+      within(section).getByRole('menuitemradio', {name: 'Download Replay Record'})
+    ).toBeVisible();
+    expect(
+      within(section).getByRole('menuitemradio', {name: /Sentry Replay Debugger/})
+    ).toBeVisible();
+    expect(
+      within(section).queryByRole('menuitemradio', {name: 'Download JSON'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Sentry Employee Features'})
+    ).not.toBeInTheDocument();
   });
 
   it('nests the configure docs behind a submenu', async () => {
