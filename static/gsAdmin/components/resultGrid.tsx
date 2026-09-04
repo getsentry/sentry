@@ -322,7 +322,7 @@ interface ResultGridProps {
   useQueryString?: boolean;
 }
 
-export type State = {
+type State = {
   /**
    * Whether the grid is in the all-regions mode: every region is queried in
    * parallel and the results are merged. `cell` is undefined while active.
