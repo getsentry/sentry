@@ -49,10 +49,10 @@ function CollapsibleTimeline(props: CollapsibleTimelineProps) {
 
 const StyledButton = Button;
 
-export function CollapsibleTimelineLoadingIndicator({size}: {size?: number}) {
+export function CollapsibleTimelineLoadingIndicator() {
   return (
     <Stack justify="center" width="100%" height="100%" position="absolute">
-      <LoadingIndicator size={size ?? 32} />
+      <LoadingIndicator size={32} />
     </Stack>
   );
 }
