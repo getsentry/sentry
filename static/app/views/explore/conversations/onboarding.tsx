@@ -532,15 +532,23 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
   const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
 
+  // Eve only drains OpenTelemetry traces to Sentry - it doesn't run the Sentry
+  // SDK, so there's no `Sentry.setConversationId` / `Sentry.setUser` to call.
+  const isEve = selectedIntegration === AgentIntegration.EVE;
+
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    getConversationIdStep(
-      selectedIntegration,
-      isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript',
-      jsPackageName
-    ),
-    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
+    ...(isEve
+      ? []
+      : [
+          getConversationIdStep(
+            selectedIntegration,
+            isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript',
+            jsPackageName
+          ),
+        ]),
+    ...(isPhpPlatform || isEve ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
     ...(isPhpPlatform
       ? [getPhpConversationVerifyStep()]
       : agentMonitoringDocs.verify?.(docParams) || []),

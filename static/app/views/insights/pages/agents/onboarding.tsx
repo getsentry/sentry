@@ -54,6 +54,7 @@ import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/l
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
+  AgentIntegration,
   DENO_AGENT_INTEGRATIONS,
   DEPLOYMENT_TARGET_ICONS,
   DEPLOYMENT_TARGET_LABELS,
@@ -399,19 +400,23 @@ export function Onboarding() {
         />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <DescriptionWrapper>
-        <p>
-          {tct(
-            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
-              ),
-            }
-          )}
-        </p>
-      </DescriptionWrapper>
+      {/* Eve only drains OpenTelemetry traces, so there's no Sentry SDK call to
+          set a conversation ID - hide the Conversations pointer for it. */}
+      {selectedPlatformOptions.integration !== AgentIntegration.EVE && (
+        <DescriptionWrapper>
+          <p>
+            {tct(
+              'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+                ),
+              }
+            )}
+          </p>
+        </DescriptionWrapper>
+      )}
       <GuidedSteps
         // Remount when the integration or runtime changes so the stepper doesn't
         // carry over stale per-step state from the previous selection.
