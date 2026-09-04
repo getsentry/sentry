@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1160_create_deletion_watermark"),
+        ("sentry", "1163_drop_organizationmapping_require_email_verification"),
     ]
 
     operations = [
