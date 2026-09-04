@@ -62,9 +62,15 @@ def _payloads_per_mailbox() -> int:
     A drain delivers `worker_threads` payloads at once, so the depth is a whole
     number of those, and raising delivery concurrency narrows the split rather than
     leaving it where it was.
+
+    Floored at one because both options are automator-modifiable and neither is
+    validated: the drain reads a zero `worker_threads` as one rather than rejecting
+    it, so a zero must not reach the division here either.
     """
-    return options.get("hybridcloud.webhookpayload.payloads_per_thread") * options.get(
-        "hybridcloud.webhookpayload.worker_threads"
+    return max(
+        1,
+        options.get("hybridcloud.webhookpayload.payloads_per_thread")
+        * options.get("hybridcloud.webhookpayload.worker_threads"),
     )
 
 
@@ -119,6 +125,10 @@ def _record_and_read_window(counter_key: str) -> int | None:
     """Count this payload and return the payloads over the window, or None when Redis
     could not answer.
 
+    A reply that does not destructure or coerce counts as not answering: this runs
+    before the payload row is written, so an exception escaping here would turn a
+    webhook we could still have queued into a 500.
+
     The current shard is still filling, so the sum runs low by up to one shard and
     catches up -- the right direction, delaying a widening rather than forcing one.
     """
@@ -132,14 +142,13 @@ def _record_and_read_window(counter_key: str) -> int | None:
         pipe.expire(current_key, SHARD_TTL_SECONDS)
         pipe.mget(older_keys)
         current, _, older = pipe.execute()
-    except RedisError:
+        return int(current) + sum(int(count) for count in older if count is not None)
+    except (RedisError, TypeError, ValueError, IndexError):
         logger.exception(
             "hybridcloud.webhook_mailbox_sizing.unavailable",
             extra={"counter_key": counter_key},
         )
         return None
-
-    return int(current) + sum(int(count) for count in older if count is not None)
 
 
 def _shard_key(counter_key: str, shard: int) -> str:

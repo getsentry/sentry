@@ -1,7 +1,7 @@
 from dataclasses import replace
 from time import time
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from redis.exceptions import RedisError
@@ -94,6 +94,14 @@ class CountForPayloadsTest(TestCase):
         re-map nearly every key instead of half."""
         with override_options({"hybridcloud.webhookpayload.max_mailbox_buckets": 100}):
             assert _count_for_payloads(10**9) == 64
+
+    def test_an_option_set_to_zero_does_not_divide_by_it(self) -> None:
+        """Both options are automator-modifiable and neither is validated, and the
+        drain reads a zero `worker_threads` as one rather than rejecting it."""
+        for zeroed in ("payloads_per_thread", "worker_threads"):
+            with override_options({f"hybridcloud.webhookpayload.{zeroed}": 0}):
+                assert _count_for_payloads(0) == 1
+                assert _count_for_payloads(10**9) == _max_buckets()
 
     def test_a_rate_redis_could_not_answer_sizes_to_the_cap(self) -> None:
         """Wide is the safe direction to be wrong in: an outage must not put a busy
@@ -201,3 +209,25 @@ class MailboxBucketCountTest(TestCase):
             count = mailbox_bucket_count(MAILBOX)
 
         assert count == _max_buckets()
+
+    def test_a_reply_that_does_not_destructure_sizes_to_the_cap(self) -> None:
+        """Sizing runs before the payload row is written, so a reply we cannot read has
+        to fail the same way an outage does rather than 500 a webhook we could queue."""
+        pipeline = MagicMock()
+        pipeline.execute.return_value = [1]
+
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+            return_value=MagicMock(pipeline=MagicMock(return_value=pipeline)),
+        ):
+            assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_a_reply_that_does_not_coerce_sizes_to_the_cap(self) -> None:
+        pipeline = MagicMock()
+        pipeline.execute.return_value = ["not-a-number", True, []]
+
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+            return_value=MagicMock(pipeline=MagicMock(return_value=pipeline)),
+        ):
+            assert mailbox_bucket_count(MAILBOX) == _max_buckets()

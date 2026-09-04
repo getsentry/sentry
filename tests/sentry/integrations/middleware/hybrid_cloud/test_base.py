@@ -286,6 +286,28 @@ class BaseRequestParserTest(TestCase):
         assert mock_trigger.call_count == 2
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch("sentry.integrations.middleware.hybrid_cloud.parser.mailbox_bucket_count")
+    def test_a_shed_payload_is_left_out_of_the_rate(self, mock_count: MagicMock) -> None:
+        """Callers build the mailbox as an argument, so it is built before the shed
+        check runs. A shed payload is never queued, so it must not size the split."""
+        integration = self.create_integration(
+            organization=self.organization, provider="test_provider", external_id="1"
+        )
+        parser = BucketingRequestParser(self.request, self.response_handler)
+
+        with override_options(
+            {
+                SHED_INBOUND_KILLSWITCH: [
+                    {"provider": "test_provider", "integration_id": str(integration.id)}
+                ]
+            }
+        ):
+            mailbox = parser.get_mailbox(integration, {"bucket_id": 101})
+
+        assert str(mailbox) == f"test_provider:{integration.id}"
+        assert not mock_count.called
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_options({SHED_INBOUND_KILLSWITCH: [{"unknown_field": "test_provider"}]})
     def test_shed_inbound_ignores_unknown_condition_fields(self) -> None:
         parser = ExampleRequestParser(self.request, self.response_handler)

@@ -317,14 +317,18 @@ class BaseRequestParser(ABC):
         event type, and only the validated value may reach that: it is read out of a
         body control has not verified.
         """
-        return self._bucketed(
-            MailboxName(
-                provider=self.provider,
-                subject=str(integration.id),
-                event_type=self._mailbox_event_type(data),
-            ),
-            data,
+        mailbox = MailboxName(
+            provider=self.provider,
+            subject=str(integration.id),
+            event_type=self._mailbox_event_type(data),
         )
+        # Callers build the mailbox as an argument, so this runs before the shed check
+        # in get_response_from_webhookpayload. A shed payload is never queued, so it
+        # must not raise the rate that sizes the split -- nor pay the Redis write that
+        # shedding exists to avoid.
+        if self._should_shed(integration.id):
+            return mailbox
+        return self._bucketed(mailbox, data)
 
     def _bucketed(self, mailbox: MailboxName, data: dict[str, Any]) -> MailboxName:
         """`mailbox` in a bucket, or unchanged where the payload does not get one.
