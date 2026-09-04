@@ -33,6 +33,12 @@ type PlatformOptionsControlProps = {
    * Whether the option is disabled
    */
   disabled?: boolean;
+  /**
+   * Option values pinned by another selection, keyed by option key. A locked
+   * option renders the given value and is disabled, e.g. a Cloudflare-only SDK
+   * pins the runtime selector to "cloudflare".
+   */
+  lockedValues?: Record<string, string>;
 };
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
@@ -60,6 +66,7 @@ export function PlatformOptionDropdown({
   platformOptions,
   disabled,
   connectors,
+  lockedValues,
 }: PlatformOptionsControlProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,17 +92,20 @@ export function PlatformOptionDropdown({
   return (
     <Fragment>
       {t('with')}
-      {Object.keys(platformOptions).map(key => (
-        <Fragment key={key}>
-          {connectors?.[key]}
-          <OptionControl
-            option={platformOptions[key]!}
-            value={urlOptionValues[key]!}
-            onChange={v => handleChange(key, v.value)}
-            disabled={disabled}
-          />
-        </Fragment>
-      ))}
+      {Object.keys(platformOptions).map(key => {
+        const lockedValue = lockedValues?.[key];
+        return (
+          <Fragment key={key}>
+            {connectors?.[key]}
+            <OptionControl
+              option={platformOptions[key]!}
+              value={lockedValue ?? urlOptionValues[key]!}
+              onChange={v => handleChange(key, v.value)}
+              disabled={disabled || lockedValue !== undefined}
+            />
+          </Fragment>
+        );
+      })}
     </Fragment>
   );
 }

@@ -57,8 +57,15 @@ export const PYTHON_AGENT_INTEGRATIONS = [
   AgentIntegration.MANUAL,
 ];
 
+/**
+ * Every agent SDK offered for Node-based projects, regardless of runtime. The
+ * onboarding no longer filters this list by the selected runtime; instead a
+ * runtime-specific SDK drives the runtime selection (see
+ * INTEGRATION_DEPLOYMENT_TARGETS).
+ */
 export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
+  AgentIntegration.WORKERS_AI,
   AgentIntegration.ANTHROPIC,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
@@ -96,19 +103,31 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
 };
 
 /**
- * Integrations documented for the Cloudflare deployment target. Mirrors the
- * Node list minus Mastra, whose `@mastra/sentry` exporter is not part of the
- * Cloudflare `withSentry` flow.
+ * Agent SDKs that only work on a single Node deployment runtime. Selecting one
+ * of these pins the runtime accordingly (and locks the runtime selector), rather
+ * than the runtime filtering which SDKs are shown.
+ *
+ * - Workers AI is the Cloudflare Workers AI binding (env.AI), Cloudflare-only.
+ * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
+ *   flow, so it is Node-only.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
-export const CLOUDFLARE_AGENT_INTEGRATIONS = [
-  AgentIntegration.VERCEL_AI,
-  AgentIntegration.WORKERS_AI,
-  AgentIntegration.ANTHROPIC,
-  AgentIntegration.GOOGLE_GENAI,
-  AgentIntegration.LANGCHAIN,
-  AgentIntegration.LANGGRAPH,
-  AgentIntegration.OPENAI,
-  AgentIntegration.MANUAL,
-];
+const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
+  Record<AgentIntegration, DeploymentTarget>
+> = {
+  [AgentIntegration.WORKERS_AI]: DeploymentTarget.CLOUDFLARE,
+  [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
+};
+
+/**
+ * Returns the runtime a given SDK is pinned to, or undefined when the SDK works
+ * on any runtime and the user is free to pick the deployment target.
+ */
+export function getIntegrationDeploymentTarget(
+  integration: string | undefined
+): DeploymentTarget | undefined {
+  return integration
+    ? INTEGRATION_DEPLOYMENT_TARGETS[integration as AgentIntegration]
+    : undefined;
+}
