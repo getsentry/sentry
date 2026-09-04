@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
@@ -16,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
 )
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events, assert_not_analytics_event
 from sentry.utils.locking import UnableToAcquireLock
 
 MODULE = "sentry.seer.autofix.pr_iteration.missing_permissions"
@@ -178,8 +182,19 @@ class PostMissingPermissionsCommentTest(TestCase):
     def test_comments_and_marks(self, mock_get_perms) -> None:
         mock_get_perms.return_value = _perms()
         client = self._stub_client()
+        repo = self.create_repo(project=self.project, name=REPO_NAME)
 
-        self._post()
+        with assert_analytics_events(
+            [
+                AiAutofixPrIterationMissingPermissionsEvent(
+                    action="comment_posted",
+                    organization_id=self.organization.id,
+                    integration_id=INTEGRATION_ID,
+                    repository_id=repo.id,
+                )
+            ]
+        ):
+            self._post()
 
         client.create_comment.assert_called_once()
         repo_name, pr_number, payload = client.create_comment.call_args[0]
@@ -201,7 +216,9 @@ class PostMissingPermissionsCommentTest(TestCase):
             extras={MISSING_PERMISSIONS_EXTRA: {REPO_NAME: {"missing_scopes": ["contents"]}}}
         )
 
-        self._post()
+        with patch("sentry.analytics.record") as mock_record:
+            self._post()
+            assert_not_analytics_event(mock_record, AiAutofixPrIterationMissingPermissionsEvent)
 
         client.create_comment.assert_not_called()
 

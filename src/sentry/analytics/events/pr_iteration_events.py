@@ -1,4 +1,21 @@
+from typing import Literal
+
 from sentry import analytics
+
+
+@analytics.eventclass("ai.autofix.pr_iteration.missing_permissions")
+class AiAutofixPrIterationMissingPermissionsEvent(analytics.Event):
+    """A missing-permissions warning was shown, or the app was updated.
+
+    IDs only — no slugs or names. ``repository_id`` is set when we posted a
+    comment on a specific repo; it is None on ``permissions_accepted`` because
+    GitHub App permissions are installation-wide.
+    """
+
+    action: Literal["comment_posted", "permissions_accepted"]
+    organization_id: int
+    integration_id: int
+    repository_id: int | None = None
 
 
 @analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.completed")
@@ -30,4 +47,5 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     pushed_changes: bool
 
 
+analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
 analytics.register(AiAutofixPrIterationFeedbackBatchCompletedEvent)
