@@ -9,6 +9,7 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
+  eveOnboarding,
   getAgentIntegration,
   getInstallStep,
   getManualConfigureStep,
@@ -411,6 +412,11 @@ export function agentMonitoring({
         return mastraOnboarding.configure(params);
       }
 
+      // Eve is a Node/server-side framework, so it reuses the Node setup.
+      if (selected === AgentIntegration.EVE) {
+        return eveOnboarding.configure(params);
+      }
+
       return [
         {
           title: t('Configure'),
@@ -438,6 +444,11 @@ export function agentMonitoring({
 
       if (selected === AgentIntegration.MASTRA) {
         return mastraOnboarding.verify(params);
+      }
+
+      // Eve is a Node/server-side framework, so it reuses the Node setup.
+      if (selected === AgentIntegration.EVE) {
+        return eveOnboarding.verify(params);
       }
 
       return [
