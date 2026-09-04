@@ -1,6 +1,7 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 
 import {isIssueQuickFixable} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
@@ -22,19 +23,14 @@ export function SeerBadge({group}: {group: Group}) {
   }
 
   return (
-    <Tooltip title={t('Seer thinks this issue might be quick to fix')} skipWrapper>
-      <Wrapper>
-        <Divider />
-        <IconSeer size="sm" />
-        {seerFixable && <span>{t('Quick Fix')}</span>}
-      </Wrapper>
-    </Tooltip>
+    <Fragment>
+      <Divider />
+      <InfoText title={t('Seer thinks this issue might be quick to fix')} variant="muted">
+        <Flex align="center" gap="xs">
+          <IconSeer size="sm" />
+          {seerFixable && <span>{t('Quick Fix')}</span>}
+        </Flex>
+      </InfoText>
+    </Fragment>
   );
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
