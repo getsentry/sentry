@@ -661,15 +661,18 @@ describe('AutomationsList', () => {
     });
   });
 
-  it('disables the create alert button without alerts:write permission', async () => {
+  it('disables alert controls without alerts:write permission', async () => {
     const noWriteOrg = OrganizationFixture({
       access: ['org:read', 'alerts:read'],
     });
 
     render(<AutomationsList />, {organization: noWriteOrg});
-    await screen.findByText('Automation 1');
+    await screen.findByTestId('automation-list-row');
 
     const createButton = screen.getByRole('button', {name: 'Create Alert'});
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('columnheader', {name: 'Name'})).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
   });
 });

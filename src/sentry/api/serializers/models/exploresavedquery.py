@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import TypedDict
+from datetime import datetime
+from typing import Literal, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -13,6 +14,11 @@ from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
+ExploreSavedQueryDatasetType = Literal[
+    "spans", "logs", "segment_spans", "metrics", "replays", "ai_conversations"
+]
+ExploreSavedQueryMode = Literal["samples", "aggregate"]
+
 
 class MetricResponseTypeOptional(TypedDict, total=False):
     unit: str | None
@@ -20,27 +26,57 @@ class MetricResponseTypeOptional(TypedDict, total=False):
 
 class MetricResponseType(MetricResponseTypeOptional):
     name: str
-    type: str
+    type: Literal["counter", "gauge", "distribution"]
+
+
+class VisualizeResponseTypeOptional(TypedDict, total=False):
+    chartType: int
+
+
+class VisualizeResponseType(VisualizeResponseTypeOptional):
+    yAxes: list[str]
+
+
+class AggregateFieldResponseType(TypedDict, total=False):
+    chartType: int
+    yAxes: list[str]
+    groupBy: str
+
+
+class QueryResponseTypeOptional(TypedDict, total=False):
+    fields: list[str] | None
+    orderby: str | None
+    groupby: list[str] | None
+    query: str | None
+    visualize: list[VisualizeResponseType] | None
+    aggregateField: list[AggregateFieldResponseType] | None
+    aggregateOrderby: str | None
+    metric: MetricResponseType | None
+    caseInsensitive: bool
+
+
+class QueryResponseType(QueryResponseTypeOptional):
+    mode: ExploreSavedQueryMode
 
 
 class CrossEventResponseTypeOptional(TypedDict, total=False):
-    metric: MetricResponseType
+    metric: MetricResponseType | None
 
 
 class CrossEventResponseType(CrossEventResponseTypeOptional):
     query: str
-    type: str
+    type: Literal["spans", "logs", "metrics"]
 
 
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     environment: list[str]
-    query: str
+    query: list[QueryResponseType]
     range: str
     start: str
     end: str
     interval: str
-    mode: str
     crossEvents: list[CrossEventResponseType]
+    agent: list[str]
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -53,12 +89,12 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     id: str
     name: str
     projects: list[int]
-    dataset: str
+    dataset: ExploreSavedQueryDatasetType
     expired: bool
-    dateAdded: str
-    dateUpdated: str
-    lastVisited: str
-    createdBy: UserSerializerResponse
+    dateAdded: datetime
+    dateUpdated: datetime
+    lastVisited: datetime | None
+    createdBy: UserSerializerResponse | None
     starred: bool
     position: int | None
     isPrebuilt: bool

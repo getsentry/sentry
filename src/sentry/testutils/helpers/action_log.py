@@ -1,4 +1,5 @@
-"""Test helper for asserting that actions were published to the action log.
+"""
+Test helper for asserting that actions were published to the action log.
 
 Usage::
 
@@ -17,6 +18,7 @@ import dataclasses
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
+from unittest import mock
 
 from sentry.issues.action_log.publish import _publish_callbacks
 from sentry.issues.action_log.types import (
@@ -25,6 +27,17 @@ from sentry.issues.action_log.types import (
     GroupActionType,
 )
 from sentry.models.project import Project
+from sentry.testutils.helpers.features import Feature
+
+
+@contextmanager
+def action_log_activity_enabled() -> Generator[None]:
+    """Serve Activity-shaped responses from the action log."""
+    with (
+        mock.patch("sentry.issues.derived.gate.is_backfilled", return_value=True),
+        Feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"]),
+    ):
+        yield
 
 
 @dataclasses.dataclass

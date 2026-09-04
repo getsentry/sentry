@@ -28,12 +28,12 @@ from sentry.integrations.middleware.metrics import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.killswitches import get_killswitch_value, value_matches
+from sentry.killswitches import KillswitchConfig, get_killswitch_value, value_matches
 from sentry.logging.handlers import SamplingFilter
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
-from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
+from sentry.types.cell import Cell, find_cells_for_org_mappings, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -97,6 +97,9 @@ class BaseRequestParser(ABC):
             self.view_class = self.match.func.view_class
         self.response_handler = response_handler
         self._shed_decisions: dict[int | None, bool] = {}
+        self._targeted_shed_conditions: KillswitchConfig | None = None
+        self._integration: Integration | None = None
+        self._integration_fetched = False
 
     # Common Helpers
 
@@ -115,6 +118,18 @@ class BaseRequestParser(ABC):
                 raise SiloLimit.AvailabilityError(
                     "Integration Request Parsers should only be run on the control silo."
                 )
+
+    def integration_for_request(self) -> Integration | None:
+        """``get_integration_from_request`` memoized for the life of the parser.
+
+        A parser is built once per request, so its callers share one query and one
+        decrypt of the integration's encrypted metadata. Subclasses override the
+        uncached ``get_integration_from_request``; nothing else should call it.
+        """
+        if not self._integration_fetched:
+            self._integration = self.get_integration_from_request()
+            self._integration_fetched = True
+        return self._integration
 
     def is_json_request(self) -> bool:
         if not self.request.headers:
@@ -225,6 +240,9 @@ class BaseRequestParser(ABC):
         trigger, the writes that make a flood expensive. Use the
         `hybridcloud.webhookpayload.shed-inbound` killswitch to control which providers
         and integrations are dropped. Returns None to handle the request normally.
+
+        Called without an ``integration_id`` only provider-wide conditions can match,
+        which is what lets a parser shed before resolving the integration.
         """
         if not self._should_shed(integration_id):
             return None
@@ -243,18 +261,28 @@ class BaseRequestParser(ABC):
             self._shed_decisions[integration_id] = self._evaluate_shed(integration_id)
         return self._shed_decisions[integration_id]
 
-    def _evaluate_shed(self, integration_id: int | None) -> bool:
-        conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
-        # A condition with no provider matches every provider. There are few enough
-        # providers to name them, so drop those rather than let one option typo shed
-        # all inbound traffic. Counted so an ignored condition is not a silent no-op.
-        targeted = [condition for condition in conditions if condition.get("provider") is not None]
-        if len(targeted) != len(conditions):
-            metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+    def _get_targeted_shed_conditions(self) -> KillswitchConfig:
+        """Shed conditions that name a provider, read once per request.
 
+        A condition with no provider would match every one of them, so it is dropped
+        rather than let one option typo shed all inbound traffic, and counted so it is
+        not a silent no-op. Counted here because it is a property of the config, not of
+        any one check, and a parser may consult the killswitch several times.
+        """
+        if self._targeted_shed_conditions is None:
+            conditions = get_killswitch_value(SHED_INBOUND_KILLSWITCH)
+            self._targeted_shed_conditions = [
+                condition for condition in conditions if condition.get("provider") is not None
+            ]
+            if len(self._targeted_shed_conditions) != len(conditions):
+                metrics.incr("hybridcloud.webhookpayload.shed_condition_ignored")
+
+        return self._targeted_shed_conditions
+
+    def _evaluate_shed(self, integration_id: int | None) -> bool:
         if not value_matches(
             SHED_INBOUND_KILLSWITCH,
-            targeted,
+            self._get_targeted_shed_conditions(),
             {"provider": self.provider, "integration_id": integration_id},
             emit_metrics=False,
         ):
@@ -424,7 +452,7 @@ class BaseRequestParser(ABC):
         self, integration: Integration | RpcIntegration | None = None
     ) -> list[RpcOrganizationMapping]:
         """
-        Use the get_integration_from_request() method to identify organizations associated with
+        Use the integration_for_request() method to identify organizations associated with
         the integration request.
         """
         with MiddlewareOperationEvent(
@@ -437,24 +465,26 @@ class BaseRequestParser(ABC):
                 }
             )
             if not integration:
-                integration = self.get_integration_from_request()
+                integration = self.integration_for_request()
             if not integration:
                 raise Integration.DoesNotExist()
 
             lifecycle.add_extra("integration_id", integration.id)
 
-            organization_integrations = OrganizationIntegration.objects.filter(
-                integration_id=integration.id,
-                status=ObjectStatus.ACTIVE,
+            # Only the ids are read, so one column beats a COUNT plus a discarded fetch.
+            organization_ids = list(
+                OrganizationIntegration.objects.filter(
+                    integration_id=integration.id,
+                    status=ObjectStatus.ACTIVE,
+                ).values_list("organization_id", flat=True)
             )
 
-            if organization_integrations.count() == 0:
+            if not organization_ids:
                 lifecycle.record_halt(
                     halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
                 )
                 return []
 
-            organization_ids = [oi.organization_id for oi in organization_integrations]
             all_organizations = organization_mapping_service.get_many(
                 organization_ids=organization_ids
             )
@@ -484,7 +514,7 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        cell_names = find_cells_for_orgs([org.id for org in organizations])
+        cell_names = find_cells_for_org_mappings(organizations)
         return sorted([get_cell_by_name(name) for name in cell_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:

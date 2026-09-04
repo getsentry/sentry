@@ -43,6 +43,8 @@ interface CodeChangesCardProps {
   section: AutofixSection;
 }
 
+const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
+
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
     const block = section.blocks[i];
@@ -143,6 +145,20 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [location, navigate, shouldShowReset]);
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
+
+  const shouldExpandDiffs = useMemo(() => {
+    let lineCount = 0;
+
+    for (const patches of patchesByRepo.values()) {
+      for (const patch of patches) {
+        for (const hunk of patch.patch.hunks) {
+          lineCount += hunk.lines.length;
+        }
+      }
+    }
+
+    return lineCount <= MAX_AUTO_EXPANDED_DIFF_LINES;
+  }, [patchesByRepo]);
 
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
@@ -247,7 +263,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
                 patch={patch.patch}
                 showBorder
                 collapsible
-                defaultExpanded={artifact !== null && artifact.length <= 1}
+                defaultExpanded={shouldExpandDiffs}
               />
             ))}
           </ArtifactDetails>

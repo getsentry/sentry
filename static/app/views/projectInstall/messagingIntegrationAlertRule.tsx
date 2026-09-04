@@ -115,9 +115,9 @@ export function useMessagingIntegrationAlertRule(
 type ChannelSelectProps = {
   disabled: boolean;
   isLoading: boolean;
-  onChange: (option: {label: React.ReactNode; value: string} | null) => void;
+  onChange: (option: IntegrationChannel | null) => void;
   onCreateOption: (value: string) => void;
-  options: Array<{label: React.ReactNode; value: string}> | undefined;
+  options: IntegrationChannel[] | undefined;
   provider: string;
   value: IntegrationChannel | undefined;
   className?: string;
@@ -140,7 +140,7 @@ export function ChannelSelect({
   onChange,
   onCreateOption,
 }: ChannelSelectProps) {
-  const selectedOption = value ? {label: value.label, value: value.value} : null;
+  const selectedOption = value ?? null;
   const optionsWithSelectedValue =
     selectedOption && !options?.some(option => option.value === selectedOption.value)
       ? [selectedOption, ...(options ?? [])]

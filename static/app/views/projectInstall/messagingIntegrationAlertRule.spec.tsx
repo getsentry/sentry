@@ -162,6 +162,7 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
     await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
+      channelName: 'alerts',
       label: '#alerts (2)',
       value: '2',
       new: false,
@@ -354,7 +355,7 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(mockSetIntegration).toHaveBeenCalledWith(slackIntegrations[1]);
   });
 
-  it('displays and sends channel id for microsoft teams', async () => {
+  it('keeps the channel name when selecting a Microsoft Teams channel', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
       body: {
@@ -369,16 +370,19 @@ describe('MessagingIntegrationAlertRule', () => {
       <MessagingIntegrationAlertRule
         {...{
           ...notificationProps,
+          channel: undefined,
           integration: msteamsIntegrations[0],
           provider: 'msteams',
         }}
       />
     );
+    expect(screen.getByText('channel name')).toBeInTheDocument();
     await selectEvent.openMenu(getChannelSelect());
     expect(await screen.findByText('#general (1)')).toBeInTheDocument();
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
     await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
+      channelName: 'alerts',
       label: '#alerts (2)',
       value: '2',
       new: false,

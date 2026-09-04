@@ -3,7 +3,6 @@
   // for the documentation about the extensions.json format
   "recommendations": [
     "charliermarsh.ruff",
-    "dbaeumer.vscode-eslint",
     "lextudio.restructuredtext",
     "mkhl.direnv",
     "ms-python.python",

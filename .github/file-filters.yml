@@ -34,6 +34,7 @@ typecheckable_rules_changed: &typecheckable_rules_changed
 frontend_all: &frontend_all
   - *sentry_frontend_workflow_file
   - *sentry_frontend_snapshots_workflow_file
+  - added|modified: 'oxlint.config.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs}'
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
