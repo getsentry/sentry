@@ -1,5 +1,3 @@
-from unittest import mock
-
 import responses
 from django.db import connections, router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -183,7 +181,7 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
+            mailbox_name=f"gitlab:{integration.id}:15:push",
             cell_names=[cell.name],
         )
 
@@ -207,7 +205,7 @@ class GitlabRequestParserTest(TestCase):
         # An unvalidated suffix would put an arbitrary body value in the mailbox name.
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}",
+            mailbox_name=f"gitlab:{integration.id}:15",
             cell_names=[cell.name],
         )
 
@@ -254,15 +252,11 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
+            mailbox_name=f"gitlab:{integration.id}:15:push",
             cell_names=[cell.name],
         )
 
-    @override_cells(cell_config)
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @responses.activate
-    def test_routing_webhook_with_mailbox_buckets(self) -> None:
-        integration = self.get_integration()
+    def test_mailbox_bucket_id(self) -> None:
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -270,22 +264,14 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
-        with mock.patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
-        ) as mock_is_limited:
-            mock_is_limited.return_value = True
-            parser = GitlabRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
 
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b""
-        assert len(responses.calls) == 0
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            mailbox_name=f"gitlab:{integration.id}:15:push",
-            cell_names=[cell.name],
-        )
+        assert parser.mailbox_bucket_id({"project": {"id": 15}}) == 15
+        assert parser.mailbox_bucket_id({"project": {"id": "15"}}) == 15
+        assert parser.mailbox_bucket_id({}) is None
+        assert parser.mailbox_bucket_id({"project": {}}) is None
+        assert parser.mailbox_bucket_id({"project": "sentry"}) is None
+        assert parser.mailbox_bucket_id({"project": {"id": "sentry"}}) is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
@@ -347,6 +333,6 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
+            mailbox_name=f"gitlab:{integration.id}:15:push",
             cell_names=[cell.name],
         )
