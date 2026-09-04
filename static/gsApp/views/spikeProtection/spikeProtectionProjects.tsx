@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -290,7 +291,10 @@ function SpikeProtectionProjects({subscription}: Props) {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>
-              <Text variant="muted">{t('Projects')}</Text>
+              <Flex gap="xs" align="center">
+                <Text variant="muted">{t('Projects')}</Text>
+                <InfoTip title={t('Expand a project to add a notification action')} />
+              </Flex>
             </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
