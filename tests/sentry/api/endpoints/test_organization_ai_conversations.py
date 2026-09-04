@@ -258,6 +258,74 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         assert response.status_code == 200
         mock_run_table_query.assert_called_once()
+        assert mock_run_table_query.call_args.kwargs["orderby"] == [
+            "-max(timestamp)",
+            "gen_ai.conversation.id",
+        ]
+
+    def test_single_query_sorts_duration_by_all_gen_ai_spans(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        shorter_id = uuid4().hex
+        longer_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=shorter_id,
+            timestamp=now,
+            operation_type="ai_client",
+            duration=2000,
+        )
+        self.store_ai_span(
+            conversation_id=longer_id,
+            timestamp=now - timedelta(minutes=1),
+            operation_type="ai_client",
+            duration=1000,
+        )
+        self.store_ai_span(
+            conversation_id=longer_id,
+            timestamp=now - timedelta(minutes=1),
+            operation_type="tool",
+            duration=2000,
+        )
+
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                    "sort": "-duration",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        assert [row["conversationId"] for row in response.data] == [longer_id, shorter_id]
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_single_query_supports_multiple_explore_and_frontend_sort_aliases(
+        self, mock_run_table_query: MagicMock
+    ) -> None:
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "sort": [
+                        "-generationDuration",
+                        "sum_if_gen_ai_usage_input_tokens_gen_ai_operation_type_equals_ai_client",
+                        "duration",
+                        "-conversationId",
+                    ],
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        assert mock_run_table_query.call_args.kwargs["orderby"] == [
+            "-generation_duration",
+            "input_tokens",
+            "duration",
+            "-gen_ai.conversation.id",
+        ]
 
     @patch(
         "sentry.ai_monitoring.endpoints.organization_ai_conversations.OrganizationAIConversationsEndpoint._get_conversations_single_query"
