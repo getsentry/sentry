@@ -1,0 +1,59 @@
+# Capture plan
+
+Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
+
+```json
+{
+  "name": "issue-stream-filter",
+  "beforeUrl": "https://demo.dev.getsentry.net:7998/issues/",
+  "afterUrl": "https://demo.dev.getsentry.net:7999/issues/",
+  "target": {"kind": "product"},
+  "themes": ["light"],
+  "viewports": [{"name": "desktop", "width": 1440, "height": 1000}],
+  "featureFlags": ["organizations:new-issue-stream"],
+  "actions": [
+    {"kind": "click", "role": "button", "name": "Filters"},
+    {"kind": "fill", "label": "Search", "value": "assigned:me"},
+    {"kind": "press", "key": "Enter"}
+  ]
+}
+```
+
+`name`, both URLs, and `target.kind` are required. The URLs may use different local ports but must use HTTPS and `demo.dev.getsentry.net`. Omit optional arrays to use light mode at 1440×1000 with no actions or feature-flag overrides. Omit `container` and `containerWidth` when the change is not responsive.
+
+Set `settleMs` only when the surface needs longer than the default 2500ms after fonts and images are ready, such as a slow chart or table query. The value must be a non-negative integer.
+
+Set `forceVerticalScrollbar` to `true` when a viewport breakpoint changes page height and makes the scrollbar appear or disappear, creating a gap in attainable container widths. If the first measurement is not the expected width, the helper reserves a scrollbar and measures again. The option can be set on the whole plan or an individual viewport.
+
+For a Scraps section, use `"target":{"kind":"story","heading":"Image Avatars"}`. Omit `heading` to capture the whole main story gallery.
+
+Use the canonical Scraps URL shown by its route registration/navigation. Do not use the internal `?name=<source-file>` loader URL: it is not a stable, reviewable route and can render a misleading fallback state.
+
+Clicks and fills must identify exactly one element by `label` or by `role` and accessible `name`. Matching is exact. Use only actions that do not submit or otherwise mutate data. Feature flags are enabled on both local origins for the capture and their previous `feature-flag-overrides` values are restored afterward.
+
+## Container breakpoints
+
+Sentry's container scale uses these minimum widths:
+
+| Token  | Min width |
+| ------ | --------- |
+| `zero` | 0px       |
+| `3xs`  | 320px     |
+| `2xs`  | 384px     |
+| `xs`   | 448px     |
+| `sm`   | 512px     |
+| `md`   | 576px     |
+| `lg`   | 640px     |
+| `xl`   | 768px     |
+| `2xl`  | 896px     |
+| `3xl`  | 1024px    |
+| `4xl`  | 1152px    |
+| `5xl`  | 1280px    |
+
+Test only affected boundaries unless the user requests the full matrix. For a mobile-first minimum, capture at `N - 1` and `N`; for a `max-width` query, capture at `N` and `N + 1`.
+
+Also compare the representative Before/After state at the same measured container width. Crossing a breakpoint successfully is insufficient when the migration changes the resulting column count, visibility, wrapping, or content from the behavior being replaced.
+
+These values are query-container content-box widths, not viewport or border-box widths. Choose viewport widths or safe actions—such as opening and resizing the Seer Explorer drawer—that place the query container on both sides of the boundary. Set each viewport's `containerWidth` to the expected rendered width; the helper measures the accessible `container` element in both versions and fails when it differs by more than 1px. The default container locator is `{"role":"main"}`.
+
+For a nested query container, identify it by an accessible `label` or by `role` and optional accessible `name`. Name each planned viewport with the shortest useful distinction, such as `below 3xl (1023px)` and `3xl (1024px)`. These names become the published table labels; do not put route names, measurement explanations, or sentence-length descriptions in them.
