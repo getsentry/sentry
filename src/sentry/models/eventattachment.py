@@ -10,7 +10,7 @@ from typing import IO, Any
 
 import zstandard
 from django.core.cache import cache
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.expressions import DatabaseDefault
 from django.db.models.functions import Now
 from django.http import HttpRequest
@@ -345,8 +345,17 @@ class PendingEventAttachment(EventAttachmentBase):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         # A pending attachment that is deleted rather than promoted (its event never
         # arrived, so `cleanup` reaped it once `date_expires` passed) still owns its blob.
-        rv = super().delete(*args, **kwargs)
-        self.delete_blob()
+        #
+        # Lock the row for update to ensure that a `save_pending_attachment` call is not concurrently
+        # promoting the attachment to `EventAttachment`.
+        with transaction.atomic(router.db_for_write(PendingEventAttachment)):
+            is_owner = (
+                PendingEventAttachment.objects.filter(id=self.id).select_for_update().exists()
+            )
+            rv = super().delete(*args, **kwargs)
+
+        if is_owner:
+            self.delete_blob()
         return rv
 
 
