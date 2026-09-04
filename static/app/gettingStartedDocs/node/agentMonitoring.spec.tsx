@@ -216,10 +216,10 @@ describe('node agentMonitoring onboarding', () => {
     it('verifies through the agent rather than a raw SDK snippet', () => {
       const steps = config.verify(makeParams({integration: 'flue'}));
 
+      // Flue auto-instruments, so verification is guidance only - no raw-SDK snippet.
+      expect(steps).toHaveLength(1);
+      expect(steps[0]!.type).toBe('verify');
       expect(collectCode(steps)).toBe('');
-      const text = JSON.stringify(steps);
-      expect(text).toContain('invoke_agent');
-      expect(text).toContain('execute_tool');
     });
   });
 });
