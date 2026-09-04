@@ -1,6 +1,6 @@
 ---
 name: generate-migration
-description: Generate Django database migrations for Sentry. Use when creating migrations, adding/removing columns or tables, adding indexes, or resolving migration conflicts.
+description: Generate or review Django database migrations for Sentry. Use when creating or reviewing migrations and data migrations, adding/removing columns or tables, adding indexes, or resolving migration conflicts.
 ---
 
 # Generate Django Database Migrations
@@ -72,6 +72,12 @@ class BackfillFooTest(TestMigrations):
 Run these tests locally with the `--migrations` and `--reuse-db` flags. On the first run, it will be necessary to use `--create-db` along with `--reuse-db` to get the database in a good state.
 
 ## Guidelines
+
+### Historical Models and Save Hooks
+
+`apps.get_model()` returns a historical model class without custom `save()` methods. Signals it emits use the historical class as sender, so receivers scoped to the live model, such as cache invalidation hooks, do not run.
+
+When authoring or reviewing a data migration, inspect the live model's save hooks and explicitly perform required side effects. Keep using `apps.get_model()`; importing the live model is not a safe workaround.
 
 ### Adding Columns
 
