@@ -23,10 +23,6 @@ class VstsRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.AZURE_DEVOPS.value
     webhook_identifier = WebhookProviderIdentifier.VSTS
 
-    # Far lower volume than GitHub: enough to unserialize a burst without thinning
-    # mailboxes into scheduler rows that each carry a handful of payloads.
-    mailbox_bucket_count = 10
-
     cell_view_classes = [WorkItemWebhook]
 
     @control_silo_function
