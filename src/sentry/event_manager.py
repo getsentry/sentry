@@ -2522,11 +2522,9 @@ def save_attachment(
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
-    if (
-        is_pending
-        and group_id is None
-        and features.has("projects:defer-attachment-storage", project)
-    ):
+    if is_pending and features.has("projects:defer-attachment-storage", project):
+        assert group_id is None
+
         # The event this attachment belongs to has not been ingested (yet), so we do not
         # know whether it will be accepted at all. Park the attachment in
         # `PendingEventAttachment` with a short TTL; `save_pending_attachments` promotes it

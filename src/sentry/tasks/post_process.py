@@ -463,6 +463,10 @@ def update_existing_attachments(job: PostProcessJob) -> None:
 
     event = job["event"]
 
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
+        group_id=event.group_id
+    ).update(group_id=event.group_id)
+
     # `process_individual_attachment` decides whether an attachment is "pending" by asking
     # eventstore -- i.e. Snuba -- whether the event exists yet. Snuba lags, so an
     # attachment arriving in the seconds right after its event still looks orphaned and
@@ -482,16 +486,13 @@ def update_existing_attachments(job: PostProcessJob) -> None:
     #
     # NOTE: guarded on `is_reprocessed` to match the call in `save_error_events`.
     if not job["is_reprocessed"] and event.group_id is not None:
-        save_pending_attachments(
+        safe_execute(
+            save_pending_attachments,
             project=event.project,
             event_id=event.event_id,
             group_id=event.group_id,
             source="post_process",
         )
-
-    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
-        group_id=event.group_id
-    )
 
 
 def fetch_buffered_group_stats(group: Group) -> None:
