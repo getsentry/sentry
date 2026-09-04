@@ -985,6 +985,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.files",
     "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
+    "sentry.tasks.llm_cache_issue_detection",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
     "sentry.tasks.merge",
@@ -1248,6 +1249,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
         "schedule": crontab("0", "0", "*", "1,15", "*"),
+    },
+    "llm-cache-issue-detection": {
+        "task": "issues:sentry.tasks.llm_cache_issue_detection.run_llm_cache_issue_detection",
+        # Hourly while rolling out, for faster feedback. The detection window is
+        # 7 days, so this can be widened once the signal is trusted.
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "heal-stale-derived-data": {
         "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
