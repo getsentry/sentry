@@ -160,6 +160,146 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       await submitSuccess();
     });
 
+    it('preserves options after reloading and searching again', async () => {
+      const searchUrl = '/extensions/example/search';
+      onSubmitAction.mockClear();
+
+      MockApiClient.addMockResponse({
+        url: searchUrl,
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [MockApiClient.matchQuery({action: 'create', ignored: ['Sprint']})],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            {
+              name: 'project',
+              label: 'Project',
+              choices: [['project-1', 'Initial Project']],
+              default: 'project-1',
+              type: 'select',
+              updatesForm: true,
+              required: true,
+              url: searchUrl,
+            },
+          ],
+        },
+      });
+      const searchQuery = MockApiClient.addMockResponse({
+        url: searchUrl,
+        match: [
+          MockApiClient.matchQuery({
+            field: 'project',
+            query: 'Selected',
+          }),
+        ],
+        method: 'GET',
+        body: [{label: 'Selected Project', value: 'project-99'}],
+      });
+      const laterSearchQuery = MockApiClient.addMockResponse({
+        url: searchUrl,
+        match: [
+          MockApiClient.matchQuery({
+            field: 'project',
+            query: 'Other',
+          }),
+        ],
+        method: 'GET',
+        body: [{label: 'Other Project', value: 'project-100'}],
+      });
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            project: 'project-99',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            {
+              name: 'project',
+              label: 'Project',
+              choices: [['project-1', 'Initial Project']],
+              default: 'project-99',
+              type: 'select',
+              updatesForm: true,
+              required: true,
+              url: searchUrl,
+            },
+            {
+              name: 'details',
+              label: 'Details',
+              type: 'text',
+              default: 'Default details for selected project',
+            },
+          ],
+        },
+      });
+
+      render(
+        <TicketRuleModal
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          link=""
+          ticketType=""
+          instance={{integration: '1'}}
+          onSubmitAction={onSubmitAction}
+        />,
+        {organization}
+      );
+
+      await screen.findByRole('button', {name: 'Apply Changes'});
+      const projectField = screen.getByRole('textbox', {name: 'Project'});
+      await userEvent.click(projectField);
+      await userEvent.type(projectField, 'Selected');
+      await userEvent.click(await screen.findByText('Selected Project'));
+
+      await waitFor(() => expect(dynamicQuery).toHaveBeenCalled());
+      expect(await screen.findByText('Selected Project')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Details'})).toHaveValue(
+        'Default details for selected project'
+      );
+
+      const detailsField = screen.getByRole('textbox', {name: 'Details'});
+      const reloadedProjectField = screen.getByRole('textbox', {name: 'Project'});
+      await userEvent.click(reloadedProjectField);
+      await userEvent.type(reloadedProjectField, 'Other');
+      expect(await screen.findByText('Other Project')).toBeInTheDocument();
+      expect(laterSearchQuery).toHaveBeenCalledTimes(1);
+      await userEvent.clear(reloadedProjectField);
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Initial Project'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Selected Project'})
+      ).toBeInTheDocument();
+      await userEvent.click(detailsField);
+      expect(screen.getByText('Selected Project')).toBeInTheDocument();
+
+      await userEvent.clear(detailsField);
+      await userEvent.type(detailsField, 'Updated details');
+      await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
+
+      expect(onSubmitAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: 'Updated details',
+          dynamic_form_fields: expect.arrayContaining([
+            expect.objectContaining({name: 'details'}),
+          ]),
+        }),
+        expect.any(Object)
+      );
+      expect(searchQuery).toHaveBeenCalledTimes(1);
+    });
+
     it('should ignore error checking when default is empty array', async () => {
       const dynamicQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
