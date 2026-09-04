@@ -389,9 +389,10 @@ export function agentMonitoring({
       const selected = getAgentIntegration(params);
 
       // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
-      // Therefore, Node.js instructions is returned for this option.
-      // This option is only available in meta frameworks.
-      if (selected === AgentIntegration.VERCEL_AI) {
+      // Flue is likewise a server-side framework (with its own blueprint setup).
+      // Both reuse the Node.js instructions rather than the client-side config below.
+      // These options are only available in meta frameworks.
+      if (selected === AgentIntegration.VERCEL_AI || selected === AgentIntegration.FLUE) {
         return nodeAgentMonitoring({
           packageName,
           configFileName: serverConfigFileName,
@@ -433,9 +434,10 @@ export function agentMonitoring({
       const selected = getAgentIntegration(params);
 
       // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
-      // Therefore, Node.js instructions is returned for this option.
-      // This option is only available in meta frameworks.
-      if (selected === AgentIntegration.VERCEL_AI) {
+      // Flue is likewise a server-side framework (with its own blueprint setup).
+      // Both reuse the Node.js instructions rather than the client-side config below.
+      // These options are only available in meta frameworks.
+      if (selected === AgentIntegration.VERCEL_AI || selected === AgentIntegration.FLUE) {
         return nodeAgentMonitoring({
           packageName,
           configFileName: serverConfigFileName,
