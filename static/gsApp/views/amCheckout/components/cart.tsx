@@ -156,13 +156,11 @@ function ItemWithPrice({
   price,
   shouldBoldItem,
   isVariableCost,
-  isCredit,
 }: {
   item: React.ReactNode;
   price: React.ReactNode;
   shouldBoldItem: boolean;
   'data-test-id'?: string;
-  isCredit?: boolean;
   isVariableCost?: boolean;
 }) {
   return (
@@ -170,10 +168,7 @@ function ItemWithPrice({
       <Text bold={shouldBoldItem} variant={isVariableCost ? 'muted' : 'primary'}>
         {item}
       </Text>
-      <Text
-        align="right"
-        variant={isVariableCost ? 'muted' : isCredit ? 'success' : 'primary'}
-      >
+      <Text align="right" variant={isVariableCost ? 'muted' : 'primary'}>
         {price}
       </Text>
     </ItemFlex>

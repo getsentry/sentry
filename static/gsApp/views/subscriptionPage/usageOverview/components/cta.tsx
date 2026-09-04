@@ -96,18 +96,17 @@ function Cta({
 
 function FindOutMoreButton({
   href,
-  to,
   selectedProduct,
 }: {
+  href: string;
   selectedProduct: DataCategory | AddOnCategory;
-} & ({href: string; to?: never} | {to: string; href?: never})) {
+}) {
   return (
     <LinkButton
       icon={<IconOpen />}
       variant="link"
       size="sm"
       href={href}
-      to={to ?? ''}
       analyticsEventName="Subscription Settings: Find Out More Button Clicked"
       analyticsEventKey="subscription_settings.find_out_more_button_clicked"
       analyticsParams={{product: selectedProduct}}
