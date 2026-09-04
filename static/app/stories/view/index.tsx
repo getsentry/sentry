@@ -269,9 +269,7 @@ function GlobalStoryStyles() {
     /* match body background with header story styles */
     body {
       background-color: ${
-        isIndex
-          ? darkTheme.tokens.background.secondary
-          : theme.tokens.background.secondary
+        isIndex ? darkTheme.tokens.background.secondary : theme.tokens.background.primary
       };
     }
     /* fixed position color block to match overscroll color to story background */
