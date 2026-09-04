@@ -10,6 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.ai_monitoring.constants import AI_CONVERSATIONS_ALIASES
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
@@ -261,6 +262,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                     snuba_params=snuba_params,
                     offset=offset,
                     limit=limit,
+                    sorts=validated_data["sort"],
                 )
             return self._get_conversations(
                 snuba_params=snuba_params,
@@ -295,6 +297,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         snuba_params: SnubaParams,
         offset: int,
         limit: int,
+        sorts: list[str],
     ) -> list[AIConversationResponse]:
         config = SearchResolverConfig(
             auto_fields=True,
@@ -305,6 +308,13 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         ai_client_filter = "gen_ai.operation.type:ai_client"
         agent_filter = "gen_ai.operation.type:agent"
         tool_filter = "gen_ai.operation.type:tool"
+        orderby = [
+            ("-" if sort.startswith("-") else "") + AI_CONVERSATIONS_ALIASES[sort.removeprefix("-")]
+            for sort in sorts
+        ]
+        # Add a unique tiebreaker so offset pagination cannot skip or repeat conversations.
+        if not any(column.removeprefix("-") == "gen_ai.conversation.id" for column in orderby):
+            orderby.append("gen_ai.conversation.id")
 
         results = Spans.run_table_query(
             params=snuba_params,
@@ -320,6 +330,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client) as input_tokens",
                 "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client) as output_tokens",
                 "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+                f"sum_if(`{operation_filter}`,span.duration) as duration",
                 "sum_if(span.duration,gen_ai.operation.type,equals,ai_client) as generation_duration",
                 "min(precise.start_ts) as start_timestamp",
                 "max(precise.finish_ts) as end_timestamp",
@@ -342,7 +353,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 f"last_if(`{ai_client_filter}`, gen_ai.response.text, timestamp) as response_text",
                 f"max_if(`{ai_client_filter} has:gen_ai.response.text`, timestamp) as response_text_timestamp",
             ],
-            orderby=["-max(timestamp)"],
+            orderby=orderby,
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS_COMPLETE.value,
