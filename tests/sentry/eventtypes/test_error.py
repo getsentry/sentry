@@ -14,6 +14,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
+            "synthetic": False,
         }
 
     def test_no_exception_type_or_value(self) -> None:
@@ -24,6 +25,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
+            "synthetic": False,
         }
 
     def test_pulls_top_function(self) -> None:
@@ -48,6 +50,7 @@ class GetMetadataTest(TestCase):
             "type": "Error",
             "value": "",
             "function": "top_func",
+            "synthetic": False,
         }
 
     def test_none_frame(self) -> None:
@@ -56,7 +59,70 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
+            "synthetic": False,
         }
+
+    def test_synthetic_records_type_and_flag(self) -> None:
+        # Grouping ignores a synthetic type; it is recorded as a title of last resort.
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Signal 11, Code 1",
+                        "mechanism": {"type": "signal", "synthetic": True},
+                    }
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "type": "SIGSEGV",
+            "value": "Signal 11, Code 1",
+            "synthetic": True,
+        }
+
+    def test_non_synthetic_flag_is_written_as_false(self) -> None:
+        # Group metadata never deletes keys, so an omitted flag would outlive the type it
+        # describes.
+        inst = ErrorEvent()
+        data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "ValueError",
+                        "value": "bad",
+                        "mechanism": {"type": "signal"},
+                    }
+                ]
+            }
+        }
+        assert inst.get_metadata(data) == {
+            "type": "ValueError",
+            "value": "bad",
+            "synthetic": False,
+        }
+
+    def test_synthetic_flag_clears(self) -> None:
+        # A group that saw a synthetic event and then a real one must describe the real exception.
+        inst = ErrorEvent()
+        synthetic = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Signal 11, Code 1",
+                        "mechanism": {"type": "signal", "synthetic": True},
+                    }
+                ]
+            }
+        }
+        real = {"exception": {"values": [{"type": "ValueError", "value": "bad"}]}}
+
+        merged = {**inst.get_metadata(synthetic), **inst.get_metadata(real)}
+
+        assert merged == {"type": "ValueError", "value": "bad", "synthetic": False}
+        assert inst.get_title(merged) == "ValueError: bad"
 
     def test_multiple_exceptions_default(self) -> None:
         inst = ErrorEvent()
@@ -71,6 +137,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
+            "synthetic": False,
         }
 
     def test_multiple_exceptions_main_indicated(self) -> None:
@@ -87,6 +154,7 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Bar",
+            "synthetic": False,
         }
 
 
@@ -106,3 +174,49 @@ class GetTitleTest(TestCase):
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": ""})
         assert result == "Error"
+
+    def test_synthetic_prefers_the_crash_location(self) -> None:
+        # Hand-built: the ordering only shows once both a type and a function are recorded.
+        inst = ErrorEvent()
+        metadata = {
+            "type": "SIGSEGV",
+            "value": "Signal 11, Code 1",
+            "function": "U3CCrashCaptureU3Ed__11_MoveNext",
+            "synthetic": True,
+        }
+        assert inst.get_title(metadata) == "U3CCrashCaptureU3Ed__11_MoveNext"
+
+    def test_synthetic_falls_back_to_the_type(self) -> None:
+        # Built from event data: the fallback only holds if the type is actually recorded.
+        inst = ErrorEvent()
+        data = {
+            "platform": "native",
+            "exception": {
+                "values": [
+                    {
+                        "type": "SIGSEGV",
+                        "value": "Signal 11, Code 1",
+                        "mechanism": {"type": "signal", "synthetic": True},
+                        "stacktrace": {"frames": [{"in_app": True, "instruction_addr": "0x1"}]},
+                    }
+                ]
+            },
+        }
+        assert inst.get_title(inst.get_metadata(data)) == "SIGSEGV: Signal 11, Code 1"
+
+    def test_synthetic_with_nothing_to_show(self) -> None:
+        inst = ErrorEvent()
+        assert inst.get_title({"value": "", "synthetic": True}) == "<unknown>"
+
+    def test_non_synthetic_still_prefers_the_type(self) -> None:
+        # Only synthetic exceptions reorder; everything else is untouched.
+        inst = ErrorEvent()
+        metadata = {"type": "ValueError", "value": "bad", "function": "do_thing"}
+        assert inst.get_title(metadata) == "ValueError: bad"
+
+    def test_metadata_without_the_flag_is_untouched(self) -> None:
+        # Stored group metadata predating the flag must keep resolving to the same title.
+        inst = ErrorEvent()
+        assert inst.get_title({"value": "Signal 11, Code 1"}) == "<unknown>"
+        assert inst.get_title({"value": "Signal 11, Code 1", "function": "top_func"}) == "top_func"
+        assert inst.get_title({"type": "ValueError", "value": "bad"}) == "ValueError: bad"

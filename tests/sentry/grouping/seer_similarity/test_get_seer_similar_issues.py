@@ -774,8 +774,8 @@ class ExceptionTypeMismatchTest(TestCase):
             new_event=self._synthetic_new_event(),
         )
 
-    def test_skips_check_when_parent_has_no_type(self) -> None:
-        # The parent has no stored exception type (synthetic), so there's nothing to compare.
+    def test_skips_check_when_parent_is_synthetic(self) -> None:
+        # The parent has a stored type; it is skipped because the metadata marks it synthetic.
         self._assert_match_result(
             parent_type="Error",
             parent_synthetic=True,

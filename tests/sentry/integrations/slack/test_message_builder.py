@@ -234,6 +234,43 @@ def build_test_message_blocks(
     }
 
 
+class BuildAttachmentTitleTest(TestCase):
+    def test_uses_the_exception_type(self) -> None:
+        group = self.create_group(
+            data={"type": "error", "metadata": {"type": "ValueError", "value": "bad"}}
+        )
+        assert build_attachment_title(group) == "ValueError"
+
+    def test_synthetic_prefers_the_crash_location(self) -> None:
+        # The type is a platform label, so the crash-location title is better.
+        group = self.create_group(
+            data={
+                "type": "error",
+                "metadata": {
+                    "type": "SIGSEGV",
+                    "value": "Signal 11, Code 1",
+                    "function": "top_func",
+                    "synthetic": True,
+                },
+            }
+        )
+        assert build_attachment_title(group) == "top_func"
+
+    def test_synthetic_falls_back_to_the_type(self) -> None:
+        # Nothing symbolicated, so the type is all that is left — still better than `<unknown>`.
+        group = self.create_group(
+            data={
+                "type": "error",
+                "metadata": {
+                    "type": "SIGSEGV",
+                    "value": "Signal 11, Code 1",
+                    "synthetic": True,
+                },
+            }
+        )
+        assert build_attachment_title(group) == "SIGSEGV: Signal 11, Code 1"
+
+
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_block(self) -> None:
         release = self.create_release(project=self.project)
