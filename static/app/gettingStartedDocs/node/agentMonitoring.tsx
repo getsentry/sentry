@@ -21,6 +21,11 @@ import {
 // auto-instruments the `env.AI` binding only from that version.
 export const MIN_REQUIRED_VERSION = '10.67.0';
 
+// The Cloudflare Agents SDK helper `instrumentAgentWithSentry` only exists from
+// this version; earlier SDKs expose `instrumentDurableObjectWithSentry` instead.
+// @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
+const CLOUDFLARE_AGENTS_MIN_VERSION = '10.69.0';
+
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
 const CLOUDFLARE_DURABLE_OBJECTS_DOCS =
@@ -42,6 +47,16 @@ export function getAgentIntegration(params: DocsParams): AgentIntegration {
 export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
   return (params.platformOptions?.deploymentTarget ??
     DeploymentTarget.NODE) as DeploymentTarget;
+}
+
+/**
+ * The minimum SDK version required for the selected integration. Most SDKs share
+ * MIN_REQUIRED_VERSION, but the Cloudflare Agents SDK needs a newer release.
+ */
+export function getMinRequiredVersion(params: DocsParams, fallback: string): string {
+  return getAgentIntegration(params) === AgentIntegration.CLOUDFLARE_AGENTS
+    ? CLOUDFLARE_AGENTS_MIN_VERSION
+    : fallback;
 }
 
 /**
@@ -743,6 +758,7 @@ export function getInstallStep(
     getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
       ? '@sentry/cloudflare'
       : packageName;
+  const resolvedMinVersion = getMinRequiredVersion(params, minVersion);
 
   return [
     {
@@ -753,13 +769,76 @@ export function getInstallStep(
           text: tct(
             'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
             {
-              minVersion: <code>{minVersion}</code>,
+              minVersion: <code>{resolvedMinVersion}</code>,
             }
           ),
         },
         getInstallCodeBlock(params, {
           packageName: resolvedPackageName,
         }),
+      ],
+    },
+  ];
+}
+
+/**
+ * The Cloudflare Agents SDK is bootstrapped by wrapping the agent class with
+ * `instrumentAgentWithSentry` (Durable Object instrumentation under the hood),
+ * a different entry point than `withSentry`, so it gets its own configure step.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/agents-sdk/
+ */
+function getCloudflareAgentsConfigureStep(params: DocsParams): OnboardingStep[] {
+  return [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Wrap your agent class with [code:Sentry.instrumentAgentWithSentry]. It applies Durable Object instrumentation plus agent-specific telemetry, including callable RPC spans and automatic conversation ID tracking.',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `import * as Sentry from "@sentry/cloudflare";
+import { Agent } from "agents";
+
+class MyAgentBase extends Agent {
+  // Your agent logic goes here
+}
+
+// Wrap the agent so its RPC calls and model invocations are captured as AI spans
+export const MyAgent = Sentry.instrumentAgentWithSentry(
+  (env) => ({
+    dsn: "${params.dsn.public}",
+    // Tracing must be enabled for agent monitoring to work
+    tracesSampleRate: 1.0,
+    // Propagate traces across callable RPC methods
+    enableRpcTracePropagation: true,
+  }),
+  MyAgentBase,
+);`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'The wrapper also supports [aiChatAgent:AIChatAgent] and [mcpAgent:McpAgent]. For per-user or singleton agents, call [code:Sentry.setConversationId] at the start of [code:onChatMessage] to override the automatic conversation ID. See the [link:Agents SDK docs] for details.',
+            {
+              code: <code />,
+              aiChatAgent: <code />,
+              mcpAgent: <code />,
+              link: <ExternalLink href={CLOUDFLARE_AGENTS_SDK_DOCS} />,
+            }
+          ),
+        },
       ],
     },
   ];
@@ -926,6 +1005,24 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
 
   if (selected === AgentIntegration.EVE) {
     return eveOnboarding.verify(params);
+  }
+
+  // The Agents SDK only produces spans once the wrapped agent runs, so there's
+  // no standalone snippet to verify - trigger the agent instead.
+  if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
+    return [
+      {
+        type: StepType.VERIFY,
+        content: [
+          {
+            type: 'text',
+            text: t(
+              'Trigger your agent so it invokes a model, then confirm the agent spans show up in Sentry.'
+            ),
+          },
+        ],
+      },
+    ];
   }
 
   // On Cloudflare these SDKs only produce spans through the wrapped client shown
@@ -1106,7 +1203,7 @@ export const agentMonitoring = ({
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}
-      minVersion={minVersion}
+      minVersion={getMinRequiredVersion(params, minVersion)}
       packageName={packageName}
     />
   ),
@@ -1130,6 +1227,10 @@ export const agentMonitoring = ({
 
     if (selected === AgentIntegration.EVE) {
       return eveOnboarding.configure(params);
+    }
+
+    if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
+      return getCloudflareAgentsConfigureStep(params);
     }
 
     return getConfigureStep({

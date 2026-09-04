@@ -2,6 +2,7 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
@@ -37,6 +38,20 @@ function collectCode(steps: OnboardingStep[]): string {
     }
   }
   return codes.join('\n\n');
+}
+
+// Flattens the (possibly `tct`-produced) React nodes of every text block into a
+// plain string so tests can assert on copy like the minimum SDK version.
+function collectText(steps: OnboardingStep[]): string {
+  const parts: string[] = [];
+  for (const step of steps) {
+    for (const block of step.content ?? []) {
+      if (block.type === 'text') {
+        parts.push(reactNodeToText(block.text));
+      }
+    }
+  }
+  return parts.join(' ');
 }
 
 describe('node agentMonitoring onboarding', () => {
@@ -257,6 +272,37 @@ describe('node agentMonitoring onboarding', () => {
       expect(
         texts.some(text => typeof text === 'string' && text.includes('Start Eve'))
       ).toBe(true);
+    });
+  });
+
+  describe('Cloudflare Agents SDK', () => {
+    const agentsParams = makeParams({
+      integration: 'cloudflare_agents',
+      deploymentTarget: 'cloudflare',
+    });
+
+    it('wraps the agent class with instrumentAgentWithSentry', () => {
+      const code = collectCode(config.configure(agentsParams));
+
+      expect(code).toContain('Sentry.instrumentAgentWithSentry(');
+      expect(code).toContain('import * as Sentry from "@sentry/cloudflare"');
+      expect(code).toContain('enableRpcTracePropagation: true');
+      expect(code).not.toContain('Sentry.withSentry(');
+      expect(code).not.toContain('Sentry.init(');
+    });
+
+    it('installs @sentry/cloudflare at the Agents SDK minimum version', () => {
+      const steps = config.install(agentsParams);
+
+      expect(collectCode(steps)).toContain('npm install @sentry/cloudflare');
+      expect(collectText(steps)).toContain('10.69.0');
+    });
+
+    it('verifies by triggering the agent instead of a raw-SDK snippet', () => {
+      const steps = config.verify(agentsParams);
+
+      expect(collectCode(steps)).toBe('');
+      expect(collectText(steps)).toContain('Trigger your agent');
     });
   });
 });
