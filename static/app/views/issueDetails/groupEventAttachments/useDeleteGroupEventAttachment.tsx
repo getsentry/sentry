@@ -4,6 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
@@ -33,7 +34,17 @@ export function useDeleteGroupEventAttachment() {
   >({
     mutationFn: variables =>
       api.requestPromise(
-        `/projects/${variables.orgSlug}/${variables.projectSlug}/events/${variables.attachment.event_id}/attachments/${variables.attachment.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
+          {
+            path: {
+              organizationIdOrSlug: variables.orgSlug,
+              projectIdOrSlug: variables.projectSlug,
+              eventId: variables.attachment.event_id,
+              attachmentId: variables.attachment.id,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }

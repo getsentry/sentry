@@ -21,6 +21,9 @@ JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira"
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
+STATUS_SEARCH_PAGE_SIZE = 200
+STATUS_SEARCH_MAX_PAGES = 20
+
 
 class JiraCloudClient(ApiClient):
     # TODO: Update to v3 endpoints
@@ -46,6 +49,9 @@ class JiraCloudClient(ApiClient):
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
     integration_name = IntegrationProviderSlug.JIRA.value
+    # Configures `get_with_pagination`, used by the paginated `get_project_statuses`.
+    page_size = STATUS_SEARCH_PAGE_SIZE
+    page_number_limit = STATUS_SEARCH_MAX_PAGES
 
     # This timeout is completely arbitrary. Jira doesn't give us any
     # caching headers to work with. Ideally we want a duration that
@@ -72,10 +78,11 @@ class JiraCloudClient(ApiClient):
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
+        now = datetime.datetime.now(datetime.UTC)
         jwt_payload = {
             "iss": JIRA_KEY,
-            "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "iat": now,
+            "exp": now + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(
                 uri=path,
                 method=prepared_request.method.upper(),
@@ -231,5 +238,18 @@ class JiraCloudClient(ApiClient):
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
 
-    def get_project_statuses(self, project_id: str) -> dict[str, Any]:
-        return dict(self.get_cached(self.STATUS_SEARCH_URL, params={"projectId": project_id}))
+    def get_project_statuses(self, project_id: str, paginate: bool = False) -> dict[str, Any]:
+        if not paginate:
+            # TODO: Remove this after rolling out lazy status feature flag fully
+            return dict(self.get_cached(self.STATUS_SEARCH_URL, params={"projectId": project_id}))
+
+        values = self.get_with_pagination(
+            self.STATUS_SEARCH_URL,
+            gen_params=lambda page_num, page_size: {
+                "projectId": project_id,
+                "startAt": page_num * page_size,
+                "maxResults": page_size,
+            },
+            get_results=lambda resp: resp.get("values", []),
+        )
+        return {"values": values}

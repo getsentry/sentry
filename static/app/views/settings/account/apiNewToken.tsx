@@ -88,7 +88,7 @@ export default function ApiNewToken() {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation<NewInternalAppApiToken>({
-        url: '/api-tokens/',
+        url: getApiUrl('/api-tokens/'),
         method: 'POST',
         data: {
           ...data,

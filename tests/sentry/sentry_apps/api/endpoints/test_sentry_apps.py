@@ -571,11 +571,8 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["slug"] != sentry_app.slug
 
     def test_cannot_create_app_without_organization(self) -> None:
-        self.create_project(organization=self.organization)
-        sentry_app = self.create_internal_integration(name="Foo Bar")
+        response = self.get_error_response(status_code=404)
 
-        data = self.get_data(name=sentry_app.name, organization=None)
-        response = self.get_error_response(**data, status_code=404)
         assert response.data == {
             "detail": "Please provide a valid value for the 'organization' field.",
         }
@@ -897,6 +894,15 @@ class PostSentryAppsTest(SentryAppsTest):
         # Control characters in header names are not valid RFC 7230 tokens.
         response = self.get_error_response(
             **self.get_data(webhookHeaders=["X-Evil\x01Header: value"]), status_code=400
+        )
+        assert "webhookHeaders" in response.data
+
+    def test_create_integration_with_non_latin1_webhook_header_value(self) -> None:
+        # HTTP headers are latin-1; ideographic space (U+3000) is not encodable.
+        bad_header = "Authorization: Bearer　token"
+        response = self.get_error_response(
+            **self.get_data(webhookHeaders=[bad_header]),
+            status_code=400,
         )
         assert "webhookHeaders" in response.data
 

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,11 +9,8 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {DataTable} from 'sentry/components/tables/dataTable';
+import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -28,16 +25,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -105,19 +92,12 @@ export function AggregatesTable({
     [aggregateFields]
   );
 
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    visibleAggregateFields.map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return aggregateField.groupBy;
-      }
-      return aggregateField.yAxis;
-    }),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-    }
+  const visibleFields = useMemo(
+    () =>
+      visibleAggregateFields.map(aggregateField =>
+        isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+      ),
+    [visibleAggregateFields]
   );
 
   const meta = useMemo(
@@ -152,14 +132,18 @@ export function AggregatesTable({
 
   return (
     <Fragment>
-      <Table ref={tableRef} style={initialTableStyles}>
-        <TableHead>
-          <TableRow>
-            <TableHeadCell isFirst={false} />
+      <DataTable
+        fields={visibleFields}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+      >
+        <DataTable.Head>
+          <DataTable.Row>
+            <DataTable.HeadCell isFirst={false} />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
               }
 
               const field = isGroupBy(aggregateField)
@@ -173,44 +157,33 @@ export function AggregatesTable({
               const direction = sorts.find(s => s.field === field)?.kind;
 
               function updateSort() {
-                const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
+                setSorts([{field, kind: getNextDirection(direction)}]);
               }
 
               return (
-                <TableHeadCell
+                <DataTable.HeadCell
                   align={align}
-                  aria-sort={getAriaSort(direction)}
+                  columnIndex={i}
                   key={i}
                   isFirst={i === 0}
+                  onSort={updateSort}
+                  sort={direction}
                 >
-                  <SortableHeaderCell direction={direction} onSort={updateSort}>
-                    {label}
-                  </SortableHeaderCell>
-                  {i !== visibleAggregateFields.length - 1 && (
-                    <GridResizer
-                      dataRows={
-                        !result.isError && !result.isPending && result.data
-                          ? result.data.length
-                          : 0
-                      }
-                      onMouseDown={e => onResizeMouseDown(e, i)}
-                    />
-                  )}
-                </TableHeadCell>
+                  {label}
+                </DataTable.HeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {result.isPending ? (
-            <TableStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isError ? (
-            <TableStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            </DataTable.Status>
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -250,8 +223,8 @@ export function AggregatesTable({
               }
 
               return (
-                <TableRow key={i}>
-                  <TableBodyCell>
+                <DataTable.Row key={i}>
+                  <DataTable.Cell>
                     {topEvents &&
                       i < topEvents &&
                       !parseCursor(aggregateCursor)?.offset && (
@@ -268,14 +241,14 @@ export function AggregatesTable({
                         <IconStack />
                       </IconTriggerContent>
                     </CellAction>
-                  </TableBodyCell>
+                  </DataTable.Cell>
                   {visibleAggregateFields.map((aggregateField, j) => {
                     const field = isGroupBy(aggregateField)
                       ? aggregateField.groupBy
                       : aggregateField.yAxis;
 
                     return (
-                      <TableBodyCell key={j}>
+                      <DataTable.Cell key={j}>
                         <FieldRenderer
                           column={columns[field]}
                           data={row}
@@ -283,21 +256,21 @@ export function AggregatesTable({
                           unit={meta?.units?.[field]}
                           meta={meta}
                         />
-                      </TableBodyCell>
+                      </DataTable.Cell>
                     );
                   })}
-                </TableRow>
+                </DataTable.Row>
               );
             })
           ) : (
-            <TableStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No spans found')}</p>
               </EmptyStateWarning>
-            </TableStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
-      </Table>
+        </DataTable.Body>
+      </DataTable>
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}

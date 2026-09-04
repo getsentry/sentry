@@ -32,6 +32,7 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason
@@ -2474,6 +2475,66 @@ class UserReportEventLinkTestMixin(BasePostProcessGroupMixin):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
+class UpdateExistingAttachmentsTestMixin(BasePostProcessGroupMixin):
+    def create_attachment(self, event_id: str, group_id: int | None) -> EventAttachment:
+        return EventAttachment.objects.create(
+            project_id=self.project.id,
+            event_id=event_id,
+            group_id=group_id,
+            type="event.attachment",
+            name="hello.txt",
+            content_type="text/plain",
+            size=5,
+            blob_path=":hello",
+        )
+
+    def test_links_attachment_ingested_before_event(self) -> None:
+        """
+        An attachment sent to the standalone endpoint before its event is stored with a
+        null `group_id`. Post-processing must link it to the group.
+
+        This pins the NULL semantics of the `.exclude(group_id=...)` in
+        `update_existing_attachments`: Django renders it as
+        `NOT (group_id = %s AND group_id IS NOT NULL)`, which matches null rows. A bare
+        `NOT (group_id = %s)` would silently skip them and leave the attachment unlinked.
+        """
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        attachment = self.create_attachment(event.event_id, group_id=None)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        attachment.refresh_from_db()
+        assert attachment.group_id == event.group_id
+
+    def test_relinks_attachment_from_a_different_group(self) -> None:
+        """Reprocessing moves an event to a new group; its attachments must follow."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        other_group = self.create_group(project=self.project)
+        assert other_group.id != event.group_id
+        attachment = self.create_attachment(event.event_id, group_id=other_group.id)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        attachment.refresh_from_db()
+        assert attachment.group_id == event.group_id
+
+    def test_leaves_other_events_attachments_alone(self) -> None:
+        """The update is scoped to the event being processed."""
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        unrelated = self.create_attachment("b" * 32, group_id=None)
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        unrelated.refresh_from_db()
+        assert unrelated.group_id is None
+
+
 class DetectBaseUrlsForUptimeTestMixin(BasePostProcessGroupMixin):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:
         key = get_organization_bucket_key(organization)
@@ -2809,7 +2870,7 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        mock_safe_execute.assert_any_call(similarity.record, mock.ANY, mock.ANY)
 
     def assert_not_called_with(self, mock_function: Mock):
         """
@@ -3011,9 +3072,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         group.save()
 
         self.call_post_process_group(
-            is_new=False,  # Not a new group
+            is_new=True,
             is_regression=False,
-            is_new_group_environment=False,
+            is_new_group_environment=True,
             event=event,
         )
 
@@ -3021,7 +3082,7 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
-    def test_kick_off_seer_automation_runs_with_missing_fixability_score(
+    def test_kick_off_seer_automation_skips_existing_issue(
         self, mock_generate_summary_and_run_automation
     ):
         self.project.update_option("sentry:seer_scanner_automation", True)
@@ -3035,15 +3096,13 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         assert group.seer_fixability_score is None
 
         self.call_post_process_group(
-            is_new=False,  # Not a new group
+            is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
         )
 
-        mock_generate_summary_and_run_automation.assert_called_once_with(
-            group.id, trigger_path="old_seer_automation"
-        )
+        mock_generate_summary_and_run_automation.assert_not_called()
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @with_feature("organizations:gen-ai-features")
@@ -3068,9 +3127,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
         assert cache.get(cache_key) is None
 
         self.call_post_process_group(
-            is_new=False,  # Not a new group
+            is_new=True,
             is_regression=False,
-            is_new_group_environment=False,
+            is_new_group_environment=True,
             event=event,
         )
 
@@ -3379,6 +3438,7 @@ class PostProcessGroupErrorTest(
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
+    UpdateExistingAttachmentsTestMixin,
     DetectBaseUrlsForUptimeTestMixin,
     ProcessSimilarityTestMixin,
     PipelineKillswitchTestMixin,

@@ -5,8 +5,10 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 
 export function useFilterKeyRegistry({
   asyncFilterKeyRegistryQueryKey,
+  enabled = true,
 }: {
   asyncFilterKeyRegistryQueryKey?: QueryKey;
+  enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
   const fallbackRegistryId = useId();
@@ -25,9 +27,10 @@ export function useFilterKeyRegistry({
       queryOptions({
         queryKey: filterKeyRegistryQueryKey,
         queryFn: () => ({}),
+        enabled,
         staleTime: Infinity,
       }),
-    [filterKeyRegistryQueryKey]
+    [enabled, filterKeyRegistryQueryKey]
   );
 
   const registerFilterKeys = useCallback(

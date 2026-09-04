@@ -2,13 +2,13 @@ from typing import Sequence
 
 from django.db import router, transaction
 
+from sentry import options
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.settings import is_self_hosted
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
     _ensure_detector,
@@ -144,8 +144,7 @@ def create_and_connect_pull_request_workflow(
         DataCondition.objects.create(
             type=Condition.SEER_ACTIVITY_TRIGGER,
             condition_group=when_condition_group,
-            # TODO(Leander): Update this with PR_READY_FOR_REVIEW when that's done
-            comparison=[SeerActivityTriggerStage.PR_CREATED.value],
+            comparison=[SeerActivityTriggerStage.PR_READY_FOR_REVIEW.value],
             condition_result=True,
         )
         action_filter = DataConditionGroup.objects.create(
@@ -182,12 +181,14 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
     but this will guard if that does happen in quick succession (maybe from an RPC blip somehow).
 
     Note: If the detector is not connected, a new pull request workflow will be created.
+
+    Raises on Workflow.MultipleObjectsReturned, UnableToAcquireLockApiError
     """
-    existing = Workflow.objects.filter(
+    existing = Workflow.objects.get_or_none(
         organization=organization,
         name=PULL_REQUEST_WORKFLOW_LABEL,
         detectorworkflow__detector=detector,
-    ).first()
+    )
     if existing:
         return existing
 
@@ -201,11 +202,11 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Workflow)),
         ):
-            existing = Workflow.objects.filter(
+            existing = Workflow.objects.get_or_none(
                 organization=organization,
                 name=PULL_REQUEST_WORKFLOW_LABEL,
                 detectorworkflow__detector=detector,
-            ).first()
+            )
             if existing:
                 return existing
             return create_and_connect_pull_request_workflow(organization, detector)
@@ -214,8 +215,12 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
 
 
 def ensure_default_organization_workflows(organization: Organization) -> list[Workflow]:
-    all_projects_detector = ensure_default_all_projects_detector(organization.id)
+    """
+    Raises on Workflow.MultipleObjectsReturned, Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
+    """
     workflows: list[Workflow] = []
-    if not is_self_hosted():
-        workflows.append(ensure_pull_request_workflow(organization, all_projects_detector))
+    if not options.get("workflow_engine.auto_creation.pull_request_workflow"):
+        return workflows
+    all_projects_detector = ensure_default_all_projects_detector(organization.id)
+    workflows.append(ensure_pull_request_workflow(organization, all_projects_detector))
     return workflows

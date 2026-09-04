@@ -25,6 +25,8 @@ export type ExploreAnalyticsEventParameters = {
     project?: number[];
     start?: string;
     statsPeriod?: string;
+    statsPeriodEnd?: string;
+    statsPeriodStart?: string;
   };
 };
 

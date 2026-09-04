@@ -15,6 +15,7 @@ import {
   useExplorerAutofix,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
 import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
@@ -54,7 +55,7 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
   }
 
   if (!autofix.runState && aiConfig.hasAutofix) {
-    return null; // TODO: should this have an empty state?
+    return <AutofixStartCard autofix={autofix} group={group} />;
   }
 
   return (

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import timedelta
 from hashlib import sha1
 from uuid import uuid4
@@ -261,6 +262,17 @@ class PullRequestRetentionTest(TestCase):
         pr.refresh_from_db()
         return pr
 
+    def create_old_commit(self):
+        """Helper to create a commit that is itself past the cutoff"""
+        commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.author,
+        )
+        Commit.objects.filter(id=commit.id).update(date_added=self.old_date)
+        commit.refresh_from_db()
+        return commit
+
     def test_old_pr_with_no_references_is_unused(self) -> None:
         """An old PR with no references should be marked as unused"""
         pr = self.create_pr(date_added=self.old_date)
@@ -324,14 +336,24 @@ class PullRequestRetentionTest(TestCase):
     def test_pr_with_commit_in_release_is_not_unused(self) -> None:
         """PR with a commit that's part of a release should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
-        commit = self.create_commit(
-            project=self.project,
-            repo=self.repo,
-            author=self.author,
-        )
-        Commit.objects.filter(id=commit.id).update(date_added=self.old_date)
+        commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
         release = self.create_release(project=self.project)
+        ReleaseCommit.objects.create(
+            organization_id=self.organization.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+        assert not pr.is_unused(self.cutoff_date)
+
+    def test_pr_with_commit_in_old_release_is_not_unused(self) -> None:
+        """The release pin is for the release's lifetime, not its recency: the PR is
+        part of the release's provenance for as long as the release exists"""
+        pr = self.create_pr(date_added=self.old_date)
+        commit = self.create_old_commit()
+        self.create_pull_request_commit(pr, commit)
+        release = self.create_release(project=self.project, date_added=self.old_date)
         ReleaseCommit.objects.create(
             organization_id=self.organization.id,
             release=release,
@@ -343,14 +365,23 @@ class PullRequestRetentionTest(TestCase):
     def test_pr_with_commit_as_release_head_is_not_unused(self) -> None:
         """PR with a commit that's a release head should not be unused"""
         pr = self.create_pr(date_added=self.old_date)
-        commit = self.create_commit(
-            project=self.project,
-            repo=self.repo,
-            author=self.author,
-        )
-        Commit.objects.filter(id=commit.id).update(date_added=self.old_date)
+        commit = self.create_old_commit()
         self.create_pull_request_commit(pr, commit)
         release = self.create_release(project=self.project)
+        ReleaseHeadCommit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            release=release,
+            commit=commit,
+        )
+        assert not pr.is_unused(self.cutoff_date)
+
+    def test_pr_with_commit_as_old_release_head_is_not_unused(self) -> None:
+        """An old release pins the PR through its head commit for its lifetime too"""
+        pr = self.create_pr(date_added=self.old_date)
+        commit = self.create_old_commit()
+        self.create_pull_request_commit(pr, commit)
+        release = self.create_release(project=self.project, date_added=self.old_date)
         ReleaseHeadCommit.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -384,8 +415,21 @@ class PullRequestRetentionTest(TestCase):
         )
         assert pr.is_unused(self.cutoff_date)
 
-    def test_pr_comment_with_existing_group_is_not_unused(self) -> None:
-        """PR with a comment referencing an existing group should not be unused"""
+    def test_pr_with_recent_comment_referencing_live_group_is_not_unused(self) -> None:
+        """A comment Sentry can still update keeps its PR, issues referenced or not"""
+        pr = self.create_pr(date_added=self.old_date)
+        group = self.create_group(project=self.project)
+        self.create_pull_request_comment(
+            pull_request=pr,
+            created_at=self.recent_date,
+            updated_at=self.recent_date,
+            group_ids=[group.id],
+        )
+        assert not pr.is_unused(self.cutoff_date)
+
+    def test_pr_with_old_comment_referencing_live_group_is_unused(self) -> None:
+        """A live issue in a stale comment no longer pins the PR -- the comment is
+        past the window in which Sentry would ever rewrite it"""
         pr = self.create_pr(date_added=self.old_date)
         group = self.create_group(project=self.project)
         self.create_pull_request_comment(
@@ -393,40 +437,6 @@ class PullRequestRetentionTest(TestCase):
             created_at=self.old_date,
             updated_at=self.old_date,
             group_ids=[group.id],
-        )
-        assert not pr.is_unused(self.cutoff_date)
-
-    def test_pr_comment_with_deleted_group_is_unused(self) -> None:
-        """PR with a comment referencing only non-existent groups should be unused"""
-        pr = self.create_pr(date_added=self.old_date)
-        self.create_pull_request_comment(
-            pull_request=pr,
-            created_at=self.old_date,
-            updated_at=self.old_date,
-            group_ids=[999999],  # Non-existent group
-        )
-        assert pr.is_unused(self.cutoff_date)
-
-    def test_pr_comment_with_mixed_groups_is_not_unused(self) -> None:
-        """PR with comment referencing both existing and non-existent groups should not be unused"""
-        pr = self.create_pr(date_added=self.old_date)
-        group = self.create_group(project=self.project)
-        self.create_pull_request_comment(
-            pull_request=pr,
-            created_at=self.old_date,
-            updated_at=self.old_date,
-            group_ids=[group.id, 999999],  # One exists, one doesn't
-        )
-        assert not pr.is_unused(self.cutoff_date)
-
-    def test_pr_comment_with_empty_groups_is_unused(self) -> None:
-        """PR with comment that has empty group_ids should be unused"""
-        pr = self.create_pr(date_added=self.old_date)
-        self.create_pull_request_comment(
-            pull_request=pr,
-            created_at=self.old_date,
-            updated_at=self.old_date,
-            group_ids=[],
         )
         assert pr.is_unused(self.cutoff_date)
 
@@ -529,15 +539,35 @@ class GetOrCreateFromReferenceTest(TestCase):
         """Duplicate rows sharing a provider are ambiguous by name, and no provider value
         can separate them -- only the external id can."""
         duplicate = self.create_repo(
-            self.project, name="getsentry/sentry", provider="integrations:github"
+            self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="99",
         )
-        duplicate.update(external_id="99")
+        # create_repo get_or_creates: without a distinguishing field it returns the setUp
+        # row, and the duplicate this test is named for never exists.
+        assert duplicate.id != self.repo.id
+        assert self._resolve().repo_resolution == "ambiguous"
 
         resolved = self._resolve(repo_external_id="99")
 
         assert resolved.resolved_by == "external_id"
         assert resolved.pull_request is not None
         assert resolved.pull_request.repository_id == duplicate.id
+
+    def test_treats_an_empty_external_id_as_absent(self) -> None:
+        """A reporter with no id for the repo sends ``""``. Querying it would match a row
+        that also has none, attaching the PR to an unrelated repository."""
+        self.create_repo(
+            self.project, name="unrelated/repo", provider="integrations:github", external_id=""
+        )
+
+        resolved = self._resolve(repo_external_id="")
+
+        assert resolved.repo_resolution == "resolved"
+        assert resolved.resolved_by == "name"
+        assert resolved.pull_request is not None
+        assert resolved.pull_request.repository_id == self.repo.id
 
     def test_falls_back_to_name_when_external_id_is_stale(self) -> None:
         """A repo re-added under a new external id must be no worse off than before."""
@@ -710,6 +740,55 @@ class ForProviderPrTest(TestCase):
         # Same external_id under a different installation (e.g. a second GHE host,
         # where repo ids can collide) must not be treated as a sibling.
         assert self._for_provider_pr(integration_id=self.integration_id + 1) == []
+
+
+class GetOrFetchExternalIdTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(self.project, name="getsentry/sentry")
+
+    def _fetch(self, fetch: Callable[[], int | None], *, key: str = "42") -> int | None:
+        return PullRequest.objects.get_or_fetch_external_id(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key=key,
+            fetch=fetch,
+        )
+
+    def test_returns_stored_id_without_fetch(self) -> None:
+        pr = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
+        pr.update(external_id=555)
+        calls: list[int] = []
+
+        def fetch() -> int:
+            calls.append(1)
+            return 999
+
+        assert self._fetch(fetch) == 555
+        assert calls == []
+
+    def test_writes_back_onto_existing_row(self) -> None:
+        pr = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
+
+        assert self._fetch(fetch=lambda: 555) == 555
+        pr.refresh_from_db()
+        assert pr.external_id == 555
+
+    def test_returns_fetched_id_unpersisted_when_row_is_absent(self) -> None:
+        assert self._fetch(fetch=lambda: 555) == 555
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
+
+    def test_does_not_store_a_none_fetch(self) -> None:
+        pr = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
+        )
+
+        assert self._fetch(fetch=lambda: None) is None
+        pr.refresh_from_db()
+        assert pr.external_id is None
 
 
 class ParsePullRequestUrlTest(TestCase):

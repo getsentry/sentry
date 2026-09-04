@@ -2,21 +2,23 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import options
 from sentry.models.organization import Organization
 from sentry.signals import organization_created
 from sentry.workflow_engine.defaults.detectors import (
     UnableToAcquireLockApiError,
 )
 from sentry.workflow_engine.defaults.workflows import ensure_default_organization_workflows
+from sentry.workflow_engine.models import Detector, Workflow
 
 
 def create_organization_workflows(organization: Organization, **kwargs: Any) -> None:
-    if not options.get("workflow_engine.all_projects_auto_creation_enabled"):
-        return
     try:
         ensure_default_organization_workflows(organization)
-    except UnableToAcquireLockApiError as e:
+    except (
+        UnableToAcquireLockApiError,
+        Detector.MultipleObjectsReturned,
+        Workflow.MultipleObjectsReturned,
+    ) as e:
         sentry_sdk.capture_exception(e)
 
 

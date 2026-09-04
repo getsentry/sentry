@@ -47,12 +47,13 @@ from sentry.web.frontend.organization_avatar import OrganizationAvatarPhotoView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.pipeline_advancer import PipelineAdvancerView
 from sentry.web.frontend.project_event import ProjectEventRedirect
-from sentry.web.frontend.react_page import AuthV2ReactPageView, GenericReactPageView, ReactPageView
+from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
+from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
@@ -64,7 +65,6 @@ from social_auth.views import complete
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
-auth_v2_react_page_view = AuthV2ReactPageView.as_view()
 
 urlpatterns: list[URLResolver | URLPattern] = [
     re_path(
@@ -197,12 +197,6 @@ urlpatterns += [
         ErrorPageEmbedView.as_view(),
         name="sentry-error-page-embed",
     ),
-    # Auth V2
-    re_path(
-        r"^auth-v2/",
-        auth_v2_react_page_view,
-        name="sentry-auth-v2",
-    ),
     # OAuth
     re_path(
         r"^oauth/",
@@ -319,6 +313,11 @@ urlpatterns += [
                     r"^signup/verify-email/$",
                     SignupVerificationPendingView.as_view(),
                     name="sentry-signup-verify-email-pending",
+                ),
+                re_path(
+                    r"^signup/verify-email/sso/(?P<signed_data>[-A-Za-z0-9_]+)/$",
+                    SSOSignupVerificationView.as_view(),
+                    name="sentry-signup-verify-email-sso",
                 ),
                 re_path(
                     r"^close/$",
@@ -507,6 +506,11 @@ urlpatterns += [
     ),
     # Story book
     re_path(
+        r"^scraps/",
+        react_page_view,
+        name="scraps",
+    ),
+    re_path(
         r"^stories/",
         react_page_view,
         name="stories",
@@ -533,11 +537,6 @@ urlpatterns += [
         r"^docs/api/?$",
         RedirectView.as_view(url="https://docs.sentry.io/api/", permanent=False),
         name="sentry-api-docs-redirect",
-    ),
-    re_path(
-        r"^scraps/?$",
-        RedirectView.as_view(pattern_name="stories", permanent=False),
-        name="sentry-scraps-redirect",
     ),
     re_path(
         r"^api/$",

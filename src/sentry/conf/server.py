@@ -193,7 +193,7 @@ SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
 # on this cluster because add-buffer.lua checks lock existence atomically.
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
-# Redis cluster for span deduplication keys in process_segments consumer.
+# Redis cluster for span deduplication keys in the process_segment task.
 # Falls back to SENTRY_SPAN_BUFFER_CLUSTER if not set.
 SENTRY_SPAN_DEDUPE_CLUSTER: str | None = None
 SENTRY_ASSEMBLE_CLUSTER = "default"
@@ -206,7 +206,7 @@ SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 SENTRY_SCM_REDIS_CLUSTER = "default"
-# Ephemeral dedup markers for self-chaining tasks (merge_groups / unmerge).
+# Ephemeral dedup markers for self-chaining tasks (e.g. merge_groups, unmerge).
 SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
@@ -438,7 +438,7 @@ TEMPLATES = [
     }
 ]
 
-SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
+SENTRY_HYBRIDCLOUD_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
     "CELL": ["sentry.CellOutbox"],
 }
@@ -880,6 +880,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.deletions.tasks.scheduled",
     "sentry.deletions.tasks.seer",
     "sentry.demo_mode.tasks",
+    "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -916,6 +917,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.tasks.update_comment",
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.vsts.tasks.subscription_check",
+    "sentry.issues.action_log.tasks",
     "sentry.issues.derived.tasks",
     "sentry.issues.escalating.forecasts",
     "sentry.middleware.integrations.tasks",
@@ -981,6 +983,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
@@ -1015,6 +1018,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.explorer_index",
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
+    "sentry.tasks.seer.investigation",
     "sentry.tasks.seer.night_shift.cron",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
@@ -1074,6 +1078,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "deliver-from-outbox": {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "deliver-group-action-log-outbox": {
+        "task": "issues.action_log:sentry.issues.action_log.tasks.enqueue_group_action_log_outbox_jobs",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
@@ -1157,6 +1165,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
     },
+    "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
+        "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
+        "schedule": crontab("0", "*", "*", "*", "*"),
+    },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
         "schedule": crontab("0", "0", "*", "*", "*"),
@@ -1193,10 +1205,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run once a day at 04:00 UTC, off-peak.
         "schedule": crontab("0", "4", "*", "*", "*"),
     },
-    "refresh-artifact-bundles-in-use": {
-        "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
-        "schedule": crontab("*/1", "*", "*", "*", "*"),
-    },
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "performance:sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1219,6 +1227,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # webhooks, and small frequent batches are gentler than one daily surge.
         "schedule": crontab("20", "*", "*", "*", "*"),
     },
+    "autofix-sweep-pr-iteration-details": {
+        "task": "seer:sentry.tasks.autofix.sweep_pr_iteration_details",
+        # Hourly: the task discards iteration rows more than a day old, so it
+        # must be regular, not prompt.
+        "schedule": crontab("40", "*", "*", "*", "*"),
+    },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1237,7 +1251,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "heal-stale-derived-data": {
         "task": "issues:sentry.issues.derived.tasks.heal_stale_derived_data",
-        "schedule": crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
 }
 
@@ -1568,6 +1582,9 @@ SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for the ingest-replay-recordings task
 SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING = 0
+
+# sample rate for the ingest-monitors per-check-in transaction
+SENTRY_MONITORS_CHECKIN_APM_SAMPLING = 1 if DEBUG else 0
 
 # ----
 # end APM config
@@ -2275,7 +2292,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.7.2"
+SELF_HOSTED_STABLE_VERSION = "26.8.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2778,7 +2795,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
-    "buffered-segments-dlq": "default",
     "taskworker": "default",
     "taskworker-control": "default",
 }
@@ -2983,6 +2999,13 @@ SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
 
+# URL of the teapot GPU crash dump symbolication service, derived from the
+# SENTRY_TEAPOT_HOST host:port (the k8s service in SaaS, localhost in dev).
+SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}"
+
+# Shared secret used to sign requests to teapot
+SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
+
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
 SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
@@ -3083,9 +3106,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
-# Show banners on the login page that are defined in layout.html
-SHOW_LOGIN_BANNER = False
 
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
@@ -3318,8 +3338,6 @@ if SILO_DEVSERVER:
     SENTRY_LOCALITIES = [
         {
             "name": "us",
-            # TODO(cells): Deprecate category
-            "category": "MULTI_TENANT",
             "cells": ["us"],
             "new_org_cell": "us",
         }

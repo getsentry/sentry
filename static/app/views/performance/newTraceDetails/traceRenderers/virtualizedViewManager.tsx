@@ -39,6 +39,7 @@ import type {TraceScheduler} from './traceScheduler';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
+const VITAL_ZOOM_PADDING_RATIO = 0.05;
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -150,6 +151,7 @@ export class VirtualizedViewManager {
   private readonly ROW_PADDING_PX = 16;
   private readonly span_matrix: SpanMatrix = [1, 0, 0, 1, 0, 0];
   private _compressedViewCache: CompressedView | null = null;
+  private activeVital: string | null = null;
   private readonly compressedViewCalculations = new CompressedTraceViewCalculations();
   private readonly normalViewCalculations = new NormalTraceViewCalculations();
 
@@ -600,6 +602,7 @@ export class VirtualizedViewManager {
             : newView[0],
         width: newView[2],
       });
+      this.activeVital = null;
     } else {
       if (!this.timers.onWheelEnd) {
         this.onWheelStart();
@@ -627,6 +630,9 @@ export class VirtualizedViewManager {
           physicalDeltaPct
         )
       );
+      if (distance !== 0) {
+        this.activeVital = null;
+      }
     }
   }
 
@@ -660,7 +666,40 @@ export class VirtualizedViewManager {
     });
   }
 
-  onZoomIntoSpace(space: [number, number]) {
+  onZoomToVital(timestamp: number, vital: string) {
+    if (this.activeVital === vital) {
+      return;
+    }
+
+    if (this.timers.onZoomIntoSpace !== null) {
+      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      this.timers.onZoomIntoSpace = null;
+    }
+
+    const vitalDuration = timestamp - this.view.to_origin;
+    this.onZoomIntoSpace(
+      [
+        this.view.to_origin,
+        clamp(
+          vitalDuration * (1 + VITAL_ZOOM_PADDING_RATIO),
+          0,
+          this.view.trace_space.width
+        ),
+      ],
+      {padding: false}
+    );
+    this.activeVital = vital;
+  }
+
+  onZoomIntoSpace(
+    space: [number, number],
+    options: {
+      onComplete?: () => void;
+      padding?: boolean;
+    } = {}
+  ) {
+    this.activeVital = null;
+
     let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];
 
@@ -673,7 +712,7 @@ export class VirtualizedViewManager {
     // an offset on each side. This ensures we dont need
     // to move the duration label insdie the bar and can preserve
     // some context around the star/end time of a span
-    if (this.view.trace_physical_space.width > 300) {
+    if (options.padding !== false && this.view.trace_physical_space.width > 300) {
       const paddedSpace = this.getViewCalculations().padZoomIntoSpace(
         this.getViewCalculationContext(),
         final_x,
@@ -714,6 +753,7 @@ export class VirtualizedViewManager {
           x: final_x,
           width: final_width,
         });
+        options.onComplete?.();
       }
     };
 
@@ -1101,8 +1141,8 @@ export class VirtualizedViewManager {
       max = Math.max(max, width);
       innerMostNode =
         !innerMostNode ||
-        TraceTree.Depth(this.columns.list.column_nodes[i]!) <
-          TraceTree.Depth(innerMostNode)
+        TraceTree.depth(this.columns.list.column_nodes[i]!) <
+          TraceTree.depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
     }
@@ -1111,7 +1151,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + TraceTree.Depth(innerMostNode) * this.row_depth_padding >
+        translation + TraceTree.depth(innerMostNode) * this.row_depth_padding >
         this.columns.list.width * this.view.trace_container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -1129,8 +1169,8 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
 
     return (
-      translation + TraceTree.Depth(node) * this.row_depth_padding < 0 ||
-      translation + TraceTree.Depth(node) * this.row_depth_padding >
+      translation + TraceTree.depth(node) * this.row_depth_padding < 0 ||
+      translation + TraceTree.depth(node) * this.row_depth_padding >
         (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
     );
   }
@@ -1141,7 +1181,7 @@ export class VirtualizedViewManager {
     offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
-    const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
+    const depth_px = -TraceTree.depth(node) * this.row_depth_padding + offset_px;
     const newTransform =
       position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 

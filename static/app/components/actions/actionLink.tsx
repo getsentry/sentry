@@ -31,8 +31,6 @@ type CommonProps = Omit<
 > & {
   children: React.ReactNode;
   className?: string;
-  confirmLabel?: string;
-  confirmPriority?: ConfirmableActionProps['priority'];
   disabled?: boolean;
   onAction?: () => void;
   shouldConfirm?: boolean;
@@ -47,11 +45,9 @@ export function ActionLink({
   className,
   onAction,
   type,
-  confirmLabel,
   disabled,
   children,
   shouldConfirm,
-  confirmPriority,
   header,
   ...props
 }: Props) {
@@ -76,11 +72,9 @@ export function ActionLink({
     return (
       <ConfirmableAction
         shouldConfirm={shouldConfirm}
-        priority={confirmPriority}
         disabled={disabled}
         message={message}
         header={header}
-        confirmText={confirmLabel}
         onConfirm={onAction}
         stopPropagation={disabled}
       >

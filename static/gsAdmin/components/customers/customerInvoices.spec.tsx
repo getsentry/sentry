@@ -21,8 +21,6 @@ describe('CustomerInvoices', () => {
         isClosed: false,
         id: 'paid-invoice-1',
         amount: 10000, // $100.00
-        stripeInvoiceID: 'in_paid123',
-        channel: 'self-serve',
       });
 
       MockApiClient.addMockResponse({
@@ -46,8 +44,6 @@ describe('CustomerInvoices', () => {
         isClosed: true,
         id: 'closed-invoice-1',
         amount: 5000, // $50.00
-        stripeInvoiceID: 'in_closed123',
-        channel: 'self-serve',
       });
 
       MockApiClient.addMockResponse({
@@ -75,8 +71,6 @@ describe('CustomerInvoices', () => {
         isClosed: false,
         id: 'pending-invoice-1',
         amount: 7500, // $75.00
-        stripeInvoiceID: 'in_pending123',
-        channel: 'sales',
       });
 
       MockApiClient.addMockResponse({
@@ -106,7 +100,6 @@ describe('CustomerInvoices', () => {
         isClosed: false,
         id: 'paid-1',
         dateCreated: '2024-01-15T00:00:00Z',
-        stripeInvoiceID: 'in_paid1',
       });
 
       const closedInvoice = InvoiceFixture({
@@ -114,7 +107,6 @@ describe('CustomerInvoices', () => {
         isClosed: true,
         id: 'closed-1',
         dateCreated: '2024-01-10T00:00:00Z',
-        stripeInvoiceID: 'in_closed1',
       });
 
       const pendingInvoice = InvoiceFixture({
@@ -122,7 +114,6 @@ describe('CustomerInvoices', () => {
         isClosed: false,
         id: 'pending-1',
         dateCreated: '2024-01-05T00:00:00Z',
-        stripeInvoiceID: 'in_pending1',
       });
 
       MockApiClient.addMockResponse({
@@ -141,12 +132,10 @@ describe('CustomerInvoices', () => {
   });
 
   describe('Invoice Display Fields', () => {
-    it('displays invoice date, stripe ID, channel, and amount', async () => {
+    it('displays invoice date and amount', async () => {
       const invoice = InvoiceFixture({
         id: 'test-invoice',
         dateCreated: '2024-01-15T12:30:00Z',
-        stripeInvoiceID: 'in_test123456',
-        channel: 'sales',
         amount: 12345, // $123.45
         isPaid: false,
         isClosed: false,
@@ -164,34 +153,8 @@ describe('CustomerInvoices', () => {
         expect(screen.getByText(/Jan.*2024/i)).toBeInTheDocument();
       });
 
-      // Check Stripe ID is displayed
-      expect(screen.getByText('in_test123456')).toBeInTheDocument();
-
-      // Check channel is displayed
-      expect(screen.getByText('sales')).toBeInTheDocument();
-
       // Check amount is formatted correctly ($123.45)
       expect(screen.getByText(/\$123.45/)).toBeInTheDocument();
-    });
-
-    it('displays "n/a" for missing channel', async () => {
-      const invoice = InvoiceFixture({
-        id: 'test-invoice',
-        channel: null,
-        isPaid: true,
-        isClosed: false,
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/customers/${orgId}/invoices/`,
-        body: [invoice],
-      });
-
-      render(<CustomerInvoices orgId={orgId} region={region} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('n/a')).toBeInTheDocument();
-      });
     });
 
     it('displays refund information for refunded invoices', async () => {
@@ -240,30 +203,6 @@ describe('CustomerInvoices', () => {
         expect(dateLink).toHaveAttribute(
           'href',
           `/_admin/customers/${orgId}/invoices/${region}/${invoice.id}/`
-        );
-      });
-    });
-
-    it('links to Stripe dashboard for invoice', async () => {
-      const invoice = InvoiceFixture({
-        id: 'stripe-link-test',
-        stripeInvoiceID: 'in_stripe123',
-        isPaid: true,
-        isClosed: false,
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/customers/${orgId}/invoices/`,
-        body: [invoice],
-      });
-
-      render(<CustomerInvoices orgId={orgId} region={region} />);
-
-      await waitFor(() => {
-        const stripeLink = screen.getByText('in_stripe123').closest('a');
-        expect(stripeLink).toHaveAttribute(
-          'href',
-          'https://dashboard.stripe.com/invoices/in_stripe123'
         );
       });
     });
@@ -320,8 +259,6 @@ describe('CustomerInvoices', () => {
       await waitFor(() => {
         expect(screen.getByText('Invoice')).toBeInTheDocument();
       });
-      expect(screen.getByText('Stripe ID')).toBeInTheDocument();
-      expect(screen.getByText('Channel')).toBeInTheDocument();
       expect(screen.getByText('Status')).toBeInTheDocument();
       expect(screen.getByText('Amount')).toBeInTheDocument();
     });

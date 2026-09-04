@@ -68,7 +68,7 @@ export function TraceRowConnectors(props: {
   node: BaseNode;
 }) {
   const hasChildren = props.node.hasDirectVisibleChildren();
-  const nodeDepth = TraceTree.Depth(props.node);
+  const nodeDepth = TraceTree.depth(props.node);
 
   return (
     <Fragment>

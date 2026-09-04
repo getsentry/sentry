@@ -42,13 +42,6 @@ export function SubscriptionBox({
 }: Props) {
   const {features} = useOrganization();
 
-  if (
-    resource === 'preprod_artifact' &&
-    !features.includes('preprod-artifact-webhooks')
-  ) {
-    return null;
-  }
-
   let disabled = disabledFromPermissions;
   let message = t(
     "Must have at least 'Read' permissions enabled for %s",
@@ -67,7 +60,7 @@ export function SubscriptionBox({
       align="start"
       gap="2xl"
       padding="lg md"
-      direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', '2xl': 'row'}}
       data-disabled={disabled || undefined}
     >
       <Tooltip disabled={!disabled} title={message}>
@@ -76,7 +69,7 @@ export function SubscriptionBox({
           align="center"
           gap="md"
           flex="none"
-          width={{'screen:xs': '100%', 'screen:md': '180px'}}
+          width={{zero: '100%', '2xl': '180px'}}
         >
           <Checkbox
             aria-label={resource}

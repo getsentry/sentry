@@ -5,8 +5,10 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
@@ -46,7 +48,10 @@ export function useDeleteReplays({projectSlug}: Props) {
       const payload = {data};
       return fetchMutation({
         method: 'POST',
-        url: `/projects/${organization.slug}/${projectSlug}/replays/jobs/delete/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         options,
         data: payload,
       });
@@ -93,4 +98,36 @@ export function useDeleteReplays({projectSlug}: Props) {
     hasAccess,
     queryOptionsToPayload,
   };
+}
+
+function collectErrorStrings(value: unknown, field?: string): string[] {
+  if (typeof value === 'string') {
+    return [field ? `${field} — ${value}` : value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(item => collectErrorStrings(item, field));
+  }
+  if (value && typeof value === 'object') {
+    return Object.entries(value).flatMap(([key, item]) =>
+      collectErrorStrings(item, key === 'non_field_errors' ? field : key)
+    );
+  }
+  return [];
+}
+
+export function getBulkDeleteErrorReason(error: unknown): string | undefined {
+  if (!(error instanceof RequestError)) {
+    return undefined;
+  }
+
+  const {detail, data} = error.responseJSON ?? {};
+
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (typeof detail === 'object' && typeof detail?.message === 'string') {
+    return detail.message;
+  }
+
+  return collectErrorStrings(data).join(' ') || undefined;
 }

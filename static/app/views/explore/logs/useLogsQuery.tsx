@@ -222,6 +222,7 @@ function getPageParam(
   highFidelity?: boolean
 ) {
   const isGetPreviousPage = pageDirection === 'previous';
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return (
     result: ApiResponse<EventsLogsResult>,
     _: unknown,

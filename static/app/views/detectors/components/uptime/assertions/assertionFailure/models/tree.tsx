@@ -28,7 +28,7 @@ export class Tree {
     this.root = root;
   }
 
-  static FromAssertion(assertion: UptimeAssertion): Tree {
+  static fromAssertion(assertion: UptimeAssertion): Tree {
     const root = Tree.buildNode(assertion.root, null);
 
     const tree = new Tree(root);

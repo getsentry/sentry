@@ -1,11 +1,16 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -25,7 +30,6 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -90,9 +94,8 @@ function ReceiptGrid({
   payments: InvoiceBase[];
   paymentsPageLinks: string | null | undefined;
 }) {
-  const theme = useTheme();
-  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const isXSmallContainer = useResponsivePropValue({zero: true, sm: false});
+  const isSmallContainer = useResponsivePropValue({zero: true, xl: false});
 
   const getTag = (payment: InvoiceBase) => {
     const status = payment.amountRefunded
@@ -141,7 +144,7 @@ function ReceiptGrid({
       >
         <Grid
           align="start"
-          columns={isXSmallScreen ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
+          columns={{zero: 'repeat(4, 1fr)', sm: 'repeat(4, 1fr) 2fr'}}
           gap="xl"
           padding="xl"
         >
@@ -150,7 +153,7 @@ function ReceiptGrid({
             {t('Amount')}
           </Text>
           <Text bold>{t('Status')}</Text>
-          {!isXSmallScreen && <Text bold>{t('Receipt ID')}</Text>}
+          {!isXSmallContainer && <Text bold>{t('Receipt ID')}</Text>}
           <div />
         </Grid>
         {payments.map(payment => {
@@ -159,7 +162,7 @@ function ReceiptGrid({
             <Grid
               key={payment.id}
               align="center"
-              columns={isXSmallScreen ? 'repeat(4, 1fr)' : 'repeat(4, 1fr) 2fr'}
+              columns={{zero: 'repeat(4, 1fr)', sm: 'repeat(4, 1fr) 2fr'}}
               gap="xl"
               borderTop="primary"
               padding="xl"
@@ -176,14 +179,14 @@ function ReceiptGrid({
                 )}
               </Container>
               <Container>{getTag(payment)}</Container>
-              {!isXSmallScreen && (
+              {!isXSmallContainer && (
                 <Text monospace ellipsis>
                   {payment.id}
                 </Text>
               )}
               <Flex justify="end">
                 <LinkButton icon={<IconDownload />} href={payment.receipt.url}>
-                  {isSmallScreen ? undefined : t('Download PDF')}
+                  {isSmallContainer ? undefined : t('Download PDF')}
                 </LinkButton>
               </Flex>
             </Grid>

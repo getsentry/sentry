@@ -63,10 +63,19 @@ def snake_to_camel_case(value):
     return words[0].lower() + "".join(word.capitalize() for word in words[1:])
 
 
+# Nested keys under these containers are third-party identifiers (for example
+# Jira field IDs like fixVersions) and must not be case-converted.
+_OPAQUE_DICT_KEYS = frozenset({"additional_fields", "additionalFields"})
+
+
 def convert_dict_key_case(obj, converter):
     """
     Recursively converts the keys of a dictionary using the provided converter
     param.
+
+    Nested keys under ``additional_fields`` / ``additionalFields`` are preserved
+    verbatim because they are opaque third-party identifiers, not Sentry API
+    field names.
     """
     if isinstance(obj, list):
         return [convert_dict_key_case(x, converter) for x in obj]
@@ -81,7 +90,12 @@ def convert_dict_key_case(obj, converter):
             raise ValidationError(
                 {key: f"{key} collides with {converted_key}, please pass only one value"}
             )
-        obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
+        value = obj.pop(key)
+        if key in _OPAQUE_DICT_KEYS and isinstance(value, dict):
+            # Convert the container key, keep nested third-party keys as-is.
+            obj[converted_key] = value
+        else:
+            obj[converted_key] = convert_dict_key_case(value, converter)
 
     return obj
 

@@ -216,6 +216,7 @@ type ComponentOverrides = {
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
+  'component:seer-trial-cta': () => React.ComponentType | null;
   'component:superuser-access-category': React.ComponentType<SuperuserAccessCategoryProps>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;

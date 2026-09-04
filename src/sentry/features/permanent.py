@@ -126,8 +126,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:discover-query": FlagpoleFeature(default=True, api_expose=True),
         # Enable 'spans' category on the stats page
         "organizations:span-stats": FlagpoleFeature(default=False, api_expose=True),
-        # Enable incidents feature
-        "organizations:incidents": FlagpoleFeature(default=False, api_expose=True),
         # Enable integration functionality to work with alert rules
         "organizations:integrations-alert-rule": FlagpoleFeature(default=True, api_expose=True),
         # Enable integration functionality to work with alert rules (specifically chat integrations)
@@ -142,6 +140,11 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:integrations-issue-sync": FlagpoleFeature(default=True, api_expose=True),
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": FlagpoleFeature(default=False, api_expose=True),
+        # Track PR lifecycle activity and emit PR Merge Live Metrics. Permanent
+        # rather than a rollout flag: customer single-tenants run a noop analytics
+        # backend, so emission has nowhere to land and the pipeline stays excluded
+        # there indefinitely. Default off keeps self-hosted on today's behavior.
+        "organizations:pr-metrics": FlagpoleFeature(default=False),
     }
 
     # Permanent project features that are controlled via flagpole. These are

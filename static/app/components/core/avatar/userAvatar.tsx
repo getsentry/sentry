@@ -34,7 +34,7 @@ export function UserAvatar({renderTooltip, user, ...props}: UserAvatarProps) {
   );
 }
 
-function getUserAvatarProps(
+export function getUserAvatarProps(
   user: Actor | AvatarUser
 ): GravatarBaseAvatarProps | LetterBaseAvatarProps | UploadBaseAvatarProps {
   if (isActor(user)) {

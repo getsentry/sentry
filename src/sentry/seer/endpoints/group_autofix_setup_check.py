@@ -5,12 +5,11 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import quotas
+from sentry import options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
+from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
@@ -45,7 +44,9 @@ def get_autofix_integration_setup_problems(
     # Iterate through all organization integrations to find one with an active integration
     for organization_integration in organization_integrations:
         integration = integration_service.get_integration(
-            organization_integration_id=organization_integration.id, status=ObjectStatus.ACTIVE
+            organization_integration_id=organization_integration.id,
+            status=ObjectStatus.ACTIVE,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
         if integration:
             installation = integration.get_installation(organization_id=organization.id)
@@ -74,11 +75,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         }
     )
 
-    @deprecated(
-        CELL_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-group-group-autofix-setup",
-        url_names=["sentry-api-0-group-autofix-setup"],
-    )
     def get(self, request: Request, group: Group) -> Response:
         """
         Checks if we are able to run Autofix on the given group.
@@ -96,17 +92,12 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
                 organization=org, project=group.project
             )
 
-        # Free cohort orgs have no Seer subscription, so check_seer_quota
-        # always returns False. We want them to see autofix results when
-        # night shift has already processed the issue, but NOT show the
-        # "Start Analysis" button for issues night shift skipped — manual
-        # triggers would fail with a quota error. So we return True only
-        # when an autofix run already exists for this group, which renders
-        # the results UI. Otherwise False, which renders the paywall.
-        if is_free_cohort_org(org):
-            # Night shift can go through either the regular autofix path
-            # (source="autofix") or the RCA feature path (source="autofix_rca")
-            # depending on the organizations:autofix-rca-in-seer flag.
+        # Free cohort orgs have no subscription — quota check always fails. Return hasAutofixQuota
+        # True only when a run exists (so they see results), False otherwise (shows paywall).
+        is_free_cohort = is_free_cohort_org(org)
+        if is_free_cohort:
+            # Night shift can go through either the regular autofix path (source="autofix") or
+            # the RCA feature path (source="autofix_rca") depending on the organizations:autofix-rca-in-seer.
             has_autofix_quota = (
                 runs_for_group(group.id, "autofix").exists()
                 or runs_for_group(group.id, "autofix_rca").exists()
@@ -117,7 +108,6 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             )
 
         seer_repos_linked = False
-        # Check if org has github integration and is on seat-based tier.
         if integration_check is None:
             try:
                 seer_repos_linked = has_project_connected_repos(org, group.project)

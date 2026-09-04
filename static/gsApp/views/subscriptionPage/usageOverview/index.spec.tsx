@@ -5,8 +5,9 @@ import {CustomerUsageFixture} from 'getsentry-test/fixtures/customerUsage';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {DataCategory} from 'sentry/types/core';
-import * as useMedia from 'sentry/utils/useMedia';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
@@ -23,6 +24,21 @@ describe('UsageOverview', () => {
   });
   const usageData = CustomerUsageFixture();
 
+  function renderUsageOverview(options: Parameters<typeof render>[1] = {}) {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1400);
+
+    return render(
+      <Container containerType="inline-size">
+        <UsageOverview
+          subscription={subscription}
+          organization={organization}
+          usageData={usageData}
+        />
+      </Container>,
+      {additionalWrapper: SecondaryNavigationContextProvider, ...options}
+    );
+  }
+
   beforeEach(() => {
     jest.restoreAllMocks();
     organization.features = ['seer-billing'];
@@ -36,14 +52,7 @@ describe('UsageOverview', () => {
   });
 
   it('renders actions for billing users', async () => {
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
+    renderUsageOverview();
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
     expect(screen.getByRole('button', {name: 'View all usage'})).toBeInTheDocument();
@@ -52,14 +61,7 @@ describe('UsageOverview', () => {
 
   it('does not render actions for non-billing users', async () => {
     organization.access = [];
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
+    renderUsageOverview();
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
     expect(
@@ -71,75 +73,40 @@ describe('UsageOverview', () => {
   });
 
   it('opens panel based with no query params', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
+    renderUsageOverview();
 
     await screen.findByRole('heading', {name: 'Errors'});
   });
 
   it('opens panel based on query params', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/subscription/usage-overview',
-            query: {product: DataCategory.REPLAYS},
-          },
+    renderUsageOverview({
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/subscription/usage-overview',
+          query: {product: DataCategory.REPLAYS},
         },
-      }
-    );
+      },
+    });
 
     await screen.findByRole('heading', {name: 'Replays'});
     expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
   });
 
   it('defaults to last selected when query param is invalid', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/subscription/usage-overview',
-            query: {product: 'transactions'},
-          },
+    renderUsageOverview({
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/subscription/usage-overview',
+          query: {product: 'transactions'},
         },
-      }
-    );
+      },
+    });
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.queryByRole('heading', {name: 'Transactions'})).not.toBeInTheDocument();
   });
 
   it('selects gifted-only product from URL query parameter', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
     const originalMonitorSeats = subscription.categories.monitorSeats;
     subscription.categories.monitorSeats = {
       ...subscription.categories.monitorSeats!,
@@ -147,22 +114,14 @@ describe('UsageOverview', () => {
       free: 1,
       prepaid: 1,
     };
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/subscription/usage-overview',
-            query: {product: DataCategory.MONITOR_SEATS},
-          },
+    renderUsageOverview({
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/subscription/usage-overview',
+          query: {product: DataCategory.MONITOR_SEATS},
         },
-      }
-    );
+      },
+    });
 
     await screen.findByRole('heading', {name: 'Cron Monitors'});
     expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
@@ -170,9 +129,6 @@ describe('UsageOverview', () => {
   });
 
   it('does not select product from URL when no quota at all', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
     const originalMonitorSeats = subscription.categories.monitorSeats;
     subscription.categories.monitorSeats = {
       ...subscription.categories.monitorSeats!,
@@ -180,22 +136,14 @@ describe('UsageOverview', () => {
       free: 0,
       prepaid: 0,
     };
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/subscription/usage-overview',
-            query: {product: DataCategory.MONITOR_SEATS},
-          },
+    renderUsageOverview({
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/subscription/usage-overview',
+          query: {product: DataCategory.MONITOR_SEATS},
         },
-      }
-    );
+      },
+    });
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(
@@ -205,9 +153,6 @@ describe('UsageOverview', () => {
   });
 
   it('selects product with softCapType from URL query parameter', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
     const originalMonitorSeats = subscription.categories.monitorSeats;
     subscription.categories.monitorSeats = {
       ...subscription.categories.monitorSeats!,
@@ -216,22 +161,14 @@ describe('UsageOverview', () => {
       prepaid: 0,
       softCapType: 'TRUE_FORWARD',
     };
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/subscription/usage-overview',
-            query: {product: DataCategory.MONITOR_SEATS},
-          },
+    renderUsageOverview({
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/subscription/usage-overview',
+          query: {product: DataCategory.MONITOR_SEATS},
         },
-      }
-    );
+      },
+    });
 
     await screen.findByRole('heading', {name: 'Cron Monitors'});
     expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
@@ -239,9 +176,6 @@ describe('UsageOverview', () => {
   });
 
   it('selects product from URL when category has unlimited prepaid (UNLIMITED_RESERVED sentinel)', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
     const originalMonitorSeats = subscription.categories.monitorSeats;
     subscription.categories.monitorSeats = {
       ...subscription.categories.monitorSeats!,
@@ -250,22 +184,14 @@ describe('UsageOverview', () => {
       prepaid: UNLIMITED_RESERVED,
       softCapType: null,
     };
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {
-        additionalWrapper: SecondaryNavigationContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/subscription/usage-overview',
-            query: {product: DataCategory.MONITOR_SEATS},
-          },
+    renderUsageOverview({
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/subscription/usage-overview',
+          query: {product: DataCategory.MONITOR_SEATS},
         },
-      }
-    );
+      },
+    });
 
     await screen.findByRole('heading', {name: 'Cron Monitors'});
     expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
@@ -273,17 +199,7 @@ describe('UsageOverview', () => {
   });
 
   it('can switch panel by clicking table rows', async () => {
-    jest
-      .spyOn(useMedia, 'useMedia')
-      .mockImplementation(query => query.includes('min-width'));
-    render(
-      <UsageOverview
-        subscription={subscription}
-        organization={organization}
-        usageData={usageData}
-      />,
-      {additionalWrapper: SecondaryNavigationContextProvider}
-    );
+    renderUsageOverview();
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.queryByRole('heading', {name: 'Replays'})).not.toBeInTheDocument();

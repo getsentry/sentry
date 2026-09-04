@@ -2,6 +2,8 @@
 // TS compatibility for https://github.com/webpack-contrib/file-loader
 
 declare module '*.css';
+declare module '*.avif';
+declare module '*.webp';
 declare module '*.png';
 declare module '*.gif';
 declare module '*.jpg';

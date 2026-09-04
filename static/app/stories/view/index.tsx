@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -27,10 +27,10 @@ import {useStoriesLoader} from './useStoriesLoader';
 
 export function useStoryParams(): {storyCategory?: StoryCategory; storySlug?: string} {
   const location = useLocation();
-  // Match: /stories/:category/(one/optional/or/more/path/segments)
-  // Handles both /stories/... and /organizations/{org}/stories/...
+  // Match: /scraps/:category/(one/optional/or/more/path/segments)
+  // Handles both /scraps/... and /organizations/{org}/scraps/...
   // Supports optional trailing slashes
-  const match = location.pathname.match(/\/stories\/([^/]+)\/(.+?)\/?$/);
+  const match = location.pathname.match(/\/scraps\/([^/]+)\/(.+?)\/?$/);
   return {
     storyCategory: match?.[1] as StoryCategory | undefined,
     storySlug: match?.[2] ?? undefined,
@@ -49,7 +49,13 @@ export default function Stories() {
 function StoriesLanding() {
   return (
     <StoriesLayout>
-      <StoryMainContainer>
+      <StoryMainContainer
+        as="main"
+        column="2"
+        containerType="inline-size"
+        gap="xl"
+        row="1"
+      >
         <StoryLanding />
       </StoryMainContainer>
     </StoriesLayout>
@@ -121,7 +127,14 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer onClick={handleExpressiveCodeCopyClick}>
+        <StoryMainContainer
+          as="main"
+          column="2"
+          containerType="inline-size"
+          gap="xl"
+          row="1"
+          onClick={handleExpressiveCodeCopyClick}
+        >
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
@@ -183,11 +196,12 @@ function useStoriesFavicon() {
   }, []);
 }
 
-const storiesTracking: React.ComponentProps<typeof TrackingContextProvider>['value'] =
-  () => props => {
-    // eslint-disable-next-line no-console
-    console.log('analyticsEvent', props);
-  };
+const storiesTracking: React.ComponentProps<
+  typeof TrackingContextProvider
+>['value'] = props => {
+  // eslint-disable-next-line no-console
+  console.log('analyticsEvent', props);
+};
 
 function StoriesLayout(props: PropsWithChildren) {
   useStoriesFavicon();
@@ -214,8 +228,8 @@ function StoriesLayout(props: PropsWithChildren) {
 }
 
 function isLandingPage(location: ReturnType<typeof useLocation>) {
-  // Handles both /stories and /organizations/{org}/stories
-  return /\/stories\/?$/.test(location.pathname);
+  // Handles both /scraps and /organizations/{org}/scraps
+  return /\/scraps\/?$/.test(location.pathname);
 }
 
 function getStoryFromParams(
@@ -308,13 +322,8 @@ const HeaderContainer = styled('header')`
   background: ${p => p.theme.tokens.background.primary};
 `;
 
-const StoryMainContainer = styled('main')`
-  grid-row: 1;
-  grid-column: 2;
+const StoryMainContainer = styled(Stack)`
   color: ${p => p.theme.tokens.content.primary};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 
   h1,
   h2,

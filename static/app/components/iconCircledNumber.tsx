@@ -1,20 +1,16 @@
 import styled from '@emotion/styled';
 
-import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
+import {SvgIcon} from 'sentry/icons/svgIcon';
 
 type IconCircledNumberProps = {
   number: number;
-  size?: SVGIconProps['size'];
 };
 
-export function IconCircledNumber({number, size = 'md'}: IconCircledNumberProps) {
+export function IconCircledNumber({number}: IconCircledNumberProps) {
+  const size = SvgIcon.ICON_SIZES.md;
   return (
-    <Circle
-      role="img"
-      size={SvgIcon.ICON_SIZES[size]}
-      aria-label={`circled number ${number}`}
-    >
-      <Number size={SvgIcon.ICON_SIZES[size]}>{number}</Number>
+    <Circle role="img" size={size} aria-label={`circled number ${number}`}>
+      <Number size={size}>{number}</Number>
     </Circle>
   );
 }

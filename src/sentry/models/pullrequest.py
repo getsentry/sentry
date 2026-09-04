@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 from urllib.parse import urlsplit
@@ -28,10 +29,13 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.repository import Repository
+from sentry.utils import metrics
 from sentry.utils.groupreference import find_referenced_groups
 
 if TYPE_CHECKING:
     from sentry.models.repository import RepoLookup, RepoResolution
+
+logger = logging.getLogger(__name__)
 
 
 class PullRequestLifecycleState(models.TextChoices):
@@ -46,6 +50,13 @@ def is_open_pull_request_state(state: str | None) -> bool:
     return state is None or state in (
         PullRequestLifecycleState.OPEN,
         PullRequestLifecycleState.LOCKED,
+    )
+
+
+def is_abandoned_pull_request_state(state: str | None) -> bool:
+    return state in (
+        PullRequestLifecycleState.CLOSED,
+        PullRequestLifecycleState.SUPERSEDED,
     )
 
 
@@ -272,6 +283,67 @@ class PullRequestManager(BaseManager["PullRequest"]):
         )
         return ResolvedPullRequest(pull_request, "resolved", provider_unmappable, resolved_by)
 
+    def get_or_fetch_external_id(
+        self,
+        *,
+        organization_id: int,
+        repository_id: int,
+        key: str,
+        fetch: Callable[[], int | None],
+    ) -> int | None:
+        """The provider-global PR id for this org/repo/number, fetching on a miss.
+
+        Reads ``external_id`` off the existing row. A NULL column calls
+        ``fetch`` and writes the result back — so a later mention does not pay
+        REST again. A missing row also fetches, but the id is returned
+        unpersisted: we do not invent a shell PR. A ``None`` from ``fetch`` is
+        not stored: that is a lost installation, a gone-private repo, or a
+        transient error, and caching it would freeze a recoverable miss.
+
+        ``scm.pull_request.external_id`` is tagged ``result`` (``hit`` /
+        ``fetched`` / ``fetch_empty``) and ``row`` (``present`` / ``absent``)
+        so we can see how often REST is still paid and whether the miss was a
+        shell row or no row at all.
+        """
+        stored = self.filter(
+            organization_id=organization_id,
+            repository_id=repository_id,
+            key=key,
+        ).first()
+        if stored is not None and stored.external_id is not None:
+            metrics.incr(
+                "scm.pull_request.external_id",
+                tags={"result": "hit", "row": "present"},
+            )
+            return stored.external_id
+
+        row = "present" if stored is not None else "absent"
+        logger.info(
+            "scm.pull_request.external_id.miss",
+            extra={
+                "organization_id": organization_id,
+                "repository_id": repository_id,
+                "pr_key": key,
+                "row": row,
+            },
+        )
+        external_id = fetch()
+        if external_id is None:
+            metrics.incr(
+                "scm.pull_request.external_id",
+                tags={"result": "fetch_empty", "row": row},
+            )
+            return None
+
+        if stored is not None:
+            stored.update(external_id=external_id)
+
+        metrics.incr(
+            "scm.pull_request.external_id",
+            tags={"result": "fetched", "row": row},
+        )
+        return external_id
+
     def for_provider_pr(
         self, *, external_id: str, integration_id: int, key: int | str
     ) -> list[PullRequest]:
@@ -307,6 +379,10 @@ class PullRequest(Model):
     repository_id = BoundedPositiveIntegerField()
 
     key = models.CharField(max_length=64)  # example, 5131 on github
+    # Provider-global PR id (GitHub ``pull_request.id``). Distinct from ``key``,
+    # which is the repo-scoped number. Nullable: only set when an SCM webhook
+    # (or a later write-back) actually saw the id.
+    external_id = BoundedBigIntegerField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
@@ -376,35 +452,21 @@ class PullRequest(Model):
         """
         Returns a Q object that filters for unused PRs.
         This is the inverse of what makes a PR "in use".
+
+        Every keep condition must be bounded, either by ``cutoff_date`` or by the
+        lifetime of the object referencing the PR. A condition bounded by neither
+        makes the PR immortal and must say why that is intended.
         """
         from sentry.models.grouplink import GroupLink
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
 
-        # Subquery for checking if there's a valid GroupLink
+        # Bounded by the group's lifetime: GroupLink is deleted along with its Group.
         grouplink_exists = Exists(
             GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.pull_request,
                 linked_id=OuterRef("id"),
                 group__project__isnull=False,
-            )
-        )
-
-        # Subquery for checking if comment has valid group_ids
-        # Note: Django aliases the table as U0 in the EXISTS subquery
-        comment_has_valid_group = Exists(
-            PullRequestComment.objects.filter(
-                pull_request_id=OuterRef("id"),
-                group_ids__isnull=False,
-            )
-            .exclude(group_ids__len=0)
-            .extra(
-                where=[
-                    """EXISTS (
-                        SELECT 1 FROM sentry_groupedmessage g
-                        WHERE g.id = ANY(U0.group_ids)
-                    )"""
-                ]
             )
         )
 
@@ -414,6 +476,11 @@ class PullRequest(Model):
             ).filter(Q(created_at__gte=cutoff_date) | Q(updated_at__gte=cutoff_date))
         )
 
+        # Bounded by the release's lifetime, deliberately: a PR whose commit shipped
+        # in a release is part of that release's provenance (CommitSerializer attaches
+        # it to the release's commits), so it lives as long as the release — the same
+        # condition under which CommitDeletionTask keeps the commit itself. Releases
+        # at the tail are effectively immortal, and these PRs are too, by choice.
         commit_in_release = Exists(ReleaseCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_in_head = Exists(ReleaseHeadCommit.objects.filter(commit_id=OuterRef("commit_id")))
         commit_exists = Exists(
@@ -425,10 +492,9 @@ class PullRequest(Model):
         # Define what makes a PR "in use" (should be kept)
         keep_conditions = (
             Q(date_added__gte=cutoff_date)
-            | recent_comment_exists
-            | commit_exists
-            | grouplink_exists
-            | comment_has_valid_group
+            | Q(recent_comment_exists)
+            | Q(commit_exists)
+            | Q(grouplink_exists)
         )
 
         # Return the inverse - we want PRs that DON'T meet any keep conditions

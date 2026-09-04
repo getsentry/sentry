@@ -387,6 +387,55 @@ class ConsecutiveHTTPSpansDetectorTest(TestCase):
 
         assert not detector.is_creation_allowed()
 
+    def test_ignores_spans_with_scrubbed_hostname(self) -> None:
+        span_duration = 2000
+        normal_hostname_spans: list[Span] = []
+        scrubbed_hostname_spans: list[Span] = []
+
+        for hostname, span_list in [
+            ("dogs.are.great", normal_hostname_spans),
+            ("[Filtered]", scrubbed_hostname_spans),
+        ]:
+            for i in range(0, 4):
+                span = create_span(
+                    "http.client", span_duration, f"GET https://{hostname}/dogs/dog_{i}", f"hash{i}"
+                )
+                modify_span_start(span, i * span_duration)
+                span_list.append(span)
+
+        normal_hostname_problems = self.find_problems(create_event(normal_hostname_spans))
+        scrubbed_hostname_problems = self.find_problems(create_event(scrubbed_hostname_spans))
+
+        # Only the non-scrubbed hostname spans are used to find a problem
+        assert len(normal_hostname_problems) == 1
+        assert len(scrubbed_hostname_problems) == 0
+
+    def test_does_not_ignore_spans_with_scrubbed_path(self) -> None:
+        span_duration = 2000
+        normal_path_spans: list[Span] = []
+        scrubbed_path_spans: list[Span] = []
+
+        for path_part, span_list in [
+            ("dogs", normal_path_spans),
+            ("[Filtered]", scrubbed_path_spans),
+        ]:
+            for i in range(0, 4):
+                span = create_span(
+                    "http.client",
+                    span_duration,
+                    f"GET https://dogs.are.great/{path_part}/dog_{i}",
+                    f"hash{i}",
+                )
+                modify_span_start(span, i * span_duration)
+                span_list.append(span)
+
+        normal_path_problems = self.find_problems(create_event(normal_path_spans))
+        scrubbed_path_problems = self.find_problems(create_event(scrubbed_path_spans))
+
+        # Problems are detected whether or not the path has been scrubbed
+        assert len(normal_path_problems) == 1
+        assert len(scrubbed_path_problems) == 1
+
     def test_ignores_non_http_operations(self) -> None:
         span_duration = 2000
         spans = [

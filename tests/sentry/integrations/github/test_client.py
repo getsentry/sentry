@@ -14,7 +14,13 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
+from sentry.integrations.github.client import (
+    GitHubApiClient,
+    GitHubApiRequestType,
+    GitHubReaction,
+    resolve_rate_limit_resource,
+    resolve_upstream_path,
+)
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.github.pull_request_status import (
@@ -44,9 +50,10 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode
-from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -173,7 +180,54 @@ class GitHubApiClientTest(TestCase):
             self.github_client.get_commits(self.repo.name)
 
         mock_is_rate_limited.assert_called_once()
-        mock_set_capacity.assert_called_once_with(capacity=5000)
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
+
+    @responses.activate
+    def test_search_capacity_is_recorded_against_the_search_resource(self) -> None:
+        """
+        GitHub's search resource allows 30 requests/minute while core allows at least 5000/hour.
+        Recording the search limit against core made every subsequent core request appear rate
+        limited until a core response overwrote it.
+        """
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/search/issues",
+            json={"items": []},
+            headers={"x-ratelimit-limit": "30"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.search_issues("repo:foo bar")
+
+        assert mock_is_rate_limited.call_args.kwargs["resource"] == "search"
+        mock_set_capacity.assert_called_once_with(capacity=30, resource="search")
+
+    @responses.activate
+    def test_core_capacity_is_recorded_against_the_core_resource(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{self.repo.name}/commits",
+            json=[],
+            headers={"x-ratelimit-limit": "5000"},
+        )
+
+        with (
+            mock.patch.object(
+                DynamicRateLimiter, "is_rate_limited", return_value=False
+            ) as mock_is_rate_limited,
+            mock.patch.object(DynamicRateLimiter, "set_total_capacity") as mock_set_capacity,
+            mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1"),
+        ):
+            self.github_client.get_commits(self.repo.name)
+
+        assert mock_is_rate_limited.call_args.kwargs["resource"] == "core"
+        mock_set_capacity.assert_called_once_with(capacity=5000, resource="core")
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -1083,6 +1137,39 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_search_issue_assignees_missing_repository(self, get_jwt) -> None:
+        self.add_graphql_response({"data": {"repository": None}})
+
+        with pytest.raises(ApiError, match="Invalid GitHub GraphQL response"):
+            self.github_client.search_issue_assignees(self.repo.name, "user")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_labels_query_error(self, get_jwt) -> None:
+        self.add_graphql_response(
+            {
+                "errors": [
+                    {
+                        "type": "NOT_FOUND",
+                        "message": "Could not resolve to a Repository with the requested name.",
+                    }
+                ]
+            }
+        )
+
+        with pytest.raises(ApiError, match="Could not resolve to a Repository"):
+            self.github_client.search_issue_labels(self.repo.name, "bug")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_search_issue_field_rate_limited(self, get_jwt) -> None:
+        self.add_graphql_response({"errors": [{"type": "RATE_LIMITED"}]})
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client.search_issue_assignees(self.repo.name, "user")
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_pull_request_status(self, get_jwt) -> None:
         self.add_graphql_response(
             {
@@ -1166,6 +1253,68 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_pull_request_statuses_chunks_cache_misses(self, get_jwt) -> None:
+        # A batch larger than the chunk size is fetched over several sequential
+        # queries so no single query exceeds GitHub's ~10s server-side timeout.
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "APPROVED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "SUCCESS"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        self.add_graphql_response(
+            {
+                "data": {
+                    "repository0": {
+                        "pullRequest": {
+                            "reviewDecision": "CHANGES_REQUESTED",
+                            "commits": {
+                                "nodes": [{"commit": {"statusCheckRollup": {"state": "FAILURE"}}}]
+                            },
+                        }
+                    }
+                }
+            }
+        )
+        first = PullRequestStatusRequest(repo=self.repo.name, pull_number="41")
+        second = PullRequestStatusRequest(repo=self.repo.name, pull_number="42")
+
+        with override_options({"github-app.pull-request-status.chunk-size": 1}):
+            results = self.github_client.get_pull_request_statuses([first, second])
+
+        assert results == {
+            first: PullRequestStatusResult(
+                checks=AggregateChecksStatus.SUCCESS,
+                review=AggregateReviewStatus.APPROVED,
+            ),
+            second: PullRequestStatusResult(
+                checks=AggregateChecksStatus.FAILURE,
+                review=AggregateReviewStatus.CHANGES_REQUESTED,
+            ),
+        }
+        # One GraphQL POST per chunk, each carrying only its own PR's variables.
+        assert len(responses.calls) == 2
+        assert orjson.loads(responses.calls[0].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 41,
+        }
+        assert orjson.loads(responses.calls[1].request.body)["variables"] == {
+            "owner0": "Test-Organization",
+            "name0": "foo",
+            "number0": 42,
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_pull_request_status_caches_the_response(self, get_jwt) -> None:
         # One provider request per pull request per window: the endpoint fetches for
         # every linked pull request, so a repeat view must not re-query GitHub.
@@ -1206,9 +1355,21 @@ class GitHubApiClientTest(TestCase):
 
         status_only_key = self.github_client._get_pull_request_status_cache_key(status_only)
         assert status_only_key == self.github_client.get_cache_key(
-            "/graphql/pull-request-status", "", previous_cache_data
+            "/graphql/pull-request-status/v2", "", previous_cache_data
         )
         assert status_only_key != self.github_client._get_pull_request_status_cache_key(with_files)
+
+    def test_pull_request_status_cache_key_versions_the_result_shape(self) -> None:
+        # failed_checks changed shape (str -> FailedCheck), so the key must not
+        # collide with entries cached under the previous shape; otherwise the
+        # overview serializer reads stale bare strings and 500s just after deploy.
+        request = PullRequestStatusRequest(repo=self.repo.name, pull_number="45")
+        pre_version_key = self.github_client.get_cache_key(
+            "/graphql/pull-request-status",
+            "",
+            orjson.dumps({"repo": self.repo.name, "pull_number": "45"}).decode(),
+        )
+        assert self.github_client._get_pull_request_status_cache_key(request) != pre_version_key
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -2597,3 +2758,77 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
         )
 
         assert self.github_client.get_blame_for_files([self.file], extra={}) == []
+
+
+class TestResolveRateLimitResource:
+    """
+    https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api enumerates the
+    quota pools GitHub meters independently.
+    """
+
+    def test_graphql(self) -> None:
+        assert resolve_rate_limit_resource("/graphql") == "graphql"
+
+    def test_search_issues(self) -> None:
+        assert resolve_rate_limit_resource("/search/issues") == "search"
+
+    def test_search_repositories(self) -> None:
+        assert resolve_rate_limit_resource("/search/repositories") == "search"
+
+    def test_code_search_is_metered_separately_from_search(self) -> None:
+        assert resolve_rate_limit_resource("/search/code") == "code_search"
+
+    def test_app_routes_are_metered_against_the_app(self) -> None:
+        """JWT-authenticated app routes count against the app, not the installation."""
+        assert resolve_rate_limit_resource("/app/installations/1/access_tokens") == "app"
+        assert resolve_rate_limit_resource("/app") == "app"
+
+    def test_repository_routes_are_core(self) -> None:
+        assert resolve_rate_limit_resource("/repos/foo/bar/commits") == "core"
+
+    def test_query_string_is_ignored(self) -> None:
+        assert resolve_rate_limit_resource("/search/issues?q=repo%3Afoo+bar") == "search"
+
+    def test_leading_slash_is_optional(self) -> None:
+        assert resolve_rate_limit_resource("search/issues") == "search"
+
+    def test_unknown_route_falls_back_to_core(self) -> None:
+        assert resolve_rate_limit_resource("/some/new/route") == "core"
+
+    def test_search_prefix_without_subresource_is_not_search(self) -> None:
+        """`/searchable` must not be mistaken for the search resource."""
+        assert resolve_rate_limit_resource("/searchable") == "core"
+
+
+class TestResolveUpstreamPath:
+    def test_uses_path_url_when_not_proxying(self) -> None:
+        request = Request(method="GET", url="https://api.github.com/repos/foo/bar").prepare()
+        assert resolve_upstream_path(request) == "/repos/foo/bar"
+
+    def test_uses_proxy_path_header_when_proxying(self) -> None:
+        """
+        In a cell silo the URL is rewritten to the control silo proxy before `_do_send` runs, so
+        `path_url` names the proxy endpoint. The GitHub route lives in the proxy path header.
+        """
+        request = Request(
+            method="GET",
+            url="http://controlserver/api/0/internal/integration-proxy/",
+            headers={PROXY_PATH: "search/issues"},
+        ).prepare()
+        assert resolve_upstream_path(request) == "/search/issues"
+
+    def test_proxied_path_resolves_to_the_correct_resource(self) -> None:
+        request = Request(
+            method="POST",
+            url="http://controlserver/api/0/internal/integration-proxy/",
+            headers={PROXY_PATH: "graphql"},
+        ).prepare()
+        assert resolve_rate_limit_resource(resolve_upstream_path(request)) == "graphql"
+
+    def test_empty_proxy_path_header_falls_back_to_path_url(self) -> None:
+        request = Request(
+            method="GET",
+            url="https://api.github.com/repos/foo/bar",
+            headers={PROXY_PATH: ""},
+        ).prepare()
+        assert resolve_upstream_path(request) == "/repos/foo/bar"

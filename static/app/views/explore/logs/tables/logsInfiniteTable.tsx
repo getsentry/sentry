@@ -2,17 +2,14 @@ import {
   Fragment,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type RefObject,
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -21,11 +18,8 @@ import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
-import {
-  getAriaSort,
-  SortableHeaderCell,
-} from 'sentry/components/tables/sortableHeaderCell';
+import {DataTable} from 'sentry/components/tables/dataTable';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,13 +34,6 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  TableBodyCell,
-  TableHead,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -350,28 +337,16 @@ export function LogsInfiniteTable({
     [data]
   );
 
-  const virtualizer = useVirtualizer<HTMLElement, Element>({
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
     count: data?.length ?? 0,
+    estimateKey: expandedLogRowsHeights,
     estimateSize,
-    overscan: 35,
-    getScrollElement: () => tableBodyRef?.current,
     getItemKey,
+    getScrollElement: () => tableBodyRef?.current,
+    overscan: 35,
   });
 
-  // @tanstack/react-virtual does not rebuild its measurements cache when
-  // estimateSize returns new values, so re-measure whenever an expanded row's
-  // height changes. Without this the total size and item offsets keep treating
-  // expanded rows as collapsed, which desyncs the scroll range and leaves large
-  // blank gaps.
-  useLayoutEffect(() => {
-    virtualizer.measure();
-  }, [virtualizer, expandedLogRowsHeights]);
-
-  const virtualItems = virtualizer.getVirtualItems();
-
-  const firstItem = virtualItems[0]?.start;
   const firstItemIndex = virtualItems[0]?.index;
-  const lastItem = virtualItems[virtualItems.length - 1]?.end;
   const lastItemIndex = virtualItems[virtualItems.length - 1]?.index;
 
   const handleScrollToRow = useCallback(
@@ -423,14 +398,6 @@ export function LogsInfiniteTable({
     showJumpUpButton,
   } = replayJumpButtons;
 
-  const [paddingTop, paddingBottom] =
-    defined(firstItem) && defined(lastItem)
-      ? [
-          Math.max(0, firstItem - virtualizer.options.scrollMargin),
-          Math.max(0, virtualizer.getTotalSize() - lastItem),
-        ]
-      : [0, 0];
-
   const {scrollDirection, scrollOffset, isScrolling} = virtualizer;
 
   const staticColumnWidths = useLogsTableColumnWidths({
@@ -440,16 +407,6 @@ export function LogsInfiniteTable({
     isScrolling,
     dataLength: data?.length ?? 0,
   });
-
-  const {initialTableStyles, onResizeMouseDown} = useTableStyles(
-    fields.slice(),
-    tableRef,
-    {
-      minimumColumnWidth: 50,
-      prefixColumnWidth: 'min-content',
-      staticColumnWidths,
-    }
-  );
 
   useEffect(() => {
     if (isFunctionScrolling && !isScrolling && scrollOffset === 0) {
@@ -635,7 +592,10 @@ export function LogsInfiniteTable({
     <Fragment>
       <LogTable
         ref={tableRef}
-        style={initialTableStyles}
+        fields={fields}
+        minimumColumnWidth={50}
+        prefixColumnWidth="min-content"
+        staticColumnWidths={staticColumnWidths}
         css={tableStaticCSS}
         height="100%"
         hideBorder={embedded}
@@ -650,7 +610,6 @@ export function LogsInfiniteTable({
             stringAttributes={stringAttributes}
             booleanAttributes={booleanAttributes}
             validatedFieldTypes={validatedFieldTypes}
-            onResizeMouseDown={onResizeMouseDown}
           />
         )}
         {!isPending && logsPinning && (
@@ -667,11 +626,11 @@ export function LogsInfiniteTable({
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
         >
           {paddingTop > 0 && (
-            <TableRow>
+            <DataTable.Row>
               {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingTop}} />
+                <DataTable.Cell key={field} style={{height: paddingTop}} />
               ))}
-            </TableRow>
+            </DataTable.Row>
           )}
           {/* Only render these in table for non-replay contexts */}
           {!hasReplay && isPending && (
@@ -739,11 +698,11 @@ export function LogsInfiniteTable({
             );
           })}
           {paddingBottom > 0 && (
-            <TableRow>
+            <DataTable.Row>
               {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingBottom}} />
+                <DataTable.Cell key={field} style={{height: paddingBottom}} />
               ))}
-            </TableRow>
+            </DataTable.Row>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
@@ -784,26 +743,24 @@ function LogsTableHeader({
   numberAttributes,
   stringAttributes,
   validatedFieldTypes = {},
-  onResizeMouseDown,
 }: Pick<
   LogsTableProps,
   'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
 > & {
   isFrozen: boolean;
-  onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
 
-  const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const {meta, isPending} = useLogsPageDataQueryResult();
   const resolvedMeta = useMemo(
     () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
     [meta, validatedFieldTypes]
   );
   const pinningEnabled = !!useLogsPinning();
   return (
-    <TableHead>
+    <DataTable.Head>
       <LogTableRow>
         <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
@@ -830,55 +787,46 @@ function LogsTableHeader({
           return (
             <LogTableHeadCell
               align={index === 0 ? 'left' : align}
-              aria-sort={getAriaSort(direction)}
+              columnIndex={index}
               key={index}
               isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
-            >
-              <SortableHeaderCell
-                direction={direction}
-                onSort={
-                  isFrozen
-                    ? undefined
-                    : () => {
-                        switch (direction) {
-                          case 'asc':
-                            setSortBys([logsTimestampDescendingSortBy]);
-                            break;
-                          case 'desc':
-                            setSortBys([{field, kind: 'asc'}]);
-                            break;
-                          default:
-                            setSortBys([{field, kind: 'desc'}]);
-                        }
+              onSort={
+                isFrozen
+                  ? undefined
+                  : () => {
+                      switch (direction) {
+                        case 'asc':
+                          setSortBys([logsTimestampDescendingSortBy]);
+                          break;
+                        case 'desc':
+                          setSortBys([{field, kind: 'asc'}]);
+                          break;
+                        default:
+                          setSortBys([{field, kind: 'desc'}]);
                       }
-                }
-              >
-                {headerLabel}
-              </SortableHeaderCell>
-              {index !== fields.length - 1 && (
-                <GridResizer
-                  dataRows={!isError && !isPending && data ? data.length : 0}
-                  onMouseDown={e => onResizeMouseDown(e, index)}
-                />
-              )}
+                    }
+              }
+              sort={direction}
+            >
+              {headerLabel}
             </LogTableHeadCell>
           );
         })}
       </LogTableRow>
-    </TableHead>
+    </DataTable.Head>
   );
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   return (
-    <TableStatus>
+    <DataTable.Status>
       {isRateLimitError(error) ? (
         <LogsRateLimitError onRetry={onRetry} />
       ) : (
         <IconWarning variant="muted" size="lg" />
       )}
-    </TableStatus>
+    </DataTable.Status>
   );
 }
 
@@ -895,7 +843,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <TableStatus>
+    <DataTable.Status>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -917,7 +865,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </TableStatus>
+    </DataTable.Status>
   );
 }
 
@@ -953,7 +901,7 @@ function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | un
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{
-  margin: CSSProperties['margin'];
+  margin: string;
 }>`
   ${p => p.margin && `margin: ${p.margin}`};
 `;
@@ -1002,7 +950,7 @@ function BackToTopButton({
       }}
       aria-label="Back to top"
     >
-      <IconArrow direction="up" size="md" />
+      <IconArrow size="md" />
     </Button>
   );
 }

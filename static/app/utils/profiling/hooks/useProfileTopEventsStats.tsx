@@ -17,18 +17,14 @@ interface UseProfileTopEventsStatsOptions<F> {
   referrer: string;
   topEvents: number;
   yAxes: readonly F[];
-  datetime?: PageFilters['datetime'];
   enabled?: boolean;
-  interval?: string;
   projects?: PageFilters['projects'];
   query?: string;
 }
 
 export function useProfileTopEventsStats<F extends string>({
   dataset,
-  datetime,
   fields,
-  interval,
   others,
   query,
   projects,
@@ -49,9 +45,8 @@ export function useProfileTopEventsStats<F extends string>({
         referrer,
         project: projects ?? selection.projects,
         environment: selection.environments,
-        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        ...normalizeDateTimeParams(selection.datetime),
         yAxis: yAxes,
-        interval,
         query,
         topEvents,
         excludeOther: others ? '0' : '1',

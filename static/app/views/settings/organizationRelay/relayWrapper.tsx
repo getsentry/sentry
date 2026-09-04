@@ -131,7 +131,9 @@ export function RelayWrapper() {
           mutationOptions={{
             mutationFn: data =>
               fetchMutation<Organization>({
-                url: `/organizations/${organization.slug}/`,
+                url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
                 method: 'PUT',
                 data: {
                   ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
@@ -166,7 +168,9 @@ export function RelayWrapper() {
           mutationOptions={{
             mutationFn: data =>
               fetchMutation<Organization>({
-                url: `/organizations/${organization.slug}/`,
+                url: getApiUrl('/organizations/$organizationIdOrSlug/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
                 method: 'PUT',
                 data: {relayDsnEndpoint: data.relayDsnEndpoint},
               }),
@@ -265,10 +269,15 @@ function RelayUsageList({
       .map(relay => omit(relay, ['created', 'lastModified']));
 
     try {
-      const response = await api.requestPromise(`/organizations/${orgSlug}/`, {
-        method: 'PUT',
-        data: {trustedRelays},
-      });
+      const response = await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        {
+          method: 'PUT',
+          data: {trustedRelays},
+        }
+      );
       addSuccessMessage(t('Successfully deleted Relay public key'));
       onRelaysChange(response.trustedRelays ?? []);
     } catch {

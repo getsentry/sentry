@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import type {CustomSeriesOption} from 'echarts';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
@@ -21,7 +21,7 @@ export function ReleaseSeries(
     renderItem: () => null,
     color: theme.tokens.dataviz.semantic.release,
     data: [],
-    markLine: MarkLine({
+    markLine: markLine({
       animation: false,
       lineStyle: {
         color: theme.tokens.dataviz.semantic.release,

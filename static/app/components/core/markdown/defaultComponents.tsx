@@ -104,8 +104,14 @@ export function DefaultOrderedList({children}: {children: ReactNode}) {
   );
 }
 
-export function DefaultListItem({children}: {children: ReactNode; checked?: boolean}) {
-  return <Container as="li">{children}</Container>;
+export function DefaultListItem({children}: {children: ReactNode}) {
+  // Match DefaultParagraph so tight list items (inline-only content, no nested
+  // <p>) keep md body size instead of inheriting a smaller parent size.
+  return (
+    <Text size="md" density="comfortable">
+      {({className}) => <li className={className}>{children}</li>}
+    </Text>
+  );
 }
 
 export function DefaultTaskList({children}: {children: ReactNode}) {
@@ -208,11 +214,12 @@ export const DefaultTableCell = styled('td')<{align?: Align}>`
   text-align: ${p => p.align ?? 'left'};
 `;
 
-export function DefaultTag(_props: {
-  attrs: Record<string, string>;
-  data: unknown;
-  level: 'block' | 'inline';
-  name: string;
-}) {
-  return null;
+/**
+ * Fallback for `{% tag %}` tokens that no `components.Tag` renderer handled.
+ * Echo the original source so plain Markdown consumers keep the content visible.
+ * Surfaces that expect registered embeds (e.g. SeerMarkdown) should override Tag
+ * to drop unknowns and report them instead.
+ */
+export function DefaultTag({raw}: {raw: string}) {
+  return raw;
 }

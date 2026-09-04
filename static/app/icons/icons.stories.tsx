@@ -679,6 +679,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'circleDashed',
+        groups: ['status'],
+        keywords: ['shape', 'round', 'indicator', 'progress', 'pending', 'not started'],
+        name: 'CircleDashed',
+        defaultProps: {},
+      },
+      {
         id: 'circleFill',
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
@@ -1918,9 +1925,9 @@ function Section(props: CategorySectionProps) {
       </Container>
       <Grid
         columns={{
-          'screen:xs': 'repeat(2, 1fr)',
-          'screen:sm': 'repeat(3, 1fr)',
-          'screen:lg': 'repeat(4, 1fr)',
+          zero: 'repeat(2, 1fr)',
+          sm: 'repeat(3, 1fr)',
+          xl: 'repeat(4, 1fr)',
         }}
         align="center"
         gap="md"

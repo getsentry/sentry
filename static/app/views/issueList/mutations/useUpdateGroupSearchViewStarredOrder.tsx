@@ -2,6 +2,7 @@ import {useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -19,10 +20,18 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
 
   return useMutation<void, RequestError, UpdateGroupSearchViewStarredOrderVariables>({
     mutationFn: ({orgSlug, viewIds}: UpdateGroupSearchViewStarredOrderVariables) =>
-      api.requestPromise(`/organizations/${orgSlug}/group-search-views/starred/order/`, {
-        method: 'PUT',
-        data: {view_ids: viewIds},
-      }),
+      api.requestPromise(
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/group-search-views/starred/order/',
+          {
+            path: {organizationIdOrSlug: orgSlug},
+          }
+        ),
+        {
+          method: 'PUT',
+          data: {view_ids: viewIds},
+        }
+      ),
     onSuccess: (_, parameters) => {
       // Reorder the existing views in the cache
       const groupSearchViews = queryClient.getQueryData(

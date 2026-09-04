@@ -25,6 +25,10 @@ class JavaScriptSdkLoaderTest(TestCase):
     def path(self) -> str:
         return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
 
+    @cached_property
+    def min_path(self) -> str:
+        return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
+
     def test_noop_no_pub_key(self) -> None:
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=["abc"]))
         assert resp.status_code == 200
@@ -435,6 +439,32 @@ class JavaScriptSdkLoaderTest(TestCase):
 
             self.projectkey.data = {}
             self.projectkey.save()
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.120.3"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="7.x"
+    )
+    def test_queues_configure_scope_before_v8(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b'"configureScope"' in resp.content
+            assert b'"captureException"' in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.0.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="8.x"
+    )
+    def test_does_not_queue_configure_scope_from_v8_on(
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
+        for path in (self.path, self.min_path):
+            resp = self.client.get(path)
+            assert resp.status_code == 200
+            assert b"configureScope" not in resp.content
+            assert b'"captureException"' in resp.content
 
     @patch("sentry.loader.browsersdkversion.load_version_from_file")
     def test_headers(self, mock_load_version_from_file: MagicMock) -> None:

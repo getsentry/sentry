@@ -165,7 +165,7 @@ export function SortableWidget(props: Props) {
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
               isMobile={props.isMobile}
-              disableEdit={disableTransactionWidget || disableEdit}
+              disableEdit={disableEdit}
               disableDuplicate={disableTransactionWidget}
               disabledReason={
                 disableEdit

@@ -5,13 +5,13 @@ import partition from 'lodash/partition';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -32,7 +32,6 @@ interface OrganizationDropdownProps {
    * When true, hides settings, projects, members, teams, and billing links for the current organization.
    */
   hideCurrentOrganizationLinks?: boolean;
-  onClick?: () => void;
 }
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
@@ -92,10 +91,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           size={size}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
-          onClick={e => {
-            triggerProps.onClick?.(e);
-            props.onClick?.();
-          }}
         />
       )}
       position="right-start"
@@ -196,7 +191,7 @@ function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
 function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     ...makeOrganizationMenuItem(org),
-    trailingItems: <QuestionTooltip size="sm" title={org.status.name} />,
+    trailingItems: <InfoTip size="sm" title={org.status.name} />,
   };
 }
 

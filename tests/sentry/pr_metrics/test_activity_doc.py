@@ -317,7 +317,7 @@ def test_events_cap_drops_and_counts_dropped() -> None:
     assert doc["events_dropped"] == 3
     # Counts increment before the cap, so the total is exact even past the cap.
     assert doc["counts"] == {PullRequestActivityType.SYNCHRONIZED: MAX_EVENTS + 3}
-    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.events_capped")
+    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.events_capped", sample_rate=1.0)
     assert mock_logger.warning.call_count == 3
 
 
@@ -440,7 +440,7 @@ def test_sync_chain_evicts_oldest_past_cap() -> None:
     assert ["sha0000", None] not in chain  # oldest synchronize link evicted
     # newest link retained
     assert chain[-1] == ["sha-new", "sha-prev", None, None, "d-new"]
-    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.sync_chain_capped")
+    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.sync_chain_capped", sample_rate=1.0)
     assert mock_logger.warning.call_count == 1
 
 
@@ -943,7 +943,7 @@ def test_check_runs_per_group_cap_drops_new_failing_runs() -> None:
         for i in range(MAX_RUNS_PER_GROUP + 2):
             _run(doc, check_name=f"check-{i}", conclusion="failure")
     assert len(_group(doc)["runs"]) == MAX_RUNS_PER_GROUP
-    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.check_runs_capped")
+    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.check_runs_capped", sample_rate=1.0)
     assert mock_logger.warning.call_count == 2
 
 
@@ -1317,7 +1317,9 @@ def test_timeline_forward_trims_per_head_keeping_failures() -> None:
         "pr_metrics.activity_doc.forward_head_groups_capped",
         extra={"head_sha": "sha1", "dropped": 2},
     )
-    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.forward_head_groups_capped")
+    mock_metrics.incr.assert_any_call(
+        "pr_metrics.activity_doc.forward_head_groups_capped", sample_rate=1.0
+    )
 
 
 def test_timeline_forward_keeps_every_head_represented() -> None:

@@ -16,7 +16,9 @@ from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
+from django.utils import timezone
 
+from sentry.constants import DataCategory
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
     collect_span_metrics,
@@ -33,9 +35,9 @@ from sentry.ingest.consumer.simple_event import (
 from sentry.ingest.types import ConsumerType
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
 from sentry.models.userreport import UserReport
-from sentry.objectstore import get_attachments_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.factories import get_fixture_path
@@ -602,7 +604,7 @@ def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
         )
         attachment_metadata["chunks"] = 1
     else:
-        session = get_attachments_session(project.organization_id, project.id)
+        session = get_session(UsecaseId.ATTACHMENTS, project)
         stored_id = session.put(attachment_payload)
         attachment_metadata["stored_id"] = stored_id
 
@@ -667,9 +669,7 @@ def test_process_stored_attachment(
         with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
             attachment_payload = f.read()
 
-        stored_id = get_attachments_session(default_project.organization_id, project_id).put(
-            attachment_payload
-        )
+        stored_id = get_session(UsecaseId.ATTACHMENTS, default_project).put(attachment_payload)
 
         with task_runner():
             process_event(
@@ -731,7 +731,16 @@ def test_individual_attachments(
 ):
     retention_days = 66
 
-    with patch("sentry.features.has", return_value=feature_enabled):
+    # This patches `features.has` wholesale, which also switches on
+    # `projects:defer-attachment-storage` and would route the `without_group` cases into
+    # `PendingEventAttachment`. Force just that flag off so this test keeps covering the
+    # non-deferred path; `test_individual_attachment_before_event` covers the other one.
+    with patch(
+        "sentry.features.has",
+        side_effect=lambda name, *a, **kw: (
+            False if name == "projects:defer-attachment-storage" else feature_enabled
+        ),
+    ):
         event_id = uuid.uuid4().hex
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
         project_id = default_project.id
@@ -835,6 +844,111 @@ def test_userreport(django_cache, default_project) -> None:
 
     (report,) = UserReport.objects.all()
     assert report.comments == "hello world"
+
+
+@django_db_all
+@pytest.mark.parametrize("deferred", [True, False], ids=["deferred", "not_deferred"])
+def test_individual_attachment_before_event(
+    django_cache, default_project, factories, deferred
+) -> None:
+    """
+    An attachment that is ingested before its event is parked in
+    `PendingEventAttachment` and promoted once the event arrives.
+
+    Without `projects:defer-attachment-storage` the attachment is stored as an
+    `EventAttachment` right away and only has its `group_id` backfilled later.
+    """
+    from sentry.utils.outcomes import Outcome, track_outcome
+
+    event_id = uuid.uuid4().hex
+    retention_days = 66
+    payload = b"Hello World!"
+
+    mock_track_outcome = patch("sentry.event_manager.track_outcome", wraps=track_outcome)
+
+    with (
+        Feature(
+            {
+                "organizations:event-attachments": True,
+                "projects:defer-attachment-storage": deferred,
+            }
+        ),
+        mock_track_outcome as track,
+    ):
+        process_individual_attachment(
+            {
+                "type": "attachment",
+                "attachment": {
+                    "id": "ca90fb45-6dd9-40a0-a18f-8693aa621abb",
+                    "name": "foo.txt",
+                    "content_type": "text/plain",
+                    "attachment_type": "event.attachment",
+                    "chunks": 0,
+                    "data": payload,
+                    "size": len(payload),
+                    "retention_days": retention_days,
+                },
+                "event_id": event_id,
+                "project_id": default_project.id,
+            },
+            project=default_project,
+        )
+
+        pending = list(PendingEventAttachment.objects.filter(project_id=default_project.id))
+        stored = list(EventAttachment.objects.filter(project_id=default_project.id))
+
+        if deferred:
+            # Parked, not stored, and not billed yet.
+            (pending_attachment,) = pending
+            assert not stored
+            assert pending_attachment.event_id == event_id
+            assert pending_attachment.name == "foo.txt"
+            # Short TTL so it gets reaped if the event never shows up, but the real
+            # retention date is kept around for the promoted row.
+            assert pending_attachment.date_expires < timezone.now() + datetime.timedelta(hours=2)
+            assert pending_attachment.date_expires_retention > timezone.now() + datetime.timedelta(
+                days=retention_days - 1
+            )
+            assert track.call_count == 0
+        else:
+            (attachment,) = stored
+            assert not pending
+            assert attachment.group_id is None
+
+        # Now the event arrives.
+        manager = EventManager({"event_id": event_id, "message": "existence is pain"})
+        manager.normalize()
+        event = manager.save(default_project.id)
+
+    assert not PendingEventAttachment.objects.filter(project_id=default_project.id).exists()
+
+    (attachment,) = EventAttachment.objects.filter(project_id=default_project.id)
+    assert attachment.event_id == event_id
+    assert attachment.name == "foo.txt"
+    assert attachment.content_type == "text/plain"
+    assert attachment.size == len(payload)
+    with attachment.getfile() as file_contents:
+        assert file_contents.read() == payload
+    # The promoted row carries the full retention, not the pending TTL.
+    delta = attachment.date_expires - (timezone.now() + datetime.timedelta(days=retention_days))
+    assert abs(delta.total_seconds()) < 3600
+
+    if deferred:
+        # The promoted attachment is linked to the group and billed on promotion.
+        assert attachment.group_id == event.group_id
+        attachment_outcomes = [
+            call.kwargs
+            for call in track.mock_calls
+            if call.kwargs.get("category") == DataCategory.ATTACHMENT
+        ]
+        assert len(attachment_outcomes) == 1
+        assert attachment_outcomes[0]["outcome"] == Outcome.ACCEPTED
+        assert attachment_outcomes[0]["quantity"] == len(payload)
+        assert attachment_outcomes[0]["event_id"] == event_id
+    else:
+        # `group_id` is backfilled by `update_existing_attachments` in post-processing,
+        # which does not run here.
+        assert attachment.group_id is None
 
 
 @django_db_all

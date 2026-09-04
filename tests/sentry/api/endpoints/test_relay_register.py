@@ -533,7 +533,8 @@ class RelayRegisterTest(APITestCase):
         self.register_relay(key_pair, "2.2.2", relay_id)
         after_second_relay = timezone.now()
         # re register the first one in order to update the last used time
-        self.register_relay(key_pair, "1.1.1", relay_id)
+        with self.tasks():
+            self.register_relay(key_pair, "1.1.1", relay_id)
         after_re_register = timezone.now()
 
         rv1 = RelayUsage.objects.get(relay_id=relay_id, version="1.1.1")

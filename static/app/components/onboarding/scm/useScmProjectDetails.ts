@@ -1,9 +1,9 @@
 import {useCallback, useRef, useState} from 'react';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
+import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
@@ -12,7 +12,6 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -30,6 +29,19 @@ import {
   type AlertRuleOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+
+export function isProjectNameManuallyModified(
+  projectDetailsForm: ProjectDetailsFormState | undefined
+): boolean {
+  if (!projectDetailsForm) {
+    return false;
+  }
+  if (projectDetailsForm.wasNameManuallyModified !== undefined) {
+    return projectDetailsForm.wasNameManuallyModified;
+  }
+  // Sessions stored before this flag existed contain an explicit project name.
+  return projectDetailsForm.projectName !== undefined;
+}
 
 export function getSubmitTooltipText({
   platform,
@@ -81,7 +93,7 @@ interface UseScmProjectDetailsOptions {
   /**
    * Live form state, owned by the host. Fields absent from the form derive
    * their defaults (platform-based name, first admin team, default alert
-   * config), so the host clearing the form makes the fields re-derive.
+   * config).
    */
   onProjectDetailsFormChange: (form: ProjectDetailsFormState) => void;
   projectDetailsForm: ProjectDetailsFormState | undefined;
@@ -150,9 +162,9 @@ export function useScmProjectDetails({
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
-  // rendered in ScmAlertFrequencySection) and the side-effect that creates the
-  // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useScmNotificationAction(
+  // rendered in ScmAlertFrequencySection) and resolves its selected action for
+  // the workflow created alongside the project.
+  const {getIntegrationAction, notificationProps} = useScmNotificationAction(
     restoredNotificationSelectionRef.current
   );
 
@@ -165,7 +177,7 @@ export function useScmProjectDetails({
   const defaultName = slugify(selectedPlatform?.key ?? '');
 
   // Fields absent from the host-owned form fall back to derived defaults, so
-  // a host clearing the form (e.g. on a platform change) re-derives them.
+  // a host resetting a field (e.g. the name on a platform change) re-derives it.
   const projectNameResolved = projectDetailsForm?.projectName ?? defaultName;
   const teamSlugResolved = projectDetailsForm?.teamSlug ?? firstAdminTeam?.slug ?? '';
   const alertRuleConfig =
@@ -178,7 +190,12 @@ export function useScmProjectDetails({
 
   const onProjectNameChange = useCallback(
     (value: string) => {
-      onProjectDetailsFormChange({...projectDetailsForm, projectName: slugify(value)});
+      const projectName = slugify(value);
+      onProjectDetailsFormChange({
+        ...projectDetailsForm,
+        projectName,
+        wasNameManuallyModified: projectName.length > 0,
+      });
     },
     [onProjectDetailsFormChange, projectDetailsForm]
   );
@@ -349,6 +366,7 @@ export function useScmProjectDetails({
       teamSlug: teamSlugResolved,
       alertRuleConfig,
       notificationSelection,
+      wasNameManuallyModified: isProjectNameManuallyModified(projectDetailsForm),
     };
     // Mirror the legacy project_creation_page.created `issue_alert` breakdown
     // (see createProject.tsx): Custom > Default > No Rule, derived from the
@@ -379,7 +397,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform.key,
           issue_alert: issueAlert,
           notification_rule_created: false,
-          rule_ids: [],
+          workflow_ids: [],
           variant: 'scm',
         });
         onComplete({project: existingProject, projectDetailsForm: submittedForm});
@@ -392,7 +410,7 @@ export function useScmProjectDetails({
           platform: selectedPlatform,
           team: isOrgMemberWithNoAccess ? undefined : teamSlugResolved,
           alertRuleConfig: getRequestDataFragment(alertRuleConfig),
-          createNotificationAction,
+          getIntegrationAction,
         })
         .catch(error => {
           trackAnalytics('project_creation.project_details_create_failed', {
@@ -412,18 +430,14 @@ export function useScmProjectDetails({
       if (!creation) {
         return;
       }
-      const {project, ruleIds, notificationRule} = creation;
+      const {project, workflowIds, notificationRule} = creation;
 
       if (selectedRepository?.id) {
-        try {
-          await fetchMutation({
-            url: `/projects/${organization.slug}/${project.slug}/repo/`,
-            method: 'POST',
-            data: {repositoryId: selectedRepository.id},
-          });
-        } catch (error) {
-          Sentry.captureException(error);
-        }
+        await linkProjectToRepository({
+          orgSlug: organization.slug,
+          projectSlug: project.slug,
+          repositoryId: selectedRepository.id,
+        });
       }
 
       trackAnalytics('project_creation_page.created', {
@@ -432,7 +446,7 @@ export function useScmProjectDetails({
         platform: selectedPlatform.key,
         issue_alert: issueAlert,
         notification_rule_created: !!notificationRule,
-        rule_ids: ruleIds,
+        workflow_ids: workflowIds,
         variant: 'scm',
       });
 
@@ -445,7 +459,7 @@ export function useScmProjectDetails({
     accessTeams,
     alertRuleConfig,
     canSubmit,
-    createNotificationAction,
+    getIntegrationAction,
     createProjectAndRules,
     existingProject,
     hasNotificationAction,
@@ -454,6 +468,7 @@ export function useScmProjectDetails({
     notificationProps,
     onComplete,
     organization,
+    projectDetailsForm,
     projectNameResolved,
     selectedPlatform,
     selectedRepository,

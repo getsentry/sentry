@@ -277,6 +277,16 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
             # raising would stall the org's outbox shard on every drain.
             _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
             return
+        case SeerRunType.INVESTIGATION:
+            # Investigation orchestration runs are not started through this
+            # outbox. Seer creates its own run and Sentry adopts the id, so a
+            # SeerRun of this type is a mirror with nothing to dispatch. Nothing
+            # enqueues one today; log rather than drop it silently if that changes.
+            logger.warning(
+                "seer_run_create.investigation_not_dispatched",
+                extra={"organization_id": run.organization_id, "run_id": run.id},
+            )
+            return
         case SeerRunType.ASSISTED_QUERY:
             response = make_search_agent_start_request(
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context

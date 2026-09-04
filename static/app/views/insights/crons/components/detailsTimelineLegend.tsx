@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct, tn} from 'sentry/locale';
 import {
   DEFAULT_CHECKIN_MARGIN,
@@ -57,9 +57,8 @@ export function DetailsTimelineLegend({
           <MonitorIndicator status={CheckInStatus.UNKNOWN} size={12} />
           <UnknownText>
             {t('Unknown Status')}
-            <QuestionTooltip
+            <InfoTip
               size="sm"
-              isHoverable
               title={tct(
                 'Sentry was unable to determine the check-in status. [link:Learn More].',
                 {

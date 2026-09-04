@@ -16,7 +16,9 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
+from django.db import OperationalError, connections, router
 from django.db.models import F
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry import analytics, nodestore, tsdb
@@ -30,6 +32,7 @@ from sentry.dynamic_sampling import (
     ProjectBoostedReleases,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.rules.helpers.latest_releases import LatestReleaseBias
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
@@ -57,6 +60,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -2457,7 +2461,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
 
             cache_key = cache_key_for_event(manager.get_data())
-            attachment_cache.set(cache_key, attachments=[a1, a2])
+            attachment_cache.set(cache_key, attachments=[a1, a2], timeout=300)
 
             mock_track_outcome = mock.Mock(wraps=track_outcome)
             with (
@@ -2503,7 +2507,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a1 = CachedAttachment(name="a1", data=b"hello", type="event.minidump")
         a2 = CachedAttachment(name="a2", data=b"world")
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
+        attachment_cache.set(cache_key, attachments=[a1, a2], timeout=300)
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2534,7 +2538,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager.normalize()
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2])
+        attachment_cache.set(cache_key, attachments=[a1, a2], timeout=300)
 
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with mock.patch(
@@ -2585,7 +2589,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a3 = CachedAttachment(name="a3", data=b"world")
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3], timeout=300)
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2621,7 +2625,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         a3 = CachedAttachment(name="a3", data=b"world")
 
         cache_key = cache_key_for_event(manager.get_data())
-        attachment_cache.set(cache_key, attachments=[a1, a2, a3])
+        attachment_cache.set(cache_key, attachments=[a1, a2, a3], timeout=300)
 
         mock_track_outcome = mock.Mock()
         mock_track_outcome_aggregated = mock.Mock()
@@ -2698,9 +2702,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_transaction_indexed_outcome_accepted(self) -> None:
         """
         With metrics extraction, we count the number of accepted transaction
-        events in the TRANSACTION_INDEXED data category. The TRANSACTION data
-        category contains the number of metrics from
-        ``billing_metrics_consumer``.
+        events in the TRANSACTION_INDEXED data category.
         """
 
         timestamp = before_now(minutes=5).isoformat()
@@ -4282,6 +4284,82 @@ class DSLatestReleaseBoostTest(TestCase):
             ),
         ]
 
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_sets_expiry_on_latest_release_date(self) -> None:
+        """The project latest release date expires, so a dead project does not keep a key forever."""
+        project = self.create_project(platform="python")
+        release = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
+
+        self.make_release_transaction(
+            release_version=release.version,
+            environment_name=self.environment1.name,
+            project_id=project.id,
+            checksum="a" * 32,
+            timestamp=self.timestamp,
+        )
+
+        cache_key = f"ds::p:{project.id}:latest_release"
+        assert self.redis_client.get(cache_key) is not None
+
+        lifetime_secs = LatestReleaseBias.LATEST_RELEASE_TIMEOUT_SECS
+        ttl = self.redis_client.ttl(cache_key)
+        assert ttl > 0
+        assert ttl <= lifetime_secs
+        # A fresh write gets the full lifetime, so the key must not be near the end of it.
+        assert ttl > lifetime_secs - 60
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_skips_release_older_than_the_key_lifetime(self) -> None:
+        """A release too old to be an adoption is not boosted, even with no date key present."""
+        project = self.create_project(platform="python")
+        stale_date = timezone.now() - timedelta(
+            seconds=LatestReleaseBias.LATEST_RELEASE_TIMEOUT_SECS + 1
+        )
+        stale_release = Release.get_or_create(project=project, version="1.0", date_added=stale_date)
+
+        self.make_release_transaction(
+            release_version=stale_release.version,
+            environment_name=self.environment1.name,
+            project_id=project.id,
+            checksum="a" * 32,
+            timestamp=self.timestamp,
+        )
+
+        assert self.redis_client.get(f"ds::p:{project.id}:latest_release") is None
+        assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {}
+
+    @freeze_time("2022-11-03 10:00:00")
+    def test_boost_release_skips_stale_releases_after_the_key_expires(self) -> None:
+        """Losing the date key must not let a run of old releases each take a boost."""
+        ts = timezone.now().timestamp()
+
+        project = self.create_project(platform="python")
+        stale_1 = Release.get_or_create(
+            project=project, version="1.0", date_added=timezone.now() - timedelta(days=200)
+        )
+        stale_2 = Release.get_or_create(
+            project=project, version="2.0", date_added=timezone.now() - timedelta(days=100)
+        )
+        current = Release.get_or_create(project=project, version="3.0", date_added=timezone.now())
+
+        # The date key is absent, as it would be after the expiry fired on a project that stopped
+        # shipping. The two old releases must not be read as a new latest release.
+        for release in (stale_1, stale_2, current):
+            self.make_release_transaction(
+                release_version=release.version,
+                environment_name=self.environment1.name,
+                project_id=project.id,
+                checksum="a" * 32,
+                timestamp=self.timestamp,
+            )
+
+        assert self.redis_client.hgetall(f"ds::p:{project.id}:boosted_releases") == {
+            f"ds::r:{current.id}:e:{self.environment1.name}": str(ts),
+        }
+        assert self.redis_client.get(f"ds::p:{project.id}:latest_release") == str(
+            float(current.date_added.timestamp())
+        )
+
 
 class TestSaveGroupHashAndGroup(TestCase):
     def test_simple(self) -> None:
@@ -4573,3 +4651,127 @@ class SaveAttachmentTest(TestCase):
 
         mock_rate_limit.assert_not_called()
         mock_putfile.assert_called_once()
+
+
+class SavePendingAttachmentsTest(TestCase):
+    """
+    Promotion of `PendingEventAttachment` rows must happen exactly once, even though two
+    callers can race for the same rows: the same `event_id` can be saved twice, and any
+    sweep that retries promotion for rows missed at ingest time is a second promoter by
+    construction. Promoting twice would show the attachment twice and bill it twice.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.event_id = "a" * 32
+        self.pending = PendingEventAttachment.objects.create(
+            project_id=self.project.id,
+            event_id=self.event_id,
+            type="event.attachment",
+            name="foo.txt",
+            content_type="text/plain",
+            size=5,
+            sha1="abc",
+            blob_path=":hello",
+            date_expires=timezone.now() + timedelta(hours=1),
+            date_expires_retention=timezone.now() + timedelta(days=66),
+        )
+
+    def promote(self, group_id: int | None = None) -> mock.MagicMock:
+        from sentry.event_manager import save_pending_attachments
+
+        with (
+            self.feature("projects:defer-attachment-storage"),
+            mock.patch("sentry.event_manager.track_outcome") as track,
+        ):
+            save_pending_attachments(
+                project=self.project,
+                event_id=self.event_id,
+                group_id=group_id if group_id is not None else self.group.id,
+                source="test",
+            )
+        return track
+
+    def test_promotes_only_once_when_called_twice(self) -> None:
+        first = self.promote()
+        second = self.promote()
+
+        # The first caller claimed the row; the second found it already gone.
+        (attachment,) = EventAttachment.objects.filter(project_id=self.project.id)
+        assert attachment.event_id == self.event_id
+        assert attachment.group_id == self.group.id
+        assert not PendingEventAttachment.objects.exists()
+
+        assert first.call_count == 1
+        assert first.mock_calls[0].kwargs["outcome"] == Outcome.ACCEPTED
+        assert first.mock_calls[0].kwargs["category"] == DataCategory.ATTACHMENT
+        # Crucially, the second caller does not bill the attachment again.
+        assert second.call_count == 0
+
+    def test_claims_rows_for_update(self) -> None:
+        with CaptureQueriesContext(
+            connections[router.db_for_write(PendingEventAttachment)]
+        ) as queries:
+            self.promote()
+
+        claims = [
+            q["sql"]
+            for q in queries.captured_queries
+            if "sentry_pendingeventattachment" in q["sql"] and "FOR UPDATE" in q["sql"]
+        ]
+        assert len(claims) == 1, [q["sql"] for q in queries.captured_queries]
+
+    def test_nothing_is_claimed_if_the_insert_fails(self) -> None:
+        with pytest.raises(OperationalError):
+            with mock.patch.object(
+                EventAttachment.objects, "bulk_create", side_effect=OperationalError("nope")
+            ):
+                self.promote()
+
+        # The whole promotion rolls back as one unit, so the row stays claimable by a
+        # retry instead of being dropped with its blob still in storage.
+        assert PendingEventAttachment.objects.filter(id=self.pending.id).exists()
+        assert not EventAttachment.objects.filter(project_id=self.project.id).exists()
+
+    def test_no_query_without_the_feature(self) -> None:
+        from sentry.event_manager import save_pending_attachments
+
+        with CaptureQueriesContext(
+            connections[router.db_for_write(PendingEventAttachment)]
+        ) as queries:
+            save_pending_attachments(
+                project=self.project,
+                event_id=self.event_id,
+                group_id=self.group.id,
+                source="test",
+            )
+
+        assert not [
+            q for q in queries.captured_queries if "sentry_pendingeventattachment" in q["sql"]
+        ]
+        assert PendingEventAttachment.objects.filter(id=self.pending.id).exists()
+
+    def test_probe_does_not_open_a_transaction_when_there_is_nothing_to_promote(self) -> None:
+        from sentry.event_manager import save_pending_attachments
+
+        PendingEventAttachment.objects.all().delete()
+
+        with CaptureQueriesContext(
+            connections[router.db_for_write(PendingEventAttachment)]
+        ) as queries:
+            with self.feature("projects:defer-attachment-storage"):
+                save_pending_attachments(
+                    project=self.project,
+                    event_id=self.event_id,
+                    group_id=self.group.id,
+                    source="test",
+                )
+
+        # A single unlocked probe, and no `FOR UPDATE` claim behind it.
+        pending_queries = [
+            q["sql"]
+            for q in queries.captured_queries
+            if "sentry_pendingeventattachment" in q["sql"]
+        ]
+        assert len(pending_queries) == 1
+        assert "FOR UPDATE" not in pending_queries[0]

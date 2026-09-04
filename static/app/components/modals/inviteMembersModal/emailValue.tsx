@@ -1,12 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {MultiValueProps, OptionTypeBase} from '@sentry/scraps/select';
+import {components as selectComponents} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {
-  MultiValueProps,
-  OptionTypeBase,
-} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 

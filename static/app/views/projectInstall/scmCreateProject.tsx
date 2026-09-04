@@ -3,7 +3,7 @@ import {LayoutGroup, motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -21,6 +21,7 @@ import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProject
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
+  isProjectNameManuallyModified,
   type ScmProjectDetailsCompletion,
   useScmProjectDetails,
 } from 'sentry/components/onboarding/scm/useScmProjectDetails';
@@ -128,11 +129,19 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   } = wizardState;
 
   const canUserCreateProject = useCanCreateProject();
-  // Subscribe so the parent re-renders when integration state changes inside
+  // Also subscribes the parent to integration state changes inside
   // ScmIntegrationConnect, letting framer-motion's layout="position" siblings
   // below re-measure and animate position shifts. React Query dedupes with
   // the child's call.
-  useScmProviders();
+  const {activeIntegrations} = useScmProviders();
+
+  // Members lack org:integrations, so the install pipeline rejects them with a
+  // 403 — but an already-connected integration is fully usable with member
+  // scopes (listing, repo search, and the post-create repo link). While
+  // integrations load, members see the section only once an active
+  // integration is confirmed.
+  const showRepositorySection =
+    organization.access.includes('org:integrations') || activeIntegrations.length > 0;
 
   useScmPlatformDetection(selectedRepository);
 
@@ -152,7 +161,18 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   const handlePlatformChange = useCallback(
     (platform: OnboardingSelectedSDK | undefined) => {
-      setState(s => ({...s, selectedPlatform: platform}));
+      setState(s => {
+        const form = s.projectDetailsForm;
+        // A manual name survives a platform change; an untouched name tracks
+        // the platform default, so drop it and let the hook re-derive it.
+        const shouldResetName = !!form && !isProjectNameManuallyModified(form);
+
+        return {
+          ...s,
+          selectedPlatform: platform,
+          projectDetailsForm: shouldResetName ? {...form, projectName: undefined} : form,
+        };
+      });
     },
     [setState]
   );
@@ -174,13 +194,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       selectedFeatures: undefined,
       projectDetailsForm: undefined,
     }));
-  }, [setState]);
-
-  // Clear the project-details form when the platform changes, since the
-  // project name defaults from the platform key; the hook re-derives cleared
-  // fields.
-  const handleClearProjectDetailsForm = useCallback(() => {
-    setState(s => ({...s, projectDetailsForm: undefined}));
   }, [setState]);
 
   const handleProjectDetailsFormChange = useCallback(
@@ -244,9 +257,10 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
         <Stack padding="3xl" gap="2xl" align="center">
           <LayoutGroup>
+            {/* Keep spacing inside each animated section so it collapses with it. */}
             <MotionStack
               flexGrow={1}
-              gap="2xl"
+              gap="0"
               padding="2xl"
               maxWidth={CREATE_PROJECT_MAX_WIDTH}
               width="100%"
@@ -256,7 +270,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
             >
               <Layout.Title>{t('Create a new project')}</Layout.Title>
 
-              <MotionStack gap="md" layout="position">
+              <MotionStack gap="md" paddingBottom="2xl" layout="position">
                 <Heading as="h1">{t('Create a project')}</Heading>
                 <Text variant="secondary" density="comfortable">
                   {tct(
@@ -270,45 +284,46 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 </Text>
               </MotionStack>
 
-              <MotionStack gap="md" layout="position">
-                <Flex justify="between" align="center">
-                  <Stack gap="sm">
-                    <Heading as="h4">{t('Repository')}</Heading>
-                    <Text variant="secondary" density="comfortable" size="sm">
-                      {t(
-                        'Source context in stack traces, suspect commits, and deploy tracking'
-                      )}
-                    </Text>
-                  </Stack>
-                  <Tag variant="muted">{t('Optional')}</Tag>
-                </Flex>
+              {showRepositorySection && (
+                <MotionStack gap="md" paddingBottom="2xl" layout="position">
+                  <Flex justify="between" align="center">
+                    <Stack gap="sm">
+                      <Heading as="h4">{t('Repository')}</Heading>
+                      <Text variant="secondary" density="comfortable" size="sm">
+                        {t(
+                          'Source context in stack traces, suspect commits, and deploy tracking'
+                        )}
+                      </Text>
+                    </Stack>
+                    <Tag variant="muted">{t('Optional')}</Tag>
+                  </Flex>
 
-                <ScmIntegrationConnect
-                  analyticsFlow="project-creation"
-                  allowIntegrationSwitching
-                  selectedIntegration={selectedIntegration}
-                  selectedRepository={selectedRepository}
-                  onIntegrationChange={handleIntegrationChange}
-                  onRepositoryChange={handleRepositoryChange}
-                  onClearDerivedState={handleClearDerivedState}
-                  maxWidth={CREATE_PROJECT_MAX_WIDTH}
-                />
-              </MotionStack>
+                  <ScmIntegrationConnect
+                    analyticsFlow="project-creation"
+                    allowIntegrationSwitching
+                    selectedIntegration={selectedIntegration}
+                    selectedRepository={selectedRepository}
+                    onIntegrationChange={handleIntegrationChange}
+                    onRepositoryChange={handleRepositoryChange}
+                    onClearDerivedState={handleClearDerivedState}
+                    maxWidth={CREATE_PROJECT_MAX_WIDTH}
+                  />
+                </MotionStack>
+              )}
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmPlatformFeaturesCore
                   analyticsFlow="project-creation"
                   selectedRepository={selectedRepository}
                   selectedPlatform={selectedPlatform}
                   onPlatformChange={handlePlatformChange}
                   onFeaturesChange={handleFeaturesChange}
-                  onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <Separator orientation="horizontal" />
-              </motion.div>
+              </MotionContainer>
 
               <ScmFeatureSelectionPanel
                 analyticsFlow="project-creation"
@@ -317,13 +332,13 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 selectedFeatures={selectedFeatures}
                 onFeaturesChange={handleFeaturesChange}
                 trailing={
-                  <motion.div layout="position">
+                  <MotionContainer layout="position" paddingTop="2xl" paddingBottom="2xl">
                     <Separator orientation="horizontal" />
-                  </motion.div>
+                  </MotionContainer>
                 }
               />
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmProjectDetailsCore
                   projectName={form.projectName}
                   onProjectNameChange={form.onProjectNameChange}
@@ -332,20 +347,20 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   onTeamChange={form.onTeamChange}
                   isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
                 />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position" paddingBottom="2xl">
                 <Separator orientation="horizontal" />
-              </motion.div>
+              </MotionContainer>
 
-              <motion.div layout="position">
+              <MotionContainer layout="position">
                 <ScmAlertFrequencySection
                   analyticsFlow="project-creation"
                   alertRuleConfig={form.alertRuleConfig}
                   notificationProps={form.notificationProps}
                   onAlertChange={form.onAlertChange}
                 />
-              </motion.div>
+              </MotionContainer>
             </MotionStack>
             {/* Page-level CTA: disabled until a platform and project details are
               ready. */}
@@ -378,3 +393,4 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 }
 
 const MotionStack = motion.create(Stack);
+const MotionContainer = motion.create(Container);

@@ -1,14 +1,18 @@
 from unittest import mock
 
+import pytest
+
 from sentry.signals import organization_created
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.workflow_engine.defaults.detectors import UnableToAcquireLockApiError
 from sentry.workflow_engine.defaults.workflows import (
     PULL_REQUEST_WORKFLOW_LABEL,
     ensure_default_organization_workflows,
 )
-from sentry.workflow_engine.models import DetectorWorkflow, Workflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 
 class TestCreateOrganizationWorkflows(TestCase):
@@ -23,27 +27,24 @@ class TestCreateOrganizationWorkflows(TestCase):
             organization=self.organization, name=PULL_REQUEST_WORKFLOW_LABEL
         ).exists()
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
-    def test_creates_workflow(self, mock_is_self_hosted: mock.MagicMock) -> None:
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+    def test_creates_workflow(self) -> None:
         self.send_signal()
         workflow = Workflow.objects.get(
             organization=self.organization, name=PULL_REQUEST_WORKFLOW_LABEL
         )
         assert workflow.enabled
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
-    def test_connects_workflow_to_detector(self, mock_is_self_hosted: mock.MagicMock) -> None:
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+    def test_connects_workflow_to_detector(self) -> None:
         self.send_signal()
         workflow = Workflow.objects.get(
             organization=self.organization, name=PULL_REQUEST_WORKFLOW_LABEL
         )
         assert DetectorWorkflow.objects.filter(workflow=workflow).exists()
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    @mock.patch("sentry.workflow_engine.defaults.workflows.is_self_hosted", return_value=False)
-    def test_no_duplicates_ever(self, mock_is_self_hosted: mock.MagicMock) -> None:
+    @override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+    def test_no_duplicates_ever(self) -> None:
         # Multiple signal emissions
         self.send_signal()
         self.send_signal()
@@ -59,17 +60,27 @@ class TestCreateOrganizationWorkflows(TestCase):
             == 1
         )
 
-    @override_options({"workflow_engine.all_projects_auto_creation_enabled": True})
-    @mock.patch("sentry.workflow_engine.receivers.organization_workflows.sentry_sdk")
-    def test_captures_exception_on_creation_failure(self, mock_sdk: mock.MagicMock) -> None:
-        organization = self.create_organization()
 
-        with mock.patch(
-            "sentry.workflow_engine.receivers.organization_workflows.ensure_default_organization_workflows",
-            side_effect=UnableToAcquireLockApiError,
-        ):
-            organization_created.send_robust(
-                organization=organization, user=self.user, sender=type(self)
-            )
+@django_db_all
+@pytest.mark.parametrize(
+    "expected_error",
+    [
+        UnableToAcquireLockApiError,
+        Detector.MultipleObjectsReturned,
+        Workflow.MultipleObjectsReturned,
+    ],
+)
+@override_options({"workflow_engine.auto_creation.pull_request_workflow": True})
+@mock.patch("sentry.workflow_engine.receivers.organization_workflows.sentry_sdk")
+def test_captures_exception_on_creation_failure(
+    mock_sdk: mock.MagicMock, expected_error: Exception
+) -> None:
+    user = Factories.create_user()
+    organization = Factories.create_organization(owner=user)
 
-        mock_sdk.capture_exception.assert_called_once()
+    with mock.patch(
+        "sentry.workflow_engine.receivers.organization_workflows.ensure_default_organization_workflows",
+        side_effect=expected_error,
+    ):
+        organization_created.send_robust(organization=organization, user=user, sender="test-case")
+    mock_sdk.capture_exception.assert_called_once()

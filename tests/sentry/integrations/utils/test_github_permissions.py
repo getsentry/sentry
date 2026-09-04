@@ -2,6 +2,7 @@ import pytest
 
 from sentry.integrations.utils.github_permissions import (
     GITHUB_APP_REQUIRED_PERMISSIONS_OPTION,
+    get_github_permissions_update_url,
     get_missing_github_app_permissions,
 )
 from sentry.testutils.helpers.options import override_options
@@ -58,3 +59,37 @@ def test_get_missing_github_app_permissions(required_permissions, permissions, e
     )
     with override_options(options):
         assert get_missing_github_app_permissions({"permissions": permissions}) == expected
+
+
+@pytest.mark.parametrize(
+    ("installation_id", "account_type", "account_login", "expected"),
+    [
+        (
+            "123",
+            "User",
+            "example-user",
+            "https://github.com/settings/installations/123/permissions/update",
+        ),
+        (
+            "123",
+            "Organization",
+            "example-org",
+            "https://github.com/organizations/example-org"
+            "/settings/installations/123/permissions/update",
+        ),
+        (
+            "123",
+            None,
+            "example-user",
+            "https://github.com/settings/installations/123/permissions/update",
+        ),
+        ("123", "Organization", "", None),
+        ("", "User", "example-user", None),
+    ],
+)
+def test_get_github_permissions_update_url(
+    installation_id, account_type, account_login, expected
+) -> None:
+    assert (
+        get_github_permissions_update_url(installation_id, account_type, account_login) == expected
+    )

@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.investigations.models import (
     Investigation,
+    InvestigationBlockExecutionStatus,
     InvestigationProject,
     InvestigationSourceType,
     InvestigationStatus,
@@ -72,6 +73,38 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["status"] == "active"
+
+    def test_archive_rejects_an_active_block_run(self) -> None:
+        created = self.client.post(
+            self.collection_url, data={"title": "Running investigation"}, format="json"
+        ).data
+        investigation = Investigation.objects.get(id=created["id"])
+        block = self.create_investigation_block(investigation=investigation, kind="text")
+        self.create_investigation_block_execution(
+            block=block,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=block.version,
+            input_snapshot={},
+        )
+        detail_url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.delete(
+            detail_url,
+            data={"investigationVersion": investigation.version},
+            format="json",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "Stop active block runs before archiving this investigation."
+        }
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(
@@ -216,17 +249,21 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         for revision, investigation in enumerate((first, second), start=1):
             Investigation.objects.filter(id=investigation.id).update(
                 source_type=InvestigationSourceType.BREACHED_METRIC,
-                source_key="lineage",
+                source_ref={},
+                source_key="legacy-lineage",
+                source={"type": "metric_open_period", "ref": {}},
+                lineage_key="lineage",
                 source_revision=revision,
+                status=(
+                    InvestigationStatus.ARCHIVED
+                    if investigation == first
+                    else InvestigationStatus.ACTIVE
+                ),
             )
             investigation.refresh_from_db()
         return first, second
 
-    def test_archiving_via_put_cascades_across_the_lineage(self) -> None:
-        """
-        Only archive_investigation cascades, so PUT has to route through it
-        rather than writing the status field directly.
-        """
+    def test_archiving_a_source_investigation_via_put(self) -> None:
         first, second = self.lineage()
 
         response = self.client.put(

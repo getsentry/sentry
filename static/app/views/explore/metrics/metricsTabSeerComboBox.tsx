@@ -24,6 +24,7 @@ import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isEquation} from 'sentry/utils/discover/fields';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -80,7 +81,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     mutationFn: async (queryToSubmit: string) => {
       const user = ConfigStore.get('user');
       const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {
           org_id: organization.id,
@@ -353,9 +356,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     ]
   );
 
-  const usePollingEndpoint =
-    organization.features.includes('gen-ai-search-agent-translate') &&
-    organization.features.includes('gen-ai-explore-metrics-search');
+  const usePollingEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>

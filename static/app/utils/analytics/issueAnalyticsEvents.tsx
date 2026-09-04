@@ -58,6 +58,12 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
   to_priority: PriorityLevel;
 }
 
+interface IssueInboxItemParams extends CommonGroupAnalyticsData {
+  assignment_filter: 'me' | 'my_teams' | 'all';
+  last_progressed_at: string | null;
+  progress: ProgressState | undefined;
+}
+
 export type IssueEventParameters = {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
   'breadcrumbs.drawer.action': {control: string; value?: string};
@@ -197,12 +203,8 @@ export type IssueEventParameters = {
   'issue_inbox.assignment_filter_changed': {
     assignment_filter: 'me' | 'my_teams' | 'all';
   };
-  'issue_inbox.item_clicked': {
-    assignment_filter: 'me' | 'my_teams' | 'all';
-    group_id: string;
-    last_progressed_at: string | null;
-    progress: ProgressState | undefined;
-  };
+  'issue_inbox.issue_viewed': IssueInboxItemParams;
+  'issue_inbox.item_clicked': IssueInboxItemParams;
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -282,11 +284,6 @@ export type IssueEventParameters = {
   'issues_stream.updated_priority': {
     area: string;
     priority: PriorityLevel;
-  };
-  'project_modal.created': {
-    issue_alert: 'Default' | 'Custom' | 'No Rule';
-    project_id: string;
-    rule_id: string;
   };
   'quick_trace.connected_services': {
     projects: number;
@@ -374,6 +371,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
+  'issue_inbox.issue_viewed': 'Issue Inbox: Issue Viewed',
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
@@ -385,7 +383,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
-  'project_modal.created': 'Project Modal: Created',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
   'settings.inbound_filter_updated': 'Settings: Inbound Filter Updated',

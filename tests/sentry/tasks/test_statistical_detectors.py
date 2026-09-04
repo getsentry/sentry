@@ -8,7 +8,6 @@ from django.db.models import F
 
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
-    PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
 from sentry.issues.occurrence_consumer import _process_message
@@ -23,31 +22,23 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.seer.breakpoints import BreakpointData
-from sentry.snuba.discover import zerofill
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
 from sentry.tasks.statistical_detectors import (
-    EndpointRegressionDetector,
     FunctionRegressionDetector,
     detect_function_change_points,
     detect_function_trends,
-    detect_transaction_change_points,
-    detect_transaction_trends,
     emit_function_regression_issue,
     query_functions,
-    query_transactions,
-    query_transactions_timeseries,
     run_detection,
 )
-from sentry.testutils.cases import MetricsAPIBaseTestCase, ProfilesSnubaTestCase
+from sentry.testutils.cases import ProfilesSnubaTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
-from sentry.utils.snuba import SnubaTSResult
 
 
 @pytest.fixture
@@ -70,88 +61,17 @@ def project(organization):
     return Factories.create_project(organization=organization)
 
 
-@pytest.mark.parametrize(
-    [
-        "project_flags",
-        "enable",
-        "expected_performance_project",
-        "expected_profiling_project",
-    ],
-    [
-        pytest.param(None, False, False, False, id="disabled"),
-        pytest.param(None, True, False, False, id="no projects"),
-        pytest.param(None, True, False, False, id="no transactions"),
-        pytest.param(None, True, False, False, id="no profiles"),
-        pytest.param(
-            Project.flags.has_transactions,
-            True,
-            True,
-            False,
-            id="performance only",
-        ),
-        pytest.param(Project.flags.has_profiles, True, False, True, id="profiling only"),
-        pytest.param(
-            Project.flags.has_transactions | Project.flags.has_profiles,
-            True,
-            True,
-            True,
-            id="performance + profiling",
-        ),
-    ],
-)
-@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
-@mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
-@django_db_all
-def test_run_detection_options(
-    detect_function_trends,
-    detect_transaction_trends,
-    project_flags,
-    enable,
-    expected_performance_project,
-    expected_profiling_project,
-    project,
-    timestamp,
-):
-    if project_flags is not None:
-        project.update(flags=F("flags").bitor(project_flags))
-
-    options = {
-        "statistical_detectors.enable": enable,
-    }
-
-    with freeze_time(timestamp), override_options(options):
-        run_detection()
-
-    if expected_performance_project:
-        assert detect_transaction_trends.apply_async.called
-        detect_transaction_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[], [project.id], timestamp.isoformat()], countdown=0)]
-        )
-    else:
-        assert not detect_transaction_trends.apply_async.called
-
-    if expected_profiling_project:
-        assert detect_function_trends.apply_async.called
-        detect_function_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[project.id], timestamp.isoformat()], countdown=0)]
-        )
-    else:
-        assert not detect_function_trends.apply_async.called
-
-
-@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_trends")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_trends")
 @mock.patch("sentry.tasks.statistical_detectors.PROJECTS_PER_BATCH", 5)
 @django_db_all
 def test_run_detection_options_multiple_batches(
     detect_function_trends,
-    detect_transaction_trends,
     organization,
     timestamp,
 ):
     projects = []
 
-    flags = Project.flags.has_transactions | Project.flags.has_profiles
+    flags = Project.flags.has_profiles
     for _ in range(9):
         project = Factories.create_project(organization=organization)
         project.update(flags=F("flags").bitor(flags))
@@ -166,20 +86,6 @@ def test_run_detection_options_multiple_batches(
 
     # total of 9 projects, broken into batches of 5 means batch sizes of 5 + 4
 
-    assert detect_transaction_trends.apply_async.called
-    detect_transaction_trends.apply_async.assert_has_calls(
-        [
-            mock.call(
-                args=[
-                    [],
-                    [project.id for project in projects[i : i + 5]],
-                    timestamp.isoformat(),
-                ],
-                countdown=countdown,
-            )
-            for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=0, step=17))
-        ]
-    )
     assert detect_function_trends.apply_async.called
     detect_function_trends.apply_async.assert_has_calls(
         [
@@ -190,39 +96,6 @@ def test_run_detection_options_multiple_batches(
             for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=0, step=17))
         ]
     )
-
-
-@pytest.mark.parametrize(
-    ["task_enabled", "option_enabled"],
-    [
-        pytest.param(True, True, id="both enabled"),
-        pytest.param(False, False, id="both disabled"),
-        pytest.param(True, False, id="option disabled"),
-        pytest.param(False, True, id="task disabled"),
-    ],
-)
-@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
-@django_db_all
-def test_detect_transaction_trends_options(
-    query_transactions,
-    task_enabled,
-    option_enabled,
-    timestamp,
-    project,
-):
-    ProjectOption.objects.set_value(
-        project=project,
-        key="sentry:performance_issue_settings",
-        value={InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: option_enabled},
-    )
-
-    options = {
-        "statistical_detectors.enable": task_enabled,
-    }
-
-    with override_options(options):
-        detect_transaction_trends([project.organization_id], [project.id], timestamp.isoformat())
-    assert query_transactions.called == (task_enabled and option_enabled)
 
 
 @pytest.mark.parametrize(
@@ -297,198 +170,8 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
 
 
 @pytest.mark.parametrize(
-    ["count", "should_emit"],
-    [(100, True), (10, False)],
-)
-@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
-@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
-@django_db_all
-def test_detect_transaction_trends(
-    detect_transaction_change_points,
-    query_transactions,
-    timestamp,
-    project,
-    count,
-    should_emit,
-):
-    n = 50
-    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
-
-    query_transactions.side_effect = [
-        [
-            DetectorPayload(
-                project_id=project.id,
-                group="/123",
-                fingerprint="/123",
-                count=count,
-                value=100 if i < n / 2 else 300,
-                timestamp=ts,
-            ),
-        ]
-        for i, ts in enumerate(timestamps)
-    ]
-
-    options = {
-        "statistical_detectors.enable": True,
-    }
-
-    with override_options(options):
-        for ts in timestamps:
-            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
-
-    if should_emit:
-        assert detect_transaction_change_points.apply_async.called
-    else:
-        assert not detect_transaction_change_points.apply_async.called
-
-
-@mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
-@mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
-@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
-@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
-@django_db_all
-@pytest.mark.sentry_metrics
-def test_detect_transaction_trends_auto_resolution(
-    produce_occurrence_to_kafka,
-    detect_transaction_change_points,
-    raw_snql_query,
-    mock_uuid4,
-    timestamp,
-    project,
-):
-    n = 150
-    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
-
-    raw_snql_query.side_effect = [
-        {
-            "data": [
-                {
-                    "project_id": project.id,
-                    "transaction_name": "/123",
-                    "count": 100,
-                    "p95": 100 if i < 25 or i >= 50 else 300,
-                },
-            ],
-        }
-        for i, ts in enumerate(timestamps)
-    ]
-
-    options = {
-        "statistical_detectors.enable": True,
-    }
-
-    with override_options(options):
-        for ts in timestamps[:50]:
-            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
-
-    assert detect_transaction_change_points.apply_async.called
-
-    with override_options(options):
-        RegressionGroup.objects.create(
-            type=RegressionType.ENDPOINT.value,
-            date_regressed=timestamps[10],
-            version=1,
-            active=True,
-            project_id=project.id,
-            fingerprint=generate_fingerprint(RegressionType.ENDPOINT, "/123"),
-            baseline=100,
-            regressed=300,
-        )
-        for ts in timestamps[50:]:
-            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
-
-    status_change = StatusChangeMessage(
-        fingerprint=[generate_fingerprint(RegressionType.ENDPOINT, "/123")],
-        project_id=project.id,
-        new_status=GroupStatus.RESOLVED,
-        new_substatus=None,
-    )
-    produce_occurrence_to_kafka.assert_has_calls(
-        [mock.call(payload_type=PayloadType.STATUS_CHANGE, status_change=status_change)]
-    )
-
-
-@pytest.mark.parametrize(
-    ["ratelimit", "expected_calls"],
-    [(-1, 3), (0, 0), (1, 1), (2, 2), (3, 3)],
-)
-@mock.patch("sentry.tasks.statistical_detectors.query_transactions")
-@mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
-@django_db_all
-def test_detect_transaction_trends_ratelimit(
-    detect_transaction_change_points,
-    query_transactions,
-    ratelimit,
-    expected_calls,
-    timestamp,
-    organization,
-    project,
-):
-    n = 50
-    timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
-
-    query_transactions.side_effect = [
-        [
-            DetectorPayload(
-                project_id=project.id,
-                group="/1",
-                fingerprint="/1",
-                count=100,
-                value=100 if i < n / 2 else 301,
-                timestamp=ts,
-            ),
-            DetectorPayload(
-                project_id=project.id,
-                group="/2",
-                fingerprint="/2",
-                count=100,
-                value=100 if i < n / 2 else 302,
-                timestamp=ts,
-            ),
-            DetectorPayload(
-                project_id=project.id,
-                group="/3",
-                fingerprint="/3",
-                count=100,
-                value=100 if i < n / 2 else 303,
-                timestamp=ts,
-            ),
-        ]
-        for i, ts in enumerate(timestamps)
-    ]
-
-    options = {
-        "statistical_detectors.enable": True,
-        "statistical_detectors.ratelimit.ema": ratelimit,
-    }
-
-    with override_options(options):
-        for ts in timestamps:
-            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
-
-    if expected_calls > 0:
-        assert detect_transaction_change_points.apply_async.call_count == 1
-        detect_transaction_change_points.apply_async.assert_has_calls(
-            [
-                mock.call(
-                    args=[
-                        [(project.id, "/1"), (project.id, "/2"), (project.id, "/3")][
-                            -expected_calls:
-                        ],
-                        mock.ANY,
-                    ],
-                    countdown=12 * 60 * 60,
-                ),
-            ],
-        )
-    else:
-        assert detect_transaction_change_points.apply_async.call_count == 0
-
-
-@pytest.mark.parametrize(
     ["detector_cls"],
     [
-        pytest.param(EndpointRegressionDetector, id="endpoint"),
         pytest.param(FunctionRegressionDetector, id="function"),
     ],
 )
@@ -537,7 +220,6 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
 @pytest.mark.parametrize(
     ["detector_cls"],
     [
-        pytest.param(EndpointRegressionDetector, id="endpoint"),
         pytest.param(FunctionRegressionDetector, id="function"),
     ],
 )
@@ -639,12 +321,6 @@ def test_get_regression_versions(
 @pytest.mark.parametrize(
     ["detector_cls", "object_name", "issue_type"],
     [
-        pytest.param(
-            EndpointRegressionDetector,
-            "transaction_1",
-            PerformanceP95EndpointRegressionGroupType,
-            id="endpoint",
-        ),
         pytest.param(
             FunctionRegressionDetector,
             123,
@@ -999,11 +675,6 @@ def test_detect_function_change_points(
     ["detector_cls", "object_name"],
     [
         pytest.param(
-            EndpointRegressionDetector,
-            "transaction_1",
-            id="endpoint",
-        ),
-        pytest.param(
             FunctionRegressionDetector,
             "123",
             id="function",
@@ -1088,11 +759,6 @@ def test_new_regression_group(
     ["detector_cls", "object_name"],
     [
         pytest.param(
-            EndpointRegressionDetector,
-            "transaction_1",
-            id="endpoint",
-        ),
-        pytest.param(
             FunctionRegressionDetector,
             "123",
             id="function",
@@ -1147,15 +813,6 @@ def test_save_regressions_with_versions(
 @pytest.mark.parametrize(
     ["detector_cls", "object_name", "baseline", "regressed", "escalated", "issue_type"],
     [
-        pytest.param(
-            EndpointRegressionDetector,
-            "transaction_1",
-            100,
-            300,
-            500,
-            PerformanceP95EndpointRegressionGroupType,
-            id="endpoint",
-        ),
         pytest.param(
             FunctionRegressionDetector,
             123,
@@ -1650,276 +1307,3 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 )
             ],
         )
-
-
-@pytest.mark.sentry_metrics
-class TestTransactionsQuery(MetricsAPIBaseTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.num_projects = 2
-        self.num_transactions = 4
-
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-        self.hour_ago_seconds = int(self.hour_ago.timestamp())
-        self.projects = [
-            self.create_project(organization=self.organization) for _ in range(self.num_projects)
-        ]
-
-        for project in self.projects:
-            for i in range(self.num_transactions):
-                # Store metrics for a backend transaction
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
-                    self.hour_ago_seconds,
-                    1.0,
-                )
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
-                    self.hour_ago_seconds,
-                    9.5,
-                )
-
-                # Store metrics for a frontend transaction, which should be
-                # ignored by the query
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
-                    self.hour_ago_seconds,
-                    1.0,
-                )
-                self.store_metric(
-                    self.organization.id,
-                    project.id,
-                    TransactionMRI.DURATION.value,
-                    {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
-                    self.hour_ago_seconds,
-                    9.5,
-                )
-
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
-
-    def test_transactions_query(self) -> None:
-        res = query_transactions(
-            self.projects,
-            self.now,
-            self.num_transactions + 1,  # detect if any extra transactions are returned
-        )
-
-        assert len(res) == len(self.projects) * self.num_transactions
-        for trend_payload in res:
-            assert trend_payload.count == 2
-            # p95 is  calculated by a probabilistic data structure, as such the value won't actually be 9.5 since we only have
-            # one sample at 9.5, but it should be close
-            assert trend_payload.value > 9
-            assert trend_payload.timestamp == self.hour_ago
-
-
-@pytest.mark.sentry_metrics
-class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.num_projects = 2
-        self.num_transactions = 4
-
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-        self.hour_ago_seconds = int(self.hour_ago.timestamp())
-        self.projects = [
-            self.create_project(organization=self.organization) for _ in range(self.num_projects)
-        ]
-
-        def store_metric(project_id, transaction, minutes_ago, value):
-            self.store_metric(
-                self.organization.id,
-                project_id,
-                TransactionMRI.DURATION_LIGHT.value,
-                {"transaction": transaction},
-                int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
-                value,
-            )
-
-        for project in self.projects:
-            for i in range(self.num_transactions):
-                store_metric(project.id, f"transaction_{i}", 20, 9.5)
-                store_metric(project.id, f"transaction_{i}", 40, 9.5)
-                store_metric(project.id, f"transaction_{i}", 60, 9.5)
-                store_metric(project.id, f"transaction_{i}", 80, 1.0)
-                store_metric(project.id, f"transaction_{i}", 100, 1.0)
-                store_metric(project.id, f"transaction_{i}", 120, 1.0)
-
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
-
-    def test_query_transactions_timeseries(self) -> None:
-        results = [
-            timeseries
-            for timeseries in query_transactions_timeseries(
-                [
-                    (self.projects[0], "transaction_1"),
-                    (self.projects[0], "transaction_2"),
-                    (self.projects[1], "transaction_1"),
-                ],
-                self.now,
-                "p95(transaction.duration)",
-            )
-        ]
-
-        end = self.now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-        start = end - timedelta(days=14)
-        first_timeseries_time = self.now - timedelta(hours=2)
-        second_timeseries_time = self.now - timedelta(hours=1)
-        assert results == [
-            (
-                self.projects[0].id,
-                "transaction_1",
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": first_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 1.0,
-                                },
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": second_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 9.5,
-                                },
-                            ],
-                            start,
-                            end,
-                            3600,
-                            ["time"],
-                        ),
-                        "project": self.projects[0].id,
-                    },
-                    start,
-                    end,
-                    3600,
-                ),
-            ),
-            (
-                self.projects[0].id,
-                "transaction_2",
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                {
-                                    "transaction": "transaction_2",
-                                    "time": first_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 1.0,
-                                },
-                                {
-                                    "transaction": "transaction_2",
-                                    "time": second_timeseries_time.isoformat(),
-                                    "project_id": self.projects[0].id,
-                                    "p95_transaction_duration": 9.5,
-                                },
-                            ],
-                            start,
-                            end,
-                            3600,
-                            ["time"],
-                        ),
-                        "project": self.projects[0].id,
-                    },
-                    start,
-                    end,
-                    3600,
-                ),
-            ),
-            (
-                self.projects[1].id,
-                "transaction_1",
-                SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            [
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": first_timeseries_time.isoformat(),
-                                    "project_id": self.projects[1].id,
-                                    "p95_transaction_duration": 1.0,
-                                },
-                                {
-                                    "transaction": "transaction_1",
-                                    "time": second_timeseries_time.isoformat(),
-                                    "project_id": self.projects[1].id,
-                                    "p95_transaction_duration": 9.5,
-                                },
-                            ],
-                            start,
-                            end,
-                            3600,
-                            ["time"],
-                        ),
-                        "project": self.projects[1].id,
-                    },
-                    start,
-                    end,
-                    3600,
-                ),
-            ),
-        ]
-
-    def test_query_transactions_single_timeseries(self) -> None:
-        results = [
-            timeseries
-            for timeseries in query_transactions_timeseries(
-                [(self.projects[0], "transaction_1")],
-                self.now,
-                "p95(transaction.duration)",
-            )
-        ]
-        assert len(results) == 1
-
-    @mock.patch("sentry.tasks.statistical_detectors.send_regression_to_platform")
-    @mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
-    def test_transaction_change_point_detection(
-        self, mock_detect_breakpoints, mock_send_regression_to_platform
-    ) -> None:
-        mock_detect_breakpoints.return_value = {
-            "data": [
-                {
-                    "absolute_percentage_change": 5.0,
-                    "aggregate_range_1": 100000000.0,
-                    "aggregate_range_2": 500000000.0,
-                    "breakpoint": 1687323600,
-                    "change": "regression",
-                    "project": str(self.projects[0].id),
-                    "transaction": "transaction_1",
-                    "trend_difference": 400000000.0,
-                    "trend_percentage": 5.0,
-                    "unweighted_p_value": 0.0,
-                    "unweighted_t_value": -float("inf"),
-                },
-            ]
-        }
-
-        options = {"statistical_detectors.enable": True}
-
-        with override_options(options):
-            detect_transaction_change_points(
-                [
-                    (self.projects[0].id, "transaction_1"),
-                    (self.projects[0].id, "transaction_2"),
-                    (self.projects[1].id, "transaction_1"),
-                ],
-                self.now.isoformat(),
-            )
-        assert mock_send_regression_to_platform.called

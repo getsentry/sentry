@@ -7,11 +7,16 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
+
+function renderRow(element: React.ReactElement) {
+  return render(<SimpleTable>{element}</SimpleTable>);
+}
 
 describe('ApiTokenRow', () => {
   it('renders', () => {
-    render(
+    renderRow(
       <ApiTokenRow
         onRemove={() => {}}
         token={ApiTokenFixture({id: '1', name: 'token1'})}
@@ -24,7 +29,7 @@ describe('ApiTokenRow', () => {
   });
 
   it('no button when not editable', () => {
-    render(
+    renderRow(
       <ApiTokenRow
         onRemove={() => {}}
         token={ApiTokenFixture({id: '1', name: 'token1'})}
@@ -35,7 +40,7 @@ describe('ApiTokenRow', () => {
 
   it('calls onRemove callback when remove is clicked', async () => {
     const cb = jest.fn();
-    render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} canEdit />);
+    renderRow(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} canEdit />);
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
@@ -48,7 +53,7 @@ describe('ApiTokenRow', () => {
     token.tokenLastCharacters = 'a1b2c3d4';
 
     const cb = jest.fn();
-    render(<ApiTokenRow onRemove={cb} token={token} canEdit />);
+    renderRow(<ApiTokenRow onRemove={cb} token={token} canEdit />);
     expect(screen.getByLabelText('Token preview')).toBeInTheDocument();
   });
 });

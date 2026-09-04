@@ -225,6 +225,43 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
         artifact.commit_comparison.refresh_from_db()
         assert (artifact.commit_comparison.extras or {}).get("pr_comments") is None
 
+    @patch(_CLIENT_PATH)
+    @patch(_EVAL_PATH)
+    def test_updates_existing_comment_when_all_artifacts_are_skipped(
+        self, mock_eval, mock_get_client
+    ) -> None:
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_eval.return_value = _eval_result(
+            triggered=False,
+            status=StatusCheckStatus.NEUTRAL,
+            subtitle="Size analysis skipped",
+            summary="Configure size analysis",
+            evaluated_artifacts=[],
+        )
+
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, provider="github", pr_number=42
+        )
+        commit_comparison.extras = {
+            "pr_comments": {"size": {"success": True, "comment_id": "existing_777"}}
+        }
+        commit_comparison.save(update_fields=["extras"])
+
+        self._enable()
+        self._set_rules()
+        artifact = self._create_artifact(commit_comparison=commit_comparison)
+
+        self._import_task()(artifact.id)
+
+        mock_client.update_comment.assert_called_once_with(
+            repo="owner/repo",
+            issue_id="42",
+            comment_id="existing_777",
+            data={"body": "## Size Analysis\n\nSize analysis skipped\n\nConfigure size analysis"},
+        )
+        mock_client.create_comment.assert_not_called()
+
     # --- early-return skips ---------------------------------------------
 
     @patch(_CLIENT_PATH)

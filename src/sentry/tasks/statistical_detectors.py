@@ -9,19 +9,11 @@ from django.utils import timezone as django_timezone
 from snuba_sdk import (
     And,
     BooleanCondition,
-    BooleanOp,
     Column,
     Condition,
-    CurriedFunction,
-    Direction,
-    Entity,
-    Function,
-    Granularity,
     Limit,
-    LimitBy,
     Op,
     Or,
-    OrderBy,
     Query,
     Request,
     Storage,
@@ -38,12 +30,8 @@ from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
-from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
-from sentry.snuba.discover import zerofill
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.statistical_detectors.algorithm import (
     DetectorAlgorithm,
@@ -51,10 +39,6 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
-from sentry.statistical_detectors.issue_platform_adapter import (
-    fingerprint_regression,
-    send_regression_to_platform,
-)
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
@@ -71,8 +55,6 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
-TRANSACTIONS_PER_PROJECT = 50
-TRANSACTIONS_PER_BATCH = 1_000
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -117,56 +99,11 @@ def run_detection() -> None:
     now = django_timezone.now()
 
     projects = all_projects_with_flags()
-    projects = dispatch_performance_projects(projects, now)
     projects = dispatch_profiling_projects(projects, now)
 
     # make sure to consume the generator
     for _ in projects:
         pass
-
-
-def dispatch_performance_projects(
-    all_projects: Generator[tuple[int, int]],
-    timestamp: datetime,
-) -> Generator[tuple[int, int]]:
-    projects = []
-    count = 0
-
-    for project_id, flags in all_projects:
-        if flags & Project.flags.has_transactions:
-            projects.append(project_id)
-            count += 1
-
-        if len(projects) >= PROJECTS_PER_BATCH:
-            detect_transaction_trends.apply_async(
-                args=[
-                    [],
-                    projects,
-                    timestamp.isoformat(),
-                ],
-                countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
-            )
-            projects = []
-
-        yield project_id, flags
-
-    # make sure to dispatch a task to handle the remaining projects
-    if projects:
-        detect_transaction_trends.apply_async(
-            args=[
-                [],
-                projects,
-                timestamp.isoformat(),
-            ],
-            countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
-        )
-
-    metrics.incr(
-        "statistical_detectors.projects.total",
-        amount=count,
-        tags={"source": "transaction"},
-        sample_rate=1.0,
-    )
 
 
 def dispatch_profiling_projects(
@@ -203,52 +140,6 @@ def dispatch_profiling_projects(
         tags={"source": "profile"},
         sample_rate=1.0,
     )
-
-
-class EndpointRegressionDetector(RegressionDetector):
-    source = "transaction"
-    kind = "endpoint"
-    regression_type = RegressionType.ENDPOINT
-    min_change = 200  # 200ms in ms
-    buffer_period = timedelta(days=1)
-    resolution_rel_threshold = 0.1
-    escalation_rel_threshold = 0.75
-
-    @classmethod
-    def min_throughput_threshold(cls) -> int:
-        return options.get("statistical_detectors.throughput.threshold.transactions")
-
-    @classmethod
-    def detector_algorithm_factory(cls) -> DetectorAlgorithm:
-        return MovingAverageRelativeChangeDetector(
-            source=cls.source,
-            kind=cls.kind,
-            min_data_points=18,
-            moving_avg_short_factory=lambda: ExponentialMovingAverage(2 / 21),
-            moving_avg_long_factory=lambda: ExponentialMovingAverage(2 / 41),
-            threshold=0.15,
-        )
-
-    @classmethod
-    def detector_store_factory(cls) -> DetectorStore:
-        return RedisDetectorStore(regression_type=RegressionType.ENDPOINT)
-
-    @classmethod
-    def query_payloads(
-        cls,
-        projects: list[Project],
-        start: datetime,
-    ) -> Iterable[DetectorPayload]:
-        return query_transactions(projects, start)
-
-    @classmethod
-    def query_timeseries(
-        cls,
-        objects: list[tuple[Project, int | str]],
-        start: datetime,
-        function: str,
-    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
-        return query_transactions_timeseries(objects, start, function)
 
 
 class FunctionRegressionDetector(RegressionDetector):
@@ -295,107 +186,6 @@ class FunctionRegressionDetector(RegressionDetector):
         function: str,
     ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
         return query_functions_timeseries(objects, start, function)
-
-
-@instrumented_task(
-    name="sentry.tasks.statistical_detectors.detect_transaction_trends",
-    namespace=performance_tasks,
-    processing_deadline_duration=30,
-)
-def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: str, *args, **kwargs
-) -> None:
-    if not options.get("statistical_detectors.enable"):
-        return
-
-    start_time = datetime.fromisoformat(start)
-
-    EndpointRegressionDetector.configure_tags()
-
-    projects = get_detector_enabled_projects(
-        project_ids,
-        project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
-    )
-
-    trends = EndpointRegressionDetector.detect_trends(projects, start_time)
-    trends = EndpointRegressionDetector.get_regression_groups(trends)
-    trends = EndpointRegressionDetector.redirect_resolutions(trends, start_time)
-    trends = EndpointRegressionDetector.redirect_escalations(trends, start_time)
-    trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
-
-    delay = 12  # hours
-    delayed_start = start_time + timedelta(hours=delay)
-
-    for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
-        detect_transaction_change_points.apply_async(
-            args=[
-                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start.isoformat(),
-            ],
-            # delay the check by delay hours because we want to make sure there
-            # will be enough data after the potential change point to be confident
-            # that a change has occurred
-            countdown=delay * 60 * 60,
-        )
-
-
-@instrumented_task(
-    name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
-    namespace=performance_tasks,
-)
-def detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
-) -> None:
-    start_time = datetime.fromisoformat(start)
-
-    _detect_transaction_change_points(transactions, start_time, *args, **kwargs)
-
-
-def _detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
-) -> None:
-    if not options.get("statistical_detectors.enable"):
-        return
-
-    EndpointRegressionDetector.configure_tags()
-
-    projects_by_id = {
-        project.id: project
-        for project in get_detector_enabled_projects(
-            [project_id for project_id, _ in transactions],
-        )
-    }
-
-    transaction_pairs: list[tuple[Project, int | str]] = [
-        (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
-    ]
-
-    viewer_context = None
-    if transaction_pairs:
-        project = transaction_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
-
-    regressions = EndpointRegressionDetector.detect_regressions(
-        transaction_pairs,
-        start,
-        "p95(transaction.duration)",
-        TIMESERIES_PER_BATCH,
-        viewer_context=viewer_context,
-    )
-    regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
-
-    breakpoint_count = 0
-
-    for regression in regressions:
-        breakpoint_count += 1
-        send_regression_to_platform(regression)
-
-    metrics.incr(
-        "statistical_detectors.breakpoint.emitted",
-        amount=breakpoint_count,
-        tags={"source": "transaction", "kind": "endpoint"},
-        sample_rate=1.0,
-    )
 
 
 @instrumented_task(
@@ -692,300 +482,6 @@ def fetch_continuous_examples(raw_examples):
             }
 
     return examples
-
-
-BACKEND_TRANSACTION_OPS = [
-    # Common
-    "function.aws",
-    "function.aws.lambda",
-    "http.server",
-    "serverless.function",
-    # Python
-    "asgi.server",
-    # Ruby
-    "rails.request",
-]
-
-
-def query_transactions(
-    projects: list[Project],
-    start: datetime,
-    transactions_per_project: int = TRANSACTIONS_PER_PROJECT,
-) -> list[DetectorPayload]:
-    start = start - timedelta(hours=1)
-    start = start.replace(minute=0, second=0, microsecond=0)
-    end = start + timedelta(hours=1)
-
-    org_ids = list({p.organization_id for p in projects})
-    project_ids = list({p.id for p in projects})
-
-    use_case_id = UseCaseID.TRANSACTIONS
-
-    # both the metric and tag that we are using are hardcoded values in sentry_metrics.indexer.strings
-    # so the org_id that we are using does not actually matter here, we only need to pass in an org_id
-    #
-    # Because we filter on more than just `transaction`, we have to use DURATION here instead of
-    # DURATION_LIGHT.
-    duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION.value)
-    )
-    transaction_name_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction",
-    )
-    transaction_op_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction.op",
-    )
-
-    # if our time range is more than an hour, use the hourly granularity
-    granularity = 3600 if int(end.timestamp()) - int(start.timestamp()) >= 3600 else 60
-
-    # This query returns the top `transactions_per_project` transaction names by count in the specified
-    # [start, end) time period along with the p95 of each transaction in that time period
-    # this is written in raw SnQL because the metrics layer does not support the limitby clause which is necessary for this operation to work
-
-    query = Query(
-        match=Entity(EntityKey.GenericMetricsDistributions.value),
-        select=[
-            Column("project_id"),
-            Function(
-                "arrayElement",
-                (
-                    CurriedFunction(
-                        "quantilesIf",
-                        [0.95],
-                        (
-                            Column("value"),
-                            Function("equals", (Column("metric_id"), duration_metric_id)),
-                        ),
-                    ),
-                    1,
-                ),
-                "p95",
-            ),
-            Function(
-                "countIf",
-                (Column("value"), Function("equals", (Column("metric_id"), duration_metric_id))),
-                "count",
-            ),
-            Function(
-                "transform",
-                (
-                    Column(f"tags_raw[{transaction_name_metric_id}]"),
-                    Function("array", ("",)),
-                    Function("array", ("<< unparameterized >>",)),
-                ),
-                "transaction_name",
-            ),
-        ],
-        groupby=[
-            Column("project_id"),
-            Column("transaction_name"),
-        ],
-        where=[
-            Condition(Column("org_id"), Op.IN, list(org_ids)),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("metric_id"), Op.EQ, duration_metric_id),
-            Condition(
-                Column(f"tags_raw[{transaction_op_metric_id}]"),
-                Op.IN,
-                list(BACKEND_TRANSACTION_OPS),
-            ),
-        ],
-        limitby=LimitBy([Column("project_id")], transactions_per_project),
-        orderby=[
-            OrderBy(Column("project_id"), Direction.DESC),
-            OrderBy(Column("count"), Direction.DESC),
-        ],
-        granularity=Granularity(granularity),
-        limit=Limit(len(project_ids) * transactions_per_project),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="statistical_detectors",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value,
-            "cross_org_query": 1,
-            "use_case_id": use_case_id.value,
-        },
-    )
-    data = raw_snql_query(
-        request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TOP_TRANSACTION_NAMES.value
-    )["data"]
-    return [
-        DetectorPayload(
-            project_id=row["project_id"],
-            group=row["transaction_name"],
-            fingerprint=fingerprint_regression(row["transaction_name"]),
-            count=row["count"],
-            value=row["p95"],
-            timestamp=start,
-        )
-        for row in data
-    ]
-
-
-def query_transactions_timeseries(
-    transactions: list[tuple[Project, int | str]],
-    start: datetime,
-    agg_function: str,
-) -> Generator[tuple[int, int | str, SnubaTSResult]]:
-    end = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-    days_to_query = options.get("statistical_detectors.query.transactions.timeseries_days")
-    start = end - timedelta(days=days_to_query)
-    use_case_id = UseCaseID.TRANSACTIONS
-    interval = 3600  # 1 hour
-
-    project_objects = {p for p, _ in transactions}
-    project_ids = [project.id for project in project_objects]
-    org_ids = list({project.organization_id for project in project_objects})
-    # The only tag available on DURATION_LIGHT is `transaction`: as long as
-    # we don't filter on any other tags, DURATION_LIGHT's lower cardinality
-    # will be faster to query.
-    duration_metric_id = indexer.resolve(
-        use_case_id, org_ids[0], str(TransactionMRI.DURATION_LIGHT.value)
-    )
-    transaction_name_metric_id = indexer.resolve(
-        use_case_id,
-        org_ids[0],
-        "transaction",
-    )
-
-    transactions_condition = None
-    if len(transactions) == 1:
-        project, transaction_name = transactions[0]
-        transactions_condition = BooleanCondition(
-            BooleanOp.AND,
-            [
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("transaction"), Op.EQ, transaction_name),
-            ],
-        )
-    else:
-        transactions_condition = BooleanCondition(
-            BooleanOp.OR,
-            [
-                BooleanCondition(
-                    BooleanOp.AND,
-                    [
-                        Condition(Column("project_id"), Op.EQ, project.id),
-                        Condition(Column("transaction"), Op.EQ, transaction_name),
-                    ],
-                )
-                for project, transaction_name in transactions
-            ],
-        )
-
-    query = Query(
-        match=Entity(EntityKey.GenericMetricsDistributions.value),
-        select=[
-            Column("project_id"),
-            Function(
-                "arrayElement",
-                (
-                    CurriedFunction(
-                        "quantilesIf",
-                        [0.95],
-                        (
-                            Column("value"),
-                            Function("equals", (Column("metric_id"), duration_metric_id)),
-                        ),
-                    ),
-                    1,
-                ),
-                "p95_transaction_duration",
-            ),
-            Function(
-                "transform",
-                (
-                    Column(f"tags_raw[{transaction_name_metric_id}]"),
-                    Function("array", ("",)),
-                    Function("array", ("<< unparameterized >>",)),
-                ),
-                "transaction",
-            ),
-        ],
-        groupby=[
-            Column("transaction"),
-            Column("project_id"),
-            Function(
-                "toStartOfInterval",
-                (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
-                "time",
-            ),
-        ],
-        where=[
-            Condition(Column("org_id"), Op.IN, list(org_ids)),
-            Condition(Column("project_id"), Op.IN, list(project_ids)),
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("metric_id"), Op.EQ, duration_metric_id),
-            transactions_condition,
-        ],
-        orderby=[
-            OrderBy(Column("project_id"), Direction.ASC),
-            OrderBy(Column("transaction"), Direction.ASC),
-            OrderBy(
-                Function(
-                    "toStartOfInterval",
-                    (Column("timestamp"), Function("toIntervalSecond", (3600,)), "Universal"),
-                    "time",
-                ),
-                Direction.ASC,
-            ),
-        ],
-        granularity=Granularity(interval),
-        limit=Limit(10000),
-    )
-    request = Request(
-        dataset=Dataset.PerformanceMetrics.value,
-        app_id="statistical_detectors",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value,
-            "cross_org_query": 1,
-            "use_case_id": use_case_id.value,
-        },
-    )
-    data = raw_snql_query(
-        request, referrer=Referrer.STATISTICAL_DETECTORS_FETCH_TRANSACTION_TIMESERIES.value
-    )["data"]
-
-    results = {}
-    for index, datapoint in enumerate(data or []):
-        key = (datapoint["project_id"], datapoint["transaction"])
-        if key not in results:
-            results[key] = {
-                "data": [datapoint],
-            }
-        else:
-            data = results[key]["data"]
-            data.append(datapoint)
-
-    for key, item in results.items():
-        project_id, transaction_name = key
-        formatted_result = SnubaTSResult(
-            {
-                "data": zerofill(
-                    item["data"],
-                    start,
-                    end,
-                    interval,
-                    ["time"],
-                ),
-                "project": project_id,
-            },
-            start,
-            end,
-            interval,
-        )
-        yield project_id, transaction_name, formatted_result
 
 
 def query_functions(projects: list[Project], start: datetime) -> list[DetectorPayload]:
