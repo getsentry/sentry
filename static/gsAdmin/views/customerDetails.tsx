@@ -872,7 +872,8 @@ export function CustomerDetails() {
           {
             content: (
               <CustomerOverview
-                onAction={onUpdateMutation.mutateAsync}
+                onAction={onUpdateMutation.mutate}
+                onContractEndDateChange={onUpdateMutation.mutateAsync}
                 customer={subscription}
                 organization={organization}
               />

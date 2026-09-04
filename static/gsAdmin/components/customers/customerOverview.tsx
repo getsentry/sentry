@@ -65,7 +65,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: any) => Promise<unknown>;
+  onContractEndDateChange: (data: Record<string, any>) => Promise<unknown>;
 };
 
 function SoftCapTypeDetail({
@@ -106,7 +106,10 @@ function SoftCapTypeDetail({
   return <Fragment>{softCapTypes.length ? softCapTypes : <span>None</span>}</Fragment>;
 }
 
-function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
+function SubscriptionSummary({
+  customer,
+  onContractEndDateChange,
+}: SubscriptionSummaryProps) {
   return (
     <div>
       <DetailList>
@@ -136,7 +139,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
               customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
                   contractPeriodEnd={customer.billingPeriodEnd}
-                  onAction={onAction}
+                  onAction={onContractEndDateChange}
                 />
               )) ||
               moment(customer.billingPeriodEnd).format('ll')}
@@ -499,7 +502,8 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: any) => Promise<unknown>;
+  onAction: (data: Record<string, any>) => void;
+  onContractEndDateChange: (data: Record<string, any>) => Promise<unknown>;
   organization: Organization;
 };
 
@@ -578,7 +582,12 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 }
 
-export function CustomerOverview({customer, onAction, organization}: Props) {
+export function CustomerOverview({
+  customer,
+  onAction,
+  onContractEndDateChange,
+  organization,
+}: Props) {
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -792,7 +801,10 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         </DetailList>
 
         <h6>Subscription</h6>
-        <SubscriptionSummary customer={customer} onAction={onAction} />
+        <SubscriptionSummary
+          customer={customer}
+          onContractEndDateChange={onContractEndDateChange}
+        />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
         <h6>PCSS</h6>

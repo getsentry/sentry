@@ -30,6 +30,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -57,6 +58,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -99,6 +101,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -155,6 +158,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -226,6 +230,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={partnerSubscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -257,6 +262,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={partnerSubscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -335,6 +341,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={partnerSubscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -400,6 +407,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -438,6 +446,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={mm2_subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -461,6 +470,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={enterprise_subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -487,6 +497,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -544,6 +555,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={am3Subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -691,6 +703,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={am3Subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -721,6 +734,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -752,6 +766,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -782,6 +797,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -806,6 +822,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -830,6 +847,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -869,6 +887,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -893,6 +912,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -917,6 +937,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -936,6 +957,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={subscription}
         onAction={jest.fn()}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -970,6 +992,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -995,6 +1018,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1017,6 +1041,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1041,6 +1066,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1062,6 +1088,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1083,6 +1110,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1103,6 +1131,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1124,6 +1153,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1142,6 +1172,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
@@ -1166,6 +1197,7 @@ describe('CustomerOverview', () => {
         <CustomerOverview
           customer={subscription}
           onAction={jest.fn()}
+          onContractEndDateChange={jest.fn()}
           organization={organization}
         />
       );
