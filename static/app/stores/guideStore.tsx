@@ -93,7 +93,7 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   setForceHide(forceHide: boolean): void;
   teardown(): void;
   unregisterAnchor(target: string): void;
-  updateCurrentGuide(): void;
+  updateCurrentGuide(dismissed?: boolean): void;
   updatePrevGuide(nextGuide: Guide | null): void;
 }
 
@@ -194,7 +194,7 @@ const storeConfig: GuideStoreDefinition = {
       return guide;
     });
     this.state = {...this.state, guides: newGuides, forceShow: false};
-    this.updateCurrentGuide();
+    this.updateCurrentGuide(dismissed);
   },
 
   nextStep() {
@@ -249,7 +249,7 @@ const storeConfig: GuideStoreDefinition = {
    *  - If the user has already seen the guide, don't show the guide
    *  - Otherwise show the guide
    */
-  updateCurrentGuide() {
+  updateCurrentGuide(dismissed?: boolean) {
     const {anchors, guides, forceShow} = this.state;
 
     let guideOptions = guides
@@ -298,7 +298,7 @@ const storeConfig: GuideStoreDefinition = {
     this.state = {...this.state, currentGuide: nextGuide, currentStep};
 
     this.trigger(this.state);
-    getOverride('callback:on-guide-update')?.(nextGuide, {dismissed: undefined});
+    getOverride('callback:on-guide-update')?.(nextGuide, {dismissed});
   },
 };
 
