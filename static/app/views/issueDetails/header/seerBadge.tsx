@@ -28,7 +28,7 @@ export function SeerBadge({group}: {group: Group}) {
       <InfoText title={t('Seer thinks this issue might be quick to fix')} variant="muted">
         <Flex align="center" gap="xs">
           <IconSeer size="sm" />
-          {seerFixable && <span>{t('Quick Fix')}</span>}
+          <span>{t('Quick Fix')}</span>
         </Flex>
       </InfoText>
     </Fragment>
