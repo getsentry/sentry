@@ -372,7 +372,6 @@ class BaseRequestParser(ABC):
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
 
-
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
         """Validation lives here, not in the subclass: the discriminator comes out of
         a body control has not verified — gitlab and bitbucket resolve their handlers
