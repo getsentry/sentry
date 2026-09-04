@@ -20,6 +20,7 @@ from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.process_buffer import buffer_incr
@@ -108,6 +109,33 @@ def reprocess_group(
             )
 
     assert new_group_id is not None
+
+    # To the best of our knowledge we still have quite some `reprocess_group` tasks running in parallel, this logic
+    # is intended to cull all but one. This is temporary to recover from a bad state and should be dead code after that.
+    if activation_id:
+        try:
+            page_owned = reprocessing_store.try_claim_page(
+                project_id=project_id,
+                group_id=group_id,
+                new_group_id=new_group_id,
+                state=query_state,
+                claimant=activation_id,
+            )
+        except Exception:
+            logger.warning("reprocessing2.page_claim.error", exc_info=True)
+            page_owned = True
+        if not page_owned:
+            logger.info(
+                "reprocessing2.page_claim.culled",
+                extra={
+                    "project_id": project_id,
+                    "group_id": group_id,
+                    "new_group_id": new_group_id,
+                    "query_state": query_state,
+                    "activation_id": activation_id,
+                },
+            )
+            return
 
     query_state, events = task_run_batch_query(
         filter=eventstore.Filter(project_ids=[project_id], group_ids=[group_id]),

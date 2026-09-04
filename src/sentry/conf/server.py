@@ -2893,6 +2893,9 @@ SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
 # How long reprocessing counters are kept in Redis before they expire.
 SENTRY_REPROCESSING_SYNC_TTL = 30 * 24 * 3600  # 30 days
 
+# How long the reprocessing page claims are kept in Redis before they expire.
+SENTRY_REPROCESSING_PAGE_CLAIM_TTL = 24 * 3600  # 1 day
+
 # How many events to query for at once while paginating through an entire
 # issue. Note that this needs to be kept in sync with the time-limits on
 # `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for

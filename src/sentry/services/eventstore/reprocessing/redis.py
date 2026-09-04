@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 
@@ -26,6 +27,12 @@ def _get_old_primary_hash_subset_key(project_id: int, group_id: int, primary_has
 
 def _get_remaining_key(project_id: int, group_id: int) -> str:
     return f"re2:remaining:{{{project_id}:{group_id}}}"
+
+
+def _get_page_claim_key(
+    project_id: int, group_id: int, new_group_id: int, timestamp: str, event_id: str
+) -> str:
+    return f"re2:pageclaim:{{{project_id}:{group_id}}}:{new_group_id}:{timestamp}:{event_id}"
 
 
 class RedisReprocessingStore(ReprocessingStore):
@@ -180,3 +187,18 @@ class RedisReprocessingStore(ReprocessingStore):
         if info is None:
             return None
         return orjson.loads(info)
+
+    def try_claim_page(
+        self,
+        project_id: int,
+        group_id: int,
+        new_group_id: int,
+        state: Mapping[str, str] | None,
+        claimant: str,
+    ) -> bool:
+        timestamp = state["timestamp"] if state is not None else "start"
+        event_id = state["event_id"] if state is not None else "start"
+        key = _get_page_claim_key(project_id, group_id, new_group_id, timestamp, event_id)
+        if self.redis.set(key, claimant, nx=True, ex=settings.SENTRY_REPROCESSING_PAGE_CLAIM_TTL):
+            return True
+        return self.redis.get(key) == claimant
