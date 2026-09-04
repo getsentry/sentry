@@ -897,8 +897,7 @@ class GetGroupDisplayTest(TestCase):
         }
 
     def test_synthetic_prefers_the_crash_location(self) -> None:
-        # A synthetic type is a platform label (`SIGSEGV`, `AppHang`), not the identity of what
-        # went wrong, so the weekly report keeps the crash location.
+        # The type is a platform label, so the crash location is the better title.
         assert self._display(
             {
                 "type": "SIGSEGV",

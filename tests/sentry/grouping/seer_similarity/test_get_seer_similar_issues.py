@@ -775,8 +775,7 @@ class ExceptionTypeMismatchTest(TestCase):
         )
 
     def test_skips_check_when_parent_is_synthetic(self) -> None:
-        # The parent does have a stored type; it is skipped because the metadata marks it
-        # synthetic, the same way regular grouping ignores it.
+        # The parent has a stored type; it is skipped because the metadata marks it synthetic.
         self._assert_match_result(
             parent_type="Error",
             parent_synthetic=True,

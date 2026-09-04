@@ -63,7 +63,7 @@ class GetMetadataTest(TestCase):
         }
 
     def test_synthetic_records_type_and_flag(self) -> None:
-        # Grouping ignores a synthetic type, but it is recorded anyway as a title of last resort.
+        # Grouping ignores a synthetic type; it is recorded as a title of last resort.
         inst = ErrorEvent()
         data = {
             "exception": {
@@ -83,9 +83,8 @@ class GetMetadataTest(TestCase):
         }
 
     def test_non_synthetic_flag_is_written_as_false(self) -> None:
-        # The flag is always written, never merely omitted. Group metadata is merged key by key
-        # across a group's events and a merge cannot delete keys, so an omitted flag would let one
-        # synthetic event mark the group synthetic forever. See `test_synthetic_flag_clears`.
+        # Group metadata never deletes keys, so an omitted flag would outlive the type it
+        # describes.
         inst = ErrorEvent()
         data = {
             "exception": {
@@ -105,8 +104,7 @@ class GetMetadataTest(TestCase):
         }
 
     def test_synthetic_flag_clears(self) -> None:
-        # A group that saw a synthetic event and then a real one must end up describing the real
-        # exception. This mirrors the metadata merge in `_process_existing_aggregate`.
+        # A group that saw a synthetic event and then a real one must describe the real exception.
         inst = ErrorEvent()
         synthetic = {
             "exception": {
@@ -178,8 +176,7 @@ class GetTitleTest(TestCase):
         assert result == "Error"
 
     def test_synthetic_prefers_the_crash_location(self) -> None:
-        # Built by hand on purpose: the ordering inside `compute_title` only shows up once both
-        # a type and a function have been recorded.
+        # Hand-built: the ordering only shows once both a type and a function are recorded.
         inst = ErrorEvent()
         metadata = {
             "type": "SIGSEGV",
@@ -190,8 +187,7 @@ class GetTitleTest(TestCase):
         assert inst.get_title(metadata) == "U3CCrashCaptureU3Ed__11_MoveNext"
 
     def test_synthetic_falls_back_to_the_type(self) -> None:
-        # The case this change exists for, and it only holds end to end: recording the type is
-        # what leaves `compute_title` something better than `<unknown>` when nothing symbolicated.
+        # Built from event data: the fallback only holds if the type is actually recorded.
         inst = ErrorEvent()
         data = {
             "platform": "native",
@@ -218,9 +214,8 @@ class GetTitleTest(TestCase):
         metadata = {"type": "ValueError", "value": "bad", "function": "do_thing"}
         assert inst.get_title(metadata) == "ValueError: bad"
 
-    def test_metadata_stored_before_this_change_is_untouched(self) -> None:
-        # Forward-only: groups stored before this change have no `synthetic` key, so they take
-        # the branch they always took and nothing re-titles on read.
+    def test_metadata_without_the_flag_is_untouched(self) -> None:
+        # Stored group metadata predating the flag must keep resolving to the same title.
         inst = ErrorEvent()
         assert inst.get_title({"value": "Signal 11, Code 1"}) == "<unknown>"
         assert inst.get_title({"value": "Signal 11, Code 1", "function": "top_func"}) == "top_func"
