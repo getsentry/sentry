@@ -130,6 +130,7 @@ function StoryDetail() {
         <StoryMainContainer
           as="main"
           column="2"
+          containerType="inline-size"
           gap="xl"
           row="1"
           onClick={handleExpressiveCodeCopyClick}
