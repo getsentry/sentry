@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -24,6 +25,7 @@ class ReprocessingStore(Service):
         "start_reprocessing",
         "get_pending",
         "get_progress",
+        "try_claim_page",
     )
 
     def __init__(self, **options: Any) -> None:
@@ -80,4 +82,14 @@ class ReprocessingStore(Service):
         raise NotImplementedError()
 
     def get_progress(self, group_id: int) -> ReprocessingInfo | None:
+        raise NotImplementedError()
+
+    def try_claim_page(
+        self,
+        project_id: int,
+        group_id: int,
+        new_group_id: int,
+        state: Mapping[str, str] | None,
+        claimant: str,
+    ) -> bool:
         raise NotImplementedError()
