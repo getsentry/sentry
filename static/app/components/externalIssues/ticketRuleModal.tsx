@@ -302,11 +302,14 @@ export function TicketRuleModal({
         const cachedChoices = asyncOptionsCache[field.name];
         // A dynamic reload can omit the searched selection from its limited choices.
         // Keep the fetched options so the remounted select can still render its label.
-        return (field.type === 'select' || field.type === 'choice') &&
+        if (
+          (field.type === 'select' || field.type === 'choice') &&
           field.url &&
           cachedChoices
-          ? {...field, choices: cachedChoices}
-          : field;
+        ) {
+          return {...field, choices: cachedChoices};
+        }
+        return field;
       }
     );
 
