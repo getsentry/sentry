@@ -52,13 +52,13 @@ class JiraServerRequestParser(BaseRequestParser):
 
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, data),
+            mailbox=self.get_mailbox(integration, data),
             integration_id=integration.id,
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
         """
-        Used by get_mailbox_identifier to find the issue.id a payload is for.
+        Used by get_mailbox to find the issue.id a payload is for.
         In high volume jira_server instances we shard messages by issue for greater
         delivery throughput.
         """

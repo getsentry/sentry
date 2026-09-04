@@ -57,7 +57,7 @@ class VstsRequestParser(BaseRequestParser):
 
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
+            mailbox=self.get_mailbox(integration, self.get_request_body()),
             integration_id=integration.id,
         )
 

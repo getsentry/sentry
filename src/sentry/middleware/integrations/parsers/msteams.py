@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
@@ -132,5 +133,7 @@ class MsTeamsRequestParser(BaseRequestParser):
             extra={"request_data": self.request_data},
         )
         return self.get_response_from_webhookpayload(
-            cells=cells, identifier=integration.id, integration_id=integration.id
+            cells=cells,
+            mailbox=MailboxName(self.provider, str(integration.id)),
+            integration_id=integration.id,
         )

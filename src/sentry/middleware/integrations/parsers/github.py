@@ -229,7 +229,7 @@ class GithubRequestParser(BaseRequestParser):
 
         response = self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, event),
+            mailbox=self.get_mailbox(integration, event),
             integration_id=integration.id,
         )
 
