@@ -4,6 +4,7 @@ from sentry.integrations.utils.github_permissions import (
     GITHUB_APP_REQUIRED_PERMISSIONS_OPTION,
     get_github_permissions_update_url,
     get_missing_github_app_permissions,
+    has_github_app_permissions,
 )
 from sentry.testutils.helpers.options import override_options
 
@@ -39,6 +40,7 @@ from sentry.testutils.helpers.options import override_options
                 }
             ],
         ),
+        ({"contents": "write"}, None, None),
         (
             {"contents": "admin", "pull_requests": "write", "issues": "read"},
             {"contents": "write", "pull_requests": "write", "issues": "read"},
@@ -59,6 +61,26 @@ def test_get_missing_github_app_permissions(required_permissions, permissions, e
     )
     with override_options(options):
         assert get_missing_github_app_permissions({"permissions": permissions}) == expected
+
+
+@pytest.mark.parametrize(
+    ("permissions", "expected"),
+    [
+        ({"contents": "write", "pull_requests": "write"}, True),
+        ({"contents": "admin", "pull_requests": "admin"}, True),
+        ({"contents": "read", "pull_requests": "write"}, False),
+        ({"contents": "write"}, False),
+        (None, False),
+    ],
+)
+def test_has_github_app_permissions(permissions, expected) -> None:
+    assert (
+        has_github_app_permissions(
+            {"permissions": permissions},
+            {"contents": "write", "pull_requests": "write"},
+        )
+        is expected
+    )
 
 
 @pytest.mark.parametrize(

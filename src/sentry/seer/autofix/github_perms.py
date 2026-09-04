@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+GITHUB_PR_WRITE_PERMISSIONS = {"contents": "write", "pull_requests": "write"}
+
 
 @dataclass(frozen=True)
 class MissingGithubPermissions:
