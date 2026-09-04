@@ -17,6 +17,7 @@ from sentry.issues.action_log.types import (
     GroupActionType,
     GroupActorType,
     PullRequestClosedAction,
+    PullRequestOrigin,
     ResolveAction,
     ResolvedInPullRequestAction,
     RootCauseIdentifiedAction,
@@ -36,12 +37,15 @@ from sentry.issues.derived.check import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIX_ATTEMPT_SIGNALS,
     HAS_OPEN_FIX_PR,
+    HAS_ROOT_CAUSE,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
+    FixAttemptSignal,
     IssueStatus,
 )
 from sentry.issues.derived.framework import (
@@ -812,10 +816,9 @@ class ProcessGroupLogTest(TestCase):
         assert derived.data["status"] == "open"
         assert derived.progress == IssueProgressState.FIX_PROPOSED.value
 
-    def test_pull_request_close_demotes_progress(self) -> None:
-        group = self.create_group()
+    def test_closed_automated_fix_populates_shadow_signal(self) -> None:
         actor = GroupActionActor.user(self.user.id)
-
+        group = self.create_group()
         _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
         _publish(
             group=group,
@@ -827,11 +830,19 @@ class ProcessGroupLogTest(TestCase):
 
         _publish(
             group=group,
-            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            action=PullRequestClosedAction(
+                pull_request=101,
+                has_other_open_prs=False,
+                pull_request_origin=PullRequestOrigin.AUTOMATED_FIX,
+            ),
             actor=actor,
         )
         derived = process_group_log(group.id)
         assert derived.progress == IssueProgressState.DIAGNOSED.value
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert state[HAS_ROOT_CAUSE] is True
+        assert state[HAS_OPEN_FIX_PR] is False
+        assert state[FIX_ATTEMPT_SIGNALS] & FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
 
     def test_pull_request_close_with_remaining_keeps_progress(self) -> None:
         group = self.create_group()
@@ -887,11 +898,13 @@ class ProcessGroupLogTest(TestCase):
         assert derived.data["blocker"] == IssueBlocker.APPROVE_CODE_CHANGES.value
         assert derived.data["last_completed_autofix_step"] == IssueAutofixStep.CODE_CHANGES.value
         assert derived.data["has_open_fix_pr"] is False
+        assert derived.data["fix_attempt_signals"] == FixAttemptSignal.NONE.value
 
         _publish(group=group, action=ResolvedInPullRequestAction(pull_request=101), actor=actor)
         derived = process_group_log(group.id)
         assert derived.data["blocker"] == IssueBlocker.MERGE_PR.value
         assert derived.data["has_open_fix_pr"] is True
+        assert derived.data["fix_attempt_signals"] & FixAttemptSignal.HAS_OPEN_PR
 
         _publish(
             group=group,
@@ -910,6 +923,7 @@ class ProcessGroupLogTest(TestCase):
         assert state[BLOCKER] == IssueBlocker.APPROVE_CODE_CHANGES
         assert state[LAST_COMPLETED_AUTOFIX_STEP] == IssueAutofixStep.CODE_CHANGES
         assert state[HAS_OPEN_FIX_PR] is False
+        assert not state[FIX_ATTEMPT_SIGNALS] & FixAttemptSignal.HAS_OPEN_PR
 
     def test_pipeline_hash_set_on_create(self) -> None:
         group = self.create_group()
@@ -1109,6 +1123,7 @@ class GroupDerivedDataStoreTest(TestCase):
                 "blocker": "approve_plan",
                 "last_completed_autofix_step": "solution",
                 "has_open_fix_pr": False,
+                "fix_attempt_signals": FixAttemptSignal.NONE.value,
             },
         )
         state = GroupDerivedDataStore.load(PIPELINE, derived)
@@ -1120,6 +1135,7 @@ class GroupDerivedDataStoreTest(TestCase):
         assert isinstance(state[BLOCKER], IssueBlocker)
         assert state[LAST_COMPLETED_AUTOFIX_STEP] == IssueAutofixStep.SOLUTION
         assert state[HAS_OPEN_FIX_PR] is False
+        assert not state[FIX_ATTEMPT_SIGNALS] & FixAttemptSignal.HAS_OPEN_PR
 
     def test_load_null_progress(self) -> None:
         group = self.create_group()

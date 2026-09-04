@@ -4,6 +4,7 @@ from sentry.issues.action_log.types import (
     AutofixCodingCompleteAction,
     PullRequestClosedAction,
     PullRequestMergedAction,
+    PullRequestOrigin,
     PullRequestReopenedAction,
     PullRequestUnlinkedAction,
     ReconcileStatusAction,
@@ -30,6 +31,7 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIX_ATTEMPT_SIGNALS,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
@@ -38,6 +40,7 @@ from sentry.issues.derived.features import (
     PROGRESS,
     STATUS,
     VIEW_COUNT,
+    FixAttemptSignal,
     IssueStatus,
 )
 from sentry.issues.derived.framework import (
@@ -51,6 +54,14 @@ from sentry.issues.derived.framework import (
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
 from sentry.types.group import IssueAutofixStep, IssueBlocker
+
+_PULL_REQUEST_LIFECYCLE_ACTIONS = (
+    ResolvedInPullRequestAction,
+    PullRequestClosedAction,
+    PullRequestReopenedAction,
+    PullRequestMergedAction,
+    PullRequestUnlinkedAction,
+)
 
 
 @aggregator((VIEW_COUNT,), scope=(ViewAction,))
@@ -123,6 +134,9 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 #   IDENTIFIED → ASSIGNED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
 #   (RESOLVE / ARCHIVE) → None (closed)
 #   (UNRESOLVE / SET_REGRESSED) → Reopen
+#
+# FIX_ATTEMPT_SIGNALS is populated in parallel for a later cutover. It records
+# the open-PR and failed-automated-fix facts without affecting progress yet.
 
 
 @aggregator(
@@ -163,13 +177,7 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
 @aggregator(
     (HAS_OPEN_FIX_PR,),
-    scope=(
-        ResolvedInPullRequestAction,
-        PullRequestClosedAction,
-        PullRequestReopenedAction,
-        PullRequestMergedAction,
-        PullRequestUnlinkedAction,
-    ),
+    scope=_PULL_REQUEST_LIFECYCLE_ACTIONS,
 )
 def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track whether an issue has an open fix PR.
@@ -190,6 +198,43 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
         ) if current_has_open_fix_pr:
             return emit(HAS_OPEN_FIX_PR.value(False))
 
+    return None
+
+
+@aggregator(
+    (FIX_ATTEMPT_SIGNALS,),
+    scope=(
+        *_PULL_REQUEST_LIFECYCLE_ACTIONS,
+        RootCauseIdentifiedAction,
+        SeerRCACompletedAction,
+        SetRegressedAction,
+    ),
+)
+def track_fix_attempt_signals(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    current_signals = FixAttemptSignal(state[FIX_ATTEMPT_SIGNALS])
+    signals = current_signals
+    action = entry.action
+
+    match action:
+        case ResolvedInPullRequestAction() | PullRequestReopenedAction():
+            signals |= FixAttemptSignal.HAS_OPEN_PR
+        case PullRequestClosedAction() | PullRequestMergedAction() | PullRequestUnlinkedAction():
+            if action.has_other_open_prs is True:
+                signals |= FixAttemptSignal.HAS_OPEN_PR
+            elif action.has_other_open_prs is False:
+                signals &= ~FixAttemptSignal.HAS_OPEN_PR
+
+            # Record failed automated fixes now so progress can use them after cutover.
+            if (
+                isinstance(action, PullRequestClosedAction)
+                and action.pull_request_origin == PullRequestOrigin.AUTOMATED_FIX
+            ):
+                signals |= FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+        case RootCauseIdentifiedAction() | SeerRCACompletedAction() | SetRegressedAction():
+            signals &= ~FixAttemptSignal.HAS_FAILED_AUTOMATED_FIX
+
+    if signals != current_signals:
+        return emit(FIX_ATTEMPT_SIGNALS.value(signals.value))
     return None
 
 
@@ -310,6 +355,7 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_assignment,
     track_root_cause,
     track_open_fix_prs,
+    track_fix_attempt_signals,
     track_progress,
     track_last_completed_autofix_step,
     track_blocker,
