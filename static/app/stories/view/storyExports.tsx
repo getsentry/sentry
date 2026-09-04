@@ -60,10 +60,11 @@ function StoryLayout() {
         <Stack
           width="100%"
           minWidth="0px"
-          maxWidth={{zero: '580px', '3xl': '832px'}}
+          maxWidth={{zero: '580px', 'screen:md': '832px'}}
           gap="3xl"
           padding="0 xl"
-          margin={{zero: '0', '3xl': '0 auto'}}
+          margin={{zero: '0', 'screen:md': '0 auto'}}
+          containerType="inline-size"
         >
           <Stack flexGrow={1} minWidth="0px">
             <StoryTabPanels documentation={documentation} />
@@ -103,10 +104,10 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
         <Stack
           width="100%"
           minWidth="0px"
-          maxWidth={{zero: '580px', '3xl': '832px'}}
+          maxWidth={{zero: '580px', 'screen:md': '832px'}}
           gap="2xl"
           padding="0 xl"
-          margin={{zero: '0', '3xl': '0 auto'}}
+          margin={{zero: '0', 'screen:md': '0 auto'}}
         >
           <Stack
             gap="xl"
@@ -303,8 +304,8 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
     <Grid
       {...props}
       columns={{
-        zero: 'minmax(0, 1fr) auto',
-        '3xl': 'minmax(580px, 1fr) minmax(0, 256px)',
+        'screen:xs': 'minmax(0, 1fr) auto',
+        'screen:md': 'minmax(580px, 1fr) minmax(0, 256px)',
       }}
       height="100%"
     />
