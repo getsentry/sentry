@@ -22,6 +22,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.examples.ai_conversation_examples import AIConversationExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -151,6 +152,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=AIConversationExamples.RETRIEVE_AI_CONVERSATION,
     )
     def get(
         self, request: Request, organization: Organization, conversation_id: str
