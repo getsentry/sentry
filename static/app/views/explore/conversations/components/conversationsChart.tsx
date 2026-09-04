@@ -50,6 +50,8 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const CONVERSATION_SPANS_FILTER = `has:${SpanFields.GEN_AI_CONVERSATION_ID}`;
 const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
+const AGENT_NAME_GROUP_BY = [SpanFields.GEN_AI_AGENT_NAME];
+const TOP_AGENTS = 10;
 
 const CHART_VISUALIZATIONS = {
   chats: {
@@ -120,24 +122,29 @@ export function ConversationsChart() {
       yAxis: [yAxis],
       query,
       interval,
+      groupBy: AGENT_NAME_GROUP_BY,
+      topEvents: TOP_AGENTS,
+      sort: {field: yAxis, kind: 'desc'},
     },
     Referrer.CHART
   );
 
-  const timeSeries = data?.timeSeries[0];
-
   const plottables = useMemo(() => {
-    if (!timeSeries) {
+    const timeSeries = data?.timeSeries;
+    if (!timeSeries?.length) {
       return [];
     }
-    const PlottableConstructor =
-      chartType === 'line' ? Line : chartType === 'area' ? Area : Bars;
-    return [
-      new PlottableConstructor(markDelayedData(timeSeries, INGESTION_DELAY), {
-        alias: label,
-      }),
-    ];
-  }, [timeSeries, chartType, label]);
+    return timeSeries.map(series => {
+      const markedSeries = markDelayedData(series, INGESTION_DELAY);
+      if (chartType === 'bar') {
+        return new Bars(markedSeries, {stack: 'agents'});
+      }
+      if (chartType === 'area') {
+        return new Area(markedSeries);
+      }
+      return new Line(markedSeries);
+    });
+  }, [data?.timeSeries, chartType]);
 
   const chartTypeLabel =
     CHART_TYPE_OPTIONS.find(option => option.value === chartType)?.label ?? '';
@@ -336,7 +343,7 @@ function ContextMenu({
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,
-            fields: [yAxis],
+            fields: [...AGENT_NAME_GROUP_BY, yAxis],
             query,
             version: 2,
             dataset: DiscoverDatasets.SPANS,
