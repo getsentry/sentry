@@ -32,9 +32,6 @@ function resolveCurrentPullRequest() {
 }
 
 function readManifest(manifestArgument) {
-  if (!manifestArgument) {
-    throw new Error('Usage: publish.mjs --manifest <path> or publish.mjs --login');
-  }
   const manifestPath = path.resolve(manifestArgument);
   const captureDirectory = path.dirname(manifestPath);
   if (
@@ -53,12 +50,46 @@ function readManifest(manifestArgument) {
     return {
       after,
       before,
-      label: `${artifact.viewport} · ${artifact.theme}`
-        .replace(/[|<>\r\n]+/g, ' ')
-        .trim(),
+      theme: artifact.theme,
+      viewport: artifact.viewport,
     };
   });
-  return {captureDirectory, pairs};
+  return {
+    captureDirectory,
+    name: manifest.name,
+    pairs,
+    surface: manifest.surface,
+  };
+}
+
+function readManifests(manifestArguments) {
+  if (!manifestArguments?.length) {
+    throw new Error(
+      'Usage: publish.mjs --manifest <path> [--manifest <path> ...] or publish.mjs --login'
+    );
+  }
+  const manifests = manifestArguments.map(readManifest);
+  const includeSurface =
+    manifests.length > 1 || manifests.some(manifest => manifest.surface);
+  return {
+    captureDirectories: manifests.map(manifest => manifest.captureDirectory),
+    pairs: manifests.flatMap(manifest =>
+      manifest.pairs.map(pair => ({
+        after: pair.after,
+        before: pair.before,
+        label: [
+          includeSurface ? (manifest.surface ?? manifest.name) : undefined,
+          pair.viewport,
+          pair.theme,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+          .replace(/\s*\(\s*\d+(?:\.\d+)?px\s*\)/gi, '')
+          .replace(/[|<>\r\n]+/g, ' ')
+          .trim(),
+      }))
+    ),
+  };
 }
 
 function validateImagePath(value, captureDirectory) {
@@ -282,14 +313,14 @@ const {values: options} = parseArgs({
     'comment-path': {type: 'string'},
     'dry-run': {type: 'boolean'},
     login: {type: 'boolean'},
-    manifest: {type: 'string'},
+    manifest: {type: 'string', multiple: true},
   },
 });
 const pullRequest = resolveCurrentPullRequest();
 if (options.login) {
   await login(pullRequest);
 } else {
-  const {captureDirectory, pairs} = readManifest(options.manifest);
+  const {captureDirectories, pairs} = readManifests(options.manifest);
   if (options['dry-run']) {
     process.stdout.write(
       `${JSON.stringify(
@@ -308,5 +339,9 @@ if (options.login) {
   const pullRequestUrl = options['comment-path']
     ? updateFileComment(pullRequest, uploads, options['comment-path'])
     : updatePullRequest(pullRequest, uploads);
-  process.stdout.write(`Updated ${pullRequestUrl}\nRetained ${captureDirectory}\n`);
+  process.stdout.write(
+    `Updated ${pullRequestUrl}\n${captureDirectories
+      .map(captureDirectory => `Retained ${captureDirectory}`)
+      .join('\n')}\n`
+  );
 }

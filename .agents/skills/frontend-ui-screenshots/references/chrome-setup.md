@@ -30,7 +30,7 @@ open -g -j -na "Google Chrome" --args \
 
 This is a headful Chrome process because Cookie Sync does not authenticate in Chrome's automated headless context, but macOS keeps the application hidden and in the background. Manual intervention should otherwise be needed only when the corporate session expires.
 
-The capture helper also hides the exact Chrome process listening on the configured CDP port before it opens a capture tab. This covers the common case where the visible one-time setup window was left running; it does not hide or control another Chrome process.
+The capture helper minimizes the dedicated Chrome window through CDP, creates its tab as a background target, and minimizes the window again after tab creation and before cleanup. This does not require macOS Accessibility permission and prevents Chrome from surfacing when automation creates or closes a tab; it does not control the developer's normal Chrome profile.
 
 ## Verification
 
