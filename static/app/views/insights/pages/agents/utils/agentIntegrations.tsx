@@ -113,7 +113,7 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
-export const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
+const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
   Record<AgentIntegration, DeploymentTarget>
 > = {
   [AgentIntegration.WORKERS_AI]: DeploymentTarget.CLOUDFLARE,
