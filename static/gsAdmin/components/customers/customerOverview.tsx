@@ -65,7 +65,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: (data: any) => Promise<unknown>;
 };
 
 function SoftCapTypeDetail({
@@ -499,7 +499,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: any) => void;
+  onAction: (data: any) => Promise<unknown>;
   organization: Organization;
 };
 

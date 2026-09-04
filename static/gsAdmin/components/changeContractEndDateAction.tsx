@@ -12,7 +12,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface ChangeContractEndDateModalProps extends ModalRenderProps {
   contractPeriodEnd: string;
-  onAction: (data: Record<string, any>) => Promise<unknown> | unknown;
+  onAction: (data: Record<string, any>) => Promise<unknown>;
 }
 
 const schema = z.object({
@@ -32,18 +32,18 @@ function ChangeContractEndDateModal({
     onSuccess: () => {
       closeModal();
     },
+    onError: error => {
+      if (error instanceof RequestError) {
+        setFieldErrors(form, error);
+      }
+    },
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {contractPeriodEnd},
     validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
-      mutation.mutateAsync(value).catch(error => {
-        if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
-        }
-      }),
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
@@ -62,7 +62,7 @@ function ChangeContractEndDateModal({
               <field.Input
                 type="date"
                 value={field.state.value}
-                onChange={event => field.handleChange(event.target.value)}
+                onChange={field.handleChange}
               />
             </field.Layout.Stack>
           )}
