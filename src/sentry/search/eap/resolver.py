@@ -1104,6 +1104,7 @@ class SearchResolver:
             visibility_attribute,
             item_type,
             include_internal=self.config.api_attribute_visibility_include_internal,
+            include_internal_convention_attributes=self.config.api_attribute_visibility_include_internal_convention_attributes,
         )
 
     def _raise_if_hidden_api_attribute(

@@ -323,31 +323,40 @@ def is_internal_sentry_convention_attribute(
 
 
 def can_expose_attribute_to_api(
-    attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
+    attribute: str,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> bool:
     """Return whether an attribute may be exposed by public API surfaces.
 
     The visibility check expands the requested attribute to its related public
     aliases, internal names, and replacement attributes because any of those may
     carry the metadata that marks the underlying convention as internal.
-    `include_internal` only allows those Sentry-owned internal convention
-    attributes. It does not bypass `can_expose_attribute`, which still filters
-    private attributes first.
+    `include_internal_convention_attributes` allows Sentry-owned attributes
+    marked internal by conventions without exposing unrelated internal
+    attributes. It does not bypass private attribute filtering.
     """
     candidates = _get_sentry_convention_visibility_candidates(attribute, item_type)
-
-    for candidate in candidates:
-        if not can_expose_attribute(candidate, item_type, include_internal=include_internal):
-            return False
-
-    # Private attributes are rejected above before this internal-only override
-    # is applied.
-    if include_internal:
-        return True
-
-    return not any(
+    is_internal_convention_attribute = any(
         is_internal_sentry_convention_attribute(candidate, item_type) for candidate in candidates
     )
+    include_internal_for_visibility = include_internal or (
+        include_internal_convention_attributes and is_internal_convention_attribute
+    )
+
+    for candidate in candidates:
+        if not can_expose_attribute(
+            candidate,
+            item_type,
+            include_internal=include_internal_for_visibility,
+        ):
+            return False
+
+    if include_internal or include_internal_convention_attributes:
+        return True
+
+    return not is_internal_convention_attribute
 
 
 def is_sentry_convention_replacement_attribute(

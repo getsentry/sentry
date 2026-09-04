@@ -1503,6 +1503,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert "__sentry_internal_test" in attribute_names
 
     def test_internal_convention_attributes_are_hidden(self) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -1539,8 +1543,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert ("tags[dsc.sample_rate,number]", "dsc.sample_rate") not in number_attributes
 
         staff_user = self.create_user(is_staff=True)
-        self.create_member(user=staff_user, organization=self.organization)
-        self.login_as(user=staff_user, staff=True)
+        self.create_member(user=staff_user, organization=self.organization, teams=[self.team])
+        self.login_as(user=staff_user)
 
         response = self.do_request(query={"attributeType": "number"})
         assert response.status_code == 200, response.content

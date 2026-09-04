@@ -80,6 +80,20 @@ class AttributeVisibilityTest(TestCase):
             include_internal=True,
         )
 
+    def test_internal_convention_attribute_visible_with_convention_access(self) -> None:
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+            SupportedTraceItemType.SPANS,
+            include_internal_convention_attributes=True,
+        )
+
+    def test_convention_access_does_not_expose_unrelated_internal_attributes(self) -> None:
+        assert not can_expose_attribute_to_api(
+            "__sentry_internal_test",
+            SupportedTraceItemType.SPANS,
+            include_internal_convention_attributes=True,
+        )
+
     def test_internal_convention_public_alias_is_hidden(self) -> None:
         with mock.patch.dict(
             eap_utils.PUBLIC_ALIAS_TO_INTERNAL_MAPPING[SupportedTraceItemType.SPANS],
@@ -989,7 +1003,7 @@ class SearchResolverColumnTest(TestCase):
             params=SnubaParams(projects=[self.project]),
             config=SearchResolverConfig(
                 api_attribute_visibility_item_type=SupportedTraceItemType.SPANS,
-                api_attribute_visibility_include_internal=True,
+                api_attribute_visibility_include_internal_convention_attributes=True,
             ),
             definitions=SPAN_DEFINITIONS,
         )

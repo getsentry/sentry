@@ -157,14 +157,26 @@ class OrganizationTraceItemStatsEndpointTest(
         assert "device" not in attribute_distribution
 
     def test_hidden_api_attributes_filtered(self) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
         for tag in [
             {"browser": "chrome", "device": "desktop"},
             {"browser": "firefox", "device": "mobile"},
         ]:
             self._store_span(sentry_tags=tag)
 
-        def can_expose_attribute_to_api(attribute, item_type, include_internal=False):
-            return attribute not in {"device", "sentry.device"}
+        def can_expose_attribute_to_api(
+            attribute,
+            item_type,
+            include_internal=False,
+            include_internal_convention_attributes=False,
+        ):
+            return include_internal_convention_attributes or attribute not in {
+                "device",
+                "sentry.device",
+            }
 
         with mock.patch(
             "sentry.api.endpoints.organization_trace_item_stats.can_expose_attribute_to_api",
@@ -184,6 +196,25 @@ class OrganizationTraceItemStatsEndpointTest(
         assert "browser" in attribute_distribution
         assert "device" not in attribute_distribution
         assert "sentry.device" not in attribute_distribution
+
+        staff_user = self.create_user(is_staff=True)
+        self.create_member(user=staff_user, organization=self.organization, teams=[self.team])
+        self.login_as(user=staff_user)
+
+        with mock.patch(
+            "sentry.api.endpoints.organization_trace_item_stats.can_expose_attribute_to_api",
+            can_expose_attribute_to_api,
+        ):
+            response = self.do_request(
+                query={
+                    "statsType": ["attributeDistributions"],
+                    "itemType": "spans",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "sentry.device" in attribute_distribution
 
     def test_substring_match_returns_known_public_aliases(self) -> None:
         # Store spans with known sentry attributes (op, description)
