@@ -2523,7 +2523,8 @@ def save_attachment(
     )
 
     if is_pending and features.has("projects:defer-attachment-storage", project):
-        assert group_id is None
+        if group_id is not None:
+            logger.warning("group_id %s with is_pending=True", group_id)
 
         # The event this attachment belongs to has not been ingested (yet), so we do not
         # know whether it will be accepted at all. Park the attachment in
