@@ -538,10 +538,10 @@ class SeerAgentClient:
         feature_id: str,
         payload: dict[str, Any],
         title: str,
+        referrer: str,
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
-        referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
     ) -> SeerRun:
@@ -590,6 +590,7 @@ class SeerAgentClient:
             feature_id=feature_id,
             payload=payload,
             agent_run_options=resolved_agent_run_options,
+            referrer=referrer,
         )
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
