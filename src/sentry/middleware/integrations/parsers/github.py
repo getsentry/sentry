@@ -66,7 +66,6 @@ class GithubRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.GITHUB
     webhook_endpoint: Any = GitHubIntegrationsWebhookEndpoint
     """Overridden in GithubEnterpriseRequestParser"""
-    always_bucket = True
 
     def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""

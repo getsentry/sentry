@@ -2619,6 +2619,26 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# How many payloads over the rate window one delivery thread should be worth. Times
+# `worker_threads`, this is the depth a mailbox reaches before its split widens, so
+# lowering it splits sooner and wider. Tunable because the right value is not known:
+# the `buckets` tag on `hybridcloud.webhookpayload.mailbox_routing` is what would
+# settle it.
+register(
+    "hybridcloud.webhookpayload.payloads_per_thread",
+    default=4,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Most mailboxes one integration's split may occupy; past it they simply grow deeper.
+# A safety valve on how many scheduler rows and dispatch slots one sender can take.
+# Rounded down to a power of two when read: the split climbs a ladder of doublings,
+# and a cap off that ladder makes a resize into it re-map nearly every key instead of
+# half.
+register(
+    "hybridcloud.webhookpayload.max_mailbox_buckets",
+    default=64,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Remove the rows a claim-bounded drain finishes with — delivered, attempts
 # exhausted, or stale — in batches instead of one DELETE per row. Such a drain
 # stays inside a claim reserved for its whole run, so deferring deletes cannot
