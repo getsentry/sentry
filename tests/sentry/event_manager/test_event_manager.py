@@ -16,7 +16,9 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
+from django.db import OperationalError, connections, router
 from django.db.models import F
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry import analytics, nodestore, tsdb
@@ -58,6 +60,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -4648,3 +4651,127 @@ class SaveAttachmentTest(TestCase):
 
         mock_rate_limit.assert_not_called()
         mock_putfile.assert_called_once()
+
+
+class SavePendingAttachmentsTest(TestCase):
+    """
+    Promotion of `PendingEventAttachment` rows must happen exactly once, even though two
+    callers can race for the same rows: the same `event_id` can be saved twice, and any
+    sweep that retries promotion for rows missed at ingest time is a second promoter by
+    construction. Promoting twice would show the attachment twice and bill it twice.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.event_id = "a" * 32
+        self.pending = PendingEventAttachment.objects.create(
+            project_id=self.project.id,
+            event_id=self.event_id,
+            type="event.attachment",
+            name="foo.txt",
+            content_type="text/plain",
+            size=5,
+            sha1="abc",
+            blob_path=":hello",
+            date_expires=timezone.now() + timedelta(hours=1),
+            date_expires_retention=timezone.now() + timedelta(days=66),
+        )
+
+    def promote(self, group_id: int | None = None) -> mock.MagicMock:
+        from sentry.event_manager import save_pending_attachments
+
+        with (
+            self.feature("projects:defer-attachment-storage"),
+            mock.patch("sentry.event_manager.track_outcome") as track,
+        ):
+            save_pending_attachments(
+                project=self.project,
+                event_id=self.event_id,
+                group_id=group_id if group_id is not None else self.group.id,
+                source="test",
+            )
+        return track
+
+    def test_promotes_only_once_when_called_twice(self) -> None:
+        first = self.promote()
+        second = self.promote()
+
+        # The first caller claimed the row; the second found it already gone.
+        (attachment,) = EventAttachment.objects.filter(project_id=self.project.id)
+        assert attachment.event_id == self.event_id
+        assert attachment.group_id == self.group.id
+        assert not PendingEventAttachment.objects.exists()
+
+        assert first.call_count == 1
+        assert first.mock_calls[0].kwargs["outcome"] == Outcome.ACCEPTED
+        assert first.mock_calls[0].kwargs["category"] == DataCategory.ATTACHMENT
+        # Crucially, the second caller does not bill the attachment again.
+        assert second.call_count == 0
+
+    def test_claims_rows_for_update(self) -> None:
+        with CaptureQueriesContext(
+            connections[router.db_for_write(PendingEventAttachment)]
+        ) as queries:
+            self.promote()
+
+        claims = [
+            q["sql"]
+            for q in queries.captured_queries
+            if "sentry_pendingeventattachment" in q["sql"] and "FOR UPDATE" in q["sql"]
+        ]
+        assert len(claims) == 1, [q["sql"] for q in queries.captured_queries]
+
+    def test_nothing_is_claimed_if_the_insert_fails(self) -> None:
+        with pytest.raises(OperationalError):
+            with mock.patch.object(
+                EventAttachment.objects, "bulk_create", side_effect=OperationalError("nope")
+            ):
+                self.promote()
+
+        # The whole promotion rolls back as one unit, so the row stays claimable by a
+        # retry instead of being dropped with its blob still in storage.
+        assert PendingEventAttachment.objects.filter(id=self.pending.id).exists()
+        assert not EventAttachment.objects.filter(project_id=self.project.id).exists()
+
+    def test_no_query_without_the_feature(self) -> None:
+        from sentry.event_manager import save_pending_attachments
+
+        with CaptureQueriesContext(
+            connections[router.db_for_write(PendingEventAttachment)]
+        ) as queries:
+            save_pending_attachments(
+                project=self.project,
+                event_id=self.event_id,
+                group_id=self.group.id,
+                source="test",
+            )
+
+        assert not [
+            q for q in queries.captured_queries if "sentry_pendingeventattachment" in q["sql"]
+        ]
+        assert PendingEventAttachment.objects.filter(id=self.pending.id).exists()
+
+    def test_probe_does_not_open_a_transaction_when_there_is_nothing_to_promote(self) -> None:
+        from sentry.event_manager import save_pending_attachments
+
+        PendingEventAttachment.objects.all().delete()
+
+        with CaptureQueriesContext(
+            connections[router.db_for_write(PendingEventAttachment)]
+        ) as queries:
+            with self.feature("projects:defer-attachment-storage"):
+                save_pending_attachments(
+                    project=self.project,
+                    event_id=self.event_id,
+                    group_id=self.group.id,
+                    source="test",
+                )
+
+        # A single unlocked probe, and no `FOR UPDATE` claim behind it.
+        pending_queries = [
+            q["sql"]
+            for q in queries.captured_queries
+            if "sentry_pendingeventattachment" in q["sql"]
+        ]
+        assert len(pending_queries) == 1
+        assert "FOR UPDATE" not in pending_queries[0]

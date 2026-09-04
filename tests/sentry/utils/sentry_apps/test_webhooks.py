@@ -160,6 +160,33 @@ class WebhookCircuitBreakerTest(TestCase):
 
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_empty_webhook_url_skips_request(self, mock_safe_urlopen):
+        """An empty string webhook_url (as opposed to None) must not reach
+        safe_urlopen — otherwise requests raises MissingSchema."""
+        sentry_app = self.create_sentry_app(
+            name="EmptyUrlApp",
+            organization=self.organization,
+            webhook_url="",
+            published=True,
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+
+        response = send_and_save_webhook_request(sentry_app, event)
+
+        mock_safe_urlopen.assert_not_called()
+        assert response is not None
+        assert response.status_code is None
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_error_response_buffers_masked_custom_headers(self, mock_safe_urlopen):
         """A failed delivery records masked custom headers in the request buffer, so the
         debug UI shows which custom headers were sent without persisting their secrets."""

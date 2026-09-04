@@ -32,6 +32,7 @@ from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
+    UserOrgContext,
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_status,
@@ -353,14 +354,6 @@ class SeerAgentClient:
 
         self.enable_coding = enable_coding
 
-        # PR context tools back both the automated CI and the manual iteration flows,
-        # so either flag grants them.
-        if enable_pr_context_tools and not (
-            features.has("organizations:autofix-pr-iteration", organization, actor=user)
-            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
-        ):
-            raise SeerPermissionError("PR context tools are not enabled for this organization")
-
         self.enable_pr_context_tools = enable_pr_context_tools
 
         self.viewer_context = self._build_viewer_context()
@@ -545,11 +538,12 @@ class SeerAgentClient:
         feature_id: str,
         payload: dict[str, Any],
         title: str,
+        referrer: str,
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
-        referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
+        user_org_context: UserOrgContext | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -592,15 +586,20 @@ class SeerAgentClient:
         if agent_run_options is not None:
             resolved_agent_run_options.update(agent_run_options)
 
+        body = SeerFeatureRunRequest(
+            feature_id=feature_id,
+            payload=payload,
+            agent_run_options=resolved_agent_run_options,
+            referrer=referrer,
+        )
+        if user_org_context is not None:
+            body["user_org_context"] = user_org_context
+
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
             on_run_created=_create_agent_run,
-            body=SeerFeatureRunRequest(
-                feature_id=feature_id,
-                payload=payload,
-                agent_run_options=resolved_agent_run_options,
-            ),
+            body=body,
             viewer_context=self.viewer_context,
             user_id=user_id,
             referrer=referrer,

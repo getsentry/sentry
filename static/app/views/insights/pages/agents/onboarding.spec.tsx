@@ -138,23 +138,77 @@ describe('Onboarding deployment target', () => {
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
 
-  it('offers Workers AI as an integration only on the Cloudflare target', async () => {
+  it('offers every SDK regardless of the selected runtime', async () => {
     const {organization} = setupProject('node');
 
     render(<Onboarding />, {organization});
 
-    // Node target: Workers AI is not in the integration list
-    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
-    expect(screen.queryByRole('option', {name: 'Workers AI'})).not.toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
-
-    // Switch to the Cloudflare target
-    await userEvent.click(screen.getByRole('button', {name: 'Node'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
-
-    // Cloudflare target: Workers AI is now offered
+    // On the Node runtime both the Node-only (Mastra) and Cloudflare-only
+    // (Workers AI) SDKs are offered; the list is no longer filtered by runtime.
     await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
     expect(await screen.findByRole('option', {name: 'Workers AI'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Mastra'})).toBeInTheDocument();
+  });
+
+  it('pins and locks the runtime to Cloudflare when a Cloudflare-only SDK is selected', async () => {
+    const {organization} = setupProject('node');
+
+    render(<Onboarding />, {organization});
+
+    // Node runtime is selected by default
+    expect(await screen.findByRole('button', {name: 'Node'})).toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Workers AI'}));
+
+    // The runtime flips to Cloudflare, the selector is locked, and the Cloudflare
+    // install instructions render.
+    const runtimeSelector = await screen.findByRole('button', {name: 'Cloudflare'});
+    expect(runtimeSelector).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
+    expect(
+      (
+        await screen.findAllByText(
+          textWithMarkupMatcher(/npm install @sentry\/cloudflare/)
+        )
+      ).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps the runtime selector interactive for a runtime-agnostic SDK (Flue)', async () => {
+    const {organization} = setupProject('node');
+
+    render(<Onboarding />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Flue'}));
+
+    // Flue runs on both runtimes, so the Node selector stays and is not locked.
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeEnabled();
+
+    // The user can still switch to Cloudflare.
+    await userEvent.click(runtimeSelector);
+    expect(await screen.findByRole('option', {name: 'Cloudflare'})).toBeInTheDocument();
+  });
+
+  it('pins and locks the runtime to Node when a Node-only SDK is selected', async () => {
+    const {organization} = setupProject('node');
+
+    render(<Onboarding />, {organization});
+
+    // Manually switch to the Cloudflare runtime first
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Cloudflare'}));
+    expect(await screen.findByRole('button', {name: 'Cloudflare'})).toBeInTheDocument();
+
+    // Selecting Mastra (Node-only) flips the runtime back to Node and locks it
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Mastra'}));
+
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeDisabled();
+    expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
 
   it('switches instructions when the deployment target changes', async () => {

@@ -75,6 +75,7 @@ describe('MessagingIntegrationAlertRule', () => {
   });
 
   const getComponent = () => <MessagingIntegrationAlertRule {...notificationProps} />;
+  const getChannelSelect = () => screen.getByRole('textbox', {name: 'channel'});
 
   it('renders', () => {
     render(getComponent());
@@ -156,18 +157,19 @@ describe('MessagingIntegrationAlertRule', () => {
         }}
       />
     );
-    await selectEvent.openMenu(screen.getByLabelText('channel'));
+    await selectEvent.openMenu(getChannelSelect());
     expect(await screen.findByText('#general (1)')).toBeInTheDocument();
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
-    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
+    await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
+      channelName: 'alerts',
       label: '#alerts (2)',
       value: '2',
       new: false,
     });
   });
 
-  it('shows empty state when no channels are returned', async () => {
+  it('shows the selected channel when no channels are returned', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${discordIntegrations[0]!.id}/channels/`,
       body: {
@@ -186,15 +188,17 @@ describe('MessagingIntegrationAlertRule', () => {
       />
     );
 
-    await selectEvent.openMenu(screen.getByLabelText('channel'));
-    expect(await screen.findByText('No options')).toBeInTheDocument();
+    await selectEvent.openMenu(getChannelSelect());
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'channel'})
+    ).toBeInTheDocument();
     expect(mockSetChannel).not.toHaveBeenCalled();
   });
 
   it('set custom channel as "new" when created', async () => {
     render(getComponent());
 
-    await selectEvent.create(screen.getByLabelText('channel'), '#custom-channel', {
+    await selectEvent.create(getChannelSelect(), '#custom-channel', {
       waitForElement: false,
       createOptionText: '#custom-channel',
     });
@@ -351,7 +355,7 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(mockSetIntegration).toHaveBeenCalledWith(slackIntegrations[1]);
   });
 
-  it('displays and sends channel id for microsoft teams', async () => {
+  it('keeps the channel name when selecting a Microsoft Teams channel', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${msteamsIntegrations[0]!.id}/channels/`,
       body: {
@@ -366,16 +370,19 @@ describe('MessagingIntegrationAlertRule', () => {
       <MessagingIntegrationAlertRule
         {...{
           ...notificationProps,
+          channel: undefined,
           integration: msteamsIntegrations[0],
           provider: 'msteams',
         }}
       />
     );
-    await selectEvent.openMenu(screen.getByLabelText('channel'));
+    expect(screen.getByText('channel name')).toBeInTheDocument();
+    await selectEvent.openMenu(getChannelSelect());
     expect(await screen.findByText('#general (1)')).toBeInTheDocument();
     expect(screen.getByText('#alerts (2)')).toBeInTheDocument();
-    await selectEvent.select(screen.getByLabelText('channel'), /#alerts/);
+    await selectEvent.select(getChannelSelect(), /#alerts/);
     expect(mockSetChannel).toHaveBeenCalledWith({
+      channelName: 'alerts',
       label: '#alerts (2)',
       value: '2',
       new: false,

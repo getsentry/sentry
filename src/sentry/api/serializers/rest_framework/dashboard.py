@@ -7,12 +7,12 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -413,7 +413,11 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
-@extend_schema_serializer(exclude_fields=["dataset_source"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "dataset_source": "Records whether the widget's dataset was chosen by the user or inferred; internal provenance.",
+    }
+)
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)

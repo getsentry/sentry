@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from sentry.api.authentication import ViewerContextAuthentication
 from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
     NoProjects,
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
@@ -57,6 +58,11 @@ class MockSuperUser:
     @property
     def is_active(self) -> bool:
         return True
+
+
+class LightweightControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
+    include_organization_projects = False
+    include_organization_teams = False
 
 
 class PermissionBaseTestCase(TestCase):
@@ -416,6 +422,77 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+class ControlSiloOrganizationEndpointTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def build_request(self):
+        request = RequestFactory().get("/")
+        request.session = SessionBase()
+        request.user = self.user
+        request.auth = None
+        return drf_request_from_request(request)
+
+    @mock.patch.object(
+        organization_service,
+        "get_organization_by_slug",
+        wraps=organization_service.get_organization_by_slug,
+    )
+    def test_convert_args_includes_projects_and_teams_by_default(
+        self, mock_get_organization: mock.MagicMock
+    ) -> None:
+        ControlSiloOrganizationEndpoint().convert_args(self.build_request(), self.organization.slug)
+
+        mock_get_organization.assert_called_once_with(
+            slug=self.organization.slug,
+            only_visible=False,
+            user_id=self.user.id,
+            include_projects=True,
+            include_teams=True,
+        )
+
+    @mock.patch.object(
+        organization_service,
+        "get_organization_by_slug",
+        wraps=organization_service.get_organization_by_slug,
+    )
+    def test_convert_args_can_omit_projects_and_teams_for_slug(
+        self, mock_get_organization: mock.MagicMock
+    ) -> None:
+        LightweightControlSiloOrganizationEndpoint().convert_args(
+            self.build_request(), self.organization.slug
+        )
+
+        mock_get_organization.assert_called_once_with(
+            slug=self.organization.slug,
+            only_visible=False,
+            user_id=self.user.id,
+            include_projects=False,
+            include_teams=False,
+        )
+
+    @mock.patch.object(
+        organization_service,
+        "get_organization_by_id",
+        wraps=organization_service.get_organization_by_id,
+    )
+    def test_convert_args_can_omit_projects_and_teams_for_id(
+        self, mock_get_organization: mock.MagicMock
+    ) -> None:
+        LightweightControlSiloOrganizationEndpoint().convert_args(
+            self.build_request(), self.organization.id
+        )
+
+        mock_get_organization.assert_called_once_with(
+            id=self.organization.id,
+            user_id=self.user.id,
+            include_projects=False,
+            include_teams=False,
+        )
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):

@@ -256,6 +256,42 @@
     ]
   },
   {
+    "name": "release",
+    "description": "The ONLY way to reference a Sentry release. Use `version` exactly as the releases API returns it. Provide `projectId` when the release belongs to a specific project. Inline: renders a compact link. Block: renders release metadata, new issues, commit authors, the last commit, and recent deploys. Do not duplicate that data as text. Never use a markdown link for release references.",
+    "level": ["inline", "block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "required": ["version"],
+      "additionalProperties": false
+    },
+    "examples": [
+      {
+        "label": "Release",
+        "data": {
+          "version": "example-app@1.2.3",
+          "projectId": "1"
+        }
+      }
+    ]
+  },
+  {
     "name": "chart",
     "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" only with offset-bearing ISO 8601 timestamps. Category axes are supported for bar charts only. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
     "level": ["block"],
@@ -454,7 +490,7 @@
   },
   {
     "name": "alert",
-    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Never use a markdown link for alert references.",
+    "description": "The ONLY way to reference a Sentry alert. Use `id` exactly as the alerts API returns it, and set `kind` to match: \"metric\" for a metric alert, \"issue\" for an issue alert, \"uptime\" for an uptime alert, \"cron\" for a cron alert. Include the API-provided name when available. Inline: renders a compact link. Block: renders alert conditions and configured actions, plus the underlying rule configuration for metric, uptime, and cron alerts. Do not duplicate those details as text. Never use a markdown link for alert references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -491,12 +527,28 @@
           "id": "881",
           "kind": "issue"
         }
+      },
+      {
+        "label": "Uptime alert",
+        "data": {
+          "id": "774",
+          "kind": "uptime",
+          "name": "Checkout availability"
+        }
+      },
+      {
+        "label": "Cron alert",
+        "data": {
+          "id": "9931",
+          "kind": "cron",
+          "name": "nightly-sync"
+        }
       }
     ]
   },
   {
     "name": "monitor",
-    "description": "The ONLY way to reference a Sentry monitor (cron, uptime, or metric detector). Use the detector ID exactly as the monitors API returns it. Include the API-provided name when available. Never use a markdown link for monitor references.",
+    "description": "The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, or mobile build detector). Use the numeric id from the detectors API (get_organization_detector / list_organization_detectors) — do NOT use the \"id\" field from the monitors API, which is a GUID and will not work here. Include the API-provided name when available. Inline: renders a compact link. Block: loads the live monitor and renders its type-specific configuration/rules. Never use a markdown link for monitor references.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -725,7 +777,7 @@
   },
   {
     "name": "errorsQuery",
-    "description": "Link to an errors (Discover) query results page. Use this for tabular error exploration across events. `query` uses event search syntax and `fields` are the table columns. Provide `yAxes` to chart aggregates alongside the table.",
+    "description": "Preview an errors (Discover) query. Use mode \"samples\" to show individual error events and \"aggregate\" to group and chart them. `query` uses event search syntax. In samples mode `fields` are non-aggregate table columns; in aggregate mode `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the total across the period — the chart is never broken out per group. When aggregate mode names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted; samples mode charts the event count.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -770,6 +822,11 @@
           "default": "",
           "type": "string"
         },
+        "mode": {
+          "default": "samples",
+          "type": "string",
+          "enum": ["samples", "aggregate"]
+        },
         "fields": {
           "type": "array",
           "items": {
@@ -790,17 +847,40 @@
           "minLength": 1
         }
       },
-      "required": ["query"],
+      "required": ["query", "mode"],
       "additionalProperties": false
     },
     "examples": [
       {
-        "label": "Errors by URL",
+        "label": "Recent errors",
         "data": {
           "query": "event.type:error",
-          "fields": ["title", "count()", "url"],
+          "mode": "samples",
+          "fields": ["title", "project", "user.display", "timestamp"],
           "statsPeriod": "24h",
-          "title": "Checkout errors"
+          "title": "Recent errors"
+        }
+      },
+      {
+        "label": "Errors by title",
+        "data": {
+          "query": "",
+          "mode": "aggregate",
+          "fields": ["title", "project", "count_unique(user)"],
+          "sort": "-count_unique_user",
+          "statsPeriod": "1h",
+          "yAxes": ["count()"],
+          "title": "Errors by title"
+        }
+      },
+      {
+        "label": "Total errors",
+        "data": {
+          "query": "event.type:error",
+          "mode": "aggregate",
+          "fields": ["count()"],
+          "statsPeriod": "24h",
+          "title": "Total errors"
         }
       }
     ]

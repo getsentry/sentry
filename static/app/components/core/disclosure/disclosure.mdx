@@ -20,6 +20,7 @@ import {IconEdit} from 'sentry/icons';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -31,11 +32,16 @@ To create a disclosure, wrap content in a `<Disclosure>` component.
 
 The disclosure component supports a controlled and uncontrolled state via the `defaultExpanded` and `expanded` props.
 
+`Disclosure.Content` controls the panel layout. It does not apply typography to its
+children. Wrap prose in `Text` and set its size explicitly when needed.
+
 <Storybook.Demo>
   <Flex width="100%">
     <Disclosure flex={1}>
       <Disclosure.Title>This is a disclosure</Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      <Disclosure.Content>
+        <Text>This is the content of the disclosure</Text>
+      </Disclosure.Content>
     </Disclosure>
   </Flex>
 </Storybook.Demo>
@@ -43,7 +49,9 @@ The disclosure component supports a controlled and uncontrolled state via the `d
 ```jsx
 <Disclosure>
   <Disclosure.Title>This is a disclosure</Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text>This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 ```
 
@@ -55,7 +63,9 @@ The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or con
   <Flex width="100%">
     <Disclosure defaultExpanded flex={1}>
       <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      <Disclosure.Content>
+        <Text>This is the content of the disclosure</Text>
+      </Disclosure.Content>
     </Disclosure>
   </Flex>
 </Storybook.Demo>
@@ -63,7 +73,9 @@ The disclosure can be uncontrolled by setting the `defaultExpanded` prop, or con
 ```jsx
 <Disclosure defaultExpanded>
   <Disclosure.Title>This is a default expanded disclosure</Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text>This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 ```
 
@@ -76,15 +88,21 @@ The disclosure can be sized by setting the `size` prop.
     <Stack direction="column" justify="center" gap="2xl" flex={1}>
       <Disclosure size="md" defaultExpanded>
         <Disclosure.Title>This is medium disclosure</Disclosure.Title>
-        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+        <Disclosure.Content>
+          <Text size="md">This is the content of the disclosure</Text>
+        </Disclosure.Content>
       </Disclosure>
       <Disclosure size="sm" defaultExpanded>
         <Disclosure.Title>This is small disclosure</Disclosure.Title>
-        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+        <Disclosure.Content>
+          <Text size="sm">This is the content of the disclosure</Text>
+        </Disclosure.Content>
       </Disclosure>
       <Disclosure size="xs" defaultExpanded>
         <Disclosure.Title>This is extra small disclosure</Disclosure.Title>
-        <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+        <Disclosure.Content>
+          <Text size="xs">This is the content of the disclosure</Text>
+        </Disclosure.Content>
       </Disclosure>
     </Stack>
   </Flex>
@@ -93,15 +111,21 @@ The disclosure can be sized by setting the `size` prop.
 ```jsx
 <Disclosure size="md" defaultExpanded>
   <Disclosure.Title>This is medium disclosure</Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text size="md">This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 <Disclosure size="sm" defaultExpanded>
   <Disclosure.Title>This is small disclosure</Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text size="sm">This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 <Disclosure size="xs" defaultExpanded>
   <Disclosure.Title>This is extra small disclosure</Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text size="xs">This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 ```
 
@@ -123,7 +147,9 @@ Note: The trailing items should be sized to match the disclosure size - this is 
       >
         Title With Trailing Items
       </Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      <Disclosure.Content>
+        <Text size="sm">This is the content of the disclosure</Text>
+      </Disclosure.Content>
     </Disclosure>
   </Flex>
 </Storybook.Demo>
@@ -139,7 +165,9 @@ Note: The trailing items should be sized to match the disclosure size - this is 
   >
     Title With Trailing Items
   </Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text size="sm">This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 ```
 
@@ -155,7 +183,9 @@ element.
       <Disclosure.Title leadingItems={<IconEdit size="xs" />}>
         Title With A Leading Glyph
       </Disclosure.Title>
-      <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+      <Disclosure.Content>
+        <Text size="sm">This is the content of the disclosure</Text>
+      </Disclosure.Content>
     </Disclosure>
   </Flex>
 </Storybook.Demo>
@@ -169,7 +199,9 @@ the title instead of the default left-indented panel.
   <Flex width="100%">
     <Disclosure size="sm" variant="outline" defaultExpanded flex={1}>
       <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
-      <Disclosure.Content>This content sits in a bordered card.</Disclosure.Content>
+      <Disclosure.Content>
+        <Text size="sm">This content sits in a bordered card.</Text>
+      </Disclosure.Content>
     </Disclosure>
   </Flex>
 </Storybook.Demo>
@@ -177,7 +209,9 @@ the title instead of the default left-indented panel.
 ```jsx
 <Disclosure size="sm" variant="outline" defaultExpanded>
   <Disclosure.Title>Outlined Disclosure</Disclosure.Title>
-  <Disclosure.Content>This content sits in a bordered card.</Disclosure.Content>
+  <Disclosure.Content>
+    <Text size="sm">This content sits in a bordered card.</Text>
+  </Disclosure.Content>
 </Disclosure>
 ```
 
@@ -193,7 +227,9 @@ export function LocalStorageDisclosure() {
     return (
         <Disclosure expanded={expanded} onExpandedChange={setExpanded} flex={1}>
             <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
-            <Disclosure.Content>Reload the page to see the expanded state is remembered</Disclosure.Content>
+            <Disclosure.Content>
+                <Text>Reload the page to see the expanded state is remembered</Text>
+            </Disclosure.Content>
         </Disclosure>
     );
 
@@ -217,7 +253,7 @@ function LocalStorageDisclosure() {
     <Disclosure expanded={expanded} onExpandedChange={setExpanded}>
       <Disclosure.Title>The expanded state is saved to localStorage</Disclosure.Title>
       <Disclosure.Content>
-        Reload the page to see the expanded state is remembered
+        <Text>Reload the page to see the expanded state is remembered</Text>
       </Disclosure.Content>
     </Disclosure>
   );
@@ -236,7 +272,9 @@ export function URLStateDisclosure() {
     return (
         <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded} flex={1}>
             <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
-            <Disclosure.Content>Reload the page to see the expanded state is remembered and new params are added to the URL</Disclosure.Content>
+            <Disclosure.Content>
+                <Text>Reload the page to see the expanded state is remembered and new params are added to the URL</Text>
+            </Disclosure.Content>
         </Disclosure>
     );
 
@@ -261,7 +299,7 @@ function URLStateDisclosure() {
     <Disclosure defaultExpanded={expanded} onExpandedChange={setExpanded}>
       <Disclosure.Title>The expanded state is saved to URL state</Disclosure.Title>
       <Disclosure.Content>
-        Reload the page to see the expanded state is remembered
+        <Text>Reload the page to see the expanded state is remembered</Text>
       </Disclosure.Content>
     </Disclosure>
   );
@@ -279,6 +317,8 @@ Disclosures can be scrolled to with the help of a render ref.
   }}
 >
   <Disclosure.Title>This is a disclosure</Disclosure.Title>
-  <Disclosure.Content>This is the content of the disclosure</Disclosure.Content>
+  <Disclosure.Content>
+    <Text>This is the content of the disclosure</Text>
+  </Disclosure.Content>
 </Disclosure>
 ```

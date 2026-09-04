@@ -169,11 +169,8 @@ export function toMeasurementType(
   return getSafeValue(value, ALL_MEASUREMENTS, fallback);
 }
 
-export function toArtifactType(
-  value: unknown,
-  fallback: ArtifactType = DEFAULT_ARTIFACT_TYPE
-): ArtifactType {
-  return getSafeValue(value, ALL_ARTIFACT_TYPES, fallback);
+export function toArtifactType(value: unknown): ArtifactType {
+  return getSafeValue(value, ALL_ARTIFACT_TYPES, DEFAULT_ARTIFACT_TYPE);
 }
 
 export function getArtifactTypeLabel(artifactType: ArtifactType | undefined): string {

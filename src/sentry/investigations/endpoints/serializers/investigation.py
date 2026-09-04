@@ -23,6 +23,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
@@ -51,6 +52,37 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
     status: str | None
 
 
+class InvestigationOrchestrationSerializerResponse(TypedDict):
+    phase: str
+    status: str
+    heartbeatAt: datetime | None
+    notebookRevision: int
+
+
+def orchestration_summaries_by_investigation(
+    investigations: Sequence[Investigation],
+) -> dict[int, InvestigationOrchestrationSerializerResponse]:
+    return {
+        investigation_id: {
+            "phase": phase,
+            "status": status,
+            "heartbeatAt": heartbeat_at,
+            "notebookRevision": notebook_revision,
+        }
+        for investigation_id, phase, status, heartbeat_at, notebook_revision in (
+            InvestigationOrchestrationRun.objects.filter(
+                investigation_id__in=[investigation.id for investigation in investigations]
+            ).values_list(
+                "investigation_id",
+                "phase",
+                "status",
+                "heartbeat_at",
+                "notebook_revision",
+            )
+        )
+    }
+
+
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
@@ -65,6 +97,7 @@ class InvestigationSerializerResponse(TypedDict):
     blockCount: int
     isFavorited: bool
     titleGeneration: InvestigationTitleGenerationSerializerResponse
+    orchestration: InvestigationOrchestrationSerializerResponse | None
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -109,11 +142,14 @@ class InvestigationSerializer(Serializer):
             else set()
         )
 
+        orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
+
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
                 "summary_visible": investigation.id in summary_visible_ids,
+                "orchestration": orchestration_by_investigation.get(investigation.id),
             }
             for investigation in item_list
         }
@@ -142,6 +178,7 @@ class InvestigationSerializer(Serializer):
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
             "titleGeneration": {"status": obj.title_generation_status},
+            "orchestration": attrs["orchestration"],
         }
 
 

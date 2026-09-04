@@ -64,11 +64,7 @@ describe('TraceMetricsConfig', () => {
       );
     });
 
-    it('returns default value for unparseable string input', () => {
-      expect(formatTraceMetricsFunction('not-a-function', 'fallback')).toBe('fallback');
-    });
-
-    it('returns the raw value for unparseable string input when default is not provided', () => {
+    it('returns the raw value for unparseable string input', () => {
       expect(formatTraceMetricsFunction('not-a-function')).toBe('not-a-function');
     });
 

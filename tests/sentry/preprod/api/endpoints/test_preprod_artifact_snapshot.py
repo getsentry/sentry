@@ -19,6 +19,7 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.precompute import build_head_images_payload
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
@@ -209,6 +210,34 @@ class ProjectPreprodSnapshotTest(APITestCase):
             f"{self.project.organization_id}/{self.project.id}/{artifact_id}/manifest.json"
         )
         assert snapshot_metrics.extras["manifest_key"] == expected_key
+
+    def test_snapshot_upload_stores_head_images_key(self) -> None:
+        url = self._get_create_url()
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "hash1": {
+                    "content_hash": "hash1",
+                    "display_name": "Screen 1",
+                    "image_file_name": "screen1.png",
+                    "width": 100,
+                    "height": 200,
+                },
+            },
+        }
+
+        response = self.client.post(url, data, format="json")
+
+        assert response.status_code == 200
+
+        snapshot_metrics = PreprodSnapshotMetrics.objects.get(id=response.data["snapshotMetricsId"])
+        assert snapshot_metrics.extras is not None
+        artifact_id = response.data["artifactId"]
+        expected_key = (
+            f"{self.project.organization_id}/{self.project.id}/"
+            f"{artifact_id}/snapshot_head_images.json"
+        )
+        assert snapshot_metrics.extras["head_images_key"] == expected_key
 
     def test_snapshot_with_empty_images(self) -> None:
         url = self._get_create_url()
@@ -656,6 +685,46 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.data["images"][0]["key"] == "img1"
         assert response.data["images"][0]["image_file_name"] == "img1"
         assert response.data["images"][1]["key"] == "img2"
+
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    def test_get_snapshot_details_uses_precomputed_head_images(self, mock_get_session):
+        images = {
+            "img1": {
+                "content_hash": "img1",
+                "display_name": "Screen1",
+                "width": 375,
+                "height": 812,
+            },
+            "img2": {
+                "content_hash": "img2",
+                "display_name": "Screen2",
+                "width": 1080,
+                "height": 1920,
+            },
+        }
+        artifact, snapshot_metrics, manifest_key, _, _ = self._create_artifact_with_manifest(images)
+        head_key = f"{self.org.id}/{self.project.id}/{artifact.id}/snapshot_head_images.json"
+        snapshot_metrics.extras["head_images_key"] = head_key
+        snapshot_metrics.save()
+
+        blob = orjson.dumps(build_head_images_payload(images, None))
+
+        def _get(key):
+            if key == head_key:
+                result = MagicMock()
+                result.payload.read.return_value = blob
+                return result
+            return None
+
+        mock_session = MagicMock()
+        mock_session.get.side_effect = _get
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self._get_detail_url(artifact.id))
+
+        assert response.status_code == 200
+        assert [img["key"] for img in response.data["images"]] == ["img1", "img2"]
+        mock_session.head.assert_called_once_with(manifest_key)
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
     def test_get_snapshot_details_returns_canvas_theme(self, mock_get_session):
@@ -1525,7 +1594,51 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
             {"head_artifact_id": "<HEAD_ID>", "project_id": "<PROJECT_ID>"},
         )
 
-    def _setup_diff(self, mock_get_session):
+    def _head_images_blob_bytes(self, head_images):
+        parsed = orjson.loads(self._snapshot_manifest_bytes(head_images, 0.2))
+        return orjson.dumps(
+            build_head_images_payload(parsed["images"], parsed.get("diff_threshold"))
+        )
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    def test_golden_solo_precomputed_head_images(self, mock_get_session, mock_record):
+        head_images = self._head_images()
+        artifact, metrics = self._create_artifact(image_count=len(head_images))
+        head_key = f"{self.org.id}/{self.project.id}/{artifact.id}/snapshot_head_images.json"
+        metrics.extras["head_images_key"] = head_key
+        metrics.save(update_fields=["extras"])
+
+        self._mock_multi_session(
+            mock_get_session, {head_key: self._head_images_blob_bytes(head_images)}
+        )
+
+        response = self.client.get(self._get_detail_url(artifact.id))
+
+        self._assert_golden(
+            "snapshot_solo.json",
+            response,
+            {"head_artifact_id": "<HEAD_ID>", "project_id": "<PROJECT_ID>"},
+        )
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_session")
+    def test_golden_diff_precomputed_head_images(self, mock_get_session, mock_record):
+        head_artifact, _ = self._setup_diff(mock_get_session, use_precomputed_head=True)
+
+        response = self.client.get(self._get_detail_url(head_artifact.id))
+
+        self._assert_golden(
+            "snapshot_diff.json",
+            response,
+            {
+                "head_artifact_id": "<HEAD_ID>",
+                "base_artifact_id": "<BASE_ID>",
+                "project_id": "<PROJECT_ID>",
+            },
+        )
+
+    def _setup_diff(self, mock_get_session, use_precomputed_head=False):
         head_images = self._head_images()
         base_images = self._base_images()
         head_artifact, head_metrics = self._create_artifact(image_count=len(head_images))
@@ -1542,14 +1655,23 @@ class PreprodSnapshotGoldenResponseTest(APITestCase):
         comparison.extras = {"comparison_key": comparison_key}
         comparison.save(update_fields=["extras"])
 
-        self._mock_multi_session(
-            mock_get_session,
-            {
-                self._manifest_key(head_artifact): self._snapshot_manifest_bytes(head_images, 0.2),
-                self._manifest_key(base_artifact): self._snapshot_manifest_bytes(base_images),
-                comparison_key: self._comparison_manifest_bytes(head_artifact, base_artifact),
-            },
-        )
+        session_objects = {
+            self._manifest_key(base_artifact): self._snapshot_manifest_bytes(base_images),
+            comparison_key: self._comparison_manifest_bytes(head_artifact, base_artifact),
+        }
+        if use_precomputed_head:
+            head_key = (
+                f"{self.org.id}/{self.project.id}/{head_artifact.id}/snapshot_head_images.json"
+            )
+            head_metrics.extras["head_images_key"] = head_key
+            head_metrics.save(update_fields=["extras"])
+            session_objects[head_key] = self._head_images_blob_bytes(head_images)
+        else:
+            session_objects[self._manifest_key(head_artifact)] = self._snapshot_manifest_bytes(
+                head_images, 0.2
+            )
+
+        self._mock_multi_session(mock_get_session, session_objects)
         return head_artifact, base_artifact
 
     @patch("sentry.analytics.record")

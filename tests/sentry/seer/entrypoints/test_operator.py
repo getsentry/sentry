@@ -1038,6 +1038,11 @@ class TestSeerOperatorCompletionHook(TestCase):
         state = self._make_state(
             blocks=[
                 MemoryBlock(
+                    id="1",
+                    message=Message(role="user", content="user message"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+                MemoryBlock(
                     id="2",
                     message=Message(role="assistant", content="first assistant"),
                     timestamp="2024-01-01T00:00:01Z",
@@ -1046,11 +1051,6 @@ class TestSeerOperatorCompletionHook(TestCase):
                     id="3",
                     message=Message(role="assistant", content="last assistant"),
                     timestamp="2024-01-01T00:00:02Z",
-                ),
-                MemoryBlock(
-                    id="2",
-                    message=Message(role="user", content="user message"),
-                    timestamp="2024-01-01T00:00:01Z",
                 ),
             ]
         )
@@ -1061,6 +1061,48 @@ class TestSeerOperatorCompletionHook(TestCase):
             summary="last assistant",
             run_id=MOCK_RUN_ID,
             pending_user_input=None,
+        )
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_execute_does_not_reuse_summary_from_previous_turn(self, mock_fetch):
+        pending_user_input = PendingUserInput(
+            id="approval-1",
+            input_type="agent_write_approval",
+            data={"required_scopes": ["org:write"], "session_id": str(MOCK_RUN_ID)},
+        )
+        state = self._make_state(
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="user", content="first question"),
+                    timestamp="2024-01-01T00:00:00Z",
+                ),
+                MemoryBlock(
+                    id="2",
+                    message=Message(role="assistant", content="first answer"),
+                    timestamp="2024-01-01T00:00:01Z",
+                ),
+                MemoryBlock(
+                    id="3",
+                    message=Message(role="user", content="follow-up question"),
+                    timestamp="2024-01-01T00:00:02Z",
+                ),
+                MemoryBlock(
+                    id="4",
+                    message=Message(role="tool_use", content=None),
+                    timestamp="2024-01-01T00:00:03Z",
+                ),
+            ],
+            status="awaiting_user_input",
+            pending_user_input=pending_user_input,
+        )
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
+            summary=None,
+            run_id=MOCK_RUN_ID,
+            pending_user_input=pending_user_input,
         )
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")

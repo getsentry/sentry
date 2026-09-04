@@ -108,7 +108,10 @@ export function TracesExportModalButton({
       disabled={!isExportSupported}
       isDataEmpty={isExportSupported && data.length === 0}
       isDataError={isExportSupported && targetTableResult.result.error !== null}
-      isDataLoading={isExportSupported && targetTableResult.result.isPending}
+      isDataLoading={
+        isExportSupported &&
+        (targetTableResult.result.isPending || targetTableResult.result.isPlaceholderData)
+      }
     />
   );
 }

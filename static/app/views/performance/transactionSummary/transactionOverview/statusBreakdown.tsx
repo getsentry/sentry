@@ -2,12 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {BreakdownBars} from 'sentry/components/charts/breakdownBars';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -41,7 +42,7 @@ export function StatusBreakdown({eventView, location, organization}: Props) {
     <Fragment>
       <SectionHeading>
         {t('Status Breakdown')}
-        <QuestionTooltip
+        <InfoTip
           position="top"
           title={getTermHelp(organization, PerformanceTerm.STATUS_BREAKDOWN)}
           size="sm"

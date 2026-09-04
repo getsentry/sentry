@@ -115,20 +115,21 @@ class TitleHelpersTest(TestCase):
             make_gen_ai_span(project_id=1, start_timestamp=TS + 0.5)
         ) == _ts(0.5)
 
-    def test_first_user_message_prefers_input_messages(self) -> None:
+    def test_first_user_message_prefers_latest_input_message(self) -> None:
         span = make_gen_ai_span(
             project_id=1,
             messages=json.dumps(
                 [
                     {"role": "system", "content": "sys"},
-                    {"role": "user", "content": "from input"},
+                    {"role": "user", "content": "earlier input"},
+                    {"role": "user", "content": "latest input"},
                 ]
             ),
         )
         span["attributes"][LEGACY_GEN_AI_REQUEST_MESSAGES] = _attr(
             json.dumps([{"role": "user", "content": "from request"}])
         )
-        assert first_user_message_from_span(span) == "from input"
+        assert first_user_message_from_span(span) == "latest input"
 
     def test_first_user_message_falls_back_to_request_messages(self) -> None:
         assert (

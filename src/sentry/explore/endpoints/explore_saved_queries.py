@@ -27,6 +27,7 @@ from sentry.apidocs.parameters import (
     GlobalParams,
     VisibilityParams,
 )
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import (
     ExploreSavedQueryPermission,
@@ -314,8 +315,8 @@ def sync_prebuilt_queries_starred(organization, user_id):
 @cell_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
@@ -511,7 +512,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, serializer=ExploreSavedQueryModelSerializer()
+            ),
             default_per_page=25,
         )
 
@@ -527,7 +530,9 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERY_POST_RESPONSE,
     )
-    def post(self, request: Request, organization) -> Response:
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[ExploreSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Create a new trace explorersaved query for the given organization.
         """
@@ -550,7 +555,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
 
@@ -572,4 +577,4 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
-        return Response(serialize(model), status=201)
+        return Response(serialize(model, serializer=ExploreSavedQueryModelSerializer()), status=201)
