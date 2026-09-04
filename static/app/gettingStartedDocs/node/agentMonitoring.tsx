@@ -41,19 +41,6 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
 }
 
 /**
- * Extracts the bare public key (the DSN's userinfo) from a full DSN, e.g.
- * `https://abc123@o1.ingest.sentry.io/1` -> `abc123`. Used by the Eve setup,
- * which passes only the key in its `x-sentry-auth` header.
- */
-function getDsnPublicKey(dsn: string): string {
-  try {
-    return new URL(dsn).username;
-  } catch {
-    return dsn;
-  }
-}
-
-/**
  * Cloudflare Workers don't expose the public `Sentry.init()` API. Instead the
  * SDK is bootstrapped by wrapping the worker with `Sentry.withSentry`. The
  * Vercel AI SDK additionally requires the `nodejs_compat` entrypoint and its
@@ -421,8 +408,8 @@ export const eveOnboarding: OnboardingConfig = {
   ],
   configure: params => {
     // `dsn.public` is the full DSN; Eve's `x-sentry-auth` header only needs the
-    // public key portion (its userinfo).
-    const publicKey = getDsnPublicKey(params.dsn.public);
+    // public key portion (the DSN's userinfo).
+    const publicKey = new URL(params.dsn.public).username;
 
     return [
       {
