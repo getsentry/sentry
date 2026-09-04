@@ -175,6 +175,23 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('keeps the runtime selector interactive for a runtime-agnostic SDK (Flue)', async () => {
+    const {organization} = setupProject('node');
+
+    render(<Onboarding />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Flue'}));
+
+    // Flue runs on both runtimes, so the Node selector stays and is not locked.
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeEnabled();
+
+    // The user can still switch to Cloudflare.
+    await userEvent.click(runtimeSelector);
+    expect(await screen.findByRole('option', {name: 'Cloudflare'})).toBeInTheDocument();
+  });
+
   it('pins and locks the runtime to Node when a Node-only SDK is selected', async () => {
     const {organization} = setupProject('node');
 

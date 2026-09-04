@@ -173,6 +173,22 @@ describe('ConversationOnboarding deployment target', () => {
     expect(screen.queryByText('Identify Users (optional)')).not.toBeInTheDocument();
   });
 
+  it('hides only the conversation ID step for Flue (auto-set), keeping the user step', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+
+    expect(await screen.findByText('Set Conversation ID')).toBeInTheDocument();
+
+    // Flue sets the conversation ID automatically, so that step drops out - but it
+    // runs the Sentry SDK, so the user step stays.
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Flue'}));
+
+    expect(screen.queryByText('Set Conversation ID')).not.toBeInTheDocument();
+    expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
+  });
+
   it('tracks AI prompt copy for conversations onboarding', async () => {
     const {organization} = setupProject('node');
 
