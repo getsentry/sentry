@@ -1,5 +1,7 @@
 import {useEffect, useMemo} from 'react';
 
+import {Text} from '@sentry/scraps/text';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -10,10 +12,14 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
+  FieldKind,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
@@ -97,6 +103,33 @@ function getTraceItemFieldDefinitionFunction(
       options?.kind ?? tags[baseKey]?.kind
     );
   };
+}
+
+function getDeprecatedAttributeSearchWarning(key: string, itemType: TraceItemDataset) {
+  const fieldDefinitionType = typeMap[itemType];
+  if (
+    fieldDefinitionType &&
+    getFieldDefinition(key, fieldDefinitionType)?.deprecated === false
+  ) {
+    return;
+  }
+
+  const replacement = ATTRIBUTE_SEARCH_SECONDARY_ALIASES[key]?.alias;
+  if (!replacement) {
+    return;
+  }
+  return tct('[usedAttribute] is deprecated. Use [replacement] instead.', {
+    usedAttribute: (
+      <Text monospace variant="inherit">
+        {key}
+      </Text>
+    ),
+    replacement: (
+      <Text monospace variant="inherit">
+        {replacement}
+      </Text>
+    ),
+  });
 }
 
 export function useTraceItemSearchQueryBuilderProps({
@@ -221,7 +254,9 @@ export function useTraceItemSearchQueryBuilderProps({
       onSearch,
       onChange,
       onBlur,
-      getFilterTokenWarning,
+      getFilterTokenWarning: (key: string) =>
+        getFilterTokenWarning?.(key) ??
+        getDeprecatedAttributeSearchWarning(key, itemType),
       searchSource,
       filterKeySections,
       getSuggestedFilterKey: getSuggestedAttribute,
@@ -241,6 +276,7 @@ export function useTraceItemSearchQueryBuilderProps({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases: {
+        ...ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
         ...numberSecondaryAliases,
         ...stringSecondaryAliases,
         ...booleanSecondaryAliases,
