@@ -6,9 +6,15 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
-    _get_first_input_message,
-    _get_last_output,
+from sentry.ai_monitoring.utils import (
+    get_aggregated_first_input,
+    get_aggregated_last_output,
+)
+from sentry.ai_monitoring.utils import (
+    get_first_input_message as _get_first_input_message,
+)
+from sentry.ai_monitoring.utils import (
+    get_last_output as _get_last_output,
 )
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -67,6 +73,17 @@ class TestGetFirstInputMessage:
         row = {"gen_ai.request.messages": "[Filtered]"}
         assert _get_first_input_message(row) == "[Filtered]"
 
+    def test_skips_empty_user_message(self) -> None:
+        row = {
+            "gen_ai.input.messages": json_string(
+                [
+                    {"role": "user", "content": ""},
+                    {"role": "user", "content": "Hello"},
+                ]
+            )
+        }
+        assert _get_first_input_message(row) == "Hello"
+
 
 class TestGetLastOutput:
     def test_prefers_output_messages_text_part(self) -> None:
@@ -109,6 +126,62 @@ class TestGetLastOutput:
     def test_python_repr_output(self) -> None:
         row = {"gen_ai.output.messages": "[{'role': 'assistant', 'content': 'Hello!'}]"}
         assert _get_last_output(row) == "Hello!"
+
+
+class TestGetAggregatedMessages:
+    def test_first_input_uses_earliest_timestamp(self) -> None:
+        row = {
+            "input_messages": json_string([{"role": "user", "content": "New"}]),
+            "input_messages_timestamp": 2,
+            "request_messages": json_string([{"role": "user", "content": "Old"}]),
+            "request_messages_timestamp": 1,
+        }
+        assert get_aggregated_first_input(row) == "Old"
+
+    def test_first_input_prefers_input_messages_when_timestamps_match(self) -> None:
+        row = {
+            "input_messages": json_string([{"role": "user", "content": "New"}]),
+            "input_messages_timestamp": 1,
+            "request_messages": json_string([{"role": "user", "content": "Old"}]),
+            "request_messages_timestamp": 1,
+        }
+        assert get_aggregated_first_input(row) == "New"
+
+    def test_first_input_falls_back_when_preferred_field_is_empty(self) -> None:
+        row = {
+            "input_messages": json_string([{"role": "assistant", "content": ""}]),
+            "input_messages_timestamp": 1,
+            "request_messages": json_string([{"role": "user", "content": "Fallback"}]),
+            "request_messages_timestamp": 2,
+        }
+        assert get_aggregated_first_input(row) == "Fallback"
+
+    def test_last_output_uses_latest_timestamp(self) -> None:
+        row = {
+            "output_messages": json_string([{"role": "assistant", "content": "New"}]),
+            "output_messages_timestamp": 2,
+            "response_text": "Old",
+            "response_text_timestamp": 1,
+        }
+        assert get_aggregated_last_output(row) == "New"
+
+    def test_last_output_prefers_output_messages_when_timestamps_match(self) -> None:
+        row = {
+            "output_messages": json_string([{"role": "assistant", "content": "New"}]),
+            "output_messages_timestamp": 1,
+            "response_text": "Old",
+            "response_text_timestamp": 1,
+        }
+        assert get_aggregated_last_output(row) == "New"
+
+    def test_last_output_falls_back_when_preferred_field_is_empty(self) -> None:
+        row = {
+            "output_messages": json_string([{"role": "assistant", "content": ""}]),
+            "output_messages_timestamp": 2,
+            "response_text": "Fallback",
+            "response_text_timestamp": 1,
+        }
+        assert get_aggregated_last_output(row) == "Fallback"
 
 
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
@@ -159,6 +232,46 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.data
         assert len(response.data) == 0
+
+    def test_single_query_requires_operation_type(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        self.store_ai_span(conversation_id=uuid4().hex, timestamp=now)
+
+        query = {
+            "project": [self.project.id],
+            "start": now.isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(query)
+
+        assert response.status_code == 200, response.data
+        assert response.data == []
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_single_query_flag_uses_one_eap_query(self, mock_run_table_query: MagicMock) -> None:
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request({"project": [self.project.id]})
+
+        assert response.status_code == 200
+        mock_run_table_query.assert_called_once()
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.OrganizationAIConversationsEndpoint._get_conversations_single_query"
+    )
+    def test_single_query_flag_keeps_filtered_requests_on_legacy_path(
+        self, single_query: MagicMock
+    ) -> None:
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(
+                {"project": [self.project.id], "query": "gen_ai.tool.name:search"}
+            )
+
+        assert response.status_code == 200
+        single_query.assert_not_called()
 
     def test_single_conversation_single_trace(self) -> None:
         """Test a conversation with all spans in a single trace"""
@@ -232,7 +345,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "end": (now + timedelta(hours=1)).isoformat(),
         }
 
-        response = self.do_request(query)
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data) == 1
 
@@ -286,7 +400,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "query": f"gen_ai.conversation.id:{conversation_id_1}",
         }
 
-        response = self.do_request(query)
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["conversationId"] == conversation_id_1
@@ -462,7 +577,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "end": (now + timedelta(hours=1)).isoformat(),
         }
 
-        response = self.do_request(query)
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data) == 2
 
@@ -472,7 +588,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert next_link["cursor"]
 
         query["cursor"] = next_link["cursor"]
-        response = self.do_request(query)
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(query)
         assert response.status_code == 200
         assert len(response.data) == 1
 
@@ -1475,7 +1592,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "end": (now + timedelta(hours=1)).isoformat(),
         }
 
-        response = self.do_request(query)
+        with self.feature("organizations:gen-ai-conversations-single-query"):
+            response = self.do_request(query)
         assert response.status_code == 200, response.data
         assert len(response.data) == 1
         assert response.data[0]["title"] == "Refund a duplicate charge"
