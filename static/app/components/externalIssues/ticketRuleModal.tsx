@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -33,7 +33,6 @@ import type {IntegrationIssueConfig} from 'sentry/types/integrations';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -89,13 +88,6 @@ export function TicketRuleModal({
   // override any inputs with these instance values.
   const [showInstanceValues, setShowInstanceValues] = useState(true);
 
-  const [hasUpdatedCache, setHasUpdatedCache] = useState(false);
-  const [issueConfigFieldsCache, setIssueConfigFieldsCache] = useState<
-    JsonFormAdapterFieldConfig[]
-  >(() => {
-    return Object.values(instance?.dynamic_form_fields || {});
-  });
-
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
 
   // Track async select options fetched via search so they can be persisted
@@ -150,17 +142,10 @@ export function TicketRuleModal({
     {staleTime: Infinity, retry: false, refetchOnMount: 'always'}
   );
 
-  // After the first fetch, update this config cache state
-  useEffect(() => {
-    if (isPending || !defined(integrationDetails) || hasUpdatedCache) {
-      return;
-    }
-    const newConfigCache = integrationDetails[getConfigName(action)];
-    if (newConfigCache) {
-      setIssueConfigFieldsCache(newConfigCache);
-      setHasUpdatedCache(true);
-    }
-  }, [isPending, integrationDetails, action, hasUpdatedCache]);
+  // Dynamic reloads can change the schema, so always submit the latest field config.
+  const issueConfigFields =
+    integrationDetails?.[getConfigName(action)] ??
+    Object.values(instance?.dynamic_form_fields || {});
 
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({
     action,
@@ -168,10 +153,10 @@ export function TicketRuleModal({
   });
 
   const validAndSavableFieldNames = useMemo(() => {
-    return issueConfigFieldsCache
+    return issueConfigFields
       .filter(field => Object.hasOwn(field, 'name'))
       .map(field => field.name);
-  }, [issueConfigFieldsCache]);
+  }, [issueConfigFields]);
 
   /**
    * XXX: This function seems illegal but it's necessary.
@@ -235,7 +220,7 @@ export function TicketRuleModal({
       if (instance && Object.hasOwn(instance, 'integration')) {
         formData.integration = instance.integration;
       }
-      formData.dynamic_form_fields = issueConfigFieldsCache;
+      formData.dynamic_form_fields = issueConfigFields;
       for (const [key, value] of Object.entries(data)) {
         if (validAndSavableFieldNames.includes(key)) {
           formData[key] = value;
@@ -243,7 +228,7 @@ export function TicketRuleModal({
       }
       return formData;
     },
-    [validAndSavableFieldNames, issueConfigFieldsCache, instance]
+    [validAndSavableFieldNames, issueConfigFields, instance]
   );
 
   const handleSubmit = useCallback(

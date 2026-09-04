@@ -162,6 +162,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
 
     it('preserves a searched option after reloading the form fields', async () => {
       const searchUrl = '/extensions/example/search';
+      onSubmitAction.mockClear();
 
       MockApiClient.addMockResponse({
         url: searchUrl,
@@ -187,7 +188,7 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
           ],
         },
       });
-      MockApiClient.addMockResponse({
+      const searchQuery = MockApiClient.addMockResponse({
         url: searchUrl,
         match: [
           MockApiClient.matchQuery({
@@ -255,6 +256,22 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       expect(screen.getByRole('textbox', {name: 'Details'})).toHaveValue(
         'Default details for selected project'
       );
+
+      const detailsField = screen.getByRole('textbox', {name: 'Details'});
+      await userEvent.clear(detailsField);
+      await userEvent.type(detailsField, 'Updated details');
+      await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
+
+      expect(onSubmitAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: 'Updated details',
+          dynamic_form_fields: expect.arrayContaining([
+            expect.objectContaining({name: 'details'}),
+          ]),
+        }),
+        expect.any(Object)
+      );
+      expect(searchQuery).toHaveBeenCalledTimes(1);
     });
 
     it('should ignore error checking when default is empty array', async () => {
