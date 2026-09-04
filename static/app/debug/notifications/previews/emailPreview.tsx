@@ -80,13 +80,23 @@ function EmailHtmlPreview({html}: {html: string}) {
       if (!node) {
         return;
       }
+
       let observer: ResizeObserver | undefined;
-      node.srcdoc = sanitized;
-      node.onload = () => {
+      let disposed = false;
+
+      const handleLoad = () => {
+        observer?.disconnect();
+        observer = undefined;
+
+        if (disposed) {
+          return;
+        }
+
         const doc = node.contentDocument;
         if (!doc?.body) {
           return;
         }
+
         // Collapse before measuring: scrollHeight can't fall below the frame's own
         // height, so a shorter email couldn't shrink it otherwise. Re-measure when
         // late images or fonts reflow the document.
@@ -94,11 +104,20 @@ function EmailHtmlPreview({html}: {html: string}) {
           node.style.height = '0';
           node.style.height = `${doc.documentElement.scrollHeight}px`;
         };
+
         measure();
         observer = new ResizeObserver(measure);
         observer.observe(doc.body);
       };
-      return () => observer?.disconnect();
+
+      node.addEventListener('load', handleLoad);
+      node.srcdoc = sanitized;
+
+      return () => {
+        disposed = true;
+        node.removeEventListener('load', handleLoad);
+        observer?.disconnect();
+      };
     },
     [sanitized]
   );
