@@ -297,7 +297,18 @@ export function TicketRuleModal({
    */
   const cleanFields = useMemo((): JsonFormAdapterFieldConfig[] => {
     const savedChoicesMap = getSavedChoicesMap(instance);
-    const configFields = integrationDetails?.[getConfigName(action)] || [];
+    const configFields = (integrationDetails?.[getConfigName(action)] || []).map(
+      field => {
+        const cachedChoices = asyncOptionsCache[field.name];
+        // A dynamic reload can omit the searched selection from its limited choices.
+        // Keep the fetched options so the remounted select can still render its label.
+        return (field.type === 'select' || field.type === 'choice') &&
+          field.url &&
+          cachedChoices
+          ? {...field, choices: cachedChoices}
+          : field;
+      }
+    );
 
     const cleanedFields = configFields
       // Don't overwrite the default values for title and description.
@@ -314,7 +325,7 @@ export function TicketRuleModal({
         });
       });
     return [...STATIC_TICKET_FIELDS, ...cleanedFields];
-  }, [instance, integrationDetails, showInstanceValues]);
+  }, [instance, integrationDetails, showInstanceValues, asyncOptionsCache]);
 
   const formErrors = useMemo(() => {
     const errors: Record<string, React.ReactNode> = {};

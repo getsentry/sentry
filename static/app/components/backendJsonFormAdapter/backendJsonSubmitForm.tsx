@@ -401,6 +401,7 @@ export function BackendJsonSubmitForm({
                               debouncedInput,
                               dynamicQueryValues,
                               prefetchReady,
+                              field.prefetch ? null : staticOptions,
                               JSON.stringify(onAsyncOptionsFetchedRef),
                             ],
                             queryFn: async (): Promise<

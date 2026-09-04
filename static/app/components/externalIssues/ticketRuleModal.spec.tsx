@@ -160,6 +160,103 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       await submitSuccess();
     });
 
+    it('preserves a searched option after reloading the form fields', async () => {
+      const searchUrl = '/extensions/example/search';
+
+      MockApiClient.addMockResponse({
+        url: searchUrl,
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [MockApiClient.matchQuery({action: 'create', ignored: ['Sprint']})],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            {
+              name: 'project',
+              label: 'Project',
+              choices: [['project-1', 'Initial Project']],
+              default: 'project-1',
+              type: 'select',
+              updatesForm: true,
+              required: true,
+              url: searchUrl,
+            },
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: searchUrl,
+        match: [
+          MockApiClient.matchQuery({
+            field: 'project',
+            query: 'Selected',
+          }),
+        ],
+        method: 'GET',
+        body: [{label: 'Selected Project', value: 'project-99'}],
+      });
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            project: 'project-99',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            {
+              name: 'project',
+              label: 'Project',
+              choices: [['project-1', 'Initial Project']],
+              default: 'project-99',
+              type: 'select',
+              updatesForm: true,
+              required: true,
+              url: searchUrl,
+            },
+            {
+              name: 'details',
+              label: 'Details',
+              type: 'text',
+              default: 'Default details for selected project',
+            },
+          ],
+        },
+      });
+
+      render(
+        <TicketRuleModal
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          link=""
+          ticketType=""
+          instance={{integration: '1'}}
+          onSubmitAction={onSubmitAction}
+        />,
+        {organization}
+      );
+
+      await screen.findByRole('button', {name: 'Apply Changes'});
+      const projectField = screen.getByRole('textbox', {name: 'Project'});
+      await userEvent.click(projectField);
+      await userEvent.type(projectField, 'Selected');
+      await userEvent.click(await screen.findByText('Selected Project'));
+
+      await waitFor(() => expect(dynamicQuery).toHaveBeenCalled());
+      expect(await screen.findByText('Selected Project')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Details'})).toHaveValue(
+        'Default details for selected project'
+      );
+    });
+
     it('should ignore error checking when default is empty array', async () => {
       const dynamicQuery = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/integrations/1/',
