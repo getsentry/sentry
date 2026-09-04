@@ -192,10 +192,10 @@ describe('node agentMonitoring onboarding', () => {
       const code = collectCode(config.configure(makeParams({integration: 'eve'})));
 
       expect(code).toContain(
-        'SENTRY_OTLP_TRACES_ENDPOINT=https://o1.ingest.sentry.io/api/1/otlp/v1/traces'
+        'SENTRY_OTLP_TRACES_ENDPOINT="https://o1.ingest.sentry.io/api/1/otlp/v1/traces"'
       );
       // The bare public key, not the full DSN
-      expect(code).toContain('SENTRY_PUBLIC_KEY=public');
+      expect(code).toContain('SENTRY_PUBLIC_KEY="public"');
       expect(code).toContain('defineInstrumentation');
       expect(code).not.toContain('Sentry.init(');
       expect(code).not.toContain('Sentry.withSentry(');

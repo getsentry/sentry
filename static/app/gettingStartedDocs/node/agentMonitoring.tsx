@@ -431,8 +431,8 @@ export const eveOnboarding: OnboardingConfig = {
                 label: 'bash',
                 language: 'bash',
                 code: [
-                  `SENTRY_OTLP_TRACES_ENDPOINT=${params.dsn.otlp_traces}`,
-                  `SENTRY_PUBLIC_KEY=${publicKey}`,
+                  `SENTRY_OTLP_TRACES_ENDPOINT="${params.dsn.otlp_traces}"`,
+                  `SENTRY_PUBLIC_KEY="${publicKey}"`,
                 ].join('\n'),
               },
             ],
@@ -456,8 +456,7 @@ export const eveOnboarding: OnboardingConfig = {
 import { defineInstrumentation } from "eve/instrumentation";
 
 export default defineInstrumentation({
-  recordInputs: true,
-  recordOutputs: true,
+  // Set recordInputs/recordOutputs to true to also capture prompts and responses.
   setup: ({ agentName }) =>
     registerOTel({
       serviceName: agentName,
