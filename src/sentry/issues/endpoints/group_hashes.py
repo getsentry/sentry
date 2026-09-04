@@ -15,6 +15,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
     EventSerializerResponse,
     SimpleEventSerializerResponse,
 )
@@ -53,6 +54,14 @@ class GroupHashesEndpoint(GroupEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PUBLIC,
     }
+
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") not in ("0", "false"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
 
     @extend_schema(
         operation_id="listOrganizationIssueHashes",
