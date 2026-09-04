@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -49,7 +49,13 @@ export default function Stories() {
 function StoriesLanding() {
   return (
     <StoriesLayout>
-      <StoryMainContainer>
+      <StoryMainContainer
+        as="main"
+        column="2"
+        containerType="inline-size"
+        gap="xl"
+        row="1"
+      >
         <StoryLanding />
       </StoryMainContainer>
     </StoriesLayout>
@@ -121,7 +127,14 @@ function StoryDetail() {
           </Alert.Container>
         </Container>
       ) : story.isSuccess ? (
-        <StoryMainContainer onClick={handleExpressiveCodeCopyClick}>
+        <StoryMainContainer
+          as="main"
+          column="2"
+          containerType="inline-size"
+          gap="xl"
+          row="1"
+          onClick={handleExpressiveCodeCopyClick}
+        >
           {story.data.map(s => {
             return <StoryExports key={s.filename} story={s} />;
           })}
@@ -309,13 +322,8 @@ const HeaderContainer = styled('header')`
   background: ${p => p.theme.tokens.background.primary};
 `;
 
-const StoryMainContainer = styled('main')`
-  grid-row: 1;
-  grid-column: 2;
+const StoryMainContainer = styled(Stack)`
   color: ${p => p.theme.tokens.content.primary};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.xl};
 
   h1,
   h2,
