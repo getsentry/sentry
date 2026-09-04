@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from collections.abc import Mapping
 from concurrent.futures import as_completed
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import orjson
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
+from sentry.api.base import ONE_DAY
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.models.webhookpayload import DestinationType, WebhookPayload
@@ -30,12 +31,12 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.killswitches import get_killswitch_value, value_matches
 from sentry.logging.handlers import SamplingFilter
+from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -81,14 +82,13 @@ class BaseRequestParser(ABC):
     mailbox_bucket_count: ClassVar[int] = 100
     """How many sub-mailboxes `mailbox_bucket_id` is spread over.
 
-    Set it from the key's cardinality. A repeating key (a repository) coalesces
-    payloads onto one mailbox per value, so a high count is free. A key that barely
-    repeats (an issue) fills a bucket once and never returns, and every mailbox costs
-    a scheduler row and a dispatch slot.
-
-    A static count is the interim answer; CW-1987 sizes it from a rolling per-
-    integration rate instead. https://linear.app/getsentry/issue/CW-1987
+    Every mailbox costs a scheduler row and a dispatch slot, so splitting past what
+    the volume needs buys queue rows rather than parallelism.
     """
+
+    always_bucket: ClassVar[bool] = False
+    """Split every integration's mailbox by `mailbox_bucket_id` instead of waiting
+    for it to exceed the hourly rate limit first."""
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
@@ -307,12 +307,22 @@ class BaseRequestParser(ABC):
                 subject=str(integration.id),
                 event_type=self._mailbox_event_type(data),
             ),
+            integration,
             data,
         )
 
-    def _bucketed(self, mailbox: MailboxName, data: dict[str, Any]) -> MailboxName:
-        """`mailbox` in a bucket, or unchanged where the payload carries no key to
-        bucket it on."""
+    def _bucketed(
+        self,
+        mailbox: MailboxName,
+        integration: RpcIntegration | Integration,
+        data: dict[str, Any],
+    ) -> MailboxName:
+        """`mailbox` in a bucket, or unchanged where the integration is below the
+        volume that warrants buckets, or the payload carries no key to bucket it on."""
+        if not self.always_bucket and not self._exceeds_bucketing_volume(integration):
+            self._record_mailbox_routing(bucketed=False, reason="under_volume_gate")
+            return mailbox
+
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
             self._record_mailbox_routing(bucketed=False, reason="no_bucket_key")
@@ -321,6 +331,20 @@ class BaseRequestParser(ABC):
         self._record_mailbox_routing(bucketed=True, reason="bucketed")
 
         return mailbox.in_bucket(mailbox_bucket_id % self.mailbox_bucket_count)
+
+    def _exceeds_bucketing_volume(self, integration: RpcIntegration | Integration) -> bool:
+        # If we get fewer than 3000 in 1 hour we don't need to split into buckets
+        ratelimit_key = f"webhookpayload:{self.provider}:{integration.id}"
+        use_buckets_key = f"{ratelimit_key}:use_buckets"
+
+        if cache.get(use_buckets_key):
+            return True
+        if ratelimiter.is_limited(key=ratelimit_key, window=60 * 60, limit=3000):
+            # Once we have gone over the rate limit in a day, we use smaller
+            # buckets for the next day.
+            cache.set(use_buckets_key, 1, timeout=ONE_DAY)
+            return True
+        return False
 
     def _record_mailbox_routing(self, bucketed: bool, reason: str) -> None:
         """`reason` is the full breakdown; `bucketed` stays for the dashboards on it."""
@@ -337,18 +361,6 @@ class BaseRequestParser(ABC):
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
-
-    @staticmethod
-    def bucket_key_at(data: Mapping[str, Any], *path: str) -> int | None:
-        """Read a bucket key out of `data`, or None if it is missing or not numeric.
-
-        Shared so every provider degrades the same way rather than raising out of the
-        parser on a body it did not expect.
-        """
-        try:
-            return int(get_path(data, *path))
-        except (TypeError, ValueError):
-            return None
 
     def _mailbox_event_type(self, data: dict[str, Any]) -> str | None:
         """Validation lives here, not in the subclass: the discriminator comes out of

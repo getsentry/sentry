@@ -256,7 +256,7 @@ class GithubRequestParserTest(TestCase):
                 "installation": {"id": "1"},
                 "issue": {"id": "1"},
                 "action": "deleted",
-                "repository": {"id": 1},
+                "repository": {"id": "1"},
             },
             content_type="application/json",
             headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
@@ -270,7 +270,7 @@ class GithubRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}:1:issues",
+            mailbox_name=f"github:{integration.id}:issues",
             cell_names=[cell.name],
             destination_types={DestinationType.SENTRY_CELL: 1},
         )

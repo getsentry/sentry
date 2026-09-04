@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import responses
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from rest_framework import status
@@ -147,6 +148,8 @@ class JiraRequestParserTest(TestCase):
     @override_cells(cell_config)
     def test_get_response_routing_to_cell_async_bucketed(self) -> None:
         integration = self.get_integration()
+        use_buckets_key = f"webhookpayload:jira:{integration.id}:use_buckets"
+        cache.set(use_buckets_key, 1)
         request = self.factory.post(
             path=f"{self.path_base}/issue-updated/",
             data={"issue": {"id": "10425"}},
@@ -158,6 +161,7 @@ class JiraRequestParserTest(TestCase):
             method.return_value = integration
             response = parser.get_response()
 
+        cache.delete(use_buckets_key)
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(

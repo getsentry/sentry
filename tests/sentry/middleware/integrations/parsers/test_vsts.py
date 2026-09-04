@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import responses
+from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
@@ -70,7 +71,7 @@ class VstsRequestParserTest(TestCase):
         assert response.status_code == 202
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}:1",
+            mailbox_name=f"vsts:{self.integration.id}",
             cell_names=["us"],
         )
 
@@ -138,16 +139,16 @@ class VstsRequestParserTest(TestCase):
         parser.get_response()
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}:1",
+            mailbox_name=f"vsts:{self.integration.id}",
             cell_names=["us"],
         )
 
-    def test_webhook_outbox_creation_without_a_work_item(self) -> None:
-        data = deepcopy(WORK_ITEM_UPDATED)
-        del data["resource"]["workItemId"]
+    def test_webhook_outbox_creation_bucketed(self) -> None:
+        use_buckets_key = f"webhookpayload:vsts:{self.integration.id}:use_buckets"
+        cache.set(use_buckets_key, 1)
         request = self.factory.post(
             self.path,
-            data=data,
+            data=WORK_ITEM_UPDATED,
             content_type="application/json",
             HTTP_SHARED_SECRET=self.shared_secret,
         )
@@ -156,9 +157,11 @@ class VstsRequestParserTest(TestCase):
         assert_no_webhook_payloads()
         parser.get_response()
 
+        cache.delete(use_buckets_key)
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"vsts:{self.integration.id}",
+            # workItemId 31 % 10
+            mailbox_name=f"vsts:{self.integration.id}:1",
             cell_names=["us"],
         )
 

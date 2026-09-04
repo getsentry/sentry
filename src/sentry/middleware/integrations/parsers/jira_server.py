@@ -23,8 +23,6 @@ class JiraServerRequestParser(BaseRequestParser):
     provider = IntegrationProviderSlug.JIRA_SERVER.value
     webhook_identifier = WebhookProviderIdentifier.JIRA_SERVER
 
-    mailbox_bucket_count = 10
-
     def get_response_from_issue_update_webhook(self) -> HttpResponseBase:
         token = self.match.kwargs.get("token")
         try:
@@ -54,8 +52,18 @@ class JiraServerRequestParser(BaseRequestParser):
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
-        """Only changelog webhooks reach a cell, and each names its issue."""
-        return self.bucket_key_at(data, "issue", "id")
+        """
+        Used by get_mailbox to find the issue.id a payload is for.
+        In high volume jira_server instances we shard messages by issue for greater
+        delivery throughput.
+        """
+        issue_id = data.get("issue", {}).get("id", None)
+        if not issue_id:
+            return None
+        try:
+            return int(issue_id)
+        except ValueError:
+            return None
 
     def get_response(self) -> HttpResponseBase:
         if self.view_class == JiraServerIssueUpdatedWebhook:
