@@ -301,6 +301,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={partnerSubscription}
         onAction={mockOnAction}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );
@@ -378,6 +379,7 @@ describe('CustomerOverview', () => {
       <CustomerOverview
         customer={partnerSubscription}
         onAction={mockOnAction}
+        onContractEndDateChange={jest.fn()}
         organization={organization}
       />
     );

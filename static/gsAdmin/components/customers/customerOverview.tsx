@@ -65,7 +65,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onContractEndDateChange: (data: Record<string, any>) => Promise<unknown>;
+  onAction: (data: Record<string, any>) => Promise<unknown>;
 };
 
 function SoftCapTypeDetail({
@@ -106,10 +106,7 @@ function SoftCapTypeDetail({
   return <Fragment>{softCapTypes.length ? softCapTypes : <span>None</span>}</Fragment>;
 }
 
-function SubscriptionSummary({
-  customer,
-  onContractEndDateChange,
-}: SubscriptionSummaryProps) {
+function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   return (
     <div>
       <DetailList>
@@ -139,7 +136,7 @@ function SubscriptionSummary({
               customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
                   contractPeriodEnd={customer.billingPeriodEnd}
-                  onAction={onContractEndDateChange}
+                  onAction={onAction}
                 />
               )) ||
               moment(customer.billingPeriodEnd).format('ll')}
@@ -801,10 +798,7 @@ export function CustomerOverview({
         </DetailList>
 
         <h6>Subscription</h6>
-        <SubscriptionSummary
-          customer={customer}
-          onContractEndDateChange={onContractEndDateChange}
-        />
+        <SubscriptionSummary customer={customer} onAction={onContractEndDateChange} />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
         <h6>PCSS</h6>
