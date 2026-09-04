@@ -975,6 +975,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
+    "sentry.tasks.process_active_projects",
     "sentry.tasks.commit_context",
     "sentry.tasks.commits",
     "sentry.tasks.console_platform_cleanup",
