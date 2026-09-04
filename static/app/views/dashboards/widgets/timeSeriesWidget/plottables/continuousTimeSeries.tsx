@@ -27,6 +27,10 @@ export type ContinuousTimeSeriesConfig = {
    * (alias or computed from `formatTimeSeriesLabel`), not this name.
    */
   name?: string;
+  /**
+   * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
+   */
+  onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
 };
 
 export type ContinuousTimeSeriesPlottingOptions = {

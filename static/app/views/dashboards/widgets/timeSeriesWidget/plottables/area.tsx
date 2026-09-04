@@ -22,7 +22,24 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     this.#timeSeriesAndIsIncomplete = segmentTimeSeriesByIncompleteData(timeSeries);
   }
 
-  onHighlight(_dataIndex: number): void {}
+  onHighlight(dataIndex: number): void {
+    const {config = {}} = this;
+    // The incomplete series prepends the final data point from the complete
+    // series. This causes off-by-one errors with `seriesDataIndex`, since the
+    // complete series has one more data points than we'd expect. Account for
+    // this by reconstructing the data points from the split series
+    const mergedData = this.#timeSeriesAndIsIncomplete.flatMap(([timeSeries]) => {
+      return timeSeries.values;
+    });
+
+    const datum = mergedData.at(dataIndex);
+
+    if (!datum) {
+      return;
+    }
+
+    config.onHighlight?.(datum);
+  }
 
   toSeries(plottingOptions: ContinuousTimeSeriesPlottingOptions): LineSeriesOption[] {
     const {config = {}} = this;

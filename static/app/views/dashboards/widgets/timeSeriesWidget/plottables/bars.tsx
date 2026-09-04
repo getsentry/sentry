@@ -20,7 +20,16 @@ interface BarsConfig extends ContinuousTimeSeriesConfig {
 }
 
 export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable {
-  onHighlight(_dataIndex: number): void {}
+  onHighlight(dataIndex: number): void {
+    const {config = {}} = this;
+    const datum = this.timeSeries.values.at(dataIndex);
+
+    if (!datum) {
+      return;
+    }
+
+    config.onHighlight?.(datum);
+  }
 
   toSeries(
     plottingOptions: ContinuousTimeSeriesPlottingOptions
