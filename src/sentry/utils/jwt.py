@@ -51,6 +51,7 @@ def decode(
     *,  # Force passing optional arguments by keyword
     audience: str | bool | None = None,
     algorithms: list[str] | None = None,
+    require_exp: bool = True,
 ) -> dict[str, Any]:
     """Returns the claims (payload) in the JWT token.
 
@@ -63,10 +64,12 @@ def decode(
     :param audience: Set this to the audience you expect to be present in the claims.  Set
        this to ``False`` to disable verifying the audience.
     :param algorithms: The algorithms which should be tried to verify the payload.
+    :param require_exp: Whether the token must include an expiration claim. Tokens with an
+       expiration claim are always rejected after they expire.
     """
     # TODO: We do not currently have type-safety for keys suitable for decoding *and*
     # encoding vs those only suitable for decoding.
-    options: Options = {}
+    options: Options = {"require": ["exp"], "verify_exp": True} if require_exp else {}
     kwargs: dict[str, Any] = {}
     if audience is False:
         options["verify_aud"] = False
