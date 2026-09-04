@@ -31,6 +31,8 @@ const FLUE_NODE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/flue/';
 const FLUE_CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/flue/';
+const EVE_AGENT_TRACING_DOCS =
+  'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/eve/';
 
 export function getAgentIntegration(params: DocsParams): AgentIntegration {
   return (params.platformOptions?.integration ??
@@ -521,6 +523,128 @@ SENTRY_TRACES_SAMPLE_RATE=1`,
   ],
 };
 
+/**
+ * Eve is Vercel's filesystem-first framework for durable backend AI agents. It
+ * doesn't use `Sentry.init` - its `eve add instrumentation/sentry` command
+ * generates an `agent/instrumentation.ts` that wires `@vercel/otel` to Sentry's
+ * OTLP traces endpoint, reading the endpoint and public key from the
+ * environment. Eve runs on Node only.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/eve/
+ */
+export const eveOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry instrumentation to your Eve project. This generates [code:agent/instrumentation.ts] and installs the required OpenTelemetry packages.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'bash',
+              language: 'bash',
+              code: 'eve add instrumentation/sentry',
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: params => {
+    // `dsn.public` is the full DSN; Eve's `x-sentry-auth` header only needs the
+    // public key portion (the DSN's userinfo).
+    const publicKey = new URL(params.dsn.public).username;
+
+    return [
+      {
+        title: t('Configure'),
+        content: [
+          {
+            type: 'text',
+            text: tct(
+              'The generated [code:agent/instrumentation.ts] reads your Sentry OTLP endpoint and public key from the environment. Set these variables so Eve exports traces to Sentry:',
+              {
+                code: <code />,
+              }
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'bash',
+                language: 'bash',
+                code: [
+                  `SENTRY_OTLP_TRACES_ENDPOINT="${params.dsn.otlp_traces}"`,
+                  `SENTRY_PUBLIC_KEY="${publicKey}"`,
+                ].join('\n'),
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: tct(
+              'For reference, the generated instrumentation looks like this. See the [link:Eve docs] for details.',
+              {
+                link: <ExternalLink href={EVE_AGENT_TRACING_DOCS} />,
+              }
+            ),
+          },
+          {
+            type: 'code',
+            tabs: [
+              {
+                label: 'agent/instrumentation.ts',
+                language: 'typescript',
+                code: `import { OTLPHttpProtoTraceExporter, registerOTel } from "@vercel/otel";
+import { defineInstrumentation } from "eve/instrumentation";
+
+export default defineInstrumentation({
+  // Capture prompts and responses; set either to false to omit them.
+  recordInputs: true,
+  recordOutputs: true,
+  setup: ({ agentName }) =>
+    registerOTel({
+      serviceName: agentName,
+      traceExporter: new OTLPHttpProtoTraceExporter({
+        url: process.env.SENTRY_OTLP_TRACES_ENDPOINT!,
+        headers: {
+          "x-sentry-auth": \`sentry sentry_key=\${process.env.SENTRY_PUBLIC_KEY}\`,
+        },
+      }),
+    }),
+});`,
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  },
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Start Eve and send a prompt that calls a tool. The agent run shows up as AI spans in Sentry.'
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 export function getManualConfigureStep(
   params: DocsParams,
   {
@@ -609,6 +733,10 @@ export function getInstallStep(
 
   if (selected === AgentIntegration.FLUE) {
     return flueOnboarding.install(params);
+  }
+
+  if (selected === AgentIntegration.EVE) {
+    return eveOnboarding.install(params);
   }
 
   const resolvedPackageName =
@@ -794,6 +922,10 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
 
   if (selected === AgentIntegration.FLUE) {
     return flueOnboarding.verify(params);
+  }
+
+  if (selected === AgentIntegration.EVE) {
+    return eveOnboarding.verify(params);
   }
 
   // On Cloudflare these SDKs only produce spans through the wrapped client shown
@@ -994,6 +1126,10 @@ export const agentMonitoring = ({
 
     if (selected === AgentIntegration.FLUE) {
       return flueOnboarding.configure(params);
+    }
+
+    if (selected === AgentIntegration.EVE) {
+      return eveOnboarding.configure(params);
     }
 
     return getConfigureStep({

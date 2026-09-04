@@ -12,6 +12,9 @@ export enum AgentIntegration {
   MASTRA = 'mastra',
   PYDANTIC_AI = 'pydantic_ai',
   VERCEL_AI = 'vercel_ai',
+  // Node-only: Vercel's filesystem-first framework for durable backend AI
+  // agents, built on top of the Vercel AI SDK.
+  EVE = 'eve',
   // Cloudflare-only: the Workers AI binding (env.AI) auto-instruments once the
   // Worker is wrapped with Sentry.
   WORKERS_AI = 'workers_ai',
@@ -30,6 +33,7 @@ export const AGENT_INTEGRATION_LABELS = {
   [AgentIntegration.MASTRA]: 'Mastra',
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
+  [AgentIntegration.EVE]: 'Eve',
   [AgentIntegration.WORKERS_AI]: 'Workers AI',
   [AgentIntegration.MANUAL]: 'Other',
 };
@@ -46,6 +50,8 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.MASTRA]: 'mastra',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
+  // Eve is a Vercel framework, so it reuses the Vercel icon.
+  [AgentIntegration.EVE]: 'vercel',
   [AgentIntegration.WORKERS_AI]: 'cloudflare',
   [AgentIntegration.MANUAL]: 'default',
 };
@@ -70,6 +76,7 @@ export const PYTHON_AGENT_INTEGRATIONS = [
  */
 export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
+  AgentIntegration.EVE,
   AgentIntegration.WORKERS_AI,
   AgentIntegration.ANTHROPIC,
   AgentIntegration.FLUE,
@@ -116,6 +123,7 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
  * - Workers AI is the Cloudflare Workers AI binding (env.AI), Cloudflare-only.
  * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
  *   flow, so it is Node-only.
+ * - Eve is a Vercel backend framework that runs on Node, so it is Node-only.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
@@ -124,6 +132,7 @@ const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
 > = {
   [AgentIntegration.WORKERS_AI]: DeploymentTarget.CLOUDFLARE,
   [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
+  [AgentIntegration.EVE]: DeploymentTarget.NODE,
 };
 
 /**

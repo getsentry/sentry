@@ -4,6 +4,7 @@ import type {Client} from 'sentry/api';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -379,16 +380,21 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
   }
 
   get traceOrigin(): number {
-    return (
-      ((this.value &&
-        Array.isArray(this.value) &&
-        this.value[0] &&
-        'additional_attributes' in this.value[0] &&
-        (this.value[0].additional_attributes?.[
-          'tags[performance.timeOrigin,number]'
-        ] as number)) ||
-        0) * 1000
+    if (
+      !Array.isArray(this.value) ||
+      !this.value[0] ||
+      !('additional_attributes' in this.value[0])
+    ) {
+      return 0;
+    }
+
+    const timeOrigin = getAttributeValue(
+      this.value[0].additional_attributes ?? {},
+      'browser.performance.time_origin',
+      'number'
     );
+
+    return Number(timeOrigin ?? 0) * 1000;
   }
 
   isRootNodeChild(): boolean {

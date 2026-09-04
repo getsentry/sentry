@@ -6,7 +6,10 @@ import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
   return {
-    dsn: {public: 'https://public@o1.ingest.sentry.io/1'},
+    dsn: {
+      public: 'https://public@o1.ingest.sentry.io/1',
+      otlp_traces: 'https://o1.ingest.sentry.io/api/1/otlp/v1/traces',
+    },
     platformOptions,
     project: {id: '1', slug: 'project-slug', platform: 'node'},
     isProfilingSelected: false,
@@ -220,6 +223,40 @@ describe('node agentMonitoring onboarding', () => {
       expect(steps).toHaveLength(1);
       expect(steps[0]!.type).toBe('verify');
       expect(collectCode(steps)).toBe('');
+    });
+  });
+
+  describe('Eve', () => {
+    it('installs via the eve CLI instead of an npm package', () => {
+      const code = collectCode(config.install(makeParams({integration: 'eve'})));
+
+      expect(code).toContain('eve add instrumentation/sentry');
+      expect(code).not.toContain('npm install @sentry/node');
+    });
+
+    it('configures the OTLP endpoint and public key from the DSN, without Sentry.init', () => {
+      const code = collectCode(config.configure(makeParams({integration: 'eve'})));
+
+      expect(code).toContain(
+        'SENTRY_OTLP_TRACES_ENDPOINT="https://o1.ingest.sentry.io/api/1/otlp/v1/traces"'
+      );
+      // The bare public key, not the full DSN
+      expect(code).toContain('SENTRY_PUBLIC_KEY="public"');
+      expect(code).toContain('defineInstrumentation');
+      expect(code).not.toContain('Sentry.init(');
+      expect(code).not.toContain('Sentry.withSentry(');
+    });
+
+    it('verifies by running the Eve agent', () => {
+      const steps = config.verify(makeParams({integration: 'eve'}));
+      const texts = steps
+        .flatMap(step => step.content ?? [])
+        .filter(block => block.type === 'text')
+        .map(block => block.text);
+
+      expect(
+        texts.some(text => typeof text === 'string' && text.includes('Start Eve'))
+      ).toBe(true);
     });
   });
 });
