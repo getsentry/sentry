@@ -456,7 +456,9 @@ export const eveOnboarding: OnboardingConfig = {
 import { defineInstrumentation } from "eve/instrumentation";
 
 export default defineInstrumentation({
-  // Set recordInputs/recordOutputs to true to also capture prompts and responses.
+  // Capture prompts and responses; set either to false to omit them.
+  recordInputs: true,
+  recordOutputs: true,
   setup: ({ agentName }) =>
     registerOTel({
       serviceName: agentName,
