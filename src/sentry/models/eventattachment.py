@@ -10,7 +10,7 @@ from typing import IO, Any
 
 import zstandard
 from django.core.cache import cache
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.expressions import DatabaseDefault
 from django.db.models.functions import Now
 from django.http import HttpRequest
@@ -123,6 +123,40 @@ class EventAttachmentBase(Model):
     class Meta:
         abstract = True
 
+    def delete_blob(self) -> None:
+        """
+        Delete this attachment's payload from its backing store.
+
+        Only call this when no other row references the blob. Promoting a
+        `PendingEventAttachment` to an `EventAttachment` hands the blob over to the new
+        row, so the pending row must be deleted without touching the blob (a queryset
+        delete does that, since it does not run `Model.delete`).
+        """
+        if not self.blob_path:
+            return
+
+        if self.blob_path.startswith(":"):
+            pass  # nothing to do for inline-stored attachments
+
+        elif self.blob_path.startswith(V1_PREFIX):
+            storage = get_storage()
+            with measure_storage_operation("delete", "attachments"):
+                storage.delete(self.blob_path)
+
+        elif self.blob_path.startswith(V2_PREFIX):
+            # During cleanup, V2 objectstore blobs expire via TTL — skip the
+            # explicit delete to avoid unnecessary load on the objectstore service.
+            #
+            # We want to special-case pending attachments in a follow-up. See INGEST-1176.
+            if not os.environ.get("_SENTRY_CLEANUP"):
+                organization_id = _get_organization(self.project_id)
+                get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
+                    self.blob_path.removeprefix(V2_PREFIX)
+                )
+
+        else:
+            raise NotImplementedError()
+
 
 @cell_silo_model
 class EventAttachment(EventAttachmentBase):
@@ -161,26 +195,7 @@ class EventAttachment(EventAttachmentBase):
             # repopulated with the next incoming crash report.
             cache.delete(get_crashreport_key(self.group_id))
 
-        if self.blob_path:
-            if self.blob_path.startswith(":"):
-                pass  # nothing to do for inline-stored attachments
-
-            elif self.blob_path.startswith(V1_PREFIX):
-                storage = get_storage()
-                with measure_storage_operation("delete", "attachments"):
-                    storage.delete(self.blob_path)
-
-            elif self.blob_path.startswith(V2_PREFIX):
-                # During cleanup, V2 objectstore blobs expire via TTL — skip the
-                # explicit delete to avoid unnecessary load on the objectstore service.
-                if not os.environ.get("_SENTRY_CLEANUP"):
-                    organization_id = _get_organization(self.project_id)
-                    get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
-                        self.blob_path.removeprefix(V2_PREFIX)
-                    )
-
-            else:
-                raise NotImplementedError()
+        self.delete_blob()
 
         return rv
 
@@ -326,6 +341,22 @@ class PendingEventAttachment(EventAttachmentBase):
         indexes = (models.Index(fields=("project_id", "event_id")),)
 
     __repr__ = sane_repr("event_id", "name")
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        # A pending attachment that is deleted rather than promoted (its event never
+        # arrived, so `cleanup` reaped it once `date_expires` passed) still owns its blob.
+        #
+        # Lock the row for update to ensure that a `save_pending_attachment` call is not concurrently
+        # promoting the attachment to `EventAttachment`.
+        with transaction.atomic(router.db_for_write(PendingEventAttachment)):
+            is_owner = (
+                PendingEventAttachment.objects.filter(id=self.id).select_for_update().exists()
+            )
+            rv = super().delete(*args, **kwargs)
+
+        if is_owner:
+            self.delete_blob()
+        return rv
 
 
 def normalize_content_type(content_type: str | None, name: str) -> str:
