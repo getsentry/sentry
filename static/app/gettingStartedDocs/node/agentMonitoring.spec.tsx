@@ -207,7 +207,7 @@ describe('node agentMonitoring onboarding', () => {
         )
       );
 
-      expect(code).toContain('export { cloudflare } from "./sentry.ts"');
+      expect(code).toContain('export { cloudflare } from "../sentry.ts"');
       expect(code).toContain('wrangler secret put SENTRY_DSN');
       // Flue reads the DSN from bindings, so it is not inlined into the config.
       expect(code).not.toContain('Sentry.init(');
