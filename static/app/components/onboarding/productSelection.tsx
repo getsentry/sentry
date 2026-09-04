@@ -551,7 +551,6 @@ function Product({
           </Stack>
         ))
       }
-      isHoverable
     >
       <ProductButton
         onClick={disabled?.onClick ?? onClick}

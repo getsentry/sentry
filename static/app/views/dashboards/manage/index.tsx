@@ -313,7 +313,6 @@ function ManageDashboards() {
                 icon={<IconAdd />}
                 disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                 tooltipProps={{
-                  isHoverable: true,
                   title: limitMessage,
                 }}
               >

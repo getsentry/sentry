@@ -1152,7 +1152,7 @@ function DiscoverContextMenu({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
       disabled: deprecatingTransactionsDataset,
-      tooltipOptions: {isHoverable: true},
+      tooltipOptions: {},
       tooltip:
         deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
       onAction: () => {
@@ -1367,7 +1367,6 @@ function SaveQueryButton({
                   deprecatingTransactionsDataset &&
                   getTransactionDeprecationMessage(tracesUrl)
                 }
-                isHoverable
               >
                 <Button
                   onClick={handleUpdate}
@@ -1384,7 +1383,6 @@ function SaveQueryButton({
                   currentDataset !== DiscoverDatasets.TRANSACTIONS ||
                   !organization.features.includes('discover-saved-queries-deprecation')
                 }
-                isHoverable
                 title={getTransactionDeprecationMessage(tracesUrl)}
               >
                 <SaveAsDropdown
@@ -1404,7 +1402,6 @@ function SaveQueryButton({
               currentDataset !== DiscoverDatasets.TRANSACTIONS ||
               !organization.features.includes('discover-saved-queries-deprecation')
             }
-            isHoverable
             title={getTransactionDeprecationMessage(tracesUrl)}
           >
             <SaveAsDropdown

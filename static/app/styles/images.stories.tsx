@@ -48,7 +48,6 @@ export default Storybook.story('sentry-image/*', story => {
       <Grid columns="repeat(auto-fill, minmax(220px, 1fr))" gap="lg" align="stretch">
         {sectionImages.map(image => (
           <Tooltip
-            isHoverable
             key={image.file}
             title={`import ${toCamelCase(nameOfFile(image.file))} from '${image.file}';`}
           >

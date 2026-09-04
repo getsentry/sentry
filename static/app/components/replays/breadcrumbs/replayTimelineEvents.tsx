@@ -157,12 +157,7 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <Tooltip
-        title={title}
-        overlayStyle={overlayStyle}
-        containerDisplayMode="grid"
-        isHoverable
-      >
+      <Tooltip title={title} overlayStyle={overlayStyle} containerDisplayMode="grid">
         <IconNode
           colorTokens={sortedUniqueColorTokens}
           frameCount={frameCount}

@@ -25,7 +25,6 @@ export function WidgetDescription(props: WidgetDescriptionProps) {
         </Stack>
       }
       containerDisplayMode="grid"
-      isHoverable
       forceVisible={props.revealTooltip === 'always' ? true : undefined}
     >
       <TooltipButton

@@ -335,11 +335,7 @@ function InstallationRepoCountTag({installation}: {installation: ScmInstallation
   const isLoading = reposLoading || isSyncing;
 
   return (
-    <Tooltip
-      isHoverable={!isLoading}
-      title={getRepoCountTooltip(installation, lastSync)}
-      skipWrapper
-    >
+    <Tooltip title={getRepoCountTooltip(installation, lastSync)} skipWrapper>
       <Tag
         variant="muted"
         icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}

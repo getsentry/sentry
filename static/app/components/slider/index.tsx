@@ -204,7 +204,6 @@ export function Slider({
       title={disabledReason}
       disabled={!disabled}
       skipWrapper
-      isHoverable
       position="bottom"
       offset={-15}
     >

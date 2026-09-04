@@ -35,7 +35,6 @@ export function MetricAlertQuotaIcon() {
   if (metricAlertQuota?.hasReachedLimit) {
     return (
       <Tooltip
-        isHoverable
         title={tct(
           "You have reached your plan's limit on metric monitors. [removeLink:Remove existing monitors] or [upgradeLink:upgrade your plan].",
           {

@@ -52,7 +52,6 @@ export function ProjectList({
       {numCollapsedProjects > 0 && (
         <Tooltip
           skipWrapper
-          isHoverable
           disabled={collapsedProjectsTooltip === null}
           title={
             collapsedProjectsTooltip ? (

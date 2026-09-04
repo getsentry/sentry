@@ -54,7 +54,6 @@ export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Pr
               }
             )}
             disabled={hasRole}
-            isHoverable
           >
             <LinkButton
               size="sm"

@@ -438,7 +438,7 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
   }
 
   return (
-    <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable skipWrapper>
+    <Tooltip title={<UserNotInstrumentedTooltip />} skipWrapper>
       <Flex align="center" gap="xs">
         <UserIcon size="xs" />
         <Text size="sm" variant="muted">

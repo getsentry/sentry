@@ -28,7 +28,6 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
           </Text>
           {requiresUpgrade && (
             <Tooltip
-              isHoverable
               containerDisplayMode="flex"
               title={tct(
                 "There's a new update for your [displayName] integration, please update your [noun]",

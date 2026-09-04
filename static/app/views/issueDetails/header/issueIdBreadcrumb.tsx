@@ -79,7 +79,6 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
                 aria-label={t('View issue share settings')}
                 icon={<IconGlobe size="xs" variant="muted" />}
                 tooltipProps={{
-                  isHoverable: true,
                   title: tct('This issue has been shared [link:with a public link].', {
                     link: <ExternalLink href={shareUrl} />,
                   }),
@@ -180,7 +179,6 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           aria-label={t('View issue share settings')}
           icon={<IconGlobe size="xs" variant="muted" />}
           tooltipProps={{
-            isHoverable: true,
             title: tct('This issue has been shared [link:with a public link].', {
               link: <ExternalLink href={shareUrl} />,
             }),

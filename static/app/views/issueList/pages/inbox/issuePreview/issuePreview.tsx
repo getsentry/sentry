@@ -186,13 +186,7 @@ function IssuePreviewContent() {
           <Container>
             <Flex align="center" justify="between" gap="md">
               <Flex align="center" gap="md" minWidth={0}>
-                <Tooltip
-                  title={primaryTitle}
-                  skipWrapper
-                  isHoverable
-                  showOnlyOnOverflow
-                  delay={1000}
-                >
+                <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
                   <TitleLink
                     to={issueDetailsLocation}
                     analyticsEventKey="issue_inbox.open_issue_clicked"

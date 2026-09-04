@@ -114,13 +114,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         </Flex>
         <HeaderGrid>
           <Title>
-            <Tooltip
-              title={primaryTitle}
-              skipWrapper
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
+            <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
             {isAIDetectedIssue && <FeatureBadge type="new" />}

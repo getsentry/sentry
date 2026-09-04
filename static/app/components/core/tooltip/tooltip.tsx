@@ -56,7 +56,6 @@ function TooltipComponent({
   title,
   disabled = false,
   maxWidth,
-  isHoverable = true,
   ...hoverOverlayProps
 }: TooltipProps) {
   const theme = useTheme();
@@ -71,7 +70,7 @@ function TooltipComponent({
     arrowProps,
     reset,
     update,
-  } = useHoverOverlay({...hoverOverlayProps, isHoverable});
+  } = useHoverOverlay({...hoverOverlayProps});
 
   const {forceVisible} = hoverOverlayProps;
 
