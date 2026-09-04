@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0033_seer_run_pr_iteration
 
-sentry: 1164_custominboundfilter_add_data_type
+sentry: 1165_backfill_custominboundfilter_data_type
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
