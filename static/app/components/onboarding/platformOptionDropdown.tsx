@@ -56,7 +56,14 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
       value={value}
       onChange={onChange}
       options={option.items}
-      position="bottom-end"
+      // Anchor the menu's left edge to the trigger and grow rightward. Paired
+      // with menuWidth below, a menu wider than the trigger extends right rather
+      // than hanging off to the left.
+      position="bottom-start"
+      // Size the menu to its widest option so long SDK names (e.g. "Cloudflare
+      // Agents SDK") aren't truncated. min-width:100% still keeps it at least as
+      // wide as the trigger for short lists.
+      menuWidth="max-content"
       disabled={disabled}
     />
   );
