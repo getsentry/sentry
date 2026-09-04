@@ -2,9 +2,8 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 
-import {IconBusiness} from 'sentry/icons';
+import {IconBusiness, IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,21 +44,28 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
       <div>{tn('%s Day Left', '%s Days Left', getTrialDaysLeft(subscription) || 0)}</div>
     </ActiveTrialWrapper>
   ) : (
-    <NeedHelpLink href="https://www.sentry.help" onClick={trackClickNeedHelp}>
-      {t('Need help?')}
-    </NeedHelpLink>
+    <LinkButton
+      href="https://www.sentry.help"
+      external
+      onClick={trackClickNeedHelp}
+      size="xs"
+      icon={<IconQuestion />}
+      variant="transparent"
+      aria-label={t('Help Center')}
+      tooltipProps={{title: t('Help Center')}}
+    />
   );
 
   return (
-    <HeaderActionBar gap="xl">
-      <SecondaryCTAWrapper>{cta}</SecondaryCTAWrapper>
+    <HeaderActionBar>
+      {cta}
       <LinkButton
         onClick={trackClickUpgrade}
         href={normalizeUrl(`/checkout/${organization.slug}/?referrer=upgrade-${source}`)}
         external
-        size="sm"
+        size="xs"
         icon={<IconBusiness />}
-        variant="secondary"
+        variant="transparent"
       >
         {t('Upgrade Now')}
       </LinkButton>
@@ -75,16 +81,6 @@ const HeaderActionBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
   margin-left: ${p => p.theme.space.xl};
-`;
-
-const SecondaryCTAWrapper = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
-const NeedHelpLink = styled(ExternalLink)`
-  white-space: nowrap;
 `;
 
 const ActiveTrialHeader = styled('div')`

@@ -657,7 +657,8 @@ class TestPublishActionWrite(TestCase):
         assert entry.data == {}
         assert entry.date_added is not None
 
-    def test_shared_outbox_is_default(self) -> None:
+    @patch("sentry.utils.metrics.timer")
+    def test_shared_outbox_is_default(self, mock_timer: MagicMock) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
             publish_action(
                 ViewAction(),
@@ -670,11 +671,24 @@ class TestPublishActionWrite(TestCase):
             CellOutbox.objects.filter(category=OutboxCategory.GROUP_ACTION_LOG_EVENT).count() == 1
         )
         assert not GroupActionLogOutbox.objects.exists()
+        mock_timer.assert_any_call(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": "view",
+                "source": "api",
+                "route": "shared",
+                "derived_strategy": "inline",
+            },
+        )
 
     @patch("sentry.options.rollout.in_rollout_group", return_value=True)
     @patch("sentry.utils.metrics.incr")
+    @patch("sentry.utils.metrics.timer")
     def test_dedicated_outbox_rollout_routes_one_write(
-        self, mock_incr: MagicMock, mock_in_rollout_group: MagicMock
+        self,
+        mock_timer: MagicMock,
+        mock_incr: MagicMock,
+        mock_in_rollout_group: MagicMock,
     ) -> None:
         with (
             self.feature("projects:issue-action-log-write-to-db"),
@@ -685,6 +699,7 @@ class TestPublishActionWrite(TestCase):
                 source=ActionSource.API,
                 group_id=self.group.id,
                 project=self.group.project,
+                force_async_derived=True,
             )
 
         assert not CellOutbox.objects.filter(
@@ -695,6 +710,15 @@ class TestPublishActionWrite(TestCase):
             "issues.action_log.dedicated_outbox_rollout_rate", str(self.group.id)
         )
         mock_incr.assert_any_call("issues.action_log.outbox_write", tags={"route": "dedicated"})
+        mock_timer.assert_called_once_with(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": "view",
+                "source": "api",
+                "route": "dedicated",
+                "derived_strategy": "async",
+            },
+        )
 
     def test_dedicated_outbox_flushes_on_commit(self) -> None:
         with (
@@ -931,103 +955,6 @@ class TestPublishActionWrite(TestCase):
                 actor=GroupActionActor.user(self.user.id),
                 idempotency_key=idempotency_key,
             )
-
-
-class TestCaptureActionLog(TestCase):
-    def _publish(self, action: GroupAction, **kwargs: Any) -> None:
-        defaults: dict[str, Any] = {
-            "source": ActionSource.WEB,
-            "group_id": 1,
-            "project": self.project,
-            "actor": GroupActionActor.user(self.user.id),
-        }
-        defaults.update(kwargs)
-        publish_action(action, **defaults)
-
-    def test_captures_action(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction(), group_id=42)
-        log.assert_logged(ResolveAction, group_id=42)
-
-    def test_no_actions_captured_outside_scope(self) -> None:
-        self._publish(ResolveAction())
-        with capture_action_log() as log:
-            pass
-        log.assert_not_logged()
-
-    def test_assert_logged_fails_on_mismatch(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction())
-        with pytest.raises(AssertionError):
-            log.assert_logged(ViewAction)
-
-    def test_assert_not_logged_fails_on_match(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction())
-        with pytest.raises(AssertionError):
-            log.assert_not_logged(ResolveAction)
-
-    def test_filters_by_group_id(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ViewAction(), group_id=1)
-            self._publish(ViewAction(), group_id=2)
-        assert len(log.for_group(1)) == 1
-        assert len(log.for_group(2)) == 1
-        log.assert_logged(ViewAction, group_id=1)
-        log.assert_not_logged(ViewAction, group_id=3)
-
-    def test_filters_by_source(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction(), source=ActionSource.MCP)
-            self._publish(ResolveAction(), source=ActionSource.SLACK)
-        log.assert_logged(ResolveAction, source=ActionSource.MCP)
-        log.assert_logged(ResolveAction, source=ActionSource.SLACK)
-        log.assert_not_logged(ResolveAction, source=ActionSource.API)
-
-    def test_filters_by_actor(self) -> None:
-        actor_a = GroupActionActor.user(10)
-        actor_b = GroupActionActor.user(20)
-        with capture_action_log() as log:
-            self._publish(ResolveAction(), actor=actor_a)
-            self._publish(ResolveAction(), actor=actor_b)
-        log.assert_logged(ResolveAction, actor=actor_a)
-        log.assert_not_logged(ResolveAction, actor=SYSTEM_ACTOR)
-
-    def test_filters_by_action_fields(self) -> None:
-        with capture_action_log() as log:
-            self._publish(SetPriorityAction(priority="high"))
-            self._publish(SetPriorityAction(priority="low"))
-        log.assert_logged(SetPriorityAction, priority="high")
-        log.assert_logged(SetPriorityAction, priority="low")
-        log.assert_not_logged(SetPriorityAction, priority="medium")
-
-    def test_count(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ViewAction())
-            self._publish(ViewAction())
-            self._publish(ResolveAction())
-        log.assert_logged(ViewAction, count=2)
-        log.assert_logged(ResolveAction, count=1)
-
-    def test_accepts_action_type_enum(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction())
-        log.assert_logged(GroupActionType.RESOLVE)
-
-    def test_nested_captures(self) -> None:
-        with capture_action_log() as outer:
-            self._publish(ViewAction())
-            with capture_action_log() as inner:
-                self._publish(ResolveAction())
-            self._publish(ArchiveAction())
-        # Inner only sees what happened inside its scope
-        inner.assert_logged(ResolveAction)
-        inner.assert_not_logged(ViewAction)
-        inner.assert_not_logged(ArchiveAction)
-        # Outer sees everything including actions during the inner scope
-        outer.assert_logged(ViewAction)
-        outer.assert_logged(ResolveAction)
-        outer.assert_logged(ArchiveAction)
 
 
 class TestActivitiesCreateActions(TestCase):

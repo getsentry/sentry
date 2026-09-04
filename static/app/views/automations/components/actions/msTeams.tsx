@@ -29,7 +29,7 @@ export function MSTeamsNode() {
   return tct('Send a [logo] Microsoft Teams notification to [team] team, to [channel]', {
     logo: ActionMetadata[ActionType.MSTEAMS]?.icon,
     team: <IntegrationField />,
-    channel: <TargetDisplayField />,
+    channel: <TargetDisplayField placeholder={t('channel name')} />,
   });
 }
 

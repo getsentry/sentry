@@ -6,11 +6,18 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import type {AuthConfig} from 'sentry/types/auth';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import AuthLogin from './index';
 
+jest.mock('sentry/utils/analytics');
+
 describe('AuthLogin', () => {
+  beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
+  });
+
   beforeAll(() => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
@@ -69,6 +76,15 @@ describe('AuthLogin', () => {
     expect(
       await screen.findByRole('heading', {name: 'Sign in to Sentry'})
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'auth.login.rendered',
+      {
+        organization: null,
+        entrypoint: 'generic',
+        state: 'login',
+      },
+      {startSession: true}
+    );
   });
 
   it('shows a retry when the initial auth config request fails', async () => {
@@ -304,17 +320,18 @@ describe('AuthLogin', () => {
     }
   });
 
-  it('renders the configured login banner', async () => {
+  it('renders warnings above the configured login banner', async () => {
     const authConfig: AuthConfig = {
       canRegister: true,
       githubLoginLink: '',
       googleLoginLink: '',
       hasNewsletter: false,
-      loginBanner:
-        'Try agent monitoring. <a href="https://example.com/agents">Learn more</a>.',
+      loginBannerMarkdown:
+        'Try agent monitoring. [Learn more](https://example.com/agents).',
       pendingMfa: null,
       serverHostname: 'sentry.example.com',
       vstsLoginLink: '',
+      warning: 'Your session has expired.',
     };
     MockApiClient.addMockResponse({
       url: '/auth/config/',
@@ -323,9 +340,12 @@ describe('AuthLogin', () => {
 
     render(<AuthLogin />);
 
-    expect(await screen.findByRole('link', {name: 'Learn more'})).toHaveAttribute(
-      'href',
-      'https://example.com/agents'
+    const warning = await screen.findByText('Your session has expired.');
+    const bannerLink = screen.getByRole('link', {name: 'Learn more'});
+
+    expect(bannerLink).toHaveAttribute('href', 'https://example.com/agents');
+    expect(warning.compareDocumentPosition(bannerLink)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
     );
   });
 
@@ -398,7 +418,7 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByTestId('more-information'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(
         'This organization requires SSO authentication. You may still log in with an email and password to access other organizations and account settings.'

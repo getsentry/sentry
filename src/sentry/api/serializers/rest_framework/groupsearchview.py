@@ -1,10 +1,11 @@
 from typing import NotRequired, TypedDict
 
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewTimeFilters
 from sentry.api.serializers.rest_framework import ValidationError
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
@@ -110,7 +111,11 @@ class ViewValidator(serializers.Serializer):
         return data
 
 
-@extend_schema_serializer(exclude_fields=["id"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "id": "Inherited from ViewValidator for updates; the server assigns the id on create.",
+    }
+)
 class GroupSearchViewPostValidator(ViewValidator):
     starred = serializers.BooleanField(
         required=False, help_text="Whether to star the issue view for the current user."

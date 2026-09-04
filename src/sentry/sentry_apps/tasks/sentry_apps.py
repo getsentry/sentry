@@ -206,8 +206,11 @@ def send_alert_webhook_v2(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
     ).capture() as lifecycle:
-        group = Group.objects.get_from_cache(id=group_id)
-        assert group, "Group must exist to get related attributes"
+        try:
+            group = Group.objects.get_from_cache(id=group_id)
+        except Group.DoesNotExist:
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_GROUP)
+            return
         project = Project.objects.get_from_cache(id=group.project_id)
         organization = Organization.objects.get_from_cache(id=project.organization_id)
         extra: dict[str, int | str] = {

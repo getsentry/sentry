@@ -1,3 +1,15 @@
+"""Promote a fully-computed GroupDerivedData generation into the live row.
+
+Strategy: bring our candidate up to date against the log, attempt an
+atomic CAS against the current live row, and if the CAS fails, retry
+unless post-hoc classification shows a retry can't help. After
+``MAX_PROMOTION_ATTEMPTS`` failed attempts we give up with
+``PromotionFailed``.
+
+The UPDATE is the canonical decision point; the follow-up reads only
+decide whether another attempt is worthwhile.
+"""
+
 from __future__ import annotations
 
 import enum
@@ -11,6 +23,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.issues.derived.processing import (
     DEFAULT_BATCH_SIZE,
     PIPELINE,
@@ -21,6 +34,7 @@ from sentry.issues.derived.processing import (
     _drain_log,
     _entries_after_cursor,
 )
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.utils import metrics
@@ -49,6 +63,12 @@ class PromotionResult(enum.Enum):
     PROMOTED = "promoted"
     SUPERSEDED = "superseded"  # a newer generation already promoted
     CURSOR_BEHIND = "cursor_behind"  # same generation, but cursor is more advanced
+    # Lost a create race to a same/older-generation writer whose cursor
+    # is not necessarily ahead. Returned instead of looping internally
+    # to keep promote_to_live a single CAS attempt; the caller owns the
+    # retry budget.
+    RACE_LOST = "race_lost"
+    GROUP_MISSING = "group_missing"  # the group was deleted; nothing to promote onto
 
 
 class PromotionFailed(Exception):
@@ -61,15 +81,61 @@ class PromotionFailed(Exception):
         super().__init__(f"group {group_id}: {result.value} after {attempts} attempts")
 
 
-def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
+def _read_live_generated_at(group_id: int) -> datetime | None:
+    """Return the live row's ``generated_at``, or None if the row is absent."""
+    return (
+        GroupDerivedData.objects.filter(group_id=group_id)
+        .values_list("generated_at", flat=True)
+        .get_or_none()
+    )
+
+
+def _classify_failed_create(group_id: int, generated_at: datetime) -> PromotionResult:
+    """Explain an IntegrityError from the promote INSERT.
+
+    The model constrains ``group`` to be unique and to reference a live
+    Group, so the error is either a concurrent writer winning the create
+    race or the group having been deleted underneath us.
+    """
+    live_generated_at = _read_live_generated_at(group_id)
+    if live_generated_at is None:
+        # No visible winner. If the group is gone, that's the FK
+        # violation. Otherwise we lost to some other race (e.g. a
+        # concurrent GDD delete between our INSERT and this read);
+        # retry rather than guess at the exact sequence.
+        if not Group.objects.filter(id=group_id).exists():
+            return PromotionResult.GROUP_MISSING
+        return PromotionResult.RACE_LOST
+
+    if live_generated_at > generated_at:
+        return PromotionResult.SUPERSEDED
+    # The winner is same-or-older generation, so its cursor position
+    # tells us nothing about the log tail. Not CURSOR_BEHIND: that name
+    # implies the winner is genuinely ahead, and the caller uses it to
+    # decide to give up.
+    return PromotionResult.RACE_LOST
+
+
+def promote_to_live(
+    candidate: GroupDerivedData, *, known_invalid_log_id: int | None = None
+) -> PromotionResult:
     """Upsert the candidate's state into the row for its group.
 
     The UPDATE guard requires that ``candidate.generated_at`` is >= the
-    row's (newer generation wins) and the cursor is at or ahead.  On
-    success, all state fields (including ``generated_at``) are stamped.
+    row's (newer generation wins) and the cursor is at or ahead. If the
+    live cursor points at ``known_invalid_log_id`` — a log entry the caller
+    has confirmed no longer belongs to this group — the cursor guard is
+    bypassed, since that cursor doesn't represent a real position in the
+    group's log. On success, all state fields (including ``generated_at``)
+    are stamped.
 
     Returns SUPERSEDED if the row has a newer ``generated_at``.
-    Returns CURSOR_BEHIND if the cursor guard failed.
+    Returns CURSOR_BEHIND if the cursor guard failed against a same or
+    older generation whose cursor is genuinely ahead.
+    Returns RACE_LOST if we lost a create race to a same-or-older
+    generation whose cursor may not be ahead — the caller should retry
+    unconditionally rather than treating "no new log entries" as fatal.
+    Returns GROUP_MISSING if the group has been deleted.
 
     The candidate object itself is not persisted — it may be an unsaved
     in-memory instance used only to carry the computed state.
@@ -80,6 +146,8 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     cursor_ahead = Q(cursor_date__lt=candidate.cursor_date) | Q(
         cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id
     )
+    if known_invalid_log_id is not None:
+        cursor_ahead |= Q(cursor_id=known_invalid_log_id)
     updated = GroupDerivedData.objects.filter(
         cursor_ahead,
         group_id=candidate.group_id,
@@ -90,30 +158,25 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
         return PromotionResult.PROMOTED
 
     # Check why we failed: row missing or newer generation?
-    row = (
-        GroupDerivedData.objects.filter(group_id=candidate.group_id)
-        .values_list("id", "generated_at")
-        .first()
-    )
+    live_generated_at = _read_live_generated_at(candidate.group_id)
 
-    if row is None:
-        # Row doesn't exist — try to create it.
+    if live_generated_at is None:
+        # Row doesn't exist — try to create it. enforce_constraints so a
+        # violation surfaces here instead of floating up to an
+        # enclosing transaction's commit.
         try:
-            with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            with enforce_constraints(
+                transaction.atomic(using=router.db_for_write(GroupDerivedData))
+            ):
                 GroupDerivedData.objects.create(
                     group_id=candidate.group_id,
                     **values,
                 )
         except IntegrityError:
-            # A concurrent writer created the row first. This could be
-            # SUPERSEDED (if their generated_at is newer) but we'd need
-            # another query to distinguish. CURSOR_BEHIND triggers a
-            # retry which will resolve it on the UPDATE path.
-            return PromotionResult.CURSOR_BEHIND
+            return _classify_failed_create(candidate.group_id, generated_at)
         return PromotionResult.PROMOTED
 
-    _row_id, current_generated_at = row
-    if current_generated_at > generated_at:
+    if live_generated_at > generated_at:
         return PromotionResult.SUPERSEDED
     return PromotionResult.CURSOR_BEHIND
 
@@ -174,6 +237,7 @@ def build_and_promote_derived_data(
     deadline = time.monotonic() + time_limit.total_seconds()
 
     result = PromotionResult.CURSOR_BEHIND
+    known_invalid_log_id: int | None = None
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         remaining = timedelta(seconds=max(0, deadline - time.monotonic()))
         drained = _drain_log(
@@ -188,35 +252,82 @@ def build_and_promote_derived_data(
             _generation_cache.set(current_gen_id, derived)
             raise GroupLogTimeout(group_id, generation_id=current_gen_id)
 
-        result = promote_to_live(derived)
+        result = promote_to_live(derived, known_invalid_log_id=known_invalid_log_id)
         metrics.incr("issues.derived.promote_to_live", tags={"result": result.value})
-        if result is PromotionResult.PROMOTED:
-            logger.info(
-                "issues.derived.promoted",
-                extra={
-                    "group_id": group_id,
-                    "cursor_date": str(derived.cursor_date),
-                    "cursor_id": derived.cursor_id,
-                    "attempts": attempt + 1,
-                },
-            )
-            _generation_cache.delete(current_gen_id)
-            return
-
-        if result is PromotionResult.SUPERSEDED:
-            # A newer generation already won — not an error.
-            _generation_cache.delete(current_gen_id)
-            return
-
-        # CURSOR_BEHIND: the live row's cursor is ahead of ours.
-        # If new entries exist past our cursor, the next drain will pick
-        # them up. If not, the log was modified (e.g. merge deleted
-        # entries) and our replay is incomplete — give up.
-        if not _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
-            break
+        match result:
+            case PromotionResult.PROMOTED:
+                logger.info(
+                    "issues.derived.promoted",
+                    extra={
+                        "group_id": group_id,
+                        "cursor_date": str(derived.cursor_date),
+                        "cursor_id": derived.cursor_id,
+                        "attempts": attempt + 1,
+                    },
+                )
+                _generation_cache.delete(current_gen_id)
+                return
+            case PromotionResult.SUPERSEDED:
+                # A newer generation already won — not an error.
+                _generation_cache.delete(current_gen_id)
+                return
+            case PromotionResult.GROUP_MISSING:
+                _generation_cache.delete(current_gen_id)
+                raise Group.DoesNotExist(f"Group {group_id} does not exist")
+            case PromotionResult.RACE_LOST:
+                # Didn't fail, but didn't succeed due to a race.
+                # Assuming there's not ongoing messy contention, the next attempt
+                # should succeed or fail cleanly, so we retry.
+                continue
+            case PromotionResult.CURSOR_BEHIND:
+                # The live row's cursor is ahead of ours. If new entries
+                # exist past our cursor, the next drain will pick them up.
+                if _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1):
+                    continue
+                # If not, the log may have been modified (e.g. merge moved
+                # the live cursor's entry to another group). Retry while
+                # bypassing that specific log ID; a concurrent move of the
+                # live cursor to any other position remains guarded.
+                known_invalid_log_id = _detect_orphaned_log_id(group_id, derived)
+                if known_invalid_log_id is not None:
+                    continue
+                break
 
     _generation_cache.delete(current_gen_id)
     raise PromotionFailed(group_id, result, attempt + 1)
+
+
+def _detect_orphaned_log_id(group_id: int, derived: GroupDerivedData) -> int | None:
+    """Return the live cursor's log ID if it no longer belongs to this group.
+
+    Logs as a side effect. Called on the CURSOR_BEHIND path so the caller can
+    retry promotion while bypassing that specific log ID.
+    """
+    live_cursor = (
+        GroupDerivedData.objects.filter(group_id=group_id)
+        .values_list("cursor_date", "cursor_id")
+        .get_or_none()
+    )
+    if live_cursor is None:
+        return None
+    live_cursor_date, live_cursor_id = live_cursor
+    if live_cursor_id == 0:
+        # 0 is the "no actions yet" state; unexpected in this context, but doesn't suggest an
+        # orphaned cursor.
+        return None
+    if GroupActionLogEntry.objects.filter(group_id=group_id, id=live_cursor_id).exists():
+        return None
+    logger.info(
+        "issues.derived.promote.live_cursor_orphaned",
+        extra={
+            "group_id": group_id,
+            "live_cursor_date": str(live_cursor_date),
+            "live_cursor_id": live_cursor_id,
+            "candidate_cursor_date": str(derived.cursor_date),
+            "candidate_cursor_id": derived.cursor_id,
+        },
+    )
+    return live_cursor_id
 
 
 class BatchRunResult(NamedTuple):
@@ -270,7 +381,10 @@ def build_and_promote_batch(
             )
         except PromotionFailed as e:
             processed[e.result] = processed.get(e.result, 0) + 1
-            logger.exception(f"{log_key}.promotion_failed")
+            logger.exception(
+                f"{log_key}.promotion_failed",
+                extra={"group_id": e.group_id},
+            )
         except GroupLogTimeout as e:
             return BatchRunResult(
                 processed=processed,

@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import type {ReactNode} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
@@ -40,7 +39,7 @@ type Input = {
 
 export type UseMessagingChannelResult = {
   channelError: string | undefined;
-  channelOptions: Array<{label: string; value: string}> | undefined;
+  channelOptions: IntegrationChannel[] | undefined;
   channelsData: ChannelListResponse | undefined;
   /**
    * Removes the cached validate-channel query for the current selection.
@@ -49,7 +48,7 @@ export type UseMessagingChannelResult = {
   clearChannelValidation: () => void;
   isChannelLoading: boolean;
   isChannelsError: boolean;
-  onChannelChange: (option: {label: ReactNode; value: string} | null) => void;
+  onChannelChange: (option: IntegrationChannel | null) => void;
   onCreateChannel: (newOption: string) => void;
 };
 
@@ -122,11 +121,11 @@ export function useMessagingChannel({
     // Id-keyed providers show the id alongside the name, since the name alone
     // cannot tell two same-named channels apart.
     const keyedByName = getChannelSelectedBy(provider) === 'channelName';
-    return channels?.results.map(ch =>
-      keyedByName
-        ? {label: ch.display, value: ch.display}
-        : {label: `${ch.display} (${ch.id})`, value: ch.id}
-    );
+    return channels?.results.map(ch => ({
+      channelName: ch.name,
+      label: keyedByName ? ch.display : `${ch.display} (${ch.id})`,
+      value: keyedByName ? ch.display : ch.id,
+    }));
   }, [channels, provider]);
 
   useEffect(() => {
@@ -138,8 +137,11 @@ export function useMessagingChannel({
       return;
     }
     const match = channelOptions.find(option => option.value === channel.value);
-    if (match && match.label !== channel.label) {
-      setChannel({value: channel.value, label: match.label, new: false});
+    if (
+      match &&
+      (match.label !== channel.label || match.channelName !== channel.channelName)
+    ) {
+      setChannel({...match, new: false});
     }
   }, [channel, channelOptions, setChannel]);
 
@@ -154,10 +156,8 @@ export function useMessagingChannel({
     channelsData: channels,
     channelError,
     clearChannelValidation,
-    onChannelChange: (option: {label: ReactNode; value: string} | null) => {
-      setChannel(
-        option ? {value: option.value, label: option.label, new: false} : undefined
-      );
+    onChannelChange: (option: IntegrationChannel | null) => {
+      setChannel(option ? {...option, new: false} : undefined);
       clearChannelValidation();
       if (variant) {
         trackAnalytics('project_creation.notify_channel_changed', {

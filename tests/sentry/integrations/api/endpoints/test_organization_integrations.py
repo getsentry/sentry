@@ -1,3 +1,6 @@
+from sentry.integrations.api.endpoints.organization_integrations_index import (
+    OrganizationIntegrationsEndpoint,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -45,6 +48,12 @@ class OrganizationIntegrationsListTest(APITestCase):
         response = self.get_success_response(self.organization.slug, qs_params={"includeConfig": 0})
 
         assert "configOrganization" not in response.data[0]
+
+    def test_opts_out_of_organization_projects_and_teams(self) -> None:
+        # This endpoint only needs the organization id, so it skips serializing every
+        # project and team into the cross silo RPC payload.
+        assert OrganizationIntegrationsEndpoint.include_organization_projects is False
+        assert OrganizationIntegrationsEndpoint.include_organization_teams is False
 
     def test_feature_filters(self) -> None:
         response = self.get_success_response(
