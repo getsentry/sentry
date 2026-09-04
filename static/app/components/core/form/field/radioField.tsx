@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
@@ -79,21 +79,29 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
 interface RadioItemProps {
   children: React.ReactNode;
   value: string;
+  description?: React.ReactNode;
 }
 
-function RadioItem({children, value}: RadioItemProps) {
+function RadioItem({children, value, description}: RadioItemProps) {
   const {selectedValue, onChange, ...fieldProps} = useRadioContext();
+  const descriptionId = useId();
 
   return (
     <Flex as="label" gap="sm" align="start" margin="0">
       <Radio
         {...fieldProps}
+        aria-describedby={description ? descriptionId : undefined}
         value={value}
         checked={selectedValue === value}
         onChange={() => onChange(value)}
       />
       <Stack gap="xs" paddingTop="xs">
         <Text bold={false}>{children}</Text>
+        {description && (
+          <Text bold={false} size="sm" variant="muted" id={descriptionId}>
+            {description}
+          </Text>
+        )}
       </Stack>
     </Flex>
   );

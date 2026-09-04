@@ -38,7 +38,9 @@ function TestForm({
             <field.Layout.Row label={label} hintText={hintText} required={required}>
               <field.Radio.Item value="low">Low</field.Radio.Item>
               <field.Radio.Item value="medium">Medium</field.Radio.Item>
-              <field.Radio.Item value="high">High</field.Radio.Item>
+              <field.Radio.Item value="high" description="Urgent issues">
+                High
+              </field.Radio.Item>
             </field.Layout.Row>
           </field.Radio.Group>
         )}
@@ -112,6 +114,12 @@ describe('RadioField', () => {
 
     expect(radios[0]).not.toBeChecked();
     expect(radios[2]!).toBeChecked();
+  });
+
+  it('renders options with descriptions', () => {
+    render(<TestForm label="Priority" />);
+
+    expect(screen.getByText('Urgent issues')).toBeInTheDocument();
   });
 
   it('renders as radiogroup with associated label as text', () => {

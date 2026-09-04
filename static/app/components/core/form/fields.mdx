@@ -208,7 +208,9 @@ Radio fields use a composable API with `Radio.Group` and `Radio.Item`.
       <field.Layout.Stack label={t('Priority')}>
         <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
         <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
-        <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
+        <field.Radio.Item value="high" description={t('Urgent issues')}>
+          {t('High')}
+        </field.Radio.Item>
       </field.Layout.Stack>
     </field.Radio.Group>
   )}
