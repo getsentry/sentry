@@ -26,8 +26,8 @@ type RefundVercelApiRequest = {
 };
 
 const schema = z.object({
-  guid: z.string().min(1, 'Invoice GUID is required'),
-  reason: z.string().min(1, 'Reason is required'),
+  guid: z.string().trim().min(1, 'Invoice GUID is required'),
+  reason: z.string().trim().min(1, 'Reason is required'),
 });
 
 type ModalProps = Props & ModalRenderProps;
@@ -67,7 +67,7 @@ function RefundVercelRequestModal({
     ...defaultFormOptions,
     defaultValues: {guid: '', reason: ''},
     validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (
