@@ -1,5 +1,5 @@
-import type {Config} from 'sentry/types/system';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import {getSettingsFieldSections} from 'sentry/views/settings/settingsCommandPaletteActions';
 
 describe('getSettingsFieldSections', () => {
@@ -19,18 +19,15 @@ describe('getSettingsFieldSections', () => {
 
     const sections = getSettingsFieldSections('doogi');
 
-    // At least one section should target an org-level settings path.
     const allPathnames = sections.flatMap(section =>
       section.fields.map(field => field.to.pathname)
     );
-    const orgPaths = allPathnames.filter(p => p.startsWith('/settings/'));
+    const orgPaths = allPathnames.filter(
+      p => p.startsWith('/settings/') && !p.startsWith('/settings/account/')
+    );
 
     // Every org-level path must include the org slug and must NOT contain the literal `:orgId`.
     for (const pathname of orgPaths) {
-      if (pathname.startsWith('/settings/account/')) {
-        // Account-level routes never contain orgId.
-        continue;
-      }
       expect(pathname).toContain('doogi');
       expect(pathname).not.toContain(':orgId');
     }
