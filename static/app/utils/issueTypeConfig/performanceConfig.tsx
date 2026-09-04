@@ -240,11 +240,8 @@ export const performanceConfig: IssueCategoryConfigMapping = {
       tagsTab: {enabled: false},
     },
     discover: {enabled: false},
-    regression: {enabled: true},
-    performanceDurationRegression: {enabled: true},
     stats: {enabled: false},
     tags: {enabled: false},
-    // We show the regression summary instead
     spanEvidence: {enabled: false},
   },
   [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {

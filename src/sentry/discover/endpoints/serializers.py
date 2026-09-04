@@ -2,7 +2,6 @@ from collections.abc import Sequence
 
 import sentry_sdk
 from django.db.models import Count, Max, QuerySet
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
@@ -23,9 +22,6 @@ from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES as ERROR_PARSER_CONFIG_O
 from sentry.utils.dates import parse_stats_period, validate_interval
 
 
-@extend_schema_serializer(
-    exclude_fields=["rollup", "aggregations", "groupby", "conditions", "limit", "version", "widths"]
-)
 class DiscoverSavedQuerySerializer(serializers.Serializer):
     name = serializers.CharField(
         required=True, max_length=255, help_text="The user-defined saved query name."
@@ -76,14 +72,45 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
     # This block of fields is only accepted by discover 1 which omits the version
     # attribute or has it set to 1
-    rollup = serializers.IntegerField(required=False, allow_null=True)
-    aggregations = ListField(child=ListField(), required=False, allow_null=True)
-    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
-    conditions = ListField(child=ListField(), required=False, allow_null=True)
-    limit = serializers.IntegerField(min_value=0, max_value=1000, required=False, allow_null=True)
+    rollup = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Time-bucket granularity in seconds for the saved query.",
+    )
+    aggregations = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+        help_text="Aggregate functions to apply, each as a `[function, column, alias]` triple.",
+    )
+    groupby = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Columns to group results by.",
+    )
+    conditions = ListField(
+        child=ListField(),
+        required=False,
+        allow_null=True,
+        help_text="Filter conditions, each as a `[column, operator, value]` triple.",
+    )
+    limit = serializers.IntegerField(
+        min_value=0,
+        max_value=1000,
+        required=False,
+        allow_null=True,
+        help_text="Maximum number of rows to return, from `0` to `1000`.",
+    )
 
     # There are multiple versions of saved queries supported.
-    version = serializers.IntegerField(min_value=1, max_value=2, required=False, allow_null=True)
+    version = serializers.IntegerField(
+        min_value=1,
+        max_value=2,
+        required=False,
+        allow_null=True,
+        help_text="Saved query schema version. `1` for the legacy shape, `2` for the current one.",
+    )
 
     # Attributes that are only accepted if version = 2
     environment = ListField(
@@ -97,7 +124,12 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="Filters results by using [query syntax](/product/sentry-basics/search/).",
     )
-    widths = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    widths = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="Rendered column widths, in the same order as the query's fields.",
+    )
     yAxis = ListField(
         child=serializers.CharField(),
         required=False,

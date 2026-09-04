@@ -3,8 +3,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -22,6 +21,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -58,7 +58,10 @@ export default function LegacyWebhookDetails() {
       addLoadingMessage(shouldEnable ? t('Enabling…') : t('Disabling…'));
       return fetchMutation<LegacyWebhookResponse>({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+        ),
         data: {urls: data?.urls ?? [], enabled: shouldEnable},
       });
     },
@@ -81,7 +84,10 @@ export default function LegacyWebhookDetails() {
       addLoadingMessage(t('Saving changes…'));
       return fetchMutation<LegacyWebhookResponse>({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.slug}/legacy-webhooks/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+        ),
         data: {urls, enabled: data?.enabled ?? true},
       });
     },
@@ -103,7 +109,9 @@ export default function LegacyWebhookDetails() {
       addLoadingMessage(t('Sending test event…'));
       return fetchMutation({
         method: 'POST',
-        url: `/organizations/${organization.slug}/test-fire-actions/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {
           actions: [
             {

@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
 from django.utils import timezone
 
@@ -98,6 +99,18 @@ class PullRequestDeletionTaskTest(TestCase):
         filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 0
 
+    def test_query_filter_keeps_pr_whose_release_is_past_the_window(self) -> None:
+        """The release pin lasts for the release's lifetime, however old the release."""
+        pr = self.create_pr("pr_old_release", self.old_date)
+        commit = self.create_old_commit()
+        self.create_pull_request_commit(pr, commit)
+
+        release = self.create_release(project=self.project, date_added=self.old_date)
+        self.create_release_commit(release, commit)
+
+        filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
+        assert len(filtered) == 0
+
     def test_query_filter_keeps_pr_with_valid_group_link(self) -> None:
         pr = self.create_pr("pr_group", self.old_date)
         group = self.create_group(project=self.project)
@@ -126,23 +139,25 @@ class PullRequestDeletionTaskTest(TestCase):
         assert len(filtered) == 1
         assert filtered[0].id == pr.id
 
-    def test_query_filter_with_comment_group_ids(self) -> None:
-        pr_valid_group = self.create_pr("pr_valid", self.old_date)
+    def test_query_filter_ignores_comment_group_ids(self) -> None:
+        """Comment recency decides, not what the comment happens to reference."""
+        pr_stale_comment = self.create_pr("pr_stale", self.old_date)
         group = self.create_group(project=self.project)
         self.create_pull_request_comment(
-            pull_request=pr_valid_group,
+            pull_request=pr_stale_comment,
             group_ids=[group.id],
         )
 
-        pr_invalid_group = self.create_pr("pr_invalid", self.old_date)
+        pr_recent_comment = self.create_pr("pr_recent", self.old_date)
         self.create_pull_request_comment(
-            pull_request=pr_invalid_group,
-            group_ids=[999999],  # Non-existent
+            pull_request=pr_recent_comment,
+            updated_at=self.recent_date,
+            group_ids=[group.id],
         )
 
         filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))
         assert len(filtered) == 1
-        assert filtered[0].id == pr_invalid_group.id
+        assert filtered[0].id == pr_stale_comment.id
 
     def test_get_child_relations_includes_all_child_models(self) -> None:
         pr = self.create_pr("pr_children", self.old_date)
@@ -202,6 +217,20 @@ class PullRequestDeletionTaskTest(TestCase):
         assert not PullRequestMetrics.objects.filter(id=metrics.id).exists()
         assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
         assert not PullRequest.objects.filter(id=pr.id).exists()
+
+    def test_deletion_is_rate_limited(self) -> None:
+        prs = [self.create_pr(f"pr_throttled_{i}", self.old_date) for i in range(3)]
+
+        with mock.patch("sentry.deletions.base.LeakyBucketRateLimiter") as mock_limiter_cls:
+            mock_limiter_cls.return_value.use_and_get_info.return_value = mock.Mock(wait_time=0)
+            self.task.chunk(apply_filter=True)
+
+        assert not PullRequest.objects.filter(id__in=[pr.id for pr in prs]).exists()
+        mock_limiter_cls.assert_called_with(
+            burst_limit=100,
+            drip_rate=100,
+            key="deletions.rate_limit:deletions.pull-request.rate-limit",
+        )
 
     def test_query_filter_with_no_prs(self) -> None:
         filtered = list(PullRequest.objects.filter(self.task.get_query_filter()))

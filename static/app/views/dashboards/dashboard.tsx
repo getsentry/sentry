@@ -7,13 +7,12 @@ import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 
-import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconResize} from 'sentry/icons';
@@ -24,7 +23,6 @@ import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -32,6 +30,10 @@ import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
 import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
@@ -52,7 +54,7 @@ import {
 import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys} from './types';
-import {connectDashboardCharts, getMergedDashboardFilters} from './utils';
+import {getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -87,12 +89,10 @@ type Props = {
   widgetLimitReached: boolean;
   isEmbedded?: boolean;
   isPreview?: boolean;
-  newWidget?: Widget;
   newlyAddedWidget?: Widget;
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
   onEditWidget?: (widget: Widget) => void;
   onNewWidgetScrollComplete?: () => void;
-  onSetNewWidget?: () => void;
   widgetInterval?: string;
 };
 
@@ -103,7 +103,6 @@ interface LayoutState extends Record<string, Layout[]> {
 
 function DashboardInner({
   dashboard,
-  handleAddCustomWidget,
   handleUpdateWidgetList,
   isEditingDashboard,
   onUpdate,
@@ -111,12 +110,10 @@ function DashboardInner({
   widgetLimitReached,
   isEmbedded,
   isPreview,
-  newWidget,
   newlyAddedWidget,
   onAddWidget,
   onEditWidget,
   onNewWidgetScrollComplete,
-  onSetNewWidget,
   widgetInterval,
 }: Props) {
   const theme = useTheme();
@@ -126,16 +123,14 @@ function DashboardInner({
   const {addAlert} = useGlobalAlerts();
 
   const {selection} = usePageFilters();
-  const {projects} = useProjects();
-  const selectedProjectSlugs =
-    !selection.projects.length || selection.projects.includes(-1)
-      ? []
-      : projects.filter(p => selection.projects.includes(Number(p.id))).map(p => p.slug);
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
-      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
     queryHints: getQueryHintLegend(dashboard.widgets),
@@ -143,7 +138,7 @@ function DashboardInner({
     isEditingDashboard,
     dateRange: selection.datetime,
     environments: selection.environments,
-    projectSlugs: selectedProjectSlugs,
+    ...toLLMContextProjectFields(selectedProjects),
   });
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
@@ -174,19 +169,6 @@ function DashboardInner({
     []
   );
 
-  const addNewWidget = useCallback(async () => {
-    if (newWidget) {
-      try {
-        await validateWidget(api, organization.slug, newWidget);
-        handleAddCustomWidget(newWidget);
-        onSetNewWidget?.();
-      } catch (error: any) {
-        // Don't do anything, widget isn't valid
-        addErrorMessage(error);
-      }
-    }
-  }, [newWidget, handleAddCustomWidget, onSetNewWidget, api, organization.slug]);
-
   useEffect(() => {
     // Always load organization tags on dashboards
     loadOrganizationTags(api, organization.slug, selection, addAlert);
@@ -196,7 +178,7 @@ function DashboardInner({
   useEffect(() => {
     window.addEventListener('resize', debouncedHandleResize);
 
-    connectDashboardCharts(DASHBOARD_CHART_GROUP);
+    connect(DASHBOARD_CHART_GROUP);
     trackEngagementAnalytics(
       dashboard.widgets,
       organization,
@@ -215,13 +197,6 @@ function DashboardInner({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Handle newWidget parsed from Add to Dashboard flows
-  useEffect(() => {
-    if (newWidget) {
-      addNewWidget();
-    }
-  }, [newWidget, addNewWidget]);
 
   const handleDeleteWidget = useCallback(
     (widgetToDelete: Widget) => () => {

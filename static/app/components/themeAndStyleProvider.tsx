@@ -14,7 +14,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 const SentryComponentInspector =
   NODE_ENV === 'development'
     ? lazy(() =>
-        import('@sentry/scraps/inspector').then(module => ({
+        import('sentry/components/inspector').then(module => ({
           default: module.SentryComponentInspector,
         }))
       )

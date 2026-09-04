@@ -44,6 +44,44 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
 
+  it('renders Billing Platform as no for legacy subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      hasMigratedToBillingPlatform: false,
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Billing Platform:')).toBeInTheDocument();
+    const billingPlatformLabel = screen.getByText('Billing Platform:').closest('dt');
+    expect(billingPlatformLabel?.nextElementSibling).toHaveTextContent('no');
+  });
+
+  it('renders Billing Platform as yes for migrated subscriptions', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      hasMigratedToBillingPlatform: true,
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(screen.getByText('Billing Platform:')).toBeInTheDocument();
+    const billingPlatformLabel = screen.getByText('Billing Platform:').closest('dt');
+    expect(billingPlatformLabel?.nextElementSibling).toHaveTextContent('yes');
+  });
+
   it('renders soft cap type details', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
@@ -684,7 +722,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.75},
+      body: {effectiveSampleRate: 0.75, eapEffectiveSampleRate: 0.75},
     });
 
     render(
@@ -697,7 +735,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Team Plan (am3_team)')).toBeInTheDocument();
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('75.00%');
     });
@@ -714,7 +752,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 1},
+      body: {effectiveSampleRate: 1, eapEffectiveSampleRate: 1},
     });
 
     render(
@@ -726,7 +764,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('100.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -745,7 +783,7 @@ describe('CustomerOverview', () => {
     // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.600001},
+      body: {effectiveSampleRate: 0.600001, eapEffectiveSampleRate: 0.600001},
     });
 
     render(
@@ -757,7 +795,7 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       const definition = term.nextElementSibling;
       expect(definition).toHaveTextContent('60.00%');
       expect(definition).not.toHaveTextContent('instead of');
@@ -775,7 +813,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.54},
+      body: {effectiveSampleRate: 0.54, eapEffectiveSampleRate: 0.58},
     });
 
     render(
@@ -786,6 +824,11 @@ describe('CustomerOverview', () => {
       />
     );
     await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+
+    const eapTerm = screen.getByText('Sample Rate (24h, EAP):');
+    expect(eapTerm.nextElementSibling).toHaveTextContent(
+      '58.00% instead of 60.00% (~2.00%)'
+    );
   });
 
   it('renders decimal sample rates preserving trailing zeros', async () => {
@@ -799,7 +842,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: 0.501},
+      body: {effectiveSampleRate: 0.501, eapEffectiveSampleRate: 0.502},
     });
 
     render(
@@ -810,6 +853,7 @@ describe('CustomerOverview', () => {
       />
     );
     await screen.findByText('50.10% instead of 60.00% (~9.90%)');
+    expect(screen.getByText('50.20% instead of 60.00% (~9.80%)')).toBeInTheDocument();
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
@@ -823,7 +867,7 @@ describe('CustomerOverview', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
-      body: {effectiveSampleRate: null},
+      body: {effectiveSampleRate: null, eapEffectiveSampleRate: null},
     });
 
     render(
@@ -835,8 +879,45 @@ describe('CustomerOverview', () => {
     );
 
     await waitFor(() => {
-      const term = screen.getByText('Sample Rate (24h):');
+      const term = screen.getByText('Sample Rate (24h, Generic Metrics):');
       expect(term.nextElementSibling).toHaveTextContent('n/a');
+    });
+  });
+
+  it('renders both sample rate rows while the request is pending', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.75,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 0.75, eapEffectiveSampleRate: 0.75},
+      asyncDelay: 1,
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    expect(
+      screen.getByText('Sample Rate (24h, Generic Metrics):').nextElementSibling
+    ).toHaveTextContent('Loading...');
+    expect(
+      screen.getByText('Sample Rate (24h, EAP):').nextElementSibling
+    ).toHaveTextContent('Loading...');
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Sample Rate (24h, EAP):').nextElementSibling
+      ).toHaveTextContent('75.00%');
     });
   });
 

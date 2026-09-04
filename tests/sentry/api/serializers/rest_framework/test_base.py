@@ -83,6 +83,50 @@ def test_convert_dict_key_case() -> None:
     assert camelData == convert_dict_key_case(snake_data, snake_to_camel_case)
 
 
+def test_convert_dict_key_case_preserves_additional_fields_keys() -> None:
+    """Third-party keys under additional_fields must survive case conversion."""
+    payload = {
+        "type": "jira",
+        "data": {
+            "dynamicFormFields": [{"name": "fixVersions"}],
+            "additionalFields": {
+                "project": "10000",
+                "issuetype": "10001",
+                "fixVersions": "10500",
+                "customfield_10101": "x",
+            },
+        },
+    }
+
+    snake_data = convert_dict_key_case(payload, camel_to_snake_case)
+    assert snake_data == {
+        "type": "jira",
+        "data": {
+            "dynamic_form_fields": [{"name": "fixVersions"}],
+            "additional_fields": {
+                "project": "10000",
+                "issuetype": "10001",
+                "fixVersions": "10500",
+                "customfield_10101": "x",
+            },
+        },
+    }
+
+    # Container key converts; nested opaque keys remain unchanged on the way out too.
+    assert convert_dict_key_case(snake_data, snake_to_camel_case) == {
+        "type": "jira",
+        "data": {
+            "dynamicFormFields": [{"name": "fixVersions"}],
+            "additionalFields": {
+                "project": "10000",
+                "issuetype": "10001",
+                "fixVersions": "10500",
+                "customfield_10101": "x",
+            },
+        },
+    }
+
+
 class ClassifyKeyCaseTest(TestCase):
     def test_camel_keys(self) -> None:
         assert _classify_key_case({"firstName": "a", "lastName": "b"}) == "camel"

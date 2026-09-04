@@ -10,19 +10,14 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActi
 from sentry.middleware import is_frontend_request
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils.http import is_mcp_request
+from sentry.utils.http import (
+    KNOWN_MCP_CLIENT_FAMILIES,
+    SEER_REFERRER_HEADER,
+    get_mcp_client_family,
+    is_mcp_request,
+)
 
 logger = logging.getLogger(__name__)
-
-MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
-SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
-
-# Standardized client families the MCP buckets its callers into and forwards via
-# X-Sentry-MCP-Client-Family (source of truth: client-family.ts in getsentry/sentry-mcp).
-KNOWN_MCP_CLIENT_FAMILIES = frozenset(
-    {"claude-code", "cursor", "copilot", "opencode", "claude-desktop", "codex"}
-)
-MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
 
 
 def resolve_action_source(request: Request) -> str:
@@ -32,10 +27,10 @@ def resolve_action_source(request: Request) -> str:
     user_agent = request.META.get("HTTP_USER_AGENT", "")
 
     if is_mcp_request(request):
-        family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
+        family = get_mcp_client_family(request)
         if family in KNOWN_MCP_CLIENT_FAMILIES:
             return f"{ActionSource.MCP}:{family}"
-        if family and family not in MCP_CATCHALL_CLIENT_FAMILIES:
+        if family:
             # Values outside this set are logged so we know to add new ones
             logger.warning(
                 "group.action_log.unrecognized_mcp_client_family",

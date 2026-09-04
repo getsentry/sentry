@@ -892,6 +892,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_updated", "date_added"),
                 HashObfuscatingComparator("token"),
             ],
+            "sentry.organizationmemberteam": [
+                # `new_id` mirrors the primary key, which is reassigned on import, so
+                # comparing its value across an export cycle is meaningless. The
+                # `new_id == id` invariant is enforced on write instead.
+                IgnoredComparator("new_id"),
+            ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),

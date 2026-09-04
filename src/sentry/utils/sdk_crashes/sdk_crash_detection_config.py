@@ -12,7 +12,7 @@ from sentry.utils.sdk_crashes.path_replacer import (
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionAndPathPattern:
     """Both the function and path pattern must match for a frame to be considered a SDK frame."""
 
@@ -33,6 +33,32 @@ class FunctionAndModulePattern:
 
     module_pattern: str
     function_pattern: str
+
+
+@dataclass(frozen=True)
+class StacktraceIgnoreMatcher:
+    """Pattern group for ignoring SDK crashes based on the full stacktrace.
+
+    Unlike the matchers in sdk_crash_ignore_matchers, which are only evaluated for frames up to
+    the first SDK frame, a StacktraceIgnoreMatcher is evaluated against the entire stacktrace and
+    only ignores the crash when *every* pattern in the group matches some frame. This is useful
+    for crashes identified by a combination of frames rather than a single frame, e.g. an SDK
+    crash dispatched through a specific caller chain.
+
+    When require_sdk_frame_after is True, a frame matching the *last* pattern must additionally be
+    directly followed by an SDK frame (its callee). This tightens the match to a caller that
+    dispatches straight into SDK code, distinguishing it from a production caller chain that
+    passes through the same frames before reaching app code.
+    """
+
+    patterns: tuple[FunctionAndPathPattern, ...]
+    require_sdk_frame_after: bool = False
+
+    def __post_init__(self) -> None:
+        # An empty patterns tuple would make the detector's all(...) check vacuously true and
+        # ignore every SDK crash, so reject it at construction time.
+        if not self.patterns:
+            raise ValueError("StacktraceIgnoreMatcher requires at least one pattern.")
 
 
 @dataclass
@@ -91,6 +117,13 @@ class SDKCrashDetectionConfig:
     sdk_crash_ignore_when_only_sdk_frame_matchers: set[FunctionAndModulePattern] = field(
         default_factory=set
     )
+    """Matcher groups evaluated against the full stacktrace. The crash is ignored when every
+    pattern of any group matches some frame in the stacktrace (and, when a group sets
+    require_sdk_frame_after, its last pattern is directly followed by an SDK frame). Use this for
+    crashes that can only be identified by a combination of frames, e.g. Sentry.init being re-run
+    by the React Native dev server (Metro) on hot reload, where init is dispatched directly
+    through the device event emitter into SDK code — a path that never happens in production."""
+    sdk_crash_ignore_stacktrace_matchers: set[StacktraceIgnoreMatcher] = field(default_factory=set)
     """The package names that identify the customer-facing hybrid SDK for an SDK event.
     Maps the event SDK name to the hybrid SDK name and package name."""
     hybrid_sdk_packages: dict[str, tuple[str, str]] = field(default_factory=dict)
@@ -266,10 +299,17 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 # The fetch instrumentation wraps globalThis.fetch as a pass-through.
                 # When a user's fetch call fails (e.g., "Failed to fetch" network errors),
                 # the SDK wrapper frame appears in the stack but is not the cause.
+                # The `fetch` wrapper rethrows synchronously, while the `<anonymous>` promise
+                # rejection handler rethrows the error asynchronously (surfacing via
+                # onunhandledrejection), so both pass-through frames must be ignored.
                 # https://github.com/getsentry/sentry-javascript/blob/090d08c284089acf886d675f06cd516b3f6e06be/packages/core/src/instrument/fetch.ts
                 FunctionAndModulePattern(
                     module_pattern="@sentry/core/*/instrument/fetch*",
                     function_pattern="fetch",
+                ),
+                FunctionAndModulePattern(
+                    module_pattern="@sentry/core/*/instrument/fetch*",
+                    function_pattern="<anonymous>",
                 ),
                 # The Supabase integration wraps PostgREST queries and captures errors from
                 # Supabase responses via captureException. The Error is constructed inside SDK
@@ -278,6 +318,45 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 FunctionAndModulePattern(
                     module_pattern="@sentry/core/*/integrations/supabase*",
                     function_pattern="Reflect.apply.then$argument_0",
+                ),
+            },
+            sdk_crash_ignore_stacktrace_matchers={
+                # The React Native dev server (Metro) re-runs the app's entry code — including
+                # Sentry.init and SDK integration setup — on hot reload / Fast Refresh by pushing
+                # a message over its websocket. React Native delivers that message as a device
+                # event (RCTDeviceEventEmitter#emit) to the WebSocket module's listener, which
+                # dispatches straight into the SDK setup code. While the module graph is being
+                # swapped, an imported binding is transiently undefined and SDK setup throws a
+                # TypeError (observed in init, getDefaultIntegrations, _initNativeSdk, and
+                # _encodedAuth via new URLSearchParams). This is a development-only artifact, not a
+                # shippable SDK bug.
+                #
+                # We ignore an SDK crash only when its stacktrace contains both the device event
+                # emit and the React Native WebSocket listener AND that listener dispatches
+                # directly into an SDK frame (require_sdk_frame_after). The direct dispatch is the
+                # Metro module re-evaluation signature: in production the same two frames appear
+                # for every incoming websocket message, but the listener calls the app's own
+                # onmessage handler (app code) before any SDK frame, so a genuine SDK crash reached
+                # from a production websocket handler is not ignored. Crashes reached from app
+                # startup (no dev-server websocket frames) also remain detectable. The crashing SDK
+                # frame is intentionally not pinned by pattern, since it varies across reloads.
+                StacktraceIgnoreMatcher(
+                    patterns=(
+                        # React Native's native device event emitter dispatching the event.
+                        FunctionAndPathPattern(
+                            function_pattern="RCTDeviceEventEmitterImpl#emit",
+                            path_pattern="**/react-native/Libraries/EventEmitter/RCTDeviceEventEmitter.js",
+                        ),
+                        # The React Native WebSocket module's listener that receives the dev-server
+                        # (Metro) message and dispatches directly into the re-run SDK setup code.
+                        # Kept last: require_sdk_frame_after anchors the SDK-frame adjacency check
+                        # on this frame.
+                        FunctionAndPathPattern(
+                            function_pattern="_eventEmitter.addListener$argument_1",
+                            path_pattern="**/react-native/Libraries/WebSocket/WebSocket.js",
+                        ),
+                    ),
+                    require_sdk_frame_after=True,
                 ),
             },
         )

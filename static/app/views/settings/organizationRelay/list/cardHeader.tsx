@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCopyId, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
@@ -42,15 +42,17 @@ export function CardHeader({
     />
   );
   return (
-    <Header>
-      <KeyName>
-        {name}
-        {description && <QuestionTooltip position="top" size="sm" title={description} />}
-      </KeyName>
-      <DateCreated>
-        {tct('Created on [date]', {date: <DateTime date={created} />})}
-      </DateCreated>
-      <StyledButtonBar>
+    <Grid columns={{zero: '1fr', md: '1fr max-content'}} align="center" gap="md">
+      <Stack gap="2xs">
+        <Flex align="center" gap="md">
+          {name}
+          {description && <InfoTip position="top" size="sm" title={description} />}
+        </Flex>
+        <DateCreated>
+          {tct('Created on [date]', {date: <DateTime date={created} />})}
+        </DateCreated>
+      </Stack>
+      <Flex align="center" gap="md" wrap="wrap" justify={{zero: 'start', md: 'end'}}>
         <Button
           size="sm"
           icon={<IconCopyId />}
@@ -82,40 +84,12 @@ export function CardHeader({
           </ConfirmDelete>
         )}
         {extraAction}
-      </StyledButtonBar>
-    </Header>
+      </Flex>
+    </Grid>
   );
 }
 
-const KeyName = styled('div')`
-  grid-row: 1/2;
-  grid-template-columns: repeat(2, max-content);
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
 const DateCreated = styled('div')`
-  grid-row: 2/3;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-row: 1/3;
-  }
-`;
-
-const Header = styled('div')`
-  display: grid;
-  grid-row-gap: ${p => p.theme.space['2xs']};
-  margin-bottom: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: 1fr max-content;
-    grid-template-rows: repeat(2, max-content);
-  }
 `;

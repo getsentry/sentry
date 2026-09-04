@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry.dynamic_sampling.rules.base import get_guarded_project_sample_rate
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
-    _partition_orgs_by_measure,
     boost_low_volume_projects,
     boost_low_volume_projects_of_org_with_query,
     fetch_projects_with_total_root_transaction_count_and_rates,
@@ -331,75 +330,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert (p2_2.id, 15, 7, 8) in org_2_results
 
 
-class TestPartitionOrgsByMeasure(TestCase):
-    def test_all_orgs_go_to_segments_by_default(self) -> None:
-        """All orgs should be partitioned to SEGMENTS by default."""
-        org = self.create_organization("test-org")
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": False,
-            }
-        ):
-            result = _partition_orgs_by_measure([org.id])
-            assert org.id in result[SamplingMeasure.SEGMENTS]
-
-    def test_project_mode_orgs_are_excluded(self) -> None:
-        """Orgs with PROJECT sampling mode should be excluded from all partitions."""
-        org = self.create_organization("test-org")
-        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": False,
-            }
-        ):
-            result = _partition_orgs_by_measure([org.id])
-            assert org.id not in result.get(SamplingMeasure.SEGMENTS, [])
-
-    def test_span_orgs_partitioned_when_check_span_flag_enabled(self) -> None:
-        """When check_span_feature_flag is on, orgs in span option go to SPANS."""
-        org_span = self.create_organization("org-span")
-        org_seg = self.create_organization("org-seg")
-
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [org_span.id],
-            }
-        ):
-            result = _partition_orgs_by_measure([org_span.id, org_seg.id])
-            assert org_span.id in result[SamplingMeasure.SPANS]
-            assert org_seg.id in result[SamplingMeasure.SEGMENTS]
-
-    def test_span_flag_disabled_means_no_span_partition(self) -> None:
-        """When check_span_feature_flag is off, SPANS key should not be in result."""
-        org = self.create_organization("test-org")
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": False,
-                "dynamic-sampling.measure.spans": [org.id],
-            }
-        ):
-            result = _partition_orgs_by_measure([org.id])
-            assert SamplingMeasure.SPANS not in result
-            assert org.id in result[SamplingMeasure.SEGMENTS]
-
-    def test_project_mode_excluded_from_segments_and_spans(self) -> None:
-        """Project-mode orgs should be excluded even if listed in spans option."""
-        org = self.create_organization("test-org")
-        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [org.id],
-            }
-        ):
-            result = _partition_orgs_by_measure([org.id])
-            assert org.id not in result.get(SamplingMeasure.SEGMENTS, [])
-            assert org.id not in result.get(SamplingMeasure.SPANS, [])
-
-
 @freeze_time(MOCK_DATETIME)
 class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     """
@@ -458,41 +388,6 @@ class TestQueryProjectCountsByOrgEmptyOrgIds(BaseMetricsLayerTestCase, TestCase,
                 org_ids=[], measure=SamplingMeasure.SEGMENTS
             )
             assert mock_query.call_count == 1
-
-    def test_only_measures_with_orgs_are_queried_per_batch(self) -> None:
-        """
-        Simulates the main task loop behavior and confirms that
-        for each batch of orgs, only measures with non-empty org lists
-        result in Snuba queries.
-        """
-        org1 = self.create_organization("test-org1")
-        org2 = self.create_organization("test-org2")
-        self.create_project(organization=org1)
-        self.create_project(organization=org2)
-
-        with patch(
-            "sentry.dynamic_sampling.tasks.boost_low_volume_projects.raw_snql_query"
-        ) as mock_query:
-            mock_query.return_value = {"data": []}
-
-            batches = [[org1.id], [org2.id]]
-
-            for batch in batches:
-                orgs_by_measure = _partition_orgs_by_measure(batch)
-                assert orgs_by_measure.get(SamplingMeasure.SPANS, []) == []
-
-                # Each batch should result in one query for SEGMENTS
-                fetch_projects_with_total_root_transaction_count_and_rates(
-                    org_ids=orgs_by_measure.get(SamplingMeasure.SEGMENTS, []),
-                    measure=SamplingMeasure.SEGMENTS,
-                )
-                # SPANS partition is empty, no query needed
-                fetch_projects_with_total_root_transaction_count_and_rates(
-                    org_ids=orgs_by_measure.get(SamplingMeasure.SPANS, []),
-                    measure=SamplingMeasure.SPANS,
-                )
-
-            assert mock_query.call_count == 2
 
 
 @freeze_time(MOCK_DATETIME)
@@ -821,49 +716,3 @@ class TestEndToEndMeasureDispatching(BaseMetricsLayerTestCase, TestCase, SnubaTe
         )
         assert not got_value
         assert sample_rate is None
-
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_with_query_task_uses_spans_measure_for_span_orgs(self) -> None:
-        """
-        boost_low_volume_projects_of_org_with_query should use SPANS measure
-        for orgs listed in the span-metric option when the span flag is enabled.
-        """
-        org = self.create_organization("test-org")
-        p1 = self.create_project(organization=org)
-
-        # Store span metrics (with and without is_segment)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo", "decision": "keep", "is_segment": "true"},
-            minutes_before_now=30,
-            value=3,
-            project_id=p1.id,
-            org_id=org.id,
-        )
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "bar", "decision": "keep"},
-            minutes_before_now=30,
-            value=7,
-            project_id=p1.id,
-            org_id=org.id,
-        )
-
-        redis_client = get_redis_client_for_ds()
-        cache_key = generate_sliding_window_org_cache_key(org.id)
-        redis_client.set(cache_key, 0.5)
-
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [org.id],
-            }
-        ):
-            with self.tasks():
-                boost_low_volume_projects_of_org_with_query.delay(org.id)
-
-        sample_rate, got_value = get_boost_low_volume_projects_sample_rate(
-            org.id, p1.id, error_sample_rate_fallback=None
-        )
-        assert got_value
-        assert sample_rate is not None

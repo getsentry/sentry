@@ -1,16 +1,11 @@
 import round from 'lodash/round';
 
-import type {Organization} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
 import {SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
-
-export function hasMetricAlerts(organization: Organization): boolean {
-  return organization.features.includes('incidents');
-}
 
 // Maps a datasource to the relevant dataset and event_types for the backend to use
 

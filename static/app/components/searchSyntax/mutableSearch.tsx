@@ -446,18 +446,6 @@ export class MutableSearch {
   }
 
   /**
-   * Adds the filters from a string query to the current MutableSearch query.
-   * The string query may consist of multiple key:value pairs separated
-   * by spaces.
-   */
-  addStringMultiFilter(multiFilter: string, shouldEscape = true): void {
-    const tmp = new MutableSearch(multiFilter);
-    Object.entries(tmp.getFilters()).forEach(([key, values]) => {
-      this.addFilterValues(key, values, shouldEscape);
-    });
-  }
-
-  /**
    * Adds a string filter to the current MutableSearch query. The filter should follow
    * the format key:value or key:\uf00dContains\uf00dvalue or key:\uf00dStartsWith\uf00dvalue or key:\uf00dEndsWith\uf00dvalue.
    */

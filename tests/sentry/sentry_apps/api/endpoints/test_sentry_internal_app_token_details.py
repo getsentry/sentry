@@ -102,6 +102,17 @@ class SentryInternalAppTokenCreationTest(APITestCase):
             status_code=status.HTTP_403_FORBIDDEN,
         )
 
+    def test_deny_token_access(self) -> None:
+        self.login_as(self.user)
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:write"])
+        self.get_error_response(
+            self.internal_sentry_app.slug,
+            self.api_token.id,
+            status_code=status.HTTP_403_FORBIDDEN,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+        assert ApiToken.objects.filter(pk=self.api_token.id).exists()
+
     def test_superuser_can_delete(self) -> None:
         self.login_as(self.superuser, superuser=True)
         self.get_success_response(

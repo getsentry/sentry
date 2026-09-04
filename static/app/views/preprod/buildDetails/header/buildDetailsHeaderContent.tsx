@@ -94,7 +94,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(organization.slug, projectSlug, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectSlug, {}),
       label: 'Releases',
     },
   ];
@@ -106,7 +106,6 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     breadcrumbs.push({
       to: makeReleasesUrl(organization.slug, projectSlug, {
         query: version,
-        tab: 'mobile-builds',
       }),
       label: version,
     });

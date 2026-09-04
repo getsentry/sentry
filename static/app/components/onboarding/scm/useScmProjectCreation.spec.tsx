@@ -95,7 +95,7 @@ describe('useScmProjectCreation', () => {
     );
     expect(onProjectCreated).toHaveBeenCalledWith('python');
     expect(onSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({project: createdProject, reused: false, ruleIds: []})
+      expect.objectContaining({project: createdProject, reused: false, workflowIds: []})
     );
     // The slug must be persisted before completion so the duplicate-prevention
     // handoff to SDK setup survives a failure later in the sequence.

@@ -19,10 +19,15 @@ import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 
 interface MetricInfoTabsProps {
   traceMetric: TraceMetric;
+  additionalActions?: React.ReactNode;
   isMetricOptionsEmpty?: boolean;
 }
 
-export function MetricInfoTabs({traceMetric, isMetricOptionsEmpty}: MetricInfoTabsProps) {
+export function MetricInfoTabs({
+  traceMetric,
+  additionalActions,
+  isMetricOptionsEmpty,
+}: MetricInfoTabsProps) {
   const visualize = useMetricVisualize();
   const queryParamsMode = useQueryParamsMode();
   const setAggregatesMode = useSetQueryParamsMode();
@@ -54,6 +59,7 @@ export function MetricInfoTabs({traceMetric, isMetricOptionsEmpty}: MetricInfoTa
                 <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
               </TabList>
             </TabListWrapper>
+            {additionalActions}
           </Flex>
         ) : null}
         {visualize.visible ? (

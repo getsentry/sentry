@@ -337,17 +337,17 @@ Both Stack and Row layouts support a `variant="compact"` prop. In compact mode, 
 ```tsx
 // Default: hint text appears below the label
 <field.Layout.Row label="Email" hintText="We'll never share your email">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Row>
 
 // Compact: hint text appears in tooltip when hovering the label
 <field.Layout.Row label="Email" hintText="We'll never share your email" variant="compact">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Row>
 
 // Also works with Stack layout
 <field.Layout.Stack label="Email" hintText="We'll never share your email" variant="compact">
-  <field.Input ... />
+    <field.Input ... />
 </field.Layout.Stack>
 ```
 
@@ -389,13 +389,13 @@ Group related fields into sections with a title.
 
 ```tsx
 <form.FieldGroup title="Personal Information">
-  <form.AppField name="firstName">{/* ... */}</form.AppField>
-  <form.AppField name="lastName">{/* ... */}</form.AppField>
+    <form.AppField name="firstName">{/* ... */}</form.AppField>
+    <form.AppField name="lastName">{/* ... */}</form.AppField>
 </form.FieldGroup>
 
 <form.FieldGroup title="Contact Information">
-  <form.AppField name="email">{/* ... */}</form.AppField>
-  <form.AppField name="phone">{/* ... */}</form.AppField>
+    <form.AppField name="email">{/* ... */}</form.AppField>
+    <form.AppField name="phone">{/* ... */}</form.AppField>
 </form.FieldGroup>
 ```
 
@@ -411,9 +411,9 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 
 // ✅ Provide a reason when disabling
 <field.Input
-  disabled="This feature requires a Business plan"
-  value={field.state.value}
-  onChange={field.handleChange}
+    disabled="This feature requires a Business plan"
+    value={field.state.value}
+    onChange={field.handleChange}
 />
 ```
 
@@ -527,6 +527,8 @@ import {useMutation} from '@tanstack/react-query';
 import {setFieldErrors} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 function MyForm() {
   const mutation = useMutation({
@@ -547,17 +549,43 @@ function MyForm() {
       try {
         await mutation.mutateAsync(value);
       } catch (error) {
-        // Set field-specific errors from backend
-        setFieldErrors(formApi, {
-          email: {message: 'This email is already registered'},
-          username: {message: 'Username is taken'},
-        });
+        if (error instanceof RequestError) {
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        }
       }
     },
   });
 
   // ...
 }
+```
+
+`setFieldErrors` accepts the Scraps `FieldErrors` contract. It does not accept
+Sentry's `RequestError`. Use `requestErrorToFieldErrors` at the app boundary to:
+
+- accept a `RequestError` after the call site narrows the unknown error;
+- keep only keys that exist in the form values;
+- convert string and array response values to `{message: string}`.
+
+Do not pass an API error to Scraps directly:
+
+```tsx
+// ❌ RequestError is an app type, not a Scraps form error
+setFieldErrors(formApi, error);
+
+// ✅ Narrow at the app call site, then convert to the Scraps contract
+if (error instanceof RequestError) {
+  setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+}
+```
+
+Use a direct object when you create the field messages in the form code:
+
+```tsx
+setFieldErrors(formApi, {
+  email: {message: 'This email is already registered'},
+  username: {message: 'Username is taken'},
+});
 ```
 
 > **Important**: `setFieldErrors` supports nested paths with dot notation: `'address.city': {message: 'City not found'}`
@@ -635,6 +663,24 @@ The form system automatically shows:
 - **Warning icon** on validation error (with tooltip)
 
 > **Important**: Do NOT use toasts to communicate auto-save status. The built-in inline indicators (spinner, checkmark, warning icon) are the correct feedback mechanism. Toasts are noisy and disruptive for fields that save frequently on every change.
+
+### Auto-Save Request Errors
+
+`AutoSaveForm` receives app-specific error mapping from the form error context.
+Sentry installs this mapping once through `ScrapsProviders`. Do not catch
+`RequestError` or call `requestErrorToFieldErrors` at each `AutoSaveForm` call
+site.
+
+The Sentry provider:
+
+- narrows failed mutations to `RequestError`;
+- uses `requestErrorToFieldErrors` for matching backend field errors;
+- uses `getRequestErrorUserMessage` for request detail and status messages;
+- keeps `Failed to save` as the fallback for other errors.
+
+Scraps remains independent of Sentry's API error type. Outside the Sentry app,
+the form error context uses the generic fallback unless the host app supplies
+its own mapper.
 
 ### Confirmation Dialogs
 
@@ -986,7 +1032,7 @@ When creating a new form:
 - [ ] Wrap with `<form.AppForm form={form}>`
 - [ ] Use `<form.AppField>` for each field
 - [ ] Choose appropriate layout (Stack or Row)
-- [ ] Handle server errors with `setFieldErrors`
+- [ ] Narrow unknown errors to `RequestError` at the call site, convert them with `requestErrorToFieldErrors`, then call `setFieldErrors`
 - [ ] Add `<form.SubmitButton>` for submission
 - [ ] Call `form.reset()` after successful mutation if the form stays on the page
 
@@ -997,15 +1043,18 @@ When creating auto-save fields:
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
 - [ ] Update cache in `onSuccess` callback
+- [ ] Let the Sentry form error provider handle standard request errors
 
 ---
 
 ## File References
 
-| File                                               | Purpose                     |
-| -------------------------------------------------- | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`   | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper           |
-| `static/app/components/core/form/field/*.tsx`      | Individual field components |
-| `static/app/components/core/form/layout/index.tsx` | Layout components           |
-| `static/app/components/core/form/form.stories.tsx` | Usage examples              |
+| File                                                   | Purpose                     |
+| ------------------------------------------------------ | --------------------------- |
+| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
+| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
+| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
+| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
+| `static/app/components/core/form/field/*.tsx`          | Individual field components |
+| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
+| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |

@@ -76,6 +76,41 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
+    def test_unsupported_dataset_with_query_type_returns_validation_error(self) -> None:
+        """Spans dataset is a valid Dataset enum but is not alert-supported.
+
+        query_type may already be present (as with detector create payloads).
+        setdefault must not eagerly KeyError on the dataset mapping.
+        """
+        self.valid_data.update(
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.SpansIndexed.value,
+                "aggregate": "failure_rate()",
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        )
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        # Prefer a field/non-field validation error over an uncaught KeyError.
+        assert validator.errors
+        assert "dataset" in validator.errors or "nonFieldErrors" in validator.errors
+
+    def test_unsupported_dataset_without_query_type_returns_validation_error(self) -> None:
+        self.valid_data.pop("queryType", None)
+        self.valid_data.update(
+            {
+                "dataset": Dataset.SpansIndexed.value,
+                "aggregate": "failure_rate()",
+                "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            }
+        )
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("dataset") == [
+            ErrorDetail(string="Unsupported dataset for alerts: spans", code="invalid")
+        ]
+
     def test_validated_create_source_limits(self) -> None:
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
             validator = SnubaQueryValidator(data=self.valid_data, context=self.context)

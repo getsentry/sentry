@@ -403,10 +403,9 @@ function SearchQueryBuilderInputInternal({
     updateSelectionIndex();
   }, [trimmedTokenValue, updateSelectionIndex]);
 
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
-    useFilterKeyListBox({
-      filterValue,
-    });
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
+    filterValue,
+  });
   const {items: sortedFilteredItems, isLoading: isLoadingFilterKeys} =
     useSortedFilterKeyItems({
       filterValue,
@@ -612,13 +611,6 @@ function SearchQueryBuilderInputInternal({
         isLoading={isLoadingFilterKeys}
         placeholder={query === '' ? placeholder : undefined}
         onOptionSelected={option => {
-          if (handleOptionSelected) {
-            handleOptionSelected(option);
-            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
-              return;
-            }
-          }
-
           if (option.type === 'recent-query') {
             dispatch({
               type: 'UPDATE_QUERY',

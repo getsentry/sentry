@@ -122,17 +122,9 @@ describe('Dashboards > Detail', () => {
     };
   }
 
-  /**
-   * Clicks the edit dashboard button and waits for a known button to be visible.
-   * Note that this bypasses hover state to avoid overlays intercepting clicks.
-   */
   async function activateDashboardEditMode() {
-    const button = await screen.findByRole('button', {
-      name: 'edit-dashboard',
-    });
-    act(() => {
-      button.click();
-    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Dashboard actions'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Edit'}));
     await screen.findByRole('button', {name: 'Save and Finish'});
   }
 
@@ -672,14 +664,10 @@ describe('Dashboards > Detail', () => {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('renders the redesigned dashboard breadcrumb in the top bar (flag on)', async () => {
+    it('renders the redesigned dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [
-          ...organization.features,
-          'dashboards-import',
-          'ui-migration-breadcrumbs',
-        ],
+        features: [...organization.features, 'dashboards-import'],
       });
 
       render(
@@ -729,7 +717,7 @@ describe('Dashboards > Detail', () => {
     it('keeps supported breadcrumb actions on prebuilt dashboards', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: ['dashboards-edit'],
       });
 
       render(
@@ -779,7 +767,7 @@ describe('Dashboards > Detail', () => {
       );
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: ['dashboards-edit'],
       });
 
       render(
@@ -813,8 +801,8 @@ describe('Dashboards > Detail', () => {
     it('shows access controls to org managers without dashboard edit access', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
+        features: ['dashboards-edit'],
         access: ['org:read', 'org:write'],
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
       });
 
       render(
@@ -843,7 +831,7 @@ describe('Dashboards > Detail', () => {
     it('disables the breadcrumb edit action with unsaved filters', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: ['dashboards-edit'],
       });
 
       render(
@@ -882,7 +870,7 @@ describe('Dashboards > Detail', () => {
     it('does not show breadcrumb actions in dashboard preview', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'ui-migration-breadcrumbs'],
+        features: ['dashboards-edit'],
       });
 
       render(
@@ -910,10 +898,10 @@ describe('Dashboards > Detail', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
+    it('renders the dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: organization.features,
+        features: ['dashboards-edit'],
       });
 
       render(
@@ -933,8 +921,7 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      // Without the flag, the legacy Breadcrumbs render: the Dashboards link and
-      // the (view-only) title are still present.
+      // The Dashboards link and view-only title are both present.
       expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/dashboards/'
@@ -1053,7 +1040,7 @@ describe('Dashboards > Detail', () => {
       await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Save and Finish'));
 
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Dashboard actions'})).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
     });
 
@@ -1575,7 +1562,11 @@ describe('Dashboards > Detail', () => {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Edit'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
@@ -2069,7 +2060,8 @@ describe('Dashboards > Detail', () => {
       });
 
       await screen.findByText('Editors:');
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
     });
 
@@ -2122,7 +2114,8 @@ describe('Dashboards > Detail', () => {
       });
 
       await screen.findByText('Editors:');
-      expect(screen.getByRole('button', {name: 'edit-dashboard'})).toBeDisabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(screen.queryByRole('menuitemradio', {name: 'Edit'})).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(
@@ -2158,9 +2151,10 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      const favoriteButton = await screen.findByLabelText('star-dashboard');
-      expect(favoriteButton).toBeInTheDocument();
-      expect(await screen.findByLabelText('Star')).toBeInTheDocument();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
     });
 
     it('renders favorite button in favorited state', async () => {
@@ -2183,9 +2177,10 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      const favoriteButton = await screen.findByLabelText('star-dashboard');
-      expect(favoriteButton).toBeInTheDocument();
-      expect(await screen.findByLabelText('Unstar')).toBeInTheDocument();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      expect(await screen.findByRole('menuitemradio', {name: 'Unstar'})).toBeVisible();
     });
 
     it('toggles favorite button', async () => {
@@ -2213,12 +2208,13 @@ describe('Dashboards > Detail', () => {
         },
       });
 
-      const favoriteButton = await screen.findByLabelText('star-dashboard');
-      expect(favoriteButton).toBeInTheDocument();
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Dashboard actions'})
+      );
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Unstar'}));
 
-      expect(await screen.findByLabelText('Unstar')).toBeInTheDocument();
-      await userEvent.click(favoriteButton);
-      expect(await screen.findByLabelText('Star')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      expect(await screen.findByRole('menuitemradio', {name: 'Star'})).toBeVisible();
     });
 
     it('does not render save or edit features on prebuilt insights dashboards', async () => {

@@ -13,7 +13,7 @@
     };
    */
 
-  /* eslint-disable spaced-comment */
+  /* eslint-disable eslint-js/spaced-comment */
   var strings = /*{{ strings }}*/ '';
   var template = /*{{ template }}*/ '';
   var endpoint = /*{{ endpoint }}*/ '';

@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -78,7 +78,7 @@ function OutcomeRow({
 
   return (
     <tr>
-      <td>
+      <td aria-label={name}>
         <Flex
           gap="xs"
           align="center"
@@ -89,9 +89,7 @@ function OutcomeRow({
             <TextWrapper>
               <Text bold={bold}>{name}</Text>
             </TextWrapper>
-            {tooltipTitle && (
-              <QuestionTooltip size="xs" position="top" title={tooltipTitle} />
-            )}
+            {tooltipTitle && <InfoTip size="xs" position="top" title={tooltipTitle} />}
           </OutcomeType>
         </Flex>
       </td>

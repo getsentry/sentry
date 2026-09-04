@@ -94,7 +94,7 @@ export function MilestoneToast({
       {isActionableSection(sectionKey) && run.status !== 'processing' && (
         <NextActionButton run={run} sectionKey={sectionKey} />
       )}
-      <OpenSeerButton run={run} size="xs" />
+      <OpenSeerButton run={run} section={sectionKey} size="xs" />
     </Flex>
   );
 }

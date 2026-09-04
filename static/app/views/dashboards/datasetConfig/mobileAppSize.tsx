@@ -17,7 +17,7 @@ import type {
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, attributeTypeFromKind} from 'sentry/utils/fields';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -153,7 +153,7 @@ function getGroupByFieldOptions(
       label: tag.name,
       value: {
         kind: FieldValueKind.TAG,
-        meta: {name: tag.name, dataType: tag.kind === 'tag' ? 'string' : 'number'},
+        meta: {name: tag.name, dataType: attributeTypeFromKind(tag.kind)},
       },
     };
   }

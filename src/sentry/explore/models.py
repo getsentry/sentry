@@ -488,15 +488,12 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
 
     Under the hood metric names are attribute values, so for v0 ``attribute_name`` is
     typically ``metric.name`` and ``attribute_value`` is the metric's name. Context is
-    scoped to an organization and, optionally, a project (a null project means the
-    context applies org-wide).
+    always scoped to the whole organization; per-project context is not supported.
     """
 
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
-    # A null project means the context applies to the whole organization.
-    project = FlexibleForeignKey("sentry.Project", null=True)
 
     # The attribute and value this context is for, e.g. "metric.name" / "my.counter".
     attribute_name = models.CharField()
@@ -516,22 +513,7 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
     class Meta:
         app_label = "explore"
         db_table = "explore_traceitemattributevaluecontext"
-        # project is nullable, so unique_together would treat each null project as
-        # distinct and allow duplicate org-wide rows. Use partial unique constraints
-        # to enforce uniqueness for both the project-scoped and org-wide cases.
         constraints = [
-            UniqueConstraint(
-                fields=[
-                    "organization",
-                    "project",
-                    "item_type",
-                    "attribute_name",
-                    "attribute_value",
-                    "attribute_type",
-                ],
-                name="explore_traceitemvalue_unique_project_scoped",
-                condition=Q(project__isnull=False),
-            ),
             UniqueConstraint(
                 fields=[
                     "organization",
@@ -541,11 +523,10 @@ class TraceItemAttributeValueContext(DefaultFieldsModel):
                     "attribute_type",
                 ],
                 name="explore_traceitemvalue_unique_org_scoped",
-                condition=Q(project__isnull=True),
             ),
         ]
         indexes = [
             models.Index(fields=["organization", "item_type", "attribute_name", "attribute_value"]),
         ]
 
-    __repr__ = sane_repr("organization_id", "project_id", "item_type", "attribute_name")
+    __repr__ = sane_repr("organization_id", "item_type", "attribute_name")

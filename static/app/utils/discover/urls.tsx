@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import type {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
@@ -130,6 +131,12 @@ export function eventDetailsRouteWithEventView({
  */
 export function getDiscoverLandingUrl(organization: Organization): string {
   if (organization.features.includes('discover-query')) {
+    if (getDiscoverDeprecation(organization)) {
+      return makeDiscoverPathname({
+        path: '/',
+        organization,
+      });
+    }
     return makeDiscoverPathname({
       path: '/homepage/',
       organization,

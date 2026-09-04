@@ -34,7 +34,7 @@ _publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
 
 # Group Action Log — tracks who did what to an issue and how.
 #
-# publish_action() writes a CellOutbox entry; the outbox receiver creates the
+# publish_action() writes an outbox entry; the outbox receiver creates the
 # GroupActionLogEntry on the (eventually separate) grouplog database and kicks
 # off derived-data processing.
 #
@@ -105,6 +105,8 @@ def publish_action(
     from sentry import features
     from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+    from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
+    from sentry.options.rollout import in_rollout_group
     from sentry.utils import metrics
 
     for callback in _publish_callbacks.get():
@@ -141,6 +143,16 @@ def publish_action(
     if not write_to_db:
         return
 
+    use_dedicated_outbox = in_rollout_group(
+        "issues.action_log.dedicated_outbox_rollout_rate", str(group_id)
+    )
+    outbox_model = GroupActionLogOutbox if use_dedicated_outbox else CellOutbox
+    outbox_route = "dedicated" if use_dedicated_outbox else "shared"
+    metrics.incr(
+        "issues.action_log.outbox_write",
+        tags={"route": outbox_route},
+    )
+
     payload: GroupActionLogPayload = {
         "group_id": group_id,
         "project_id": project.id,
@@ -155,16 +167,25 @@ def publish_action(
     if idempotency_key is not None:
         payload["idempotency_key"] = idempotency_key
 
-    outbox = CellOutbox(
-        shard_scope=OutboxScope.GROUP_SCOPE,
-        shard_identifier=group_id,
-        category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
-        object_identifier=CellOutbox.next_object_identifier(),
-        payload=payload,
-    )
     # Flush on commit by default; callers can wrap in outbox_context(flush=False) to defer.
-    with outbox_context(transaction.atomic(router.db_for_write(CellOutbox))):
-        outbox.save()
+    with outbox_context(transaction.atomic(router.db_for_write(outbox_model))):
+        with metrics.timer(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": action_name,
+                "source": source,
+                "route": outbox_route,
+                "derived_strategy": "async" if force_async_derived else "inline",
+            },
+        ):
+            outbox = outbox_model(
+                shard_scope=OutboxScope.GROUP_SCOPE,
+                shard_identifier=group_id,
+                category=OutboxCategory.GROUP_ACTION_LOG_EVENT,
+                object_identifier=outbox_model.next_object_identifier(),
+                payload=payload,
+            )
+            outbox.save()
 
 
 def publish_action_from_context(

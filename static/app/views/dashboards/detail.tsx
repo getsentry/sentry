@@ -24,7 +24,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
   isWidgetViewerPath,
@@ -79,11 +78,11 @@ import {getDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
-import {Controls, DashboardActionBar} from './controls';
+import {AdjustedFiltersAlert} from './adjustedFiltersAlert';
+import {DashboardActionBar} from './controls';
 import {validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {Dashboard} from './dashboard';
 import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
@@ -132,7 +131,6 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
-  hasNewBreadcrumbs: boolean;
   initialState: DashboardState;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -221,6 +219,7 @@ class DashboardDetail extends Component<Props, State> {
     if (this.isWidgetBuilder()) {
       const {location} = this.props;
       const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
         openWidgetTemplates: shouldOpenTemplates,
@@ -235,6 +234,7 @@ class DashboardDetail extends Component<Props, State> {
     if (!this.state.isWidgetBuilderOpen && this.isWidgetBuilder()) {
       const {location} = this.props;
       const shouldOpenTemplates = decodeBoolean(location.query.openWidgetTemplates);
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         isWidgetBuilderOpen: true,
         openWidgetTemplates: shouldOpenTemplates,
@@ -243,11 +243,13 @@ class DashboardDetail extends Component<Props, State> {
 
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({dashboardState: this.props.initialState});
     }
 
     // Update modified dashboard to trigger re-render when dashboard prop changes in preview state
     if (prevProps.dashboard !== this.props.dashboard && this.isPreview) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         modifiedDashboard: cloneDashboard(this.props.dashboard),
         widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
@@ -275,6 +277,7 @@ class DashboardDetail extends Component<Props, State> {
       prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({
         widgetLegendState: new WidgetLegendSelectionState({
           organization: this.props.organization,
@@ -523,7 +526,7 @@ class DashboardDetail extends Component<Props, State> {
     // Don't confirm preview cancellation regardless of dashboard state
     if (hasDashboardChanged && !this.isPreview) {
       // Ignore no-alert here, so that the confirm on cancel matches onUnload & onRouteLeave
-      /* eslint no-alert:0 */
+      // eslint-disable-next-line no-alert
       if (!confirm(UNSAVED_MESSAGE)) {
         return;
       }
@@ -1072,7 +1075,7 @@ class DashboardDetail extends Component<Props, State> {
 
   renderDefaultDashboardDetail() {
     const {pageAlerts, organization, dashboard, location} = this.props;
-    const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
+    const {modifiedDashboard, widgetLimitReached} = this.state;
     return (
       <DashboardPageFilters>
         <Stack flex={1} padding="2xl 3xl">
@@ -1093,22 +1096,11 @@ class DashboardDetail extends Component<Props, State> {
                       isEditingDashboard={this.isEditingDashboard}
                     />
                   </Layout.Title>
-                  <Controls
-                    organization={organization}
-                    dashboard={dashboard}
-                    onEdit={this.onEdit}
-                    onCancel={this.onCancel}
-                    onCommit={this.onCommit}
-                    onAddWidget={this.onAddWidget}
-                    onChangeEditAccess={this.onChangeEditAccess}
-                    onDelete={this.onDelete(dashboard)}
-                    dashboardState={dashboardState}
-                    widgetLimitReached={widgetLimitReached}
-                  />
                 </Grid>
                 <OverrideHeader organization={organization} />
                 <Stack gap="xl">
                   {pageAlerts}
+                  <AdjustedFiltersAlert hasUnsavedChanges={false} />
                   <FiltersBar
                     dashboard={dashboard}
                     dashboardPermissions={dashboard.permissions}
@@ -1163,7 +1155,6 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
-      hasNewBreadcrumbs,
       location,
       onDashboardUpdate,
       pageAlerts,
@@ -1189,72 +1180,31 @@ class DashboardDetail extends Component<Props, State> {
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
                 <Fragment>
-                  {hasNewBreadcrumbs ? (
-                    <Fragment>
-                      <TopBar.Slot name="breadcrumbs">
-                        <BreadcrumbList
-                          items={[
-                            {
-                              type: 'link',
-                              label: t('Dashboards'),
-                              to: `/organizations/${organization.slug}/dashboards/`,
-                            },
-                          ]}
-                        />
-                      </TopBar.Slot>
-                      <TopBar.Slot name="title">
-                        <DashboardBreadcrumbTitle
-                          dashboard={modifiedDashboard ?? dashboard}
-                          hasUnsavedFilters={hasUnsavedFilters}
-                          isEditing={this.isEditingDashboard}
-                          isPreview={this.isPreview}
-                          isSaving={isCommittingChanges}
-                          onChange={newTitle =>
-                            this.setModifiedDashboard({
-                              ...(modifiedDashboard ?? dashboard),
-                              title: newTitle,
-                            })
-                          }
-                          onEdit={this.onEdit}
-                        />
-                      </TopBar.Slot>
-                    </Fragment>
-                  ) : (
-                    <TopBar.Slot name="title">
-                      <Breadcrumbs
-                        crumbs={[
-                          {
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
-                            label: (
-                              <DashboardTitle
-                                dashboard={modifiedDashboard ?? dashboard}
-                                onUpdate={this.setModifiedDashboard}
-                                isEditingDashboard={this.isEditingDashboard}
-                              />
-                            ),
-                          },
-                        ]}
-                      />
-                    </TopBar.Slot>
-                  )}
-                  <TopBar.Slot name="actions">
-                    <Controls
-                      organization={organization}
-                      dashboard={dashboard}
-                      hideAddWidget
+                  <TopBar.Slot name="breadcrumbs">
+                    <BreadcrumbList
+                      items={[
+                        {
+                          type: 'link',
+                          label: t('Dashboards'),
+                          to: `/organizations/${organization.slug}/dashboards/`,
+                        },
+                      ]}
+                    />
+                  </TopBar.Slot>
+                  <TopBar.Slot name="title">
+                    <DashboardBreadcrumbTitle
+                      dashboard={modifiedDashboard ?? dashboard}
                       hasUnsavedFilters={hasUnsavedFilters}
-                      onEdit={this.onEdit}
-                      onCancel={this.onCancel}
-                      onCommit={this.onCommit}
-                      onAddWidget={this.onAddWidget}
-                      onDelete={this.onDelete(dashboard)}
-                      onChangeEditAccess={this.onChangeEditAccess}
-                      dashboardState={dashboardState}
-                      widgetLimitReached={widgetLimitReached}
+                      isEditing={this.isEditingDashboard}
+                      isPreview={this.isPreview}
                       isSaving={isCommittingChanges}
+                      onChange={newTitle =>
+                        this.setModifiedDashboard({
+                          ...(modifiedDashboard ?? dashboard),
+                          title: newTitle,
+                        })
+                      }
+                      onEdit={this.onEdit}
                     />
                   </TopBar.Slot>
                 </Fragment>
@@ -1274,12 +1224,16 @@ class DashboardDetail extends Component<Props, State> {
                           flexGrow={0}
                           padding="0"
                           position="sticky"
-                          style={{zIndex: theme.zIndex.header}}
+                          // z-index needs to match dropdown so the menu isn't hidden behind the Seer chat panel.
+                          style={{zIndex: theme.zIndex.dropdown}}
                           top={`var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px)`}
                         >
                           <Layout.Main width="full">
                             <Stack gap="xl">
                               {pageAlerts}
+                              <AdjustedFiltersAlert
+                                hasUnsavedChanges={!this.isEmbedded && hasUnsavedFilters}
+                              />
                               <Stack gap="0">
                                 <FiltersBar
                                   dashboard={modifiedDashboard ?? dashboard}
@@ -1529,7 +1483,6 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'location'
   | 'params'
   | 'queryClient'
-  | 'hasNewBreadcrumbs'
   | 'updateDashboard'
 > {}
 
@@ -1546,7 +1499,6 @@ export function DashboardDetailWithInjectedProps(
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const updateDashboard = useUpdateDashboard();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1565,7 +1517,6 @@ export function DashboardDetailWithInjectedProps(
       widgetInterval={widgetInterval}
       queryClient={queryClient}
       updateDashboard={updateDashboard.mutateAsync}
-      hasNewBreadcrumbs={hasNewBreadcrumbs}
     />
   );
 }

@@ -22,6 +22,7 @@ from sentry.api.serializers.models.seer_run import (
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import has_seer_agent_access_with_detail
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.run_questions import (
@@ -31,7 +32,6 @@ from sentry.seer.run_questions import (
     build_user_questions,
     get_run_questions,
 )
-from sentry.seer.runs_query import filtered_runs_queryset
 
 MAX_USER_QUESTIONS = 5
 MAX_QUESTION_LENGTH = 4096
@@ -169,6 +169,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
+        client = SeerAgentClient(organization, request.user)
 
         feature_enabled = features.has(
             "organizations:seer-run-questions", organization, actor=request.user
@@ -204,10 +205,8 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
         ]
 
         try:
-            queryset = filtered_runs_queryset(
-                organization=organization,
+            queryset = client.get_runs(
                 query=query,
-                user_id=request.user.id,
                 accessible_project_ids=accessible_project_ids,
                 start=start,
                 end=end,

@@ -18,6 +18,56 @@ type ResultGridProps = React.ComponentProps<typeof ResultGrid>;
 type Props = Omit<Partial<ResultGridProps>, 'endpoint'> &
   Pick<ResultGridProps, 'endpoint'>;
 
+const growth = (current: number | undefined, prev: number | undefined) =>
+  current === undefined || !prev ? 0 : current / prev - 1;
+
+/**
+ * Mirrors the server's sort keys so the all-regions view can keep merged
+ * results ordered client-side. Returns the value the key sorts on, descending.
+ */
+const sortValueForRow = (row: Subscription, sortBy: string): number => {
+  switch (sortBy) {
+    case 'date':
+      return new Date(row.dateJoined).getTime();
+    case 'members':
+      return row.totalMembers ?? 0;
+    case 'events.30d':
+      return row.stats?.events30d ?? 0;
+    case 'events.30d.growth':
+      return growth(row.stats?.events30d, row.stats?.eventsPrev30d);
+    case 'events.24h':
+      return row.stats?.events24h ?? 0;
+    case 'events.24h.growth':
+      return growth(row.stats?.events24h, row.stats?.eventsPrev24h);
+    case 'projects':
+      return row.totalProjects ?? 0;
+    default:
+      return 0;
+  }
+};
+
+const columns = [
+  <th key="customer">Customer</th>,
+  <th key="events" style={{width: 130, textAlign: 'center'}}>
+    Events (30d)
+  </th>,
+  <th key="members" style={{width: 85, textAlign: 'center'}}>
+    Members
+  </th>,
+  <th key="status" style={{width: 150, textAlign: 'center'}}>
+    Status
+  </th>,
+  <th key="ondemand" style={{width: 100, textAlign: 'center'}}>
+    OnDemand
+  </th>,
+  <th key="acv" style={{width: 100, textAlign: 'center'}}>
+    ACV
+  </th>,
+  <th key="joined" style={{width: 150, textAlign: 'right'}}>
+    Joined
+  </th>,
+];
+
 const getRow = (row: Subscription) => [
   <td key="customer">
     <CustomerName>
@@ -87,27 +137,11 @@ export function CustomerGrid(props: Props) {
       exactMatchQuery={(row: Subscription, query: string) => row.slug === query}
       path="/_admin/customers/"
       method="GET"
-      columns={[
-        <th key="customer">Customer</th>,
-        <th key="events" style={{width: 130, textAlign: 'center'}}>
-          Events (30d)
-        </th>,
-        <th key="members" style={{width: 85, textAlign: 'center'}}>
-          Members
-        </th>,
-        <th key="status" style={{width: 150, textAlign: 'center'}}>
-          Status
-        </th>,
-        <th key="ondemand" style={{width: 100, textAlign: 'center'}}>
-          OnDemand
-        </th>,
-        <th key="acv" style={{width: 100, textAlign: 'center'}}>
-          ACV
-        </th>,
-        <th key="joined" style={{width: 150, textAlign: 'right'}}>
-          Joined
-        </th>,
-      ]}
+      sortValueForRow={sortValueForRow}
+      columns={columns}
+      // Keep the contextual Region column with the other metadata, between
+      // ACV and Joined.
+      regionColumnIndex={columns.length - 1}
       columnsForRow={getRow}
       hasSearch
       filters={{
