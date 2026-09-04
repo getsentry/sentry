@@ -107,7 +107,6 @@ export function TeamSelect({
             disabled={disabled}
             isLoadingTeams={isLoadingTeams}
             isAddingTeamToMember
-            canCreateTeam={false}
             onSearch={onSearch}
             onSelect={onAddTeam}
             onCreateTeam={onCreateTeam}

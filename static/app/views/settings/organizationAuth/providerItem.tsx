@@ -32,14 +32,9 @@ type LockedFeatureProps = {
 type Props = {
   active: boolean;
   provider: AuthProvider;
-  onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
 };
 
-export function ProviderItem({provider, active, onConfigure}: Props) {
-  const handleConfigure = (e: React.MouseEvent) => {
-    onConfigure?.(provider.key, e);
-  };
-
+export function ProviderItem({provider, active}: Props) {
   const renderDisabledLock = (p: LockedFeatureProps) => (
     <LockedFeature provider={p.provider} features={p.features} />
   );
@@ -53,7 +48,6 @@ export function ProviderItem({provider, active, onConfigure}: Props) {
           size="sm"
           value={provider.key}
           disabled={!hasFeature || !hasAccess}
-          onClick={handleConfigure}
         >
           {t('Configure')}
         </Button>
