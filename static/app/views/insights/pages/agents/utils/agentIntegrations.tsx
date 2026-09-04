@@ -6,6 +6,9 @@ export enum AgentIntegration {
   LANGCHAIN = 'langchain',
   LANGGRAPH = 'langgraph',
   LITTELLM = 'litellm',
+  // Flue is a TypeScript agent framework (by the Astro team) that ships an
+  // official Sentry blueprint. It runs on both Node and Cloudflare.
+  FLUE = 'flue',
   MASTRA = 'mastra',
   PYDANTIC_AI = 'pydantic_ai',
   VERCEL_AI = 'vercel_ai',
@@ -23,6 +26,7 @@ export const AGENT_INTEGRATION_LABELS = {
   [AgentIntegration.LANGCHAIN]: 'LangChain',
   [AgentIntegration.LANGGRAPH]: 'LangGraph',
   [AgentIntegration.LITTELLM]: 'LiteLLM',
+  [AgentIntegration.FLUE]: 'Flue',
   [AgentIntegration.MASTRA]: 'Mastra',
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
@@ -38,6 +42,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.LANGCHAIN]: 'langchain',
   [AgentIntegration.LANGGRAPH]: 'langchain',
   [AgentIntegration.LITTELLM]: 'litellm',
+  [AgentIntegration.FLUE]: 'astro',
   [AgentIntegration.MASTRA]: 'mastra',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
@@ -67,6 +72,7 @@ export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
   AgentIntegration.WORKERS_AI,
   AgentIntegration.ANTHROPIC,
+  AgentIntegration.FLUE,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,

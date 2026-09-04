@@ -176,4 +176,50 @@ describe('node agentMonitoring onboarding', () => {
       expect(code).not.toContain('Sentry.init(');
     });
   });
+
+  describe('Flue', () => {
+    it('installs via the blueprint on both runtimes', () => {
+      const nodeCode = collectCode(config.install(makeParams({integration: 'flue'})));
+      const cloudflareCode = collectCode(
+        config.install(makeParams({integration: 'flue', deploymentTarget: 'cloudflare'}))
+      );
+
+      expect(nodeCode).toContain('flue add tooling sentry');
+      expect(cloudflareCode).toContain('flue add tooling sentry');
+      // The blueprint installs the SDK, so we don't show a raw npm install step.
+      expect(nodeCode).not.toContain('npm install');
+    });
+
+    it('imports the generated sentry.ts on Node', () => {
+      const code = collectCode(
+        config.configure(makeParams({integration: 'flue', deploymentTarget: 'node'}))
+      );
+
+      expect(code).toContain('import "./sentry.ts"');
+      expect(code).toContain('https://public@o1.ingest.sentry.io/1');
+      expect(code).not.toContain('Sentry.withSentry(');
+    });
+
+    it('re-exports the cloudflare extension on Cloudflare', () => {
+      const code = collectCode(
+        config.configure(
+          makeParams({integration: 'flue', deploymentTarget: 'cloudflare'})
+        )
+      );
+
+      expect(code).toContain('export { cloudflare } from "./sentry.ts"');
+      expect(code).toContain('wrangler secret put SENTRY_DSN');
+      // Flue reads the DSN from bindings, so it is not inlined into the config.
+      expect(code).not.toContain('Sentry.init(');
+    });
+
+    it('verifies through the agent rather than a raw SDK snippet', () => {
+      const steps = config.verify(makeParams({integration: 'flue'}));
+
+      expect(collectCode(steps)).toBe('');
+      const text = JSON.stringify(steps);
+      expect(text).toContain('invoke_agent');
+      expect(text).toContain('execute_tool');
+    });
+  });
 });
