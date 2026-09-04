@@ -57,6 +57,10 @@ function OptionControl({option, value, onChange, disabled}: OptionControlProps) 
       onChange={onChange}
       options={option.items}
       position="bottom-end"
+      // Size the menu to its widest option so long SDK names (e.g. "Cloudflare
+      // Agents SDK") aren't truncated. min-width:100% still keeps it at least as
+      // wide as the trigger for short lists.
+      menuWidth="max-content"
       disabled={disabled}
     />
   );
