@@ -49,6 +49,7 @@ export type KnownGetsentryApiUrls =
   | '/customers/$organizationIdOrSlug/provision-subscription/'
   | '/customers/$organizationIdOrSlug/recurring-credits/'
   | '/customers/$organizationIdOrSlug/redeem-promo/'
+  | '/customers/$organizationIdOrSlug/refund-vercel/'
   | '/customers/$organizationIdOrSlug/send-weekly-email/'
   | '/customers/$organizationIdOrSlug/spend-notifications/'
   | '/customers/$organizationIdOrSlug/stats/'

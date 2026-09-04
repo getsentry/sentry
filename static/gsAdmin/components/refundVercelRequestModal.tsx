@@ -1,11 +1,17 @@
-import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -19,6 +25,11 @@ type RefundVercelApiRequest = {
   reason: string;
 };
 
+const schema = z.object({
+  guid: z.string().trim().min(1, 'Invoice GUID is required'),
+  reason: z.string().trim().min(1, 'Reason is required'),
+});
+
 type ModalProps = Props & ModalRenderProps;
 
 function RefundVercelRequestModal({
@@ -27,60 +38,75 @@ function RefundVercelRequestModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ModalProps) {
-  const api = useApi();
-  const [reason, setReason] = useState('');
-  const [guid, setGuid] = useState('');
   const orgSlug = subscription.slug;
 
-  const onSubmit = () => {
-    const data: RefundVercelApiRequest = {
-      guid,
-      reason,
-    };
+  const mutation = useMutation({
+    mutationFn: (data: RefundVercelApiRequest) =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/refund-vercel/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        method: 'POST',
+        data,
+      }),
+    onSuccess: () => {
+      addSuccessMessage('Sent request to Vercel API.');
+      closeModal();
+      onSuccess();
+    },
+    onError: error => {
+      addErrorMessage(
+        error instanceof RequestError ? error.responseText : 'Unable to request refund.'
+      );
+    },
+  });
 
-    api.request(`/customers/${orgSlug}/refund-vercel/`, {
-      method: 'POST',
-      data,
-      success: () => {
-        addSuccessMessage('Sent request to Vercel API.');
-        closeModal();
-        onSuccess();
-      },
-      error: e => {
-        addErrorMessage(e.responseText);
-      },
-    });
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {guid: '', reason: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>Initiate Vercel Refund</Header>
       <Body>
-        <div>Send request to Vercel to initiate a refund for a given invoice.</div>
-        <br />
-        <Form onSubmit={onSubmit} submitLabel="Send Request" onCancel={closeModal}>
-          <TextField
-            label="Invoice GUID"
-            name="invoice_guid"
-            placeholder="invoice guid"
-            onChange={(value: string) => {
-              setGuid(value);
-            }}
-            required
-          />
-          <TextField
-            label="Reason"
-            name="reason"
-            placeholder="reason for refund"
-            onChange={(value: string) => {
-              setReason(value);
-            }}
-            required
-          />
-        </Form>
+        <Stack gap="xl">
+          <Text>Send request to Vercel to initiate a refund for a given invoice.</Text>
+          <form.AppField name="guid">
+            {field => (
+              <field.Layout.Stack label="Invoice GUID" required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="invoice guid"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="reason">
+            {field => (
+              <field.Layout.Stack label="Reason" required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="reason for refund"
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Send Request</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 
