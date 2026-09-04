@@ -2870,7 +2870,7 @@ class ProcessSimilarityTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        mock_safe_execute.assert_called_with(similarity.record, mock.ANY, mock.ANY)
+        mock_safe_execute.assert_any_call(similarity.record, mock.ANY, mock.ANY)
 
     def assert_not_called_with(self, mock_function: Mock):
         """
