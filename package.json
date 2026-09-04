@@ -243,7 +243,7 @@
     "@types/d3-selection": "^3.0.11",
     "@types/d3-zoom": "^3.0.8",
     "@types/gettext-parser": "8.0.0",
-    "@types/node": "24.13.2",
+    "@types/node": "26.4.1",
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jest-dom": "5.10.1",
