@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -44,7 +45,9 @@ function RefundVercelRequestModal({
   const mutation = useMutation({
     mutationFn: (data: RefundVercelApiRequest) =>
       fetchMutation({
-        url: `/customers/${orgSlug}/refund-vercel/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/refund-vercel/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
         method: 'POST',
         data,
       }),
@@ -78,7 +81,7 @@ function RefundVercelRequestModal({
               <field.Layout.Stack label="Invoice GUID" required>
                 <field.Input
                   value={field.state.value}
-                  onChange={e => field.handleChange(e.target.value)}
+                  onChange={field.handleChange}
                   placeholder="invoice guid"
                 />
               </field.Layout.Stack>
@@ -89,7 +92,7 @@ function RefundVercelRequestModal({
               <field.Layout.Stack label="Reason" required>
                 <field.Input
                   value={field.state.value}
-                  onChange={e => field.handleChange(e.target.value)}
+                  onChange={field.handleChange}
                   placeholder="reason for refund"
                 />
               </field.Layout.Stack>
