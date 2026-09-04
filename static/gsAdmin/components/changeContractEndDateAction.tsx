@@ -34,7 +34,11 @@ function ChangeContractEndDateModal({
     },
     onError: error => {
       if (error instanceof RequestError) {
-        setFieldErrors(form, error);
+        const fieldError = error.responseJSON?.contractPeriodEnd;
+        const message = Array.isArray(fieldError) ? fieldError[0] : fieldError;
+        if (typeof message === 'string') {
+          setFieldErrors(form, {contractPeriodEnd: {message}});
+        }
       }
     },
   });
