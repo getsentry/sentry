@@ -535,11 +535,15 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   // Eve only drains OpenTelemetry traces to Sentry - it doesn't run the Sentry
   // SDK, so there's no `Sentry.setConversationId` / `Sentry.setUser` to call.
   const isEve = selectedIntegration === AgentIntegration.EVE;
+  // Flue sets the conversation ID automatically, so the manual
+  // `Sentry.setConversationId` step is redundant. It still runs the Sentry SDK,
+  // so the `Sentry.setUser` step below stays.
+  const isFlue = selectedIntegration === AgentIntegration.FLUE;
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    ...(isEve
+    ...(isEve || isFlue
       ? []
       : [
           getConversationIdStep(
