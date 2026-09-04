@@ -19,11 +19,12 @@ from sentry.issues.action_log.types import (
     GroupActorType,
     ReconcileStatusAction,
 )
-from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.aggregators import AGGREGATORS, track_merge_aware_status
 from sentry.issues.derived.features import (
     BLOCKER,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    MERGE_AWARE_STATUS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -64,6 +65,7 @@ class FakeEntry:
     date_added: datetime = datetime(2025, 1, 1, tzinfo=UTC)
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
+    original_group_id: int | None = None
     data: dict[str, object] = field(default_factory=dict)
     original_group_id: int | None = None
 
@@ -146,6 +148,15 @@ def test_view_ignores_non_view() -> None:
 
 def test_starts_open() -> None:
     assert _run_for_feature(STATUS, []) == IssueStatus.OPEN
+
+
+def test_merge_aware_status_ignores_entries_from_merged_groups() -> None:
+    pipeline = _pipeline([*AGGREGATORS, track_merge_aware_status])
+
+    state = pipeline.run([FakeEntry(type=GroupActionType.RESOLVE, original_group_id=123)])
+
+    assert state[STATUS] == IssueStatus.CLOSED
+    assert state[MERGE_AWARE_STATUS] == IssueStatus.OPEN
 
 
 @pytest.mark.parametrize(
