@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -101,8 +102,10 @@ describe('LogsDirectExportModalButton', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(exportRequest).toHaveBeenCalledWith(
@@ -140,8 +143,10 @@ describe('LogsDirectExportModalButton', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(exportRequest).toHaveBeenCalled();

@@ -34,6 +34,7 @@ import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -717,27 +718,28 @@ export const LogRowContent = memo(function LogRowContentImpl({
                           break;
                         case Actions.COPY_LINK: {
                           const logId = String(dataRow[OurLogKnownFieldKey.ID]);
-                          const url = new URL(window.location.origin + location.pathname);
-                          const params = new URLSearchParams(location.search);
                           // In frozen/embedded views (e.g. trace details) the row set is
                           // bounded, so link to the row and let it highlight + expand in
                           // context. On the standalone logs page the row may not be loaded,
                           // so filter to it instead.
-                          if (isFrozen) {
-                            params.set(LOGS_ROW_ID_KEY, logId);
-                          } else {
-                            params.set(LOGS_QUERY_KEY, `id:${logId}`);
-                            params.delete(LOGS_ROW_ID_KEY);
-                          }
-                          url.search = params.toString();
-                          copy(url.toString(), {
+                          const url = getPageUrlWithParams(location, params => {
+                            if (isFrozen) {
+                              params.set(LOGS_ROW_ID_KEY, logId);
+                            } else {
+                              params.set(LOGS_QUERY_KEY, `id:${logId}`);
+                              params.delete(LOGS_ROW_ID_KEY);
+                            }
+                          });
+                          copy(url, {
                             successMessage: t('Copied!'),
                             errorMessage: t('Failed to copy'),
-                          }).then(() => {
-                            trackAnalytics('logs.table.row_link_copied', {
-                              log_id: logId,
-                              organization,
-                            });
+                          }).then(copied => {
+                            if (copied) {
+                              trackAnalytics('logs.table.row_link_copied', {
+                                log_id: logId,
+                                organization,
+                              });
+                            }
                           });
                           break;
                         }
