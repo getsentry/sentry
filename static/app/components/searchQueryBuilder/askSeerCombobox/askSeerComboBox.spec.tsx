@@ -4,7 +4,6 @@ import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -414,7 +413,7 @@ describe('AskSeerComboBox', () => {
     expect(screen.queryByText(longValue)).not.toBeInTheDocument();
   });
 
-  it('sizes parameter chips to their content', async () => {
+  it('renders each parameter value as an inert compound chip', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
       method: 'POST',
@@ -445,7 +444,45 @@ describe('AskSeerComboBox', () => {
     await userEvent.type(input, 'test{Enter}');
 
     const groupBy = await screen.findByText('span.name');
-    expect(getEmotionRules(groupBy).join(' ')).toContain('width: fit-content');
+    const browserGroupBy = screen.getByText('browser.name');
+    const groupByChip = groupBy.parentElement?.parentElement?.parentElement;
+    const browserGroupByChip = browserGroupBy.parentElement?.parentElement?.parentElement;
+
+    expect(groupByChip).toBeInTheDocument();
+    expect(groupByChip).not.toBe(browserGroupByChip);
+    expect(screen.queryByRole('button', {name: 'span.name'})).not.toBeInTheDocument();
+  });
+
+  it('middle-ellipsizes long parameter values', async () => {
+    const longGroupBy = '/api/0/organizations/{organization_id_or_slug}/events/';
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {
+        status: 'ok',
+        queries: [{query: 'span.duration:>30s', groupBys: [longGroupBy]}],
+      },
+    });
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    const value = await screen.findByText('/api/0…{organization_id_or_slug}/events/');
+
+    expect(value).toHaveAttribute('data-overflowing', 'true');
+    expect(screen.queryByText(longGroupBy)).not.toBeInTheDocument();
   });
 
   it('does not show the legacy feedback option', async () => {

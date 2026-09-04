@@ -145,16 +145,16 @@ function fitMiddleEllipsisToElement(
   }
 }
 
-function TruncatedFilterDisplayValue({
+export function TruncatedFilterDisplayValue({
   value,
-  fallbackMaxLength,
+  fallbackMaxLength = FILTER_VALUE_FALLBACK_MAX_LENGTH,
   multi = false,
 }: {
-  fallbackMaxLength: number;
   value: string;
+  fallbackMaxLength?: number;
   multi?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLSpanElement>(null);
   const [displayValue, setDisplayValue] = useState(() =>
     ellipsizeFilterValue(value, fallbackMaxLength, multi)
   );
@@ -238,7 +238,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
       const maxItems = size === 'small' ? 1 : 3;
 
       return (
-        <Flex align="center" wrap="nowrap" gap="xs" maxWidth="400px">
+        <Flex as="span" align="center" wrap="nowrap" gap="xs" maxWidth="400px">
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <TruncatedFilterDisplayValue
@@ -518,7 +518,7 @@ const FilterValueJoiner = styled('span')`
   margin-inline-start: -2px;
 `;
 
-const FilterMultiValueTruncated = styled('div')`
+const FilterMultiValueTruncated = styled('span')`
   display: block;
   box-sizing: border-box;
   white-space: nowrap;
@@ -529,7 +529,7 @@ const FilterMultiValueTruncated = styled('div')`
   min-width: 0;
 `;
 
-const FilterValueSingleTruncatedValue = styled('div')`
+const FilterValueSingleTruncatedValue = styled('span')`
   display: block;
   box-sizing: border-box;
   white-space: nowrap;

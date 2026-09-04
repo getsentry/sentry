@@ -33,31 +33,49 @@ export type FormattedQueryProps = {
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  useCompoundChips?: boolean;
 };
 
 type TokenProps = {
   token: ParseResultToken;
+  useCompoundChips: boolean;
 };
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
 const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
   defaultGetFieldDefinition(key);
 
-function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
+function FilterKey({
+  token,
+  useCompoundChips,
+}: {
+  token: TokenResult<Token.FILTER>;
+  useCompoundChips: boolean;
+}) {
   if (token.filter === FilterType.IS || token.filter === FilterType.HAS) {
     return null;
   }
 
-  return isAggregateFilterToken(token) ? (
-    <div>
-      <AggregateKeyVisual token={token} />
-    </div>
+  const content = isAggregateFilterToken(token) ? (
+    <AggregateKeyVisual token={token} />
   ) : (
-    <div>{getKeyLabel(token.key)}</div>
+    getKeyLabel(token.key)
+  );
+
+  return useCompoundChips ? (
+    <Chip.Property>{content}</Chip.Property>
+  ) : (
+    <div>{content}</div>
   );
 }
 
-function Filter({token}: {token: TokenResult<Token.FILTER>}) {
+function Filter({
+  token,
+  useCompoundChips,
+}: {
+  token: TokenResult<Token.FILTER>;
+  useCompoundChips: boolean;
+}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const label = useMemo(
     () =>
@@ -68,9 +86,21 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
     [token, getFieldDefinition]
   );
 
+  if (useCompoundChips) {
+    return (
+      <CompoundChipRoot size="sm" aria-label={token.text}>
+        <FilterKey token={token} useCompoundChips />
+        <Chip.Operator>{label}</Chip.Operator>
+        <Chip.Value>
+          <FilterValueText token={token} />
+        </Chip.Value>
+      </CompoundChipRoot>
+    );
+  }
+
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {label}{' '}
+      <FilterKey token={token} useCompoundChips={false} /> {label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>
@@ -78,15 +108,30 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 }
 
-function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+function Boolean({
+  token,
+  useCompoundChips,
+}: {
+  token: TokenResult<Token.LOGIC_BOOLEAN>;
+  useCompoundChips: boolean;
+}) {
   const label = token.text.toUpperCase();
+
+  if (useCompoundChips) {
+    return (
+      <CompoundChipRoot size="sm" aria-label={label}>
+        <Chip.Value variant="primary">{label}</Chip.Value>
+      </CompoundChipRoot>
+    );
+  }
+
   return <Chip size="sm" value={label} aria-label={label} />;
 }
 
-function QueryToken({token}: TokenProps) {
+function QueryToken({token, useCompoundChips}: TokenProps) {
   switch (token.type) {
     case Token.FILTER:
-      return <Filter token={token} />;
+      return <Filter token={token} useCompoundChips={useCompoundChips} />;
     case Token.FREE_TEXT:
       if (token.value.trim()) {
         return <Text as="span">{token.value.trim()}</Text>;
@@ -100,7 +145,7 @@ function QueryToken({token}: TokenProps) {
         </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean token={token} />;
+      return <Boolean token={token} useCompoundChips={useCompoundChips} />;
     default:
       return null;
   }
@@ -119,6 +164,7 @@ export function FormattedQuery({
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
+  useCompoundChips = false,
 }: FormattedQueryProps) {
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
@@ -134,7 +180,9 @@ export function FormattedQuery({
   return (
     <QueryWrapper aria-label={query} className={className}>
       {parsedQuery.map((token: any, index: any) => {
-        return <QueryToken key={index} token={token} />;
+        return (
+          <QueryToken key={index} token={token} useCompoundChips={useCompoundChips} />
+        );
       })}
     </QueryWrapper>
   );
@@ -156,6 +204,7 @@ export function ProvidedFormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
+  useCompoundChips,
 }: FormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
@@ -172,6 +221,7 @@ export function ProvidedFormattedQuery({
         fieldDefinitionGetter={fieldDefinitionGetter}
         filterKeys={filterKeys}
         filterKeyAliases={filterKeyAliases}
+        useCompoundChips={useCompoundChips}
       />
     </SearchQueryBuilderProvider>
   );
@@ -208,6 +258,25 @@ const FilterValue = styled('div')`
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
+`;
+
+const CompoundChipRoot = styled(Chip.Root)`
+  min-width: 0;
+  max-width: 100%;
+
+  & > * {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  & > :last-child {
+    max-width: 300px;
+  }
+
+  & > :last-child > * {
+    min-width: 0;
+    width: 100%;
+  }
 `;
 
 function Paren({children}: {children: React.ReactNode}) {
