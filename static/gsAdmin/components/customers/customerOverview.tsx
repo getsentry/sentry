@@ -65,7 +65,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction: (data: Record<string, any>) => Promise<unknown>;
+  onAction?: (data: Record<string, any>) => Promise<unknown>;
 };
 
 function SoftCapTypeDetail({
@@ -133,7 +133,8 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <DetailLabel title="Contract Period">
             {`${moment(customer.billingPeriodStart).format('ll')} › `}
             {(customer.billingInterval === 'annual' &&
-              customer.type === BillingType.INVOICED && (
+              customer.type === BillingType.INVOICED &&
+              onAction && (
                 <ChangeContractEndDateAction
                   contractPeriodEnd={customer.billingPeriodEnd}
                   onAction={onAction}
@@ -500,8 +501,8 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 type Props = {
   customer: Subscription;
   onAction: (data: Record<string, any>) => void;
-  onContractEndDateChange: (data: Record<string, any>) => Promise<unknown>;
   organization: Organization;
+  onContractEndDateChange?: (data: Record<string, any>) => Promise<unknown>;
 };
 
 function isWithinAcceptedMargin(
