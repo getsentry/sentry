@@ -12,6 +12,8 @@ export enum AgentIntegration {
   // Cloudflare-only: the Workers AI binding (env.AI) auto-instruments once the
   // Worker is wrapped with Sentry.
   WORKERS_AI = 'workers_ai',
+  // Cloudflare-only: the Agents SDK, instrumented via instrumentAgentWithSentry.
+  CLOUDFLARE_AGENTS = 'cloudflare_agents',
   MANUAL = 'manual',
 }
 
@@ -27,6 +29,7 @@ export const AGENT_INTEGRATION_LABELS = {
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
   [AgentIntegration.WORKERS_AI]: 'Workers AI',
+  [AgentIntegration.CLOUDFLARE_AGENTS]: 'Cloudflare Agents SDK',
   [AgentIntegration.MANUAL]: 'Other',
 };
 
@@ -42,6 +45,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
   [AgentIntegration.WORKERS_AI]: 'cloudflare',
+  [AgentIntegration.CLOUDFLARE_AGENTS]: 'cloudflare',
   [AgentIntegration.MANUAL]: 'default',
 };
 
@@ -66,6 +70,7 @@ export const PYTHON_AGENT_INTEGRATIONS = [
 export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
   AgentIntegration.WORKERS_AI,
+  AgentIntegration.CLOUDFLARE_AGENTS,
   AgentIntegration.ANTHROPIC,
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
@@ -108,6 +113,7 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
  * than the runtime filtering which SDKs are shown.
  *
  * - Workers AI is the Cloudflare Workers AI binding (env.AI), Cloudflare-only.
+ * - The Cloudflare Agents SDK runs only on the Cloudflare runtime.
  * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
  *   flow, so it is Node-only.
  *
@@ -117,6 +123,7 @@ const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
   Record<AgentIntegration, DeploymentTarget>
 > = {
   [AgentIntegration.WORKERS_AI]: DeploymentTarget.CLOUDFLARE,
+  [AgentIntegration.CLOUDFLARE_AGENTS]: DeploymentTarget.CLOUDFLARE,
   [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
 };
 
