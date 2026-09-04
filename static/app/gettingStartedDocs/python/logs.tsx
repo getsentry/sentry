@@ -50,11 +50,7 @@ logger.error('Something went wrong')`,
   ],
 });
 
-export const logs = ({
-  packageName = 'sentry-sdk',
-}: {
-  packageName?: string;
-} = {}): OnboardingConfig => ({
+export const logs = (): OnboardingConfig => ({
   install: () => [
     {
       type: StepType.INSTALL,
@@ -69,7 +65,6 @@ export const logs = ({
           ),
         },
         getPythonInstallCodeBlock({
-          packageName,
           minimumVersion: '2.35.0',
         }),
       ],

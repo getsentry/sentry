@@ -271,8 +271,7 @@ export function toCustomerDomainForm(url: string): string {
  */
 export function dedupeRoutes(
   slugRecords: RouteRecord[],
-  domainRecords: RouteRecord[],
-  toCustomerDomain: (url: string) => string = toCustomerDomainForm
+  domainRecords: RouteRecord[]
 ): LogicalRoute[] {
   const byKey = new Map<string, LogicalRoute>();
 
@@ -280,7 +279,7 @@ export function dedupeRoutes(
     if (!record.component) {
       return;
     }
-    const urlCustomerDomain = toCustomerDomain(record.url);
+    const urlCustomerDomain = toCustomerDomainForm(record.url);
     const key = `${urlCustomerDomain} ${record.component}`;
     if (byKey.has(key)) {
       return;

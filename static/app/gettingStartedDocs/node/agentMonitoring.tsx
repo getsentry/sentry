@@ -1194,23 +1194,21 @@ const text = lastMessage.content;`,
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
-  minVersion = MIN_REQUIRED_VERSION,
 }: {
   configFileName?: string;
-  minVersion?: string;
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}
-      minVersion={getMinRequiredVersion(params, minVersion)}
+      minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
       packageName={packageName}
     />
   ),
   install: params =>
     getInstallStep(params, {
       packageName,
-      minVersion,
+      minVersion: MIN_REQUIRED_VERSION,
     }),
   configure: params => {
     const selected = getAgentIntegration(params);
