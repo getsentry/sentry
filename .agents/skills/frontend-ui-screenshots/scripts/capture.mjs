@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 
 /* eslint-disable import/no-nodejs-modules -- This skill helper is a Node.js CLI. */
-import {execFile} from 'node:child_process';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
-import {parseArgs, promisify} from 'node:util';
+import {parseArgs} from 'node:util';
 
 const requireFromRepo = createRequire(path.join(process.cwd(), 'package.json'));
 const FEATURE_FLAGS_KEY = 'feature-flag-overrides';
-const execFileAsync = promisify(execFile);
 
 // The agent chooses screenshot scope from the diff; this helper validates and captures.
 
@@ -71,6 +69,11 @@ function validatePlan(plan) {
     `Unsupported target kind: ${plan.target.kind}`
   );
   assert(typeof plan.name === 'string' && safeName(plan.name), 'Plan name is required');
+  assert(
+    plan.surface === undefined ||
+      (typeof plan.surface === 'string' && safeName(plan.surface)),
+    'Plan surface must be a non-empty string'
+  );
   validateUrl(plan.beforeUrl, plan.target.kind);
   validateUrl(plan.afterUrl, plan.target.kind);
   assert(
@@ -129,23 +132,39 @@ function safeName(value) {
 
 // Browser state -----------------------------------------------------------------
 
-async function hideDedicatedChrome(endpoint) {
-  if (process.platform !== 'darwin') {
+async function minimizeChromeWindow(page) {
+  if (!page) {
     return;
   }
-  const port = endpoint.port;
-  assert(/^\d+$/.test(port), 'The CDP URL must include an explicit port');
-  const {stdout} = await execFileAsync('/usr/sbin/lsof', [
-    '-nP',
-    `-tiTCP:${port}`,
-    '-sTCP:LISTEN',
-  ]);
-  const pid = stdout.trim().split(/\s+/)[0];
-  assert(/^\d+$/.test(pid), `No dedicated Chrome process is listening on port ${port}`);
-  await execFileAsync('/usr/bin/osascript', [
-    '-e',
-    `tell application "System Events" to set visible of first application process whose unix id is ${pid} to false`,
-  ]);
+  const session = await page.context().newCDPSession(page);
+  try {
+    const {windowId} = await session.send('Browser.getWindowForTarget');
+    await session.send('Browser.setWindowBounds', {
+      bounds: {windowState: 'minimized'},
+      windowId,
+    });
+  } finally {
+    await session.detach();
+  }
+}
+
+async function createBackgroundPage(browser, context) {
+  await minimizeChromeWindow(context.pages()[0]);
+  const session = await browser.newBrowserCDPSession();
+  const pagePromise = context.waitForEvent('page', {timeout: 10000});
+  try {
+    await session.send('Target.createTarget', {
+      background: true,
+      url: 'about:blank',
+    });
+    const page = await pagePromise;
+    // Minimize again because Chrome may restore a window when it creates a target,
+    // even when the target itself is backgrounded.
+    await minimizeChromeWindow(page);
+    return page;
+  } finally {
+    await session.detach();
+  }
 }
 
 async function enableFeatureFlags(page, urls, featureFlags, previousValues) {
@@ -386,7 +405,6 @@ async function capture(planPath, cdpUrl) {
     throw new Error('CDP must use localhost');
   }
 
-  await hideDedicatedChrome(endpoint);
   const browser = await chromium.connectOverCDP(cdpUrl);
   let page;
   const featureFlagState = [];
@@ -395,7 +413,7 @@ async function capture(planPath, cdpUrl) {
     if (!context) {
       throw new Error('Dedicated Chrome has no persistent browser context');
     }
-    page = await context.newPage();
+    page = await createBackgroundPage(browser, context);
     await page.clock.setFixedTime(new Date());
     const session = await context.newCDPSession(page);
     await session.send('Security.setIgnoreCertificateErrors', {ignore: true});
@@ -469,7 +487,12 @@ async function capture(planPath, cdpUrl) {
       }
     }
 
-    const manifest = {name: plan.name, target: plan.target, artifacts};
+    const manifest = {
+      name: plan.name,
+      surface: plan.surface,
+      target: plan.target,
+      artifacts,
+    };
     const manifestPath = path.join(outputDirectory, 'manifest.json');
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     process.stdout.write(
@@ -481,6 +504,7 @@ async function capture(planPath, cdpUrl) {
         await restoreFeatureFlags(page, featureFlagState);
       }
     } finally {
+      await minimizeChromeWindow(page).catch(() => {});
       await page?.close().catch(() => {});
       await browser.close();
     }

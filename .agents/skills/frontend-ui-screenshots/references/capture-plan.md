@@ -5,6 +5,7 @@ Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
 ```json
 {
   "name": "issue-stream-filter",
+  "surface": "Issue stream",
   "beforeUrl": "https://demo.dev.getsentry.net:7998/issues/",
   "afterUrl": "https://demo.dev.getsentry.net:7999/issues/",
   "target": {"kind": "product"},
@@ -19,9 +20,11 @@ Write the plan beneath `.artifacts/ui-capture/`. The helper accepts this shape:
 }
 ```
 
-`name`, both URLs, and `target.kind` are required. The URLs may use different local ports but must use HTTPS and `demo.dev.getsentry.net`. Omit optional arrays to use light mode at 1440×1000 with no actions or feature-flag overrides. Omit `container` and `containerWidth` when the change is not responsive.
+`name`, both URLs, and `target.kind` are required. `surface` is an optional concise product/story label; set it when multiple manifests will share one published table so their rows remain distinguishable. The URLs may use different local ports but must use HTTPS and `demo.dev.getsentry.net`. Omit optional arrays to use light mode at 1440×1000 with no actions or feature-flag overrides. Omit `container` and `containerWidth` when the change is not responsive.
 
-Set `settleMs` only when the surface needs longer than the default 2500ms after fonts and images are ready, such as a slow chart or table query. The value must be a non-negative integer.
+For data-backed product comparisons, use the same explicit absolute `start` and `end` query parameters in both URLs. A relative `statsPeriod` continues moving while the sequential Before/After captures run and can produce different charts, counts, rows, or relative timestamps. Confirm the rendered date control retained the absolute interval; some routes normalize or ignore unsupported query combinations.
+
+Set `settleMs` only when the surface needs longer than the default 2500ms after fonts and images are ready, such as a slow chart or table query. The value must be a non-negative integer. When a late-loading pair fails inspection, use a focused one-viewport plan with a longer delay instead of recapturing an otherwise accepted matrix.
 
 Set `forceVerticalScrollbar` to `true` when a viewport breakpoint changes page height and makes the scrollbar appear or disappear, creating a gap in attainable container widths. If the first measurement is not the expected width, the helper reserves a scrollbar and measures again. The option can be set on the whole plan or an individual viewport.
 
@@ -56,4 +59,4 @@ Also compare the representative Before/After state at the same measured containe
 
 These values are query-container content-box widths, not viewport or border-box widths. Choose viewport widths or safe actions—such as opening and resizing the Seer Explorer drawer—that place the query container on both sides of the boundary. Set each viewport's `containerWidth` to the expected rendered width; the helper measures the accessible `container` element in both versions and fails when it differs by more than 1px. The default container locator is `{"role":"main"}`.
 
-For a nested query container, identify it by an accessible `label` or by `role` and optional accessible `name`. Name each planned viewport with the shortest useful distinction, such as `below 3xl (1023px)` and `3xl (1024px)`. These names become the published table labels; do not put route names, measurement explanations, or sentence-length descriptions in them.
+For a nested query container, identify it by an accessible `label` or by `role` and optional accessible `name`. Name each planned viewport with the shortest useful T-shirt-size distinction, such as `below 3xl` and `3xl`; `containerWidth` retains the exact pixel assertion. Viewport names become published table labels, so do not put pixel values, route names, measurement explanations, or sentence-length descriptions in them. The publisher also removes a trailing parenthesized pixel measurement from older manifests.
