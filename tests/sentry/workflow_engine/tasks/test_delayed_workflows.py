@@ -184,6 +184,27 @@ class TestDelayedWorkflowTaskBase(BaseWorkflowTest, BaseEventFrequencyPercentTes
 
 
 class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
+    @patch("sentry.workflow_engine.processors.delayed_workflow.metrics.incr")
+    def test_metric_tracks_retry_workload(self, mock_incr: MagicMock) -> None:
+        self._push_base_events()
+
+        with (
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow._process_workflows_for_project"
+            ),
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.current_task"
+            ) as mock_current_task,
+        ):
+            mock_current_task.return_value.attempt = 1
+            process_delayed_workflows(self.batch_client, self.project.id)
+
+        mock_incr.assert_any_call(
+            "workflow_engine.delayed_workflow",
+            amount=2,
+            tags={"is_retry": True},
+        )
+
     @override_options({"delayed_processing.batch_size": 1})
     @patch("sentry.workflow_engine.tasks.delayed_workflows.process_delayed_workflows.apply_async")
     def test_batched_cleanup(self, mock_process_delayed: MagicMock) -> None:
