@@ -92,7 +92,7 @@ export function TransactionsTable(props: Props) {
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
-          <SimpleTable.HeaderCell align={align} key={index}>
+          <SimpleTable.HeaderCell justify={align} key={index}>
             {title === t('operation duration') ? (
               <Fragment>
                 {title}
@@ -112,7 +112,7 @@ export function TransactionsTable(props: Props) {
       }
 
       return (
-        <SimpleTable.HeaderCell align={align} key={index}>
+        <SimpleTable.HeaderCell justify={align} key={index}>
           {title}
         </SimpleTable.HeaderCell>
       );

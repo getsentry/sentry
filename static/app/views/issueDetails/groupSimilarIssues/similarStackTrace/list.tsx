@@ -104,10 +104,16 @@ export function List({
                 </Button>
               </Confirm>
             </MergeHeaderCell>
-            <CenteredHeaderCell>{t('Events')}</CenteredHeaderCell>
-            <CenteredHeaderCell>{t('Exception')}</CenteredHeaderCell>
+            <SimpleTable.HeaderCell justify="center">
+              {t('Events')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell justify="center">
+              {t('Exception')}
+            </SimpleTable.HeaderCell>
             {!hasSimilarityEmbeddingsFeature && (
-              <CenteredHeaderCell>{t('Message')}</CenteredHeaderCell>
+              <SimpleTable.HeaderCell justify="center">
+                {t('Message')}
+              </SimpleTable.HeaderCell>
             )}
             <SimpleTable.HeaderCell />
           </SimpleTable.HeaderRow>
@@ -164,11 +170,6 @@ export function List({
   );
 }
 
-const CenteredHeaderCell = styled(SimpleTable.HeaderCell)`
-  justify-content: center;
-`;
-
 const MergeHeaderCell = styled(SimpleTable.HeaderCell)`
-  justify-content: flex-start;
   padding-left: ${p => p.theme.space.md};
 `;

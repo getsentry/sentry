@@ -247,6 +247,53 @@ export default Storybook.story('SimpleTable', story => {
     );
   });
 
+  story('Cell alignment', () => {
+    return (
+      <Fragment>
+        <p>
+          <Storybook.JSXNode name="SimpleTable.RowCell" /> is a{' '}
+          <Storybook.JSXNode name="Flex" />, so it takes every layout prop{' '}
+          <code>Flex</code> takes&mdash;<code>justify</code> and <code>align</code> among
+          them. <Storybook.JSXNode name="SimpleTable.HeaderCell" /> takes a{' '}
+          <Storybook.JSXProperty
+            name="justify"
+            value="'start' | 'center' | 'end' | 'left' | 'right'"
+          />{' '}
+          of its own, so a column's header lines up with the cells beneath it. Reach for
+          it instead of wrapping either one in <code>styled</code>.
+        </p>
+
+        <SimpleTableWithColumns
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell justify="center">
+                {t('Monitors')}
+              </SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell justify="end">{t('Action')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell justify="end">
+                {t('Last Triggered')}
+              </SimpleTable.HeaderCell>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {data.map(row => (
+            <SimpleTable.Row key={row.name}>
+              <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="center">
+                {t('%s monitors', row.monitors.length)}
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">{row.action}</SimpleTable.RowCell>
+              <SimpleTable.RowCell justify="end">
+                <TimeAgoCell date={row.lastTriggered} />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </SimpleTableWithColumns>
+      </Fragment>
+    );
+  });
+
   story('Sortable headers', () => {
     const [sort, setSort] = useState<Sort | undefined>(undefined);
 

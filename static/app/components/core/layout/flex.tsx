@@ -10,7 +10,13 @@ import {
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
 } from './container';
-import {getSpacing, rc, type Responsive} from './styles';
+import {
+  FLEX_JUSTIFY_CONTENT,
+  type FlexJustify,
+  getSpacing,
+  rc,
+  type Responsive,
+} from './styles';
 
 const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
   'as',
@@ -49,9 +55,7 @@ interface FlexLayoutProps {
    * Aligns flex items along the block axis of the current line of flex items.
    * Uses CSS justify-content property.
    */
-  justify?: Responsive<
-    'start' | 'end' | 'center' | 'between' | 'around' | 'evenly' | 'left' | 'right'
-  >;
+  justify?: Responsive<FlexJustify>;
   /**
    * Specifies the wrapping behavior of the flex items.
    */
@@ -76,24 +80,9 @@ export const Flex = styled(Container, {
   ${p => rc('flex-wrap', p.wrap, p.theme)};
   ${p => rc('flex', p.flex, p.theme)};
   ${p =>
-    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'flex-start';
-        case 'end':
-          return 'flex-end';
-        case 'center':
-          return 'center';
-        case 'between':
-          return 'space-between';
-        case 'around':
-          return 'space-around';
-        case 'evenly':
-          return 'space-evenly';
-        default:
-          return value;
-      }
-    })};
+    rc('justify-content', p.justify, p.theme, value =>
+      value === undefined ? undefined : FLEX_JUSTIFY_CONTENT[value]
+    )};
 
   ${p =>
     rc('align-items', p.align, p.theme, (value, _breakpoint, _theme) => {

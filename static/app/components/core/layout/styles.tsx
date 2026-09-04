@@ -132,6 +132,34 @@ const VIEWPORT_ORDER: ReadonlyArray<{key: ScreenBreakpoint; token: BreakpointSiz
 
 type Margin = SpaceSize | 'auto' | '0';
 
+/**
+ * The `justify` vocabulary a flex container accepts, and its mapping onto CSS
+ * `justify-content`. Shared so components that are not themselves a `Flex` but
+ * lay their content out with one — table header cells, for instance — can take
+ * the same prop values a `Flex` does. `Grid` deliberately keeps its own map:
+ * grid alignment resolves `start`/`end` to the grid keywords, not the flex ones.
+ */
+export type FlexJustify =
+  | 'start'
+  | 'end'
+  | 'center'
+  | 'between'
+  | 'around'
+  | 'evenly'
+  | 'left'
+  | 'right';
+
+export const FLEX_JUSTIFY_CONTENT = {
+  around: 'space-around',
+  between: 'space-between',
+  center: 'center',
+  end: 'flex-end',
+  evenly: 'space-evenly',
+  left: 'left',
+  right: 'right',
+  start: 'flex-start',
+} as const satisfies Record<FlexJustify, string>;
+
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
 export type Shorthand<T extends string, N extends 4 | 2> = N extends 4

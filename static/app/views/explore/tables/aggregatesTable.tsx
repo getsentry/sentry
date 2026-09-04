@@ -162,7 +162,7 @@ export function AggregatesTable({
 
               return (
                 <DataTable.HeadCell
-                  align={align}
+                  justify={align}
                   columnIndex={i}
                   key={i}
                   isFirst={i === 0}

@@ -16,9 +16,9 @@ import {
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
   HeaderCellContent,
+  type HeaderCellJustify,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {defined} from 'sentry/utils/defined';
@@ -63,8 +63,8 @@ function HeaderRow({
 }
 
 function HeaderCell({
-  align,
   children,
+  justify,
   sort,
   handleSortClick,
   to,
@@ -72,10 +72,10 @@ function HeaderCell({
   divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLTableCellElement> & {
-  align?: ColumnAlign;
   children?: React.ReactNode;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
+  justify?: HeaderCellJustify;
   sort?: SortDirection;
   to?: LocationDescriptor;
   variant?: HeaderCellVariant;
@@ -83,7 +83,7 @@ function HeaderCell({
   return (
     <ColumnHeaderCell
       {...props}
-      align={align}
+      justify={justify}
       onSort={handleSortClick}
       overlays={
         <Fragment>
@@ -178,8 +178,8 @@ const HeaderDivider = styled('div')`
 `;
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'align' && prop !== 'variant',
-})<{variant: HeaderCellVariant; align?: ColumnAlign}>`
+  shouldForwardProp: prop => prop !== 'variant',
+})<{variant: HeaderCellVariant; justify?: HeaderCellJustify}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -195,9 +195,16 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   ${HeaderCellContent} {
     flex: 1;
     height: 100%;
-    justify-content: space-between;
     min-width: 0;
   }
+
+  ${p =>
+    !p.justify &&
+    css`
+      ${HeaderCellContent} {
+        justify-content: space-between;
+      }
+    `}
 
   ${HeaderCellContent}:focus-visible {
     box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
@@ -212,14 +219,6 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   &[aria-sort] {
     color: ${p => p.theme.tokens.content.primary};
   }
-
-  ${p =>
-    p.align === 'right' &&
-    css`
-      ${HeaderCellContent} {
-        justify-content: flex-end;
-      }
-    `}
 
   ${p =>
     p.variant === 'first' &&

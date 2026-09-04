@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -53,7 +52,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
 
   return (
     <SimpleTable.Row>
-      <StyledBox>
+      <SimpleTable.RowCell flex="1" minWidth="0">
         <div>
           <Heading as="h5" size="lg">
             {title}
@@ -64,7 +63,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
             type={data.type}
           />
         </div>
-      </StyledBox>
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
         {data.dateAdded ? (
           <TimeSince date={data.dateAdded} unitStyle="short" suffix="ago" />
@@ -199,20 +198,18 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
               columns={TOMBSTONE_COLUMNS}
               header={
                 <SimpleTable.HeaderRow>
-                  <SimpleTable.HeaderCell>
-                    <LeftAlignedColumn>{t('Issue')}</LeftAlignedColumn>
+                  <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+                  <SimpleTable.HeaderCell justify="end">
+                    {t('Date Discarded')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <RightAlignedColumn>{t('Date Discarded')}</RightAlignedColumn>
+                  <SimpleTable.HeaderCell justify="end">
+                    {t('Last Seen')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <RightAlignedColumn>{t('Last Seen')}</RightAlignedColumn>
+                  <SimpleTable.HeaderCell justify="end">
+                    {t('Events')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <RightAlignedColumn>{t('Events')}</RightAlignedColumn>
-                  </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell>
-                    <CenteredAlignedColumn>{t('Member')}</CenteredAlignedColumn>
+                  <SimpleTable.HeaderCell justify="center">
+                    {t('Member')}
                   </SimpleTable.HeaderCell>
                   <SimpleTable.HeaderCell />
                 </SimpleTable.HeaderRow>
@@ -238,26 +235,3 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
     </ErrorBoundary>
   );
 }
-
-const StyledBox = styled(SimpleTable.RowCell)`
-  flex: 1;
-  align-items: center;
-  min-width: 0; /* keep child content from stretching flex item */
-`;
-
-const Column = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const RightAlignedColumn = styled(Column)`
-  justify-content: flex-end;
-`;
-
-const LeftAlignedColumn = styled(Column)`
-  justify-content: flex-start;
-`;
-
-const CenteredAlignedColumn = styled(Column)`
-  justify-content: center;
-`;

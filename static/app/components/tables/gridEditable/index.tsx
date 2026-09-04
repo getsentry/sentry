@@ -147,7 +147,7 @@ export function GridEditable<
 
           return (
             <DataTable.HeadCell
-              align={columnSort?.align}
+              justify={columnSort?.align}
               columnIndex={i}
               data-test-id="grid-head-cell"
               key={`${i}.${String(column.key)}`}

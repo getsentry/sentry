@@ -1,8 +1,10 @@
 import type {HTMLAttributes, MouseEvent, ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {FLEX_JUSTIFY_CONTENT, type FlexJustify} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -25,10 +27,15 @@ export function getAriaSort(
 
 export type ColumnAlign = 'left' | 'right';
 
+/**
+ * How a header cell lays its label out, in `Flex`'s `justify` vocabulary.
+ */
+export type HeaderCellJustify = Exclude<FlexJustify, 'around' | 'between' | 'evenly'>;
+
 interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
-  align?: ColumnAlign;
   children?: ReactNode;
   direction?: SortDirection;
+  justify?: HeaderCellJustify;
   onSort?: (event: MouseEvent) => void;
   overlays?: ReactNode;
   /**
@@ -42,9 +49,9 @@ interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function SortableHeaderCell({
-  align,
   children,
   direction,
+  justify,
   onSort,
   overlays,
   replace,
@@ -54,7 +61,7 @@ export function SortableHeaderCell({
   return (
     <HeaderCellContent
       {...props}
-      align={align}
+      justify={justify}
       as={to ? Link : onSort ? 'button' : 'div'}
       onClick={onSort}
       replace={to ? replace : undefined}
@@ -84,9 +91,9 @@ const Label = styled('div')`
 
 export const HeaderCellContent = styled('div', {
   shouldForwardProp: prop =>
-    prop !== 'align' && (prop === 'to' || prop === 'replace' || isPropValid(prop)),
+    prop !== 'justify' && (prop === 'to' || prop === 'replace' || isPropValid(prop)),
 })<{
-  align?: ColumnAlign;
+  justify?: HeaderCellJustify;
   replace?: boolean;
   to?: LocationDescriptor;
   type?: 'button';
@@ -106,7 +113,11 @@ export const HeaderCellContent = styled('div', {
   text-align: inherit;
   text-transform: inherit;
 
-  ${p => p.align === 'right' && 'justify-content: flex-end;'}
+  ${p =>
+    p.justify &&
+    css`
+      justify-content: ${FLEX_JUSTIFY_CONTENT[p.justify]};
+    `}
 
   &:hover,
   &:active,
