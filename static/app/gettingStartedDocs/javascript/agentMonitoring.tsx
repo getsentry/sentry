@@ -13,6 +13,7 @@ import {
   getAgentIntegration,
   getInstallStep,
   getManualConfigureStep,
+  getMinRequiredVersion,
   mastraOnboarding,
   MIN_REQUIRED_VERSION,
   agentMonitoring as nodeAgentMonitoring,
@@ -376,7 +377,7 @@ export function agentMonitoring({
     introduction: params => (
       <SdkUpdateAlert
         projectId={params.project.id}
-        minVersion={minVersion}
+        minVersion={getMinRequiredVersion(params, minVersion)}
         packageName={packageName}
       />
     ),
@@ -417,6 +418,19 @@ export function agentMonitoring({
         return eveOnboarding.configure(params);
       }
 
+      // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers.
+      // Selecting either pins the runtime to Cloudflare, so reuse the Node
+      // package's Cloudflare setup instead of the browser init flow.
+      if (
+        selected === AgentIntegration.WORKERS_AI ||
+        selected === AgentIntegration.CLOUDFLARE_AGENTS
+      ) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).configure(params);
+      }
+
       return [
         {
           title: t('Configure'),
@@ -449,6 +463,19 @@ export function agentMonitoring({
       // Eve is a Node/server-side framework, so it reuses the Node setup.
       if (selected === AgentIntegration.EVE) {
         return eveOnboarding.verify(params);
+      }
+
+      // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers.
+      // Selecting either pins the runtime to Cloudflare, so reuse the Node
+      // package's Cloudflare verification instead of the browser flow.
+      if (
+        selected === AgentIntegration.WORKERS_AI ||
+        selected === AgentIntegration.CLOUDFLARE_AGENTS
+      ) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).verify(params);
       }
 
       return [

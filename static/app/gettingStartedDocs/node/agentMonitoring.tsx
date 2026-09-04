@@ -49,7 +49,7 @@ export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
  * The minimum SDK version required for the selected integration. Most SDKs share
  * MIN_REQUIRED_VERSION, but the Cloudflare Agents SDK needs a newer release.
  */
-function getMinRequiredVersion(params: DocsParams, fallback: string): string {
+export function getMinRequiredVersion(params: DocsParams, fallback: string): string {
   return getAgentIntegration(params) === AgentIntegration.CLOUDFLARE_AGENTS
     ? CLOUDFLARE_AGENTS_MIN_VERSION
     : fallback;
