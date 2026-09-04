@@ -150,8 +150,8 @@ describe('getWidgetConfigError', () => {
       queries: [WidgetQueryFixture({aggregates: []})],
     });
 
-    expect(getWidgetConfigError(widget, {hasBlankEquation: true})).toBe(
-      'Enter an equation to preview results'
+    expect(getWidgetConfigError(widget)).toBe(
+      'The widget configuration is not valid. Please add a "Visualize" field.'
     );
   });
 

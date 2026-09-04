@@ -23,10 +23,6 @@ interface BarsConfig extends CategoricalDataSeriesConfig {
    */
   onClick?: (item: CategoricalItem, dataIndex: number) => void;
   /**
-   * Called when a bar is downplayed (mouse leaves).
-   */
-  onDownplay?: (item: CategoricalItem, dataIndex: number) => void;
-  /**
    * Stack name. If provided, bar plottables with the same stack will be stacked visually.
    */
   stack?: string;
@@ -59,12 +55,7 @@ export class Bars
     }
   }
 
-  onDownplay(dataIndex: number): void {
-    const item = this.categoricalSeries.values[dataIndex];
-    if (item && this.config?.onDownplay) {
-      this.config.onDownplay(item, dataIndex);
-    }
-  }
+  onDownplay(_dataIndex: number): void {}
 
   toSeries(
     plottingOptions: CategoricalPlottingOptions
