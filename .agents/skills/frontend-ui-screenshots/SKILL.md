@@ -14,7 +14,7 @@ Use these defaults unless the user asks for broader coverage:
 - Capture the product in light mode at one representative viewport.
 - Use a Scraps story when the user requests one or product context cannot demonstrate a changed primitive honestly.
 - Add dark mode when theme behavior is relevant.
-- For every responsive change, test both sides of each affected container boundary using the [container breakpoint matrix](references/capture-plan.md#container-breakpoints). Cover every responsive declaration changed by the diff, even when the user does not explicitly request breakpoint coverage. Include widths created by consequential product states, such as the Seer Explorer drawer reducing the content container.
+- For every responsive change, test both sides of each affected container boundary using consistent endpoints of the neighboring ranges from the [container breakpoint matrix](references/capture-plan.md#container-breakpoints). Do not pair boundary-adjacent widths such as 1023px and 1024px. Cover every responsive declaration changed by the diff, even when the user does not explicitly request breakpoint coverage. Include widths created by consequential product states, such as the Seer Explorer drawer reducing the content container.
 
 ## Boundaries
 
