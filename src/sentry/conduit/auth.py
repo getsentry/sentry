@@ -67,6 +67,7 @@ def generate_conduit_token(
 def get_conduit_credentials(
     org_id: int,
     gateway_url: str | None = None,
+    channel_id: str | None = None,
 ) -> ConduitCredentials:
     """
     Generate all credentials needed to connect to Conduit.
@@ -76,7 +77,10 @@ def get_conduit_credentials(
     """
     if gateway_url is None:
         gateway_url = settings.CONDUIT_GATEWAY_URL
-    channel_id = generate_channel_id()
+    if not gateway_url:
+        raise ValueError("CONDUIT_GATEWAY_URL not configured")
+    if channel_id is None:
+        channel_id = generate_channel_id()
     token = generate_conduit_token(org_id, channel_id)
 
     metrics.incr(

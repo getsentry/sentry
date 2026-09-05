@@ -187,7 +187,9 @@ def apply_cors_headers(
         "sentry-trace, baggage, X-CSRFToken"
     )
     response["Access-Control-Expose-Headers"] = (
-        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, "
+        "X-Conduit-Token, X-Conduit-Channel-Id, X-Conduit-Url, "
+        "Endpoint, Retry-After, Link"
     )
 
     if request.META.get("HTTP_ORIGIN") == "null":
