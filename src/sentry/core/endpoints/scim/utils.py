@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TypedDict
+from typing import NoReturn, TypedDict
 
+from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
@@ -147,6 +148,11 @@ class SCIMListBaseResponse(TypedDict):
     itemsPerPage: int
 
 
+class SCIMMetaResponse(TypedDict):
+    resourceType: str
+    location: str
+
+
 @extend_schema(tags=["SCIM"])
 class SCIMEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FOUNDATIONS
@@ -175,6 +181,30 @@ class SCIMEndpoint(OrganizationEndpoint):
             raise ParseError(serializer.errors)
 
         return serializer.validated_data
+
+
+class SCIMDiscoveryEndpoint(SCIMEndpoint):
+    """Base for the RFC 7644 §4 discovery endpoints (ServiceProviderConfig,
+    ResourceTypes, Schemas). Discovery resources are static and GET-only:
+    query parameters are ignored rather than validated, a supplied filter is
+    rejected, and other HTTP methods get SCIM-format 405 bodies.
+    """
+
+    permission_classes = (OrganizationSCIMMemberPermission,)
+
+    def reject_filter_param(self, request: Request) -> None:
+        # RFC 7644 §4: a filter on a discovery endpoint SHOULD be rejected
+        # with 403 so clients can't assume its conditions were applied.
+        # Handlers must call this first, rather than us hooking initial():
+        # initial() runs before convert_args resolves the org, and the org
+        # access + scim_enabled checks must fail before the filter check.
+        if "filter" in request.GET:
+            raise SCIMApiError(
+                detail="Filtering is not supported on this endpoint.", status_code=403
+            )
+
+    def http_method_not_allowed(self, request: HttpRequest, *args, **kwargs) -> NoReturn:
+        raise SCIMApiError(detail=f'Method "{request.method}" not allowed.', status_code=405)
 
 
 def parse_filter_conditions(raw_filters):
