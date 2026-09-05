@@ -1,6 +1,7 @@
 from collections.abc import Generator, Iterator
 from random import Random
 
+import pytest
 from django.core.cache import cache
 
 from sentry.hybridcloud.rpc.caching import (
@@ -11,6 +12,7 @@ from sentry.hybridcloud.rpc.caching import (
     control_caching_service,
 )
 from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
+from sentry.hybridcloud.rpc.caching.service import MAX_BASE_KEY_LENGTH, MAX_CACHE_KEY_LENGTH
 from sentry.organizations.services.organization.model import (
     RpcOrganizationMember,
     RpcOrganizationSummary,
@@ -59,6 +61,239 @@ def test_caching_function() -> None:
     for u, cached in zip(users, cached_users):
         assert cached
         assert cached.username == u.username
+
+
+@back_with_silo_cache(base_key="multiple-params", silo_mode=SiloMode.CELL, t=RpcUser)
+def get_active_user(user_id: int, is_active: bool) -> RpcUser | None:
+    results = user_service.get_many(filter=dict(user_ids=[user_id], is_active=is_active))
+    if len(results):
+        return results[0]
+    return None
+
+
+@back_with_silo_cache(
+    base_key="this-base-key-is-quite-long-and-will-overflow", silo_mode=SiloMode.CELL, t=RpcUser
+)
+def get_active_user_long_basekey(user_id: int, is_active: bool) -> RpcUser | None:
+    results = user_service.get_many(filter=dict(user_ids=[user_id], is_active=is_active))
+    if len(results):
+        return results[0]
+    return None
+
+
+@back_with_silo_cache(
+    base_key="this-base-key-is-32-chars-loonng", silo_mode=SiloMode.CELL, t=RpcUser
+)
+def get_active_user_equal(user_id: int, padding: str) -> RpcUser | None:
+    results = user_service.get_many(filter=dict(user_ids=[user_id]))
+    if len(results):
+        return results[0]
+    return None
+
+
+@django_db_all(transaction=True)
+def test_caching_function_multiple_parameters() -> None:
+    cache.clear()
+
+    user = Factories.create_user()
+
+    first = get_active_user(user.id, True)
+    assert first
+    assert first.id == user.id
+    assert first.username == user.username
+
+    # Each parameter combination is a separate cache entry, so the non-matching
+    # combination is a miss rather than a hit on the entry written above.
+    assert get_active_user(user.id, False) is None
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        user.update(username=user.username + "moocow")
+
+    # The second read of the same parameters is served from cache, so it does not
+    # observe the update. Calling through to the wrapped function does.
+    cached = get_active_user(user.id, True)
+    assert cached
+    assert cached.username == first.username
+    assert cached.username != user.username
+
+    direct = get_active_user.cb(user.id, True)
+    assert direct
+    assert direct.username == user.username
+
+    assert get_active_user.key_from(user.id, True) != get_active_user.key_from(user.id, False)
+    assert get_active_user.key_from(user.id, True) != get_active_user.key_from(user.id + 1, True)
+
+
+@django_db_all(transaction=True)
+def test_caching_function_long_base_key() -> None:
+    cache.clear()
+    user = Factories.create_user()
+
+    first = get_active_user_long_basekey(user.id, True)
+    assert first
+    assert first.id == user.id
+    assert first.username == user.username
+
+    cached = get_active_user_long_basekey(user.id, True)
+    assert cached
+    assert cached.id == user.id
+
+
+@django_db_all(transaction=True)
+def test_caching_function_equal_length() -> None:
+    cache.clear()
+    user = Factories.create_user()
+    id_len = len(str(user.id))
+
+    # 6 accounts for :[,""]
+    first = get_active_user_equal(user.id, "a" * (32 - id_len - 6))
+    assert first
+    assert first.id == user.id
+    assert first.username == user.username
+
+    cached = get_active_user_equal(user.id, "a" * (32 - id_len - 6))
+    assert cached
+    assert cached.id == user.id
+
+
+@django_db_all(transaction=True)
+def test_caching_function_multiple_parameters_clear_key() -> None:
+    cache.clear()
+
+    users = [Factories.create_user() for _ in range(2)]
+    before = [get_active_user(u.id, True) for u in users]
+    assert all(before)
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        for u in users:
+            u.update(username=u.username + "moocow")
+
+    # Clearing a key built from the same parameters evicts that entry only.
+    cell_caching_service.clear_key(
+        cell_name=get_local_cell().name, key=get_active_user.key_from(users[0].id, True)
+    )
+
+    cleared = get_active_user(users[0].id, True)
+    assert cleared
+    assert cleared.username == users[0].username
+
+    untouched = get_active_user(users[1].id, True)
+    assert untouched == before[1]
+
+
+@django_db_all(transaction=True)
+def test_caching_function_other_silo_mode() -> None:
+    cache.clear()
+
+    user = Factories.create_user()
+    cached = get_active_user(user.id, True)
+    assert cached
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        user.update(username=user.username + "moocow")
+
+    # A silo that does not own this cache bypasses it and forwards every parameter
+    # to the wrapped function.
+    with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+        fresh = get_active_user(user.id, True)
+    assert fresh
+    assert fresh.username == user.username
+    assert fresh.username != cached.username
+
+
+@back_with_silo_cache(base_key="key-encoding", silo_mode=SiloMode.CELL, t=RpcUser)
+def get_by_one_param(value: object) -> RpcUser | None:
+    return None
+
+
+@back_with_silo_cache(base_key="key-encoding-two", silo_mode=SiloMode.CELL, t=RpcUser)
+def get_by_two_params(first: object, second: object) -> RpcUser | None:
+    return None
+
+
+def test_key_from_distinguishes_parameters() -> None:
+    # Single key signature work with str representation so these keys are the same.
+    # In practice this doesn't matter as a function's signature should prevent shadowing
+    assert get_by_one_param.key_from(1) == get_by_one_param.key_from("1")
+
+    # Multi-parameters signatures distinguish types
+    assert get_by_two_params.key_from("1", "a") != get_by_two_params.key_from(1, "a")
+
+    # Separators inside a parameter cannot be confused for parameter boundaries.
+    assert get_by_two_params.key_from("a:b", "c") != get_by_two_params.key_from("a", "b:c")
+
+
+def test_key_from_fits_cache_version_column() -> None:
+    base_key = "a" * MAX_BASE_KEY_LENGTH
+
+    @back_with_silo_cache(base_key=base_key, silo_mode=SiloMode.CELL, t=RpcUser)
+    def get_thing(value: str) -> RpcUser | None:
+        return None
+
+    # Single parameter keys need to retain compatiblity with historical keys
+    short_key = get_thing.key_from("1")
+    assert short_key == f"{base_key}:1"
+
+    # Parameters that would overflow CacheVersion.key are hashed down to fit.
+    long_key = get_thing.key_from("x" * 500)
+    assert len(long_key) <= MAX_CACHE_KEY_LENGTH
+    assert long_key != short_key
+    assert long_key != get_thing.key_from("y" * 500)
+
+
+def test_key_from_is_memcached_safe() -> None:
+    @back_with_silo_cache(base_key="unsafe-chars", silo_mode=SiloMode.CELL, t=RpcUser)
+    def get_thing(value: str) -> RpcUser | None:
+        return None
+
+    # Memcached rejects whitespace and control characters, so parameters containing
+    # them are hashed rather than embedded in the key.
+    for value in ("has a space", "has\ttab", "has\nnewline", "café"):
+        key = get_thing.key_from(value)
+        assert all(0x21 <= ord(c) <= 0x7E for c in key), f"unsafe key for {value!r}: {key!r}"
+
+    assert get_thing.key_from("has a space") != get_thing.key_from("has-a-space")
+
+
+def test_base_key_too_long_is_rejected() -> None:
+    with pytest.raises(ValueError):
+
+        @back_with_silo_cache(
+            base_key="a" * (MAX_BASE_KEY_LENGTH + 1), silo_mode=SiloMode.CELL, t=RpcUser
+        )
+        def get_thing(value: int) -> RpcUser | None:
+            return None
+
+
+@django_db_all(transaction=True)
+def test_clear_key_with_hashed_parameters() -> None:
+    cache.clear()
+
+    @back_with_silo_cache(base_key="a" * MAX_BASE_KEY_LENGTH, silo_mode=SiloMode.CELL, t=RpcUser)
+    def get_user_by_long_key(user_id: int, padding: str) -> RpcUser | None:
+        results = user_service.get_many(filter=dict(user_ids=[user_id]))
+        if len(results):
+            return results[0]
+        return None
+
+    user = Factories.create_user()
+    padding = "x" * 500
+
+    before = get_user_by_long_key(user.id, padding)
+    assert before
+
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        user.update(username=user.username + "moocow")
+
+    # Writing a version row for a hashed key must not overflow CacheVersion.key.
+    cell_caching_service.clear_key(
+        cell_name=get_local_cell().name,
+        key=get_user_by_long_key.key_from(user.id, padding),
+    )
+
+    after = get_user_by_long_key(user.id, padding)
+    assert after
+    assert after.username == user.username
 
 
 @control_silo_test
