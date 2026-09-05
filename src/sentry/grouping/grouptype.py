@@ -4,22 +4,45 @@ from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.models.group import DEFAULT_TYPE_ID
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.endpoints.validators.error_detector import ErrorDetectorValidator
-from sentry.workflow_engine.handlers.detector.base import BaseDetectorHandler
+from sentry.workflow_engine.handlers.detector.base import (
+    BaseDetectorHandler,
+    DetectorOccurrence,
+    EventData,
+    GroupedDetectorEvaluationResult,
+)
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.processors import DetectorEvaluation
+from sentry.workflow_engine.processors import (
+    DataConditionGroupEvaluation,
+    DetectorEvaluation,
+)
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
+    DetectorPriorityLevel,
     DetectorSettings,
 )
 
 
-class ErrorDetectorHandler(BaseDetectorHandler[object]):
+class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
     """Placeholder handler for error group types."""
 
     def _evaluate(
         self, data_packet: DataPacket[object]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         return {}
+
+    def evaluate(self, data_packet: DataPacket[object]) -> GroupedDetectorEvaluationResult:
+        raise NotImplementedError
+
+    def extract_value(self, data_packet: DataPacket[object]) -> object:
+        raise NotImplementedError
+
+    def create_occurrence(
+        self,
+        evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[object],
+        priority: DetectorPriorityLevel,
+    ) -> tuple[DetectorOccurrence, EventData]:
+        raise NotImplementedError
 
 
 @dataclass(frozen=True)
