@@ -1219,3 +1219,56 @@ class TopEventsQueryBuilderTest(TestCase):
             selected_columns=["tags[foo]"],
         )
         assert builder is not None
+
+    @pytest.mark.querybuilder
+    def test_resolve_top_event_conditions_timestamp_offset_strings(self) -> None:
+        """ISO timestamps with offsets must become naive UTC DateTime conditions."""
+        top_events = [
+            # +00:00 stays the same wall clock after UTC conversion.
+            {"timestamp.to_day": "2023-01-01T00:00:00+00:00"},
+            # +02:00 must convert (not chop) to the previous UTC day hour 22:00.
+            {"timestamp.to_day": "2023-01-02T00:00:00+02:00"},
+        ]
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=3600,
+            top_events=top_events,
+            selected_columns=["timestamp.to_day"],
+        )
+
+        timestamp_conditions = [
+            condition for condition in builder.where if isinstance(condition, Or)
+        ]
+        assert len(timestamp_conditions) == 1
+        rhs_values = {condition.rhs for condition in timestamp_conditions[0].conditions}
+        assert rhs_values == {
+            datetime.datetime(2023, 1, 1, 0, 0, 0),
+            datetime.datetime(2023, 1, 1, 22, 0, 0),
+        }
+        assert all(value.tzinfo is None for value in rhs_values)
+
+    @pytest.mark.querybuilder
+    def test_resolve_top_event_conditions_timestamp_to_hour_offset_strings(self) -> None:
+        top_events = [
+            {"timestamp.to_hour": "2023-01-01T05:00:00+00:00"},
+            {"timestamp.to_hour": "2023-01-01T07:00:00+00:00"},
+        ]
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=3600,
+            top_events=top_events,
+            selected_columns=["timestamp.to_hour"],
+        )
+
+        timestamp_conditions = [
+            condition for condition in builder.where if isinstance(condition, Or)
+        ]
+        assert len(timestamp_conditions) == 1
+        rhs_values = {condition.rhs for condition in timestamp_conditions[0].conditions}
+        assert rhs_values == {
+            datetime.datetime(2023, 1, 1, 5, 0, 0),
+            datetime.datetime(2023, 1, 1, 7, 0, 0),
+        }
+        assert all(value.tzinfo is None for value in rhs_values)
