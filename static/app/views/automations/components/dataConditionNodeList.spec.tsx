@@ -344,10 +344,21 @@ describe('DataConditionNodeList', () => {
       });
 
       await userEvent.click(await screen.findByLabelText('Issue category'));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'configuration'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'preprod'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'metric'}));
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 11, include: false},
+      });
+
+      await userEvent.click(await screen.findByLabelText('Issue category'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'configuration'}));
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
+        comparison: {value: 19, include: false},
       });
     });
 

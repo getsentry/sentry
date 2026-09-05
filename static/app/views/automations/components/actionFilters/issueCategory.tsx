@@ -2,32 +2,19 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
+import {
+  ISSUE_CATEGORY_TO_GROUP_CATEGORY,
+  VALID_ISSUE_CATEGORIES,
+} from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-enum GroupCategory {
-  ERROR = 1,
-  FEEDBACK = 6,
-  OUTAGE = 10,
-  METRIC = 11,
-  DB_QUERY = 12,
-  HTTP_CLIENT = 13,
-  FRONTEND = 14,
-  MOBILE = 15,
-}
-
-const GROUP_CATEGORY_CHOICES = [
-  {value: GroupCategory.ERROR, label: 'error'},
-  {value: GroupCategory.FEEDBACK, label: 'feedback'},
-  {value: GroupCategory.OUTAGE, label: 'outage'},
-  {value: GroupCategory.METRIC, label: 'metric'},
-  {value: GroupCategory.DB_QUERY, label: 'db_query'},
-  {value: GroupCategory.HTTP_CLIENT, label: 'http_client'},
-  {value: GroupCategory.FRONTEND, label: 'frontend'},
-  {value: GroupCategory.MOBILE, label: 'mobile'},
-];
+const GROUP_CATEGORY_CHOICES = VALID_ISSUE_CATEGORIES.map(issueCategory => ({
+  value: ISSUE_CATEGORY_TO_GROUP_CATEGORY[issueCategory],
+  label: issueCategory,
+}));
 
 const INCLUDE_CHOICES = [
   {value: true, label: t('equal to')},
@@ -81,7 +68,7 @@ function CategoryField() {
       aria-label={t('Issue category')}
       value={condition.comparison.value}
       options={GROUP_CATEGORY_CHOICES}
-      onChange={(option: SelectValue<GroupCategory>) => {
+      onChange={(option: SelectValue<number>) => {
         onUpdate({comparison: {...condition.comparison, value: option.value}});
         removeError(condition.id);
       }}
