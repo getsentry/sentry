@@ -194,7 +194,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             labels: Sequence[tuple[str, str]] = []
         else:
             default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
-            assignees = self.get_allowed_assignees(default_repo, PAGE_LIMIT) if default_repo else []
+            assignees = self.get_allowed_assignees(default_repo) if default_repo else []
             labels = []
             if default_repo:
                 owner, repo = default_repo.split("/")
@@ -379,28 +379,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def get_allowed_assignees(
-        self, repo: str, page_number_limit: int | None = None
-    ) -> Sequence[tuple[str, str]]:
-        client = self.get_client()
-        try:
-            response = client.get_assignees(repo, page_number_limit=page_number_limit)
-        except Exception as e:
-            self.raise_error(e)
-
-        users = tuple(self._format_assignee(user) for user in response)
-
-        return (("", "Unassigned"),) + users
-
-    def search_allowed_assignees(self, repo: str, query: str) -> Sequence[tuple[str, str]]:
+    def get_allowed_assignees(self, repo: str, query: str = "") -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
             response = client.search_issue_assignees(repo, query)
         except Exception as e:
             self.raise_error(e)
 
-        user_choices = tuple(self._format_assignee(user) for user in response)
-        return user_choices if query else (("", "Unassigned"),) + user_choices
+        users = tuple(self._format_assignee(user) for user in response)
+        return users if query else (("", "Unassigned"),) + users
 
     def get_repo_labels(
         self, owner: str, repo: str, page_number_limit: int | None = None
