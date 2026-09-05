@@ -118,3 +118,42 @@ const [end, setEnd] = useState(undefined);
 setTitle('Analysis complete');
 setEnd(new Date());
 ```
+
+## Overflow
+
+An agent's thinking content is often several paragraphs. `children` caps at a
+max height once it grows past a few lines, with a `Show More` affordance to
+reveal the rest — separate from the outer disclosure's own expand/collapse. A
+short thought is unaffected: the cap only appears once content actually
+exceeds it.
+
+export function OverflowDemo() {
+  const [start] = useState(() => new Date(Date.now() - 12_000));
+  const [end] = useState(() => new Date());
+  return (
+    <ThinkingBlock title="Analyzed source code" startTime={start} endTime={end}>
+      <Text size="sm" monospace variant="muted">
+        The user is asking about a missing span in the DSL output. Let me search the spans
+        dataset first, scoped to the ml-service project, filtering on span.description
+        containing "DSL" and looking at the last 24 hours of data. I'll also check whether
+        the span is being dropped by a sampling rule, since the service has a custom
+        sampling configuration that could explain gaps in low-traffic transactions. If
+        that doesn't turn anything up, I'll pull the trace waterfall for a few sample
+        trace IDs to see whether the span is present but mislabeled, or genuinely never
+        emitted by the SDK in this code path.
+      </Text>
+    </ThinkingBlock>
+  );
+}
+
+<Storybook.Demo>
+  <OverflowDemo />
+</Storybook.Demo>
+
+```jsx
+<ThinkingBlock title="Analyzed source code" startTime={start} endTime={end}>
+  <Text monospace variant="muted">
+    Several paragraphs of reasoning…
+  </Text>
+</ThinkingBlock>
+```

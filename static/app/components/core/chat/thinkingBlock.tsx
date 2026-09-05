@@ -10,6 +10,8 @@ import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SECOND} from 'sentry/utils/formatters';
 
+import {ClippedDetail} from './clippedDetail';
+
 const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
 
 /**
@@ -121,7 +123,11 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
           {isActive ? <AnimatedEllipsis /> : null}
         </Text>
       </Disclosure.Title>
-      {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
+      {children ? (
+        <Disclosure.Content>
+          <ClippedDetail>{children}</ClippedDetail>
+        </Disclosure.Content>
+      ) : null}
     </Disclosure>
   );
 }
