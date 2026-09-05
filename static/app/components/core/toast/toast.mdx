@@ -92,7 +92,8 @@ Use `action` for a button next to the message. The toast closes after the action
 toast.success('Item deleted', {
   action: {
     label: 'Undo',
-    onClick: restoreItem,
+    icon: <IconRefresh size="xs" />,
+    onClick: () => toast.message('Item restored'),
   },
 });
 ```

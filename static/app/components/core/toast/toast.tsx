@@ -68,19 +68,19 @@ function ToastIcon({variant}: {variant: ToastVariant}) {
   switch (variant) {
     case 'loading':
       return (
-        <ToastIconContainer variant={variant}>
+        <ToastIconContainer variant={variant} aria-hidden>
           <ToastLoadingIndicator size={16} />
         </ToastIconContainer>
       );
     case 'success':
       return (
-        <ToastIconContainer variant={variant}>
+        <ToastIconContainer variant={variant} aria-hidden>
           <IconCheckmark />
         </ToastIconContainer>
       );
     case 'error':
       return (
-        <ToastIconContainer variant={variant}>
+        <ToastIconContainer variant={variant} aria-hidden>
           <IconWarning />
         </ToastIconContainer>
       );

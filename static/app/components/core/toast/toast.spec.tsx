@@ -5,6 +5,7 @@ import {
   userEvent,
   waitFor,
   waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
@@ -27,6 +28,7 @@ describe('Toast', () => {
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     } else if (testId === 'toast-success' || testId === 'toast-error') {
       expect(toastElement.querySelector('svg')).toBeInTheDocument();
+      expect(within(toastElement).queryByRole('img')).not.toBeInTheDocument();
     }
   });
 
