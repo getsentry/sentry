@@ -64,6 +64,7 @@ from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
 from sentry.utils.tracing import start_span
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxDetails
@@ -152,6 +153,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     subscriptionDetails: SubscriptionDetails | None
     hasSeen: bool
     annotations: list[GroupAnnotation]
+    detectorId: str | None
 
 
 class GroupDetailsResponseOptional(TypedDict, total=False):
@@ -367,6 +369,10 @@ class GroupSerializerBase(Serializer, ABC):
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        detector_ids_by_group_id = dict(
+            DetectorGroup.objects.filter(group__in=item_list).values_list("group_id", "detector_id")
+        )
+
         derived_data_by_group_id = (
             get_bulk_group_derived_data({item.id for item in item_list})
             if self._expand("derivedData")
@@ -397,6 +403,7 @@ class GroupSerializerBase(Serializer, ABC):
                 "subscription": subscriptions[item.id],
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
                 "annotations": annotations_by_group_id[item.id],
+                "detector_id": detector_ids_by_group_id.get(item.id),
                 "ignore_until": ignore_item,
                 "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
                 "resolution": resolution,
@@ -452,6 +459,9 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
+            "detectorId": (
+                str(attrs["detector_id"]) if attrs["detector_id"] is not None else None
+            ),
             "issueType": obj.issue_type.slug,
             "issueCategory": issue_category,
             "priority": priority_label,
