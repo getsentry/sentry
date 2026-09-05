@@ -1,6 +1,6 @@
-import builtins
 from typing import Any, NotRequired, TypedDict
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -10,12 +10,8 @@ from sentry.workflow_engine.endpoints.validators.utils import validate_json_sche
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler
 
 DEPRECATED_ACTION_TYPES: frozenset[Action.Type] = frozenset({Action.Type.PLUGIN})
-
-ActionData = dict[str, Any]
-ActionConfig = dict[str, Any]
 
 
 class ActionInput(TypedDict):
@@ -34,14 +30,6 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
     integration_id = serializers.IntegerField(required=False, allow_null=True)
     status = serializers.CharField(required=False)
 
-    def _get_action_handler(self) -> builtins.type[ActionHandler]:
-        action_type = self.initial_data.get("type")
-        return action_handler_registry.get(action_type)
-
-    def validate_data(self, value: Any) -> ActionData:
-        data_schema = self._get_action_handler().data_schema
-        return validate_json_schema(value, data_schema)
-
     def validate_status(self, value: Any) -> int:
         if value is None:
             return ObjectStatus.ACTIVE
@@ -49,28 +37,14 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
             return ObjectStatus.from_str(value)
         return value
 
-    def validate_config(self, value: Any) -> ActionConfig:
-        action_handler = self._get_action_handler()
-        config_transformer = action_handler.get_config_transformer()
-
-        if config_transformer is not None:
-            # Transform from API format (transformer handles API schema validation)
-            return config_transformer.from_api(value)
-        else:
-            # No transformer, validate directly against config schema
-            return validate_json_schema(value, action_handler.config_schema)
-
-    def validate_type(self, value: Any) -> str:
-        try:
-            action_type = Action.Type(value)
-        except ValueError:
-            raise serializers.ValidationError(f"Invalid action type: {value}")
+    def validate_type(self, value: str) -> Action.Type:
+        action_type = Action.Type(value)
         if action_type in DEPRECATED_ACTION_TYPES:
             raise serializers.ValidationError(
                 f"Action type {value} is deprecated and cannot be created."
             )
         self._check_action_type(action_type)
-        return value
+        return action_type
 
     def _check_action_type(self, action_type: Action.Type) -> None:
         organization = self.context.get("organization")
@@ -91,7 +65,30 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
         attrs = super().validate(attrs)
 
-        is_integration = Action.Type(attrs["type"]).is_integration()
+        action_type: Action.Type = attrs["type"]
+        action_handler = action_handler_registry.get(action_type)
+        errors: dict[str, list[str]] = {}
+
+        try:
+            attrs["data"] = validate_json_schema(attrs["data"], action_handler.data_schema)
+        except DjangoValidationError as error:
+            errors["data"] = error.messages
+
+        try:
+            config_transformer = action_handler.get_config_transformer()
+            if config_transformer is not None:
+                attrs["config"] = config_transformer.from_api(attrs["config"])
+            else:
+                attrs["config"] = validate_json_schema(
+                    attrs["config"], action_handler.config_schema
+                )
+        except DjangoValidationError as error:
+            errors["config"] = error.messages
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        is_integration = action_type.is_integration()
         has_integration_id = attrs.get("integration_id") is not None
 
         if not is_integration and has_integration_id:
@@ -104,7 +101,7 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
             )
 
         try:
-            handler = action_validator_registry.get(attrs["type"])
+            handler = action_validator_registry.get(action_type)
         except NoRegistrationExistsError:
             return attrs
 
