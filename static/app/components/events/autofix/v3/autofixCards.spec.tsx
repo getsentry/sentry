@@ -55,7 +55,8 @@ function makeAssistantBlock(content: string | null): AutofixSection['blocks'][nu
 
 function makePrIterationBlock(
   iterationIndex: number,
-  feedback: {text: string; timestamp?: string; user?: any}
+  feedback: {text: string; timestamp?: string; user?: any},
+  iterationOutcome?: string
 ): AutofixSection['blocks'][number] {
   return {
     id: `block-pr-${iterationIndex}`,
@@ -66,6 +67,7 @@ function makePrIterationBlock(
       metadata: {
         step: 'pr_iteration',
         iteration_index: String(iterationIndex),
+        ...(iterationOutcome ? {iteration_outcome: iterationOutcome} : {}),
         feedback: JSON.stringify({
           text: feedback.text,
           timestamp: feedback.timestamp,
@@ -1509,7 +1511,48 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
 
-    it('marks block feedback as processed when the section is not processing', () => {
+    it('tags block feedback whose iteration made no changes', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'}, 'no_changes')]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.getByText('Seer cannot fix this failure')).toBeInTheDocument();
+    });
+
+    it('does not tag block feedback whose iteration made changes', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [[makePatch('org/repo', 'src/app.py')]],
+            [makePrIterationBlock(0, {text: 'first pass'}, 'changes_made')]
+          )}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('first pass')).toBeInTheDocument();
+      expect(screen.queryByText('Seer cannot fix this failure')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Seer is working on this failure')
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not tag block feedback that carries no iteration outcome', () => {
       render(
         <CodeChangesCard
           groupId="1"
@@ -1525,10 +1568,13 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('first pass')).toBeInTheDocument();
-      expect(screen.getByTestId('feedback-processed')).toBeInTheDocument();
+      expect(screen.queryByText('Seer cannot fix this failure')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Seer is working on this failure')
+      ).not.toBeInTheDocument();
     });
 
-    it('marks the current iteration feedback as in progress while processing', () => {
+    it('tags the current iteration feedback as in progress while processing', () => {
       render(
         <CodeChangesCard
           groupId="1"
@@ -1537,17 +1583,16 @@ describe('ArtifactCard', () => {
             'code_changes',
             'processing',
             [],
-            [makePrIterationBlock(0, {text: 'fix the CI failure'})]
+            [makePrIterationBlock(0, {text: 'fix the CI failure'}, 'no_changes')]
           )}
         />,
         {organization: prIterationOrganization}
       );
 
-      // While processing, the row shows a spinner (there is also the card body
-      // "Iterating on PR…" loader, hence getAllByTestId) and no processed check.
+      // The run status beats the stored outcome of the previous attempt.
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
-      expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
-      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+      expect(screen.getByText('Seer is working on this failure')).toBeInTheDocument();
+      expect(screen.queryByText('Seer cannot fix this failure')).not.toBeInTheDocument();
     });
 
     it('marks queued feedback with a queued label and no timestamp', () => {
@@ -1575,7 +1620,9 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Make the button blue')).toBeInTheDocument();
       expect(screen.getByText('Queued')).toBeInTheDocument();
-      expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('Seer is working on this failure')
+      ).not.toBeInTheDocument();
     });
 
     it('disables reset once PRs exist when only automated CI iteration is enabled', () => {
