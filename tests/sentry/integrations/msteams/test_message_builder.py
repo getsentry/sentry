@@ -466,6 +466,34 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert ActionType.SUBMIT == assign_action["type"]
         assert "Unassign" == assign_action["title"]
 
+    def test_issue_message_builder_rule_without_legacy_rule_id_in_actions(self) -> None:
+        """Regression test: build_group_card must not raise AssertionError when a rule's
+        actions list does not contain 'legacy_rule_id'. The rule's own id should be used
+        as a fallback."""
+        rule_without_legacy_id = self.create_project_rule(
+            name="rule_no_legacy", include_legacy_rule_id=False
+        )
+
+        # Verify that legacy_rule_id is indeed absent from the rule actions data
+        assert rule_without_legacy_id.data["actions"][0].get("legacy_rule_id") is None
+
+        # This must not raise an AssertionError
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1,
+            event=self.event1,
+            rules=[rule_without_legacy_id],
+            integration=self.integration,
+        ).build_group_card()
+
+        body = issue_card["body"]
+        footer = body[2]
+        assert _is_column_set_block(footer)
+        issue_id_and_rule = footer["columns"][1]["items"][0]
+        assert _is_text_block(issue_id_and_rule)
+        # The footer should contain the rule label and a URL using str(rule.id)
+        assert "rule_no_legacy" in issue_id_and_rule["text"]
+        assert str(rule_without_legacy_id.id) in issue_id_and_rule["text"]
+
 
 class MSTeamsNotificationMessageBuilderTest(TestCase):
     def setUp(self) -> None:
