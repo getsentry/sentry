@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
@@ -246,7 +246,22 @@ function AcceptOrganizationInvite() {
     },
   });
 
-  if (isPending) {
+  // Skip the create-account/login choice screen for the common case (no org
+  // SSO); SSO orgs keep it since it also surfaces the SSO option.
+  const shouldRedirectToRegister = Boolean(
+    inviteDetails?.needsAuthentication &&
+      !inviteDetails.requireSso &&
+      !inviteDetails.hasAuthProvider
+  );
+
+  useEffect(() => {
+    if (shouldRedirectToRegister) {
+      // `replace`, not `assign`, so Back doesn't loop through this redirect.
+      testableWindowLocation.replace('/auth/register/');
+    }
+  }, [shouldRedirectToRegister]);
+
+  if (isPending || shouldRedirectToRegister) {
     return <LoadingIndicator />;
   }
 

@@ -126,7 +126,7 @@ describe('AcceptOrganizationInvite', () => {
     ).toBeInTheDocument();
   });
 
-  it('requires authentication to join', async () => {
+  it('redirects straight to registration when authentication is required and there is no SSO', async () => {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -140,15 +140,14 @@ describe('AcceptOrganizationInvite', () => {
       initialRouterConfig: defaultRouterConfig,
     });
 
-    expect(await screen.findByTestId('action-info-general')).toBeInTheDocument();
-    expect(screen.queryByTestId('action-info-sso')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(testableWindowLocation.replace).toHaveBeenCalledWith('/auth/register/')
+    );
 
+    expect(screen.queryByTestId('action-info-general')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', {name: 'Create a new account'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', {name: 'Login using an existing account'})
-    ).toBeInTheDocument();
+      screen.queryByRole('button', {name: 'Create a new account'})
+    ).not.toBeInTheDocument();
   });
 
   it('suggests sso authentication to login', async () => {
