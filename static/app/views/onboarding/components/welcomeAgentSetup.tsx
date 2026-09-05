@@ -1,9 +1,11 @@
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,6 +29,7 @@ const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
   const initialization = useAgenticProgressInit({enabled});
   const restartRun = useRestartAgenticRun();
+  const {agenticProgressOnboardingCode} = useOnboardingContext();
   const progress = useAgenticProgress({
     runId: initialization.data?.runId ?? null,
     enabled,
@@ -42,15 +45,17 @@ export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
 
   return {
     run: liveRun,
-    onboardingCode: initialization.data?.onboardingCode,
+    onboardingCode: initialization.data?.onboardingCode ?? agenticProgressOnboardingCode,
     isAgentConnected: liveIsConnected,
     isSetupComplete: liveRun?.runStatus === 'completed',
     hasRunFailed: liveRun?.runStatus === 'failed' || liveRun?.runStatus === 'cancelled',
+    hasInitFailed: initialization.isError,
     restartRun,
   };
 }
 
 interface WelcomeAgentSetupProps {
+  hasInitFailed: boolean;
   isAgentConnected: boolean;
   /**
    * Fired when a command is copied out of one of the code blocks.
@@ -66,6 +71,7 @@ interface WelcomeAgentSetupProps {
 }
 
 export function WelcomeAgentSetup({
+  hasInitFailed,
   isAgentConnected,
   onboardingCode,
   onCopyCommand,
@@ -78,14 +84,29 @@ export function WelcomeAgentSetup({
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const prompt = onboardingCode
     ? [
-        t('Help me setup Sentry'),
-        t('Org ID: %s', organization.slug),
-        `[${onboardingCode}]`,
+        t('Please help me get started with sentry.'),
+        '',
+        t('org slug: %s', organization.slug),
+        t('run code: %s', onboardingCode),
       ].join('\n')
-    : t('Help me setup Sentry');
+    : t('Please help me get started with sentry.');
 
   return (
     <Stack gap="2xl" width="100%" position="relative" align="center">
+      <ScmCollapsibleReveal open={hasInitFailed}>
+        <Alert
+          variant="danger"
+          showIcon
+          trailingItems={
+            <Button size="xs" onClick={onRetry}>
+              {t('Try again')}
+            </Button>
+          }
+        >
+          {t('Could not start setup, so the prompt below will not report progress.')}
+        </Alert>
+      </ScmCollapsibleReveal>
+
       <MotionContainer
         layout
         width="100%"
@@ -116,6 +137,7 @@ export function WelcomeAgentSetup({
               transition={CARD_MORPH_TRANSITION}
             >
               <AgentSetupCard
+                hasSetupFailed={hasInitFailed}
                 onboardingCode={onboardingCode}
                 onCopyCommand={onCopyCommand}
                 prompt={prompt}

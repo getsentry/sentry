@@ -13,10 +13,12 @@ const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
 interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
   prompt: string;
+  hasSetupFailed?: boolean;
   onboardingCode?: string;
 }
 
 export function AgentSetupCard({
+  hasSetupFailed,
   onboardingCode,
   onCopyCommand,
   prompt,
@@ -58,7 +60,8 @@ export function AgentSetupCard({
             <Stack gap="md">
               <Text size="md">{t('Then point your agent to your code and ask')}</Text>
               <CodeBlock
-                alwaysShowCopyButton
+                alwaysShowCopyButton={!hasSetupFailed}
+                hideCopyButton={hasSetupFailed}
                 onCopy={() => onCopyCommand('prompt')}
                 wrapMode="wrap"
               >
