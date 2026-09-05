@@ -2,11 +2,9 @@ import {displayRawContent as rawStacktraceContent} from 'sentry/components/event
 import type {StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {StacktraceType} from 'sentry/types/stacktrace';
 
 interface IndexedExceptionValue extends ExceptionValue {
   exceptionIndex: number;
-  stacktrace: StacktraceType;
 }
 
 /**
@@ -28,9 +26,7 @@ export function getOrderedExceptions(
   isNewestFirst: boolean,
   view: StackTraceView
 ): IndexedExceptionValue[] {
-  const indexed = values
-    .map((exc, exceptionIndex) => ({...exc, exceptionIndex}))
-    .filter((exc): exc is IndexedExceptionValue => exc.stacktrace !== null);
+  const indexed = values.map((exc, exceptionIndex) => ({...exc, exceptionIndex}));
   return isNewestFirst && view !== 'raw' ? indexed.reverse() : indexed;
 }
 
