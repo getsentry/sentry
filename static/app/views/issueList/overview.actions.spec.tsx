@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import Cookies from 'js-cookie';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
@@ -13,7 +12,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import Indicators from 'sentry/components/indicators';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
@@ -223,13 +221,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(
-        <Fragment>
-          <IssueListOverview />
-          <Indicators />
-        </Fragment>,
-        {organization}
-      );
+      render(<IssueListOverview />, {organization});
 
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');

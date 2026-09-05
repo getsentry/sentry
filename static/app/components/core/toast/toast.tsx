@@ -1,100 +1,98 @@
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
-import {motion, type HTMLMotionProps, type Transition} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
-import type {Indicator} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconCheckmark, IconRefresh, IconWarning} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import type {Theme} from 'sentry/utils/theme';
+import {unreachable} from 'sentry/utils/unreachable';
+
+import type {ToastAction, ToastVariant} from './types';
 
 interface ToastProps {
-  indicator: Indicator;
-  onDismiss: (indicator: Indicator, event: React.MouseEvent) => void;
+  message: React.ReactNode;
+  variant: ToastVariant;
+  action?: ToastAction;
+  onDismiss?: () => void;
 }
 
-export function Toast({indicator, onDismiss, ...props}: ToastProps) {
+export function Toast({message, variant, action, onDismiss}: ToastProps) {
   const {t} = useTranslation();
 
   return (
     <ToastContainer
-      onClick={
-        indicator.options?.disableDismiss ? undefined : e => onDismiss(indicator, e)
-      }
-      data-test-id={indicator.type ? `toast-${indicator.type}` : 'toast'}
-      className={classNames('ref-toast', `ref-${indicator.type}`)}
-      type={indicator.type}
-      {...TOAST_TRANSITION}
-      {...props}
+      data-test-id={variant === 'default' ? 'toast' : `toast-${variant}`}
+      className={classNames('ref-toast', `ref-${variant}`)}
+      variant={variant}
     >
-      <ToastIcon type={indicator.type} />
+      <ToastIcon variant={variant} />
       <Container padding="lg">
-        <TextOverflow>{indicator.message}</TextOverflow>
+        <TextOverflow>{message}</TextOverflow>
       </Container>
-      {indicator.options.undo && typeof indicator.options.undo === 'function' ? (
+      {action ? (
         <Flex align="center" justify="center" padding="0 lg">
           <Button
             variant="secondary"
             size="xs"
-            onClick={indicator.options.undo}
-            icon={<IconRefresh size="xs" />}
+            onClick={event => {
+              event.stopPropagation();
+              action.onClick();
+              onDismiss?.();
+            }}
+            icon={action.icon}
           >
-            {t('Undo')}
+            {action.label}
           </Button>
+        </Flex>
+      ) : null}
+      {onDismiss ? (
+        <Flex align="center" justify="center" padding="0 lg">
+          <Button
+            aria-label={t('Dismiss')}
+            variant="transparent"
+            size="xs"
+            icon={<IconClose size="xs" />}
+            onClick={onDismiss}
+          />
         </Flex>
       ) : null}
     </ToastContainer>
   );
 }
 
-const TOAST_TRANSITION = {
-  initial: {opacity: 0, y: 70},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 70},
-  transition: {
-    type: 'spring',
-    stiffness: 450,
-    damping: 25,
-  } satisfies Transition,
-};
-
-function ToastIcon({type}: {type: Indicator['type']}) {
-  switch (type) {
+function ToastIcon({variant}: {variant: ToastVariant}) {
+  switch (variant) {
     case 'loading':
       return (
-        <ToastIconContainer type={type}>
+        <ToastIconContainer variant={variant}>
           <ToastLoadingIndicator size={16} />
         </ToastIconContainer>
       );
     case 'success':
       return (
-        <ToastIconContainer type={type}>
+        <ToastIconContainer variant={variant}>
           <IconCheckmark />
         </ToastIconContainer>
       );
     case 'error':
       return (
-        <ToastIconContainer type={type}>
+        <ToastIconContainer variant={variant}>
           <IconWarning />
         </ToastIconContainer>
       );
-    case 'undo':
-      return null;
-    case '':
+    case 'default':
       return null;
     default:
-      Sentry.captureException(new Error(`Unknown toast type: ${type}`));
-      return null;
+      return unreachable(variant);
   }
 }
 
-function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProperties {
-  switch (type) {
+function getContainerTheme(theme: Theme, variant: ToastVariant): React.CSSProperties {
+  switch (variant) {
     case 'success':
       return {
         background: theme.tokens.background.transparent.success.muted,
@@ -119,21 +117,21 @@ function getContainerTheme(theme: Theme, type: Indicator['type']): React.CSSProp
   }
 }
 
-interface ToastContainerProps extends HTMLMotionProps<'div'> {
+interface ToastContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  type: Indicator['type'];
+  variant: ToastVariant;
 }
 
 const ToastContainer = styled((props: ToastContainerProps) => {
-  const {type, children, ...rest} = props;
+  const {variant, children, ...rest} = props;
   return (
-    <ToastOuterContainer type={type} {...rest}>
-      <ToastInnerContainer type={type}>{children}</ToastInnerContainer>
+    <ToastOuterContainer variant={variant} {...rest}>
+      <ToastInnerContainer variant={variant}>{children}</ToastInnerContainer>
     </ToastOuterContainer>
   );
 })<ToastContainerProps>``;
 
-const ToastOuterContainer = styled(motion.div)<{type: Indicator['type']}>`
+const ToastOuterContainer = styled('div')<{variant: ToastVariant}>`
   overflow: hidden;
   /* The outer container is a separate element because the colors are not opaque,
    * so we set the background color here to the background color so that the
@@ -141,21 +139,21 @@ const ToastOuterContainer = styled(motion.div)<{type: Indicator['type']}>`
    */
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.lg};
-  border: ${p => getContainerTheme(p.theme, p.type).border};
-  box-shadow: ${p => getContainerTheme(p.theme, p.type).boxShadow};
+  border: ${p => getContainerTheme(p.theme, p.variant).border};
+  box-shadow: ${p => getContainerTheme(p.theme, p.variant).boxShadow};
 `;
 
-const ToastInnerContainer = styled('div')<{type: Indicator['type']}>`
+const ToastInnerContainer = styled('div')<{variant: ToastVariant}>`
   display: flex;
   align-items: stretch;
-  background: ${p => getContainerTheme(p.theme, p.type).background};
+  background: ${p => getContainerTheme(p.theme, p.variant).background};
 `;
 
 function getToastIconContainerTheme(
   theme: Theme,
-  type: Indicator['type']
+  variant: ToastVariant
 ): React.CSSProperties {
-  switch (type) {
+  switch (variant) {
     case 'success':
       return {
         background: theme.tokens.background.success.vibrant,
@@ -173,21 +171,21 @@ function getToastIconContainerTheme(
       };
   }
 }
-const ToastIconContainer = styled('div')<{type: Indicator['type']}>`
+const ToastIconContainer = styled('div')<{variant: ToastVariant}>`
   display: flex;
   align-items: center;
   justify-content: center;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   position: relative;
-  ${p => ({...getToastIconContainerTheme(p.theme, p.type)})};
+  ${p => ({...getToastIconContainerTheme(p.theme, p.variant)})};
 
   svg {
     width: 16px;
     height: 16px;
     color: ${p =>
-      p.type === 'success'
+      p.variant === 'success'
         ? p.theme.tokens.content.onVibrant.dark
-        : p.type === 'error'
+        : p.variant === 'error'
           ? p.theme.tokens.content.onVibrant.light
           : undefined} !important;
   }

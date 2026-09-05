@@ -14,6 +14,8 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
+import {toast} from '@sentry/scraps/toast';
+
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
@@ -214,7 +216,10 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(resetResizeObservers);
+afterEach(() => {
+  toast.dismiss();
+  resetResizeObservers();
+});
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -382,6 +387,8 @@ window.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
   disconnect() {}
 };
+
+HTMLElement.prototype.setPointerCapture ??= jest.fn();
 
 window.ResizeObserver = MockResizeObserver;
 

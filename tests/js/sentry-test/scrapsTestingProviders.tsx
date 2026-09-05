@@ -1,3 +1,4 @@
+import {ToastProvider} from '@sentry/scraps/toast';
 import {
   TranslationContextProvider,
   type TranslationContextValue,
@@ -16,7 +17,9 @@ export function ScrapsTestingProviders({children}: {children: React.ReactNode}) 
   return (
     <SentryFormErrorProvider>
       <TranslationContextProvider value={testTranslation}>
-        <SentryLinkBehaviorProvider>{children}</SentryLinkBehaviorProvider>
+        <SentryLinkBehaviorProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </SentryLinkBehaviorProvider>
       </TranslationContextProvider>
     </SentryFormErrorProvider>
   );

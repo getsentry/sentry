@@ -19,8 +19,6 @@ import {renderOnDomReady} from './renderOnDomReady';
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
 const COMPONENT_MAP = {
-  [SentryInitRenderReactComponent.INDICATORS]: () =>
-    import(/* webpackChunkName: "Indicators" */ 'sentry/components/indicators'),
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
   [SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT]: () =>

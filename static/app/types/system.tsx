@@ -6,7 +6,6 @@ import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
-  INDICATORS = 'Indicators',
   SETUP_WIZARD = 'SetupWizard',
   WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',

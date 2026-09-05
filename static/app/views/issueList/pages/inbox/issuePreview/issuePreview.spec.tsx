@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {
   ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
@@ -12,7 +11,6 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {clearIndicators} from 'sentry/actionCreators/indicator';
-import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 
@@ -381,13 +379,7 @@ describe('IssuePreview', () => {
       statusCode: 500,
     });
 
-    render(
-      <Fragment>
-        <IssuePreview groupId={group.id} />
-        <Indicators />
-      </Fragment>,
-      {organization}
-    );
+    render(<IssuePreview groupId={group.id} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
