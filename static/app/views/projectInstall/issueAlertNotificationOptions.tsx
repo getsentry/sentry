@@ -147,46 +147,49 @@ export type IssueAlertNotificationProps = {
   channel?: IntegrationChannel;
 };
 
-/**
- * Builds the serializable IntegrationAction for the current messaging
- * selection. Returns undefined if the provider is unrecognised or unset.
- */
-function buildIntegrationAction({
-  provider,
-  integration,
-  channel,
-}: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
-  | IntegrationAction
-  | undefined {
-  switch (provider) {
-    case 'slack':
-      return {
-        id: IssueAlertActionType.SLACK,
-        workspace: integration?.id,
-        channel: channel?.value,
-      };
-    case 'discord':
-      return {
-        id: IssueAlertActionType.DISCORD,
-        server: integration?.id,
-        channel_id: channel?.value,
-      };
-    case 'msteams':
-      return {
-        id: IssueAlertActionType.MS_TEAMS,
-        team: integration?.id,
-        channel: channel?.channelName ?? channel?.value,
-      };
-    default:
-      return undefined;
-  }
-}
-
 export type NotificationSelection = {
   channel: string;
   integrationId: string;
   provider: string;
 };
+
+/**
+ * Builds the serializable IntegrationAction for a messaging selection.
+ * Returns undefined if any required selection field is absent or the provider
+ * is not recognized.
+ */
+export function buildIntegrationAction({
+  provider,
+  integrationId,
+  channel,
+}: Partial<NotificationSelection>): IntegrationAction | undefined {
+  if (!provider || !integrationId || !channel) {
+    return undefined;
+  }
+
+  switch (provider) {
+    case 'slack':
+      return {
+        id: IssueAlertActionType.SLACK,
+        workspace: integrationId,
+        channel,
+      };
+    case 'discord':
+      return {
+        id: IssueAlertActionType.DISCORD,
+        server: integrationId,
+        channel_id: channel,
+      };
+    case 'msteams':
+      return {
+        id: IssueAlertActionType.MS_TEAMS,
+        team: integrationId,
+        channel,
+      };
+    default:
+      return undefined;
+  }
+}
 
 /**
  * Builds the raw {provider, integrationId, channel} snapshot of the current
@@ -330,7 +333,16 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
         return;
       }
 
-      const integrationAction = buildIntegrationAction({provider, integration, channel});
+      const integrationAction = buildIntegrationAction({
+        provider,
+        integrationId: integration?.id,
+        // MS Teams is resolved by channel name on the backend, while the
+        // picker keys it by id.
+        channel:
+          provider === 'msteams'
+            ? (channel?.channelName ?? channel?.value)
+            : channel?.value,
+      });
       if (!integrationAction) {
         return;
       }
