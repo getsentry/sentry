@@ -23,6 +23,7 @@ describe('DetectorSection', () => {
     isSidebarOpen: true,
     navScrollMargin: 0,
     eventCount: 0,
+    eventNavigationHeight: 0,
     dispatch: jest.fn(),
   };
 
