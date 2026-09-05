@@ -18,9 +18,11 @@ class CustomInboundFilterConditionType(StrEnum):
 
 
 class CustomInboundFilterDataType(StrEnum):
+    ALL = "all"
     ERROR = "error"
     LOG = "log"
     METRIC = "metric"
+    SPAN = "span"
 
 
 # The data type each condition reads a field of. A filter targets a single data type,
@@ -45,6 +47,12 @@ class CustomInboundFilter(DefaultFieldsModel):
     )
     name = models.CharField(max_length=256, null=True, blank=True)
     active = models.BooleanField(default=True, db_default=True)
+    data_type = models.CharField(
+        max_length=32,
+        choices=[(data_type, data_type) for data_type in CustomInboundFilterDataType],
+        default=CustomInboundFilterDataType.ERROR,
+        db_default=CustomInboundFilterDataType.ERROR.value,
+    )
     conditions = models.JSONField(default=list)
 
     class Meta:
