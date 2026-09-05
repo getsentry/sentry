@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import Cookies from 'js-cookie';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -8,6 +9,7 @@ import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import AuthLogin from './index';
 
@@ -44,6 +46,19 @@ describe('AuthLogin', () => {
     });
   }
 
+  function renderWithLoadingState() {
+    return render(
+      <BrandedAuthLoadingProvider>
+        {isLoading => (
+          <Fragment>
+            <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
+            <AuthLogin />
+          </Fragment>
+        )}
+      </BrandedAuthLoadingProvider>
+    );
+  }
+
   it('does not render the sign-in flow while auth config is loading', async () => {
     const authConfig = Promise.withResolvers<AuthConfig>();
     MockApiClient.addMockResponse({
@@ -51,8 +66,9 @@ describe('AuthLogin', () => {
       body: () => authConfig.promise,
     });
 
-    render(<AuthLogin />);
+    renderWithLoadingState();
 
+    expect(screen.getByText('Loading authentication')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
@@ -76,6 +92,7 @@ describe('AuthLogin', () => {
     expect(
       await screen.findByRole('heading', {name: 'Sign in to Sentry'})
     ).toBeInTheDocument();
+    expect(screen.getByText('Authentication ready')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'auth.login.rendered',
       {
@@ -94,7 +111,7 @@ describe('AuthLogin', () => {
       body: {detail: 'Config unavailable'},
     });
 
-    render(<AuthLogin />);
+    renderWithLoadingState();
 
     expect(
       await screen.findByText('Unable to load the login page. Try again.')
@@ -112,7 +129,7 @@ describe('AuthLogin', () => {
       body: {nextUri: '/organizations/acme/issues/'},
     });
 
-    render(<AuthLogin />);
+    renderWithLoadingState();
 
     await waitFor(() =>
       expect(testableWindowLocation.assign).toHaveBeenCalledWith(
@@ -122,6 +139,7 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
+    expect(screen.getByText('Loading authentication')).toBeInTheDocument();
   });
 
   it('focuses organization SSO when the authenticated user still requires it', async () => {
