@@ -4395,6 +4395,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for token-level remapping of compound Dart exception types.
+register(
+    "dart.compound-type-deobfuscation.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Selectively allow issue detectors to run (via the create-a-fake-transaction-event shim) during
 # segment processing. Enabled detectors should be specified by their corresponding `DetectorType`
 # value. To run all possible detectors, set the value to `["*"]`.
