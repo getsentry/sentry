@@ -115,5 +115,14 @@ toast.dismiss();
 
 ## Accessibility
 
-The toaster uses a polite live region to announce new notifications. Keep messages short and clear
-when they are read aloud. Provide an action label that describes what the button does.
+The toaster uses a polite live region to announce new notifications.
+
+### Developer responsibilities
+
+- Write short, clear messages that make sense when read aloud.
+- Do not use only an icon or color to communicate the result.
+- Give users enough time to read the message and use its action. Use `duration: Infinity` when the
+  toast must stay visible.
+- Avoid sending many toasts at the same time. Group repeated notifications when possible.
+- Give each action a clear label and show feedback after the action runs.
+- Use persistent inline feedback for critical information that users must review.
