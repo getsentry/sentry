@@ -218,6 +218,25 @@ describe('OrganizationStats', () => {
     );
   });
 
+  it('defaults to errors when dataCategory does not support external stats', async () => {
+    // Categories like monitorSeats have showExternalStats=false and are absent from
+    // CHART_OPTIONS_DATACATEGORY. Passing them via the URL should fall back to errors
+    // rather than crashing the chart with "Selected item is not supported".
+    render(<OrganizationStats />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/stats/',
+          query: {dataCategory: DATA_CATEGORY_INFO.monitor_seat.plural},
+        },
+      },
+    });
+
+    // Should render without throwing and default to the Errors category
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
+    expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
+  });
+
   it('does not leak query params onto next page links', async () => {
     render(<OrganizationStats />, {
       organization,
