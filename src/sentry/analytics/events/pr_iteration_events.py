@@ -19,6 +19,9 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     referrer: str | None
     iteration_index: int
 
+    # Why the drain that claimed this iteration ran, written at claim time.
+    trigger_source: str | None
+
     # Queue counts, written by the drain.
     feedback_count: int
     queued_count: int
