@@ -1917,8 +1917,29 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+
+    def test_regenerate_missing_service_hook_for_installation(self) -> None:
+        other_install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            ServiceHook.objects.get(installation_id=self.install.id).delete()
+            assert ServiceHook.objects.filter(installation_id=other_install.id).exists()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            assert hook.url == self.sentry_app.webhook_url
+            assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+            assert ServiceHook.objects.filter(installation_id=other_install.id).count() == 1
 
     def test_regenerate_service_hook_for_installation_event_not_in_app_events(self) -> None:
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
@@ -1949,7 +1970,7 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events == []
 
 
