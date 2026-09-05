@@ -21,8 +21,11 @@ from sentry.utils.snuba import (
     ROUND_UP,
     RateLimitExceeded,
     RetrySkipTimeout,
+    SnubaError,
     SnubaQueryParams,
     SnubaRequest,
+    SnubaServiceUnavailable,
+    UnexpectedResponseError,
     UnqualifiedQueryError,
     _bulk_snuba_query,
     _prepare_query_params,
@@ -756,6 +759,93 @@ class SnubaQueryRateLimitTest(TestCase):
             _bulk_snuba_query([make_request("ok"), make_request("rate_limited")])
 
         assert mock.call("allocation_policy.is_successful", True) not in mock_set_tag.call_args_list
+
+
+class SnubaUnparseableErrorResponseTest(TestCase):
+    """Classification of non-200 responses whose body is not JSON.
+
+    Snuba sits behind a proxy that answers with plain text when no backend is reachable. Those
+    responses must be distinguishable from Snuba itself returning something malformed, so
+    callers can map them to a retryable 503.
+    """
+
+    def setUp(self) -> None:
+        request = Request(
+            dataset="events",
+            app_id="test",
+            query=Query(
+                match=Entity("events"),
+                select=[Function("count", parameters=[], alias="count")],
+                where=[Condition(Column("project_id"), Op.EQ, self.project.id)],
+            ),
+        )
+        self.snuba_request = SnubaRequest(
+            request=request,
+            referrer="test_referrer",
+            forward=lambda x: x,
+            reverse=lambda x: x,
+        )
+
+    def run_query(self, mock_snuba_query, status: int, body: bytes) -> None:
+        mock_response = mock.Mock(spec=HTTPResponse)
+        mock_response.status = status
+        mock_response.data = body
+        mock_snuba_query.return_value = ("test_referrer", mock_response, lambda x: x, lambda x: x)
+        _bulk_snuba_query([self.snuba_request])
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_unhealthy_upstream_raises_service_unavailable(self, mock_snuba_query) -> None:
+        with pytest.raises(SnubaServiceUnavailable) as exc_info:
+            self.run_query(mock_snuba_query, 503, b"no healthy upstream")
+
+        assert str(exc_info.value) == "Snuba returned HTTP 503: no healthy upstream"
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_bad_gateway_raises_service_unavailable(self, mock_snuba_query) -> None:
+        with pytest.raises(SnubaServiceUnavailable):
+            self.run_query(mock_snuba_query, 502, b"<html><body>502 Bad Gateway</body></html>")
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_multiline_body_is_summarized_to_first_line(self, mock_snuba_query) -> None:
+        with pytest.raises(SnubaServiceUnavailable) as exc_info:
+            self.run_query(mock_snuba_query, 503, b"<html>\r\n<head><title>503</title></head>\r\n")
+
+        assert str(exc_info.value) == "Snuba returned HTTP 503: <html>"
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_long_body_is_truncated(self, mock_snuba_query) -> None:
+        with pytest.raises(SnubaServiceUnavailable) as exc_info:
+            self.run_query(mock_snuba_query, 503, b"x" * 500)
+
+        assert str(exc_info.value) == "Snuba returned HTTP 503: " + "x" * 128
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_non_5xx_stays_a_plain_snuba_error(self, mock_snuba_query) -> None:
+        """A 4xx with an unparseable body is not an availability failure."""
+        with pytest.raises(SnubaError) as exc_info:
+            self.run_query(mock_snuba_query, 400, b"totally not json")
+
+        assert not isinstance(exc_info.value, SnubaServiceUnavailable)
+        assert str(exc_info.value) == "Snuba returned HTTP 400: totally not json"
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_non_utf8_body_still_classifies(self, mock_snuba_query) -> None:
+        """Building the message must not raise on a body that isn't valid UTF-8."""
+        with pytest.raises(SnubaServiceUnavailable):
+            self.run_query(mock_snuba_query, 503, b"\xff\xfe\x00invalid")
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_empty_body(self, mock_snuba_query) -> None:
+        with pytest.raises(SnubaServiceUnavailable) as exc_info:
+            self.run_query(mock_snuba_query, 503, b"")
+
+        assert str(exc_info.value) == "Snuba returned HTTP 503: <empty body>"
+
+    @mock.patch("sentry.utils.snuba._snuba_query")
+    def test_unparseable_200_still_raises_unexpected_response(self, mock_snuba_query) -> None:
+        """A 200 we cannot parse is a real bug, not an outage, and keeps its own class."""
+        with pytest.raises(UnexpectedResponseError):
+            self.run_query(mock_snuba_query, 200, b"not json")
 
 
 class SnubaResponseCompressionTest(unittest.TestCase):

@@ -8,6 +8,8 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, Throttled, ValidationError
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
+from urllib3 import HTTPConnectionPool
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
@@ -36,6 +38,7 @@ from sentry.utils.snuba import (
     QueryTooManySimultaneous,
     SchemaValidationError,
     SnubaError,
+    SnubaServiceUnavailable,
     UnqualifiedQueryError,
 )
 from sentry.utils.snuba_rpc import SnubaRPCTooManySimultaneous
@@ -253,6 +256,32 @@ class HandleQueryErrorsTest(APITestCase):
                 raise SnubaRPCTooManySimultaneous(error_proto)
         except Exception as e:
             assert isinstance(e, Throttled)
+
+    def test_handle_snuba_service_unavailable(self) -> None:
+        """An unhealthy Snuba upstream should return 503, not 500."""
+        with pytest.raises(APIException) as exc_info:
+            with handle_query_errors():
+                raise SnubaServiceUnavailable("Snuba returned HTTP 503: no healthy upstream")
+
+        assert exc_info.value.status_code == 503
+
+    def test_handle_snuba_read_timeout_is_still_a_gateway_timeout(self) -> None:
+        """A SnubaError wrapping a urllib3 timeout stays a 504."""
+        with pytest.raises(APIException) as exc_info:
+            with handle_query_errors():
+                raise SnubaError(
+                    ReadTimeoutError(HTTPConnectionPool("snuba"), "/query", "read timed out")
+                )
+
+        assert exc_info.value.status_code == 504
+
+    def test_handle_bare_snuba_error_is_still_a_server_error(self) -> None:
+        """A SnubaError we cannot classify stays a 500 - only 5xx upstreams become 503."""
+        with pytest.raises(APIException) as exc_info:
+            with handle_query_errors():
+                raise SnubaError("Snuba returned HTTP 400: something we don't model")
+
+        assert exc_info.value.status_code == 500
 
 
 class ClampDateRangeTest(unittest.TestCase):

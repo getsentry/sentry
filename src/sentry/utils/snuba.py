@@ -374,6 +374,15 @@ class UnexpectedResponseError(SnubaError):
     """
 
 
+class SnubaServiceUnavailable(SnubaError):
+    """
+    Exception raised when Snuba (or the proxy in front of it) was unreachable or
+    unhealthy, meaning the query never ran. Deliberately not a QueryExecutionError:
+    nothing was executed, so the caller should surface this as a retryable 503
+    rather than a query failure.
+    """
+
+
 class QueryExecutionError(SnubaError):
     """
     Exception raised when a query failed to execute.
@@ -1306,7 +1315,14 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                         "snuba.query.invalid-json",
                         extra={"response.data": response.data},
                     )
-                    raise SnubaError("Failed to parse snuba error response")
+                    error_body = response.data.decode("utf-8", errors="replace")
+                    # First line only, so that grouping stays stable across bodies that embed
+                    # per-request detail on later lines.
+                    summary = error_body.splitlines()[0][:128] if error_body else "<empty body>"
+                    message = f"Snuba returned HTTP {response.status}: {summary}"
+                    if response.status in (502, 503, 504):
+                        raise SnubaServiceUnavailable(message)
+                    raise SnubaError(message)
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
             allocation_policy_prefix = "allocation_policy."

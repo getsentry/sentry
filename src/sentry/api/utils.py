@@ -15,7 +15,7 @@ from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
-from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
+from rest_framework.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
@@ -40,6 +40,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.search.events.constants import (
     RATE_LIMIT_ERROR_MESSAGE,
+    SNUBA_UNAVAILABLE_ERROR_MESSAGE,
     TIMEOUT_ERROR_MESSAGE,
     TIMEOUT_RPC_ERROR_MESSAGE,
 )
@@ -64,6 +65,7 @@ from sentry.utils.snuba import (
     RateLimitExceeded,
     SchemaValidationError,
     SnubaError,
+    SnubaServiceUnavailable,
     UnqualifiedQueryError,
 )
 from sentry.utils.snuba_rpc import (
@@ -80,6 +82,10 @@ MAX_STATS_PERIOD = timedelta(days=90)
 
 class TimeoutException(APIException):
     status_code = HTTP_504_GATEWAY_TIMEOUT
+
+
+class ServiceUnavailable(APIException):
+    status_code = HTTP_503_SERVICE_UNAVAILABLE
 
 
 def get_datetime_from_stats_period(
@@ -444,6 +450,13 @@ def handle_query_errors() -> Generator[None]:
             sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
             sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
+        if isinstance(error, SnubaServiceUnavailable):
+            sentry_sdk.set_tag("query.error_reason", "ServiceUnavailable")
+            sentry_sdk.set_attribute("query.error_reason", "ServiceUnavailable")
+            # An unreachable upstream is expected transient noise, so report it at warning
+            # level rather than as an error.
+            sentry_sdk.capture_message(str(error), level="warning")
+            raise ServiceUnavailable(detail=SNUBA_UNAVAILABLE_ERROR_MESSAGE)
         if isinstance(
             error,
             (
