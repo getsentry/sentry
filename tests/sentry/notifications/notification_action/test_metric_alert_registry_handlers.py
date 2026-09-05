@@ -315,6 +315,48 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             )
             self.handler.invoke_legacy_registry(invocation)
 
+    def test_metric_issue_context_allows_missing_metric_value(self) -> None:
+        evidence_data = MetricIssueEvidenceData(**{**asdict(self.evidence_data), "value": None})
+
+        context = MetricIssueContext.from_group_event(
+            self.group,
+            evidence_data,
+            DetectorPriorityLevel.HIGH,
+        )
+
+        assert context.metric_value is None
+
+    def test_metric_issue_context_uses_detector_data_source_when_subscription_is_missing(
+        self,
+    ) -> None:
+        # Simulate an alert's query being edited: the detector's data source now
+        # points at a new subscription, while stored evidence still references
+        # the old one, which has since been deleted.
+        new_snuba_query = self.create_snuba_query()
+        new_subscription = self.create_snuba_query_subscription(snuba_query_id=new_snuba_query.id)
+        self.data_source.update(source_id=str(new_subscription.id))
+        self.subscription.delete()
+
+        context = MetricIssueContext.from_group_event(
+            self.group,
+            self.evidence_data,
+            DetectorPriorityLevel.HIGH,
+        )
+
+        assert context.subscription is None
+        assert context.snuba_query == new_snuba_query
+
+    def test_metric_issue_context_raises_when_no_subscription_or_data_source(self) -> None:
+        self.subscription.delete()
+        self.data_source.delete()
+
+        with pytest.raises(ValueError, match="No query subscription found"):
+            MetricIssueContext.from_group_event(
+                self.group,
+                self.evidence_data,
+                DetectorPriorityLevel.HIGH,
+            )
+
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical
         group, _, group_event = self.create_group_event(

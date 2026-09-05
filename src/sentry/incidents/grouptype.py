@@ -67,7 +67,7 @@ class StoredAnomalyDetectionResult(TypedDict):
     timestamp: str
 
 
-StoredMetricResult = float | StoredAnomalyDetectionResult
+StoredMetricResult = float | StoredAnomalyDetectionResult | None
 
 
 @dataclass

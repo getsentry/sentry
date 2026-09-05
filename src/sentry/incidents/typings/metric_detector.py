@@ -231,9 +231,32 @@ class MetricIssueContext:
             return IncidentStatus.CRITICAL
 
     @classmethod
-    def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription:
-        subscription = QuerySubscription.objects.get(id=int(evidence_data.data_packet_source_id))
-        return subscription
+    def _get_subscription(cls, evidence_data: MetricIssueEvidenceData) -> QuerySubscription | None:
+        try:
+            return QuerySubscription.objects.get(id=int(evidence_data.data_packet_source_id))
+        except QuerySubscription.DoesNotExist:
+            return None
+
+    @classmethod
+    def _get_snuba_query_from_detector(cls, detector_id: int) -> SnubaQuery | None:
+        """
+        Falls back to the detector's current data source when the subscription
+        referenced by stored evidence has since been deleted (e.g. the alert's
+        query was edited, replacing the underlying QuerySubscription).
+        """
+        try:
+            detector = Detector.objects.get(id=detector_id)
+        except Detector.DoesNotExist:
+            return None
+
+        data_source = detector.data_sources.first()
+        if data_source is None:
+            return None
+
+        try:
+            return QuerySubscription.objects.get(id=int(data_source.source_id)).snuba_query
+        except (QuerySubscription.DoesNotExist, ValueError):
+            return None
 
     @classmethod
     def from_group_event(
@@ -247,11 +270,19 @@ class MetricIssueContext:
             raise ValueError("No open periods found for group")
 
         subscription = cls._get_subscription(evidence_data)
-        snuba_query = subscription.snuba_query
+        if subscription is not None:
+            snuba_query = subscription.snuba_query
+        else:
+            detector_snuba_query = cls._get_snuba_query_from_detector(evidence_data.detector_id)
+            if detector_snuba_query is None:
+                raise ValueError("No query subscription found for metric issue")
+            snuba_query = detector_snuba_query
         if isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
-        else:
+        elif isinstance(evidence_data.value, dict):
             metric_value = evidence_data.value["value"]
+        else:
+            metric_value = None
 
         return cls(
             id=group.id,
