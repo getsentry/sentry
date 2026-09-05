@@ -17,8 +17,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams
+from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
-    DATA_TYPE_BY_CONDITION_TYPE,
     CustomInboundFilter,
     CustomInboundFilterConditionType,
     CustomInboundFilterDataType,
@@ -31,7 +31,6 @@ MAX_FILTERS_PER_PROJECT = 50
 
 
 # Ingestion feature an organization needs before a filter can target a data type.
-# Errors need none.
 _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, str] = {
     CustomInboundFilterDataType.LOG: "organizations:ourlogs-ingestion",
     CustomInboundFilterDataType.METRIC: "organizations:tracemetrics-ingestion",
@@ -59,6 +58,15 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
     )
     active = serializers.BooleanField(required=False)
+    dataType = serializers.ChoiceField(
+        source="data_type",
+        choices=[data_type.value for data_type in CustomInboundFilterDataType],
+        help_text=(
+            "The data the filter matches against. `all` is the catch-all: it filters every "
+            "data type Sentry ingests, including ones added later, and accepts only the "
+            "conditions that every data type carries a field for."
+        ),
+    )
     conditions = CustomInboundFilterConditionSerializer(
         many=True,
         allow_empty=False,
@@ -75,37 +83,54 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
 
     class Meta:
         model = CustomInboundFilter
-        fields = ["id", "name", "active", "conditions", "dateCreated", "dateUpdated"]
+        fields = ["id", "name", "active", "dataType", "conditions", "dateCreated", "dateUpdated"]
 
     def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
         return CustomInboundFilter.objects.create(**validated_data)
 
-    def validate_conditions(self, conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def validate_dataType(self, data_type: str) -> str:
         organization = self.context["project"].organization
         request = self.context["request"]
-        condition_types = {condition["type"] for condition in conditions}
 
-        data_types = {
-            DATA_TYPE_BY_CONDITION_TYPE[condition_type]
-            for condition_type in condition_types
-            if condition_type in DATA_TYPE_BY_CONDITION_TYPE
-        }
-        if len(data_types) > 1:
+        required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(
+            CustomInboundFilterDataType(data_type)
+        )
+        if required_feature and not features.has(
+            required_feature, organization, actor=request.user
+        ):
             raise serializers.ValidationError(
-                "A filter matches one data type, so error, log, and metric conditions "
-                "cannot be combined."
+                f"{data_type.capitalize()} filters are not enabled for this organization."
             )
 
-        for data_type in data_types:
-            required_feature = _REQUIRED_FEATURE_BY_DATA_TYPE.get(data_type)
-            if required_feature and not features.has(
-                required_feature, organization, actor=request.user
-            ):
-                raise serializers.ValidationError(
-                    f"{data_type.capitalize()} filters are not enabled for this organization."
-                )
+        return data_type
 
-        return conditions
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        # A partial update may change the data type or the conditions alone, so the
+        # other side comes from the stored filter.
+        stored = self.instance
+        conditions = attrs.get("conditions")
+        if conditions is None:
+            conditions = stored.conditions if stored else None
+
+        raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
+        if conditions is None or raw_data_type is None:
+            return attrs
+
+        data_type = CustomInboundFilterDataType(raw_data_type)
+        supported = get_supported_condition_types(data_type)
+        unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
+        if unsupported:
+            raise serializers.ValidationError(
+                {
+                    "conditions": (
+                        f"A filter on {data_type.value} data cannot use the "
+                        f"{', '.join(unsupported)} condition. It accepts "
+                        f"{', '.join(supported)}."
+                    )
+                }
+            )
+
+        return attrs
 
 
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
@@ -132,6 +157,7 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
             "filter_id": str(custom_filter.id),
             "filter_name": custom_filter.name,
             "active": custom_filter.active,
+            "data_type": custom_filter.data_type,
             "conditions": custom_filter.conditions,
             "operation": operation,
         }
@@ -304,7 +330,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response(serializer.errors, status=400)
 
         changes: dict[str, Any] = {}
-        for field in ("name", "active", "conditions"):
+        for field in ("name", "active", "data_type", "conditions"):
             if field not in serializer.validated_data:
                 continue
 
@@ -323,7 +349,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 event=audit_log.get_event_id("CUSTOM_INBOUND_FILTER"),
                 data=self.get_audit_log_data(project, custom_filter, "edit", changes),
             )
-            if changes.keys() & {"active", "conditions"}:
+            if changes.keys() & {"active", "data_type", "conditions"}:
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="custom_inbound_filters"
                 )
