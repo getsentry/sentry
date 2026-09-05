@@ -19,7 +19,10 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, run_group_events_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.serializers.models.event import SimpleEventSerializerResponse
+from sentry.api.serializers.models.event import (
+    FULL_PAYLOAD_MAX_PER_PAGE,
+    SimpleEventSerializerResponse,
+)
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -56,9 +59,6 @@ class NoResults(Exception):
 
 class GroupEventsError(Exception):
     pass
-
-
-FULL_PAYLOAD_MAX_PER_PAGE = 10
 
 
 @extend_schema(tags=["Events"])
