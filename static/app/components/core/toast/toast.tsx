@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -24,11 +23,7 @@ export function Toast({message, variant, action, onDismiss}: ToastProps) {
   const {t} = useTranslation();
 
   return (
-    <ToastContainer
-      data-test-id={variant === 'default' ? 'toast' : `toast-${variant}`}
-      className={classNames('ref-toast', `ref-${variant}`)}
-      variant={variant}
-    >
+    <ToastContainer role={variant === 'error' ? 'alert' : 'status'} variant={variant}>
       <ToastIcon variant={variant} />
       <Container padding="lg">
         <TextOverflow>{message}</TextOverflow>

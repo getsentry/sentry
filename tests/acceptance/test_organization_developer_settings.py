@@ -92,7 +92,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Save Changes"]')
 
-        self.browser.wait_until(".ref-success")
+        self.browser.wait_until('[role="status"]')
 
         self.browser.wait_until('[data-test-id="tesla-app"]')
 
@@ -113,7 +113,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.browser.click('[aria-label="Revoke"]')
         self.browser.click('[data-test-id="confirm-button"]')
-        self.browser.wait_until(".ref-success")
+        self.browser.wait_until('[role="status"]')
 
         assert self.browser.find_element(
             by=By.XPATH,
@@ -129,6 +129,6 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         assert self.browser.element_exists('[aria-label="Generated token"]') is False
 
         self.browser.click('[data-test-id="token-add"]')
-        self.browser.wait_until(".ref-success")
+        self.browser.wait_until('[role="status"]')
 
         assert len(self.browser.elements('[aria-label="Generated token"]')) == 1

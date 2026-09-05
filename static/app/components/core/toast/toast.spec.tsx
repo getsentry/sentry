@@ -5,41 +5,32 @@ import {
   userEvent,
   waitFor,
   waitForElementToBeRemoved,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
 
 describe('Toast', () => {
   it.each([
-    ['success', 'toast-success', () => toast.success('Success')],
-    ['error', 'toast-error', () => toast.error('Error')],
-    ['loading', 'toast-loading', () => toast.loading('Loading')],
-    ['default', 'toast', () => toast.message('Message')],
-  ] as const)('renders the %s variant', async (_variant, testId, showToast) => {
+    ['success', 'status', 'Success', () => toast.success('Success')],
+    ['error', 'alert', 'Error', () => toast.error('Error')],
+    ['loading', 'status', 'Loading', () => toast.loading('Loading')],
+    ['default', 'status', 'Message', () => toast.message('Message')],
+  ] as const)('renders the %s variant', async (_variant, role, message, showToast) => {
     render(<div />);
 
     act(() => void showToast());
 
-    const toastElement = await screen.findByTestId(testId);
-    expect(toastElement).toHaveTextContent(/Success|Error|Loading|Message/);
-
-    if (testId === 'toast-loading') {
-      expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    } else if (testId === 'toast-success' || testId === 'toast-error') {
-      expect(toastElement.querySelector('svg')).toBeInTheDocument();
-      expect(within(toastElement).queryByRole('img')).not.toBeInTheDocument();
-    }
+    expect(await screen.findByRole(role)).toHaveTextContent(message);
   });
 
   it('does not dismiss when the toast body is clicked', async () => {
     render(<div />);
     act(() => void toast.message('Dismiss me', {duration: Infinity}));
 
-    const toastElement = await screen.findByTestId('toast');
+    const toastElement = await screen.findByRole('status');
     await userEvent.click(toastElement);
 
-    expect(screen.getByTestId('toast')).toBeInTheDocument();
+    expect(toastElement).toBeInTheDocument();
   });
 
   it('dismisses when the close button is clicked', async () => {
@@ -48,17 +39,17 @@ describe('Toast', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Dismiss'}));
 
-    await waitForElementToBeRemoved(() => screen.queryByTestId('toast'));
+    await waitForElementToBeRemoved(() => screen.queryByRole('status'));
   });
 
   it('does not dismiss when dismissible is false', async () => {
     render(<div />);
     act(() => void toast.message('Keep me', {duration: Infinity, dismissible: false}));
 
-    const toastElement = await screen.findByTestId('toast');
+    const toastElement = await screen.findByRole('status');
     await userEvent.click(toastElement);
 
-    expect(screen.getByTestId('toast')).toBeInTheDocument();
+    expect(toastElement).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
   });
 
@@ -89,12 +80,12 @@ describe('Toast', () => {
     try {
       render(<div />);
       act(() => void toast.message('Temporary', {duration: 1000}));
-      expect(await screen.findByTestId('toast')).toHaveTextContent('Temporary');
+      expect(await screen.findByRole('status')).toHaveTextContent('Temporary');
 
       act(() => jest.advanceTimersByTime(1000));
       act(() => jest.runAllTimers());
 
-      expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
     } finally {
       jest.useRealTimers();
     }
@@ -111,7 +102,7 @@ describe('Toast', () => {
     expect(await screen.findByText('First error')).toBeInTheDocument();
     expect(screen.getByText('Second error')).toBeInTheDocument();
     expect(screen.getByText('Third error')).toBeInTheDocument();
-    expect(screen.getAllByTestId('toast-error')).toHaveLength(3);
+    expect(screen.getAllByRole('alert')).toHaveLength(3);
   });
 
   it('dismisses toasts when the variant changes', async () => {
