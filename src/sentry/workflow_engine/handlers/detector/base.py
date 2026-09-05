@@ -86,7 +86,7 @@ class GroupedDetectorEvaluationResult:
     tainted: bool
 
 
-class DetectorHandler(abc.ABC, Generic[DataPacketType]):
+class BaseDetectorHandler(abc.ABC, Generic[DataPacketType]):
     """
     Abstract base class defining the public interface for detector handlers.
     """
@@ -101,8 +101,8 @@ class DetectorHandler(abc.ABC, Generic[DataPacketType]):
         pass
 
 
-class BaseDetectorHandler(
-    DetectorHandler[DataPacketType],
+class DetectorHandler(
+    BaseDetectorHandler[DataPacketType],
     Generic[DataPacketType, DataPacketEvaluationType],
 ):
     """
