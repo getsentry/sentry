@@ -288,6 +288,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert orderby == [
             constants.TIMESTAMP_ALIAS,
             constants.TIMESTAMP_PRECISE_ALIAS,
+            constants.TIMESTAMP_SEQUENCE_ALIAS,
         ]
 
     def test_timestamp_precise_alias_and_orderby_desc(self) -> None:
@@ -327,6 +328,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert orderby == [
             f"-{constants.TIMESTAMP_ALIAS}",
             f"-{constants.TIMESTAMP_PRECISE_ALIAS}",
+            f"-{constants.TIMESTAMP_SEQUENCE_ALIAS}",
         ]
 
     def test_replay_id_simple(self) -> None:

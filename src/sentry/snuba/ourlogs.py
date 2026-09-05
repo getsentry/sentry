@@ -62,6 +62,10 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 orderby.append(direction + "id")
                 if "id" not in selected_columns:
                     selected_columns.append("id")
+            else:
+                orderby.append(direction + constants.TIMESTAMP_SEQUENCE_ALIAS)
+                if constants.TIMESTAMP_SEQUENCE_ALIAS not in selected_columns:
+                    selected_columns.append(constants.TIMESTAMP_SEQUENCE_ALIAS)
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(
