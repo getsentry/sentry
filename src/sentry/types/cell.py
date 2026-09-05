@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urljoin
 
@@ -22,11 +21,6 @@ if TYPE_CHECKING:
     from sentry.sentry_apps.models.sentry_app import SentryApp
 
 
-class RegionCategory(Enum):
-    MULTI_TENANT = "MULTI_TENANT"
-    SINGLE_TENANT = "SINGLE_TENANT"
-
-
 @dataclass(frozen=True, eq=True)
 class Locality:
     """A grouping of one or more cells (e.g. "us" contains "us1", "us2")."""
@@ -45,9 +39,6 @@ class Locality:
 
     signup_visible: bool = True
     """Whether or not a locality should be visible for org signup/relocation."""
-
-    category: RegionCategory = RegionCategory.MULTI_TENANT
-    """Deprecated. Visibility is defined via `visible` and `signup_visible`."""
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this locality.

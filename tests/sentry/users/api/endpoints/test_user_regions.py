@@ -4,7 +4,7 @@ from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, Locality, RegionCategory
+from sentry.types.cell import Cell, Locality
 
 us = Cell("us", 1, "https://us.testserver")
 de = Cell("de", 2, "https://de.testserver")
@@ -17,7 +17,6 @@ de_locality = Locality(name="de", cells=frozenset(["de"]), new_org_cell="de")
 st_locality = Locality(
     name="acme",
     cells=frozenset(["acme"]),
-    category=RegionCategory.SINGLE_TENANT,
     new_org_cell="acme",
 )
 
