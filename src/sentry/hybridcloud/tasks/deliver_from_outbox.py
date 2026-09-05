@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Mapping
 from typing import Any
@@ -9,18 +10,22 @@ from django.conf import settings
 from django.db.models import Max, Min
 from taskbroker_client.task import Task
 
+from sentry import options
 from sentry.hybridcloud.models.outbox import (
     CellOutboxBase,
     ControlOutboxBase,
     OutboxBase,
     OutboxFlushError,
 )
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.tasks.backfill_outboxes import backfill_outboxes_for
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks, hybridcloud_tasks
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -92,6 +97,14 @@ def schedule_batch(
         raise
 
 
+def _category_name(category: int) -> str:
+    try:
+        return OutboxCategory(category).name
+    except ValueError:
+        logger.warning("deliver_from_outbox.unknown_category", extra={"category": category})
+        return f"UNKNOWN_{category}"
+
+
 def schedule_outbox_model(
     *,
     silo_mode: SiloMode,
@@ -128,7 +141,7 @@ def schedule_outbox_model(
             **task_kwargs,
         )
 
-    deepest_shards = outbox_model.get_shard_depths_descending(limit=1)
+    deepest_shards = outbox_model.get_shard_depths_descending(limit=5)
     max_shard_depth = float(deepest_shards[0]["depth"]) if deepest_shards else 0.0
     metrics.gauge(
         "deliver_from_outbox.maximum_shard_depth",
@@ -137,6 +150,9 @@ def schedule_outbox_model(
         sample_rate=1.0,
     )
 
+    if options.get("hybridcloud.outbox.deep_shard_logging.enabled"):
+        _log_deep_shards(outbox_model, deepest_shards, metrics_tags)
+
     outbox_count = outbox_model.get_total_outbox_count()
     metrics.gauge(
         "deliver_from_outbox.total_outbox_count",
@@ -144,7 +160,49 @@ def schedule_outbox_model(
         tags=metrics_tags,
         sample_rate=1.0,
     )
+
+    if options.get("hybridcloud.outbox.category_depth_metric.enabled"):
+        _record_category_depths(silo_mode, outbox_model)
     return scheduled_count
+
+
+def _log_deep_shards(
+    outbox_model: type[OutboxBase],
+    deepest_shards: list[dict[str, int | str]],
+    metrics_tags: Mapping[str, str],
+) -> None:
+    # The maximum_shard_depth metric alone doesn't identify which shard is
+    # backed up, so log the sharding columns of any shard over the threshold.
+    threshold = options.get("hybridcloud.outbox.deep_shard_logging.threshold")
+    for shard in deepest_shards:
+        if int(shard["depth"]) < threshold:
+            break
+        shard_key = {column: shard[column] for column in outbox_model.sharding_columns}
+        category_breakdown = outbox_model.get_shard_category_breakdown(shard_key)
+        top_category = category_breakdown[0]["category"] if category_breakdown else None
+        logger.warning(
+            "deliver_from_outbox.deep_shard",
+            extra={
+                **metrics_tags,
+                **shard,
+                "category": (_category_name(top_category) if top_category is not None else None),
+            },
+        )
+
+
+def _record_category_depths(silo_mode: SiloMode, outbox_model: type[OutboxBase]) -> None:
+    category_depths = outbox_model.get_category_depths()
+    for category, depth in category_depths.items():
+        metrics.gauge(
+            "deliver_from_outbox.category_shard_depth",
+            value=depth,
+            tags={
+                "silo": silo_mode.value.lower(),
+                "type": outbox_model.__name__,
+                "category": _category_name(category),
+            },
+            sample_rate=1.0,
+        )
 
 
 @instrumented_task(

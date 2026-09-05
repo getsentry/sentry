@@ -2673,6 +2673,26 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Kill switches for the extra per-tick outbox observability queries run by the
+# outbox scheduler. Both add full or per-shard aggregates over the outbox
+# tables, so they can be turned off if they become expensive during a backlog.
+register(
+    "hybridcloud.outbox.category_depth_metric.enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.outbox.deep_shard_logging.enabled",
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Shards with at least this many queued rows are logged with their sharding
+# columns and dominant category by the scheduler.
+register(
+    "hybridcloud.outbox.deep_shard_logging.threshold",
+    default=10_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
