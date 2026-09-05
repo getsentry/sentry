@@ -14,8 +14,6 @@ import {ConfigFixture} from 'sentry-fixture/config';
 import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
-import {toast} from '@sentry/scraps/toast';
-
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import {closeModal} from 'sentry/actionCreators/modal';
@@ -217,6 +215,8 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 // Close any open modals before each test
 beforeEach(closeModal);
 afterEach(() => {
+  const {toast} =
+    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
   toast.dismiss();
   resetResizeObservers();
 });

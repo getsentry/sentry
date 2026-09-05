@@ -91,7 +91,7 @@ describe('FoldSection', () => {
         }
       );
 
-      expect(screen.getByRole('region')).toHaveAccessibleName('Accessible Title');
+      expect(screen.getByRole('region', {name: 'Accessible Title'})).toBeInTheDocument();
       expect(screen.getByRole('button')).toHaveAccessibleName(
         'Collapse Accessible Title Section'
       );
