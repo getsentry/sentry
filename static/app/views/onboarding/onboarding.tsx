@@ -111,8 +111,8 @@ function ScmPlatformFeaturesAdapter({
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    createdProjectSlug,
-    setCreatedProjectSlug,
+    createdProject,
+    setCreatedProject,
   } = useOnboardingContext();
 
   return (
@@ -120,11 +120,11 @@ function ScmPlatformFeaturesAdapter({
       selectedRepository={selectedRepository}
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
-      createdProjectSlug={createdProjectSlug}
+      createdProject={createdProject}
       deferProjectCreation={deferProjectCreation}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onProjectCreated={setCreatedProjectSlug}
+      onCreatedProjectChange={setCreatedProject}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
@@ -141,12 +141,12 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
 
 function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
   const {
-    createdProjectSlug,
+    createdProject,
     messagingSetup,
     selectedFeatures,
     selectedPlatform,
     selectedRepository,
-    setCreatedProjectSlug,
+    setCreatedProject,
     setMessagingSetup,
   } = useOnboardingContext();
 
@@ -159,10 +159,10 @@ function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
 
   return (
     <ScmMessaging
-      createdProjectSlug={createdProjectSlug}
+      createdProject={createdProject}
       messagingSetup={messagingSetup}
+      onCreatedProjectChange={setCreatedProject}
       onMessagingSetupChange={setMessagingSetup}
-      onProjectCreated={setCreatedProjectSlug}
       onComplete={onComplete}
       selectedFeatures={selectedFeatures}
       selectedPlatform={selectedPlatform}
@@ -301,7 +301,7 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
-    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
+    onboardingContext.createdProject?.slug ?? onboardingContext.selectedPlatform?.key;
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would

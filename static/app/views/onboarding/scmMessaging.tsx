@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -11,6 +11,7 @@ import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedD
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 import {ScmMessagingProviderRow} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {
+  CreatedProject,
   ScmMessagingActiveRow,
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
@@ -47,10 +48,10 @@ export const SCM_MESSAGING_TITLE = t('Get alerts where your team works');
 type MessagingProviderList = ReturnType<typeof useScmMessagingProviders>['providers'];
 
 interface ScmMessagingProps {
-  createdProjectSlug: string | undefined;
+  createdProject: CreatedProject | undefined;
   messagingSetup: ScmMessagingSetup;
+  onCreatedProjectChange: (createdProject: CreatedProject) => void;
   onMessagingSetupChange: (messagingSetup: ScmMessagingSetup) => void;
-  onProjectCreated: (slug: string) => void;
   selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK;
   selectedRepository: Repository | undefined;
@@ -59,19 +60,19 @@ interface ScmMessagingProps {
 }
 
 export function ScmMessaging({
-  createdProjectSlug,
+  createdProject,
   genBackButton,
   messagingSetup,
+  onCreatedProjectChange,
   onMessagingSetupChange,
-  onProjectCreated,
   onComplete,
   selectedFeatures,
   selectedPlatform,
   selectedRepository,
 }: ScmMessagingProps) {
   const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
-    createdProjectSlug,
-    onProjectCreated,
+    createdProject,
+    onCreatedProjectChange,
     selectedRepository,
   });
   const [submissionMode, setSubmissionMode] = useState<'continue' | 'setup-later'>();
@@ -93,21 +94,30 @@ export function ScmMessaging({
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
+  // The destination as the creation snapshot records it, so the reuse check
+  // can compare it against what the project was created with.
+  const selection = useMemo(
+    () =>
+      messagingSetup.mode === 'selected'
+        ? {
+            provider: messagingSetup.providerKey,
+            integrationId: messagingSetup.integrationId,
+            channel:
+              messagingSetup[
+                providerDetails[messagingSetup.providerKey].channelTargetedBy
+              ],
+          }
+        : undefined,
+    [messagingSetup]
+  );
   const getIntegrationAction = useCallback(
     ({shouldCreateRule}: Partial<RequestDataFragment>) => {
-      if (!shouldCreateRule || messagingSetup.mode !== 'selected') {
+      if (!shouldCreateRule) {
         return;
       }
-
-      const channelTargetedBy =
-        providerDetails[messagingSetup.providerKey].channelTargetedBy;
-      return buildIntegrationAction({
-        provider: messagingSetup.providerKey,
-        integrationId: messagingSetup.integrationId,
-        channel: messagingSetup[channelTargetedBy],
-      });
+      return buildIntegrationAction(selection ?? {});
     },
-    [messagingSetup]
+    [selection]
   );
 
   const isSubmitting = isCreating || submissionMode !== undefined;
@@ -123,12 +133,19 @@ export function ScmMessaging({
   }: {
     includeMessagingRule: boolean;
   }) => {
+    // Gated on the submission intent, not on the selection alone: Set up
+    // later can submit with a staged destination still in the closure, which
+    // must read as undefined — the same subtlety the includeMessagingRule
+    // split guards.
+    const stagedSelection = includeMessagingRule ? selection : undefined;
+
     await createOrReuseProject({
       platform: selectedPlatform,
       alertRuleConfig: includeMessagingRule
         ? getRequestDataFragment()
         : {defaultRules: true},
       getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
+      stagedSelection,
       onSuccess: () => {
         // Record the skip only on success: a failed creation keeps the staged
         // destination (and the Continue button) intact on the step.
