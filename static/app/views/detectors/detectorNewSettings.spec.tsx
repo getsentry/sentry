@@ -16,7 +16,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -1165,13 +1164,13 @@ describe('DetectorEdit', () => {
     });
 
     it('displays slug errors on the name field and in a toast', async () => {
-      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const errorMessage = 'The slug "new-test-cron-job" is already in use.';
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
         body: {
-          dataSources: {slug: ['The slug "new-test-cron-job" is already in use.']},
+          dataSources: {slug: [errorMessage]},
         },
       });
 
@@ -1186,27 +1185,24 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
-      await waitFor(() => {
-        expect(mockAddErrorMessage).toHaveBeenCalledWith(
-          'The slug "new-test-cron-job" is already in use.'
-        );
-      });
-
-      // The slug error is mapped to the name field and shown inline
+      // The slug error is mapped to the name field and also shown in a toast.
+      expect(await screen.findAllByText(errorMessage)).toHaveLength(2);
       expect(
-        await screen.findByText('The slug "new-test-cron-job" is already in use.')
+        within(screen.getByRole('region', {name: /Notifications/})).getByText(
+          errorMessage
+        )
       ).toBeInTheDocument();
     });
 
     it('displays schedule config errors on the schedule field and in a toast', async () => {
-      const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const errorMessage = 'Invalid schedule for schedule unit count';
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
         body: {
           dataSources: {
-            config: {schedule: ['Invalid schedule for schedule unit count']},
+            config: {schedule: [errorMessage]},
           },
         },
       });
@@ -1218,14 +1214,11 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
 
-      await waitFor(() => {
-        expect(mockAddErrorMessage).toHaveBeenCalledWith(
-          'Invalid schedule for schedule unit count'
-        );
-      });
-
+      expect(await screen.findAllByText(errorMessage)).toHaveLength(2);
       expect(
-        await screen.findByText('Invalid schedule for schedule unit count')
+        within(screen.getByRole('region', {name: /Notifications/})).getByText(
+          errorMessage
+        )
       ).toBeInTheDocument();
     });
   });

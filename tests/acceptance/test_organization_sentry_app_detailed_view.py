@@ -50,7 +50,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
         detail_view_page.click_install_button()
 
-        self.browser.wait_until('[data-test-id="toast-success"]')
+        self.browser.wait_until('[role="status"]')
         assert SentryAppInstallation.objects.filter(
             organization_id=self.organization.id, sentry_app=self.sentry_app
         )
@@ -68,7 +68,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
 
         detail_view_page.uninstall()
-        self.browser.wait_until('[data-test-id="toast-success"]')
+        self.browser.wait_until('[role="status"]')
 
         with self.tasks():
             run_scheduled_deletions_control()

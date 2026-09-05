@@ -11,7 +11,6 @@ import {
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Indicators from 'sentry/components/indicators';
 import {Override} from 'sentry/components/override';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -221,7 +220,6 @@ export function App() {
         <MainContainer tabIndex={-1}>
           <AppAlerts />
           <GlobalModal />
-          <Indicators className="indicators-container" />
           <Override name="component:replay-init" />
           <ErrorBoundary>{renderBody()}</ErrorBoundary>
         </MainContainer>
