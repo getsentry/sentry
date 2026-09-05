@@ -157,11 +157,7 @@ export function IntegrationRow(props: Props) {
           <Flex gap="xs" align="center">
             <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
             {outdatedConfigurations > 0 && (
-              <Tooltip
-                isHoverable
-                containerDisplayMode="flex"
-                title={getUpgradeTooltipTitle()}
-              >
+              <Tooltip containerDisplayMode="flex" title={getUpgradeTooltipTitle()}>
                 <IconWarning variant="warning" aria-label={t('Integration alert')} />
               </Tooltip>
             )}

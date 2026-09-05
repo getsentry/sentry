@@ -74,11 +74,7 @@ export function EditDetectorAction({
     : getManagedBySentryMonitorEditTooltip();
 
   return (
-    <Tooltip
-      title={canEdit ? undefined : permissionTooltipText}
-      disabled={canEdit}
-      isHoverable
-    >
+    <Tooltip title={canEdit ? undefined : permissionTooltipText} disabled={canEdit}>
       <LinkButton
         to={`${makeMonitorDetailsPathname(organization.slug, detector.id)}edit/`}
         variant="primary"

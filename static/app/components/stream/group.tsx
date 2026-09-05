@@ -605,7 +605,6 @@ export function StreamGroup({
   const groupCount = (
     <Tooltip
       disabled={!useFilteredStats}
-      isHoverable
       title={
         <CountTooltipContent>
           <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
@@ -643,7 +642,6 @@ export function StreamGroup({
 
   const groupUsersCount = (
     <Tooltip
-      isHoverable
       disabled={!usePageFilters}
       title={
         <CountTooltipContent>

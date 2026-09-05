@@ -19,7 +19,7 @@ function IconWithTooltip({
   ...props
 }: InfoTooltipProps & {icon: React.ComponentType<SVGIconProps>}) {
   return (
-    <Tooltip title={title} skipWrapper isHoverable position={position}>
+    <Tooltip title={title} skipWrapper position={position}>
       <StyledIconWrapper tabIndex={0} role="img" aria-label={ariaLabel}>
         <Icon {...props} aria-hidden />
       </StyledIconWrapper>

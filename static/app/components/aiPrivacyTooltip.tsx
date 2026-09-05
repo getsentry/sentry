@@ -33,9 +33,5 @@ function AiPrivacyNoticeShort() {
  * A tooltip wrapper for the privacy notice.
  */
 export function AiPrivacyTooltip({children}: {children: ReactNode}) {
-  return (
-    <Tooltip isHoverable title={<AiPrivacyNoticeShort />}>
-      {children}
-    </Tooltip>
-  );
+  return <Tooltip title={<AiPrivacyNoticeShort />}>{children}</Tooltip>;
 }

@@ -125,7 +125,6 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
         <NumberContainerOverride>
           <Tooltip
             title={value}
-            isHoverable
             delay={0}
             disabled={doesValueHitMaximum}
             containerDisplayMode="inline-flex"

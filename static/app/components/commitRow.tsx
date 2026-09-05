@@ -115,7 +115,6 @@ function CommitRow({
             disabled={!commit.author || commit.author.id !== undefined}
             overlayStyle={{maxWidth: '350px'}}
             skipWrapper
-            isHoverable
           >
             <AuthorWrapper>
               {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}

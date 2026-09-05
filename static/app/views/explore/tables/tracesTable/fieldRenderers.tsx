@@ -555,7 +555,6 @@ export function TraceIdRenderer({
     return (
       <Tooltip
         showUnderline
-        isHoverable
         title={
           <Text>
             {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {

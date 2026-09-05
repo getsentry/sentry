@@ -199,7 +199,6 @@ function TitleOp({text}: {text: string}) {
         </Fragment>
       }
       showOnlyOnOverflow
-      isHoverable
     >
       <TitleOpText>{text}</TitleOpText>
     </Tooltip>

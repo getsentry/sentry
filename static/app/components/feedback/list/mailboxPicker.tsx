@@ -80,9 +80,7 @@ export function MailboxPicker({onChange, value}: Props) {
               <Tooltip disabled={!count} title={title}>
                 <Flex align="center" gap="sm">
                   {mailbox.tooltip ? (
-                    <Tooltip isHoverable title={mailbox.tooltip}>
-                      {mailbox.label}
-                    </Tooltip>
+                    <Tooltip title={mailbox.tooltip}>{mailbox.label}</Tooltip>
                   ) : (
                     mailbox.label
                   )}

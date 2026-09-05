@@ -10,7 +10,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {HoverOverlayGroupProvider, useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
-interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
+interface HovercardProps extends UseHoverOverlayProps {
   /**
    * Classname to apply to the hovercard
    */
@@ -132,7 +132,6 @@ function Hovercard({
   const {wrapTrigger, isOpen, snapClosed, ...hoverOverlayState} = useHoverOverlay({
     offset,
     displayTimeout,
-    isHoverable: true,
     className: containerClassName,
     ...hoverOverlayProps,
   });
