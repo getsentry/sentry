@@ -12,20 +12,24 @@
   {% endif %}
 
   <div class="auth-container p-t-1 border-bottom">
-    <h3>{% trans "Sign in to continue" %}</h3>
-    <ul class="nav nav-tabs auth-toggle m-b-0">
-      <li{% if op == "login" %} class="active"{% endif %}>
-        <a href="#login" data-toggle="tab">{% trans "Sign In" %}</a>
-      </li>
-      {% if CAN_REGISTER %}
-        <li{% if op == "register" %} class="active"{% endif %}>
-          <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+    {% if is_invite_registration %}
+      <h3>{% trans "Create your account" %}</h3>
+    {% else %}
+      <h3>{% trans "Sign in to continue" %}</h3>
+      <ul class="nav nav-tabs auth-toggle m-b-0">
+        <li{% if op == "login" %} class="active"{% endif %}>
+          <a href="#login" data-toggle="tab">{% trans "Sign In" %}</a>
         </li>
-      {% endif %}
-      <li{% if op == "sso" %} class="active"{% endif %}>
-        <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
-      </li>
-    </ul>
+        {% if CAN_REGISTER %}
+          <li{% if op == "register" %} class="active"{% endif %}>
+            <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+          </li>
+        {% endif %}
+        <li{% if op == "sso" %} class="active"{% endif %}>
+          <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
+        </li>
+      </ul>
+    {% endif %}
   </div>
   <div class="tab-content">
     <div class="tab-pane{% if op == "login" %} active{% endif %}" id="login">
@@ -114,6 +118,11 @@
 
             <div class="auth-footer m-t-1">
               <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+              {% if is_invite_registration %}
+                <a class="secondary" href="#login" data-toggle="tab">
+                  {% trans "Already have an account? Sign in" %}
+                </a>
+              {% endif %}
               <a class="secondary" href="https://sentry.io/privacy/" target="_blank">
                 {% trans "Privacy Policy" %}
               </a>

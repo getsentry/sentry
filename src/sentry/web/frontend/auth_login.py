@@ -265,16 +265,18 @@ class AuthLoginView(BaseView, ReactMixin):
 
         organization: RpcOrganization | None = kwargs.pop("organization", None)
 
-        if self.can_register(request=request):
+        # can_register is true for the whole invite session, so check
+        # op == "login" first or a login submit would hit the register handler.
+        if op == "login":
+            return self.handle_login_form_submit(
+                request=request, organization=organization, **kwargs
+            )
+        elif self.can_register(request=request):
             return self.handle_register_form_submit(
                 request=request, organization=organization, **kwargs
             )
         else:
-            if op != "login":
-                raise BadRequest()
-            return self.handle_login_form_submit(
-                request=request, organization=organization, **kwargs
-            )
+            raise BadRequest()
 
     def redirect_post_to_sso(self, request: HttpRequest) -> HttpResponseRedirect:
         """
@@ -341,13 +343,17 @@ class AuthLoginView(BaseView, ReactMixin):
         Extracts the register form from a request, then formats and returns it.
         """
         op = request.POST.get("op")
-        initial_data = {"username": request.session.get("invite_email", "")}
-        return RegistrationForm(
+        invite_email = request.session.get("invite_email", "")
+        form = RegistrationForm(
             request.POST if op == "register" else None,
-            initial=initial_data,
+            initial={"username": invite_email},
             # Custom auto_id to avoid ID collision with AuthenticationForm.
             auto_id="id_registration_%s",
         )
+        # Disabling (not just pre-filling) makes Django use `initial` no
+        # matter what's submitted, so the invited email can't be tampered with.
+        form.fields["username"].disabled = bool(invite_email)
+        return form
 
     def handle_new_user_creation(
         self,
@@ -594,6 +600,7 @@ class AuthLoginView(BaseView, ReactMixin):
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
+            "is_invite_registration": bool(request.session.get("invite_email")),
         }
         default_context.update(additional_context.run_callbacks(request=request))
         return default_context
