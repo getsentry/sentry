@@ -1662,9 +1662,7 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
         # SLO assertions
-        assert_halt_metric(
-            mock_record, SentryAppWebhookHaltReason.MISSING_SERVICEHOOK
-        )
+        assert_halt_metric(mock_record, SentryAppWebhookHaltReason.MISSING_SERVICEHOOK)
         # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
