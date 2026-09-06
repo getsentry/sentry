@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 from typing import Any
 
 from snuba_sdk import (
@@ -427,17 +428,36 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     else:
                         # Needs to be a big AND when negated
                         function, operator = And, Op.NEQ
-                    if len(values_list) > 1:
+                    # ClickHouse's DateTime type cannot parse ISO 8601 strings with a
+                    # timezone offset suffix (e.g. '2026-08-10T00:00:00+00:00'). When
+                    # top-event results contain such strings, normalize them to naive UTC
+                    # datetime objects before using them as WHERE condition values.
+                    normalized_values = []
+                    for value in values_list:
+                        if isinstance(value, str):
+                            try:
+                                parsed = datetime.datetime.fromisoformat(value)
+                                # Convert to UTC and strip tzinfo so ClickHouse
+                                # receives a naive datetime (matching DateTime columns).
+                                if parsed.tzinfo is not None:
+                                    parsed = parsed.astimezone(datetime.timezone.utc).replace(
+                                        tzinfo=None
+                                    )
+                                value = parsed
+                            except ValueError:
+                                pass
+                        normalized_values.append(value)
+                    if len(normalized_values) > 1:
                         conditions.append(
                             function(
                                 conditions=[
                                     Condition(resolved_field, operator, value)
-                                    for value in sorted(values_list)
+                                    for value in sorted(normalized_values)
                                 ]
                             )
                         )
                     else:
-                        conditions.append(Condition(resolved_field, operator, values_list[0]))
+                        conditions.append(Condition(resolved_field, operator, normalized_values[0]))
                 elif None in values_list:
                     # one of the values was null, but we can't do an in with null values, so split into two conditions
                     non_none_values = [value for value in values_list if value is not None]
