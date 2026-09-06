@@ -25,11 +25,11 @@ type WidgetArtifact = {
   display_type: Widget['displayType'];
   interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
-  queries?: Widget['queries'];
   title: string;
   widget_type: Widget['widgetType'];
   description?: string;
   limit?: number;
+  queries?: Widget['queries'];
 };
 
 /**
