@@ -1,7 +1,10 @@
+import * as Sentry from '@sentry/react';
 import type {QueryFunctionContext, SkipToken} from '@tanstack/react-query';
 import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
 import type {z} from 'zod';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {
@@ -20,10 +23,19 @@ type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
 type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 
+/**
+ * What to do with a response that fails its schema. Both modes validate and
+ * report to Sentry; only `throw` lets the failure reach the caller.
+ */
+type OnInvalidSchema = 'throw' | 'passthrough';
+
+type SchemaOptions = Options & {onInvalid?: OnInvalidSchema};
+
 type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -137,29 +149,81 @@ export class ApiSchemaValidationError extends Error {
   }
 }
 
-function validateResponse<TSchema extends z.ZodType>(
-  schema: TSchema,
-  url: string,
-  response: ApiResponse
-): ApiResponse<z.output<TSchema>> {
-  const result = schema.safeParse(response.json);
-  if (!result.success) {
-    throw new ApiSchemaValidationError(url, result, response);
+const SYSTEM_STRICT_FEATURE = 'system:api-schema-strict';
+const ORG_STRICT_FEATURE = 'api-schema-strict';
+
+/**
+ * Either flag can escalate to `throw`, neither can relax it. Once a flag is on,
+ * only an explicit call site `onInvalid` can opt back out.
+ */
+function resolveOnInvalid(override: OnInvalidSchema | undefined): OnInvalidSchema {
+  if (override) {
+    return override;
   }
-  return {headers: response.headers, json: result.data};
+
+  const isStrict =
+    ConfigStore.get('features').has(SYSTEM_STRICT_FEATURE) ||
+    OrganizationStore.get().organization?.features.includes(ORG_STRICT_FEATURE);
+
+  return isStrict ? 'throw' : 'passthrough';
+}
+
+/**
+ * Fingerprint on the templated path rather than `error.message`, which contains
+ * the resolved url. Otherwise every organization slug becomes its own issue.
+ */
+function reportInvalidSchema(error: ApiSchemaValidationError, path: string) {
+  Sentry.withScope(scope => {
+    scope.setFingerprint(['api-schema-validation', path]);
+    scope.setTag('api_schema.path', path);
+    scope.setContext('Schema issues', {issues: error.result.error.issues});
+    Sentry.captureException(error);
+  });
+}
+
+/**
+ * Builds the queryFn's response handler. The mode is resolved per fetch rather
+ * than when the options are built, since an organization-scoped flag is not
+ * readable until the organization has loaded.
+ */
+function makeSchemaValidator<TSchema extends z.ZodType>(
+  schema: TSchema,
+  path: string,
+  url: string,
+  onInvalid: OnInvalidSchema | undefined
+) {
+  return (response: ApiResponse): ApiResponse<z.output<TSchema>> => {
+    const result = schema.safeParse(response.json);
+    if (result.success) {
+      return {headers: response.headers, json: result.data};
+    }
+
+    const error = new ApiSchemaValidationError(url, result, response);
+    reportInvalidSchema(error, path);
+
+    if (resolveOnInvalid(onInvalid) === 'throw') {
+      throw error;
+    }
+
+    // Knowingly unsound: the body did not match, and for a schema with
+    // transforms it is not even shaped like the output type. Passthrough trades
+    // that risk for not breaking the page over a schema we are still proving out.
+    return response as ApiResponse<z.output<TSchema>>;
+  };
 }
 
 function _apiOptionsSchema<TSchema extends z.ZodType, TApiPath extends KnownApiUrls>(
   schema: TSchema,
   path: TApiPath,
   ...[
-    {staleTime, path: pathParams, ...options},
+    {staleTime, path: pathParams, onInvalid, ...options},
   ]: ExtractPathParams<TApiPath> extends never
-    ? [Options & {path?: never}]
-    : [Options & PathParamOptions<TApiPath>]
+    ? [SchemaOptions & {path?: never}]
+    : [SchemaOptions & PathParamOptions<TApiPath>]
 ) {
   const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
   const strippedOptions = stripUndefinedValues(options);
+  const validate = makeSchemaValidator(schema, path, url, onInvalid);
 
   // The schema is deliberately absent from the queryKey: it is a parsing
   // concern, not part of the cache identity, and keying on it would give an
@@ -171,7 +235,7 @@ function _apiOptionsSchema<TSchema extends z.ZodType, TApiPath extends KnownApiU
       pathParams === skipToken
         ? skipToken
         : async (context: QueryFunctionContext<ApiQueryKey>) =>
-            validateResponse(schema, url, await apiFetch(context)),
+            validate(await apiFetch(context)),
     enabled: pathParams !== skipToken,
     staleTime,
     select: selectJson,
@@ -185,13 +249,14 @@ function _apiOptionsSchemaInfinite<
   schema: TSchema,
   path: TApiPath,
   ...[
-    {staleTime, path: pathParams, ...options},
+    {staleTime, path: pathParams, onInvalid, ...options},
   ]: ExtractPathParams<TApiPath> extends never
-    ? [Options & {path?: never}]
-    : [Options & PathParamOptions<TApiPath>]
+    ? [SchemaOptions & {path?: never}]
+    : [SchemaOptions & PathParamOptions<TApiPath>]
 ) {
   const url = getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<TApiPath>));
   const strippedOptions = stripUndefinedValues(options);
+  const validate = makeSchemaValidator(schema, path, url, onInvalid);
 
   // See the note in `_apiOptionsSchema` about keeping the schema out of the queryKey.
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
@@ -205,7 +270,7 @@ function _apiOptionsSchemaInfinite<
               InfiniteApiQueryKey,
               null | undefined | ParsedHeader
             >
-          ) => validateResponse(schema, url, await apiFetchInfinite(context)),
+          ) => validate(await apiFetchInfinite(context)),
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
     initialPageParam: undefined,
@@ -294,13 +359,15 @@ export const apiOptions = {
    * before it enters the query cache. `data` is typed as the schema's output,
    * so any transforms/defaults/coercions the schema declares are applied.
    *
-   * A response that fails validation rejects the query with an
-   * `ApiSchemaValidationError`.
+   * A response that fails validation is always reported to Sentry. Whether it
+   * also rejects the query with an `ApiSchemaValidationError` depends on
+   * `onInvalid`, falling back to the `system:api-schema-strict` and
+   * `organizations:api-schema-strict` feature flags.
    */
   schema: <TSchema extends z.ZodType, TApiPath extends KnownApiUrls = KnownApiUrls>(
     schema: TSchema,
     path: TApiPath,
-    options: Options & PathParamOptions<TApiPath>
+    options: SchemaOptions & PathParamOptions<TApiPath>
   ) => _apiOptionsSchema<TSchema, TApiPath>(schema, path, options as never),
 
   /**
@@ -313,6 +380,6 @@ export const apiOptions = {
   >(
     schema: TSchema,
     path: TApiPath,
-    options: Options & PathParamOptions<TApiPath>
+    options: SchemaOptions & PathParamOptions<TApiPath>
   ) => _apiOptionsSchemaInfinite<TSchema, TApiPath>(schema, path, options as never),
 };

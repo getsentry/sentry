@@ -1,10 +1,14 @@
+import * as Sentry from '@sentry/react';
 /** @jest-environment jsdom */
 import {skipToken, useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {z} from 'zod';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   ApiSchemaValidationError,
@@ -319,6 +323,7 @@ describe('apiOptions', () => {
     it('should fail the query when the body does not match the schema', async () => {
       const options = apiOptions.schema(z.array(ProjectSchema), '/projects/', {
         staleTime: 0,
+        onInvalid: 'throw',
       });
 
       MockApiClient.addMockResponse({
@@ -352,7 +357,12 @@ describe('apiOptions', () => {
       });
 
       const {result} = renderHookWithProviders(() =>
-        useQuery(apiOptions.schema(z.array(ProjectSchema), '/projects/', {staleTime: 0}))
+        useQuery(
+          apiOptions.schema(z.array(ProjectSchema), '/projects/', {
+            staleTime: 0,
+            onInvalid: 'throw',
+          })
+        )
       );
       await waitFor(() => expect(result.current.isError).toBe(true));
 
@@ -417,6 +427,112 @@ describe('apiOptions', () => {
       expect(result.current.data?.pages[0]?.json).toEqual([
         {id: '1', dateCreated: new Date('2024-01-01T00:00:00Z')},
       ]);
+    });
+
+    describe('onInvalid', () => {
+      const invalidBody = [{id: 123, dateCreated: null}];
+
+      function renderInvalidResponse(onInvalid?: 'throw' | 'passthrough') {
+        MockApiClient.addMockResponse({url: '/projects/', body: invalidBody});
+
+        return renderHookWithProviders(() =>
+          useQuery(
+            apiOptions.schema(z.array(ProjectSchema), '/projects/', {
+              staleTime: 0,
+              onInvalid,
+            })
+          )
+        );
+      }
+
+      beforeEach(() => {
+        ConfigStore.set('features', new Set());
+        OrganizationStore.reset();
+      });
+
+      afterEach(() => {
+        ConfigStore.set('features', new Set());
+        OrganizationStore.reset();
+        jest.restoreAllMocks();
+      });
+
+      it('should default to returning the unvalidated body', async () => {
+        const {result} = renderInvalidResponse();
+        await waitFor(() => expect(result.current.isPending).toBe(false));
+
+        expect(result.current.isError).toBe(false);
+        expect(result.current.data).toEqual(invalidBody);
+      });
+
+      it('should report to Sentry even when it returns the unvalidated body', async () => {
+        const captureException = jest.spyOn(Sentry, 'captureException');
+
+        const {result} = renderInvalidResponse();
+        await waitFor(() => expect(result.current.isPending).toBe(false));
+
+        expect(captureException).toHaveBeenCalledWith(
+          expect.any(ApiSchemaValidationError)
+        );
+      });
+
+      it('should report to Sentry when it throws', async () => {
+        const captureException = jest.spyOn(Sentry, 'captureException');
+
+        const {result} = renderInvalidResponse('throw');
+        await waitFor(() => expect(result.current.isError).toBe(true));
+
+        expect(captureException).toHaveBeenCalledWith(
+          expect.any(ApiSchemaValidationError)
+        );
+      });
+
+      it('should throw when the system feature is enabled', async () => {
+        ConfigStore.set('features', new Set(['system:api-schema-strict']));
+
+        const {result} = renderInvalidResponse();
+        await waitFor(() => expect(result.current.isError).toBe(true));
+
+        expect(result.current.error).toBeInstanceOf(ApiSchemaValidationError);
+      });
+
+      it('should throw when the organization feature is enabled', async () => {
+        OrganizationStore.onUpdate(
+          OrganizationFixture({features: ['api-schema-strict']}),
+          {replace: true}
+        );
+
+        const {result} = renderInvalidResponse();
+        await waitFor(() => expect(result.current.isError).toBe(true));
+
+        expect(result.current.error).toBeInstanceOf(ApiSchemaValidationError);
+      });
+
+      it('should let the call site opt out of a feature that is enabled', async () => {
+        ConfigStore.set('features', new Set(['system:api-schema-strict']));
+        OrganizationStore.onUpdate(
+          OrganizationFixture({features: ['api-schema-strict']}),
+          {replace: true}
+        );
+
+        const {result} = renderInvalidResponse('passthrough');
+        await waitFor(() => expect(result.current.isPending).toBe(false));
+
+        expect(result.current.isError).toBe(false);
+        expect(result.current.data).toEqual(invalidBody);
+      });
+
+      it('should keep onInvalid out of the queryKey', () => {
+        const strict = apiOptions.schema(ProjectSchema, '/projects/', {
+          staleTime: 0,
+          onInvalid: 'throw',
+        });
+        const lenient = apiOptions.schema(ProjectSchema, '/projects/', {
+          staleTime: 0,
+          onInvalid: 'passthrough',
+        });
+
+        expect(strict.queryKey).toEqual(lenient.queryKey);
+      });
     });
 
     describe('types', () => {
