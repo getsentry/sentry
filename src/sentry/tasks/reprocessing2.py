@@ -110,8 +110,8 @@ def reprocess_group(
 
     assert new_group_id is not None
 
-    # To the best of our knowledge we still have quite some `reprocess_group` tasks running in parallel, this logic
-    # is intended to cull all but one. This is temporary to recover from a bad state and should be dead code after that.
+    # INC-2445 follow-up: To the best of our knowledge we still have quite some `reprocess_group` tasks running in parallel,
+    # this logic is intended to cull all but one. This is temporary to recover from a bad state and should be dead code after that.
     if activation_id:
         try:
             page_owned = reprocessing_store.try_claim_page(
