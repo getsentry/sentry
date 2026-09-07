@@ -1,9 +1,4 @@
-import {
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalStore} from 'sentry/stores/modalStore';
 
@@ -50,7 +45,13 @@ describe('ChangeGoogleDomainAction', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Update Google Domain(s)'}));
 
     await waitForModalToHide();
-    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+    expect(updateMock).toHaveBeenCalledWith(
+      '/customers/org-slug/migrate-google-domain/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {append: 'swap', newDomain: 'new.test', dryRun: false},
+      })
+    );
     expect(onUpdated).toHaveBeenCalledWith({newDomain: 'new.test'});
   });
 });
