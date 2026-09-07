@@ -4,14 +4,20 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 
+from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
+    OrganizationAIConversationsEndpoint,
+)
+from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
     get_first_input_message as _get_first_input_message,
 )
 from sentry.ai_monitoring.utils import (
     get_last_output as _get_last_output,
 )
+from sentry.search.events.types import SnubaParams
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 
@@ -124,6 +130,94 @@ class TestGetLastOutput:
         assert _get_last_output(row) == "Hello!"
 
 
+class TestConversationSortSerializer:
+    @pytest.mark.parametrize(
+        "sort",
+        [
+            "-timestamp",
+            "-max(timestamp)",
+            "totalCost",
+            "-total_cost",
+            "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client",
+            "-conversationId",
+        ],
+    )
+    def test_known_alias(self, sort: str) -> None:
+        serializer = OrganizationAIConversationsSerializer(
+            data={"sort": [sort]}, context={"sorting_enabled": True}
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["sort"] == [sort]
+
+    @pytest.mark.parametrize(
+        "sorts",
+        [
+            [],
+            ["-timestamp", "totalCost"],
+            ["sum(span.duration)"],
+            [""],
+            ["startTimestamp"],
+            ["-endTimestamp"],
+            ["start_timestamp"],
+            ["end_timestamp"],
+            ["min_precise_start_ts"],
+            ["max_precise_finish_ts"],
+        ],
+    )
+    def test_invalid_sort(self, sorts: list[str]) -> None:
+        serializer = OrganizationAIConversationsSerializer(
+            data={"sort": sorts}, context={"sorting_enabled": True}
+        )
+        assert not serializer.is_valid()
+        assert "sort" in serializer.errors
+
+    def test_default(self) -> None:
+        serializer = OrganizationAIConversationsSerializer(
+            data={}, context={"sorting_enabled": True}
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["sort"] == ["-timestamp"]
+
+
+@patch("sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query")
+def test_candidate_query_accepts_multiple_sorts(run_table_query: MagicMock) -> None:
+    OrganizationAIConversationsEndpoint()._fetch_conversation_ids(
+        snuba_params=SnubaParams(),
+        query_string="has:gen_ai.conversation.id has:gen_ai.operation.type",
+        offset=0,
+        limit=10,
+        sampling_mode="HIGHEST_ACCURACY",
+        sorts=["-totalCost", "timestamp", "-conversationId"],
+    )
+
+    query = run_table_query.call_args.kwargs
+    assert query["selected_columns"] == [
+        "gen_ai.conversation.id",
+        "max(timestamp)",
+        "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+    ]
+    assert query["orderby"] == ["-total_cost", "max(timestamp)", "-gen_ai.conversation.id"]
+
+
+@patch(
+    "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_bulk_table_queries",
+    return_value={
+        "aggregations": {"data": []},
+        "enrichment": {"data": []},
+        "first_last_io": {"data": []},
+    },
+)
+def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: MagicMock) -> None:
+    result = OrganizationAIConversationsEndpoint()._get_conversations_data(
+        snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
+    )
+
+    assert result == []
+    run_bulk_table_queries.assert_called_once()
+    queries = run_bulk_table_queries.call_args.args[0]
+    assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
+
+
 class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     view = "sentry-api-0-organization-ai-conversations"
 
@@ -187,6 +281,202 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
 
         assert response.status_code == 200, response.data
         assert response.data == []
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_sorting_default_candidate_query(self, run_table_query: MagicMock) -> None:
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request({"project": [self.project.id]})
+
+        assert response.status_code == 200, response.data
+        run_table_query.assert_called_once()
+        query = run_table_query.call_args.kwargs
+        assert query["selected_columns"] == ["gen_ai.conversation.id", "max(timestamp)"]
+        assert query["orderby"] == ["-max(timestamp)", "gen_ai.conversation.id"]
+        assert query["config"].disable_aggregate_extrapolation is True
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_sorting_cost_candidate_query(self, run_table_query: MagicMock) -> None:
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "query": "gen_ai.tool.name:search",
+                    "sort": "-totalCost",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["selected_columns"] == [
+            "gen_ai.conversation.id",
+            "max(timestamp)",
+            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+        ]
+        assert query["orderby"] == ["-total_cost", "gen_ai.conversation.id"]
+        assert query["query_string"] == (
+            "has:gen_ai.conversation.id has:gen_ai.operation.type gen_ai.tool.name:search"
+        )
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_sorting_conversation_id_candidate_query(self, run_table_query: MagicMock) -> None:
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request({"project": [self.project.id], "sort": "-conversationId"})
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["selected_columns"] == ["gen_ai.conversation.id", "max(timestamp)"]
+        assert query["orderby"] == ["-gen_ai.conversation.id"]
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_sorting_disabled_preserves_legacy_query(self, run_table_query: MagicMock) -> None:
+        with self.feature({"organizations:gen-ai-conversations-querying-enhancements": False}):
+            response = self.do_request(
+                {"project": [self.project.id], "sort": ["-totalCost", "timestamp"]}
+            )
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["selected_columns"] == ["gen_ai.conversation.id", "max(precise.finish_ts)"]
+        assert query["orderby"] == ["-max(precise.finish_ts)"]
+        assert query["config"].disable_aggregate_extrapolation is True
+
+    def test_sorting_rejects_multiple_fields(self) -> None:
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request(
+                {"project": [self.project.id], "sort": ["-totalCost", "timestamp"]}
+            )
+
+        assert response.status_code == 400, response.data
+
+    def test_sorting_known_aggregates(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        for operation_type in ["ai_client", "tool"]:
+            self.store_ai_span(
+                conversation_id="conversation-a",
+                timestamp=now,
+                operation_type=operation_type,
+                cost=1,
+                tokens=10,
+            )
+        for sort in [
+            "-max(timestamp)",
+            "duration",
+            "generationDuration",
+            "errors",
+            "llmCalls",
+            "toolCalls",
+            "totalTokens",
+            "inputTokens",
+            "outputTokens",
+            "total_cost",
+            "toolErrors",
+            "-conversationId",
+            "sum_if_gen_ai_cost_total_tokens_gen_ai_operation_type_equals_ai_client",
+        ]:
+            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+                response = self.do_request(
+                    {
+                        "project": [self.project.id],
+                        "start": (now - timedelta(hours=1)).isoformat(),
+                        "end": (now + timedelta(hours=1)).isoformat(),
+                        "sort": sort,
+                    }
+                )
+
+            assert response.status_code == 200, (sort, response.data)
+            assert [row["conversationId"] for row in response.data] == ["conversation-a"], sort
+
+    def test_sorting_cost_pagination(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        for conversation_id, cost in [
+            ("conversation-c", 5),
+            ("conversation-b", 10),
+            ("conversation-a", 10),
+        ]:
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                operation_type="ai_client",
+                cost=cost,
+            )
+        # Aggregate multiple spans before pagination, not just the highest individual cost.
+        self.store_ai_span(
+            conversation_id="conversation-c",
+            timestamp=now,
+            operation_type="ai_client",
+            cost=10,
+        )
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "sort": "-totalCost",
+            "per_page": "2",
+        }
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request(query)
+
+        assert response.status_code == 200, response.data
+        assert [row["conversationId"] for row in response.data] == [
+            "conversation-c",
+            "conversation-a",
+        ]
+        assert [row["totalCost"] for row in response.data] == [15, 10]
+        links = parse_link_header(response.headers["Link"])
+        next_link = next(link for link in links.values() if link["rel"] == "next")
+        cursor = next_link["cursor"]
+        assert cursor is not None
+        query["cursor"] = cursor
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request(query)
+
+        assert response.status_code == 200, response.data
+        assert [row["conversationId"] for row in response.data] == ["conversation-b"]
+
+    def test_sorting_uses_matching_spans_but_hydrates_whole_conversation(self) -> None:
+        now = before_now(days=10).replace(microsecond=0)
+        for conversation_id, tool_name, cost in [
+            ("conversation-a", "search", 1),
+            ("conversation-a", "calculator", 10),
+            ("conversation-b", "search", 5),
+        ]:
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                operation_type="ai_client",
+                tool_name=tool_name,
+                cost=cost,
+            )
+        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                    "query": "gen_ai.tool.name:search",
+                    "sort": "totalCost",
+                }
+            )
+
+        assert response.status_code == 200, response.data
+        # Temporary behavior: ascending matching-span cost is 1, 5, not hydrated cost 11, 5.
+        assert [row["conversationId"] for row in response.data] == [
+            "conversation-a",
+            "conversation-b",
+        ]
+        assert [row["totalCost"] for row in response.data] == [11, 5]
 
     def test_single_conversation_single_trace(self) -> None:
         """Test a conversation with all spans in a single trace"""
