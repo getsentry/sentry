@@ -69,6 +69,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/base-react.html")
         self.assertTemplateNotUsed(resp, "sentry/login.html")
+        assert b'<body class="theme-system">' in resp.content
 
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:

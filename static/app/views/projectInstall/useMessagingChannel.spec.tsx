@@ -72,7 +72,11 @@ describe('useMessagingChannel', () => {
 
       await waitFor(() => expect(result.current.channelOptions).toBeDefined());
       expect(result.current.channelOptions).toEqual([
-        {label: '#general', value: '#general'},
+        {
+          channelName: 'general',
+          label: '#general',
+          value: '#general',
+        },
       ]);
     });
 
@@ -85,7 +89,11 @@ describe('useMessagingChannel', () => {
 
       await waitFor(() => expect(result.current.channelOptions).toBeDefined());
       expect(result.current.channelOptions).toEqual([
-        {label: '#general (1234567890)', value: '1234567890'},
+        {
+          channelName: 'general',
+          label: '#general (1234567890)',
+          value: '1234567890',
+        },
       ]);
     });
   });
@@ -104,6 +112,7 @@ describe('useMessagingChannel', () => {
 
       await waitFor(() =>
         expect(mockSetChannel).toHaveBeenCalledWith({
+          channelName: 'alerts',
           label: '#alerts (2)',
           value: '2',
           new: false,
@@ -118,7 +127,12 @@ describe('useMessagingChannel', () => {
 
       const mockSetChannel = jest.fn();
       const {result} = renderChannel('slack', slackIntegration, {
-        channel: {label: '#general', value: '#general', new: false},
+        channel: {
+          channelName: 'general',
+          label: '#general',
+          value: '#general',
+          new: false,
+        },
         setChannel: mockSetChannel,
       });
 
@@ -166,7 +180,11 @@ describe('useMessagingChannel', () => {
       // isLoadingError stays false — cached options must remain intact.
       expect(result.current.isChannelsError).toBe(false);
       expect(result.current.channelOptions).toEqual([
-        {label: '#general', value: '#general'},
+        {
+          channelName: 'general',
+          label: '#general',
+          value: '#general',
+        },
       ]);
     });
 

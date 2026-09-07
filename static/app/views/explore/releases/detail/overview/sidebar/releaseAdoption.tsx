@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,7 +14,6 @@ import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NotAvailable} from 'sentry/components/notAvailable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -238,7 +238,7 @@ export function ReleaseAdoption({
           <SidebarSection.Title>
             {t('Adoption Stage')}
             {multipleEnvironments && (
-              <QuestionTooltip
+              <InfoTip
                 position="top"
                 title={t(
                   'See if a release has low adoption, been adopted by users, or replaced by another release. Select an environment above to view the stage this release is in.'
@@ -275,7 +275,7 @@ export function ReleaseAdoption({
                 <SidebarSection.Title>
                   {t('Sessions Adopted')}
                   <Container as="span" marginLeft="xs">
-                    <QuestionTooltip
+                    <InfoTip
                       position="top"
                       title={t(
                         'Adoption compares the sessions of a release with the total sessions for this project.'
@@ -292,7 +292,7 @@ export function ReleaseAdoption({
                 <SidebarSection.Title>
                   {t('Users Adopted')}
                   <Container as="span" marginLeft="xs">
-                    <QuestionTooltip
+                    <InfoTip
                       position="top"
                       title={t(
                         'Adoption compares the users of a release with the total users for this project.'

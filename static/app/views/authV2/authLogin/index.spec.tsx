@@ -6,11 +6,18 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import type {AuthConfig} from 'sentry/types/auth';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import AuthLogin from './index';
 
+jest.mock('sentry/utils/analytics');
+
 describe('AuthLogin', () => {
+  beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
+  });
+
   beforeAll(() => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
@@ -69,6 +76,15 @@ describe('AuthLogin', () => {
     expect(
       await screen.findByRole('heading', {name: 'Sign in to Sentry'})
     ).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'auth.login.rendered',
+      {
+        organization: null,
+        entrypoint: 'generic',
+        state: 'login',
+      },
+      {startSession: true}
+    );
   });
 
   it('shows a retry when the initial auth config request fails', async () => {

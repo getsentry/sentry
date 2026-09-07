@@ -322,7 +322,7 @@ interface ResultGridProps {
   useQueryString?: boolean;
 }
 
-export type State = {
+type State = {
   /**
    * Whether the grid is in the all-regions mode: every region is queried in
    * parallel and the results are merged. `cell` is undefined while active.
@@ -467,6 +467,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // Invalidate any in-flight region probe from the previous search.
     this.probeToken += 1;
 
+    // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
     this.setState(
       {
         cursor: extractQuery(cursor),

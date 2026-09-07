@@ -44,6 +44,7 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -507,6 +508,10 @@ function SlowDBQueryEvidence({
   const groupHash = sentryTags?.group ?? span.hash ?? '';
   const hasExplore = organization.features.includes('visibility-explore-view');
 
+  const codeFilepath = getAttributeValue(span.data ?? {}, 'code.file.path', 'string');
+  const codeLineNumber = getAttributeValue(span.data ?? {}, 'code.line.number', 'number');
+  const codeFunction = getAttributeValue(span.data ?? {}, 'code.function', 'string');
+
   const queryValue = (
     <QueryCard>
       <Stack minWidth={0}>
@@ -515,14 +520,14 @@ function SlowDBQueryEvidence({
             {formatter.toString(span.description ?? '')}
           </StyledCodeSnippet>
         </NoPaddingClippedBox>
-        {span.data?.['code.filepath'] ? (
+        {codeFilepath ? (
           <StackTraceMiniFrame
             projectId={event.projectID}
             event={event}
             frame={{
-              filename: span.data['code.filepath'],
-              lineNo: span.data['code.lineno'],
-              function: span.data['code.function'],
+              filename: codeFilepath,
+              lineNo: codeLineNumber === undefined ? undefined : Number(codeLineNumber),
+              function: codeFunction,
             }}
           />
         ) : (

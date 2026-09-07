@@ -212,6 +212,7 @@ export class Results extends Component<Props, State> {
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query[SHOW_UNPARAM_BANNER]) {
+      // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({showUnparameterizedBanner: true});
       navigate(
         {
@@ -235,6 +236,7 @@ export class Results extends Component<Props, State> {
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     if (location.query.incompatible) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({showQueryIncompatibleWithDataset: true});
       this.props.navigate(
         {

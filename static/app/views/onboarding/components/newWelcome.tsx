@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -22,14 +22,15 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useAgenticProgressInit} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
-import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
+import {
+  useWelcomeAgentRun,
+  WelcomeAgentSetup,
+} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
@@ -122,6 +123,39 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   },
 ];
 
+function getAgentHeading({
+  hasRunFailed,
+  isSetupComplete,
+}: {
+  hasRunFailed: boolean;
+  isSetupComplete: boolean;
+}) {
+  if (hasRunFailed) {
+    return {
+      title: t('Setup Didn’t Finish'),
+      description: t(
+        'Your agent ran into a problem. You can pick up where it left off manually below.'
+      ),
+    };
+  }
+
+  if (isSetupComplete) {
+    return {
+      title: t("You're All Set"),
+      description: t(
+        'Sentry is watching your app. Anything it catches from here shows up in Issues.'
+      ),
+    };
+  }
+
+  return {
+    title: t('Agent Connected'),
+    description: t(
+      'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
+    ),
+  };
+}
+
 export function NewWelcomeUI(props: StepProps) {
   const organization = useOrganization();
   const {inExperiment: hasScmOnboarding} = useExperiment({
@@ -129,9 +163,22 @@ export function NewWelcomeUI(props: StepProps) {
     reportExposure: false,
   });
   const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
-  const [showAgentSetup, setShowAgentSetup] = useState(false);
-
-  useAgenticProgressInit({enabled: hasScmOnboarding && hasAgenticSetup});
+  const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
+  const {
+    run,
+    onboardingCode,
+    isAgentConnected,
+    isSetupComplete,
+    hasRunFailed,
+    restartRun,
+  } = useWelcomeAgentRun({enabled: showAgentSetup});
+  const showAgentHeading = showAgentSetup && isAgentConnected;
+  const scmHeading = showAgentHeading
+    ? getAgentHeading({hasRunFailed, isSetupComplete})
+    : {
+        title: t("Code breaks.\nWe'll help you fix it faster"),
+        description: t('Monitor, debug, and fix your code, all in one place.'),
+      };
 
   useWelcomeAnalyticsEffect();
 
@@ -145,13 +192,6 @@ export function NewWelcomeUI(props: StepProps) {
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
-  const handleGetStarted = () => {
-    trackAnalytics('onboarding.scm_welcome_present_agentic_interstitial_clicked', {
-      organization,
-    });
-    setShowAgentSetup(true);
-  };
-
   const handleCopyCommand = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
   };
@@ -159,16 +199,15 @@ export function NewWelcomeUI(props: StepProps) {
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
-        <WelcomeBackgroundNewUi />
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
               <Stack gap="lg">
                 <Heading as="h2" size="4xl" wrap="pre-line">
-                  {t("Code breaks.\nWe'll help you fix it faster")}
+                  {scmHeading.title}
                 </Heading>
                 <Text variant="muted" size="xl" density="comfortable">
-                  {t('Monitor, debug, and fix your code, all in one place.')}
+                  {scmHeading.description}
                 </Text>
               </Stack>
             ) : (
@@ -227,8 +266,12 @@ export function NewWelcomeUI(props: StepProps) {
                 {...ONBOARDING_WELCOME_STAGGER_ITEM}
               >
                 <WelcomeAgentSetup
+                  isAgentConnected={isAgentConnected}
+                  onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
+                  onRetry={restartRun}
                   onSetupInBrowser={handleComplete}
+                  run={run}
                 />
               </MotionContainer>
             ) : (
@@ -261,7 +304,7 @@ export function NewWelcomeUI(props: StepProps) {
                   >
                     <Button
                       variant="primary"
-                      onClick={hasAgenticSetup ? handleGetStarted : handleComplete}
+                      onClick={handleComplete}
                       data-test-id="onboarding-welcome-start"
                     >
                       {t('Let’s get started')}
