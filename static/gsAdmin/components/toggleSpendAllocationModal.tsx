@@ -27,10 +27,10 @@ function SpendAllocationModal({
   orgId,
   spendAllocationEnabled: isCurrentlyEnabled,
 }: ModalProps) {
+  const spendAllocationEnabled = !isCurrentlyEnabled;
+  const method = spendAllocationEnabled ? 'POST' : 'DELETE';
   const mutation = useMutation({
     mutationFn: async () => {
-      const shouldEnableAllocations = !isCurrentlyEnabled;
-      const method = shouldEnableAllocations ? 'POST' : 'DELETE';
       await fetchMutation({
         url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
           path: {organizationIdOrSlug: orgId},
@@ -44,9 +44,8 @@ function SpendAllocationModal({
         }),
         method,
       });
-      return shouldEnableAllocations;
     },
-    onSuccess: spendAllocationEnabled => {
+    onSuccess: () => {
       onUpdated({spendAllocationEnabled});
     },
     onError: error => {
