@@ -56,7 +56,7 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
     VirtualColumnDefinition,
 )
-from sentry.search.eap.rpc_utils import and_trace_item_filters
+from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
 from sentry.search.eap.sampling import validate_sampling
 from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
@@ -66,6 +66,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.tracing import get_current_span, set_span_tag, trace
 
 
@@ -550,15 +551,159 @@ class SearchResolver:
     ) -> tuple[list[TraceItemFilter], list[VirtualColumnDefinition | None]]:
         terms = self.convert_term(term)
 
-        resolved_terms = []
-        resolved_contexts = []
+        resolved_terms: list[TraceItemFilter] = []
+        resolved_contexts: list[VirtualColumnDefinition | None] = []
 
         for t in terms:
+            # device.class is stored as convention `device.class` (span-streaming) or
+            # legacy `sentry.device.class` (V1 sentry_tags). VirtualColumnContext is
+            # single-source, so filters dual-read both raw keys with remapped values.
+            if t.key.name == "device.class":
+                resolved_term = self._resolve_device_class_term(t)
+                resolved_terms.append(resolved_term)
+                resolved_contexts.append(None)
+                continue
+
             resolved_term, resolved_context = self._resolve_term(t)
             resolved_terms.append(resolved_term)
             resolved_contexts.append(resolved_context)
 
         return resolved_terms, resolved_contexts
+
+    def _resolve_device_class_term(self, term: event_search.SearchFilter) -> TraceItemFilter:
+        """Filter device.class against both convention and legacy storage keys."""
+        context_definition = self.definitions.contexts.get("device.class")
+        if context_definition is None:
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+
+        # Match _resolve_term's VCC guard: wildcards are unsupported on virtual contexts.
+        # Without this, map_search_term_context_to_original_column falls through to
+        # default_value ("Unknown") for translated wildcards like "*".
+        if term.value.is_wildcard():
+            raise InvalidSearchQuery(f"Cannot use wildcards with {term.key.name}")
+
+        # map_search_term_context_to_original_column falls through to default_value for
+        # unrecognized labels (e.g. device.class:foo → "Unknown"). Reject those here so
+        # dual-read matches normal virtual-context validation.
+        self._validate_device_class_filter_value(term, context_definition)
+
+        # high/medium/low → "1"/"2"/"3"; Unknown → ""
+        _, raw_values = self.map_search_term_context_to_original_column(term, context_definition)
+
+        convention_column, _ = self.resolve_column("device.class")
+        legacy_column, _ = self.resolve_column("sentry.device.class")
+        if not isinstance(convention_column, ResolvedAttribute):
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+        if not isinstance(legacy_column, ResolvedAttribute):
+            resolved_term, _ = self._resolve_term(term)
+            return resolved_term
+
+        is_unknown = raw_values == "" or raw_values == [] or raw_values == [""]
+        is_negated = term.operator in ("!=", "NOT IN")
+
+        # Unknown means neither storage key holds a known class code (matches VCC
+        # coalesce: missing/empty/other → Unknown). Concrete values dual-read with
+        # OR, and De Morgan AND on negation.
+        if is_unknown:
+            convention_filter = self._device_class_unknown_key_filter(convention_column, is_negated)
+            legacy_filter = self._device_class_unknown_key_filter(legacy_column, is_negated)
+            combine_with_and = not is_negated
+        else:
+            convention_filter = self._device_class_raw_key_filter(
+                term, convention_column, raw_values
+            )
+            legacy_filter = self._device_class_raw_key_filter(term, legacy_column, raw_values)
+            combine_with_and = is_negated
+
+        combined = (
+            and_trace_item_filters(convention_filter, legacy_filter)
+            if combine_with_and
+            else or_trace_item_filters(convention_filter, legacy_filter)
+        )
+        return combined if combined is not None else convention_filter
+
+    def _validate_device_class_filter_value(
+        self,
+        term: event_search.SearchFilter,
+        context_definition: VirtualColumnDefinition,
+    ) -> None:
+        """Reject unrecognized device.class labels before dual-read remapping."""
+        context = context_definition.constructor(self.params, self)
+        allowed_labels = set(context.value_map.values())
+        if context.default_value:
+            allowed_labels.add(context.default_value)
+
+        values = term.value.value
+        candidates = values if isinstance(values, list) else [values]
+        for candidate in candidates:
+            if candidate not in allowed_labels and str(candidate) not in context.value_map:
+                valid_values = sorted(allowed_labels)[:5]
+                if len(allowed_labels) > 5:
+                    valid_values.append("...")
+                raise InvalidSearchQuery(
+                    constants.REVERSE_CONTEXT_ERROR.format(
+                        candidate, term.key.name, ", ".join(valid_values)
+                    )
+                )
+
+    def _device_class_known_codes(self) -> list[str]:
+        return sorted({code for values in DEVICE_CLASS.values() for code in values})
+
+    def _device_class_unknown_key_filter(
+        self,
+        column: ResolvedAttribute,
+        is_negated: bool,
+    ) -> TraceItemFilter:
+        """Unknown on one storage key: not a known class code (or the inverse)."""
+        known_codes = self._device_class_known_codes()
+        # !Unknown → key IN known codes; Unknown → key NOT IN known codes.
+        # Missing attributes satisfy NOT IN, so empty/missing count as Unknown.
+        operator = "IN" if is_negated else "NOT IN"
+        return TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=column.proto_definition,
+                op=constants.OPERATOR_MAP[operator],
+                value=self._resolve_search_value(column, operator, known_codes),
+            )
+        )
+
+    def _device_class_raw_key_filter(
+        self,
+        term: event_search.SearchFilter,
+        column: ResolvedAttribute,
+        raw_values: str | int | list[str],
+    ) -> TraceItemFilter:
+        """Build a filter on a raw device-class storage key using remapped codes."""
+        if term.operator not in constants.OPERATOR_MAP:
+            raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
+        operator = constants.OPERATOR_MAP[term.operator]
+
+        comparison = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=column.proto_definition,
+                op=operator,
+                value=self._resolve_search_value(column, term.operator, raw_values),
+                ignore_case=self.params.case_insensitive and column.search_type == "string",
+            )
+        )
+
+        # Bare != / NOT IN do not match missing attributes in EAP. For dual-read
+        # negation we AND both keys, so a missing key must still satisfy its side:
+        # (NOT exists(key)) OR (key != / NOT IN value).
+        if term.operator in ("!=", "NOT IN"):
+            not_exists = TraceItemFilter(
+                not_filter=NotFilter(
+                    filters=[
+                        TraceItemFilter(exists_filter=ExistsFilter(key=column.proto_definition))
+                    ]
+                )
+            )
+            combined = or_trace_item_filters(not_exists, comparison)
+            return combined if combined is not None else comparison
+
+        return comparison
 
     def _resolve_term(
         self, term: event_search.SearchFilter

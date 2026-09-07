@@ -363,3 +363,33 @@ def test_field_to_missing_attribute_keeps_existing_value() -> None:
     item = convert_span_to_item(cast(CompatibleSpan, message))
 
     assert item.attributes.get("sentry.status") == AnyValue(string_value="ok")
+
+
+def test_device_class_convention_dual_writes_legacy_key() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"]["device.class"] = {"type": "string", "value": "3"}  # type: ignore[index]
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.attributes.get("device.class") == AnyValue(string_value="3")
+    assert item.attributes.get("sentry.device.class") == AnyValue(string_value="3")
+
+
+def test_device_class_legacy_dual_writes_convention_key() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"]["sentry.device.class"] = {"type": "string", "value": "2"}  # type: ignore[index]
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.attributes.get("device.class") == AnyValue(string_value="2")
+    assert item.attributes.get("sentry.device.class") == AnyValue(string_value="2")
+
+
+def test_device_class_integer_coerced_to_string() -> None:
+    message: SpanEvent = copy.deepcopy(SPAN_KAFKA_MESSAGE)
+    message["attributes"]["device.class"] = {"type": "integer", "value": 3}  # type: ignore[index]
+
+    item = convert_span_to_item(cast(CompatibleSpan, message))
+
+    assert item.attributes.get("device.class") == AnyValue(string_value="3")
+    assert item.attributes.get("sentry.device.class") == AnyValue(string_value="3")
