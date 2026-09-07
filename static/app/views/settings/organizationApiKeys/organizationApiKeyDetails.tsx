@@ -3,15 +3,12 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -41,7 +38,6 @@ type ApiKeyFormValues = z.infer<typeof apiKeySchema>;
 function OrganizationApiKeyDetails() {
   const organization = useOrganization();
   const params = useParams<RouteParams>();
-  const navigate = useNavigate();
   const {
     data: apiKey,
     isPending,
@@ -69,11 +65,7 @@ function OrganizationApiKeyDetails() {
     <div>
       <SentryDocumentTitle title={t('Edit API Key')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Edit API Key')} />
-      <OrganizationApiKeyForm
-        apiKey={apiKey}
-        organizationSlug={organization.slug}
-        onCancel={() => navigate(`/settings/${organization.slug}/api-keys/`)}
-      />
+      <OrganizationApiKeyForm apiKey={apiKey} organizationSlug={organization.slug} />
     </div>
   );
 }
@@ -81,12 +73,12 @@ function OrganizationApiKeyDetails() {
 function OrganizationApiKeyForm({
   apiKey,
   organizationSlug,
-  onCancel,
 }: {
   apiKey: DeprecatedApiKey;
-  onCancel: () => void;
   organizationSlug: string;
 }) {
+  const navigate = useNavigate();
+  const handleCancel = () => navigate(`/settings/${organizationSlug}/api-keys/`);
   const mutation = useMutation({
     mutationFn: (data: ApiKeyFormValues) =>
       fetchMutation<DeprecatedApiKey>({
@@ -96,7 +88,7 @@ function OrganizationApiKeyForm({
       }),
     onSuccess: () => {
       addSuccessMessage('Saved changes');
-      onCancel();
+      handleCancel();
     },
     onError: () => {
       addErrorMessage('Unable to save changes. Please try again.');
@@ -117,31 +109,30 @@ function OrganizationApiKeyForm({
 
   return (
     <form.AppForm form={form}>
-      <Panel>
-        <PanelHeader>{t('API Key')}</PanelHeader>
-        <PanelBody>
-          <Stack gap="lg">
-            <form.AppField name="label">
-              {field => (
-                <field.Layout.Row label={t('Label')}>
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="key">
-              {field => (
-                <field.Layout.Row label={t('API Key')}>
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <form.AppField name="scope_list">
-              {field => (
-                <field.Layout.Stack label={t('Scopes')} required>
+      <form.FieldGroup title={t('API Key')}>
+        <form.AppField name="label">
+          {field => (
+            <field.Layout.Row label={t('Label')}>
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="key">
+          {field => (
+            <field.Layout.Row label={t('API Key')}>
+              <field.Input
+                value={field.state.value}
+                onChange={field.handleChange}
+                disabled
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="scope_list">
+          {field => (
+            <field.Layout.Stack label={t('Scopes')} required>
+              <Flex align="center" gap="sm">
+                <Container flexGrow={1}>
                   <MultipleCheckbox
                     value={field.state.value}
                     onChange={value => field.handleChange(scopeListSchema.parse(value))}
@@ -153,30 +144,33 @@ function OrganizationApiKeyForm({
                       </MultipleCheckbox.Item>
                     ))}
                   </MultipleCheckbox>
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="allowed_origins">
-              {field => (
-                <field.Layout.Row
-                  label={t('Allowed Domains')}
-                  hintText={t('Separate multiple entries with a newline')}
-                >
-                  <field.TextArea
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder={t('e.g. example.com or https://example.com')}
-                  />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
-            <Flex gap="sm" justify="end">
-              <Button onClick={onCancel}>{t('Cancel')}</Button>
-              <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
-            </Flex>
-          </Stack>
-        </PanelBody>
-      </Panel>
+                </Container>
+                <Flex flexShrink={0}>
+                  <field.Meta.Status />
+                </Flex>
+              </Flex>
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="allowed_origins">
+          {field => (
+            <field.Layout.Row
+              label={t('Allowed Domains')}
+              hintText={t('Separate multiple entries with a newline')}
+            >
+              <field.TextArea
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('e.g. example.com or https://example.com')}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <Flex gap="sm" justify="end">
+          <Button onClick={handleCancel}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+        </Flex>
+      </form.FieldGroup>
     </form.AppForm>
   );
 }

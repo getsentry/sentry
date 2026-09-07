@@ -59,4 +59,30 @@ describe('OrganizationApiKeyDetails', () => {
       )
     );
   });
+
+  it('requires at least one scope', async () => {
+    const updateRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/api-keys/${apiKey.id}/`,
+      method: 'PUT',
+      body: apiKey,
+    });
+
+    render(<OrganizationApiKeyDetails />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/org-slug/api-keys/${apiKey.id}/`,
+        },
+        route: '/settings/:orgId/api-keys/:apiKey/',
+      },
+    });
+
+    await screen.findByRole('textbox', {name: 'API Key'});
+    for (const checkbox of screen.getAllByRole('checkbox', {checked: true})) {
+      await userEvent.click(checkbox);
+    }
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByText('At least one scope is required')).toBeInTheDocument();
+    expect(updateRequest).not.toHaveBeenCalled();
+  });
 });
