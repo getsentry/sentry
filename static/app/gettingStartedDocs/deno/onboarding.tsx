@@ -1,5 +1,6 @@
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t} from 'sentry/locale';
 
 export const onboarding: OnboardingConfig = {
@@ -57,6 +58,10 @@ Sentry.init({
         },
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/deno/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

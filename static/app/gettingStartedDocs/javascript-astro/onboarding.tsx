@@ -7,6 +7,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {installSnippetBlock} from './utils';
@@ -23,13 +24,7 @@ function getServerConfigSnippet(params: DocsParams) {
 import * as Sentry from "@sentry/astro";
 
 Sentry.init({
-  dsn: "${params.dsn.public}",
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${performanceConfig}
+  dsn: "${params.dsn.public}",${performanceConfig}
 });
 `;
 }
@@ -71,13 +66,7 @@ ${integrations.join('\n')}
 import * as Sentry from "@sentry/astro";
 
 Sentry.init({
-  dsn: "${params.dsn.public}",
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${integrationsConfig}${performanceConfig}${replaySampleRates}
+  dsn: "${params.dsn.public}",${integrationsConfig}${performanceConfig}${replaySampleRates}
 });
 `;
 }
@@ -253,6 +242,10 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection',
+    }),
   ],
   verify: params => [
     {

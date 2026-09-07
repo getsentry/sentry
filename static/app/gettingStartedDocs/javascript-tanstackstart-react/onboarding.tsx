@@ -2,6 +2,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 export const onboarding: OnboardingConfig = {
@@ -69,40 +70,34 @@ export const onboarding: OnboardingConfig = {
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${
-    params.isReplaySelected
-      ? `
+${
+  params.isReplaySelected
+    ? `
 
   integrations: [
     Sentry.replayIntegration(),
   ],`
-      : ''
-  }${
-    params.isPerformanceSelected
-      ? `
+    : ''
+}${
+                params.isPerformanceSelected
+                  ? `
 
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
+                  : ''
+              }${
+                params.isReplaySelected
+                  ? `
 
   // Capture Replay for 10% of all sessions,
   // plus for 100% of sessions with an error.
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,`
-      : ''
-  }
+                  : ''
+              }
 });`,
             },
           ],
@@ -200,23 +195,17 @@ export const getRouter = () => {
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },${
-    params.isPerformanceSelected
-      ? `
+${
+  params.isPerformanceSelected
+    ? `
 
   // Set tracesSampleRate to 1.0 to capture 100%
   // of transactions for tracing.
   // We recommend adjusting this value in production.
   // Learn more at https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
   tracesSampleRate: 1.0,`
-      : ''
-  }
+    : ''
+}
 });`,
             },
           ],
@@ -520,6 +509,10 @@ const route = createRoute({
       ],
       collapsible: true,
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/configuration/options/#dataCollection',
+    }),
   ],
   verify: params => [
     {

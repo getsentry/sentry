@@ -3,6 +3,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -63,6 +64,10 @@ export const onboarding: OnboardingConfig = {
         },
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/bun/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

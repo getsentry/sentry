@@ -4,12 +4,15 @@ import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
+  OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
   eveOnboarding,
+  getAgentConfigureSteps,
+  getAgentDataCollectionStep,
   getAgentIntegration,
   getInstallStep,
   getManualConfigureStep,
@@ -82,11 +85,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  dataCollection: {
-    // Control data collection of LLMs and tools.
-    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-    // genAI: { inputs: false, outputs: false },
-  },
 });`,
         },
       ],
@@ -371,6 +369,68 @@ export function agentMonitoring({
   packageName?: `@sentry/${string}`;
   serverConfigFileName?: string;
 } = {}): OnboardingConfig {
+  // Every branch returns the steps for one integration. The data collection step
+  // is appended once around them, so no branch can miss it or repeat it. Branches
+  // that reuse the Node setup call the step-free `getAgentConfigureSteps`.
+  const configureSteps = (params: DocsParams): OnboardingStep[] => {
+    const selected = getAgentIntegration(params);
+
+    // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
+    // Flue is likewise a server-side framework (with its own blueprint setup).
+    // Both reuse the Node.js instructions rather than the client-side config below.
+    // These options are only available in meta frameworks.
+    if (selected === AgentIntegration.VERCEL_AI || selected === AgentIntegration.FLUE) {
+      return getAgentConfigureSteps(params, {
+        packageName,
+        configFileName: serverConfigFileName,
+      });
+    }
+
+    const importMode = 'esm-only';
+
+    if (selected === AgentIntegration.MANUAL) {
+      return getManualConfigureStep(params, {
+        packageName,
+        importMode,
+        configFileName: clientConfigFileName,
+      });
+    }
+
+    if (selected === AgentIntegration.MASTRA) {
+      return mastraOnboarding.configure(params);
+    }
+
+    // Eve is a Node/server-side framework, so it reuses the Node setup.
+    if (selected === AgentIntegration.EVE) {
+      return eveOnboarding.configure(params);
+    }
+
+    // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers.
+    // Selecting either pins the runtime to Cloudflare, so reuse the Node
+    // package's Cloudflare setup instead of the browser init flow.
+    if (
+      selected === AgentIntegration.WORKERS_AI ||
+      selected === AgentIntegration.CLOUDFLARE_AGENTS
+    ) {
+      return getAgentConfigureSteps(params, {
+        packageName,
+        configFileName: serverConfigFileName,
+      });
+    }
+
+    return [
+      {
+        title: t('Configure'),
+        content: getClientSideConfig({
+          integration: selected,
+          sentryImport: getImport(packageName, importMode).join('\n'),
+          params,
+          configFileName: clientConfigFileName,
+        }),
+      },
+    ];
+  };
+
   return {
     introduction: params => (
       <SdkUpdateAlert
@@ -384,64 +444,10 @@ export function agentMonitoring({
         packageName,
         minVersion: MIN_REQUIRED_VERSION,
       }),
-    configure: params => {
-      const selected = getAgentIntegration(params);
-
-      // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
-      // Flue is likewise a server-side framework (with its own blueprint setup).
-      // Both reuse the Node.js instructions rather than the client-side config below.
-      // These options are only available in meta frameworks.
-      if (selected === AgentIntegration.VERCEL_AI || selected === AgentIntegration.FLUE) {
-        return nodeAgentMonitoring({
-          packageName,
-          configFileName: serverConfigFileName,
-        }).configure(params);
-      }
-
-      const importMode = 'esm-only';
-
-      if (selected === AgentIntegration.MANUAL) {
-        return getManualConfigureStep(params, {
-          packageName,
-          importMode,
-          configFileName: clientConfigFileName,
-        });
-      }
-
-      if (selected === AgentIntegration.MASTRA) {
-        return mastraOnboarding.configure(params);
-      }
-
-      // Eve is a Node/server-side framework, so it reuses the Node setup.
-      if (selected === AgentIntegration.EVE) {
-        return eveOnboarding.configure(params);
-      }
-
-      // Workers AI and the Cloudflare Agents SDK only run on Cloudflare Workers.
-      // Selecting either pins the runtime to Cloudflare, so reuse the Node
-      // package's Cloudflare setup instead of the browser init flow.
-      if (
-        selected === AgentIntegration.WORKERS_AI ||
-        selected === AgentIntegration.CLOUDFLARE_AGENTS
-      ) {
-        return nodeAgentMonitoring({
-          packageName,
-          configFileName: serverConfigFileName,
-        }).configure(params);
-      }
-
-      return [
-        {
-          title: t('Configure'),
-          content: getClientSideConfig({
-            integration: selected,
-            sentryImport: getImport(packageName, importMode).join('\n'),
-            params,
-            configFileName: clientConfigFileName,
-          }),
-        },
-      ];
-    },
+    configure: params => [
+      ...configureSteps(params),
+      ...getAgentDataCollectionStep(params),
+    ],
     verify: params => {
       const selected = getAgentIntegration(params);
 
