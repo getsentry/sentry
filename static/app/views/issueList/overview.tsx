@@ -273,7 +273,7 @@ function IssueListOverviewInner({
     }
 
     const groupStatsPeriod = getGroupStatsPeriod();
-    if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
+    if (groupStatsPeriod !== '24h') {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
