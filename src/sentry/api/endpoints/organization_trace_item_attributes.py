@@ -25,8 +25,6 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    ExistsFilter,
-    OrFilter,
     TraceItemFilter,
 )
 
@@ -85,10 +83,12 @@ from sentry.search.eap.types import (
 from sentry.search.eap.utils import (
     can_expose_attribute,
     can_expose_attribute_to_api,
+    check_attribute_names_exist,
     get_deprecated_source_internal_names,
     get_secondary_aliases,
     is_internal_sentry_convention_attribute,
     is_sentry_convention_replacement_attribute,
+    serialize_search_type,
     translate_internal_to_public_alias,
 )
 from sentry.search.events.constants import (
@@ -217,8 +217,8 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     type=str,
     enum=["context"],
     # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is the ``exclude_fields=["context"]``
-    # on ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
+    # is still evolving. The matching half is ``omit_from_public_schema`` on
+    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
     exclude=True,
     description=(
         "Optional fields to expand. Pass `context` to include attribute metadata "
@@ -676,6 +676,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
             DATASET_QUERY_PARAM,
             ITEM_TYPE_QUERY_PARAM,
             ATTRIBUTE_TYPE_QUERY_PARAM,
@@ -1096,6 +1098,11 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
+        supports_arrays = features.has(
+            "organizations:trace-item-array-query-support",
+            organization,
+            actor=request.user,
+        )
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
         # Dataset is going to replace item_type
@@ -1116,6 +1123,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
                 limit=limit,
                 offset=offset,
                 definitions=definitions,
+                supports_arrays=supports_arrays,
             )
 
             with handle_query_errors():
@@ -1150,15 +1158,19 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         limit: int,
         offset: int,
         definitions: ColumnDefinitions,
+        supports_arrays: bool = False,
     ):
         self.organization = organization
         self.snuba_params = snuba_params
+        self.supports_arrays = supports_arrays
         self.key = key
         self.query = query or ""
         self.limit = limit
         self.offset = offset
         self.resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=definitions
+            params=snuba_params,
+            config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
+            definitions=definitions,
         )
         self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
             key
@@ -1198,6 +1210,13 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         if self.search_type == "string":
             return self.string_autocomplete_function()
+
+        # Autocomplete values for array attributes (string-typed arrays)
+        if self.search_type == "array" and self.supports_arrays:
+            array_key = AttributeKey(
+                name=self.attribute_key.name, type=AttributeKey.Type.TYPE_ARRAY_STRING
+            )
+            return self.string_autocomplete_function(key=array_key)
 
         return []
 
@@ -1390,7 +1409,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             ),
         ]
 
-    def string_autocomplete_function(self) -> list[TagValue]:
+    def string_autocomplete_function(self, key: AttributeKey | None = None) -> list[TagValue]:
         adjusted_start_date, adjusted_end_date = adjust_start_end_window(
             self.snuba_params.start_date, self.snuba_params.end_date
         )
@@ -1405,7 +1424,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         meta = self.resolver.resolve_meta(referrer=Referrer.API_SPANS_TAG_VALUES_RPC.value)
         rpc_request = TraceItemAttributeValuesRequest(
             meta=meta,
-            key=self.attribute_key,
+            key=key if key is not None else self.attribute_key,
             value_substring_match=query,
             limit=self.limit,
             page_token=PageToken(offset=self.offset),
@@ -1467,53 +1486,6 @@ class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serialize
     )
 
 
-def serialize_type(search_type: constants.SearchType) -> str:
-    proto_type = constants.TYPE_MAP.get(search_type)
-    if proto_type == constants.STRING:
-        return "string"
-    if proto_type == constants.BOOLEAN:
-        return "boolean"
-    # DOUBLE, INT, or anything else numeric
-    return "number"
-
-
-def _check_attributes_by_type(
-    meta: RequestMeta,
-    attr_type: AttributeKey.Type.ValueType,
-    names: list[str],
-) -> set[tuple[AttributeKey.Type.ValueType, str]]:
-    """Check which typed attribute names exist in storage for the active window."""
-    if not names:
-        return set()
-
-    requested_names = set(names)
-    names_request = TraceItemAttributeNamesRequest(
-        meta=meta,
-        limit=10000,
-        type=attr_type,
-        intersecting_attributes_filter=TraceItemFilter(
-            or_filter=OrFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
-                    )
-                    for name in requested_names
-                ]
-            )
-        ),
-    )
-    names_response = snuba_rpc.attribute_names_rpc(names_request)
-    return {
-        (attr_type, attribute.name)
-        for attribute in names_response.attributes
-        if attribute.name in requested_names
-    }
-
-
-# We want to limit the number of threads to the number of attribute types to avoid overwhelming the RPC server.
-MAX_ATTRIBUTE_VALIDATION_THREADS = 3
-
-
 def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
@@ -1528,19 +1500,7 @@ def _check_attributes_exist(
         item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
     )
 
-    found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
-    with ContextPropagatingThreadPoolExecutor(
-        thread_name_prefix="attr_validate",
-        max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
-    ) as pool:
-        futures = [
-            pool.submit(_check_attributes_by_type, meta, attr_type, names)
-            for attr_type, names in attrs_by_type.items()
-        ]
-        for future in futures:
-            found.update(future.result())
-
-    return found
+    return check_attribute_names_exist(meta, attrs_by_type)
 
 
 @cell_silo_endpoint
@@ -1591,7 +1551,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                     # Known column or virtual context — always valid
                     results[attr_name] = {
                         "valid": True,
-                        "type": serialize_type(resolved.search_type),
+                        "type": serialize_search_type(resolved.search_type),
                     }
                 else:
                     # User tag — need to verify it exists in storage
@@ -1616,7 +1576,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                 if (resolved.proto_type, resolved.internal_name) in existing:
                     results[attr_name] = {
                         "valid": True,
-                        "type": serialize_type(resolved.search_type),
+                        "type": serialize_search_type(resolved.search_type),
                     }
                 else:
                     results[attr_name] = {

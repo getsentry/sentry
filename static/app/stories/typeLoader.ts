@@ -2,6 +2,32 @@ import * as docgen from 'react-docgen-typescript';
 import type {LoaderContext} from '@rspack/core';
 import * as typescript from 'typescript';
 
+// Numeric suffixes depend on parse order, so emitting these props changes chunk hashes.
+const TYPESCRIPT_SYNTHETIC_PROPERTY = /^__@[^@]+@\d+$/;
+// react-docgen-typescript returns checkout-specific absolute paths in these fields.
+const FILE_PATH_PROPERTIES = new Set(['fileName', 'filePath']);
+
+type Contextify = LoaderContext['utils']['contextify'];
+
+function isDocumentedProp(prop: {name: string}): boolean {
+  return !TYPESCRIPT_SYNTHETIC_PROPERTY.test(prop.name);
+}
+
+function serializeTypeLoaderResult(
+  result: TypeLoader.TypeLoaderResult,
+  rootContext: string,
+  contextify: Contextify
+): string {
+  // Docgen nests absolute paths throughout its output, so normalize them during serialization.
+  return JSON.stringify(result, (key, value) => {
+    if (FILE_PATH_PROPERTIES.has(key) && typeof value === 'string') {
+      return contextify(rootContext, value);
+    }
+
+    return value;
+  });
+}
+
 function extractModuleExports(
   program: typescript.Program,
   sourceFile: typescript.SourceFile | undefined
@@ -50,56 +76,35 @@ function extractModuleExports(
 }
 
 function extractComponentProps(
-  moduleContext: LoaderContext<any>['_module'],
   resourcePath: string
-): Record<string, TypeLoader.ComponentDocWithFilename> {
+): Record<string, TypeLoader.ComponentDoc> {
   const componentProps = docgen.parse(resourcePath, {
     shouldExtractLiteralValuesFromEnum: true,
-    // componentNameResolver?: ComponentNameResolver;
-    // shouldRemoveUndefinedFromOptional?: boolean;
     shouldExtractValuesFromUnion: true,
     savePropValueAsString: true,
     shouldRemoveUndefinedFromOptional: true,
     skipChildrenPropWithoutDoc: false, // ensure props.children are included in the types
-    // savePropValueAsString?: boolean;
-    // shouldIncludePropTagMap?: boolean;
-    // shouldIncludeExpression: true, // enabling this causes circular expression errors when attempting to serialize to JSON
-    // customComponentTypes?: string[];
+    propFilter: isDocumentedProp,
   });
 
   return Object.fromEntries(
     componentProps
       .filter(entry => entry.displayName && typeof entry.displayName === 'string')
-      .map(entry => {
-        const module = extractRequest(moduleContext);
-        return [
-          entry.displayName,
-          {
-            ...entry,
-            filename: resourcePath,
-            module,
-          },
-        ];
-      })
+      .map(entry => [entry.displayName, entry])
   );
 }
 
-/**
- * Extracts documentation from the modules by running the TS compiler and serializing the types
- *
- * @param {LoaderContext<any>} this loader context
- * @param {string} source source file as string
- * @returns {void}
- */
-function prodTypeloader(this: LoaderContext<any>, _source: string) {
-  const callback = this.async();
-
+function prodTypeLoader(this: LoaderContext): string {
   const program = typescript.createProgram([this.resourcePath], {});
   const sourceFile = program.getSourceFile(this.resourcePath);
 
-  const module = extractRequest(this._module);
+  const module = extractRequest(
+    this.resourcePath,
+    this.rootContext,
+    this.utils.contextify
+  );
 
-  const moduleProps = extractComponentProps(this._module, this.resourcePath);
+  const moduleProps = extractComponentProps(this.resourcePath);
   const moduleExports = extractModuleExports(program, sourceFile);
 
   const typeLoaderResult: TypeLoader.TypeLoaderResult = {
@@ -109,31 +114,31 @@ function prodTypeloader(this: LoaderContext<any>, _source: string) {
       exports: moduleExports,
     },
   };
-  return callback(null, `export default ${JSON.stringify(typeLoaderResult)}`);
+  return `export default ${serializeTypeLoaderResult(
+    typeLoaderResult,
+    this.rootContext,
+    this.utils.contextify
+  )}`;
 }
 
-function noopTypeLoader(this: LoaderContext<any>, _source: string) {
-  const callback = this.async();
-  return callback(null, 'export default {props: {},exports: {}}');
-}
-
-export default function typeLoader(this: LoaderContext<any>, _source: string) {
+export default function typeLoader(this: LoaderContext): string {
   // Allow acceptance tests to opt out of type-loader for performance reasons
-  const STORYBOOK_TYPES = process.env.IS_ACCEPTANCE_TEST !== '1';
-
-  return STORYBOOK_TYPES
-    ? prodTypeloader.call(this, _source)
-    : noopTypeLoader.call(this, _source);
+  return process.env.IS_ACCEPTANCE_TEST === '1'
+    ? 'export default {props: {},exports: {}}'
+    : prodTypeLoader.call(this);
 }
 
-function extractRequest(module: LoaderContext<any>['_module']) {
-  if (!module || !('rawRequest' in module) || typeof module.rawRequest !== 'string') {
-    return '';
-  }
+// Convert the resource path to the canonical import shown in API docs.
+function extractRequest(
+  resourcePath: string,
+  rootContext: string,
+  contextify: Contextify
+): string {
+  let modulePath = contextify(rootContext, resourcePath)
+    .replace(/^\.\/app\/components\/core\//, '@sentry/scraps/')
+    .replace(/^\.\/app\//, 'sentry/')
+    .replace(/\.[cm]?[jt]sx?$/, '');
 
-  let modulePath = module.rawRequest.split('!')?.at(-1) ?? '';
-
-  // @TODO: if we ever build on Windows, this will break... we should hopefully never need to build on Windows
   if (modulePath.endsWith('/index')) {
     modulePath = modulePath.slice(0, -6);
   }

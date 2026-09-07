@@ -13,12 +13,6 @@ import * as Sentry from "@sentry/bun";
 
 Sentry.init({
   dsn: "${params.dsn.public}",${
-    params.isLogsSelected
-      ? `
-  // Send structured logs to Sentry
-  enableLogs: true,`
-      : ''
-  }${
     params.isPerformanceSelected
       ? `
   // Tracing

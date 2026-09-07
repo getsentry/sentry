@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSettings} from 'sentry/icons';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
@@ -55,6 +56,14 @@ type Props = {
   subscription: Subscription;
   isLoading?: boolean;
 };
+
+const SPIKE_COLUMNS: TableColumnConfig[] = [
+  {key: 'time', width: 'auto'},
+  {key: 'threshold', width: 'auto'},
+  {key: 'duration', width: 'auto'},
+  {key: 'dropped', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 function EnableSpikeProtectionButton({
   onEnableSpikeProtection,
@@ -130,58 +139,62 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             (millisecondsPerSecond * secondsPerMinute)
         ) * secondsPerMinute
       : null;
-    return [
-      <SpikeProtectionTimeDetails spike={spike} key="time" />,
-      <Flex align="center" key="threshold">
-        {defined(spike.threshold)
-          ? formatUsageWithUnits(
-              spike.threshold,
-              dataCategoryInfo.plural,
-              getFormatUsageOptions(dataCategoryInfo.plural)
-            )
-          : '-'}
-      </Flex>,
-      <Flex align="center" key="duration">
-        {duration ? getExactDuration(duration, true) : t('Ongoing')}
-      </Flex>,
-      <Flex align="center" key="dropped">
-        {spike.dropped
-          ? formatUsageWithUnits(
-              spike.dropped,
-              dataCategoryInfo.plural,
-              getFormatUsageOptions(dataCategoryInfo.plural)
-            )
-          : '-'}
-      </Flex>,
-      <Flex align="center" justify="end" key="discover-button">
-        <DiscoverButton
-          icon={<IconTelescope size="sm" />}
-          data-test-id="spike-protection-discover-button"
-          onClick={() =>
-            trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_DISCOVER_CLICKED, {
-              organization,
-              subscription,
-              view: 'project_stats',
-            })
-          }
-          to={{
-            pathname: makeDiscoverPathname({
-              organization,
-              path: '/homepage/',
-            }),
-            query: {
-              project: [project.id],
-              start: decodeScalar(spike.start),
-              end: decodeScalar(spike.end),
-            },
-          }}
-        >
-          {getDiscoverDeprecation(organization)
-            ? t('Open in Explore')
-            : t('Open in Discover')}
-        </DiscoverButton>
-      </Flex>,
-    ];
+    return (
+      <SimpleTable.Row key={spike.start}>
+        <SimpleTable.RowCell>
+          <SpikeProtectionTimeDetails spike={spike} />
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          {defined(spike.threshold)
+            ? formatUsageWithUnits(
+                spike.threshold,
+                dataCategoryInfo.plural,
+                getFormatUsageOptions(dataCategoryInfo.plural)
+              )
+            : '-'}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          {duration ? getExactDuration(duration, true) : t('Ongoing')}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell>
+          {spike.dropped
+            ? formatUsageWithUnits(
+                spike.dropped,
+                dataCategoryInfo.plural,
+                getFormatUsageOptions(dataCategoryInfo.plural)
+              )
+            : '-'}
+        </SimpleTable.RowCell>
+        <SimpleTable.RowCell justify="end">
+          <DiscoverButton
+            icon={<IconTelescope size="sm" />}
+            data-test-id="spike-protection-discover-button"
+            onClick={() =>
+              trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_DISCOVER_CLICKED, {
+                organization,
+                subscription,
+                view: 'project_stats',
+              })
+            }
+            to={{
+              pathname: makeDiscoverPathname({
+                organization,
+                path: '/homepage/',
+              }),
+              query: {
+                project: [project.id],
+                start: decodeScalar(spike.start),
+                end: decodeScalar(spike.end),
+              },
+            }}
+          >
+            {getDiscoverDeprecation(organization)
+              ? t('Open in Explore')
+              : t('Open in Discover')}
+          </DiscoverButton>
+        </SimpleTable.RowCell>
+      </SimpleTable.Row>
+    );
   }
 
   renderEmptyMessage() {
@@ -239,9 +252,18 @@ class SpikeProtectionHistoryTable extends Component<Props> {
     }
 
     return (
-      <PanelTable headers={this.headers}>
+      <SimpleTable
+        columns={SPIKE_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            {this.headers.map((header, i) => (
+              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {spikes.map(spike => this.renderSpikeRow(spike))}
-      </PanelTable>
+      </SimpleTable>
     );
   }
 

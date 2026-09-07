@@ -187,20 +187,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             )
             assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
-    def test_without_feature_flag(self) -> None:
-        with self.feature({"organizations:incidents": False}):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **self.valid_data,
-                status_code=400,
-            )
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="Unable to process request, confirm payment options.", code="error"
-            )
-        }
-
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
         """
         Creating a metric detector should be blocked when the org lacks

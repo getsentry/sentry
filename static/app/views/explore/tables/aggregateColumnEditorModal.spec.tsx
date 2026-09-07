@@ -1,19 +1,26 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
+import type {
+  AggregateField,
+  WritableAggregateField,
+} from 'sentry/views/explore/queryParams/aggregateField';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 
@@ -72,6 +79,28 @@ const booleanTags: TagCollection = {
 };
 
 describe('AggregateColumnEditorModal', () => {
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      method: 'GET',
+      body: [
+        {attributeType: 'string', key: 'span.op', name: 'span.op'},
+        {attributeType: 'number', key: 'span.duration', name: 'span.duration'},
+        {attributeType: 'number', key: 'span.self_time', name: 'span.self_time'},
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+  });
+
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
 
@@ -387,6 +416,134 @@ describe('AggregateColumnEditorModal', () => {
       {yAxes: ['count(span.duration)']},
       {yAxes: ['equation|avg(tags[foo,number]) * 5']},
     ]);
+  });
+
+  describe('conditional aggregates', () => {
+    const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
+
+    const organizationWithConditionalAggregates = OrganizationFixture({
+      features: ['explore-conditional-aggregates'],
+    });
+
+    function renderModal({
+      columns,
+      onColumnsChange = jest.fn(),
+      organization,
+    }: {
+      columns: AggregateField[];
+      onColumnsChange?: (columns: WritableAggregateField[]) => void;
+      organization?: Organization;
+    }) {
+      renderGlobalModal({organization});
+
+      act(() => {
+        openModal(
+          modalProps => (
+            <AggregateColumnEditorModal
+              {...modalProps}
+              columns={columns}
+              onColumnsChange={onColumnsChange}
+              stringTags={stringTags}
+              numberTags={numberTags}
+              booleanTags={booleanTags}
+            />
+          ),
+          {onClose: jest.fn()}
+        );
+      });
+    }
+
+    it('hides the series filter without the feature', async () => {
+      renderModal({columns: [new VisualizeFunction('count(span.duration)')]});
+
+      expect(await screen.findByTestId('editor-visualize-function')).toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+      ).not.toBeInTheDocument();
+    });
+
+    it('turns a series filter into an _if aggregate', async () => {
+      const onColumnsChange = jest.fn();
+
+      renderModal({
+        columns: [
+          {groupBy: 'geo.country'},
+          new VisualizeFunction('count(span.duration)'),
+        ],
+        onColumnsChange,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+      await userEvent.click(filterInput);
+      await userEvent.paste('span.op:db');
+      await userEvent.keyboard('{Enter}');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      expect(onColumnsChange).toHaveBeenCalledWith([
+        {groupBy: 'geo.country'},
+        {yAxes: ['count_if(`span.op:db`,span.duration)']},
+      ]);
+    });
+
+    it('renders an existing _if aggregate as its base aggregate and filter', async () => {
+      renderModal({
+        columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const row = await screen.findByTestId('editor-row');
+      expect(within(row).getByTestId('editor-visualize-function')).toHaveTextContent(
+        'Functionavg'
+      );
+      // The filter query is not mistaken for the aggregate's attribute.
+      expect(within(row).getByTestId('editor-visualize-argument')).toHaveTextContent(
+        'span.duration'
+      );
+      expect(within(row).getByText('span.op')).toBeInTheDocument();
+    });
+
+    it('keeps the filter when the attribute changes', async () => {
+      const onColumnsChange = jest.fn();
+
+      renderModal({
+        columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
+        onColumnsChange,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const argument = await screen.findByTestId('editor-visualize-argument');
+      await userEvent.click(within(argument).getByRole('button'));
+      await userEvent.click(await screen.findByRole('option', {name: 'span.self_time'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      expect(onColumnsChange).toHaveBeenCalledWith([
+        {yAxes: ['avg_if(`span.op:db`,span.self_time)']},
+      ]);
+    });
+
+    it('drops the filter when switching to an aggregate that cannot be filtered', async () => {
+      const onColumnsChange = jest.fn();
+
+      renderModal({
+        columns: [new VisualizeFunction('avg_if(`span.op:db`,span.duration)')],
+        onColumnsChange,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      const func = await screen.findByTestId('editor-visualize-function');
+      await userEvent.click(within(func).getByRole('button'));
+      await userEvent.click(await screen.findByRole('option', {name: 'epm'}));
+
+      await waitFor(() => {
+        expect(
+          screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+        ).not.toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      expect(onColumnsChange).toHaveBeenCalledWith([{yAxes: ['epm()']}]);
+    });
   });
 });
 

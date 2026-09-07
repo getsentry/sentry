@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
@@ -135,7 +135,8 @@ def _unfurl_discover(
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration.id
+        integration_id=integration.id,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     organizations = Organization.objects.filter(
         id__in=[oi.organization_id for oi in org_integrations]
@@ -175,7 +176,11 @@ def _unfurl_discover(
             params.getlist("sort")
             or (to_list(saved_query["orderby"]) if saved_query.get("orderby") else []),
         )
-        params.setlist("name", params.getlist("name") or to_list(saved_query.get("name")))
+        params.setlist(
+            "name",
+            params.getlist("name")
+            or (to_list(saved_query["name"]) if saved_query.get("name") else []),
+        )
 
         query_dataset = saved_query.get("queryDataset")
         if query_dataset is not None:
@@ -188,14 +193,16 @@ def _unfurl_discover(
             or (to_list(saved_query_dataset) if saved_query_dataset else []),
         )
 
-        fields = params.getlist("field") or to_list(saved_query.get("fields"))
+        fields = params.getlist("field") or (
+            to_list(saved_query["fields"]) if saved_query.get("fields") else []
+        )
         # Mimic Discover to pick the first aggregate as the yAxis option if
         # one isn't specified.
         axis_options = [field for field in fields if is_aggregate(field)] + [DEFAULT_AXIS_OPTION]
         params.setlist(
             "yAxis", params.getlist("yAxis") or to_list(saved_query.get("yAxis", axis_options[0]))
         )
-        params.setlist("field", params.getlist("field") or to_list(saved_query.get("fields")))
+        params.setlist("field", fields)
 
         params.setlist(
             "project",

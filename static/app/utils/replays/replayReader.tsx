@@ -466,6 +466,10 @@ export class ReplayReader {
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
         : 'Missing Meta Frame',
+      this.isVideoReplay() ||
+      this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
+        ? null
+        : 'Missing Full Snapshot Frame',
     ].filter(defined);
   });
   hasProcessingErrors = () => {

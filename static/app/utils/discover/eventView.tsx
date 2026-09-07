@@ -53,7 +53,7 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {decodeColumnOrder, getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -1243,14 +1243,18 @@ export class EventView {
     isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
-    const target = isHomepage ? 'homepage' : 'results';
+    const target = isHomepage
+      ? getDiscoverDeprecation(organization)
+        ? undefined
+        : 'homepage'
+      : 'results';
     const query = this.generateQueryStringObject();
     if (queryDataset) {
       query.queryDataset = queryDataset;
     }
     return {
       pathname: makeDiscoverPathname({
-        path: `/${target}/`,
+        path: target ? `/${target}/` : '/',
         organization,
       }),
       query,

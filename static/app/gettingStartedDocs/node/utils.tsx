@@ -111,11 +111,8 @@ function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
 /**
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
-export function getSentryImportSnippet(
-  packageName: `@sentry/${string}`,
-  defaultMode?: 'esm' | 'cjs'
-): string {
-  return getImport(packageName, defaultMode).join('\n');
+export function getSentryImportSnippet(packageName: `@sentry/${string}`): string {
+  return getImport(packageName).join('\n');
 }
 
 export function getImportInstrumentSnippet(
@@ -475,8 +472,6 @@ Sentry.init({
   // send console.log, console.warn, and console.error calls as logs to Sentry
   Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
 });`,
   };
 }
@@ -534,7 +529,7 @@ export const getNodeLogsOnboarding = <
           {
             type: 'text',
             text: tct(
-              'Enable Sentry logs by adding [code:enableLogs: true] to your [code:Sentry.init()] configuration.',
+              'Logs are enabled by default. To also capture your [code:console] logs, add the [code:consoleLoggingIntegration] to your [code:Sentry.init()] configuration.',
               {code: <code />}
             ),
           },
@@ -593,13 +588,6 @@ Sentry.init({
       ? `integrations: [
     nodeProfilingIntegration(),
   ],`
-      : ''
-  }${
-    params.isLogsSelected
-      ? `
-
-  // Send structured logs to Sentry
-  enableLogs: true,`
       : ''
   }${
     params.isPerformanceSelected

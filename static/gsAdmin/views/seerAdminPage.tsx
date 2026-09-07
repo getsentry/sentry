@@ -11,6 +11,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Region} from 'sentry/types/system';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -27,7 +28,7 @@ export function SeerAdminPage() {
     mutationFn: () => {
       const trimmedOrgId = organizationId.trim();
       return fetchMutation({
-        url: '/internal/seer/night-shift/trigger/',
+        url: getApiUrl('/internal/seer/night-shift/trigger/'),
         method: 'POST',
         data: {
           ...(trimmedOrgId ? {organization_id: parseInt(trimmedOrgId, 10)} : {}),

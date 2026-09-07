@@ -6,7 +6,7 @@ from typing import Any, ClassVar, Literal
 from pydantic import BaseModel, root_validator
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import FeedbackSourceBase
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision, FeedbackSourceBase
 from sentry.seer.webhooks import SentryIterateCommand, sentry_command
 
 GithubPrCommentFeedbackType = Literal["github-pr-comment", "github-pr-review-comment"]
@@ -39,14 +39,9 @@ class GithubPullRequestReviewComment(GithubIssueComment):
 
 
 def _blocks_feedback(blocks: Sequence[Any]) -> list[Any]:
-    from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+    from sentry.seer.autofix.pr_iteration.feedback import blocks_feedback
 
-    items: list[Any] = []
-    for block in blocks:
-        raw = (block.message.metadata or {}).get("feedback")
-        if raw:
-            items.extend(parse_feedback(raw))
-    return items
+    return list(blocks_feedback(blocks))
 
 
 def _processed_github_comment_ids(
@@ -97,19 +92,23 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
             values["comment_feedback"] = command.feedback
         else:
             values["comment_feedback"] = body or ""
+        if isinstance(comment, GithubIssueComment) and comment.id is not None:
+            values["source_id"] = str(comment.id)
         return values
 
     @property
     def text(self) -> str:
         return self.comment_feedback
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
+    def should_consume(self, run_state: SeerRunState) -> Decision:
         comment_id = self.comment.id
         if comment_id is None:
-            return True
+            return Decision(ok=True, reason="no_comment_id")
         # Dedupe against prior feedback of the same concrete source type so a
         # repeated comment webhook can't re-trigger an iteration.
-        return comment_id not in _processed_github_comment_ids(run_state, type(self))
+        if comment_id in _processed_github_comment_ids(run_state, type(self)):
+            return Decision(ok=False, reason="already_processed")
+        return Decision(ok=True, reason="not_yet_processed")
 
 
 class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
@@ -228,6 +227,13 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     # count toward the automated-iteration streak cap; human reviews reset it.
     author_is_bot: bool = False
 
+    @root_validator
+    def _set_source_id(cls, values: dict[str, Any]) -> dict[str, Any]:
+        review_id = values.get("review_id")
+        if review_id is not None:
+            values["source_id"] = str(review_id)
+        return values
+
     @property
     def text(self) -> str:
         return self.body
@@ -236,10 +242,12 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     def is_automated(self) -> bool:
         return self.author_is_bot
 
-    def should_consume(self, run_state: SeerRunState) -> bool:
+    def should_consume(self, run_state: SeerRunState) -> Decision:
         if self.review_id is None:
-            return True
-        return self.review_id not in _processed_github_review_ids(run_state)
+            return Decision(ok=True, reason="no_review_id")
+        if self.review_id in _processed_github_review_ids(run_state):
+            return Decision(ok=False, reason="already_processed")
+        return Decision(ok=True, reason="not_yet_processed")
 
 
 __all__ = (

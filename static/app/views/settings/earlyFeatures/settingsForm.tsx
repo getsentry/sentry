@@ -9,6 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -61,7 +62,7 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
     mutationFn: (data: Record<string, boolean>) =>
       fetchMutation<void>({
         method: 'PUT',
-        url: '/internal/feature-flags/',
+        url: getApiUrl('/internal/feature-flags/'),
         data,
       }),
     onSuccess: (_response, updatedFlags) => {

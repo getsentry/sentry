@@ -46,6 +46,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         system_instructions=None,
         tool_definitions=None,
         project=None,
+        duration=1000,
         store=True,
     ):
         """Create and store an AI span with the given attributes.
@@ -78,6 +79,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             system_instructions: The gen_ai.system_instructions attribute
             tool_definitions: The gen_ai.tool.definitions (new format, will be JSON serialized)
             project: The project to store the span under (default: self.project)
+            duration: Span duration in milliseconds
 
         Returns:
             The created span object
@@ -143,6 +145,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             extra_data,
             project=project,
             start_ts=timestamp,
+            duration=duration,
         )
         if store:
             self.store_spans([span])

@@ -9,7 +9,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 
 interface AutofixGithubAppPermissionsModalProps extends ModalRenderProps {
-  description?: React.ReactNode;
+  /** First sentence. The linked "update settings" sentence is always appended. */
+  description?: string;
+  /** GitHub permissions URL for the install. Falls back to GitHub's installations index. */
   installationUrl?: string;
 }
 
@@ -21,7 +23,9 @@ export function AutofixGithubAppPermissionsModal({
   Footer,
   closeModal,
   installationUrl,
-  description,
+  description = t(
+    'The Sentry GitHub App does not have sufficient permissions to launch a coding agent.'
+  ),
 }: AutofixGithubAppPermissionsModalProps) {
   const settingsUrl = installationUrl ?? DEFAULT_INSTALLATIONS_URL;
 
@@ -32,13 +36,11 @@ export function AutofixGithubAppPermissionsModal({
       </Header>
       <Body>
         <Text as="p">
-          {description ??
-            tct(
-              'The Sentry GitHub App does not have sufficient permissions to launch a coding agent. Please update your [link:GitHub App installation settings] to grant the required permissions.',
-              {
-                link: <ExternalLink href={settingsUrl} />,
-              }
-            )}
+          {description}{' '}
+          {tct(
+            'Please update your [link:GitHub App installation settings] to grant the required permissions.',
+            {link: <ExternalLink href={settingsUrl} />}
+          )}
         </Text>
       </Body>
       <Footer>

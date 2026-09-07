@@ -164,6 +164,5 @@ export default Storybook.story('Form', story => {
     );
 
     // TODO: Missing TableField
-    // TODO: Missing ProjectMapperField
   });
 });

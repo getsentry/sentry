@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
+
 # Keep models in sync with src/seer/automation/features/autofix/models.py in Seer
 
 FEATURE_ID = "autofix"
@@ -29,4 +31,5 @@ class AutofixRCAPayload(BaseModel):
     short_id: str
     title: str
     culprit: str
+    on_completion_hook: OnCompletionHookDefinition
     tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)

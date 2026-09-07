@@ -1,5 +1,6 @@
+import {useDebouncedValue} from '@tanstack/react-pacer';
+
 import {t} from 'sentry/locale';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {SchedulePreview} from 'sentry/views/detectors/components/forms/common/schedulePreview';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import type {Schedule} from 'sentry/views/detectors/hooks/useMonitorsScheduleSamples';
@@ -21,8 +22,12 @@ export function PreviewSection() {
   const recoveryThreshold = useUptimeDetectorFormField('recoveryThreshold');
 
   // Debouncing typed fields
-  const debouncedDowntimeThreshold = useDebouncedValue(downtimeThreshold, DEBOUNCE_DELAY);
-  const debouncedRecoveryThreshold = useDebouncedValue(recoveryThreshold, DEBOUNCE_DELAY);
+  const [debouncedDowntimeThreshold] = useDebouncedValue(downtimeThreshold, {
+    wait: DEBOUNCE_DELAY,
+  });
+  const [debouncedRecoveryThreshold] = useDebouncedValue(recoveryThreshold, {
+    wait: DEBOUNCE_DELAY,
+  });
 
   const intervalSeconds = useUptimeDetectorFormField('intervalSeconds');
   const intervalMinutes = intervalSeconds / 60;

@@ -3,8 +3,13 @@ import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ColumnAlign, GridColumnHeader} from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
+import type {
+  ColumnAlign,
+  GridColumnHeader,
+  GridColumnSort,
+} from 'sentry/components/tables/gridEditable';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
@@ -100,53 +105,40 @@ const NUMERIC_FIELDS = new Set([
   SpanFields.MESSAGING_MESSAGE_RETRY_COUNT,
 ]);
 
-export const renderHeadCell = ({column, location, sort, sortParameterName}: Options) => {
-  const {key, name} = column;
-  const alignment = getAlignment(key);
+export const getColumnSort = ({
+  column,
+  location,
+  sort,
+  sortParameterName,
+}: Options): GridColumnSort => {
+  const {key} = column;
+  const canSort = Boolean(location && sort && SORTABLE_FIELDS.has(key));
 
-  let newSortDirection: Sort['kind'] = 'desc';
-  if (sort?.field === column.key) {
-    if (sort.kind === 'desc') {
-      newSortDirection = 'asc';
-    }
-  }
-
-  const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
-
-  const hasTooltip = column.tooltip;
-
-  const sortLink = (
-    <SortLink
-      align={alignment}
-      canSort={Boolean(location && sort && SORTABLE_FIELDS.has(key))}
-      direction={sort?.field === column.key ? sort.kind : undefined}
-      title={name}
-      generateSortLink={() => {
-        return {
+  return {
+    align: getAlignment(key),
+    direction: canSort && sort?.field === key ? sort.kind : undefined,
+    to: canSort
+      ? {
           ...location,
           query: {
             ...location?.query,
-            [sortParameterName ?? DEFAULT_SORT_PARAMETER_NAME]: newSort,
+            [sortParameterName ?? DEFAULT_SORT_PARAMETER_NAME]: encodeSort(
+              getNextSort(key, sort)
+            ),
           },
-        };
-      }}
-    />
-  );
-
-  if (hasTooltip) {
-    const AlignmentContainer = alignment === 'right' ? AlignRight : AlignLeft;
-
-    return (
-      <AlignmentContainer>
-        <StyledTooltip isHoverable showUnderline title={column.tooltip}>
-          {sortLink}
-        </StyledTooltip>
-      </AlignmentContainer>
-    );
-  }
-
-  return sortLink;
+        }
+      : undefined,
+  };
 };
+
+export const renderHeadCell = ({column}: Pick<Options, 'column'>) =>
+  column.tooltip ? (
+    <StyledTooltip isHoverable showUnderline title={column.tooltip}>
+      {column.name}
+    </StyledTooltip>
+  ) : (
+    column.name
+  );
 
 const getAlignment = (key: string): ColumnAlign => {
   const result = parseFunction(key);
@@ -163,20 +155,6 @@ const getAlignment = (key: string): ColumnAlign => {
   }
   return 'left';
 };
-
-const AlignLeft = styled('span')`
-  display: block;
-  margin: auto;
-  text-align: left;
-  width: 100%;
-`;
-
-const AlignRight = styled('span')`
-  display: block;
-  margin: auto;
-  text-align: right;
-  width: 100%;
-`;
 
 const StyledTooltip = styled(Tooltip)`
   top: 1px;

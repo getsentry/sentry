@@ -32,6 +32,7 @@ describe('useMultiQueryTable', () => {
       isReady: true,
       pinnedFilters: new Set(),
       shouldPersist: true,
+      adjustments: {},
       selection: {
         datetime: {
           period: '14d',

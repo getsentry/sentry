@@ -13,6 +13,7 @@ export function buildRunsSearchQuery(searchQuery?: string) {
   const trimmed = searchQuery?.trim();
   return [
     'is:mine',
+    'is:agent',
     'type:explorer',
     trimmed ? `"${escapeDoubleQuotes(trimmed)}"` : undefined,
   ]
@@ -63,7 +64,6 @@ export function SeerExplorerSessionsProvider(props: SeerExplorerSessionsProvider
   const organization = useOrganization({allowNull: true});
 
   const query = useSeerExplorerSessionsQuery({
-    limit: 20,
     enabled: isSeerExplorerEnabled(organization),
   });
 

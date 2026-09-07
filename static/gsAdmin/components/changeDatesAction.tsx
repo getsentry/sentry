@@ -10,6 +10,7 @@ import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {InputField} from 'sentry/components/forms/fields/inputField';
 import {Form} from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
@@ -35,7 +36,9 @@ function ChangeDatesModal({
   >({
     mutationFn: (payload: Record<string, any>) =>
       fetchMutation({
-        url: `/customers/${orgId}/`,
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
         method: 'PUT',
         data: payload,
       }),

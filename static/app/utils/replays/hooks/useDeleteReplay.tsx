@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
@@ -37,7 +38,13 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
 
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: projectSlug,
+            replayId,
+          },
+        }),
         {
           method: 'DELETE',
         }

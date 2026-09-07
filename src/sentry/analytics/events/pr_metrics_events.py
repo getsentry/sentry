@@ -63,7 +63,7 @@ class PrCloseMetricsEvent(analytics.Event):
     # Derived from the stored activity log at the terminal event (not the webhook
     # payload above): ``reviews_count`` = total review submissions;
     # ``participants_count`` = distinct non-bot senders across the PR's activity.
-    # Only meaningful under ``pr-metrics-activity``; 0 when activity isn't tracked.
+    # Only meaningful under ``pr-metrics``; 0 when activity isn't tracked.
     participants_count: int = 0
     reviews_count: int = 0
     # Human-involvement splits, also activity-derived — the "self-healing loop"

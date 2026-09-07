@@ -1,14 +1,9 @@
 import {Fragment} from 'react';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {InfoText} from '@sentry/scraps/info';
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -19,7 +14,6 @@ import {
   CONVERSATIONS_SIDEBAR_LABEL,
 } from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
 const COPY_ID_LABEL = t('Copy conversation ID');
 
@@ -36,7 +30,6 @@ export function ConversationsBreadcrumbs({
   conversationId,
 }: ConversationsBreadcrumbsProps) {
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const location = useLocation();
   const conversationsBaseUrl = normalizeUrl(
     `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/`
@@ -53,103 +46,38 @@ export function ConversationsBreadcrumbs({
     referrer: 'conversations-breadcrumb',
   };
 
-  if (hasNewBreadcrumbs) {
-    return (
-      <Fragment>
-        <TopBar.Slot name="breadcrumbs">
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: CONVERSATIONS_SIDEBAR_LABEL,
-                to: {pathname: conversationsBaseUrl, query},
-              },
-            ]}
-          />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title
-            item={{
-              type: 'page-title',
-              label: t('Conversation %s', getDisplayId(conversationId)),
-              labelTooltip: isUUID(conversationId) ? conversationId : undefined,
-              trailingActions: {
-                type: 'copy',
-                text: conversationId,
-                label: COPY_ID_LABEL,
-                tooltip: COPY_ID_LABEL,
-                onCopy: () =>
-                  trackAnalytics('conversations.detail.copy-conversation-id', {
-                    organization,
-                  }),
-              },
-            }}
-          />
-        </TopBar.Slot>
-      </Fragment>
-    );
-  }
-
-  // Legacy breadcrumbs (flag off).
   return (
-    <TopBar.Slot name="title">
-      <Breadcrumbs
-        crumbs={[
-          {
-            label: CONVERSATIONS_SIDEBAR_LABEL,
-            to: {
-              pathname: conversationsBaseUrl,
-              query: {
-                statsPeriod: '24h',
-                start: undefined,
-                end: undefined,
-                referrer: 'conversations-breadcrumb',
-              },
+    <Fragment>
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList
+          items={[
+            {
+              type: 'link',
+              label: CONVERSATIONS_SIDEBAR_LABEL,
+              to: {pathname: conversationsBaseUrl, query},
             },
-            preservePageFilters: true,
-          },
-          {
-            label: (
-              <ConversationCrumb
-                conversationId={conversationId}
-                organization={organization}
-              />
-            ),
-          },
-        ]}
-      />
-    </TopBar.Slot>
-  );
-}
-
-function ConversationCrumb({
-  conversationId,
-  organization,
-}: {
-  conversationId: string;
-  organization: Organization;
-}) {
-  return (
-    <RevealOnHover minWidth={0}>
-      <InfoText
-        title={conversationId}
-        mode={isUUID(conversationId) ? undefined : 'overflowOnly'}
-        variant="inherit"
-      >
-        {t('Conversation %s', getDisplayId(conversationId))}
-      </InfoText>
-      <RevealOnHover.Action>
-        <CopyToClipboardButton
-          size="zero"
-          variant="transparent"
-          aria-label={COPY_ID_LABEL}
-          tooltipProps={{title: COPY_ID_LABEL}}
-          text={conversationId}
-          onCopy={() =>
-            trackAnalytics('conversations.detail.copy-conversation-id', {organization})
-          }
+          ]}
         />
-      </RevealOnHover.Action>
-    </RevealOnHover>
+      </TopBar.Slot>
+      <TopBar.Slot name="title">
+        <BreadcrumbList.Title
+          item={{
+            type: 'page-title',
+            label: t('Conversation %s', getDisplayId(conversationId)),
+            labelTooltip: isUUID(conversationId) ? conversationId : undefined,
+            trailingActions: {
+              type: 'copy',
+              text: conversationId,
+              label: COPY_ID_LABEL,
+              tooltip: COPY_ID_LABEL,
+              onCopy: () =>
+                trackAnalytics('conversations.detail.copy-conversation-id', {
+                  organization,
+                }),
+            },
+          }}
+        />
+      </TopBar.Slot>
+    </Fragment>
   );
 }

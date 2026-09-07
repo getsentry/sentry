@@ -9,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -46,7 +47,9 @@ export default function ProjectAlertSettings() {
     mutationFn: (data: Partial<DetailedProject>) =>
       fetchMutation<DetailedProject>({
         method: 'PUT',
-        url: `/projects/${organization.slug}/${project.slug}/`,
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
         data,
       }).catch((error: unknown) => {
         if (

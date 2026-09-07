@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -29,6 +29,7 @@ import {
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 
 export default function AutomationsList() {
+  const getPaginationCaption = useGetPaginationCaption();
   const location = useLocation();
   const navigate = useNavigate();
 

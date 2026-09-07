@@ -14,6 +14,7 @@ function getDrawerWidthKey(drawerKey: string) {
 
 interface UseDrawerResizingOptions {
   drawerKey?: string;
+  drawerMaxWidth?: string;
   drawerWidth?: string;
   enabled?: boolean;
 }
@@ -29,6 +30,7 @@ interface UseDrawerResizingResult {
 export function useDrawerResizing({
   drawerKey,
   drawerWidth,
+  drawerMaxWidth,
   enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
@@ -83,9 +85,14 @@ export function useDrawerResizing({
     } else {
       panelRef.current?.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
       panelRef.current?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
-      panelRef.current?.style.setProperty('--drawer-max-width', `${MAX_WIDTH_PERCENT}%`);
+      panelRef.current?.style.setProperty(
+        '--drawer-max-width',
+        drawerMaxWidth
+          ? `min(${MAX_WIDTH_PERCENT}%, ${drawerMaxWidth})`
+          : `${MAX_WIDTH_PERCENT}%`
+      );
     }
-  }, [persistedWidthPercent, isSmallScreen, drawerWidth, enabled]);
+  }, [persistedWidthPercent, isSmallScreen, drawerWidth, drawerMaxWidth, enabled]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {

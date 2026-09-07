@@ -11,6 +11,7 @@ import {Access} from 'sentry/components/acl/access';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const loaderSchema = z.object({
@@ -31,7 +32,16 @@ type Props = {
 };
 
 export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
-  const endpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
+  const endpoint = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
+    {
+      path: {
+        organizationIdOrSlug: orgSlug,
+        projectIdOrSlug: project.slug,
+        keyId,
+      },
+    }
+  );
 
   // Every form on this page shares one mutation key, so any in-flight save
   // disables all fields. This prevents editing an option while a (possibly

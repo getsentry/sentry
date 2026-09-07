@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -10,8 +8,8 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,6 +18,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
+
+import {TeamInsightsTable} from './styles';
 
 interface TeamIssuesAgeProps {
   organization: Organization;
@@ -138,58 +138,72 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
           />
         )}
       </ChartWrapper>
-      <StyledPanelTable
-        isEmpty={!oldestIssues || oldestIssues?.length === 0}
-        emptyMessage={t('No unresolved issues for this team’s projects')}
-        headers={[
-          t('Oldest Issues'),
-          <Flex as="span" justify="end" align="center" key="events">
-            {t('Events')}
-          </Flex>,
-          <Flex as="span" justify="end" align="center" key="users">
-            {t('Users')}
-          </Flex>,
-          <Flex as="span" justify="end" align="center" key="age">
-            {t('Age')} <IconArrow direction="down" size="xs" variant="muted" />
-          </Flex>,
-        ]}
-        isLoading={isLoading}
+      <StyledSimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Oldest Issues')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <Flex as="span" justify="end" align="center">
+                {t('Events')}
+              </Flex>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <Flex as="span" justify="end" align="center">
+                {t('Users')}
+              </Flex>
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>
+              <Flex as="span" justify="end" align="center">
+                {t('Age')} <IconArrow direction="down" size="xs" variant="muted" />
+              </Flex>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        {oldestIssues?.map(issue => {
-          const {title} = getTitle(issue);
+        {isLoading && <SimpleTable.Loading />}
+        {!isLoading && (!oldestIssues || oldestIssues.length === 0) && (
+          <SimpleTable.Empty>
+            {t('No unresolved issues for this team’s projects')}
+          </SimpleTable.Empty>
+        )}
+        {!isLoading &&
+          oldestIssues?.map(issue => {
+            const {title} = getTitle(issue);
 
-          return (
-            <Fragment key={issue.id}>
-              <ProjectTitleContainer>
-                <ShadowlessProjectBadge
-                  disableLink
-                  hideName
-                  avatarSize={18}
-                  project={issue.project}
-                />
-                <TitleOverflow>
-                  <Link
-                    to={{
-                      pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
-                    }}
-                  >
-                    {title}
-                  </Link>
-                </TitleOverflow>
-              </ProjectTitleContainer>
-              <Flex as="span" justify="end" align="center">
-                <Count value={issue.count} />
-              </Flex>
-              <Flex as="span" justify="end" align="center">
-                <Count value={issue.userCount} />
-              </Flex>
-              <Flex as="span" justify="end" align="center">
-                <TimeSince date={issue.firstSeen} />
-              </Flex>
-            </Fragment>
-          );
-        })}
-      </StyledPanelTable>
+            return (
+              <SimpleTable.Row key={issue.id}>
+                <SimpleTable.RowCell>
+                  <ProjectTitleContainer>
+                    <ShadowlessProjectBadge
+                      disableLink
+                      hideName
+                      avatarSize={18}
+                      project={issue.project}
+                    />
+                    <TitleOverflow>
+                      <Link
+                        to={{
+                          pathname: `/organizations/${organization.slug}/issues/${issue.id}/`,
+                        }}
+                      >
+                        {title}
+                      </Link>
+                    </TitleOverflow>
+                  </ProjectTitleContainer>
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell justify="end">
+                  <Count value={issue.count} />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell justify="end">
+                  <Count value={issue.userCount} />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell justify="end">
+                  <TimeSince date={issue.firstSeen} />
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            );
+          })}
+      </StyledSimpleTable>
     </div>
   );
 }
@@ -199,25 +213,8 @@ const ChartWrapper = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(TeamInsightsTable)`
   grid-template-columns: 1fr 0.15fr 0.15fr 0.25fr;
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  font-size: ${p => p.theme.font.size.md};
-  box-shadow: unset;
-
-  > * {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
-
-  ${p =>
-    p.isEmpty &&
-    css`
-      & > div:last-child {
-        padding: 48px ${p.theme.space.xl};
-      }
-    `}
 `;
 
 const ProjectTitleContainer = styled('div')`

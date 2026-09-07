@@ -60,6 +60,7 @@ class SeerActionType(SentryAppActionType):
     CODING_STARTED = "coding_started"
     CODING_COMPLETED = "coding_completed"
     PR_CREATED = "pr_created"
+    PR_READY_FOR_REVIEW = "pr_ready_for_review"
     ITERATION_STARTED = "iteration_started"
     ITERATION_COMPLETED = "iteration_completed"
 
@@ -108,6 +109,7 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.SEER_CODING_STARTED,
         SentryAppEventType.SEER_CODING_COMPLETED,
         SentryAppEventType.SEER_PR_CREATED,
+        SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
         SentryAppEventType.SEER_ITERATION_STARTED,
         SentryAppEventType.SEER_ITERATION_COMPLETED,
     ],

@@ -7,6 +7,7 @@ import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/typ
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, type AggregationKey} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   useTraceItemSearchQueryBuilderProps,
@@ -66,6 +67,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     useSpanItemAttributes({}, 'string');
   const {attributes: spansArrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useSpanItemAttributes({}, 'array');
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
 
   const spanStringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in spanStringAttributes) {
@@ -88,7 +91,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     const localBooleanAttributes = {...spanBooleanAttributes};
     const localNumberAttributes = {...spanNumberAttributes};
     const localStringAttributes = {...spanStringAttributesWithSemver};
-    const localArrayAttributes = {...spansArrayAttributes};
+    const localArrayAttributes = supportsArrays ? {...spansArrayAttributes} : {};
 
     if (props.validatedSearchQueryData?.query.fields.length) {
       for (const item of props.validatedSearchQueryData.query.fields) {
@@ -117,7 +120,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
             };
           }
 
-          if (item.attrType === 'array' && item.name) {
+          if (supportsArrays && item.attrType === 'array' && item.name) {
             localArrayAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -147,6 +150,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     spanNumberAttributes,
     spanStringAttributesWithSemver,
     spansArrayAttributes,
+    supportsArrays,
   ]);
 
   const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({

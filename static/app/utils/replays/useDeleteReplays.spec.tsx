@@ -5,7 +5,11 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useDeleteReplays} from 'sentry/utils/replays/hooks/useDeleteReplays';
+import {
+  getBulkDeleteErrorReason,
+  useDeleteReplays,
+} from 'sentry/utils/replays/hooks/useDeleteReplays';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 describe('useDeleteReplays', () => {
   describe('queryOptionsToPayload', () => {
@@ -177,6 +181,76 @@ describe('useDeleteReplays', () => {
       });
 
       expect(result.current.hasAccess).toBe(false);
+    });
+  });
+  describe('getBulkDeleteErrorReason', () => {
+    function makeRequestError(responseJSON: Record<string, unknown>) {
+      return new RequestError('POST', '/delete/', new Error('Bad Request'), {
+        getResponseHeader: () => null,
+        responseJSON,
+        responseText: JSON.stringify(responseJSON),
+        status: 400,
+        statusText: 'Bad Request',
+      });
+    }
+
+    it('should return the range limit message when the payload exceeds 30 days', () => {
+      const error = makeRequestError({
+        data: {
+          non_field_errors: ['you cannot delete more than 30 days of data at a time'],
+        },
+      });
+
+      expect(getBulkDeleteErrorReason(error)).toBe(
+        'you cannot delete more than 30 days of data at a time'
+      );
+    });
+
+    it('should name the field when a single field fails validation', () => {
+      const error = makeRequestError({
+        data: {environments: ['This field is required.']},
+      });
+
+      expect(getBulkDeleteErrorReason(error)).toBe(
+        'environments — This field is required.'
+      );
+    });
+
+    it('should name each field when multiple fields fail validation', () => {
+      const error = makeRequestError({
+        data: {
+          environments: ['This field is required.'],
+          rangeStart: ['Enter a valid date/time.'],
+        },
+      });
+
+      expect(getBulkDeleteErrorReason(error)).toBe(
+        'environments — This field is required. rangeStart — Enter a valid date/time.'
+      );
+    });
+
+    it('should return the detail string when the response has a detail', () => {
+      const error = makeRequestError({detail: 'You do not have permission.'});
+
+      expect(getBulkDeleteErrorReason(error)).toBe('You do not have permission.');
+    });
+
+    it('should return the detail message when detail is an object', () => {
+      const error = makeRequestError({
+        detail: {code: 'sudo-required', message: 'Account verification required.'},
+      });
+
+      expect(getBulkDeleteErrorReason(error)).toBe('Account verification required.');
+    });
+
+    it('should return undefined when the response has no readable message', () => {
+      const error = makeRequestError({});
+
+      expect(getBulkDeleteErrorReason(error)).toBeUndefined();
+    });
+
+    it('should return undefined when the error is not a request error', () => {
+      expect(getBulkDeleteErrorReason(new Error('boom'))).toBeUndefined();
     });
   });
 });

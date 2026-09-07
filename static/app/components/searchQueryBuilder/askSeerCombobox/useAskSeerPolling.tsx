@@ -121,7 +121,9 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/search-agent/start/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/start/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
           {
             method: 'POST',
             data: {

@@ -75,7 +75,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 0
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_simple_with_eap_as_source_of_truth(self) -> None:
         self.load_trace()
@@ -112,7 +112,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 0
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_no_team(self) -> None:
         self.load_trace()
@@ -124,7 +124,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 0
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_errors(self) -> None:
         self.load_trace()
@@ -136,7 +136,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 3
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_errors_eap_eval_not_allowlisted_uses_snuba(self) -> None:
         self.load_trace()
@@ -164,7 +164,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 3
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_errors_eap_allowlisted_uses_eap(self) -> None:
         self.load_trace()
@@ -192,7 +192,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 1
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
 
     def test_with_default(self) -> None:
         self.load_trace()
@@ -204,7 +204,7 @@ class OrganizationEventsTraceMetaEndpointTest(
         assert data["errorsCount"] == 1
         assert data["performanceIssuesCount"] == 2
         assert data["spansCount"] == 19
-        assert data["spansCountMap"]["http.server"] == 19
+        assert data["spansCountMap"]["http.server"] == 8
         assert len(data["transactionChildCountMap"]) == 8
 
     def test_with_invalid_date(self) -> None:
@@ -218,7 +218,7 @@ class OrganizationEventsTraceMetaEndpointTest(
                 )
         assert response.status_code == 400, response.content
 
-    def test_trace_metrics(self) -> None:
+    def test_trace_metrics_excludes_span_metrics(self) -> None:
         self.load_trace()
         self.load_errors(self.gen1_project, self.gen1_span_ids[0])
         self.store_eap_items(
@@ -230,16 +230,18 @@ class OrganizationEventsTraceMetaEndpointTest(
                     trace_id=self.trace_id,
                 ),
                 self.create_trace_metric(
-                    metric_name="foo",
+                    metric_name="other_source",
                     metric_value=1,
                     metric_type="counter",
                     trace_id=self.trace_id,
+                    attributes={"sentry.metric.source": "other"},
                 ),
                 self.create_trace_metric(
-                    metric_name="foo",
+                    metric_name="span_source",
                     metric_value=1000,
                     metric_type="counter",
                     trace_id=self.trace_id,
+                    attributes={"sentry.metric.source": "span"},
                 ),
             ]
         )
@@ -247,7 +249,27 @@ class OrganizationEventsTraceMetaEndpointTest(
             response = self.client_get(data={"project": -1}, url=self.url)
         assert response.status_code == 200, response.content
         data = response.data
-        assert data["metricsCount"] == 3
+        assert data["metricsCount"] == 2
+
+    def test_trace_metrics_excludes_span_only_metrics(self) -> None:
+        self.load_trace()
+        self.load_errors(self.gen1_project, self.gen1_span_ids[0])
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    metric_name="span_source",
+                    metric_value=1,
+                    metric_type="counter",
+                    trace_id=self.trace_id,
+                    attributes={"sentry.metric.source": "span"},
+                ),
+            ]
+        )
+        with self.feature(self.FEATURES):
+            response = self.client_get(data={"project": -1}, url=self.url)
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["metricsCount"] == 0
 
 
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):

@@ -608,6 +608,42 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 400, response.content
         assert "orderby must also be in the selected columns or groupby" == response.data["detail"]
 
+    def test_top_events_empty_orderby(self) -> None:
+        """An empty orderby means "no sort", not "sort by the column named ''"."""
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "op": "http.client"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2001,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "bar", "op": "http.client"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                    duration=2000,
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+        for orderby in ([""], ["-"]):
+            response = self._do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1m",
+                    "yAxis": "count()",
+                    "groupBy": ["transaction"],
+                    "orderby": orderby,
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "excludeOther": 0,
+                    "topEvents": 2,
+                },
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["timeSeries"]) > 0
+
     def test_top_events_orderby_is_timestamp(self) -> None:
         response = self._do_request(
             data={

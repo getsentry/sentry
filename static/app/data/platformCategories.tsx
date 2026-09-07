@@ -842,10 +842,18 @@ export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
 // Feature flag platforms to show the issue details distribution drawer for.
 export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   ...platformKeys.filter(
-    id => id.startsWith('javascript') || id.startsWith('node') || id.startsWith('python')
+    id =>
+      id.startsWith('apple') ||
+      // Matches 'javascript*' as well as 'java*'.
+      id.startsWith('java') ||
+      id.startsWith('node') ||
+      id.startsWith('python')
   ),
+  'android',
   'bun',
+  'dart',
   'deno',
+  'react-native',
 ];
 
 export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([

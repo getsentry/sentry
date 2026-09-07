@@ -1,7 +1,7 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,7 +35,7 @@ export function Candidate({
   const isInternalSource = source === INTERNAL_SOURCE;
 
   return (
-    <Fragment>
+    <SimpleTable.Row>
       <Column>
         <StatusTooltip candidate={candidate} hasReprocessWarning={hasReprocessWarning} />
       </Column>
@@ -61,11 +61,11 @@ export function Candidate({
           />
         </ActionsColumn>
       )}
-    </Fragment>
+    </SimpleTable.Row>
   );
 }
 
-const Column = styled('div')`
+const Column = styled(SimpleTable.RowCell)`
   display: flex;
   align-items: center;
 `;

@@ -16,17 +16,25 @@ const run = (overrides: Partial<OverviewRun> = {}): OverviewRun =>
 
 describe('OpenSeerButton', () => {
   it('opens the seer drawer for the run and tracks the click', async () => {
-    const {router} = render(<OpenSeerButton run={run()} size="xs" />, {
-      organization,
-      initialRouterConfig: {location: {pathname: '/seer/overview/'}},
-    });
+    const {router} = render(
+      <OpenSeerButton run={run()} section="needs_investigation" size="xs" />,
+      {
+        organization,
+        initialRouterConfig: {location: {pathname: '/seer/overview/'}},
+      }
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open Seer'}));
 
     expect(router.location.query.seerDrawer).toBe('2');
     expect(trackAnalytics).toHaveBeenCalledWith(
       'autofix.overview.open_seer_clicked',
-      expect.objectContaining({organization, group_id: '2', run_id: 'run-1'})
+      expect.objectContaining({
+        organization,
+        group_id: '2',
+        run_id: 'run-1',
+        section: 'needs_investigation',
+      })
     );
   });
 });

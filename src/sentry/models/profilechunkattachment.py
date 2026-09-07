@@ -40,7 +40,7 @@ class ProfileChunkAttachment(Model):
 
     # The Objectstore key the blob was stored under by Relay (under the
     # "profile_attachments" usecase). Read back via
-    # ``get_profile_attachments_session(org, project).get(stored_id)``.
+    # ``get_session(UsecaseId.PROFILE_ATTACHMENTS, project, org=org).get(stored_id)``.
     stored_id = models.TextField()
 
     date_added = models.DateTimeField(default=timezone.now)

@@ -141,6 +141,29 @@ class RefsChangedWebhookTest(WebhookTestBase):
         assert_success_metric(mock_record)
 
     @patch("sentry.integrations.bitbucket_server.client.BitbucketServerClient.get_commits")
+    def test_deleted_ref_skips_commit_lookup(self, mock_get_commits: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+        self.create_repository()
+        self.get_success_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data={
+                "changes": [{"fromHash": "1" * 40, "toHash": "0" * 40}],
+                "repository": {
+                    "id": self.external_id,
+                    "project": {"key": "my-project"},
+                    "slug": "marcos",
+                },
+            },
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=204,
+        )
+
+        mock_get_commits.assert_not_called()
+
+    @patch("sentry.integrations.bitbucket_server.client.BitbucketServerClient.get_commits")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_webhook_error_metric(
         self, mock_record: MagicMock, mock_get_commits: MagicMock

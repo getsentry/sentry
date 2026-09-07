@@ -746,3 +746,85 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
 
         # group4 should remain unassigned
         assert group4.get_assignee() is None
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    def test_assign_inactive_user_is_not_reported_as_assigned(
+        self, mock_record_halt: mock.MagicMock
+    ) -> None:
+        """A deactivated user is refused by assign(), so the group is not assigned."""
+        assert self.group.get_assignee() is None
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="JIRA-123",
+            integration=self.example_integration,
+        )
+        self.create_external_user(
+            user=self.test_user,
+            external_name="johndoe",
+            provider=ExternalProviders.GITHUB.value,
+            integration=self.example_integration,
+        )
+
+        with assume_test_silo_mode_of(User):
+            User.objects.filter(id=self.test_user.id).update(is_active=False)
+
+        groups_assigned = sync_group_assignee_inbound_by_external_actor(
+            integration=self.example_integration,
+            external_user_name="johndoe",
+            external_issue_key=external_issue.key,
+            assign=True,
+        )
+
+        assert list(groups_assigned) == []
+        assert self.group.get_assignee() is None
+        mock_record_halt.assert_called_with(
+            "inbound-assignee-not-found",
+            extra={
+                "integration_id": self.example_integration.id,
+                "external_user_name": "johndoe",
+                "external_user_id": None,
+                "issue_key": external_issue.key,
+                "method": AssigneeInboundSyncMethod.EXTERNAL_ACTOR.value,
+                "assign": True,
+                "affected_group_ids": [self.group.id],
+                "match_method": "external_name",
+                "external_actor_count": 1,
+                "matched_user_ids": [self.test_user.id],
+                "user_ids": [self.test_user.id],
+                "assigned_group_ids": [],
+                "groups_assigned_count": 0,
+                "affected_groups_count": 1,
+            },
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    def test_assign_when_already_assigned_to_same_user_is_reported_as_assigned(
+        self, mock_record_halt: mock.MagicMock
+    ) -> None:
+        self.assign_default_group_to_user(self.test_user)
+
+        external_issue = self.create_integration_external_issue(
+            group=self.group,
+            key="JIRA-123",
+            integration=self.example_integration,
+        )
+        self.create_external_user(
+            user=self.test_user,
+            external_name="johndoe",
+            provider=ExternalProviders.GITHUB.value,
+            integration=self.example_integration,
+        )
+
+        groups_assigned = sync_group_assignee_inbound_by_external_actor(
+            integration=self.example_integration,
+            external_user_name="johndoe",
+            external_issue_key=external_issue.key,
+            assign=True,
+        )
+
+        assert [group.id for group in groups_assigned] == [self.group.id]
+        updated_assignee = self.group.get_assignee()
+        assert updated_assignee is not None
+        assert updated_assignee.id == self.test_user.id
+        mock_record_halt.assert_not_called()

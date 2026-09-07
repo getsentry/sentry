@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {
@@ -12,12 +13,13 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -98,7 +100,12 @@ export default function ProjectDebugSymbols() {
   const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
     mutationFn: (id: string) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${id}`,
+        `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+          },
+        })}?id=${id}`,
         {
           method: 'DELETE',
         }
@@ -169,9 +176,20 @@ export default function ProjectDebugSymbols() {
         />
       ) : (
         <Fragment>
-          <Wrapper>
+          <Grid
+            columns={{zero: '1fr', xl: 'auto 1fr'}}
+            gap={{zero: 'md', xl: '3xl'}}
+            align="center"
+            marginTop="3xl"
+            marginBottom="md"
+          >
             <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-            <Filters>
+            <Grid
+              columns={{zero: 'min-content 1fr', xl: 'min-content minmax(200px, 400px)'}}
+              align="center"
+              justify="end"
+              gap="xl"
+            >
               <Label>
                 <Checkbox
                   checked={showDetails}
@@ -187,23 +205,28 @@ export default function ProjectDebugSymbols() {
                 onSearch={handleSearch}
                 query={query}
               />
-            </Filters>
-          </Wrapper>
+            </Grid>
+          </Grid>
 
-          <StyledPanelTable
-            headers={[
-              t('Debug ID'),
-              t('Information'),
-              <Actions key="actions">{t('Actions')}</Actions>,
-            ]}
-            emptyMessage={
-              query
-                ? t('There are no debug symbols that match your search.')
-                : t('There are no debug symbols for this project.')
+          <StyledSimpleTable
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Debug ID')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>
+                  <Actions>{t('Actions')}</Actions>
+                </SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
             }
-            isEmpty={debugFiles?.length === 0}
-            isLoading={isLoadingDebugFiles}
           >
+            {isLoadingDebugFiles && <SimpleTable.Loading />}
+            {!isLoadingDebugFiles && debugFiles?.length === 0 && (
+              <SimpleTable.Empty>
+                {query
+                  ? t('There are no debug symbols that match your search.')
+                  : t('There are no debug symbols for this project.')}
+              </SimpleTable.Empty>
+            )}
             {debugFiles?.length
               ? debugFiles.map(debugFile => {
                   const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`;
@@ -221,7 +244,7 @@ export default function ProjectDebugSymbols() {
                   );
                 })
               : null}
-          </StyledPanelTable>
+          </StyledSimpleTable>
           <Pagination pageLinks={debugFilesResponse?.headers.Link} />
         </Fragment>
       )}
@@ -229,35 +252,12 @@ export default function ProjectDebugSymbols() {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   grid-template-columns: 37% 1fr auto;
 `;
 
 const Actions = styled('div')`
   text-align: right;
-`;
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space['3xl']};
-  align-items: center;
-  margin-top: ${p => p.theme.space['3xl']};
-  margin-bottom: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-`;
-
-const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: min-content minmax(200px, 400px);
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.xl};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: min-content 1fr;
-  }
 `;
 
 const Label = styled('label')`

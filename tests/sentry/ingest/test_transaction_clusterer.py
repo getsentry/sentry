@@ -17,6 +17,7 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
 )
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
+    TRANSACTION_NAME_RULE_TTL_SECS,
     ProjectOptionRuleStore,
     RedisRuleStore,
     _sort,
@@ -593,6 +594,71 @@ def test_bump_last_used() -> None:
         "foo": 1,
         "bar": 946688400,
     }
+
+
+# `ClustererNamespace` has a single member today, but each member has its own key
+# prefix, so the redis tests run for every namespace that exists.
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_write_sets_ttl(namespace: ClustererNamespace) -> None:
+    """The rules hash expires with the same lifetime as the rules it holds."""
+    project = Project(id=1231, name="ttl-write")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2})
+
+    client = get_redis_client()
+    key = store._get_rules_key(project)
+    ttl = client.ttl(key)
+    assert 0 < ttl <= TRANSACTION_NAME_RULE_TTL_SECS
+    assert ttl > TRANSACTION_NAME_RULE_TTL_SECS - 60
+
+
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_write_empty_rules_leaves_no_key(namespace: ClustererNamespace) -> None:
+    """An empty rule set deletes the key. It must not be re-created by the expiry."""
+    project = Project(id=1232, name="ttl-empty")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {ReplacementRule("foo"): 1})
+    store.write(project, {})
+
+    client = get_redis_client()
+    key = store._get_rules_key(project)
+    assert client.exists(key) == 0
+    # -2 is the redis answer for "no such key", not "key without expiry" (-1).
+    assert client.ttl(key) == -2
+    assert store.read(project) == {}
+
+
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_update_rule_refreshes_ttl(namespace: ClustererNamespace) -> None:
+    """A bump of last_used pushes the expiry back to the full lifetime."""
+    project = Project(id=1233, name="ttl-update")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2})
+
+    client = get_redis_client()
+    key = store._get_rules_key(project)
+    # Simulate a key that is close to the end of its lifetime.
+    client.expire(key, 10)
+    assert client.ttl(key) <= 10
+
+    store.update_rule(project, "bar", 946688400)
+
+    ttl = client.ttl(key)
+    assert ttl > TRANSACTION_NAME_RULE_TTL_SECS - 60
+    assert store.read(project) == {"foo": 1, "bar": 946688400}
+
+
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_update_rule_missing_rule_does_not_create_key(namespace: ClustererNamespace) -> None:
+    """An unknown rule writes nothing, so no key and no expiry are created."""
+    project = Project(id=1234, name="ttl-missing")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {})
+
+    store.update_rule(project, "not-a-stored-rule", 946688400)
+
+    client = get_redis_client()
+    assert client.exists(store._get_rules_key(project)) == 0
 
 
 @django_db_all

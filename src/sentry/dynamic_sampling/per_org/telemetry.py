@@ -24,7 +24,38 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
 
-PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC = "dynamic_sampling.per_org.projects_below_full_sample_rate"
+SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
+
+
+class ServedValue(StrEnum):
+    """The piece of data rule generation reads from a cache."""
+
+    PROJECT_SAMPLE_RATE = "project_sample_rate"
+    TRANSACTION_SAMPLE_RATES = "transaction_sample_rates"
+    RECALIBRATION_FACTOR = "recalibration_factor"
+
+
+class ServingSource(StrEnum):
+    """Which pipeline supplied a value that rule generation served."""
+
+    # The organization is not in the serving rollout.
+    LEGACY = "legacy"
+    PER_ORG = "per_org"
+    PER_ORG_FALLBACK = "per_org_fallback"
+    PER_ORG_NO_DATA = "per_org_no_data"
+
+
+def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
+    """Record which pipeline supplied a value that rule generation served.
+
+    Sampled like the rest of the per-org metrics: this runs on every rule generation, and
+    the legacy-to-per-org ratio survives sampling because both sides are sampled alike.
+    """
+    metrics.incr(
+        SERVING_SOURCE_METRIC,
+        sample_rate=metrics_sample_rate(),
+        tags={"value": value.value, "source": source.value},
+    )
 
 
 class DynamicSamplingStatus(StrEnum):
@@ -67,23 +98,6 @@ def emit_status(
         amount=amount,
         sample_rate=metrics_sample_rate(),
         tags={"status": status.value, **dict(extra_tags or {})},
-    )
-
-
-def emit_count(metric: str, amount: int) -> None:
-    metrics.incr(
-        metric,
-        amount=amount,
-        sample_rate=metrics_sample_rate(),
-    )
-
-
-def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = None) -> None:
-    metrics.gauge(
-        metric,
-        value,
-        sample_rate=metrics_sample_rate(),
-        tags=dict(tags) if tags else None,
     )
 
 

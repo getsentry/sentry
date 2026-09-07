@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {useMutation} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
@@ -15,6 +14,7 @@ import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -80,10 +80,15 @@ function DisabledMemberView(props: Props) {
 
   const handleLeaveMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/organizations/${organization?.slug}/members/me/`, {
-        method: 'DELETE',
-        data: {},
-      });
+      return api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+          path: {organizationIdOrSlug: String(organization?.slug), memberId: 'me'},
+        }),
+        {
+          method: 'DELETE',
+          data: {},
+        }
+      );
     },
     onMutate: () => {
       addLoadingMessage(t('Requesting\u2026'));

@@ -52,6 +52,11 @@ const CONVERSATION_SPANS_FILTER = `has:${SpanFields.GEN_AI_CONVERSATION_ID}`;
 const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
 
 const CHART_VISUALIZATIONS = {
+  chats: {
+    label: t('Conversation Count'),
+    yAxis: `count_unique(${SpanFields.GEN_AI_CONVERSATION_ID})`,
+    filter: CONVERSATION_SPANS_FILTER,
+  },
   cost: {
     label: t('Cost'),
     yAxis: `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
@@ -61,11 +66,6 @@ const CHART_VISUALIZATIONS = {
     label: t('Total Messages'),
     yAxis: `count(${SpanFields.SPAN_DURATION})`,
     filter: `${CONVERSATION_SPANS_FILTER} ${AI_CLIENT_FILTER}`,
-  },
-  chats: {
-    label: t('Individual Chats'),
-    yAxis: `count_unique(${SpanFields.GEN_AI_CONVERSATION_ID})`,
-    filter: CONVERSATION_SPANS_FILTER,
   },
 } as const satisfies Record<string, {filter: string; label: string; yAxis: string}>;
 
@@ -91,7 +91,7 @@ const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartTypeKey, DisplayType> = {
 
 const visualizationParser = parseAsStringLiteral(
   Object.keys(CHART_VISUALIZATIONS) as ChartVisualizationKey[]
-).withDefault('cost');
+).withDefault('chats');
 
 const chartTypeParser = parseAsStringLiteral([
   'line',

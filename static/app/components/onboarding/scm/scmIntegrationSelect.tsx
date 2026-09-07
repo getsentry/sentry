@@ -43,7 +43,6 @@ export function ScmIntegrationSelect({
 
   return (
     <CompactSelect
-      size="md"
       value={selectedIntegration.id}
       options={options}
       onChange={option => {

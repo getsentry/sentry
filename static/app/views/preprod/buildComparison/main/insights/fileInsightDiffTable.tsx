@@ -23,18 +23,9 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
 const tableHeaders = [
-  {
-    key: 'type',
-    label: t('Status'),
-  },
-  {
-    key: 'path',
-    label: t('Affected Files'),
-  },
-  {
-    key: 'size_diff',
-    label: t('Potential Savings'),
-  },
+  {key: 'type', label: t('Status'), width: '150px'},
+  {key: 'path', label: t('Affected Files'), width: 'minmax(200px, 3fr)'},
+  {key: 'size_diff', label: t('Potential Savings'), width: '180px'},
 ];
 
 interface FileInsightItemDiffTableProps {
@@ -115,29 +106,10 @@ export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTab
   let rowIndex = 0;
   return (
     <Stack gap="md">
-      <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 180px">
-        <DiffTableHeader>
-          {tableHeaders.map(header => (
-            <SimpleTable.HeaderCell
-              key={header.key}
-              handleSortClick={
-                header.key
-                  ? () =>
-                      setSort({
-                        field: header.key,
-                        kind:
-                          sort?.field === header.key && sort.kind === 'asc'
-                            ? 'desc'
-                            : 'asc',
-                      })
-                  : undefined
-              }
-              sort={sort && sort?.field === header.key ? sort.kind : undefined}
-            >
-              {header.label}
-            </SimpleTable.HeaderCell>
-          ))}
-        </DiffTableHeader>
+      <DiffTableWithColumns
+        columns={tableHeaders}
+        header={<DiffTableHeader headers={tableHeaders} onSort={setSort} sort={sort} />}
+      >
         {sortedDiffItems.length === 0 && (
           <SimpleTable.Empty>
             <Stack gap="lg" align="center" justify="center">

@@ -501,16 +501,16 @@ def test_generate_rules_with_zero_base_sample_rate(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transaction_sample_rates"
 )
 def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
-    get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
+    get_transaction_sample_rates, get_blended_sample_rate, default_old_project, default_team
 ):
     project_sample_rate = 0.1
     t1_rate = 0.7
     implicit_rate = 0.037
     get_blended_sample_rate.return_value = project_sample_rate
-    get_transactions_resampling_rates.return_value = (
+    get_transaction_sample_rates.return_value = (
         {
             "t1": t1_rate,
         },
@@ -579,13 +579,13 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transaction_sample_rates"
 )
 def test_low_volume_transactions_rules_not_returned_when_inactive(
-    get_transactions_resampling_rates, get_blended_sample_rate, default_old_project, default_team
+    get_transaction_sample_rates, get_blended_sample_rate, default_old_project, default_team
 ):
     get_blended_sample_rate.return_value = 0.1
-    get_transactions_resampling_rates.return_value = (
+    get_transaction_sample_rates.return_value = (
         {
             "t1": 0.7,
         },

@@ -1,5 +1,6 @@
-import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
+
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import type {SpaceSize} from 'sentry/utils/theme';
 
@@ -39,7 +40,7 @@ interface FlexLayoutProps {
   /**
    * Shorthand for the flex property.
    */
-  flex?: Responsive<CSSProperties['flex']>;
+  flex?: Responsive<CSS['flex']>;
   /**
    * Specifies the spacing between flex items.
    */

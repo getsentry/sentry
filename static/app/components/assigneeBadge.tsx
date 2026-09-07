@@ -178,7 +178,7 @@ function AssignedIcon({
   );
 }
 
-function AssignedTooltip({
+export function AssignedTooltip({
   assignedTo,
   assignmentDetails,
 }: {
@@ -238,7 +238,7 @@ function UnassignedIcon({
   );
 }
 
-function UnassignedTooltip() {
+export function UnassignedTooltip() {
   return (
     <Stack gap="xs">
       <Text as="div" align="left">
