@@ -22,7 +22,6 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import mock_configuratio
 _GATE_OPTIONS = {
     "dynamic-sampling.per_org.killswitch": False,
     "dynamic-sampling.per_org.metrics-sample-rate": 1.0,
-    "dynamic-sampling.per_org.rollout-rate": 1.0,
 }
 
 
@@ -69,9 +68,9 @@ def test_passes_result_through() -> None:
 def test_returns_terminal_status_unchanged() -> None:
     @track_dynamic_sampling
     def skipped() -> DynamicSamplingStatus:
-        return DynamicSamplingStatus.NOT_IN_ROLLOUT
+        return DynamicSamplingStatus.NO_ORG_VOLUME
 
-    assert skipped() == DynamicSamplingStatus.NOT_IN_ROLLOUT
+    assert skipped() == DynamicSamplingStatus.NO_ORG_VOLUME
 
 
 @override_options(_GATE_OPTIONS)
@@ -93,19 +92,6 @@ def test_killswitch_skips_the_wrapped_function() -> None:
         return "ran"
 
     assert work() == DynamicSamplingStatus.KILLSWITCHED
-    assert calls == []
-
-
-@override_options({**_GATE_OPTIONS, "dynamic-sampling.per_org.rollout-rate": 0.0})
-def test_disabled_rollout_skips_the_wrapped_function() -> None:
-    calls: list[None] = []
-
-    @track_dynamic_sampling
-    def work() -> str:
-        calls.append(None)
-        return "ran"
-
-    assert work() == DynamicSamplingStatus.ROLLOUT_DISABLED
     assert calls == []
 
 

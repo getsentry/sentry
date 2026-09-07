@@ -173,29 +173,15 @@ def set_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
         delete_adjusted_factor(org_id)
 
 
-def read_adjusted_factor(org_id: int, source: str) -> float | None:
-    """The stored factor of an organization, or None when it has none stored."""
+def get_adjusted_factor(org_id: int) -> float:
+    """The stored factor of an organization, or the identity factor when it has none stored."""
     redis_client = get_redis_client_for_ds()
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
-
-    factor = None
     try:
         value = redis_client.get(cache_key)
-        if value is not None:
-            factor = float(value)
+        return 1.0 if value is None else float(value)
     except (TypeError, ValueError):
-        pass
-
-    metrics.incr(
-        "dynamic_sampling.per_org.recalibration.get_adjusted_factor",
-        tags={"source": source, "result": "hit" if factor is not None else "miss"},
-    )
-    return factor
-
-
-def get_adjusted_factor(org_id: int, source: str) -> float:
-    factor = read_adjusted_factor(org_id, source)
-    return 1.0 if factor is None else factor
+        return 1.0
 
 
 def get_adjusted_factor_age(org_id: int) -> timedelta | None:

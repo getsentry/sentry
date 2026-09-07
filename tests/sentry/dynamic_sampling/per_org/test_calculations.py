@@ -47,7 +47,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 config,
                 [
                     make_project_volume(project_with_volume.id),
-                    make_project_volume(project_without_volume.id, total=0, keep=0),
+                    make_project_volume(project_without_volume.id, total=0),
                     make_project_volume(other_project.id),
                 ],
             )
@@ -79,7 +79,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 config,
                 [
                     make_project_volume(busy.id, total=1000),
-                    make_project_volume(idle.id, total=0, keep=0),
+                    make_project_volume(idle.id, total=0),
                 ],
             )
 
@@ -103,7 +103,7 @@ class ProjectBalancingCalculationsTest(TestCase):
             config,
             [
                 make_project_volume(project_with_volume.id, total=100),
-                make_project_volume(project_without_volume.id, total=0, keep=0),
+                make_project_volume(project_without_volume.id, total=0),
             ],
         )
 
@@ -119,8 +119,8 @@ class ProjectBalancingCalculationsTest(TestCase):
         result = run_project_balancing(
             config,
             [
-                make_project_volume(project_a.id, total=0, keep=0),
-                make_project_volume(project_b.id, total=0, keep=0),
+                make_project_volume(project_a.id, total=0),
+                make_project_volume(project_b.id, total=0),
             ],
         )
 
@@ -305,8 +305,6 @@ class TransactionBalancingCalculationsTest(TestCase):
         project_volume = ProjectVolume(
             project_id=project.id,
             total=2_000_000,
-            keep=100_000,
-            drop=1_900_000,
             num_distinct_transactions=100_000,
         )
         project_transactions = _project_transactions(org.id, project.id, [("/big", 1_000_000.0)])
@@ -330,7 +328,7 @@ class TransactionBalancingModelOutputTest(TestCase):
         # Branch 3 of TransactionsRebalancingModel: the explicit pool is too small to absorb
         # its budget share, so the model returns an implicit rate below the project rate.
         project_volume = ProjectVolume(
-            project_id=project.id, total=1000, keep=0, drop=0, num_distinct_transactions=10
+            project_id=project.id, total=1000, num_distinct_transactions=10
         )
         project_transactions = ProjectTransactionCounts(
             org_id=org.id, project_id=project.id, transaction_counts=[("tiny", 5.0)]

@@ -44,10 +44,10 @@ class PerOrgRecalibrationCacheTest(TestCase):
         redis.delete(cache_key)
 
         per_org_recalibration_cache.set_adjusted_factor(org.id, 2.5)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 2.5
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 2.5
 
         per_org_recalibration_cache.set_adjusted_factor(org.id, 1.0)
-        assert per_org_recalibration_cache.get_adjusted_factor(org.id, source="task") == 1.0
+        assert per_org_recalibration_cache.get_adjusted_factor(org.id) == 1.0
 
     @override_options({"dynamic-sampling.recalibration.factor-ttl-minutes": 25})
     def test_set_adjusted_factor_uses_the_ttl_option(self) -> None:

@@ -2466,10 +2466,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
-# organization id. A value of 0.0 disables the pipeline for every org; 1.0
-# enables it for every org. Intermediate values select a stable hash-based
-# subset so toggling the rate up and down does not reshuffle which orgs run.
+# Not read anymore. Delete once its sentry-options-automator entry is gone.
 register(
     "dynamic-sampling.per_org.rollout-rate",
     type=Float,

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -178,21 +177,17 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         other_organization = self.create_organization()
         self.create_project(organization=other_organization)
 
-        received = (datetime.now(UTC) - timedelta(seconds=120)).timestamp()
         with patch(
             RUN_CHUNKED_TABLE_QUERY,
             return_value=[
                 {
                     "sentry.dsc.project_id": project.id,
                     "count()": 2,
-                    "count_sample()": 2,
                     "count_unique(sentry.dsc.transaction)": 7,
-                    "max(received)": received,
                 },
                 {
                     "sentry.dsc.project_id": other_project.id,
                     "count()": 1,
-                    "count_sample()": 1,
                     "count_unique(sentry.dsc.transaction)": 1,
                 },
             ],
@@ -201,20 +196,10 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
                 self.get_config(organization), time_interval=timedelta(hours=1)
             )
 
-        volumes_by_id = {volume.project_id: volume for volume in project_volumes}
-        assert [
-            replace(volume, seconds_since_last_item=None) for volume in sorted(project_volumes)
-        ] == [
-            ProjectVolume(
-                project_id=project.id, total=2, keep=2, drop=0, num_distinct_transactions=7
-            ),
-            ProjectVolume(
-                project_id=other_project.id, total=1, keep=1, drop=0, num_distinct_transactions=1
-            ),
+        assert sorted(project_volumes) == [
+            ProjectVolume(project_id=project.id, total=2, num_distinct_transactions=7),
+            ProjectVolume(project_id=other_project.id, total=1, num_distinct_transactions=1),
         ]
-        project_seconds = volumes_by_id[project.id].seconds_since_last_item
-        assert project_seconds is not None and project_seconds > 100
-        assert volumes_by_id[other_project.id].seconds_since_last_item is None
         run_table_query.assert_called_once()
         query = run_table_query.call_args.args[0]
         assert sorted(query["params"].projects, key=lambda p: p.id) == [
@@ -225,9 +210,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         assert query["selected_columns"] == [
             DynamicSamplingQueryFields.DSC_PROJECT_ID,
             DynamicSamplingQueryFields.COUNT,
-            DynamicSamplingQueryFields.COUNT_SAMPLE,
             DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
-            DynamicSamplingQueryFields.MAX_RECEIVED,
         ]
         assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
         assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
@@ -260,7 +243,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         ):
             project_volumes = get_eap_project_volumes(self.get_config(organization))
 
-        assert project_volumes == [ProjectVolume(project_id=project.id, total=0, keep=0, drop=0)]
+        assert project_volumes == [ProjectVolume(project_id=project.id, total=0)]
 
     def test_get_eap_project_volumes_skips_rows_without_dsc_project_id(self) -> None:
         organization = self.create_organization()
@@ -272,18 +255,16 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
                 {
                     "sentry.dsc.project_id": None,
                     "count()": 3,
-                    "count_sample()": 1,
                 },
                 {
                     "sentry.dsc.project_id": project.id,
                     "count()": 2,
-                    "count_sample()": 1,
                 },
             ],
         ):
             project_volumes = get_eap_project_volumes(self.get_config(organization))
 
-        assert project_volumes == [ProjectVolume(project_id=project.id, total=2, keep=1, drop=1)]
+        assert project_volumes == [ProjectVolume(project_id=project.id, total=2)]
 
     def test_get_eap_project_volumes_without_projects(self) -> None:
         organization = self.create_organization()

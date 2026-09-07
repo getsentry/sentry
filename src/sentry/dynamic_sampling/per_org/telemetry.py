@@ -12,7 +12,6 @@ import sentry_sdk
 from sentry.dynamic_sampling.per_org.gate import (
     is_killswitch_engaged,
     is_org_in_sample_rates_summary_log_rollout,
-    is_rollout_enabled,
     metrics_sample_rate,
 )
 from sentry.utils import metrics
@@ -31,38 +30,6 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
 
-SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
-
-
-class ServedValue(StrEnum):
-    """The piece of data rule generation reads from a cache."""
-
-    PROJECT_SAMPLE_RATE = "project_sample_rate"
-    TRANSACTION_SAMPLE_RATES = "transaction_sample_rates"
-
-
-class ServingSource(StrEnum):
-    """Where a value that rule generation served came from."""
-
-    # The value a pass stored.
-    PER_ORG = "per_org"
-    # The organization has no stored project rates, so the fallback rate is served.
-    PER_ORG_FALLBACK = "per_org_fallback"
-    # Nothing is stored for this project.
-    PER_ORG_NO_DATA = "per_org_no_data"
-
-
-def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
-    """Record where a value that rule generation served came from.
-
-    Sampled like the rest of the per-org metrics, since this runs on every rule generation.
-    """
-    metrics.incr(
-        SERVING_SOURCE_METRIC,
-        sample_rate=metrics_sample_rate(),
-        tags={"value": value.value, "source": source.value},
-    )
-
 
 class DynamicSamplingStatus(StrEnum):
     ALL_PROJECTS_AT_FULL_SAMPLE_RATE = "all_projects_at_full_sample_rate"
@@ -74,12 +41,8 @@ class DynamicSamplingStatus(StrEnum):
     NO_ORG_VOLUME = "no_org_volume"
     NO_PROJECT_VOLUMES = "no_project_volumes"
     NO_TRANSACTION_VOLUMES = "no_transaction_volumes"
-    NOT_IN_ROLLOUT = "not_in_rollout"
     ORG_HAS_NO_DYNAMIC_SAMPLING = "org_has_no_dynamic_sampling"
     ORG_HAS_NO_PROJECTS = "org_has_no_projects"
-    ORG_NOT_FOUND = "org_not_found"
-    ROLLOUT_DISABLED = "rollout_disabled"
-    ROLLOUT_EXCLUDED = "rollout_excluded"
     SNUBA_TIMEOUT = "snuba_timeout"
     SNUBA_ERROR = "snuba_error"
 
@@ -141,8 +104,6 @@ def track_dynamic_sampling(func: F) -> F:
             try:
                 if is_killswitch_engaged():
                     result = DynamicSamplingStatus.KILLSWITCHED
-                elif not is_rollout_enabled():
-                    result = DynamicSamplingStatus.ROLLOUT_DISABLED
                 else:
                     result = func(*args, **kwargs)
             except DynamicSamplingException as exc:

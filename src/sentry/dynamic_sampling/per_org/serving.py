@@ -4,11 +4,6 @@ from collections.abc import Mapping
 
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
 from sentry.dynamic_sampling.per_org import cache
-from sentry.dynamic_sampling.per_org.telemetry import (
-    ServedValue,
-    ServingSource,
-    emit_serving_source,
-)
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.organization import Organization
 
@@ -24,14 +19,11 @@ def get_project_sample_rate(
     """
     sample_rate = cache.get_project_sample_rate(org_id, project_id)
     if sample_rate is not None:
-        emit_serving_source(ServedValue.PROJECT_SAMPLE_RATE, ServingSource.PER_ORG)
         return sample_rate
 
     if cache.has_project_rates(org_id):
-        emit_serving_source(ServedValue.PROJECT_SAMPLE_RATE, ServingSource.PER_ORG_NO_DATA)
         return 1.0
 
-    emit_serving_source(ServedValue.PROJECT_SAMPLE_RATE, ServingSource.PER_ORG_FALLBACK)
     return error_sample_rate_fallback
 
 
@@ -44,20 +36,12 @@ def get_transaction_sample_rates(
     """
     sample_rates = cache.get_transaction_sample_rates(org_id, project_id)
     if sample_rates is None:
-        emit_serving_source(ServedValue.TRANSACTION_SAMPLE_RATES, ServingSource.PER_ORG_NO_DATA)
         return {}, default_rate
-
-    emit_serving_source(ServedValue.TRANSACTION_SAMPLE_RATES, ServingSource.PER_ORG)
     return sample_rates
 
 
 def get_recalibration_factor(org_id: int) -> float:
-    return cache.get_adjusted_factor(org_id, source="serving")
-
-
-def get_previous_recalibration_factor(org_id: int) -> float:
-    """The factor a recalibration pass applies its correction on top of."""
-    return cache.get_adjusted_factor(org_id, source="task")
+    return cache.get_adjusted_factor(org_id)
 
 
 def get_organization_sample_rate(
