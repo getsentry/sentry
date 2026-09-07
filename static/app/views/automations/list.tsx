@@ -142,7 +142,6 @@ function TableHeader() {
           disabled={!canCreateAlert}
           tooltipProps={{
             title: canCreateAlert ? undefined : getNoAlertWritePermissionTooltip(),
-            isHoverable: true,
           }}
           variant="primary"
           icon={<IconAdd />}
