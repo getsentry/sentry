@@ -76,9 +76,7 @@ function SpendAllocationModal({
       </Body>
       <Footer>
         <Flex gap="md" justify="end">
-          <Button onClick={closeModal} disabled={mutation.isPending}>
-            Cancel
-          </Button>
+          <Button onClick={closeModal}>Cancel</Button>
           <Button
             variant="primary"
             onClick={() => mutation.mutate()}
