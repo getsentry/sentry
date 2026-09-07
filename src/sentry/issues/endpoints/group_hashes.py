@@ -78,7 +78,7 @@ class GroupHashesEndpoint(GroupEndpoint):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 default=True,
-                description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+                description="Specify true to include the full event body, including the stacktrace, in the event payload. When true, the page size is capped at 10.",
             ),
             CursorQueryParam,
         ],
