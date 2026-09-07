@@ -207,9 +207,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         metadata = state.metadata or {}
         group_id = metadata.get("group_id")
-        run_referrer = None
+        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
         if group_id is None:
-            group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+            group_id = mirror_group_id
         if group_id is None:
             logger.warning(
                 "autofix.on_completion_hook.missing_group_id",
