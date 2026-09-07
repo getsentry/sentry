@@ -92,7 +92,7 @@ def test_sources_custom_with_event_id(default_project) -> None:
     custom_source = sources[1]
     headers = custom_source.pop("headers")
     assert headers == {
-        "x-sentry-project-id": default_project.id,
+        "x-sentry-project-id": str(default_project.id),
         "x-sentry-event-id": event_id,
     }
 

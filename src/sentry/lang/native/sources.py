@@ -425,7 +425,7 @@ def normalize_user_source(source, project_id=None, event_id=None):
 
         # Event & project ID
         if project_id:
-            headers[PROJECT_ID_HEADER] = project_id
+            headers[PROJECT_ID_HEADER] = str(project_id)
         if event_id:
             headers[EVENT_ID_HEADER] = event_id
 
