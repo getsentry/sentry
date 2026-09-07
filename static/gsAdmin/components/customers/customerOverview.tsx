@@ -65,7 +65,7 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
   customer: Subscription;
-  onAction?: (data: Record<string, any>) => Promise<unknown>;
+  onAction: (data: Record<string, any>) => Promise<unknown>;
 };
 
 function SoftCapTypeDetail({
@@ -133,8 +133,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
           <DetailLabel title="Contract Period">
             {`${moment(customer.billingPeriodStart).format('ll')} › `}
             {(customer.billingInterval === 'annual' &&
-              customer.type === BillingType.INVOICED &&
-              onAction && (
+              customer.type === BillingType.INVOICED && (
                 <ChangeContractEndDateAction
                   contractPeriodEnd={customer.billingPeriodEnd}
                   onAction={onAction}
@@ -500,9 +499,8 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
 
 type Props = {
   customer: Subscription;
-  onAction: (data: Record<string, any>) => void;
+  onAction: (data: Record<string, any>) => Promise<unknown>;
   organization: Organization;
-  onContractEndDateChange?: (data: Record<string, any>) => Promise<unknown>;
 };
 
 function isWithinAcceptedMargin(
@@ -580,12 +578,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
   );
 }
 
-export function CustomerOverview({
-  customer,
-  onAction,
-  onContractEndDateChange,
-  organization,
-}: Props) {
+export function CustomerOverview({customer, onAction, organization}: Props) {
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -799,7 +792,7 @@ export function CustomerOverview({
         </DetailList>
 
         <h6>Subscription</h6>
-        <SubscriptionSummary customer={customer} onAction={onContractEndDateChange} />
+        <SubscriptionSummary customer={customer} onAction={onAction} />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
         <h6>PCSS</h6>
