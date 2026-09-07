@@ -12,10 +12,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
-import {useApi} from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
   onAction: (data: any) => void;
@@ -38,16 +37,27 @@ const schema = z.object({
 });
 
 export function SentryAppUpdateModal(props: Props) {
-  const api = useApi({persistInFlight: true});
   const {sentryAppData, closeModal, Header, Body, Footer} = props;
 
   const mutation = useMutation({
     mutationFn: (data: {features: number[]; popularity: number}) =>
-      api.requestPromise(`/sentry-apps/${sentryAppData.slug}/`, {
+      fetchMutation({
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+          path: {sentryAppIdOrSlug: sentryAppData.slug},
+        }),
         method: 'PUT',
         data: {...sentryAppData, ...data},
       }),
     onSuccess: closeModal,
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('Unable to update the Sentry App.');
+    },
   });
 
   const {
@@ -69,18 +79,7 @@ export function SentryAppUpdateModal(props: Props) {
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
-      try {
-        await mutation.mutateAsync(schema.parse(value));
-      } catch (error) {
-        const handled =
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
-        if (!handled) {
-          addErrorMessage('Unable to update the Sentry App.');
-        }
-      }
-    },
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   if (isPending) {

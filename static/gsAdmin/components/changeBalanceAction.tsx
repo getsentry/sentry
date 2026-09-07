@@ -59,6 +59,15 @@ function ChangeBalanceModal({
       onSuccess();
       closeModal();
     },
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('Unable to update customer balance.');
+    },
   });
 
   const defaultValues: z.input<typeof schema> = {
@@ -70,18 +79,7 @@ function ChangeBalanceModal({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
-      try {
-        await mutation.mutateAsync(schema.parse(value));
-      } catch (error) {
-        const handled =
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
-        if (!handled) {
-          addErrorMessage('Unable to update customer balance.');
-        }
-      }
-    },
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (

@@ -75,6 +75,15 @@ function AddToStartupProgramModal({
       onSuccess();
       closeModal();
     },
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('Unable to add customer to startup program.');
+    },
   });
 
   const defaultValues: z.input<typeof schema> = {
@@ -87,22 +96,15 @@ function AddToStartupProgramModal({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
-      try {
-        const parsed = schema.parse(value);
-        await mutation.mutateAsync({
+    onSubmit: ({value}) => {
+      const parsed = schema.parse(value);
+      return mutation
+        .mutateAsync({
           creditAmount: parsed.creditAmount,
           ticketUrl: parsed.ticketUrl,
           notes: parsed.notes === 'other' ? parsed.customNotes : parsed.notes,
-        });
-      } catch (error) {
-        const handled =
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
-        if (!handled) {
-          addErrorMessage('Unable to add customer to startup program.');
-        }
-      }
+        })
+        .catch(() => {});
     },
   });
 

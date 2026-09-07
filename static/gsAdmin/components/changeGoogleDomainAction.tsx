@@ -8,7 +8,8 @@ import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
   onUpdated: (data: any) => void;
@@ -38,7 +39,6 @@ function ChangeGoogleDomainModal({
   orgId,
   onUpdated,
 }: ModalProps) {
-  const api = useApi();
   const [dryRun, setDryRun] = useState(true);
   const [dryRunInfo, setDryRunInfo] = useState<string[]>([]);
 
@@ -47,7 +47,10 @@ function ChangeGoogleDomainModal({
       const result: {
         dryrun_info: string[];
         new_domain: string;
-      } = await api.requestPromise(`/customers/${orgId}/migrate-google-domain/`, {
+      } = await fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/migrate-google-domain/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
         method: 'POST',
         data: {...data, dryRun},
       });

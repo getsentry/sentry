@@ -62,6 +62,15 @@ function ChangeDatesModal({
       onSuccess();
       closeModal();
     },
+    onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      addErrorMessage('Unable to update subscription dates.');
+    },
   });
 
   const form = useScrapsForm({
@@ -73,18 +82,7 @@ function ChangeDatesModal({
       contractPeriodEnd: subscription.billingPeriodEnd ?? '',
     },
     validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
-      try {
-        await mutation.mutateAsync(value);
-      } catch (error) {
-        const handled =
-          error instanceof RequestError &&
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
-        if (!handled) {
-          addErrorMessage('Unable to update subscription dates.');
-        }
-      }
-    },
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   const dateFields = [
