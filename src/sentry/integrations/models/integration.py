@@ -15,10 +15,12 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.signals import integration_added
 from sentry.types.cell import find_cells_for_orgs
 
@@ -121,14 +123,47 @@ class Integration(DefaultFieldsModelExisting):
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
-                org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization_id,
-                    integration_id=self.id,
-                    defaults={"default_auth_id": default_auth_id, "config": {}},
+                # Lock against the scheduled-uninstall claim path in
+                # OrganizationIntegrationDeletionTask._claim_for_scheduled_deletion.
+                # Org-tombstone cascade does not take that lock.
+                org_integration, created = (
+                    OrganizationIntegration.objects.select_for_update().get_or_create(
+                        organization_id=organization_id,
+                        integration_id=self.id,
+                        defaults={"default_auth_id": default_auth_id, "config": {}},
+                    )
                 )
                 # TODO(Steve): add audit log if created
-                if not created and default_auth_id:
-                    org_integration.update(default_auth_id=default_auth_id)
+                if not created:
+                    # Deletion already claimed the row. Refuse reinstall until it finishes.
+                    if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
+                        logger.info(
+                            "add-organization-deletion-in-progress",
+                            extra={
+                                "organization_id": organization_id,
+                                "integration_id": self.id,
+                                "organization_integration_id": org_integration.id,
+                            },
+                        )
+                        # Raise rather than return None: this is transient and
+                        # retryable, and callers that discard the return value
+                        # would otherwise report success having linked nothing.
+                        raise IntegrationDeletionInProgressError(
+                            "Integration deletion is already in progress. Please try again in a few minutes."
+                        )
+
+                    # Rescue PENDING_DELETION rows from the scheduled uninstall race.
+                    reactivating = org_integration.status == ObjectStatus.PENDING_DELETION
+
+                    updates: dict[str, Any] = {}
+                    if default_auth_id:
+                        updates["default_auth_id"] = default_auth_id
+                    if reactivating:
+                        updates["status"] = ObjectStatus.ACTIVE
+                    if updates:
+                        org_integration.update(**updates)
+                    if reactivating:
+                        ScheduledDeletion.cancel(org_integration)
 
                 if created:
                     organization_service.schedule_signal(

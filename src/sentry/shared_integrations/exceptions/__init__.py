@@ -23,6 +23,7 @@ __all__ = (
     "ApiRateLimitedError",
     "ApiInvalidRequestError",
     "IntegrationError",
+    "IntegrationDeletionInProgressError",
     "IntegrationFormError",
     "UnsupportedResponseType",
 )
@@ -215,6 +216,17 @@ class IntegrationConfigurationError(IntegrationError):
 class IntegrationResourceNotFoundError(IntegrationError):
     """
     Error when an external API resource is not found.
+    """
+
+
+class IntegrationDeletionInProgressError(IntegrationError):
+    """
+    Error when an integration cannot be installed for an organization because a
+    previous uninstall is still being processed.
+
+    This is transient. The deletion removes the existing row shortly, after which
+    installing again succeeds. Callers should tell the user to retry rather than
+    reporting a permanent failure.
     """
 
 
