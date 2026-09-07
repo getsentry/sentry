@@ -22,10 +22,10 @@ export function ExploreControlSection({expanded, ...props}: ExploreControlSectio
   return (
     <Container
       as="aside"
-      padding={{zero: 'md xl', xl: expanded ? 'md xl' : '0'}}
-      borderBottom={{zero: 'primary', xl: 'none'}}
+      padding={expanded ? 'md xl' : '0'}
+      borderBottom={expanded ? {zero: 'primary', xl: 'none'} : 'none'}
       borderRight={{zero: 'none', xl: expanded ? 'primary' : 'none'}}
-      overflow={{zero: 'visible', xl: expanded ? 'visible' : 'hidden'}}
+      overflow={expanded ? 'visible' : 'hidden'}
       width={{zero: 'auto', xl: expanded ? '343px' : '0px'}}
       {...props}
     />
