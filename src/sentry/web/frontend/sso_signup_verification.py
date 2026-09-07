@@ -31,9 +31,16 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
     and login via its normal code path.
     """
 
+    record_analytics = False
+
     def handle_verified_email(self, request: HttpRequest, verified_email: str) -> HttpResponseBase:
         helper = AuthHelper.get_for_request(request)
         if not helper:
+            logger.warning(
+                "sso_signup_verification.pipeline_not_found",
+                extra={"email_hash": hash_email(verified_email)},
+            )
+            self._record_failure_metric("pipeline_not_found")
             return self._render_error(
                 title="Signup error",
                 message="Could not find your signup data. It may have expired. Please restart the signup process.",
@@ -46,6 +53,7 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
                 "sso_signup_verification.state_expired",
                 extra={"email_hash": hash_email(verified_email)},
             )
+            self._record_failure_metric("state_expired")
             return self._render_error(
                 title="Signup error",
                 message="Your session has expired. Please restart the signup process.",
@@ -60,6 +68,7 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
                 "sso_signup_verification.identity_not_valid",
                 extra={"email_hash": hash_email(verified_email)},
             )
+            self._record_failure_metric("identity_not_valid")
             return self._render_error(
                 title="Signup error",
                 message="Something went wrong. Please restart the signup process.",
@@ -73,6 +82,7 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
                     "identity_email_hash": hash_email(identity["email"]),
                 },
             )
+            self._record_failure_metric("email_mismatch")
             return self._render_error(
                 title="Verification error",
                 message="Email mismatch. Please restart the signup process.",
@@ -81,5 +91,11 @@ class SSOSignupVerificationView(BaseSignupVerificationView):
         helper.state.verified_email = verified_email
         request.session.pop(PENDING_VERIFICATION_SESSION_KEY, None)
         request.session.pop(PENDING_EXPIRY_TEXT_SESSION_KEY, None)
+
+        email_hash = hash_email(verified_email)
+        logger.info(
+            "sso_signup_verification.verification_complete",
+            extra={"email_hash": email_hash},
+        )
 
         return HttpResponseRedirect(reverse("sentry-auth-sso"))

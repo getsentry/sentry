@@ -41,6 +41,7 @@ export function useValidatedExploreColumns({
     boolean: booleanAttributes,
     number: numberAttributes,
     string: stringAttributes,
+    array: arrayAttributes,
   } = attributes;
 
   const validatedColumnData = useMemo(
@@ -51,12 +52,14 @@ export function useValidatedExploreColumns({
           boolean: booleanAttributes,
           number: numberAttributes,
           string: stringAttributes,
+          array: arrayAttributes,
         },
         fields,
         validationData,
       }),
     [
       aggregateFields,
+      arrayAttributes,
       booleanAttributes,
       fields,
       numberAttributes,

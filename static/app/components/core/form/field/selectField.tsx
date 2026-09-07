@@ -4,9 +4,8 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
-
-import type {Props as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
+import type {Props as ReactSelectProps} from '@sentry/scraps/select/reactSelectWrapper';
+import {components} from '@sentry/scraps/select/reactSelectWrapper';
 
 import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
@@ -115,11 +114,17 @@ export function SelectField<TValue>({
   onChange,
   disabled,
   multiple,
+  clearable,
   value,
   ref,
   ...props
 }: BaseFieldProps<HTMLInputElement> & SelectFieldProps<TValue>) {
   const autoSaveContext = useAutoSaveContext();
+  const selectVariantProps = multiple
+    ? {multiple: true as const, clearable, value}
+    : clearable
+      ? {clearable: true as const, value}
+      : {value};
 
   // Track whether the menu is open for multi-select auto-save behavior
   const isMenuOpenRef = useRef(false);
@@ -131,10 +136,10 @@ export function SelectField<TValue>({
           <Select
             {...fieldProps}
             {...props}
+            {...selectVariantProps}
             inputId={id}
-            multiple={multiple}
-            value={value}
             inputRef={applyInputToRef(fieldRef)}
+            {...(autoSaveContext && {blurInputOnSelect: false})}
             components={
               {
                 ...props.components,
@@ -169,12 +174,18 @@ export function SelectField<TValue>({
                 if (!option) {
                   // Clearable single select - type system allows null via discriminated union
                   (onChange as (value: TValue | null) => void)(null);
+                  if (autoSaveContext) {
+                    fieldProps.onBlur();
+                  }
                   return;
                 }
                 // For single-select, option is a single value
                 (onChange as (value: TValue) => void)(
                   (option as SelectValue<TValue>).value
                 );
+                if (autoSaveContext) {
+                  fieldProps.onBlur();
+                }
               }
             }}
           />

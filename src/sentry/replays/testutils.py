@@ -357,11 +357,14 @@ def mock_segment_fullsnapshot(
         childNodes=[bodyNode],
     )
 
+    timestamp_ms = ms(timestamp)  # rrweb timestamps are in ms
+
     return [
         {
             "type": EventType.FullSnapshot,
+            "timestamp": timestamp_ms,
             "data": {
-                "timestamp": ms(timestamp),  # rrweb timestamps are in ms
+                "timestamp": timestamp_ms,
                 "node": {
                     "type": EventType.DomContentLoaded,
                     "childNodes": [htmlNode],

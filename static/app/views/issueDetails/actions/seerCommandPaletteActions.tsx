@@ -28,7 +28,8 @@ function useSeerState(group: Group, project: Project) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
-  const issueTypeSupportsSeer = issueTypeConfig.autofix || issueTypeConfig.issueSummary;
+  const issueTypeSupportsSeer =
+    issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
 
   const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.areAiFeaturesAllowed,

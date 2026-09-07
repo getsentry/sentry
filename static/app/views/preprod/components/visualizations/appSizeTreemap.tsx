@@ -76,7 +76,7 @@ function FullscreenModalContent({
   const [localHighlightInsights, setLocalHighlightInsights] = useState(
     initialHighlightInsights
   );
-  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch, '');
+  const filteredRoot = filterTreemapElement(unfilteredRoot, localSearch);
 
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);

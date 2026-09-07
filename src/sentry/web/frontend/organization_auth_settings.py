@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.auth.store import FLOW_SETUP_PROVIDER
 from sentry.auth.superuser import is_active_superuser
@@ -80,8 +81,9 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
             disabled=disabled,
         )
 
-        if provider.is_saml and provider.name != "SAML2":
-            # Generic SAML2 provider already includes the certificate field in it's own configure view
+        # Generic SAML2 providers (including Active Directory / Azure Entra and
+        # Jumpcloud) already render the certificate in their configure view.
+        if provider.is_saml and not isinstance(provider, GenericSAML2Provider):
             x509cert = forms.CharField(
                 label="x509 public certificate",
                 widget=forms.Textarea,
@@ -97,7 +99,7 @@ def auth_provider_settings_form(provider, auth_provider, organization, request):
     if provider.can_use_scim(organization.id, request.user):
         initial["enable_scim"] = bool(auth_provider.flags.scim_enabled)
 
-    if provider.is_saml:
+    if provider.is_saml and not isinstance(provider, GenericSAML2Provider):
         initial_idp = auth_provider.config.get("idp", {})
         certificate = initial_idp.get("x509cert", "")
         initial["x509cert"] = certificate

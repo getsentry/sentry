@@ -15,7 +15,7 @@ from sentry.api.utils import clamp_date_range, default_start_end_dates
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
+from sentry.constants import PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
 
 
@@ -48,13 +48,6 @@ class ProjectTagsEndpoint(ProjectEndpoint):
                 description="Set to `0` to omit the `uniqueValues` count for each tag key.",
             ),
             OpenApiParameter(
-                name="onlySamplingTags",
-                location="query",
-                required=False,
-                type=str,
-                description="Set to `1` to only return tag keys relevant to dynamic sampling.",
-            ),
-            OpenApiParameter(
                 name="useFlagsBackend",
                 location="query",
                 required=False,
@@ -81,8 +74,6 @@ class ProjectTagsEndpoint(ProjectEndpoint):
             tag_keys = []
         else:
             kwargs: dict = {}
-            if request.GET.get("onlySamplingTags") == "1":
-                kwargs["denylist"] = DS_DENYLIST
 
             # Flags are stored on the same table as tags but on a different column. Ideally both
             # could be queried in a single request. But at present we're not sure if we want to

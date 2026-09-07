@@ -274,7 +274,7 @@ class NotifySeerPrCreatedTest(TestCase):
     def test_groupless_run_links_and_attributes(self) -> None:
         """A run with no issue (group_id=None) still links the PR and records a
         SENTRY_APP/SEER_DATA attribution when the attribution flag is on."""
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             result = self._notify(self._payload(), group_id=None)
 
         assert isinstance(result, NotifySeerPrCreatedSuccessResponse)
@@ -293,7 +293,7 @@ class NotifySeerPrCreatedTest(TestCase):
         }
 
     def test_group_present_populates_attribution_group_ids(self) -> None:
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             self._notify(self._payload(), group_id=self.group.id)
 
         attribution = PullRequestAttribution.objects.get(pull_request=self._linked_pull_request())
@@ -301,7 +301,7 @@ class NotifySeerPrCreatedTest(TestCase):
         assert attribution.signal_details["group_ids"] == [self.group.id]
 
     def test_idempotent_on_redelivery(self) -> None:
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             self._notify(self._payload(), group_id=None)
             self._notify(self._payload(), group_id=None)
 
@@ -313,7 +313,7 @@ class NotifySeerPrCreatedTest(TestCase):
     def test_links_regardless_of_operator_access(self, mock_has_access: Mock) -> None:
         """The new path must not consult ``SeerAutofixOperator.has_access``: linking
         happens even when operator access would be denied."""
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             result = self._notify(self._payload(), group_id=None)
 
         assert isinstance(result, NotifySeerPrCreatedSuccessResponse)

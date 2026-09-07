@@ -8,6 +8,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import {getBootstrapProjectsQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -165,6 +166,10 @@ export function useReplayData({
   );
 
   const projectSlug = useReplayProjectSlug({replayRecord});
+  const {isPending: isFetchingProjects} = useQuery(
+    getBootstrapProjectsQueryOptions(orgSlug)
+  );
+  const isResolvingProjectSlug = !!replayRecord && !projectSlug && isFetchingProjects;
 
   const getAttachmentsQueryOptions = useCallback(
     ({cursor, per_page}: {cursor: string; per_page: number}) =>
@@ -397,6 +402,7 @@ export function useReplayData({
 
   const allStatuses = [
     replayId ? fetchReplayStatus : undefined,
+    isResolvingProjectSlug ? 'pending' : undefined,
     enableAttachments ? fetchAttachmentsStatus : undefined,
     enableErrors ? fetchErrorsStatus : undefined,
     enableExtraErrors ? fetchExtraErrorsStatus : undefined,

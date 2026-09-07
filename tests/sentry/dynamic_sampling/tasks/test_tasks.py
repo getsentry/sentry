@@ -6,6 +6,8 @@ import pytest
 from django.utils import timezone
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
+from sentry.dynamic_sampling.models.common import RebalancedItem
+from sentry.dynamic_sampling.per_org import cache as per_org_cache
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
@@ -33,6 +35,7 @@ from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=0, minute=0, second=0, microsecond=0
@@ -95,43 +98,6 @@ class TasksTestCase(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
             proj = self.create_project(name=name, organization=org)
 
         self.disable_all_biases(project=proj)
-
-        return proj
-
-    def create_project_and_add_span_metrics(self, name, count, org, tags=None, is_old=True):
-        """Create a project with span metrics for SPANS measure (AM3/project mode).
-
-        Also stores a segment metric for org discovery (GetActiveOrgs uses SEGMENTS).
-        """
-        if tags is None:
-            tags = {"transaction": "foo_transaction"}
-
-        if is_old:
-            proj = self.create_old_project(name=name, organization=org)
-        else:
-            proj = self.create_project(name=name, organization=org)
-
-        self.disable_all_biases(project=proj)
-
-        # Store segment metric for org discovery (GetActiveOrgs uses SEGMENTS)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={**tags, "is_segment": "true"},
-            minutes_before_now=30,
-            value=count,
-            project_id=proj.id,
-            org_id=org.id,
-        )
-
-        # Store SpanMRI metric for SPANS measure queries (no is_segment filter)
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags=tags,
-            minutes_before_now=30,
-            value=count,
-            project_id=proj.id,
-            org_id=org.id,
-        )
 
         return proj
 
@@ -203,48 +169,6 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
 
         # we expect only uniform rule
         # also we test here that `generate_rules` can handle trough redis long floats
-        assert generate_rules(proj_a)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.14814814814814817),
-        }
-        assert generate_rules(proj_b)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.1904761904761905),
-        }
-        assert generate_rules(proj_c)[0]["samplingValue"] == {
-            "type": "sampleRate",
-            "value": pytest.approx(0.4444444444444444),
-        }
-        assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
-
-    @with_feature("organizations:dynamic-sampling")
-    @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_boost_low_volume_projects_with_spans_measure(
-        self,
-        get_blended_sample_rate,
-    ):
-        """Test boost_low_volume_projects using span metrics (AM3/project mode)."""
-        get_blended_sample_rate.return_value = 0.25
-        test_org = self.create_old_organization(name="sample-org")
-
-        # Create projects with span metrics (SpanMRI without is_segment filter)
-        proj_a = self.create_project_and_add_span_metrics("a", 9, test_org)
-        proj_b = self.create_project_and_add_span_metrics("b", 7, test_org)
-        proj_c = self.create_project_and_add_span_metrics("c", 3, test_org)
-        proj_d = self.create_project_and_add_span_metrics("d", 1, test_org)
-
-        # Enable SPANS measure via feature flag and options
-        with self.options(
-            {
-                "dynamic-sampling.check_span_feature_flag": True,
-                "dynamic-sampling.measure.spans": [test_org.id],
-            }
-        ):
-            with self.tasks():
-                sliding_window_org()
-                boost_low_volume_projects()
-
-        # Verify sample rates are calculated correctly
         assert generate_rules(proj_a)[0]["samplingValue"] == {
             "type": "sampleRate",
             "value": pytest.approx(0.14814814814814817),
@@ -789,6 +713,65 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # we sampled at 40% twice as much as we wanted we already have a factor of 0.5
                 # half it again to 0.25
                 assert float(val) == 0.25
+
+    @with_feature("organizations:dynamic-sampling")
+    @override_options({"dynamic-sampling.per_org.serving-rollout-rate": 1.0})
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_recalibrate_orgs_skips_orgs_served_the_per_org_factor(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
+        """An org served the per-org factor keeps the legacy cache untouched.
+
+        Both loops step by previous * target / measured. Writing here as well would step a
+        factor nothing applies, so it would walk to a rebalance bound.
+        """
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+
+        served_org = self.orgs[0]
+        per_org_cache.set_project_sample_rates(
+            served_org.id,
+            [RebalancedItem(id=self.orgs_info[0]["project_ids"][0], count=10, new_sample_rate=0.2)],
+        )
+
+        redis_client = get_redis_client_for_ds()
+
+        with self.tasks():
+            recalibrate_orgs()
+
+        # The served org sampled at 10% against a 20% target, so the legacy task would have
+        # written a factor of 2.0 here.
+        assert redis_client.get(generate_recalibrate_orgs_cache_key(served_org.id)) is None
+
+        # Every other org still has its factor written by the legacy task.
+        other_factor = redis_client.get(generate_recalibrate_orgs_cache_key(self.orgs[2].id))
+        assert other_factor is not None
+        assert float(other_factor) == 0.5
+
+    @with_feature("organizations:dynamic-sampling")
+    def test_recalibrate_orgs_continues_from_the_per_org_factor_after_switching_back(
+        self,
+    ) -> None:
+        """An org switched back to the legacy pipeline steps from the factor it was served.
+
+        The legacy key expired while the per-org pipeline served the org, so without the
+        carry-over the correction would restart from 1.0 and drop the whole boost.
+        """
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+
+        # This org stored metrics at a 10% sampling rate, so it measures at 0.1.
+        switched_back_org = self.orgs[0]
+        per_org_cache.set_adjusted_factor(switched_back_org.id, 3.0)
+
+        redis_client = get_redis_client_for_ds()
+
+        with self.tasks():
+            recalibrate_orgs()
+
+        # 3.0 * (0.2 target / 0.1 measured), instead of the 2.0 a restart from 1.0 gives.
+        factor = redis_client.get(generate_recalibrate_orgs_cache_key(switched_back_org.id))
+        assert factor is not None
+        assert float(factor) == 6.0
 
     @with_feature("organizations:dynamic-sampling")
     @with_feature("organizations:dynamic-sampling-custom")

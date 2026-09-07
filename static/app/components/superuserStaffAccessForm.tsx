@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -77,7 +78,7 @@ function reloadPage() {
 
 function SuperuserStaffAccessForm({hasStaff}: Props) {
   const api = useApi();
-  const authUrl = hasStaff ? '/staff-auth/' : '/auth/';
+  const authUrl = hasStaff ? getApiUrl('/staff-auth/') : getApiUrl('/auth/');
   const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
   const shouldAutoSubmit = hasStaff && disableU2FForSUForm;
 
@@ -103,8 +104,6 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
   }, []);
 
   const {mutateAsync: authenticate} = useMutation({
-    // authUrl is a runtime branch (/auth/ or /staff-auth/), not a known URL
-    // literal, so it's passed to fetchMutation as a plain string.
     mutationFn: (data: AuthPayload) => fetchMutation({method: 'PUT', url: authUrl, data}),
     onSuccess: reloadPage,
     onError: handleError,

@@ -100,10 +100,13 @@ class SCIMTeamPatchOperationSerializer(serializers.Serializer):
         raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
-@extend_schema_serializer(exclude_fields="schemas")
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     # we don't actually use "schemas" for anything atm but its part of the spec
-    schemas = serializers.ListField(child=serializers.CharField(), required=True)
+    schemas = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        help_text="SCIM schema URIs identifying the request format. Must be the PatchOp schema.",
+    )
     Operations = serializers.ListField(
         child=SCIMTeamPatchOperationSerializer(),
         required=True,

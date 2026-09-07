@@ -64,7 +64,9 @@ describe('FileInsightItemDiffTable', () => {
     render(<FileInsightItemDiffTable fileDiffItems={mockFileDiffItems} />);
 
     // Click on Status header to sort by type
-    const statusHeader = screen.getByRole('columnheader', {name: 'Status'});
+    const statusHeader = within(
+      screen.getByRole('columnheader', {name: 'Status'})
+    ).getByRole('button');
     await userEvent.click(statusHeader);
 
     // After sorting by status ascending, "added" should come first
@@ -82,7 +84,9 @@ describe('FileInsightItemDiffTable', () => {
     render(<FileInsightItemDiffTable fileDiffItems={mockFileDiffItems} />);
 
     // Click on Affected Files header to sort by path
-    const pathHeader = screen.getByRole('columnheader', {name: 'Affected Files'});
+    const pathHeader = within(
+      screen.getByRole('columnheader', {name: 'Affected Files'})
+    ).getByRole('button');
     await userEvent.click(pathHeader);
 
     // Should sort alphabetically by path

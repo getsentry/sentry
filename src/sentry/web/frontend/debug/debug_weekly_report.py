@@ -261,9 +261,6 @@ class DebugWeeklyReportView(MailPreviewView):
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
         context = render_template_context(ctx, user_id)
         if context is not None:
-            context["show_week_over_week_metric"] = (
-                request.GET.get("show_week_over_week_metric", "1") != "0"
-            )
             context["show_past_issues"] = True
             total_spans = sum(ctx.spans_count_by_project.values())
             prev_total_spans = sum(ctx.prev_week_spans_count_by_project.values())

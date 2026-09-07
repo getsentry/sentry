@@ -85,7 +85,9 @@ export function PrivateGamingSdkAccessModal({
   >({
     mutationFn: ({platforms}: ConsoleSdkInviteRequest) =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/console-sdk-invites/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {platforms},
       }),

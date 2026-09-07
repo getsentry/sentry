@@ -810,7 +810,6 @@ class ExhaustiveFixtures(Fixtures):
 
         TraceItemAttributeValueContext.objects.create(
             organization=org,
-            project=project,
             attribute_name="metric.name",
             attribute_value="my.custom.counter",
             attribute_type=TraceMetricTypes.COUNTER,

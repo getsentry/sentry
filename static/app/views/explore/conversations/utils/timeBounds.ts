@@ -4,10 +4,6 @@ export function getTimeBoundsFromNodes(nodes: AITraceSpanNode[]): {
   endTimestamp: number | undefined;
   startTimestamp: number | undefined;
 } {
-  if (nodes.length === 0) {
-    return {startTimestamp: undefined, endTimestamp: undefined};
-  }
-
   let min = Infinity;
   let max = -Infinity;
 

@@ -36,7 +36,7 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
 
     def test_empty_crons_page(self) -> None:
         self.browser.get(self.path)
-        self.browser.wait_until(xpath="//h2[text()='Monitor Your Cron Jobs']")
+        self.browser.wait_until(xpath="//h3[text()='Monitor Your Cron Jobs']")
 
     def test_quick_start_flow(self) -> None:
         self.browser.get(self.path)

@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -187,7 +188,7 @@ function SudoModal({
 
   const {mutateAsync: authenticate} = useMutation({
     mutationFn: (data: AuthPayload) =>
-      fetchMutation({method: 'PUT', url: '/auth/', data}),
+      fetchMutation({method: 'PUT', url: getApiUrl('/auth/'), data}),
     onSuccess: handleSuccess,
     onError: handleError,
   });

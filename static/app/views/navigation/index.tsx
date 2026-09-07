@@ -107,6 +107,7 @@ function NavigationLayout({
 
   return (
     <Flex
+      data-navigation-component="navigation-layout"
       top={barTop}
       left={0}
       position={currentStepId ? undefined : 'sticky'}

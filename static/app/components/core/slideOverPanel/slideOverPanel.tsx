@@ -18,10 +18,12 @@ const OPEN_STYLES = {
   left: {transform: 'translateX(0) translateY(0)', opacity: 1},
 };
 
+// Percentages resolve against the panel's own width, so it starts fully
+// off-screen whatever width it ends up at.
 const COLLAPSED_STYLES = {
   bottom: {transform: `translateX(0) translateY(${PANEL_HEIGHT})`, opacity: 0},
-  right: {transform: `translateX(${RIGHT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
-  left: {transform: `translateX(-${LEFT_SIDE_PANEL_WIDTH}) translateY(0)`, opacity: 0},
+  right: {transform: 'translateX(100%) translateY(0)', opacity: 0},
+  left: {transform: 'translateX(-100%) translateY(0)', opacity: 0},
 };
 
 interface ChildRenderProps {

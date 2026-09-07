@@ -159,7 +159,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         };
       });
 
-    return [getSaveAsAlertMenuItem({organization, alertsUrls, submenu: true})];
+    return [getSaveAsAlertMenuItem({alertsUrls, submenu: true})];
   }, [metricQueries, organization, project, pageFilters, options.interval]);
 
   const addToDashboardItems = useMemo(() => {
@@ -185,13 +185,11 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
             const label = isVisualizeFunction(visualize)
-              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
-                  formatTraceMetricsFunction(
-                    metricQuery.queryParams.aggregateFields
-                      .filter(isVisualize)
-                      .map(v => v.yAxis)
-                  ) as string
-                }`
+              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${formatTraceMetricsFunction(
+                  metricQuery.queryParams.aggregateFields
+                    .filter(isVisualize)
+                    .map(v => v.yAxis)
+                )}`
               : (metricQuery.label ?? '');
             return {
               key: `add-to-dashboard-${index}`,

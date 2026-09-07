@@ -201,6 +201,25 @@ class TestRedisBuffer:
         else:
             assert pending == [key.encode("utf-8")]
 
+    def test_incr_bounds_pending_key(self) -> None:
+        """The pending zset gets an expiry, and that expiry outlives the rows."""
+        client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
+        model = mock.Mock()
+        model.__name__ = "Mock"
+        filters: dict[str, Any] = {"pk": 1}
+        key = make_key(model, filters=filters)
+
+        self.buf.incr(model, {"times_seen": 1}, filters)
+
+        row_ttl = client.ttl(key)
+        pending_ttl = client.ttl("b:p")
+        # Both keys are bounded.
+        assert 0 < row_ttl <= self.buf.key_expire
+        assert 0 < pending_ttl <= self.buf.pending_key_expire
+        # The pending zset never dies before a row that it points to.
+        assert self.buf.pending_key_expire >= self.buf.key_expire
+        assert pending_ttl >= row_ttl
+
     @mock.patch("sentry.buffer.redis.make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process) -> None:

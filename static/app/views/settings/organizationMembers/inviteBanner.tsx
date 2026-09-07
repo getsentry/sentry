@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -15,11 +16,11 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,7 +70,9 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
   const fetchMissingMembers = useCallback(async () => {
     try {
       const data = await api.requestPromise(
-        `/organizations/${organization.slug}/missing-members/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/missing-members/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET',
         }
@@ -142,7 +145,9 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     setSendingInvite(true);
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/members/?referrer=github_nudge_invite`,
+        `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })}?referrer=github_nudge_invite`,
         {
           method: 'POST',
           data: {email},
@@ -172,7 +177,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
               {tct('[missingMemberCount] missing members', {
                 missingMemberCount: missingMembers.length,
               })}
-              <QuestionTooltip
+              <InfoTip
                 title={t(
                   "Based on the last 30 days of GitHub commit data, there are team members committing code to Sentry projects that aren't in your Sentry organization"
                 )}

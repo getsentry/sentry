@@ -6,8 +6,12 @@ import type {
   RawSpanType,
   TraceContextSpanProxy,
 } from 'sentry/components/events/interfaces/spans/types';
-import type {EntrySpans, EventTransaction} from 'sentry/types/event';
-import {EntryType, type Event} from 'sentry/types/event';
+import {
+  type EntrySpans,
+  type EventTransaction,
+  EntryType,
+  type Event,
+} from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
 
 export const TRACE_WATERFALL_PREFERENCES_KEY =

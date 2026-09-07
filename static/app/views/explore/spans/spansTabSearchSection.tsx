@@ -148,11 +148,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
 
   return (
     <Layout.Main width="full">
-      <SearchQueryBuilderProvider
-        enableAISearch
-        aiSearchBadgeType="beta"
-        {...spanSearchQueryBuilderProviderProps}
-      >
+      <SearchQueryBuilderProvider enableAISearch {...spanSearchQueryBuilderProviderProps}>
         <TourElement<ExploreSpansTour>
           tourContext={ExploreSpansTourContext}
           id={ExploreSpansTour.SEARCH_BAR}

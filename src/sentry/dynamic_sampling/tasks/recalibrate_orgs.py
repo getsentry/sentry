@@ -7,17 +7,20 @@ from taskbroker_client.retry import Retry
 
 from sentry import quotas
 from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT
+from sentry.dynamic_sampling.per_org.serving import (
+    get_previous_recalibration_factor,
+    is_recalibration_factor_served_per_org,
+)
 from sentry.dynamic_sampling.rules.utils import DecisionKeepCount, OrganizationId, ProjectId
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
+from sentry.dynamic_sampling.tasks.constants import bounded_rebalance_factor
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
     delete_adjusted_factor,
     delete_adjusted_project_factor,
-    get_adjusted_factor,
     get_adjusted_project_factor,
     set_guarded_adjusted_factor,
     set_guarded_adjusted_project_factor,
@@ -32,6 +35,7 @@ from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.utils import metrics
 
 
 @instrumented_task(
@@ -94,6 +98,10 @@ def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> N
 
 
 def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
+    if is_recalibration_factor_served_per_org(org_id):
+        metrics.incr("dynamic_sampling.tasks.recalibrate_orgs.skipped_served_per_org")
+        return
+
     try:
         # We need the organization object for the feature flag.
         organization = Organization.objects.get_from_cache(id=org_id)
@@ -121,7 +129,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = indexed / total
     # We get the previous factor that was used for the recalibration.
-    previous_factor = get_adjusted_factor(org_id, source="task")
+    previous_factor = get_previous_recalibration_factor(org_id)
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
@@ -133,14 +141,15 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
         )
         return
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+    bounded_factor = bounded_rebalance_factor(adjusted_factor)
+    if bounded_factor is None:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_factor(org_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_factor(org_id, adjusted_factor)
+    set_guarded_adjusted_factor(org_id, bounded_factor)
 
 
 @instrumented_task(
@@ -191,11 +200,12 @@ def recalibrate_project(
         )
         return
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+    bounded_factor = bounded_rebalance_factor(adjusted_factor)
+    if bounded_factor is None:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_project_factor(project_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_project_factor(project_id, adjusted_factor)
+    set_guarded_adjusted_project_factor(project_id, bounded_factor)

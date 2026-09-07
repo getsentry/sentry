@@ -11,8 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {PendingUserInput, Block} from 'sentry/views/seerExplorer/types';
 
 import {DashboardChatBlock} from './dashboardChatBlock';
 
@@ -106,7 +105,9 @@ export function DashboardChatPanel({
       width="100%"
       background="primary"
       margin="0 auto"
-      style={{zIndex: theme.zIndex.dropdown, marginBottom: '24px'}}
+      // Sit above dashboard widgets/tiles, but below dropdown menus (e.g. Add Widget)
+      // so they aren't hidden behind the chat panel when it overlaps them.
+      style={{zIndex: theme.zIndex.dropdown - 1, marginBottom: '24px'}}
     >
       <Flex justify="between">
         <ChatHistoryToggle

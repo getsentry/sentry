@@ -121,7 +121,10 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
         assert execution.completed_at is not None
 
-    def test_stop_closes_a_pending_execution_that_never_reached_seer(self) -> None:
+    @patch("sentry.investigations.services.executions.record_execution_cancelled")
+    def test_stop_closes_a_pending_execution_that_never_reached_seer(
+        self, record_cancelled: MagicMock
+    ) -> None:
         execution = self.create_investigation_block_execution(
             block=self.block,
             executor="code_mode",
@@ -130,11 +133,13 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             input_snapshot={"projectIds": [self.project.id]},
         )
 
-        response = self.client.delete(self.execution_url(execution))
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.delete(self.execution_url(execution))
 
         assert response.status_code == 204
         execution.refresh_from_db()
         assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        record_cancelled.assert_called_once_with(execution, reason="user_requested")
 
     def test_resume_does_not_revive_a_finished_execution(self) -> None:
         execution = self.awaiting_input_execution()

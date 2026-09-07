@@ -23,10 +23,10 @@ import type {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
+  type TraceMetric,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';

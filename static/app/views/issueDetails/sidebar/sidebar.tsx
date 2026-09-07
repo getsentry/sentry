@@ -105,12 +105,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
             <ExternalIssueSidebarList group={group} event={event} />
           </ErrorBoundary>
           <ErrorBoundary mini>
-            <ActivitySection
-              group={group}
-              enableMentionComposer={organization.features.includes(
-                'issue-activity-mention-input'
-              )}
-            />
+            <ActivitySection group={group} />
           </ErrorBoundary>
           {showPeopleSection && (
             <PeopleSection

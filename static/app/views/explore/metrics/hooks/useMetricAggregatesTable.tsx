@@ -22,7 +22,10 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
-import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseMetricAggregatesTableOptions {
@@ -45,6 +48,41 @@ function makeCountAggregate(traceMetric: TraceMetric): string {
     traceMetric,
     attribute: TraceMetricKnownFieldKey.METRIC_NAME,
   });
+}
+
+function getMetricAggregatesGroupedFields(
+  groupBys: readonly string[],
+  visualizes: readonly Visualize[]
+): string[] {
+  const allFields: string[] = [];
+
+  for (const groupBy of groupBys) {
+    if (groupBy && !allFields.includes(groupBy)) {
+      allFields.push(groupBy);
+    }
+  }
+
+  for (const visualize of visualizes) {
+    if (visualize.yAxis && !allFields.includes(visualize.yAxis)) {
+      allFields.push(visualize.yAxis);
+    }
+  }
+
+  return allFields.filter(Boolean);
+}
+
+/**
+ * Every field the aggregates table queries, including the trailing count aggregate
+ * that the grouped fields alone omit.
+ */
+export function getMetricAggregatesFields(
+  groupBys: readonly string[],
+  visualizes: readonly Visualize[],
+  traceMetric: TraceMetric
+): string[] {
+  const fields = getMetricAggregatesGroupedFields(groupBys, visualizes);
+  const isEquation = visualizes.every(isVisualizeEquation);
+  return [...fields, ...(isEquation ? [] : [makeCountAggregate(traceMetric)])];
 }
 
 export function useMetricAggregatesTable({
@@ -101,31 +139,16 @@ function useMetricAggregatesTableImp({
 
   const isEquation = visualizes.every(isVisualizeEquation);
 
-  const fields = useMemo(() => {
-    const allFields: string[] = [];
-
-    // Add group by fields first
-    for (const groupBy of groupBys) {
-      if (groupBy && !allFields.includes(groupBy)) {
-        allFields.push(groupBy);
-      }
-    }
-
-    // Add the yAxis aggregate
-    for (const visualize of visualizes) {
-      if (visualize.yAxis && !allFields.includes(visualize.yAxis)) {
-        allFields.push(visualize.yAxis);
-      }
-    }
-
-    return allFields.filter(Boolean);
-  }, [groupBys, visualizes]);
+  const fields = useMemo(
+    () => getMetricAggregatesGroupedFields(groupBys, visualizes),
+    [groupBys, visualizes]
+  );
 
   const eventView = useMemo(() => {
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Application Metric Aggregates',
-      fields: [...fields, ...(isEquation ? [] : [makeCountAggregate(traceMetric)])],
+      fields: getMetricAggregatesFields(groupBys, visualizes, traceMetric),
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
@@ -133,7 +156,7 @@ function useMetricAggregatesTableImp({
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [fields, query, selection, sortBys, traceMetric, isEquation]);
+  }, [groupBys, visualizes, query, selection, sortBys, traceMetric]);
 
   const result = useSpansQuery({
     enabled:

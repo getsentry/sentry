@@ -275,7 +275,7 @@ describe('filterTreemapElement', () => {
       ]),
     ]);
 
-    const result = filterTreemapElement(element, 'HackerNews', '');
+    const result = filterTreemapElement(element, 'HackerNews');
 
     expect(result?.children).toHaveLength(1);
     expect(result?.children[0]?.name).toBe('Applications');

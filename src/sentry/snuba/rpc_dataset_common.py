@@ -324,7 +324,13 @@ class RPCBase:
         # Track sort columns added for virtual context ordering so we can
         # include them in columns/group_by and strip them from results.
         sort_column_aliases: set[str] = set()
-        orderby_columns = query.orderby if query.orderby is not None else []
+        # An empty orderby means "no sort", not "sort by the column named ''". Widgets store an
+        # empty orderby by default, so this arrives as [""] rather than None.
+        orderby_columns = [
+            orderby_column
+            for orderby_column in (query.orderby or [])
+            if orderby_column.lstrip("-").strip()
+        ]
         for orderby_column in orderby_columns:
             stripped_orderby = orderby_column.lstrip("-")
             if stripped_orderby in orderby_aliases:

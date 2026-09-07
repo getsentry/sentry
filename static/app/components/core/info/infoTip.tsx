@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconLock, IconQuestion} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
-import {t} from 'sentry/locale';
 
 interface InfoTooltipProps extends SVGIconProps {
   title: React.ReactNode;
@@ -38,6 +38,8 @@ const StyledIconWrapper = styled('span')`
 `;
 
 export function InfoTip(props: InfoTooltipProps) {
+  const {t} = useTranslation();
+
   return (
     <IconWithTooltip {...props} icon={IconQuestion} aria-label={t('More information')} />
   );
@@ -48,5 +50,7 @@ function LockIcon(props: SVGIconProps) {
 }
 
 export function DisabledTip(props: InfoTooltipProps) {
+  const {t} = useTranslation();
+
   return <IconWithTooltip {...props} icon={LockIcon} aria-label={t('Disabled')} />;
 }

@@ -3,8 +3,6 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
-
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export interface BreadcrumbItemLinkProps {
@@ -18,10 +16,6 @@ export interface BreadcrumbItemLinkProps {
 }
 
 export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLinkProps) {
-  function handleClick() {
-    trackAnalytics('breadcrumbs.link.clicked', {organization: null});
-  }
-
   return (
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
@@ -29,7 +23,14 @@ export function BreadcrumbItemLink({label, to, leadingGraphic}: BreadcrumbItemLi
             Here the label just fills that floored space and ellipsizes within it. */}
       <Container minWidth={0}>
         {styleProps => (
-          <Link to={to} onClick={handleClick} {...styleProps}>
+          <Link
+            to={to}
+            analyticsEventKey="breadcrumbs.link.clicked"
+            analyticsEventName="Breadcrumbs: Link Clicked"
+            analyticsParams={{organization: null}}
+            data-test-id="breadcrumb-link"
+            {...styleProps}
+          >
             <Text ellipsis variant="muted">
               {label}
             </Text>

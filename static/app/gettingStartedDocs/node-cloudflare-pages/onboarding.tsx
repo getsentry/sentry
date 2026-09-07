@@ -37,13 +37,6 @@ export const onRequest = [
     // https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sample-rate
     tracesSampleRate: 1.0,`
         : ''
-    }${
-      params.isLogsSelected
-        ? `
-
-    // Send structured logs to Sentry
-    enableLogs: true,`
-        : ''
     }
 
     dataCollection: {

@@ -202,7 +202,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
         organization_id: int | None = None,
         has_feature: bool = True,
     ) -> None:
-        with self.feature({"organizations:pr-metrics-attribution": has_feature}):
+        with self.feature({"organizations:pr-metrics": has_feature}):
             attribute_delegated_agent_pull_request(
                 organization_id=(
                     self.organization.id if organization_id is None else organization_id

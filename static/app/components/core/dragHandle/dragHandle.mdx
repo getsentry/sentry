@@ -9,6 +9,7 @@ resources:
   a11y:
     WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
     WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+    WCAG 2.5.8: https://www.w3.org/TR/WCAG22/#target-size-minimum
 ---
 
 import {DragHandleDemo} from './__stories__/dragHandleDemos';
@@ -50,7 +51,75 @@ Pass the current `value` with its `min` and `max` so the handle can announce its
 Use `onMoveStart` and `onMoveEnd` when a drag needs to bracket its work, such as recording the size it started from so the change can be reported once at the end.
 
 An `orientation` of `horizontal` lays the panes out in a row and draws a vertical divider between them.
-Set `isSizedFirst` to `false` when the pane being sized sits after the divider, so the cursor and keys still match the direction the divider can move.
+Set `isSizedFirst` to `false` when the pane being sized sits after the divider, so the cursor points the way the divider can still travel.
+It only turns the cursor around, so the delta is still yours to interpret.
+
+## Best practices
+
+### Keep the size controlled
+
+`DragHandle` reports movement but does not hold a size.
+`onMove` gives you how far the pointer or the arrow key travelled, never where the handle now sits, and it will hand you a delta that goes past `min` or `max` just as readily as one that does not.
+Clamp each update yourself.
+
+Pass back the size you actually rendered, clamped, rather than the raw number in state.
+`value` feeds `aria-valuenow` and picks the cursor, so a value outside `min` and `max` announces a size that is not on screen and points the cursor somewhere the divider cannot go.
+A size restored from persistence is the usual way this happens, when the window is narrower now than it was when the size was saved.
+
+### Preserve precision and commit once
+
+`onMove` fires on every pointer move, so hold the running size in a ref and let `onMoveEnd` be the only place that persists it or reports it.
+Pointer deltas are fractional on a scaled display, so accumulate at full precision and round where the size leaves your component.
+
+Compare the start and end at the same precision, and return early when they match.
+A press and release brackets a move with no `onMove` in between, so committing unconditionally writes a size the user never chose — for an auto-sized table column, that pins it to whatever width it happened to have.
+
+```jsx
+<DragHandle
+  {...props}
+  onMoveStart={() => {
+    dragRef.current = {size, startSize: size};
+  }}
+  onMove={delta => {
+    const state = dragRef.current;
+    if (!state) {
+      return;
+    }
+    state.size = clamp(state.size + delta);
+    setSize(Math.round(state.size));
+  }}
+  onMoveEnd={() => {
+    const state = dragRef.current;
+    dragRef.current = null;
+    if (!state) {
+      return;
+    }
+
+    const endSize = Math.round(state.size);
+    const startSize = Math.round(state.startSize);
+
+    if (endSize !== startSize) {
+      persist(endSize);
+    }
+  }}
+/>
+```
+
+Send `onDoubleClick` down the same path a drag ends on.
+It is required because a divider you cannot get back from is a trap, and a reset that skips the commit path is a change that never gets saved.
+
+### Account for direction and layout
+
+`isSizedFirst` changes the cursor, not the reported delta.
+The pointer and the arrow keys both report movement in screen direction, so negate the delta yourself when the pane being sized follows the handle.
+
+Subtract `DRAG_HANDLE_SIZE` when you derive `max` from the space available.
+The divider is a 1px border and it occupies that pixel in the layout, so leaving it out lets the pane on the other side be squeezed just past its own minimum.
+
+> [!WARNING]
+> The pointer target is 24px wide and centred on a line that has no width of its own, so it extends 12px into each adjacent pane and sits above them.
+> Keep buttons, links, and other targets outside that band, or they will not receive clicks.
+> Where the divider is drawn longer than the region it should be grabbed from, cap the target with `--drag-separator-target-length` on the handle or an ancestor, the way `Table` caps its column divider to the header row.
 
 ## Variants
 

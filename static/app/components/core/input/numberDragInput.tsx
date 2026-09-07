@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {InputGroup, type InputProps} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconArrow} from 'sentry/icons';
-import {tct} from 'sentry/locale';
 import {clamp} from 'sentry/utils/profiling/colors/clamp';
 
 // @TODO(jonasbadalic): Not sure this needs to be its own component,
@@ -41,6 +41,7 @@ export function NumberDragInput({
   shiftKeyMultiplier = 10,
   ...props
 }: NumberDragInput) {
+  const {tct} = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const onPointerMove = useCallback(

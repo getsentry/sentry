@@ -9,6 +9,7 @@ from sentry import analytics
 from sentry.analytics.events.api_token_deleted import ApiTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.endpoints.api_tokens import get_appropriate_user_id
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -36,6 +37,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.SECURITY
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (
         SentryIsAuthenticated,
         DisallowAgentToken,

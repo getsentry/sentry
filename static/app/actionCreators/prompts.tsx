@@ -48,10 +48,6 @@ type PromptCheckParams = {
    */
   feature: string | string[];
   organization: OrganizationSummary;
-  /**
-   * The numeric project ID as a string
-   */
-  projectId?: string;
 };
 
 type PromptCheckHookParams = {
@@ -101,7 +97,6 @@ export async function promptsCheck(
 ): Promise<PromptData> {
   const query = {
     feature: params.feature,
-    ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
   const url = `/organizations/${params.organization.slug}/prompts-activity/`;
   const response: PromptResponse = await api.requestPromise(url, {
@@ -150,7 +145,6 @@ function usePromptsCheck(
 export function usePrompts({
   features,
   organization,
-  projectId,
   daysToSnooze,
   options,
   isDismissed = promptIsDismissed,
@@ -160,10 +154,9 @@ export function usePrompts({
   daysToSnooze?: number;
   isDismissed?: (prompt: PromptData, daysToSnooze?: number) => boolean;
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
-  projectId?: string;
 }) {
   const api = useApi({persistInFlight: true});
-  const prompts = usePromptsCheck({feature: features, organization, projectId}, options);
+  const prompts = usePromptsCheck({feature: features, organization}, options);
   const queryClient = useQueryClient();
   const isPromptDismissed = useMemo(() => {
     if (prompts.isSuccess) {
@@ -186,7 +179,6 @@ export function usePrompts({
       }
       promptsUpdate(api, {
         organization,
-        projectId,
         feature,
         status: 'dismissed',
       });
@@ -198,7 +190,6 @@ export function usePrompts({
         makePromptsCheckQueryKey({
           organization,
           feature: features,
-          projectId,
         }),
         existingData => {
           const dismissedTs = Date.now() / 1000;
@@ -209,7 +200,7 @@ export function usePrompts({
         }
       );
     },
-    [api, organization, projectId, queryClient, features]
+    [api, organization, queryClient, features]
   );
 
   const snoozePrompt = useCallback(
@@ -219,7 +210,6 @@ export function usePrompts({
       }
       promptsUpdate(api, {
         organization,
-        projectId,
         feature,
         status: 'snoozed',
       });
@@ -231,7 +221,6 @@ export function usePrompts({
         makePromptsCheckQueryKey({
           organization,
           feature: features,
-          projectId,
         }),
         existingData => {
           const snoozedTs = Date.now() / 1000;
@@ -242,7 +231,7 @@ export function usePrompts({
         }
       );
     },
-    [api, organization, projectId, queryClient, features]
+    [api, organization, queryClient, features]
   );
 
   const showPrompt = useCallback(
@@ -252,7 +241,6 @@ export function usePrompts({
       }
       promptsUpdate(api, {
         organization,
-        projectId,
         feature,
         status: 'visible',
       });
@@ -264,7 +252,6 @@ export function usePrompts({
         makePromptsCheckQueryKey({
           organization,
           feature: features,
-          projectId,
         }),
         existingData => {
           return {
@@ -274,7 +261,7 @@ export function usePrompts({
         }
       );
     },
-    [api, organization, projectId, queryClient, features]
+    [api, organization, queryClient, features]
   );
 
   return {
@@ -423,12 +410,10 @@ export async function batchedPromptsCheck<T extends readonly string[]>(
   features: T,
   params: {
     organization: OrganizationSummary;
-    projectId?: string;
   }
 ): Promise<Record<T[number], PromptData>> {
   const query = {
     feature: features,
-    ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
   const url = `/organizations/${params.organization.slug}/prompts-activity/`;
   const response: PromptResponse = await api.requestPromise(url, {

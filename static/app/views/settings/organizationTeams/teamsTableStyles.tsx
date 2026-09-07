@@ -12,7 +12,7 @@ export const TeamsTable = styled(SimpleTable)`
     padding-left: 0;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @container (max-width: ${p => p.theme.container['3xl']}) {
     grid-template-columns: 1fr 125px auto;
 
     [data-column-name='projects'] {
@@ -20,7 +20,7 @@ export const TeamsTable = styled(SimpleTable)`
     }
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     grid-template-columns: 1fr auto;
 
     [data-column-name='role'] {

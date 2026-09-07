@@ -4,6 +4,7 @@ import {useFetchIntegrations} from 'sentry/components/group/externalIssuesList/u
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {GroupIntegration} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getIntegrationDisplayName,
   getIntegrationIcon,
@@ -99,7 +100,16 @@ export function useIntegrationExternalIssues({
 
             api
               .requestPromise(
-                `/organizations/${organization.slug}/issues/${group.id}/integrations/${config.id}/`,
+                getApiUrl(
+                  '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+                  {
+                    path: {
+                      organizationIdOrSlug: organization.slug,
+                      issueId: group.id,
+                      integrationId: config.id,
+                    },
+                  }
+                ),
                 {
                   method: 'DELETE',
                   query: {externalIssue: issue!.id},

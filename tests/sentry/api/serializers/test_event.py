@@ -204,10 +204,10 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         )
 
         result = serialize(event)
-        # Expect 3 custom tags + derived "level". The ``None``` entry is removed
+        # Expect 3 custom tags + derived "level" + derived "interface_type". The ``None``` entry is removed
         # by the serializer as it cannot be rendered. Such entries are generated
         # by Relay normalization.
-        assert len(result["tags"]) == 4
+        assert len(result["tags"]) == 5
         assert result["tags"][0]["value"] == "bar"
         assert result["tags"][1]["value"] == "foo"
         assert result["_meta"]["tags"]["0"]["key"] == {"": {"err": ["bar error"]}}
@@ -262,7 +262,15 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         assert not any(e["type"] == "request" for e in result["entries"])
         assert result["user"] is None
         assert result["sdk"] is None
-        assert result["contexts"] == {}
+        # Relay normalization always synthesizes a trace context.
+        assert result["contexts"] == {
+            "trace": {
+                "type": "trace",
+                "trace_id": "a" * 32,
+                "span_id": "a" * 16,
+                "status": "unknown",
+            }
+        }
         assert "startTimestamp" not in result
 
     def test_transaction_event(self) -> None:
@@ -351,7 +359,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["user"]["username"] == event.get_minimal_user().username
         assert result["user"]["ip_address"] == event.get_minimal_user().ip_address
         assert result["tags"] == [
-            {"key": "interface_type", "value": "user"},
+            {"key": "interface_type", "value": "contexts"},
             {"key": "level", "value": "error"},
             {"key": "user", "value": "email:test@test.com", "query": 'user.email:"test@test.com"'},
         ]

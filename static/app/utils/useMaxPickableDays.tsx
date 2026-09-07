@@ -95,7 +95,10 @@ function max(
   return a;
 }
 
-const DESCRIPTION = t('To query over longer time ranges, upgrade to Business');
+const BUSINESS_UPGRADE_DESCRIPTION = t(
+  'To query over longer time ranges, upgrade to Business'
+);
+const TEAM_UPGRADE_DESCRIPTION = t('To query over longer time ranges, upgrade to Team');
 
 export function getMaxPickableDays(
   dataCategory: DataCategory,
@@ -160,9 +163,9 @@ const UpsellFooterHook = OverrideOrDefault({
 });
 
 export const SpansUpsellFooter = (
-  <UpsellFooterHook description={DESCRIPTION} source="spans" />
+  <UpsellFooterHook description={BUSINESS_UPGRADE_DESCRIPTION} source="spans" />
 );
 
 export const ErrorsUpsellFooter = (
-  <UpsellFooterHook description={DESCRIPTION} source="errors" />
+  <UpsellFooterHook description={TEAM_UPGRADE_DESCRIPTION} source="errors" />
 );

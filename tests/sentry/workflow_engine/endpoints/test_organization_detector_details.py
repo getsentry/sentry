@@ -216,14 +216,6 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
-    def test_metric_detector_not_allowed_returns_404(self) -> None:
-        """
-        When the org lacks the incidents feature, GET for a metric detector
-        should return 404.
-        """
-        with self.feature({"organizations:incidents": False}):
-            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
-
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_get_success(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
@@ -431,19 +423,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
         assert response.data["config"]["comparisonDelta"] == 300
-
-    def test_metric_detector_not_allowed_returns_404(self) -> None:
-        """
-        When the org lacks the incidents feature, PUT for a metric detector
-        should return 404.
-        """
-        with self.feature({"organizations:incidents": False}):
-            self.get_error_response(
-                self.organization.slug,
-                self.detector.id,
-                **self.valid_data,
-                status_code=404,
-            )
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -1171,9 +1150,8 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
     def test_delete_allowed_without_metric_subscription_feature(self) -> None:
-        with self.feature({"organizations:incidents": False}):
-            with outbox_runner():
-                self.get_success_response(self.organization.slug, self.detector.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.detector.id)
 
         assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
