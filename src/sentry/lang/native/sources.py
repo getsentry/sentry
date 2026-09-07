@@ -217,6 +217,13 @@ HIDDEN_SECRET_SCHEMA = {
 }
 
 
+# The header in which to send the project ID to custom symbol sources.
+PROJECT_ID_HEADER = "x-sentry-project-id"
+
+# The header in which to send the event ID to custom symbol sources.
+EVENT_ID_HEADER = "x-sentry-event-id"
+
+
 def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
     """
     Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
@@ -418,9 +425,9 @@ def normalize_user_source(source, project_id=None, event_id=None):
 
         # Event & project ID
         if project_id:
-            headers["x-sentry-project-id"] = project_id
+            headers[PROJECT_ID_HEADER] = project_id
         if event_id:
-            headers["x-sentry-event-id"] = event_id
+            headers[EVENT_ID_HEADER] = event_id
 
         if headers:
             source["headers"] = headers
