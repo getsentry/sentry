@@ -2,8 +2,9 @@ import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
+import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -123,9 +124,12 @@ function ChangeGoogleDomainModal({
         </Stack>
       </Body>
       <Footer>
-        <form.SubmitButton>
-          {dryRun ? 'Do Dry Run' : 'Update Google Domain(s)'}
-        </form.SubmitButton>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>
+            {dryRun ? 'Do Dry Run' : 'Update Google Domain(s)'}
+          </form.SubmitButton>
+        </Flex>
       </Footer>
     </form.AppForm>
   );

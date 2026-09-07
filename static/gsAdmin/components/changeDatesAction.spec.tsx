@@ -43,7 +43,7 @@ describe('ChangeDatesAction', () => {
     await userEvent.keyboard(value);
   }
 
-  it('submits updated contract and on-demand dates', async () => {
+  it('submits non-empty contract and on-demand dates', async () => {
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
       method: 'PUT',
@@ -55,6 +55,7 @@ describe('ChangeDatesAction', () => {
 
     await updateDateField('Contract Period End Date', '2024-05-15');
     await updateDateField('On-Demand Period End Date', '2024-02-10');
+    await userEvent.clear(screen.getByLabelText('On-Demand Period Start Date'));
 
     await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
@@ -66,7 +67,6 @@ describe('ChangeDatesAction', () => {
         expect.objectContaining({
           method: 'PUT',
           data: {
-            onDemandPeriodStart: '2024-01-01',
             onDemandPeriodEnd: '2024-02-10',
             contractPeriodStart: '2024-03-01',
             contractPeriodEnd: '2024-05-15',

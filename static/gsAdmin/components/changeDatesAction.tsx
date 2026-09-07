@@ -47,14 +47,9 @@ function ChangeDatesModal({
           path: {organizationIdOrSlug: orgId},
         }),
         method: 'PUT',
-        data: {
-          onDemandPeriodStart:
-            data.onDemandPeriodStart || subscription.onDemandPeriodStart,
-          onDemandPeriodEnd: data.onDemandPeriodEnd || subscription.onDemandPeriodEnd,
-          contractPeriodStart:
-            data.contractPeriodStart || subscription.billingPeriodStart,
-          contractPeriodEnd: data.contractPeriodEnd || subscription.billingPeriodEnd,
-        },
+        data: Object.fromEntries(
+          Object.entries(data).filter(([, value]) => value !== '')
+        ),
       }),
     onSuccess: () => {
       addSuccessMessage('Contract and on-demand period dates updated');
@@ -88,22 +83,22 @@ function ChangeDatesModal({
     {
       name: 'onDemandPeriodStart' as const,
       label: 'On-Demand Period Start Date',
-      hintText: 'The new start date for the on-demand period.',
+      hintText: 'The new start date for the on-demand period. Leave blank to keep it.',
     },
     {
       name: 'onDemandPeriodEnd' as const,
       label: 'On-Demand Period End Date',
-      hintText: 'The new end date for the on-demand period.',
+      hintText: 'The new end date for the on-demand period. Leave blank to keep it.',
     },
     {
       name: 'contractPeriodStart' as const,
       label: 'Contract Period Start Date',
-      hintText: 'The new start date for the contract period.',
+      hintText: 'The new start date for the contract period. Leave blank to keep it.',
     },
     {
       name: 'contractPeriodEnd' as const,
       label: 'Contract Period End Date',
-      hintText: 'The new end date for the contract period.',
+      hintText: 'The new end date for the contract period. Leave blank to keep it.',
     },
   ];
 
