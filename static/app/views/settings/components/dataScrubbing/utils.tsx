@@ -1,9 +1,9 @@
-import * as Sentry from '@sentry/react';
+import * as Sentry from "@sentry/react";
 
-import {t} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
+import { t } from "sentry/locale";
+import type { TagCollection } from "sentry/types/group";
+import type { Organization } from "sentry/types/organization";
+import { canUseMetricsPiiScrubbingUI } from "sentry/views/explore/metrics/metricsFlags";
 
 import {
   AllowedDataScrubbingDatasets,
@@ -12,38 +12,38 @@ import {
   SourceSuggestionType,
   type Rule,
   type SourceSuggestion,
-} from './types';
+} from "./types";
 
 function getRuleLabel(type: RuleType) {
   switch (type) {
     case RuleType.ANYTHING:
-      return t('Anything');
+      return t("Anything");
     case RuleType.IMEI:
-      return t('IMEI numbers');
+      return t("IMEI numbers");
     case RuleType.MAC:
-      return t('MAC addresses');
+      return t("MAC addresses");
     case RuleType.EMAIL:
-      return t('Email addresses');
+      return t("Email addresses");
     case RuleType.PEMKEY:
-      return t('PEM keys');
+      return t("PEM keys");
     case RuleType.URLAUTH:
-      return t('Auth in URLs');
+      return t("Auth in URLs");
     case RuleType.USSSN:
-      return t('US social security numbers');
+      return t("US social security numbers");
     case RuleType.USER_PATH:
-      return t('Usernames in filepaths');
+      return t("Usernames in filepaths");
     case RuleType.UUID:
-      return t('UUIDs');
+      return t("UUIDs");
     case RuleType.CREDITCARD:
-      return t('Credit card numbers');
+      return t("Credit card numbers");
     case RuleType.PASSWORD:
-      return t('Password fields');
+      return t("Password fields");
     case RuleType.IP:
-      return t('IP addresses');
+      return t("IP addresses");
     case RuleType.PATTERN:
-      return t('Regex matches');
+      return t("Regex matches");
     default:
-      return '';
+      return "";
   }
 }
 
@@ -51,27 +51,27 @@ function getMethodLabel(type: MethodType) {
   switch (type) {
     case MethodType.MASK:
       return {
-        label: t('Mask'),
-        description: t('Replace with ****'),
+        label: t("Mask"),
+        description: t("Replace with ****"),
       };
     case MethodType.HASH:
       return {
-        label: t('Hash'),
-        description: t('Replace with DEADBEEF'),
+        label: t("Hash"),
+        description: t("Replace with DEADBEEF"),
       };
     case MethodType.REMOVE:
       return {
-        label: t('Remove'),
-        description: t('Replace with null'),
+        label: t("Remove"),
+        description: t("Replace with null"),
       };
     case MethodType.REPLACE:
       return {
-        label: t('Replace'),
-        description: t('Replace with Placeholder'),
+        label: t("Replace"),
+        description: t("Replace with Placeholder"),
       };
     default:
       return {
-        label: '',
+        label: "",
       };
   }
 }
@@ -81,9 +81,9 @@ function getMethodLabel(type: MethodType) {
  */
 function getDatasetLabel(dataset: AllowedDataScrubbingDatasets) {
   const labelMap: Record<AllowedDataScrubbingDatasets, string> = {
-    [AllowedDataScrubbingDatasets.DEFAULT]: t('Events'),
-    [AllowedDataScrubbingDatasets.LOGS]: t('Logs'),
-    [AllowedDataScrubbingDatasets.METRICS]: t('Application Metrics'),
+    [AllowedDataScrubbingDatasets.DEFAULT]: t("Events"),
+    [AllowedDataScrubbingDatasets.LOGS]: t("Logs"),
+    [AllowedDataScrubbingDatasets.METRICS]: t("Application Metrics"),
   };
   return labelMap[dataset];
 }
@@ -93,9 +93,11 @@ function getDatasetLabel(dataset: AllowedDataScrubbingDatasets) {
  */
 export function getDatasetLabelLong(dataset: AllowedDataScrubbingDatasets) {
   const labelMap: Record<AllowedDataScrubbingDatasets, string> = {
-    [AllowedDataScrubbingDatasets.DEFAULT]: t('Errors, Transactions, Attachments'),
-    [AllowedDataScrubbingDatasets.LOGS]: t('Logs'),
-    [AllowedDataScrubbingDatasets.METRICS]: t('Application Metrics'),
+    [AllowedDataScrubbingDatasets.DEFAULT]: t(
+      "Errors, Transactions, Attachments",
+    ),
+    [AllowedDataScrubbingDatasets.LOGS]: t("Logs"),
+    [AllowedDataScrubbingDatasets.METRICS]: t("Application Metrics"),
   };
   return labelMap[dataset];
 }
@@ -103,81 +105,81 @@ export function getDatasetLabelLong(dataset: AllowedDataScrubbingDatasets) {
 const binarySuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.BINARY,
-    value: '&&',
+    value: "&&",
   },
   {
     type: SourceSuggestionType.BINARY,
-    value: '||',
+    value: "||",
   },
 ];
 
 const unarySuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.UNARY,
-    value: '!',
+    value: "!",
   },
 ];
 
 const valueSuggestions: SourceSuggestion[] = [
   {
     type: SourceSuggestionType.VALUE,
-    value: '**',
-    description: t('all default PII fields'),
+    value: "**",
+    description: t("all default PII fields"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'password',
+    value: "password",
     description: t('fields named "password"'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$error.value',
-    description: t('the exception value'),
+    value: "$error.value",
+    description: t("the exception value"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$message',
-    description: t('the message on logentry'),
+    value: "$message",
+    description: t("the message on logentry"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'extra.MyValue',
+    value: "extra.MyValue",
     description: t('the key "MyValue" in "Additional Data"'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'extra.**',
+    value: "extra.**",
     description: t('everything in "Additional Data"'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$http.headers.x-custom-token',
-    description: t('the X-Custom-Token HTTP header'),
+    value: "$http.headers.x-custom-token",
+    description: t("the X-Custom-Token HTTP header"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$user.ip_address',
-    description: t('the user IP address'),
+    value: "$user.ip_address",
+    description: t("the user IP address"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$frame.vars.foo',
+    value: "$frame.vars.foo",
     description: t('the local variable "foo"'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'contexts.device.timezone',
-    description: t('the timezone in the device context'),
+    value: "contexts.device.timezone",
+    description: t("the timezone in the device context"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'tags.server_name',
+    value: "tags.server_name",
     description: t('the tag "server_name"'),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$attachments.**',
-    description: t('all attachments'),
+    value: "$attachments.**",
+    description: t("all attachments"),
   },
   {
     type: SourceSuggestionType.VALUE,
@@ -186,23 +188,23 @@ const valueSuggestions: SourceSuggestion[] = [
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$minidump',
-    description: t('the entire minidump of a native crash report'),
+    value: "$minidump",
+    description: t("the entire minidump of a native crash report"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: '$minidump.heap_memory',
-    description: t('the heap memory region in a native crash report'),
+    value: "$minidump.heap_memory",
+    description: t("the heap memory region in a native crash report"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'code_file',
-    description: t('the pathname of a code module in a native crash report'),
+    value: "code_file",
+    description: t("the pathname of a code module in a native crash report"),
   },
   {
     type: SourceSuggestionType.VALUE,
-    value: 'debug_file',
-    description: t('the pathname of a debug module in a native crash report'),
+    value: "debug_file",
+    description: t("the pathname of a debug module in a native crash report"),
   },
 ];
 
@@ -215,10 +217,11 @@ export {
 };
 
 export function getRuleDescription(rule: Rule) {
-  const {method, type} = rule;
+  const { method, type } = rule;
   const traceItemFieldSelector = TraceItemFieldSelector.fromRule(rule);
   const dataset =
-    traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
+    traceItemFieldSelector?.getDataset() ??
+    AllowedDataScrubbingDatasets.DEFAULT;
   const methodLabel = getMethodLabel(method);
   const typeLabel = getRuleLabel(type);
   const sourceLabel = getSourceLabel(rule);
@@ -233,14 +236,14 @@ export function getRuleDescription(rule: Rule) {
   descriptionDetails.push(`[${methodLabel.label}]`);
 
   descriptionDetails.push(
-    rule.type === RuleType.PATTERN ? `[${rule.pattern}]` : `[${typeLabel}]`
+    rule.type === RuleType.PATTERN ? `[${rule.pattern}]` : `[${typeLabel}]`,
   );
 
   if (rule.method === MethodType.REPLACE && rule.placeholder) {
     descriptionDetails.push(`with [${rule.placeholder}]`);
   }
 
-  return `${descriptionDetails.join(' ')} ${t('from')} [${sourceLabel}]`;
+  return `${descriptionDetails.join(" ")} ${t("from")} [${sourceLabel}]`;
 }
 
 /**
@@ -248,7 +251,7 @@ export function getRuleDescription(rule: Rule) {
  */
 export function areScrubbingDatasetsEnabled(organization: Organization) {
   return (
-    organization.features.includes('ourlogs-enabled') ||
+    organization.features.includes("ourlogs-enabled") ||
     canUseMetricsPiiScrubbingUI(organization)
   );
 }
@@ -285,7 +288,7 @@ export class TraceItemFieldSelector {
       },
       {
         regex: /^\$log\.body$/,
-        fieldName: 'message',
+        fieldName: "message",
       },
     ],
     [AllowedDataScrubbingDatasets.METRICS]: [
@@ -300,8 +303,8 @@ export class TraceItemFieldSelector {
     AllowedDataScrubbingDatasets,
     string | null
   > = {
-    [AllowedDataScrubbingDatasets.LOGS]: '$log',
-    [AllowedDataScrubbingDatasets.METRICS]: '$trace_metric',
+    [AllowedDataScrubbingDatasets.LOGS]: "$log",
+    [AllowedDataScrubbingDatasets.METRICS]: "$trace_metric",
     [AllowedDataScrubbingDatasets.DEFAULT]: null,
   };
 
@@ -310,8 +313,8 @@ export class TraceItemFieldSelector {
     (alias: string) => string | null
   > = {
     [AllowedDataScrubbingDatasets.LOGS]: (alias: string) => {
-      if (alias === 'message') {
-        return '$log.body';
+      if (alias === "message") {
+        return "$log.body";
       }
       return `$log.attributes.'${alias}'.value`;
     },
@@ -328,11 +331,11 @@ export class TraceItemFieldSelector {
 
   static isTraceItemField(
     dataset: AllowedDataScrubbingDatasets,
-    selector: string
+    selector: string,
   ): boolean {
     const prefix = TraceItemFieldSelector.datasetSelectorMap[dataset];
     return prefix
-      ? selector === prefix || selector.startsWith(prefix + '.')
+      ? selector === prefix || selector.startsWith(prefix + ".")
       : false;
   }
 
@@ -355,10 +358,15 @@ export class TraceItemFieldSelector {
     return new TraceItemFieldSelector(source, dataset);
   }
 
-  private static determineDataset(selector: string): AllowedDataScrubbingDatasets {
-    const dataset = Object.entries(TraceItemFieldSelector.datasetSelectorMap).find(
-      ([_, includes]) =>
-        includes ? selector === includes || selector.startsWith(includes + '.') : false
+  private static determineDataset(
+    selector: string,
+  ): AllowedDataScrubbingDatasets {
+    const dataset = Object.entries(
+      TraceItemFieldSelector.datasetSelectorMap,
+    ).find(([_, includes]) =>
+      includes
+        ? selector === includes || selector.startsWith(includes + ".")
+        : false,
     );
     if (dataset) {
       return dataset[0] as AllowedDataScrubbingDatasets;
@@ -367,22 +375,24 @@ export class TraceItemFieldSelector {
   }
 
   static getAllStaticFields(
-    dataset: AllowedDataScrubbingDatasets
+    dataset: AllowedDataScrubbingDatasets,
   ): SelectorToFieldMapping[] {
     const mappings = TraceItemFieldSelector.selectorToFieldMap[dataset];
-    return mappings.filter(mapping => 'fieldName' in mapping);
+    return mappings.filter((mapping) => "fieldName" in mapping);
   }
 
   private static getAttributeMapping(
-    dataset: AllowedDataScrubbingDatasets
+    dataset: AllowedDataScrubbingDatasets,
   ): SelectorToAttributeMapping | null {
     const mappings = TraceItemFieldSelector.selectorToFieldMap[dataset];
-    const attributeMappings = mappings.filter(mapping => !('fieldName' in mapping));
+    const attributeMappings = mappings.filter(
+      (mapping) => !("fieldName" in mapping),
+    );
     if (attributeMappings.length > 1) {
       Sentry.captureException(
         new Error(
-          `Multiple attribute mappings found for dataset: ${dataset}, selectors: ${mappings.map(mapping => mapping.regex).join(', ')}`
-        )
+          `Multiple attribute mappings found for dataset: ${dataset}, selectors: ${mappings.map((mapping) => mapping.regex).join(", ")}`,
+        ),
       );
     }
     return attributeMappings[0] ?? null;
@@ -397,14 +407,18 @@ export class TraceItemFieldSelector {
   }
 
   toField(): string | null {
-    const staticFields = TraceItemFieldSelector.getAllStaticFields(this.dataset);
-    const staticFieldMatch = staticFields.find(mapping =>
-      this.selector.match(mapping.regex)
+    const staticFields = TraceItemFieldSelector.getAllStaticFields(
+      this.dataset,
+    );
+    const staticFieldMatch = staticFields.find((mapping) =>
+      this.selector.match(mapping.regex),
     );
     if (staticFieldMatch) {
       return staticFieldMatch.fieldName;
     }
-    const attributeMapping = TraceItemFieldSelector.getAttributeMapping(this.dataset);
+    const attributeMapping = TraceItemFieldSelector.getAttributeMapping(
+      this.dataset,
+    );
     if (attributeMapping) {
       const match = this.selector.match(attributeMapping.regex);
       if (match?.[1]) {
@@ -414,8 +428,8 @@ export class TraceItemFieldSelector {
 
     Sentry.captureException(
       new Error(
-        `Failed to get field from selector: ${this.selector}, dataset: ${this.dataset}`
-      )
+        `Failed to get field from selector: ${this.selector}, dataset: ${this.dataset}`,
+      ),
     );
 
     return null;
@@ -429,14 +443,14 @@ export class TraceItemFieldSelector {
   toLabel(): string {
     const field = this.toField();
     if (!field) {
-      return '';
+      return "";
     }
-    return field.replace(/^sentry\./, '');
+    return field.replace(/^sentry\./, "");
   }
 
   static fromField(
     dataset: AllowedDataScrubbingDatasets,
-    field: string
+    field: string,
   ): TraceItemFieldSelector | null {
     if (!field) {
       return null;
@@ -450,20 +464,22 @@ export class TraceItemFieldSelector {
 
   static selectorToSourceLabel(
     dataset: AllowedDataScrubbingDatasets,
-    selector: string
+    selector: string,
   ): string {
-    const nonAttributeFields = TraceItemFieldSelector.fromNonAttributeFields(dataset);
+    const nonAttributeFields =
+      TraceItemFieldSelector.fromNonAttributeFields(dataset);
     if (nonAttributeFields) {
-      const field = nonAttributeFields.find(f => f.selector === selector);
+      const field = nonAttributeFields.find((f) => f.selector === selector);
       if (field) {
         return field.key;
       }
     }
 
     const prefix = TraceItemFieldSelector.datasetSelectorMap[dataset];
-    if (prefix && (selector === prefix || selector.startsWith(prefix + '.'))) {
+    if (prefix && (selector === prefix || selector.startsWith(prefix + "."))) {
       // Extract attribute key from selector like "$log.attributes.'key'.value"
-      const attributeMapping = TraceItemFieldSelector.getAttributeMapping(dataset);
+      const attributeMapping =
+        TraceItemFieldSelector.getAttributeMapping(dataset);
       if (attributeMapping) {
         const match = selector.match(attributeMapping.regex);
         if (match?.[1]) {
@@ -477,11 +493,11 @@ export class TraceItemFieldSelector {
 
   static fromTraceItemResults(
     dataset: AllowedDataScrubbingDatasets,
-    attributes: TagCollection | undefined
-  ): Array<{key: string; label: string; selector: string}> | null {
+    attributes: TagCollection | undefined,
+  ): Array<{ key: string; label: string; selector: string }> | null {
     if (!attributes) {
       Sentry.captureException(
-        new Error('Attribute results should always contain attributes')
+        new Error("Attribute results should always contain attributes"),
       );
       return null;
     }
@@ -510,9 +526,9 @@ export class TraceItemFieldSelector {
     > = {
       [AllowedDataScrubbingDatasets.LOGS]: [
         {
-          selector: '$log.body',
-          key: 'body',
-          label: t('body'),
+          selector: "$log.body",
+          key: "body",
+          label: t("body"),
         },
       ],
       [AllowedDataScrubbingDatasets.METRICS]: null,
@@ -521,7 +537,9 @@ export class TraceItemFieldSelector {
     if (!nonAttributeFields[dataset]) {
       if (dataset === AllowedDataScrubbingDatasets.DEFAULT) {
         Sentry.captureException(
-          new Error('Non-attribute fields should not be used for event selectors')
+          new Error(
+            "Non-attribute fields should not be used for event selectors",
+          ),
         );
       }
       return null;
@@ -535,7 +553,7 @@ export class TraceItemFieldSelector {
  * to ensure the regex transform inversions are working correctly.
  */
 export function validateTraceItemFieldSelector(
-  traceItemFieldSelector: TraceItemFieldSelector
+  traceItemFieldSelector: TraceItemFieldSelector,
 ): {
   isValid: boolean;
   error?: string;
@@ -545,16 +563,19 @@ export function validateTraceItemFieldSelector(
     if (!field) {
       return {
         isValid: false,
-        error: t('Unable to extract field from selector'),
+        error: t("Unable to extract field from selector"),
       };
     }
 
     const dataset = traceItemFieldSelector.getDataset();
-    const reconstructedSelector = TraceItemFieldSelector.fromField(dataset, field);
+    const reconstructedSelector = TraceItemFieldSelector.fromField(
+      dataset,
+      field,
+    );
     if (!reconstructedSelector) {
       return {
         isValid: false,
-        error: t('Unable to reconstruct selector from field'),
+        error: t("Unable to reconstruct selector from field"),
       };
     }
 
@@ -565,20 +586,20 @@ export function validateTraceItemFieldSelector(
       return {
         isValid: false,
         error: t(
-          'Selector transform inconsistency: %s !== %s',
+          "Selector transform inconsistency: %s !== %s",
           originalSelector,
-          reconstructedSelectorString
+          reconstructedSelectorString,
         ),
       };
     }
 
-    return {isValid: true};
+    return { isValid: true };
   } catch (error) {
     return {
       isValid: false,
       error: t(
-        'Validation error: %s',
-        error instanceof Error ? error.message : String(error)
+        "Validation error: %s",
+        error instanceof Error ? error.message : String(error),
       ),
     };
   }
