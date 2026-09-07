@@ -1,9 +1,4 @@
-import {
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -53,14 +48,12 @@ describe('SentryAppUpdateModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitForModalToHide();
-    await waitFor(() => {
-      expect(updateMock).toHaveBeenCalledWith(
-        '/sentry-apps/example-app/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: expect.objectContaining({popularity: 20, features: [1, 2]}),
-        })
-      );
-    });
+    expect(updateMock).toHaveBeenCalledWith(
+      '/sentry-apps/example-app/',
+      expect.objectContaining({
+        method: 'PUT',
+        data: expect.objectContaining({popularity: 20, features: [1, 2]}),
+      })
+    );
   });
 });
