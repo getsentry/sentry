@@ -580,9 +580,7 @@ export function Provider({
         // Guard against `.wrapper` being undefined during rapid replay-to-replay
         // navigation/teardown; fall back to `rootEl` (the same element used by
         // the first-init branch below) so the player can still initialize.
-        initRoot(
-          (replayerRef.current.wrapper?.parentElement ?? rootEl) as RootElem
-        );
+        initRoot((replayerRef.current.wrapper?.parentElement ?? rootEl) as RootElem);
       } else if (rootEl) {
         initRoot(rootEl);
       }
