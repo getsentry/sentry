@@ -413,11 +413,16 @@ def test_deobfuscate_exception_type_instance_of_pattern() -> None:
                     "type": "ghi",
                     "value": "Instance of 'xyz' and Instance of 'ghi' both occurred",
                 },
+                {
+                    "type": "jkl",
+                    "value": "Instance of 'jkl'",
+                },
             ]
         },
     }
 
     mock_map = {
+        "jkl": "",
         "xyz": "NetworkException",
         "abc": "DatabaseException",
         "def": "FileException",
@@ -460,6 +465,10 @@ def test_deobfuscate_exception_type_instance_of_pattern() -> None:
             data["exception"]["values"][3]["value"]
             == "Instance of 'NetworkException' and Instance of 'IOException' both occurred"
         )
+
+        # An empty mapping is not a deobfuscation; keep the obfuscated symbol
+        assert data["exception"]["values"][4]["type"] == "jkl"
+        assert data["exception"]["values"][4]["value"] == "Instance of 'jkl'"
 
 
 @django_db_all

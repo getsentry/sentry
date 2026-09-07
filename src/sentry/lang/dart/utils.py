@@ -149,7 +149,7 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
                 def replace_symbol(match: re.Match[str]) -> str:
                     symbol = match.group(1)
                     deobfuscated_symbol = symbol_map.get(symbol)
-                    if deobfuscated_symbol is None:
+                    if not deobfuscated_symbol:
                         return match.group(0)
                     return f"Instance of '{deobfuscated_symbol}'"
 
