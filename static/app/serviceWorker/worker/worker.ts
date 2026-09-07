@@ -108,7 +108,7 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
       async () => {
         event.notification.close();
 
-        if (!('data' in event.notification)) {
+        if (!event.notification.data) {
           log('onNotificationclick', {attributes: {data: 'isUndefined'}});
           return;
         }
