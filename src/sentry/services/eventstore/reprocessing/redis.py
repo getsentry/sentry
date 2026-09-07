@@ -33,7 +33,7 @@ def _get_remaining_key(project_id: int, group_id: int) -> str:
 def _get_page_claim_key(
     project_id: int, group_id: int, new_group_id: int, timestamp: str, event_id: str
 ) -> str:
-    return f"re2:pageclaim:{{{project_id}:{group_id}}}:{new_group_id}:{timestamp}:{event_id}"
+    return f"re2:pageclaim:{project_id}:{group_id}:{new_group_id}:{timestamp}:{event_id}"
 
 
 class RedisReprocessingStore(ReprocessingStore):
