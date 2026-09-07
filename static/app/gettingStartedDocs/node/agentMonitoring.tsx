@@ -7,6 +7,7 @@ import {
   type OnboardingConfig,
   type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -28,6 +29,7 @@ const CLOUDFLARE_AGENTS_MIN_VERSION = '10.69.0';
 
 const CLOUDFLARE_AGENT_TRACING_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/';
+
 const CLOUDFLARE_DURABLE_OBJECTS_DOCS =
   'https://docs.sentry.io/platforms/javascript/guides/cloudflare/features/durableobject/';
 const CLOUDFLARE_AGENTS_SDK_DOCS =
@@ -59,6 +61,44 @@ export function getMinRequiredVersion(params: DocsParams, fallback: string): str
     : fallback;
 }
 
+// Agent monitoring spans several init shapes (`Sentry.init`, `Sentry.withSentry`,
+// `instrumentAgentWithSentry`), so the step shows the options on their own rather
+// than picking one wrapper that would be wrong for the other targets.
+const GEN_AI_DATA_COLLECTION_SNIPPET = `dataCollection: {
+  genAI: { inputs: false, outputs: false },
+},`;
+
+/**
+ * The data collection step for agent monitoring. Unlike the setup step, this one
+ * leads with the generative AI content, because that is the data users most often
+ * want to keep out of Sentry when they instrument an agent.
+ *
+ * Returns no step for integrations that do not configure the Sentry SDK, such as
+ * Eve, which exports over OTLP and never calls `Sentry.init`.
+ */
+export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[] {
+  if (getAgentIntegration(params) === AgentIntegration.EVE) {
+    return [];
+  }
+
+  return [
+    getDataCollectionStep({
+      // The agent monitoring surfaces render `GuidedSteps` and drop every
+      // collapsible step, so this one has to be a plain numbered step to show up
+      // at all - the same as the "Identify Users (optional)" step beside it.
+      collapsible: false,
+      // `dataCollection` is documented identically for every JavaScript guide, so
+      // link the canonical page rather than threading a platform through here.
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+      description: t(
+        'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
+      ),
+      code: GEN_AI_DATA_COLLECTION_SNIPPET,
+    }),
+  ];
+}
+
 /**
  * Cloudflare Workers don't expose the public `Sentry.init()` API. Instead the
  * SDK is bootstrapped by wrapping the worker with `Sentry.withSentry`. The
@@ -88,12 +128,7 @@ export default Sentry.withSentry(
   (env) => ({
     dsn: "${dsn}",
     // Tracing must be enabled for agent monitoring to work
-    tracesSampleRate: 1.0,
-    dataCollection: {
-      // Control data collection of LLMs and tools.
-      // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-      // genAI: { inputs: false, outputs: false },
-    },${integrationsLine}
+    tracesSampleRate: 1.0,${integrationsLine}
   }),
   {
     async fetch(request, env, ctx) {
@@ -687,11 +722,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  dataCollection: {
-    // Control data collection of LLMs and tools.
-    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-    // genAI: { inputs: false, outputs: false },
-  },
 });`;
 
   return [
@@ -944,11 +974,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  dataCollection: {
-    // Control data collection of LLMs and tools.
-    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-    // genAI: { inputs: false, outputs: false },
-  },
 });`;
 
   // On Node the SDK auto-instruments the integration; on Cloudflare the worker is
@@ -1191,6 +1216,49 @@ const text = lastMessage.content;`,
   ];
 }
 
+/**
+ * The Node configure steps for the selected agent integration, without the data
+ * collection step. Callers that compose these into their own onboarding append
+ * `getAgentDataCollectionStep` themselves, so the step appears exactly once.
+ */
+export function getAgentConfigureSteps(
+  params: DocsParams,
+  {
+    packageName = '@sentry/node',
+    configFileName,
+  }: {
+    configFileName?: string;
+    packageName?: `@sentry/${string}`;
+  } = {}
+): OnboardingStep[] {
+  const selected = getAgentIntegration(params);
+
+  if (selected === AgentIntegration.MANUAL) {
+    return getManualConfigureStep(params, {
+      packageName,
+    });
+  }
+
+  if (selected === AgentIntegration.FLUE) {
+    return flueOnboarding.configure(params);
+  }
+
+  if (selected === AgentIntegration.EVE) {
+    return eveOnboarding.configure(params);
+  }
+
+  if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
+    return getCloudflareAgentsConfigureStep(params);
+  }
+
+  return getConfigureStep({
+    params,
+    integration: selected,
+    packageName,
+    configFileName,
+  });
+}
+
 export const agentMonitoring = ({
   packageName = '@sentry/node',
   configFileName,
@@ -1210,33 +1278,9 @@ export const agentMonitoring = ({
       packageName,
       minVersion: MIN_REQUIRED_VERSION,
     }),
-  configure: params => {
-    const selected = getAgentIntegration(params);
-
-    if (selected === AgentIntegration.MANUAL) {
-      return getManualConfigureStep(params, {
-        packageName,
-      });
-    }
-
-    if (selected === AgentIntegration.FLUE) {
-      return flueOnboarding.configure(params);
-    }
-
-    if (selected === AgentIntegration.EVE) {
-      return eveOnboarding.configure(params);
-    }
-
-    if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
-      return getCloudflareAgentsConfigureStep(params);
-    }
-
-    return getConfigureStep({
-      params,
-      integration: selected,
-      packageName,
-      configFileName,
-    });
-  },
+  configure: params => [
+    ...getAgentConfigureSteps(params, {packageName, configFileName}),
+    ...getAgentDataCollectionStep(params),
+  ],
   verify: getVerifyStep,
 });

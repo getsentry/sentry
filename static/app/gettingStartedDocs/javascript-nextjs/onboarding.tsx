@@ -6,7 +6,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getAISetupStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getAISetupStep,
+  getDataCollectionStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getInstallSnippet} from './utils';
@@ -56,6 +59,10 @@ export const onboarding: OnboardingConfig = {
       ],
     },
     getAISetupStep({sdkName: 'Next.js'}),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

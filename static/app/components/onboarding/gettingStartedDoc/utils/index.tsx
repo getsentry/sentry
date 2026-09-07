@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {
   docsFlowVariantParams,
   resolveDocsFlowEvent,
@@ -79,6 +80,88 @@ export function getUploadSourceMapsStep({
             })}
           </OnboardingCodeSnippet>
         ),
+      },
+    ],
+  };
+}
+
+const DEFAULT_DATA_COLLECTION_SNIPPET = `Sentry.init({
+  // ...
+  dataCollection: {
+    userInfo: false,
+    // other options
+  },
+});`;
+
+/**
+ * Presents `dataCollection` as its own setup step, as required by the SDK
+ * data collection spec. Init snippets must not carry a commented-out
+ * `dataCollection` override instead.
+ *
+ * @param docsLink Link to the `dataCollection` options of the platform or guide.
+ * @param code Init snippet, for platforms that do not configure the SDK through `Sentry.init`.
+ * @param description Replaces the default summary of what the SDK collects, for
+ *   products that collect a more specific category, such as generative AI content.
+ * @param collapsible Set to `false` for the guided `GuidedSteps` flows, which drop
+ *   every collapsible step and render the rest as numbered steps.
+ */
+export function getDataCollectionStep({
+  docsLink,
+  code,
+  description,
+  collapsible = true,
+}: {
+  docsLink: string;
+  code?: string;
+  collapsible?: boolean;
+  description?: React.ReactNode;
+}): OnboardingStep {
+  const summary: ContentBlock[] = description
+    ? [{type: 'text', text: description}]
+    : [
+        {
+          type: 'text',
+          text: t(
+            'By default, the SDK sends user identity data (IP address, ID, and similar) and other data like HTTP bodies and URL query parameters. This gives you rich debugging context.'
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'The SDK always filters sensitive values whose keys match a built-in denylist, such as [authCode:auth] or [passwordCode:password], and sends [filtered] instead.',
+            {
+              authCode: <code />,
+              passwordCode: <code />,
+              filtered: <code>[Filtered]</code>,
+            }
+          ),
+        },
+      ];
+
+  return {
+    collapsible,
+    title: t('Control the Data You Send to Sentry (Optional)'),
+    content: [
+      ...summary,
+      {
+        type: 'text',
+        text: tct(
+          "To send less data, turn off the categories you don't need in the [code:dataCollection] option. For the full list of categories and their defaults, see [link:the dataCollection options].",
+          {
+            code: <code />,
+            link: <ExternalLink href={docsLink} />,
+          }
+        ),
+      },
+      {
+        type: 'code',
+        tabs: [
+          {
+            label: 'JavaScript',
+            language: 'javascript',
+            code: code ?? DEFAULT_DATA_COLLECTION_SNIPPET,
+          },
+        ],
       },
     ],
   };

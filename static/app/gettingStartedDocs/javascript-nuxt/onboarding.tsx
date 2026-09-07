@@ -6,6 +6,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDataCollectionStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct, tctCode} from 'sentry/locale';
 
 import {getInstallContent} from './utils';
@@ -36,6 +37,10 @@ export const onboarding: OnboardingConfig = {
         copyDsnFieldBlock(params),
       ],
     },
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/nuxt/configuration/options/#dataCollection',
+    }),
   ],
   verify: () => [
     {

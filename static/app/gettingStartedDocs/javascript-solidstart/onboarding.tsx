@@ -6,7 +6,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getDataCollectionStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
 import {getSdkClientSetupSnippet, installSnippetBlock} from './utils';
@@ -33,12 +36,6 @@ Sentry.init({
         profileSessionSampleRate: 1.0,`
       : ''
   }
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
 });
 `;
 }
@@ -289,6 +286,10 @@ export const onboarding: OnboardingConfig = {
         }
       ),
       ...params,
+    }),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/solidstart/configuration/options/#dataCollection',
     }),
   ],
   verify: (params: DocsParams) => [

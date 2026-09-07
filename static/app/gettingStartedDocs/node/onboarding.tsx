@@ -7,6 +7,7 @@ import type {
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAISetupStep,
+  getDataCollectionStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
@@ -106,6 +107,10 @@ export const onboarding: OnboardingConfig = {
       ...params,
     }),
     getAISetupStep({sdkName: 'Node.js'}),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/guides/node/configuration/options/#dataCollection',
+    }),
   ],
   verify: (params: DocsParams) => [
     {

@@ -17,6 +17,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getAISetupStep,
+  getDataCollectionStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getFeedbackConfigOptions} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -111,15 +112,7 @@ const getDynamicParts = (params: Params): string[] => {
 export const getSdkSetupSnippet = (params: Params) => {
   const config = buildSdkConfig({
     params,
-    staticParts: [
-      `dsn: "${params.dsn.public}"`,
-      `dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  }`,
-    ],
+    staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });
@@ -320,6 +313,10 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
       },
     },
     getAiSetupConfig(),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+    }),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {
@@ -447,6 +444,10 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
       ...params,
     }),
     getAiSetupConfig(),
+    getDataCollectionStep({
+      docsLink:
+        'https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection',
+    }),
   ],
   verify: (params: Params) => getVerifyConfig(params),
   nextSteps: (params: Params) => {

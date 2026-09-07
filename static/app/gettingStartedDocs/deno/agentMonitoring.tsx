@@ -1,8 +1,13 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  DocsParams,
+  OnboardingConfig,
+  OnboardingStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  getAgentDataCollectionStep,
   getAgentIntegration,
   getManualConfigureStep,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
@@ -15,6 +20,131 @@ const PACKAGE_NAME = '@sentry/deno';
 const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
+
+// Every branch returns the steps for one integration. The data collection step is
+// appended once around them, so no branch can miss it or repeat it.
+function configureSteps(params: DocsParams): OnboardingStep[] {
+  const selected = getAgentIntegration(params);
+
+  if (selected === AgentIntegration.MANUAL) {
+    return getManualConfigureStep(params, {
+      sentryImport,
+      docUrl:
+        'https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation',
+    });
+  }
+
+  return [
+    {
+      title: t('Configure'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Import and initialize the Sentry SDK. The [integration] integration is enabled by default:',
+            {
+              integration: 'Vercel AI SDK',
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `${sentryImport}
+
+Sentry.init({
+dsn: "${params.dsn.public}",
+// Tracing must be enabled for agent monitoring to work
+tracesSampleRate: 1.0,
+});`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'When using [code:generateText], [code:generateObject], or [code:streamText], pass the [code:experimental_telemetry] object to correctly capture spans. For the [code:ToolLoopAgent] class, telemetry is configured via the constructor. For more details, see the [telemetryLink:AI SDK Telemetry Metadata docs] and the [agentLink:ToolLoopAgent docs].',
+            {
+              code: <code />,
+              telemetryLink: (
+                <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
+              ),
+              agentLink: (
+                <ExternalLink href="https://ai-sdk.dev/docs/agents/overview#toolloopagent-class" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'generateText',
+              language: 'javascript',
+              code: `import { generateText } from "npm:ai";
+import { openai } from "npm:@ai-sdk/openai";
+
+const result = await generateText({
+model: openai("gpt-4o"),
+prompt: "Tell me a joke",
+experimental_telemetry: {
+  isEnabled: true,
+  recordInputs: true,
+  recordOutputs: true,
+},
+});`,
+            },
+            {
+              label: 'ToolLoopAgent',
+              language: 'javascript',
+              code: `import { ToolLoopAgent, tool } from "npm:ai";
+import { z } from "npm:zod";
+
+const agent = new ToolLoopAgent({
+model: "openai/gpt-5.4",
+tools: {
+  weather: tool({
+    description: "Get the weather in a location",
+    inputSchema: z.object({
+      location: z.string().describe("The location to get the weather for"),
+    }),
+    execute: async ({ location }) => ({
+      location,
+      temperature: 72 + Math.floor(Math.random() * 21) - 10,
+    }),
+  }),
+},
+telemetry: {
+  isEnabled: true,
+  functionId: "weather_agent",
+  recordInputs: true,
+  recordOutputs: true,
+},
+});
+
+const result = await agent.generate({
+prompt: "What is the weather in San Francisco?",
+});`,
+            },
+          ],
+        },
+        {
+          type: 'custom',
+          content: (
+            <ManualInstrumentationNote
+              docsLink={
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation" />
+              }
+            />
+          ),
+        },
+      ],
+    },
+  ];
+}
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
@@ -50,133 +180,7 @@ export const agentMonitoring: OnboardingConfig = {
       ],
     },
   ],
-  configure: params => {
-    const selected = getAgentIntegration(params);
-
-    if (selected === AgentIntegration.MANUAL) {
-      return getManualConfigureStep(params, {
-        sentryImport,
-        docUrl:
-          'https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation',
-      });
-    }
-
-    return [
-      {
-        title: t('Configure'),
-        content: [
-          {
-            type: 'text',
-            text: tct(
-              'Import and initialize the Sentry SDK. The [integration] integration is enabled by default:',
-              {
-                integration: 'Vercel AI SDK',
-              }
-            ),
-          },
-          {
-            type: 'code',
-            tabs: [
-              {
-                label: 'JavaScript',
-                language: 'javascript',
-                code: `${sentryImport}
-
-Sentry.init({
-  dsn: "${params.dsn.public}",
-  // Tracing must be enabled for agent monitoring to work
-  tracesSampleRate: 1.0,
-  dataCollection: {
-    // Control data collection of LLMs and tools.
-    // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/
-    // genAI: { inputs: false, outputs: false },
-  },
-});`,
-              },
-            ],
-          },
-          {
-            type: 'text',
-            text: tct(
-              'When using [code:generateText], [code:generateObject], or [code:streamText], pass the [code:experimental_telemetry] object to correctly capture spans. For the [code:ToolLoopAgent] class, telemetry is configured via the constructor. For more details, see the [telemetryLink:AI SDK Telemetry Metadata docs] and the [agentLink:ToolLoopAgent docs].',
-              {
-                code: <code />,
-                telemetryLink: (
-                  <ExternalLink href="https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#telemetry-metadata" />
-                ),
-                agentLink: (
-                  <ExternalLink href="https://ai-sdk.dev/docs/agents/overview#toolloopagent-class" />
-                ),
-              }
-            ),
-          },
-          {
-            type: 'code',
-            tabs: [
-              {
-                label: 'generateText',
-                language: 'javascript',
-                code: `import { generateText } from "npm:ai";
-import { openai } from "npm:@ai-sdk/openai";
-
-const result = await generateText({
-  model: openai("gpt-4o"),
-  prompt: "Tell me a joke",
-  experimental_telemetry: {
-    isEnabled: true,
-    recordInputs: true,
-    recordOutputs: true,
-  },
-});`,
-              },
-              {
-                label: 'ToolLoopAgent',
-                language: 'javascript',
-                code: `import { ToolLoopAgent, tool } from "npm:ai";
-import { z } from "npm:zod";
-
-const agent = new ToolLoopAgent({
-  model: "openai/gpt-5.4",
-  tools: {
-    weather: tool({
-      description: "Get the weather in a location",
-      inputSchema: z.object({
-        location: z.string().describe("The location to get the weather for"),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
-  telemetry: {
-    isEnabled: true,
-    functionId: "weather_agent",
-    recordInputs: true,
-    recordOutputs: true,
-  },
-});
-
-const result = await agent.generate({
-  prompt: "What is the weather in San Francisco?",
-});`,
-              },
-            ],
-          },
-          {
-            type: 'custom',
-            content: (
-              <ManualInstrumentationNote
-                docsLink={
-                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation" />
-                }
-              />
-            ),
-          },
-        ],
-      },
-    ];
-  },
+  configure: params => [...configureSteps(params), ...getAgentDataCollectionStep(params)],
   verify: () => [
     {
       type: StepType.VERIFY,
