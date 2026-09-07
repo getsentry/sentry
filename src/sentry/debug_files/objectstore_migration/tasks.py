@@ -35,14 +35,19 @@ def enqueue_shard(
     shard_id: int,
     num_shards: int,
     cursor: int,
+    delete_corrupt: bool = False,
 ) -> None:
     def enqueue() -> None:
+        task_kwargs = {
+            "shard_id": shard_id,
+            "num_shards": num_shards,
+            "cursor": cursor,
+        }
+        if delete_corrupt:
+            task_kwargs["delete_corrupt"] = True
+
         delivery = migrate_shard.apply_async_with_future(
-            kwargs={
-                "shard_id": shard_id,
-                "num_shards": num_shards,
-                "cursor": cursor,
-            },
+            kwargs=task_kwargs,
             headers={"sentry-propagate-traces": False},
         )
         if delivery is not None:
@@ -67,6 +72,7 @@ def migrate_shard(
     shard_id: int,
     num_shards: int,
     cursor: int,
+    delete_corrupt: bool = False,
     **kwargs: object,
 ) -> None:
     """Process one page of DIFs for a shard, then self-chain if more remain.
@@ -139,7 +145,10 @@ def migrate_shard(
                 return
 
             for debug_file in to_migrate:
-                migrate_debug_file(debug_file)
+                if delete_corrupt:
+                    migrate_debug_file(debug_file, delete_corrupt=True)
+                else:
+                    migrate_debug_file(debug_file)
 
             lowest_id = to_migrate[-1].id
             duration_seconds = monotonic() - shard_started_at
@@ -163,6 +172,7 @@ def migrate_shard(
                 shard_id=shard_id,
                 num_shards=num_shards,
                 cursor=lowest_id - 1,
+                delete_corrupt=delete_corrupt,
             )
             if activation_id:
                 mark_spawned(_SHARD_TASK_KEY, activation_id)

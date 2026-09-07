@@ -27,7 +27,11 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 logger = logging.getLogger(__name__)
 
 
-def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
+def migrate_debug_file(
+    debug_file: ProjectDebugFile,
+    *,
+    delete_corrupt: bool = False,
+) -> None:
     """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
 
     def attempt() -> None:
@@ -39,7 +43,7 @@ def migrate_debug_file(debug_file: ProjectDebugFile) -> None:
             drop_legacy_file(debug_file.id, source_file_id=source_file_id)
             return
 
-        metadata = upload_and_verify(debug_file)
+        metadata = upload_and_verify(debug_file, delete_corrupt=delete_corrupt)
         if metadata is None:
             return
         commit(debug_file.id, metadata, source_file_id=source_file_id)
@@ -174,7 +178,11 @@ def _get_object_with_retry(session: Session, storage_path: str) -> GetResponse:
     return policy(get_object)
 
 
-def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | None:
+def upload_and_verify(
+    debug_file: ProjectDebugFile,
+    *,
+    delete_corrupt: bool = False,
+) -> PostMigrationMetadata | None:
     """Read the File, write it to Objectstore, and verify the stored object.
 
     Returns:
@@ -224,8 +232,16 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             expected_size=recorded_size,
         )
     except FilestoreIntegrityError as error:
+        deleted = delete_corrupt and delete_corrupt_debug_file(
+            debug_file.id,
+            source_file_id=file.id,
+        )
         logger.warning(
-            "debug_files.objectstore_migration.filestore_integrity_mismatch",
+            (
+                "debug_files.objectstore_migration.filestore_integrity_mismatch_deleted"
+                if deleted
+                else "debug_files.objectstore_migration.filestore_integrity_mismatch"
+            ),
             extra={
                 "debug_file_id": debug_file.id,
                 "file_id": file.id,
@@ -318,6 +334,22 @@ def drop_legacy_file(dif_id: int, *, source_file_id: int) -> None:
             return
 
         transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+
+
+def delete_corrupt_debug_file(dif_id: int, *, source_file_id: int) -> bool:
+    """Delete a corrupt DIF and clean up its legacy File if it is unreferenced."""
+    database = router.db_for_write(ProjectDebugFile)
+    with atomic_transaction(using=database):
+        deleted, _ = ProjectDebugFile.objects.filter(
+            id=dif_id,
+            file_id=source_file_id,
+            storage_path__isnull=True,
+        ).delete()
+        if not deleted:
+            return False
+
+        transaction.on_commit(lambda: try_cleanup_file(source_file_id), using=database)
+        return True
 
 
 def try_cleanup_file(file_id: int | None) -> None:
