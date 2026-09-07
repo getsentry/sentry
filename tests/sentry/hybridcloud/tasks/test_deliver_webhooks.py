@@ -396,10 +396,8 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
     def test_strict_claim_and_dispatch_claims_in_a_single_query(
         self, mock_drain: MagicMock
     ) -> None:
-        # A strict mailbox claims its whole window in one statement: the due-gate
-        # rides in the claim UPDATE's WHERE clause. A separate primary read before
-        # the claim would double the per-mailbox dispatch round trips, so lock in
-        # the single-statement shape.
+        # The due-gate rides in the claim UPDATE's WHERE clause. A separate primary
+        # read before it would double the per-mailbox dispatch round trips.
         webhook = self.create_webhook_payload(
             mailbox_name="jira:123",
             cell_name="us",
@@ -433,9 +431,8 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_due_head_claim_scans_the_prefix_before_claiming(self, mock_drain: MagicMock) -> None:
-        # A due-head mailbox pays one extra read: the claim must stop at the first
-        # record that is not due, which SQL cannot express in the UPDATE's window.
-        # Two statements per dispatch is the shape to hold it to.
+        # The extra read a due-head claim pays: it stops at the first not-due
+        # record, which the UPDATE's window cannot express.
         webhook = self.create_webhook_payload(
             mailbox_name="github:123",
             cell_name="us",
@@ -2723,7 +2720,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             for record in records:
                 pool.submit(record)
             lowest_cancelled = pool.wind_down(reason="deadline")
-            # Deletes are batched, so the rows go with the drain's flush.
+            # Batched deletes land on the flush, as they do in a drain.
             deleter.flush()
 
         assert lowest_cancelled == records[2].id
@@ -2799,7 +2796,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             assert stuck_started.wait(timeout=5)
             assert answered_returned.wait(timeout=5)
             pool.wind_down(reason="deadline")
-            # Deletes are batched, so the answered row goes with the flush.
+            # Batched deletes land on the flush, as they do in a drain.
             deleter.flush()
 
         assert pool.delivered == 1
