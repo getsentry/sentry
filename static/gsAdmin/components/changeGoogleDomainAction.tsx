@@ -1,138 +1,134 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
-  api: Client;
   onUpdated: (data: any) => void;
   orgId: string;
 };
 
 const CHANGE_CHOICES = [
-  ['swap', 'Swap'],
-  ['add', 'Add'],
+  {value: 'swap', label: 'Swap'},
+  {value: 'add', label: 'Add'},
 ] as const;
+
+const schema = z.object({
+  newDomain: z.string().trim().min(1, 'New domain is required'),
+  append: z
+    .enum(['swap', 'add'])
+    .nullable()
+    .refine(value => value !== null, 'Change option is required'),
+});
 
 type ModalProps = Props & ModalRenderProps;
 
-type ModalState = {
-  append: string | null;
-  dryRun: boolean | null;
-  dryRunInfo: any[];
-  loading: boolean;
-};
+function ChangeGoogleDomainModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  orgId,
+  onUpdated,
+}: ModalProps) {
+  const api = useApi();
+  const [dryRun, setDryRun] = useState(true);
+  const [dryRunInfo, setDryRunInfo] = useState<string[]>([]);
 
-class ChangeGoogleDomainModal extends Component<ModalProps, ModalState> {
-  state: ModalState = {
-    loading: false,
-    append: null,
-    dryRun: true,
-    dryRunInfo: [],
-  };
-
-  onActionSuccess(domain: string) {
-    this.props.closeModal();
-    this.props.onUpdated({newDomain: domain});
-  }
-
-  onActionError(error: string) {
-    this.props.closeModal();
-    this.props.onUpdated({error});
-  }
-
-  onSubmit = async (obj: any) => {
-    const {orgId} = this.props;
-    const {dryRun} = this.state;
-    const {newDomain, append} = obj;
-
-    const data = {append, newDomain, dryRun};
-
-    addLoadingMessage();
-
-    try {
-      const result = await this.props.api.requestPromise(
-        `/customers/${orgId}/migrate-google-domain/`,
-        {method: 'POST', data}
-      );
-
+  const mutation = useMutation({
+    mutationFn: async (data: {append: 'add' | 'swap'; newDomain: string}) => {
+      const result: {
+        dryrun_info: string[];
+        new_domain: string;
+      } = await api.requestPromise(`/customers/${orgId}/migrate-google-domain/`, {
+        method: 'POST',
+        data: {...data, dryRun},
+      });
+      return result;
+    },
+    onSuccess: result => {
       if (dryRun) {
-        this.setState({dryRunInfo: result.dryrun_info, dryRun: false});
-      } else {
-        this.onActionSuccess(result.new_domain);
+        setDryRunInfo(result.dryrun_info);
+        setDryRun(false);
+        return;
       }
-    } catch (error: any) {
-      this.onActionError(error);
-    }
 
-    clearIndicators();
-  };
+      closeModal();
+      onUpdated({newDomain: result.new_domain});
+    },
+    onError: error => {
+      closeModal();
+      onUpdated({error});
+    },
+  });
 
-  renderDryRunInfo() {
-    return this.state.dryRunInfo.map(i => (
-      <li style={{listStyle: 'none'}} key={i}>
-        {i}
-      </li>
-    ));
-  }
+  const defaultValues: z.input<typeof schema> = {newDomain: '', append: null};
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
+  });
 
-  render() {
-    const {Header, Body} = this.props;
-    const {loading, dryRun, dryRunInfo} = this.state;
-
-    if (loading) {
-      return null;
-    }
-
-    return (
-      <Fragment>
+  return (
+    <Fragment>
+      <form.AppForm form={form}>
         <Header>Change Google Domain</Header>
         <Body>
-          <Form
-            onSubmit={this.onSubmit}
-            submitLabel={dryRun ? 'Do Dry Run' : 'Update Google Domain(s)'}
-          >
-            <TextField
-              inline={false}
-              stacked
-              label="New Domain"
-              name="newDomain"
-              placeholder="new domain"
-              flexibleControlStateSize
-              required
-            />
-            <SelectField
-              inline={false}
-              stacked
-              label="Change Option"
-              name="append"
-              choices={CHANGE_CHOICES}
-              required
-              flexibleControlStateSize
-              onChange={(v: string) => this.setState({append: v})}
-            />
-          </Form>
-          {dryRunInfo.length > 0 && (
-            <pre>
-              <p>Test Run</p>
-              {this.renderDryRunInfo()}
-            </pre>
-          )}
+          <Stack gap="lg">
+            <form.AppField name="newDomain">
+              {field => (
+                <field.Layout.Stack label="New Domain" required>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder="new domain"
+                    disabled={mutation.isPending}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <form.AppField name="append">
+              {field => (
+                <field.Layout.Stack label="Change Option" required>
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={CHANGE_CHOICES}
+                    placeholder="Choose an option"
+                    disabled={mutation.isPending}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            {dryRunInfo.length > 0 && (
+              <Stack gap="sm">
+                <Text bold>Test Run</Text>
+                {dryRunInfo.map(info => (
+                  <Text key={info} monospace wrap="pre-wrap">
+                    {info}
+                  </Text>
+                ))}
+              </Stack>
+            )}
+          </Stack>
         </Body>
-      </Fragment>
-    );
-  }
+        <Footer>
+          <form.SubmitButton>
+            {dryRun ? 'Do Dry Run' : 'Update Google Domain(s)'}
+          </form.SubmitButton>
+        </Footer>
+      </form.AppForm>
+    </Fragment>
+  );
 }
 
-const Modal = withApi(ChangeGoogleDomainModal);
-
-type Options = Pick<Props, 'orgId' | 'onUpdated'>;
-
-export const triggerGoogleDomainModal = (opts: Options) =>
-  openModal(deps => <Modal {...deps} {...opts} />);
+export const triggerGoogleDomainModal = (opts: Props) =>
+  openModal(deps => <ChangeGoogleDomainModal {...deps} {...opts} />);

@@ -1,80 +1,53 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useApi} from 'sentry/utils/useApi';
-
-const fieldProps = {
-  stacked: true,
-  inline: false,
-  flexibleControlStateSize: true,
-} as const;
 
 type Props = ModalRenderProps & {
   onAction: (data: any) => void;
   sentryAppData: any;
 };
 
-type SubmitQueryVariables = {
-  data: Record<string, any>;
-  onSubmitError: (error: any) => void;
-  onSubmitSuccess: (response: Record<string, any>) => void;
-};
-
-type SubmitQueryResponse = Record<string, any>;
-
 // See Django reference for PositiveSmallIntegerField
 // (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
 const POPULARITY_MIN = 0;
 const POPULARITY_MAX = 32767;
 
+const schema = z.object({
+  popularity: z
+    .number()
+    .min(POPULARITY_MIN)
+    .max(POPULARITY_MAX)
+    .nullable()
+    .refine(value => value !== null, 'Popularity is required'),
+  features: z.array(z.number()),
+});
+
 export function SentryAppUpdateModal(props: Props) {
   const api = useApi({persistInFlight: true});
-  const {sentryAppData, closeModal, Header, Body} = props;
-  const [popularityError, setPopularityError] = useState(false);
+  const {sentryAppData, closeModal, Header, Body, Footer} = props;
 
-  const onPopularityChange = (value: any) => {
-    const popularity = parseInt(value, 10);
-    const hasError =
-      isNaN(popularity) || popularity < POPULARITY_MIN || popularity > POPULARITY_MAX;
-
-    if (hasError) {
-      setPopularityError(true);
-    }
-  };
-
-  const onSubmitMutation = useMutation<
-    SubmitQueryResponse,
-    RequestError,
-    SubmitQueryVariables
-  >({
-    mutationFn: ({data}: SubmitQueryVariables) => {
-      return api.requestPromise(`/sentry-apps/${sentryAppData.slug}/`, {
+  const mutation = useMutation({
+    mutationFn: (data: {features: number[]; popularity: number}) =>
+      api.requestPromise(`/sentry-apps/${sentryAppData.slug}/`, {
         method: 'PUT',
-        data,
-      });
-    },
-    onMutate: () => {
-      addLoadingMessage('Saving changes\u2026');
-    },
-    onSuccess: (data: Record<string, any>, {onSubmitSuccess}) => {
-      clearIndicators();
-      onSubmitSuccess(data);
-    },
-    onError: (err: RequestError, {onSubmitError}) => {
-      clearIndicators();
-      onSubmitError(err);
-    },
+        data: {...sentryAppData, ...data},
+      }),
+    onSuccess: closeModal,
   });
 
   const {
@@ -86,6 +59,30 @@ export function SentryAppUpdateModal(props: Props) {
     staleTime: 0,
   });
 
+  const defaultValues: z.input<typeof schema> = {
+    popularity: sentryAppData.popularity,
+    features:
+      sentryAppData.featureData?.map(({featureId}: IntegrationFeature) => featureId) ??
+      [],
+  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: async ({value, formApi}) => {
+      try {
+        await mutation.mutateAsync(schema.parse(value));
+      } catch (error) {
+        const handled =
+          error instanceof RequestError &&
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        if (!handled) {
+          addErrorMessage('Unable to update the Sentry App.');
+        }
+      }
+    },
+  });
+
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -94,56 +91,60 @@ export function SentryAppUpdateModal(props: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const getFeatures = (): Array<[number, string]> => {
-    if (!featureData) {
-      return [];
-    }
-    return featureData.map(({featureId, featureGate}) => [
-      featureId,
-      featureGate.replace(/(^integrations-)/, ''),
-    ]);
-  };
-
-  const getInitialData = () => {
-    return {
-      ...sentryAppData,
-      features: sentryAppData?.featureData?.map(({featureId}: any) => featureId),
-    };
-  };
+  const options = featureData.map(({featureId, featureGate}) => ({
+    value: featureId,
+    label: featureGate.replace(/(^integrations-)/, ''),
+  }));
 
   return (
     <Fragment>
-      <Header>Update Sentry App</Header>
-      <Body>
-        <Form
-          submitDisabled={popularityError}
-          onSubmit={(data, onSubmitSuccess, onSubmitError) =>
-            onSubmitMutation.mutate({data, onSubmitSuccess, onSubmitError})
-          }
-          onSubmitSuccess={() => {
-            closeModal();
-          }}
-          initialData={getInitialData()}
-        >
-          <NumberField
-            {...fieldProps}
-            name="popularity"
-            label="New popularity"
-            help={`Higher values will be more prominent on the integration directory. Only values between ${POPULARITY_MIN} and ${POPULARITY_MAX} are permitted.`}
-            onChange={onPopularityChange}
-            defaultValue={sentryAppData.popularity}
-          />
-          <SelectField
-            {...fieldProps}
-            multiple
-            name="features"
-            label="Features"
-            help="What features does this integration have?"
-            choices={getFeatures()}
-            required
-          />
-        </Form>
-      </Body>
+      <form.AppForm form={form}>
+        <Header>Update Sentry App</Header>
+        <Body>
+          <Stack gap="lg">
+            <form.AppField name="popularity">
+              {field => (
+                <field.Layout.Stack
+                  label="New popularity"
+                  hintText={`Higher values will be more prominent on the integration directory. Only values between ${POPULARITY_MIN} and ${POPULARITY_MAX} are permitted.`}
+                  required
+                >
+                  <field.Number
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    min={POPULARITY_MIN}
+                    max={POPULARITY_MAX}
+                    disabled={mutation.isPending}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <form.AppField name="features">
+              {field => (
+                <field.Layout.Stack
+                  label="Features"
+                  hintText="What features does this integration have?"
+                  required
+                >
+                  <field.Select
+                    multiple
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={options}
+                    disabled={mutation.isPending}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          </Stack>
+        </Body>
+        <Footer>
+          <Flex gap="md" justify="end">
+            <Button onClick={closeModal}>Cancel</Button>
+            <form.SubmitButton>Save</form.SubmitButton>
+          </Flex>
+        </Footer>
+      </form.AppForm>
     </Fragment>
   );
 }

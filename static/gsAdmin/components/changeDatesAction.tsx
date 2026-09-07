@@ -1,19 +1,30 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Heading} from '@sentry/scraps/text';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {Form} from 'sentry/components/forms/form';
-import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 import type {Subscription} from 'getsentry/types';
+
+const schema = z.object({
+  onDemandPeriodStart: z.string(),
+  onDemandPeriodEnd: z.string(),
+  contractPeriodStart: z.string(),
+  contractPeriodEnd: z.string(),
+});
+
+type FormValues = z.infer<typeof schema>;
 
 interface ChangeDatesModalProps extends ModalRenderProps {
   onSuccess: () => void;
@@ -28,103 +39,118 @@ function ChangeDatesModal({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ChangeDatesModalProps) {
-  const {mutateAsync: updateSubscriptionDates, isPending: isUpdating} = useMutation<
-    Record<string, any>,
-    unknown,
-    Record<string, any>
-  >({
-    mutationFn: (payload: Record<string, any>) =>
+  const mutation = useMutation({
+    mutationFn: (data: FormValues) =>
       fetchMutation({
         url: getApiUrl('/customers/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: orgId},
         }),
         method: 'PUT',
-        data: payload,
+        data: {
+          onDemandPeriodStart:
+            data.onDemandPeriodStart || subscription.onDemandPeriodStart,
+          onDemandPeriodEnd: data.onDemandPeriodEnd || subscription.onDemandPeriodEnd,
+          contractPeriodStart:
+            data.contractPeriodStart || subscription.billingPeriodStart,
+          contractPeriodEnd: data.contractPeriodEnd || subscription.billingPeriodEnd,
+        },
       }),
-  });
-
-  const onSubmit: OnSubmitCallback = async (formData, onSubmitSuccess, onSubmitError) => {
-    try {
-      const postData: Record<string, any> = {
-        onDemandPeriodStart: subscription.onDemandPeriodStart,
-        onDemandPeriodEnd: subscription.onDemandPeriodEnd,
-        contractPeriodStart: subscription.billingPeriodStart,
-        contractPeriodEnd: subscription.billingPeriodEnd,
-      };
-
-      for (const k in formData) {
-        if (formData[k] !== '' && formData[k]) {
-          postData[k] = formData[k];
-        }
-      }
-
-      const response = await updateSubscriptionDates(postData);
-
+    onSuccess: () => {
       addSuccessMessage('Contract and on-demand period dates updated');
-      onSubmitSuccess(response);
       onSuccess();
       closeModal();
-    } catch (err: any) {
-      onSubmitError({
-        responseJSON: err.responseJSON,
-      });
-    }
-  };
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      onDemandPeriodStart: subscription.onDemandPeriodStart ?? '',
+      onDemandPeriodEnd: subscription.onDemandPeriodEnd ?? '',
+      contractPeriodStart: subscription.billingPeriodStart ?? '',
+      contractPeriodEnd: subscription.billingPeriodEnd ?? '',
+    },
+    validators: {onDynamic: schema},
+    onSubmit: async ({value, formApi}) => {
+      try {
+        await mutation.mutateAsync(value);
+      } catch (error) {
+        const handled =
+          error instanceof RequestError &&
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        if (!handled) {
+          addErrorMessage('Unable to update subscription dates.');
+        }
+      }
+    },
+  });
+
+  const dateFields = [
+    {
+      name: 'onDemandPeriodStart' as const,
+      label: 'On-Demand Period Start Date',
+      hintText: 'The new start date for the on-demand period.',
+    },
+    {
+      name: 'onDemandPeriodEnd' as const,
+      label: 'On-Demand Period End Date',
+      hintText: 'The new end date for the on-demand period.',
+    },
+    {
+      name: 'contractPeriodStart' as const,
+      label: 'Contract Period Start Date',
+      hintText: 'The new start date for the contract period.',
+    },
+    {
+      name: 'contractPeriodEnd' as const,
+      label: 'Contract Period End Date',
+      hintText: 'The new end date for the contract period.',
+    },
+  ];
 
   return (
     <Fragment>
-      <Header closeButton>
-        <Heading as="h3">Change Contract and Current On-Demand Period Dates</Heading>
-      </Header>
-      <Body>
-        <Form
-          onSubmit={onSubmit}
-          onCancel={closeModal}
-          submitLabel="Submit"
-          submitDisabled={isUpdating}
-          cancelLabel="Cancel"
-        >
-          <Alert.Container>
-            <Alert variant="info" showIcon={false}>
-              This overrides the current contract and on-demand period dates so the
-              subscription may fall into a weird state.
-            </Alert>
-          </Alert.Container>
-          <p>
-            To end the contract period immediately, use the "End Billing Period
-            Immediately" action.
-          </p>
-          <DateField
-            label="On-Demand Period Start Date"
-            name="onDemandPeriodStart"
-            help="The new start date for the on-demand period."
-            defaultValue={subscription.onDemandPeriodStart}
-            type="date"
-          />
-          <DateField
-            label="On-Demand Period End Date"
-            name="onDemandPeriodEnd"
-            help="The new end date for the on-demand period."
-            defaultValue={subscription.onDemandPeriodEnd}
-            type="date"
-          />
-          <DateField
-            label="Contract Period Start Date"
-            name="contractPeriodStart"
-            help="The new start date for the contract period."
-            defaultValue={subscription.billingPeriodStart}
-            type="date"
-          />
-          <DateField
-            label="Contract Period End Date"
-            name="contractPeriodEnd"
-            help="The new end date for the contract period."
-            defaultValue={subscription.billingPeriodEnd}
-            type="date"
-          />
-        </Form>
-      </Body>
+      <form.AppForm form={form}>
+        <Header closeButton>
+          <Heading as="h3">Change Contract and Current On-Demand Period Dates</Heading>
+        </Header>
+        <Body>
+          <Stack gap="lg">
+            <Alert.Container>
+              <Alert variant="info" showIcon={false}>
+                This overrides the current contract and on-demand period dates so the
+                subscription may fall into a weird state.
+              </Alert>
+            </Alert.Container>
+            <Text>
+              To end the contract period immediately, use the "End Billing Period
+              Immediately" action.
+            </Text>
+            {dateFields.map(({name, label, hintText}) => (
+              <form.AppField key={name} name={name}>
+                {field => (
+                  <field.Layout.Stack label={label} hintText={hintText}>
+                    <field.Input
+                      type="date"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={mutation.isPending}
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            ))}
+          </Stack>
+        </Body>
+        <Footer>
+          <Flex gap="md" justify="end">
+            <Button onClick={closeModal}>Cancel</Button>
+            <form.SubmitButton>Submit</form.SubmitButton>
+          </Flex>
+        </Footer>
+      </form.AppForm>
     </Fragment>
   );
 }
@@ -133,7 +159,3 @@ type Options = Omit<ChangeDatesModalProps, keyof ModalRenderProps>;
 
 export const triggerChangeDatesModal = (opts: Options) =>
   openModal(deps => <ChangeDatesModal {...deps} {...opts} />);
-
-const DateField = styled(InputField)`
-  padding-left: 0px;
-`;
