@@ -249,17 +249,21 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         for revision, investigation in enumerate((first, second), start=1):
             Investigation.objects.filter(id=investigation.id).update(
                 source_type=InvestigationSourceType.BREACHED_METRIC,
-                source_key="lineage",
+                source_ref={},
+                source_key="legacy-lineage",
+                source={"type": "metric_open_period", "ref": {}},
+                lineage_key="lineage",
                 source_revision=revision,
+                status=(
+                    InvestigationStatus.ARCHIVED
+                    if investigation == first
+                    else InvestigationStatus.ACTIVE
+                ),
             )
             investigation.refresh_from_db()
         return first, second
 
-    def test_archiving_via_put_cascades_across_the_lineage(self) -> None:
-        """
-        Only archive_investigation cascades, so PUT has to route through it
-        rather than writing the status field directly.
-        """
+    def test_archiving_a_source_investigation_via_put(self) -> None:
         first, second = self.lineage()
 
         response = self.client.put(

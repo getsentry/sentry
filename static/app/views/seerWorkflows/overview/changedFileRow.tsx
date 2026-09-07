@@ -31,7 +31,7 @@ export function ChangedFileRow({
   path: string;
 }) {
   return (
-    <FileRow padding="0 xs">
+    <FileRow>
       <Disclosure size="sm" expanded={expanded} onExpandedChange={onExpandedChange}>
         <Disclosure.Title
           trailingItems={
@@ -63,6 +63,14 @@ export function ChangedFileRow({
 const FileRow = styled(Container)`
   & + & {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
+
+  [data-disclosure] > *:first-child {
+    border-radius: 0;
+  }
+
+  [data-disclosure] > *:last-child {
+    padding: 0;
   }
 `;
 

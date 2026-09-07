@@ -8,7 +8,7 @@ import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling
 
 import {ProjectsTable} from './projectsTable';
 
-mockElementSize({width: 500, height: 400});
+mockElementSize({height: 400});
 
 describe('ProjectsTable', () => {
   const organization = OrganizationFixture({

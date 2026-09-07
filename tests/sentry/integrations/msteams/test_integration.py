@@ -226,3 +226,23 @@ class MsTeamsIntegrationSendNotificationTest(TestCase):
             self.installation.send_notification(target=self.target, payload=payload)
 
         assert str(e.value) == error_payload
+
+
+@control_silo_test
+class MsTeamsIntegrationConfigTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_provider_integration(
+            provider="msteams", name="Microsoft Teams", metadata={}
+        )
+        self.installation = MsTeamsIntegration(self.integration, self.organization.id)
+
+    def test_config_data_team(self) -> None:
+        self.integration.metadata["installation_type"] = "team"
+        assert self.installation.get_config_data()["installationType"] == "team"
+
+    def test_config_data_tenant(self) -> None:
+        self.integration.metadata["installation_type"] = "tenant"
+        assert self.installation.get_config_data()["installationType"] == "tenant"
+
+    def test_config_data_missing(self) -> None:
+        assert self.installation.get_config_data()["installationType"] == ""

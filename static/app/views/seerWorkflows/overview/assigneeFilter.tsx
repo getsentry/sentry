@@ -3,8 +3,12 @@ import {useMemo} from 'react';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
+import {Placeholder} from 'sentry/components/placeholder';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 
@@ -24,10 +28,14 @@ export function AssigneeFilter({
   runs,
   value,
   onChange,
+  loading,
+  truncated,
 }: {
   onChange: (value: string | null) => void;
   runs: OverviewRun[];
   value: string | null;
+  loading?: boolean;
+  truncated?: boolean;
 }) {
   const options = useMemo(() => {
     const byValue = new Map<string, {actor: Actor | null; count: number}>();
@@ -67,11 +75,30 @@ export function AssigneeFilter({
     <CompactSelect
       clearable
       search
+      loading={loading}
+      disabled={false}
+      menuTitle={loading ? t('Assignee') : undefined}
+      menuBody={
+        truncated && options.length > 0 ? (
+          <Flex gap="xs" align="center" padding="xs md">
+            <IconWarning size="xs" variant="warning" />
+            <Text size="sm" variant="muted">
+              {t('Assignee counts may be incomplete')}
+            </Text>
+          </Flex>
+        ) : undefined
+      }
       options={options}
       value={value ?? undefined}
       onChange={selected => onChange(selected?.value ?? null)}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} prefix={t('Assignee')} />
+        <OverlayTrigger.Button {...triggerProps} prefix={t('Assignee')}>
+          {loading && value ? (
+            <Placeholder height="1rem" width="4rem" />
+          ) : (
+            triggerProps.children
+          )}
+        </OverlayTrigger.Button>
       )}
     />
   );

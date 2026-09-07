@@ -288,9 +288,9 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
           source="crons_onboarding"
         />
       </Flex>
-      <div ref={guideContainerRef}>
+      <Stack gap="md" ref={guideContainerRef}>
         <Guide {...guideProps} />
-      </div>
+      </Stack>
     </Stack>
   );
 }

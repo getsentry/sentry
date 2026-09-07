@@ -15,7 +15,7 @@ CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 @pytest.fixture
 def make_ctx_snapshot(insta_snapshot: InstaSnapshotter) -> CustomSnapshotter:
     def inner(data: SnapshotInput) -> None:
-        mgr = EventManager(data={"contexts": data})
+        mgr = EventManager(data={"contexts": data, "event_id": "d718bb6c40be4ac9a0c55c4df1640130"})
         mgr.normalize()
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         interface = evt.interfaces.get("contexts")

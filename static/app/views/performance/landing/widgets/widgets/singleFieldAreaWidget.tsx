@@ -68,14 +68,11 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           currentSeriesNames={[field!]}
           previousSeriesNames={[getPreviousSeriesName(field!)]}
           query={provided.eventView.getQueryWithAdditionalConditions()}
-          interval={getInterval(
-            {
-              start: provided.start,
-              end: provided.end,
-              period: provided.period,
-            },
-            'medium'
-          )}
+          interval={getInterval({
+            start: provided.start,
+            end: provided.end,
+            period: provided.period,
+          })}
           hideError
           onError={setPageDanger}
           queryExtras={queryExtras}

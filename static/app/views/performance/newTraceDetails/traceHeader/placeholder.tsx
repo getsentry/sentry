@@ -1,17 +1,11 @@
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 
-import {getTraceViewBreadcrumbs} from './breadcrumbs';
 import {TraceHeaderComponents} from './styles';
 import {TraceBreadcrumbs} from './traceBreadcrumbs';
 
@@ -32,35 +26,15 @@ export function PlaceHolder({
   traceSlug: string;
   project?: Project;
 }) {
-  const {view} = useDomainViewFilters();
-  const moduleURLBuilder = useModuleURLBuilder(true);
-  const location = useLocation();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
-
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
-          {hasNewBreadcrumbs ? (
-            <TraceBreadcrumbs
-              organization={organization}
-              traceSlug={traceSlug}
-              project={project}
-            />
-          ) : (
-            <TopBar.Slot name="title">
-              <Breadcrumbs
-                crumbs={getTraceViewBreadcrumbs({
-                  organization,
-                  location,
-                  moduleURLBuilder,
-                  traceSlug,
-                  project,
-                  view,
-                })}
-              />
-            </TopBar.Slot>
-          )}
+          <TraceBreadcrumbs
+            organization={organization}
+            traceSlug={traceSlug}
+            project={project}
+          />
           <Grid flow="column" align="center" gap="md">
             <TopBar.Slot name="feedback">
               <FeedbackButton

@@ -254,7 +254,6 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   end?: boolean;
   isActive?: boolean;
   leadingItems?: ReactNode;
-  showInteractionStateLayer?: boolean;
   trailingItems?: ReactNode;
 }
 
@@ -334,7 +333,6 @@ interface SectionTitleProps {
   children: ReactNode;
   isCollapsed: boolean;
   setIsCollapsed: (isCollapsed: boolean) => void;
-  trailingItems?: ReactNode;
 }
 
 function SectionTitle(props: SectionTitleProps) {
@@ -352,17 +350,11 @@ function SectionTitle(props: SectionTitleProps) {
               {props.children}
             </Text>
             <Flex align="center" flexShrink={0} aria-hidden="true">
-              {props.trailingItems ? (
-                <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
-              ) : (
-                props.canCollapse && (
-                  <IconChevron
-                    direction={props.isCollapsed ? 'down' : 'up'}
-                    size="xs"
-                    variant="muted"
-                  />
-                )
-              )}
+              <IconChevron
+                direction={props.isCollapsed ? 'down' : 'up'}
+                size="xs"
+                variant="muted"
+              />
             </Flex>
           </Button>
         )}
@@ -375,9 +367,6 @@ function SectionTitle(props: SectionTitleProps) {
       <Text bold ellipsis align="left">
         {props.children}
       </Text>
-      <Flex justify="end" align="center" flexShrink={0}>
-        {props.trailingItems}
-      </Flex>
     </Grid>
   );
 }
@@ -385,26 +374,22 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
-  collapsible?: boolean;
   title?: ReactNode;
-  trailingItems?: ReactNode;
 }
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
-  const collapsible = props.collapsible ?? true;
   const {layout} = usePrimaryNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = collapsible && layout === 'sidebar';
+  const canCollapse = layout === 'sidebar';
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
     <Container padding="md sm" data-nav-section>
       {props.title ? (
         <SectionTitle
-          trailingItems={props.trailingItems}
           canCollapse={canCollapse}
           isCollapsed={isCollapsed}
           setIsCollapsed={setIsCollapsedState}

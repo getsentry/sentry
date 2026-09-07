@@ -7,6 +7,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -21,11 +22,11 @@ import {captureProjectCreationFailure} from 'sentry/components/onboarding/captur
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
+import type {CreatedProjectRule} from 'sentry/components/onboarding/useCreateProjectRules';
 import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -70,7 +71,7 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<AlertRuleOptions>;
-  notificationRule?: IssueAlertRule;
+  notificationRule?: CreatedProjectRule;
   team?: string;
   wasNameManuallyModified?: boolean;
 };
@@ -160,14 +161,14 @@ export function CreateProject() {
     return referrer === 'getting-started' && projectId === createdProject?.id;
   }, [referrer, projectId, createdProject?.id]);
 
-  const createNotificationActionParam = useMemo(() => {
+  const notificationActionParam = useMemo(() => {
     return autoFill && createdProject?.notificationRule?.actions
       ? {actions: createdProject.notificationRule.actions}
       : undefined;
   }, [autoFill, createdProject?.notificationRule?.actions]);
 
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
-    createNotificationActionParam
+  const {getIntegrationAction, notificationProps} = useCreateNotificationAction(
+    notificationActionParam
   );
 
   const validateChannel = useQuery({
@@ -313,13 +314,13 @@ export function CreateProject() {
       });
 
       try {
-        const {project, notificationRule, ruleIds} =
+        const {project, notificationRule, workflowIds} =
           await createProjectAndRules.mutateAsync({
             projectName,
             platform: selectedPlatform,
             team,
             alertRuleConfig,
-            createNotificationAction,
+            getIntegrationAction,
           });
 
         trackAnalytics('project_creation_page.created', {
@@ -331,7 +332,7 @@ export function CreateProject() {
               : 'No Rule',
           project_id: project.id,
           platform: selectedPlatform.key,
-          rule_ids: ruleIds,
+          workflow_ids: workflowIds,
           notification_rule_created: !!notificationRule,
           variant: 'legacy',
         });
@@ -385,7 +386,7 @@ export function CreateProject() {
       setCreatedProject,
       navigate,
       createProjectAndRules,
-      createNotificationAction,
+      getIntegrationAction,
       alertRuleConfig,
       accessTeams,
     ]
@@ -519,7 +520,6 @@ export function CreateProject() {
             organization={organization}
             source="project-creation"
             variant="legacy"
-            showOther
             noAutoFilter
           />
           <StyledListItem>{t('Set your alert frequency')}</StyledListItem>
@@ -562,7 +562,16 @@ export function CreateProject() {
               ? t('Name your project')
               : t('Name your project and assign it a team')}
           </StyledListItem>
-          <FormFieldGroup>
+          <Grid
+            columns={{
+              zero: 'minmax(0, 1fr)',
+              lg: 'minmax(0, 300px) minmax(250px, 1fr) max-content',
+            }}
+            gap="xl"
+            align="end"
+            padding="2xl 0"
+            background="primary"
+          >
             <div>
               <FormLabel>{t('Project slug')}</FormLabel>
               <ProjectNameInputWrap>
@@ -641,7 +650,7 @@ export function CreateProject() {
                 </Button>
               </Tooltip>
             </div>
-          </FormFieldGroup>
+          </Grid>
           {!isModalVisible && (
             <ProjectCreationErrorAlert error={createProjectAndRules.error} />
           )}
@@ -654,15 +663,6 @@ export function CreateProject() {
 const StyledListItem = styled(ListItem)`
   margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
-`;
-
-const FormFieldGroup = styled('div')`
-  display: grid;
-  grid-template-columns: 300px minmax(250px, max-content) max-content;
-  gap: ${p => p.theme.space.xl};
-  align-items: end;
-  padding: ${p => p.theme.space['2xl']} 0;
-  background: ${p => p.theme.tokens.background.primary};
 `;
 
 const FormLabel = styled('div')`

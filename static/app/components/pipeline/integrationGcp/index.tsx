@@ -1,23 +1,50 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
+import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {
   PipelineDefinition,
   PipelineStepProps,
 } from 'sentry/components/pipeline/types';
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconAdd, IconDelete, IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
+import type {
+  GcpProjectResult,
+  GcpVerificationInput,
+  GcpVerifyConnectionResponse,
+} from 'sentry/utils/seer/gcpConnection';
+import {
+  describeService,
+  getFailedServices,
+  getStatusLabel,
+  getStatusVariant,
+} from 'sentry/utils/seer/gcpConnection';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const GCP_PROJECT_ID_RE = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const MAX_PROJECTS = 20;
+
+const REQUIRED_PROJECT_ROLES = [
+  'roles/mcp.toolUser',
+  'roles/logging.viewer',
+  'roles/monitoring.viewer',
+  'roles/cloudtrace.user',
+];
 
 function GcpSaGenerationStep({
   advance,
@@ -31,7 +58,7 @@ function GcpSaGenerationStep({
     <Stack gap="lg">
       <Text>
         {t(
-          'Sentry has generated a service account for your organization. Follow the steps below to grant it access to your GCP projects, then click Continue.'
+          'Sentry has generated a service account for your organization. Grant it access to your GCP projects using the steps below, then click Continue to enter your connection details.'
         )}
       </Text>
       <Stack gap="sm">
@@ -39,29 +66,46 @@ function GcpSaGenerationStep({
         <TextCopyInput>{sentrySaEmail}</TextCopyInput>
       </Stack>
       <Stack gap="sm">
-        <Text bold>{t('Setup Instructions')}</Text>
-        <Stack as="ol" gap="sm">
+        <Text bold>{t('Set up in Google Cloud')}</Text>
+        <Stack as="ol" gap="md">
           <li>
-            <Text>
-              {t(
-                'Create a service account in your GCP project for Sentry to impersonate.'
-              )}
-            </Text>
+            <Stack gap="xs">
+              <Text>{t('Create a service account for Sentry to impersonate.')}</Text>
+              <Text variant="muted" size="sm">
+                {t('One service account covers every project you connect.')}
+              </Text>
+            </Stack>
           </li>
           <li>
-            <Text>
-              {t(
-                'Grant your service account the required viewer roles on each GCP project you want to connect.'
-              )}
-            </Text>
+            <Stack gap="xs">
+              <Text>
+                {t(
+                  'Grant that service account these roles on each project you want to connect:'
+                )}
+              </Text>
+              <Stack as="ul" gap="2xs">
+                {REQUIRED_PROJECT_ROLES.map(role => (
+                  <li key={role}>
+                    <InlineCode>{role}</InlineCode>
+                  </li>
+                ))}
+              </Stack>
+            </Stack>
           </li>
           <li>
-            <Text>
-              {tct(
-                'Grant the Sentry service account above the [role] role on your service account.',
-                {role: <strong>{t('Service Account Token Creator')}</strong>}
-              )}
-            </Text>
+            <Stack gap="xs">
+              <Text>
+                {tct(
+                  'Grant the Sentry service account above the [role] role on the service account you just created.',
+                  {role: <InlineCode>roles/iam.serviceAccountTokenCreator</InlineCode>}
+                )}
+              </Text>
+              <Text variant="muted" size="sm">
+                {t(
+                  'Grant this on the service account itself, not on the project. Granting it on the project leaves Sentry unable to impersonate the account.'
+                )}
+              </Text>
+            </Stack>
           </li>
         </Stack>
       </Stack>
@@ -110,7 +154,7 @@ function GcpCustomerConfigStep({
 
   useEffect(() => {
     if (advanceError) {
-      setFieldErrors(form, advanceError);
+      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
     }
   }, [advanceError, form]);
 
@@ -187,6 +231,159 @@ function GcpCustomerConfigStep({
   );
 }
 
+interface GcpVerificationStepData {
+  customerSaEmail: string;
+  projects: string[];
+}
+
+function GcpProjectStatus({project}: {project: GcpProjectResult}) {
+  const failedServices = getFailedServices(project);
+
+  return (
+    <Stack gap="xs">
+      <Flex gap="sm" align="center">
+        <StatusIndicator
+          variant={getStatusVariant(project.connectionStatus)}
+          animationIterationCount={1}
+        />
+        <Text bold>{project.gcpProjectId}</Text>
+        <Text variant="muted" size="sm">
+          {getStatusLabel(project.connectionStatus)}
+        </Text>
+      </Flex>
+      {failedServices.map(service => (
+        <Text key={service.service} variant="muted" size="sm">
+          {describeService(service)}
+        </Text>
+      ))}
+    </Stack>
+  );
+}
+
+function GcpVerificationStep({
+  advance,
+  isAdvancing,
+  isInitializing,
+  stepData,
+}: PipelineStepProps<GcpVerificationStepData, GcpVerificationInput>) {
+  const organization = useOrganization();
+  const customerSaEmail = stepData?.customerSaEmail ?? '';
+  const projects = stepData?.projects;
+
+  const {
+    mutate: verify,
+    data: result,
+    isPending,
+    isError,
+  } = useMutation<GcpVerifyConnectionResponse>({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
+        method: 'POST',
+        data: {customerSaEmail, gcpProjectIds: projects},
+      }),
+  });
+
+  const canVerify = Boolean(customerSaEmail && projects?.length);
+
+  const hasVerifiedRef = useRef(false);
+  useEffect(() => {
+    if (hasVerifiedRef.current || !canVerify) {
+      return;
+    }
+    hasVerifiedRef.current = true;
+    verify();
+  }, [verify, canVerify]);
+
+  const isChecking = isPending || (canVerify && !result && !isError);
+  const isConnected = result?.connectionStatus === 'connected';
+  const continueLabel = isChecking || isConnected ? t('Continue') : t('Continue Anyway');
+
+  function handleContinue() {
+    if (result) {
+      advance({
+        connectionStatus: result.connectionStatus,
+        projects: result.projects.map(project => ({
+          gcpProjectId: project.gcpProjectId,
+          connectionStatus: project.connectionStatus,
+          errorDetail: project.errorDetail ?? null,
+        })),
+      });
+      return;
+    }
+
+    // The check never completed, so record it as an error against every
+    // configured project. The customer can re-test from the settings page.
+    advance({
+      connectionStatus: 'error',
+      projects: (projects ?? []).map(gcpProjectId => ({
+        gcpProjectId,
+        connectionStatus: 'error' as const,
+        errorDetail: 'Verification could not be completed.',
+      })),
+    });
+  }
+
+  return (
+    <Stack gap="lg">
+      <Text>
+        {t(
+          'Sentry is testing that it can read Cloud Logging, Cloud Monitoring, and Cloud Trace data from each of your GCP projects.'
+        )}
+      </Text>
+
+      <Stack gap="md" role="status" aria-live="polite">
+        {isChecking ? (
+          <Flex gap="sm" align="center">
+            <LoadingIndicator mini />
+            <Text variant="muted">{t('Testing your GCP connection...')}</Text>
+          </Flex>
+        ) : isError ? (
+          <Alert variant="warning">
+            {t(
+              'We could not complete the connection test. You can finish setup and re-test from the integration settings page.'
+            )}
+          </Alert>
+        ) : result ? (
+          <Fragment>
+            <Alert variant={isConnected ? 'success' : 'warning'}>
+              {isConnected
+                ? t('Sentry can read telemetry from all of your connected GCP projects.')
+                : t(
+                    'Sentry could not read telemetry from every project. IAM changes can take a couple of minutes to take effect, so re-testing may help. You can also finish setup and re-test from the integration settings page.'
+                  )}
+            </Alert>
+            {result.projects.map(project => (
+              <GcpProjectStatus key={project.gcpProjectId} project={project} />
+            ))}
+          </Fragment>
+        ) : null}
+      </Stack>
+
+      <Flex gap="md">
+        <Button
+          variant="primary"
+          onClick={handleContinue}
+          busy={isAdvancing}
+          disabled={isInitializing || isChecking || isAdvancing}
+        >
+          {continueLabel}
+        </Button>
+        <Button
+          icon={<IconRefresh size="xs" />}
+          onClick={() => verify()}
+          disabled={isInitializing || isChecking || isAdvancing || !canVerify}
+        >
+          {t('Re-test')}
+        </Button>
+      </Flex>
+    </Stack>
+  );
+}
+
 export const gcpIntegrationPipeline = {
   type: 'integration',
   provider: 'gcp',
@@ -203,6 +400,11 @@ export const gcpIntegrationPipeline = {
       stepId: 'gcp_customer_config',
       shortDescription: t('Configuring GCP connection'),
       component: GcpCustomerConfigStep,
+    },
+    {
+      stepId: 'gcp_verification',
+      shortDescription: t('Verifying GCP connection'),
+      component: GcpVerificationStep,
     },
   ],
 } as const satisfies PipelineDefinition;

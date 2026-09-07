@@ -75,7 +75,7 @@ def schedule_batch(
     scheduled_count = 0
 
     try:
-        for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
+        for outbox_name in settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS[silo_mode.name]:
             outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
             scheduled_count += schedule_outbox_model(
                 silo_mode=silo_mode,
@@ -160,7 +160,7 @@ def drain_outbox_shards(
 ) -> None:
     try:
         if outbox_name is None:
-            outbox_name = settings.SENTRY_OUTBOX_MODELS["CELL"][0]
+            outbox_name = settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS["CELL"][0]
 
         assert outbox_name, "Could not determine outbox name"
         outbox_model: type[CellOutboxBase] = CellOutboxBase.from_outbox_name(outbox_name)
@@ -184,7 +184,7 @@ def drain_outbox_shards_control(
 ) -> None:
     try:
         if outbox_name is None:
-            outbox_name = settings.SENTRY_OUTBOX_MODELS["CONTROL"][0]
+            outbox_name = settings.SENTRY_HYBRIDCLOUD_OUTBOX_MODELS["CONTROL"][0]
 
         assert outbox_name, "Could not determine outbox name"
         outbox_model: type[ControlOutboxBase] = ControlOutboxBase.from_outbox_name(outbox_name)

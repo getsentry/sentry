@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import type {LegendComponentOption} from 'echarts';
 
 import {Container} from '@sentry/scraps/layout';
@@ -16,7 +17,6 @@ import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
@@ -274,10 +274,12 @@ function HeatmapMeasuredArea({
 }) {
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: chartAreaRef});
-  // `leading: true` keeps the first measurement fast; mid-resize churn collapses
-  // into a single trailing update once the drag settles.
-  const debouncedDimensions = useDebouncedValue(dimensions, HEATMAP_RESIZE_DEBOUNCE_MS, {
-    leading: true,
+  // A leading update keeps the first usable measurement fast; mid-resize churn
+  // collapses into a single trailing update once the drag settles.
+  const [debouncedDimensions] = useDebouncedValue(dimensions, {
+    wait: HEATMAP_RESIZE_DEBOUNCE_MS,
+    // The initial zero-sized value must not consume the leading execution.
+    leading: dimensions.width > 0 && dimensions.height > 0,
   });
 
   // Returns null until the container is measured, which keeps the query

@@ -37,7 +37,7 @@ import {
   updateQuery,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/cellActions';
 import {
   useReadQueriesFromLocation,
   useUpdateQueryAtIndex,

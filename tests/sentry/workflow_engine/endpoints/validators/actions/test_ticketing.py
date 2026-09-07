@@ -31,6 +31,30 @@ class BaseTicketingActionValidatorTest(TestCase):
         result = validator.is_valid()
         assert result is True
 
+    def assert_preserves_additional_fields_keys(self) -> None:
+        data = {
+            **self.valid_data,
+            "data": {
+                "additionalFields": {
+                    "project": "10000",
+                    "issuetype": "10001",
+                    "fixVersions": "10500",
+                    "customfield_10101": "x",
+                }
+            },
+        }
+        validator = BaseActionValidator(
+            data=data,
+            context={"organization": self.organization},
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["data"]["additional_fields"] == {
+            "project": "10000",
+            "issuetype": "10001",
+            "fixVersions": "10500",
+            "customfield_10101": "x",
+        }
+
 
 class TestGitHubActionValidator(BaseTicketingActionValidatorTest):
     def setUp(self) -> None:
@@ -44,10 +68,16 @@ class TestJiraActionValidator(BaseTicketingActionValidatorTest):
     __test__ = True
     provider = Action.Type.JIRA
 
+    def test_preserves_additional_fields_keys(self) -> None:
+        self.assert_preserves_additional_fields_keys()
+
 
 class TestJiraServerActionValidator(BaseTicketingActionValidatorTest):
     __test__ = True
     provider = Action.Type.JIRA_SERVER
+
+    def test_preserves_additional_fields_keys(self) -> None:
+        self.assert_preserves_additional_fields_keys()
 
 
 class TestAzureDevOpsActionValidator(BaseTicketingActionValidatorTest):

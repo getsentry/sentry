@@ -64,7 +64,11 @@ import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useDrawerContainerRef} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {
+  tryParseJsonRecursive,
+  getTraceKeyValueActions,
+  TraceDrawerActionValueKind,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -86,7 +90,6 @@ import {
   MIN_PCT_DURATION_DIFFERENCE,
 } from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
-import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
 const BodyContainer = styled('div')`
   display: flex;

@@ -17,7 +17,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Attrib
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.models.files.file import File
-from sentry.objectstore import get_preprod_session
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.eap.constants import get_preprod_trace_id
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.preprod.snapshots.manifest import ComparisonManifest
@@ -110,7 +110,7 @@ def _collect_snapshot_objectstore_keys(
     preprod_artifacts: list[PreprodArtifact],
 ) -> list[tuple[int, int, str]]:
     # Collects three types of objectstore keys for the given artifacts:
-    # 1. Snapshot manifest keys (per-snapshot JSON manifests from PreprodSnapshotMetrics)
+    # 1. Snapshot manifest and precomputed head-images keys (from PreprodSnapshotMetrics)
     # 2. Comparison manifest keys (diff manifests from PreprodSnapshotComparison)
     # 3. Diff mask image keys (per-image diff masks referenced within comparison manifests)
     # Note: shared content-addressed image keys are NOT collected — they expire via X-day TTL.
@@ -131,13 +131,12 @@ def _collect_snapshot_objectstore_keys(
         project_id = sm.preprod_artifact.project_id
         metrics_ids.append(sm.id)
 
-        manifest_key = (sm.extras or {}).get("manifest_key")
-        if not manifest_key:
-            continue
-
-        # Image keys are content-addressed and shared across snapshots;
-        # only delete the manifest, not images (they expire via X-day TTL).
-        keys.append((org_id, project_id, manifest_key))
+        # Delete the per-snapshot manifest and precomputed head-images blob. Shared
+        # content-addressed image keys are left to expire via idle TTL.
+        extras = sm.extras or {}
+        for key in (extras.get("manifest_key"), extras.get("head_images_key")):
+            if key:
+                keys.append((org_id, project_id, key))
 
     for comp in PreprodSnapshotComparison.objects.filter(
         Q(head_snapshot_metrics_id__in=metrics_ids) | Q(base_snapshot_metrics_id__in=metrics_ids)
@@ -151,7 +150,7 @@ def _collect_snapshot_objectstore_keys(
 
         keys.append((org_id, project_id, comparison_key))
         try:
-            session = get_preprod_session(org_id, project_id)
+            session = get_session(UsecaseId.PREPROD, project_id, org=org_id)
             response = session.get(comparison_key)
             if response is None:
                 raise FileNotFoundError("Comparison manifest does not exist in objectstore")
@@ -171,7 +170,7 @@ def _collect_snapshot_objectstore_keys(
 def _delete_objectstore_key(args: tuple[int, int, str]) -> bool:
     org_id, project_id, key = args
     try:
-        get_preprod_session(org_id, project_id).delete(key)
+        get_session(UsecaseId.PREPROD, project_id, org=org_id).delete(key)
         return True
     except Exception:
         logger.exception("preprod.cleanup.objectstore_delete_failed", extra={"key": key})

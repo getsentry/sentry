@@ -2,13 +2,9 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Flex} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -34,8 +30,9 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {getCrumbs, getTabCrumbs} from 'sentry/views/performance/breadcrumb';
+import {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
+import {TransactionBreadcrumbs} from 'sentry/views/performance/transactionSummary/transactionBreadcrumbs';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 import {replaysRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionReplays/utils';
@@ -44,7 +41,7 @@ import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import {Tab} from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
-import TransactionThresholdButton from './transactionThresholdButton';
+import {TransactionThresholdButton} from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
 const REPLAY_COUNT_LIMIT = 50;
@@ -203,35 +200,29 @@ export function TransactionHeader({
       }),
       headerActions: (
         <Fragment>
-          <Feature organization={organization} features="incidents">
-            {({hasFeature}) =>
-              hasFeature && !metricsCardinality?.isLoading ? (
-                <CreateAlertFromViewButton
-                  size="sm"
-                  eventView={eventView}
-                  organization={organization}
-                  projects={projects}
-                  onClick={handleCreateAlertSuccess}
-                  referrer="performance"
-                  alertType="trans_duration"
-                  aria-label={t('Create Alert')}
-                />
-              ) : null
-            }
-          </Feature>
+          {metricsCardinality?.isLoading ? null : (
+            <CreateAlertFromViewButton
+              size="sm"
+              eventView={eventView}
+              organization={organization}
+              projects={projects}
+              onClick={handleCreateAlertSuccess}
+              referrer="performance"
+              alertType="trans_duration"
+              aria-label={t('Create Alert')}
+            />
+          )}
           <TeamKeyTransactionButton
             eventView={eventView}
             organization={organization}
             transactionName={transactionName}
           />
-          <GuideAnchor target="project_transaction_threshold_override" position="bottom">
-            <TransactionThresholdButton
-              organization={organization}
-              transactionName={transactionName}
-              eventView={eventView}
-              onChangeThreshold={onChangeThreshold}
-            />
-          </GuideAnchor>
+          <TransactionThresholdButton
+            organization={organization}
+            transactionName={transactionName}
+            eventView={eventView}
+            onChangeThreshold={onChangeThreshold}
+          />
         </Fragment>
       ),
     };
@@ -248,62 +239,27 @@ export function TransactionHeader({
 
   return (
     <Layout.Header>
-      <TopBar.Slot name="title">
-        <Breadcrumbs
-          crumbs={getCrumbs({
-            organization,
-            location,
-            transaction: {project: projectId, name: transactionName},
-          }).concat({
-            label: (
-              <Flex align="center" gap="sm">
-                {project && (
-                  <IdBadge
-                    project={project}
-                    avatarSize={16}
-                    hideName
-                    avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                  />
-                )}
-                <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-                  <TransactionName>{transactionName}</TransactionName>
-                </Tooltip>
-              </Flex>
-            ),
-          })}
-        />
-      </TopBar.Slot>
+      <TransactionBreadcrumbs
+        eventView={eventView}
+        location={location}
+        organization={organization}
+        projectId={projectId}
+        projects={projects}
+        transactionName={transactionName}
+        onChangeThreshold={onChangeThreshold}
+      />
       <TopBar.Slot name="actions">
-        <Feature organization={organization} features="incidents">
-          {({hasFeature}) =>
-            hasFeature &&
-            !metricsCardinality?.isLoading &&
-            !deprecateTransactionAlerts(organization) ? (
-              <CreateAlertFromViewButton
-                eventView={eventView}
-                organization={organization}
-                projects={projects}
-                onClick={handleCreateAlertSuccess}
-                referrer="performance"
-                alertType="trans_duration"
-                aria-label={t('Create Alert')}
-              />
-            ) : null
-          }
-        </Feature>
-        <TeamKeyTransactionButton
-          transactionName={transactionName}
-          eventView={eventView}
-          organization={organization}
-        />
-        <GuideAnchor target="project_transaction_threshold_override" position="bottom">
-          <TransactionThresholdButton
-            organization={organization}
-            transactionName={transactionName}
+        {!metricsCardinality?.isLoading && !deprecateTransactionAlerts(organization) ? (
+          <CreateAlertFromViewButton
             eventView={eventView}
-            onChangeThreshold={onChangeThreshold}
+            organization={organization}
+            projects={projects}
+            onClick={handleCreateAlertSuccess}
+            referrer="performance"
+            alertType="trans_duration"
+            aria-label={t('Create Alert')}
           />
-        </GuideAnchor>
+        ) : null}
       </TopBar.Slot>
       <TopBar.Slot name="feedback">
         <FeedbackButton

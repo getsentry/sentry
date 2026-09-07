@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import zstandard
 from objectstore_client import TimeToLive
 
-from sentry.objectstore import default_attachment_retention, get_attachments_session
+from sentry.objectstore import UsecaseId, default_attachment_retention, get_session
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -73,7 +73,7 @@ class CachedAttachment:
     def load_data(self, project: Project | None = None) -> bytes:
         if self.stored_id:
             assert project
-            session = get_attachments_session(project.organization_id, project.id)
+            session = get_session(UsecaseId.ATTACHMENTS, project)
             response = session.get(self.stored_id)
             if response is None:
                 raise FileNotFoundError("Attachment does not exist in objectstore")
@@ -131,7 +131,7 @@ class BaseAttachmentCache:
         self,
         key: str,
         attachments: list[CachedAttachment],
-        timeout=None,
+        timeout: int,
         project: Project | None = None,
     ) -> list[dict]:
         for id, attachment in enumerate(attachments):
@@ -145,7 +145,7 @@ class BaseAttachmentCache:
             # the attachment is stored, but has updated data, so we need to overwrite:
             if attachment.stored_id is not None and attachment._data is not UNINITIALIZED_DATA:
                 assert project
-                session = get_attachments_session(project.organization_id, project.id)
+                session = get_session(UsecaseId.ATTACHMENTS, project)
                 # A keyed `put` replaces the object wholesale, so metadata that is not
                 # sent here is lost rather than preserved from the previous write.
                 session.put(
@@ -177,12 +177,12 @@ class BaseAttachmentCache:
 
         return meta
 
-    def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout=None):
+    def set_chunk(self, key: str, id: int, chunk_index: int, chunk_data: bytes, timeout: int):
         key = ATTACHMENT_DATA_CHUNK_KEY.format(key=key, id=id, chunk_index=chunk_index)
         compressed = zstandard.compress(chunk_data)
         self.inner.set(key, compressed, timeout, raw=True)
 
-    def set_unchunked_data(self, key: str, id: int, data: bytes, timeout=None, metrics_tags=None):
+    def set_unchunked_data(self, key: str, id: int, data: bytes, timeout: int, metrics_tags=None):
         key = ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=key, id=id)
         compressed = zstandard.compress(data)
         metrics.distribution("attachments.blob-size.raw", len(data), tags=metrics_tags, unit="byte")

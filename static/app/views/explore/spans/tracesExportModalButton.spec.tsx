@@ -222,7 +222,11 @@ describe('TracesExportModalButton', () => {
       expect(dataExportMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/data-export/`,
         expect.objectContaining({
-          data: expect.objectContaining({query_type: 'Explore', limit: 500}),
+          data: expect.objectContaining({
+            query_type: 'Explore',
+            limit: 500,
+            query_info: expect.objectContaining({sampling: 'HIGHEST_ACCURACY'}),
+          }),
         })
       );
     });

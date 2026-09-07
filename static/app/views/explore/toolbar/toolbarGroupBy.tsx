@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -122,7 +122,7 @@ function ToolbarGroupByItem({
   validatedSearchQueryData,
 }: ToolbarGroupByItemProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
+  const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
 
   const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
     {search: debouncedSearch},

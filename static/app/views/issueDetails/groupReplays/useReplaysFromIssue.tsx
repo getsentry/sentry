@@ -6,6 +6,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -34,7 +35,9 @@ export function useReplaysFromIssue({
   const fetchReplayIds = useCallback(async () => {
     try {
       const response = await api.requestPromise(
-        `/organizations/${organization.slug}/replay-count/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/replay-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           query: {
             returnIds: true,

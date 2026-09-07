@@ -134,7 +134,7 @@ function snapAffixToSeparator(
 /**
  * Computes the common prefix and suffix of the given strings, then strips
  * them from each value, replacing each with `…`. Only trims affixes longer
- * than `minAffixLength` (default 3).
+ * than 3 characters.
  *
  * When `separator` is provided, affix boundaries snap to the nearest
  * separator so trimming never cuts mid-segment.
@@ -143,7 +143,7 @@ function snapAffixToSeparator(
  *
  *   1. Compute raw character-level affix lengths
  *   2. (Optional) Snap affix boundaries to the nearest separator
- *   3. Drop any affix that's ≤ minAffixLength (too short to be worth trimming)
+ *   3. Drop any affix that's ≤ MIN_AFFIX_LENGTH (too short to be worth trimming)
  *   4. For each string, replace the prefix/suffix regions with `…`
  *
  * Step 2 happens before step 3 intentionally: snapping can reduce an affix
@@ -153,9 +153,9 @@ function snapAffixToSeparator(
  */
 export function trimCommonAffixes(
   strings: string[],
-  options: {minAffixLength?: number; separator?: string} = {}
+  options: {separator?: string} = {}
 ): string[] {
-  const {minAffixLength = MIN_AFFIX_LENGTH, separator} = options;
+  const {separator} = options;
 
   if (strings.length <= 1) {
     return strings;
@@ -174,8 +174,8 @@ export function trimCommonAffixes(
   }
 
   // Step 3: drop affixes that are too short to justify an ellipsis
-  const prefixLen = rawPrefixLen > minAffixLength ? rawPrefixLen : 0;
-  const suffixLen = rawSuffixLen > minAffixLength ? rawSuffixLen : 0;
+  const prefixLen = rawPrefixLen > MIN_AFFIX_LENGTH ? rawPrefixLen : 0;
+  const suffixLen = rawSuffixLen > MIN_AFFIX_LENGTH ? rawSuffixLen : 0;
 
   if (prefixLen === 0 && suffixLen === 0) {
     return strings;

@@ -83,12 +83,6 @@ const getDynamicParts = (params: Params): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
-  if (params.isLogsSelected) {
-    dynamicParts.push(`
-      // Enable sending logs to Sentry
-      enableLogs: true`);
-  }
-
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profileSessionSampleRate to 1.0 to profile during every session.

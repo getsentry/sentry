@@ -495,11 +495,15 @@ class OrganizationEventsTraceEndpointTest(
             )
         assert response.status_code == 200, response.content
 
-        mock_metrics.incr.assert_any_call(
-            "performance.trace.span_with_errors_ok_status",
-            sample_rate=mock.ANY,
-            tags=mock.ANY,
-        )
+        tags = [
+            call.kwargs["tags"]
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "performance.trace.span_with_errors_ok_status"
+        ]
+        assert tags, "expected the span.status inconsistency metric to be emitted"
+        # Project identifiers are unbounded and would explode the stored series count.
+        for tag in tags:
+            assert set(tag) == {"sdk_name", "sdk_version", "origin"}
 
     def test_with_performance_issues(self) -> None:
         self.load_trace()

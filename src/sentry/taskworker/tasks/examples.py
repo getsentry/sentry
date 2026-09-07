@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
+from datetime import timedelta
 from functools import cache
 from time import sleep
 from typing import Any
@@ -17,6 +18,8 @@ from sentry.utils.arroyo_producer import get_future_tracking_producer
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
+
+NO_RETRIES_REMAINING_TTL = timedelta(days=1)
 
 
 @cache
@@ -49,7 +52,7 @@ def retry_state() -> None:
         retry_task_helper()
     except NoRetriesRemainingError:
         redis = redis_clusters.get("default")
-        redis.set("no-retries-remaining", 1)
+        redis.set("no-retries-remaining", 1, ex=NO_RETRIES_REMAINING_TTL)
 
 
 @exampletasks.register(

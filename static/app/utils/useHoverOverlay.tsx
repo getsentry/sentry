@@ -16,6 +16,8 @@ import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
+
 import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
 
@@ -167,7 +169,7 @@ interface UseHoverOverlayProps {
   /**
    * Display mode for the container element. Does nothing using skipWrapper.
    */
-  containerDisplayMode?: React.CSSProperties['display'];
+  containerDisplayMode?: CSS['display'];
   /**
    * Time to wait (in milliseconds) before showing the overlay
    */

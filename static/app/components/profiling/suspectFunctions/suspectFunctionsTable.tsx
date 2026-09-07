@@ -9,7 +9,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
-import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
@@ -27,14 +27,6 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-} from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
 const MAX_EXAMPLES_PER_FRAME = 5;
@@ -238,12 +230,12 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <Table fields={fields}>
-        <TableHead>
-          <TableRow>
+      <DataTable fields={fields}>
+        <DataTable.Head>
+          <DataTable.Row>
             {COLUMNS.map((column, i) => {
               return (
-                <TableHeadCell
+                <DataTable.HeadCell
                   key={i}
                   isFirst={i === 0}
                   align={
@@ -253,20 +245,20 @@ export function SuspectFunctionsTable({
                   }
                 >
                   {column.label}
-                </TableHeadCell>
+                </DataTable.HeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {flamegraphQuery.isPending ? (
-            <GridStatus>
+            <DataTable.Status>
               <LoadingIndicator />
-            </GridStatus>
+            </DataTable.Status>
           ) : flamegraphQuery.isError ? (
-            <GridStatus>
+            <DataTable.Status>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </GridStatus>
+            </DataTable.Status>
           ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
@@ -279,14 +271,14 @@ export function SuspectFunctionsTable({
               />
             ))
           ) : (
-            <GridStatus>
+            <DataTable.Status>
               <EmptyStateWarning>
                 <p>{t('No functions found')}</p>
               </EmptyStateWarning>
-            </GridStatus>
+            </DataTable.Status>
           )}
-        </TableBody>
-      </Table>
+        </DataTable.Body>
+      </DataTable>
     </Fragment>
   );
 }
@@ -307,7 +299,7 @@ function TableEntry({
   project,
 }: TableEntryProps) {
   return (
-    <TableRow>
+    <DataTable.Row>
       {COLUMNS.map(column => {
         if (column.value === 'examples') {
           const items = metric[column.value].map(example => {
@@ -335,9 +327,9 @@ function TableEntry({
             };
           });
           return (
-            <TableBodyCell key={column.value}>
+            <DataTable.Cell key={column.value}>
               <ArrayLinks items={items} />
-            </TableBodyCell>
+            </DataTable.Cell>
           );
         }
 
@@ -346,12 +338,12 @@ function TableEntry({
             ? FIELD_FORMATTERS.duration.renderFunc
             : FIELD_FORMATTERS.string.renderFunc;
         return (
-          <TableBodyCell key={column.value}>
+          <DataTable.Cell key={column.value}>
             {formatter(column.value, metric, baggage)}
-          </TableBodyCell>
+          </DataTable.Cell>
         );
       })}
-    </TableRow>
+    </DataTable.Row>
   );
 }
 

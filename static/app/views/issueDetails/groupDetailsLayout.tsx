@@ -24,8 +24,8 @@ import {
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {IssueDetailsSidebar} from 'sentry/views/issueDetails/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/sidebar/toggleSidebar';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {
+  useIsSampleEvent,
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
@@ -45,6 +45,21 @@ function GroupLayoutBody({children}: {children: React.ReactNode}) {
     >
       {children}
     </Container>
+  );
+}
+
+function EventDetailsSection({children}: {children: React.ReactNode}) {
+  const {isSidebarOpen} = useIssueDetails();
+
+  return (
+    <Stack
+      as="section"
+      background="secondary"
+      borderRight={isSidebarOpen ? {zero: 'none', '4xl': 'primary'} : 'none'}
+      borderBottom={{zero: 'primary', '4xl': 'none'}}
+    >
+      {children}
+    </Stack>
   );
 }
 
@@ -108,12 +123,7 @@ export function GroupDetailsLayout({
             >
               {tourProps => (
                 <div {...tourProps}>
-                  <Stack
-                    as="section"
-                    background="secondary"
-                    borderRight={{zero: 'none', '4xl': 'primary'}}
-                    borderBottom={{zero: 'primary', '4xl': 'none'}}
-                  >
+                  <EventDetailsSection>
                     {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
                       issueTypeConfig.header.eventNavigation.enabled && (
                         <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
@@ -123,7 +133,7 @@ export function GroupDetailsLayout({
                         </NavigationSidebarWrapper>
                       )}
                     <ContentPadding>{children}</ContentPadding>
-                  </Stack>
+                  </EventDetailsSection>
                 </div>
               )}
             </SharedTourElement>

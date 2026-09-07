@@ -1,299 +1,145 @@
+import {AnimatePresence, motion} from 'framer-motion';
+
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Hovercard} from 'sentry/components/hovercard';
-import {List} from 'sentry/components/list';
-import {ListItem} from 'sentry/components/list/listItem';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {
-  IconBot,
-  IconBranch,
-  IconChat,
-  IconCheckmark,
-  IconCode,
-  IconGlobe,
-  IconInfo,
-  IconStack,
-  IconTerminal,
-} from 'sentry/icons';
+import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t} from 'sentry/locale';
-import {AgentSetupWaiter} from 'sentry/views/onboarding/components/agentSetupWaiter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {AgenticProgress} from 'sentry/views/onboarding/agenticProgress/agenticProgressList';
+import type {AgenticProgressRun} from 'sentry/views/onboarding/agenticProgress/types';
+import {useAgenticProgress} from 'sentry/views/onboarding/agenticProgress/useAgenticProgress';
+import {
+  useAgenticProgressInit,
+  useRestartAgenticRun,
+} from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
+import {
+  AgentSetupCard,
+  type AgentSetupCopySource,
+} from 'sentry/views/onboarding/components/agentSetupCard';
+import {ManualSetupCard} from 'sentry/views/onboarding/components/manualSetupCard';
 
-type CopySource = 'install_command' | 'prompt';
+const MotionContainer = motion.create(Container);
 
-const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
+const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 
-const AGENT_CAPABILITIES = [
-  t('Detect your framework and language'),
-  t('Create and configure a new Sentry project'),
-  t('Install and instrument the Sentry SDK'),
-  t('Verify a real error reaches Sentry'),
-];
+export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
+  const initialization = useAgenticProgressInit({enabled});
+  const restartRun = useRestartAgenticRun();
+  const progress = useAgenticProgress({
+    runId: initialization.data?.runId ?? null,
+    enabled,
+  });
+  const liveRun = progress.data ?? initialization.data;
+  const connectionStatus = liveRun?.stages.find(
+    stage => stage.stage === 'connect_mcp'
+  )?.status;
+  const liveIsConnected =
+    connectionStatus !== null &&
+    connectionStatus !== undefined &&
+    connectionStatus !== 'failed';
+
+  return {
+    run: liveRun,
+    onboardingCode: initialization.data?.onboardingCode,
+    isAgentConnected: liveIsConnected,
+    isSetupComplete: liveRun?.runStatus === 'completed',
+    hasRunFailed: liveRun?.runStatus === 'failed' || liveRun?.runStatus === 'cancelled',
+    restartRun,
+  };
+}
 
 interface WelcomeAgentSetupProps {
+  isAgentConnected: boolean;
   /**
    * Fired when a command is copied out of one of the code blocks.
    */
-  onCopyCommand: (source: CopySource) => void;
+  onCopyCommand: (source: AgentSetupCopySource) => void;
+  onRetry: () => void;
   /**
    * Leaves the agent path and continues into the step-by-step browser flow.
    */
   onSetupInBrowser: () => void;
+  run: AgenticProgressRun | undefined;
+  onboardingCode?: string;
 }
 
 export function WelcomeAgentSetup({
+  isAgentConnected,
+  onboardingCode,
   onCopyCommand,
+  onRetry,
   onSetupInBrowser,
+  run,
 }: WelcomeAgentSetupProps) {
+  const organization = useOrganization();
+  const showsProgress = Boolean(run) && isAgentConnected;
+  const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
+  const prompt = onboardingCode
+    ? [
+        t('Help me setup Sentry'),
+        t('Org ID: %s', organization.slug),
+        `[${onboardingCode}]`,
+      ].join('\n')
+    : t('Help me setup Sentry');
+
   return (
-    <Grid
-      columns={{'screen:xs': '1fr', 'screen:md': 'repeat(2, 1fr)'}}
-      gap="2xl"
-      width="100%"
-      align="stretch"
-    >
-      <Stack border="accent" radius="lg" overflow="hidden" gap="0">
-        <Stack padding="xl" gap="xl" flex="1">
-          <Flex align="center" gap="sm">
-            <IconBot size="md" variant="secondary" />
-            {/* The slight offset optically aligns the label with the bot icon. */}
-            <Container paddingTop="2xs">
-              {props => (
-                <Text {...props} variant="muted" size="sm" bold uppercase>
-                  {t('Automatic')}
-                </Text>
-              )}
-            </Container>
-          </Flex>
-
-          <Stack gap="md">
-            <Heading as="h3" size="lg">
-              {t('Set up with your coding agent')}
-            </Heading>
-            <Text variant="muted" size="md" density="comfortable">
-              {t(
-                'Install the Sentry plugin, then open your agent in your project and let it handle the rest.'
-              )}
-            </Text>
-          </Stack>
-
-          <List symbol="colored-numeric">
-            <ListItem>
-              <Stack gap="md" paddingBottom="xl">
-                <StepLabel>{t('Install Sentry plugin')}</StepLabel>
-                <TextCopyInput
-                  size="sm"
-                  monospace
-                  icon={<IconTerminal size="xs" variant="secondary" />}
-                  onCopy={() => onCopyCommand('install_command')}
-                >
-                  {INSTALL_PLUGIN_COMMAND}
-                </TextCopyInput>
-              </Stack>
-            </ListItem>
-            <ListItem>
-              <Stack gap="xl">
-                <Stack gap="md">
-                  <StepLabel>
-                    {t('Then open your agent in your project and ask')}
-                  </StepLabel>
-                  <Stack gap="sm">
-                    <TextCopyInput
-                      size="sm"
-                      monospace
-                      icon={<IconChat size="xs" variant="secondary" />}
-                      onCopy={() => onCopyCommand('prompt')}
-                    >
-                      {t('Help me setup Sentry')}
-                    </TextCopyInput>
-                    <Flex>
-                      <Hovercard
-                        position="top"
-                        body={
-                          <Stack gap="md">
-                            {AGENT_CAPABILITIES.map(capability => (
-                              <Flex key={capability} align="center" gap="md">
-                                <Flex flexShrink={0}>
-                                  <IconCheckmark size="sm" variant="success" />
-                                </Flex>
-                                <Text variant="muted" size="sm">
-                                  {capability}
-                                </Text>
-                              </Flex>
-                            ))}
-                          </Stack>
-                        }
-                      >
-                        <Button
-                          variant="link"
-                          size="zero"
-                          icon={<IconInfo variant="secondary" />}
-                        >
-                          <Text size="sm" variant="muted" underline="dotted">
-                            {t('What will my agent do?')}
-                          </Text>
-                        </Button>
-                      </Hovercard>
-                    </Flex>
-                  </Stack>
-                </Stack>
-                <AgentSetupWaiter />
-              </Stack>
-            </ListItem>
-          </List>
-        </Stack>
-
-        <Flex
-          align="center"
-          justify="center"
-          background="secondary"
-          borderTop="muted"
-          padding="md xl"
-        >
-          <Text variant="muted" size="sm">
-            {t('Works with: Claude, Codex, Grok, and Cursor')}
-          </Text>
-        </Flex>
-      </Stack>
-
-      <Grid
-        columns={{'screen:xs': '1fr', 'screen:md': 'max-content 1fr'}}
-        gap="2xl"
-        align="stretch"
+    <Stack gap="2xl" width="100%" position="relative" align="center">
+      <MotionContainer
+        layout
+        width="100%"
+        position="relative"
+        transition={CARD_MORPH_TRANSITION}
       >
-        <Grid
-          columns={{'screen:xs': '1fr max-content 1fr', 'screen:md': 'none'}}
-          rows={{'screen:xs': 'none', 'screen:md': '1fr max-content 1fr'}}
-          align={{'screen:xs': 'center', 'screen:md': 'stretch'}}
-          justifyItems={{'screen:xs': 'stretch', 'screen:md': 'center'}}
-          gap="md"
-        >
-          <SeparatorRule />
-          <Text variant="muted" size="sm" bold uppercase>
+        <AnimatePresence initial={false} mode="popLayout">
+          {run && isAgentConnected ? (
+            <MotionContainer
+              key="progress"
+              layout="position"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={CARD_MORPH_TRANSITION}
+            >
+              <AgenticProgress run={run} onboardingCode={onboardingCode} />
+            </MotionContainer>
+          ) : (
+            <MotionContainer
+              key="setup"
+              layout="position"
+              width="100%"
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={CARD_MORPH_TRANSITION}
+            >
+              <AgentSetupCard
+                onboardingCode={onboardingCode}
+                onCopyCommand={onCopyCommand}
+                prompt={prompt}
+              />
+            </MotionContainer>
+          )}
+        </AnimatePresence>
+      </MotionContainer>
+
+      <ScmCollapsibleReveal open={hasRunFailed}>
+        <Button variant="primary" onClick={onRetry}>
+          {t('Try again')}
+        </Button>
+      </ScmCollapsibleReveal>
+
+      <ScmCollapsibleReveal open={!showsProgress || hasRunFailed}>
+        <Stack gap="2xl" align="center" width="100%">
+          <Text variant="muted" size="md" bold uppercase>
             {t('or')}
           </Text>
-          <SeparatorRule />
-        </Grid>
 
-        <Stack
-          align="start"
-          gap="xl"
-          width="100%"
-          border="muted"
-          radius="lg"
-          padding="xl"
-        >
-          <Flex align="center" gap="sm">
-            <IconGlobe size="md" variant="secondary" />
-            <Text variant="muted" size="sm" bold uppercase>
-              {t('Manual')}
-            </Text>
-          </Flex>
-
-          <Stack gap="md">
-            <Heading as="h3" size="lg">
-              {t('Set up in browser')}
-            </Heading>
-            <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
-              {t("Configure your application the ol'fashioned way.")}
-            </Text>
-          </Stack>
-
-          <Stack gap="lg" width="100%">
-            <Stack.Separator border="muted" />
-            <ManualSetupStep
-              icon={<IconBranch size="xs" variant="secondary" />}
-              title={t('Connect your repository')}
-              description={t('GitHub, GitLab, Bitbucket and more')}
-            />
-            <Stack.Separator border="muted" />
-            <ManualSetupStep
-              icon={<IconStack size="xs" variant="secondary" />}
-              title={t('Choose your platform')}
-              description={t("We'll detect your framework")}
-            />
-            <Stack.Separator border="muted" />
-            <ManualSetupStep
-              icon={<IconCode size="xs" variant="secondary" />}
-              title={t('Install the SDK')}
-              description={t('Add our code snippet to your project')}
-            />
-            <Stack.Separator border="muted" />
-            <ManualSetupStep
-              icon={<IconCheckmark size="xs" variant="secondary" />}
-              title={t('Verify your setup')}
-              description={t('Send a test event to confirm it all works')}
-            />
-          </Stack>
-
-          <Button
-            variant="primary"
-            onClick={onSetupInBrowser}
-            data-test-id="onboarding-setup-in-browser"
-          >
-            {t('Start setup')}
-          </Button>
+          <ManualSetupCard onSetupInBrowser={onSetupInBrowser} />
         </Stack>
-      </Grid>
-    </Grid>
-  );
-}
-
-function ManualSetupStep({
-  description,
-  icon,
-  title,
-}: {
-  description: string;
-  icon: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <Flex align="start" gap="md">
-      <Flex flexShrink={0} paddingTop="2xs">
-        {icon}
-      </Flex>
-      <Stack gap="xs">
-        <Text size="sm" bold>
-          {title}
-        </Text>
-        <Text size="sm" variant="muted">
-          {description}
-        </Text>
-      </Stack>
-    </Flex>
-  );
-}
-
-/**
- * List's numbered marker is a 24px circle pinned to the top of the item, which
- * assumes a taller first line than this small uppercase label. The padding grows
- * the label's box to match, and needs a block box to take effect.
- */
-function StepLabel({children}: {children: React.ReactNode}) {
-  return (
-    <Container padding="sm 0">
-      {props => (
-        <Text {...props} display="block" size="md">
-          {children}
-        </Text>
-      )}
-    </Container>
-  );
-}
-
-/**
- * One of the two rules flanking the "or" label. It draws as a horizontal line
- * while the two setup paths stack, and turns vertical once they sit side by
- * side. The grid stretches it along the line's axis and centers it on the
- * other, so a single border edge is all the rule needs.
- */
-function SeparatorRule() {
-  return (
-    <Container
-      borderTop={{'screen:xs': 'secondary', 'screen:md': 'none'}}
-      borderLeft={{'screen:xs': 'none', 'screen:md': 'secondary'}}
-    />
+      </ScmCollapsibleReveal>
+    </Stack>
   );
 }

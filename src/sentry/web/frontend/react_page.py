@@ -33,6 +33,13 @@ NON_CUSTOMER_DOMAIN_URL_NAMES = [
     "sentry-account-*",
 ]
 
+# Organization subdomains also host auth flows outside multi-region, so these routes are
+# primary-domain-only when customer domains are enabled.
+MULTI_REGION_NON_CUSTOMER_DOMAIN_URL_NAMES = [
+    "sentry-login",
+    "sentry-auth-organization",
+]
+
 
 def resolve_redirect_url(request: HttpRequest, org_slug: str, user_id=None):
     org_context = organization_service.get_organization_by_slug(
@@ -118,6 +125,10 @@ class ReactMixin:
         url_is_non_customer_domain = (
             any(fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES) if url_name else False
         )
+        if url_name and features.has("system:multi-region"):
+            url_is_non_customer_domain = url_is_non_customer_domain or any(
+                fnmatch(url_name, pattern) for pattern in MULTI_REGION_NON_CUSTOMER_DOMAIN_URL_NAMES
+            )
 
         # If a customer domain is being used, and if a non-customer domain url_name is
         # encountered, we redirect the user to sentryUrl.
@@ -196,11 +207,3 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request: HttpRequest, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)
-
-
-@control_silo_view
-class AuthV2ReactPageView(GenericReactPageView):
-    auth_required = False
-
-    def handle_auth_required(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        raise Exception("This should not be called")

@@ -13,7 +13,7 @@ import {Section} from 'sentry/stories/layout';
 import {fzf} from 'sentry/utils/search/fzf';
 
 interface APIReferenceProps {
-  componentProps: TypeLoader.ComponentDocWithFilename | undefined;
+  componentProps: TypeLoader.ComponentDoc | undefined;
 }
 
 export function APIReference(props: APIReferenceProps) {

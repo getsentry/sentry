@@ -60,9 +60,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const issueTypeSupportsSeer = Boolean(
-    issueTypeConfig.autofix || issueTypeConfig.issueSummary
-  );
+  const issueTypeSupportsSeer =
+    issueTypeConfig.autofix || issueTypeConfig.issueSummary.enabled;
 
   if (!aiConfig.areAiFeaturesAllowed || !issueTypeSupportsSeer) {
     if (!issueTypeConfig.resources) {

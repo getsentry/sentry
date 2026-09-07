@@ -21,6 +21,7 @@ import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProject
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {
+  isProjectNameManuallyModified,
   type ScmProjectDetailsCompletion,
   useScmProjectDetails,
 } from 'sentry/components/onboarding/scm/useScmProjectDetails';
@@ -128,11 +129,19 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
   } = wizardState;
 
   const canUserCreateProject = useCanCreateProject();
-  // Subscribe so the parent re-renders when integration state changes inside
+  // Also subscribes the parent to integration state changes inside
   // ScmIntegrationConnect, letting framer-motion's layout="position" siblings
   // below re-measure and animate position shifts. React Query dedupes with
   // the child's call.
-  useScmProviders();
+  const {activeIntegrations} = useScmProviders();
+
+  // Members lack org:integrations, so the install pipeline rejects them with a
+  // 403 — but an already-connected integration is fully usable with member
+  // scopes (listing, repo search, and the post-create repo link). While
+  // integrations load, members see the section only once an active
+  // integration is confirmed.
+  const showRepositorySection =
+    organization.access.includes('org:integrations') || activeIntegrations.length > 0;
 
   useScmPlatformDetection(selectedRepository);
 
@@ -152,7 +161,18 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
 
   const handlePlatformChange = useCallback(
     (platform: OnboardingSelectedSDK | undefined) => {
-      setState(s => ({...s, selectedPlatform: platform}));
+      setState(s => {
+        const form = s.projectDetailsForm;
+        // A manual name survives a platform change; an untouched name tracks
+        // the platform default, so drop it and let the hook re-derive it.
+        const shouldResetName = !!form && !isProjectNameManuallyModified(form);
+
+        return {
+          ...s,
+          selectedPlatform: platform,
+          projectDetailsForm: shouldResetName ? {...form, projectName: undefined} : form,
+        };
+      });
     },
     [setState]
   );
@@ -174,13 +194,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
       selectedFeatures: undefined,
       projectDetailsForm: undefined,
     }));
-  }, [setState]);
-
-  // Clear the project-details form when the platform changes, since the
-  // project name defaults from the platform key; the hook re-derives cleared
-  // fields.
-  const handleClearProjectDetailsForm = useCallback(() => {
-    setState(s => ({...s, projectDetailsForm: undefined}));
   }, [setState]);
 
   const handleProjectDetailsFormChange = useCallback(
@@ -271,30 +284,32 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                 </Text>
               </MotionStack>
 
-              <MotionStack gap="md" paddingBottom="2xl" layout="position">
-                <Flex justify="between" align="center">
-                  <Stack gap="sm">
-                    <Heading as="h4">{t('Repository')}</Heading>
-                    <Text variant="secondary" density="comfortable" size="sm">
-                      {t(
-                        'Source context in stack traces, suspect commits, and deploy tracking'
-                      )}
-                    </Text>
-                  </Stack>
-                  <Tag variant="muted">{t('Optional')}</Tag>
-                </Flex>
+              {showRepositorySection && (
+                <MotionStack gap="md" paddingBottom="2xl" layout="position">
+                  <Flex justify="between" align="center">
+                    <Stack gap="sm">
+                      <Heading as="h4">{t('Repository')}</Heading>
+                      <Text variant="secondary" density="comfortable" size="sm">
+                        {t(
+                          'Source context in stack traces, suspect commits, and deploy tracking'
+                        )}
+                      </Text>
+                    </Stack>
+                    <Tag variant="muted">{t('Optional')}</Tag>
+                  </Flex>
 
-                <ScmIntegrationConnect
-                  analyticsFlow="project-creation"
-                  allowIntegrationSwitching
-                  selectedIntegration={selectedIntegration}
-                  selectedRepository={selectedRepository}
-                  onIntegrationChange={handleIntegrationChange}
-                  onRepositoryChange={handleRepositoryChange}
-                  onClearDerivedState={handleClearDerivedState}
-                  maxWidth={CREATE_PROJECT_MAX_WIDTH}
-                />
-              </MotionStack>
+                  <ScmIntegrationConnect
+                    analyticsFlow="project-creation"
+                    allowIntegrationSwitching
+                    selectedIntegration={selectedIntegration}
+                    selectedRepository={selectedRepository}
+                    onIntegrationChange={handleIntegrationChange}
+                    onRepositoryChange={handleRepositoryChange}
+                    onClearDerivedState={handleClearDerivedState}
+                    maxWidth={CREATE_PROJECT_MAX_WIDTH}
+                  />
+                </MotionStack>
+              )}
 
               <MotionContainer layout="position" paddingBottom="2xl">
                 <ScmPlatformFeaturesCore
@@ -303,7 +318,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   selectedPlatform={selectedPlatform}
                   onPlatformChange={handlePlatformChange}
                   onFeaturesChange={handleFeaturesChange}
-                  onClearProjectDetailsForm={handleClearProjectDetailsForm}
                 />
               </MotionContainer>
 

@@ -234,6 +234,14 @@ describe('marked', () => {
     expect(linkResult).not.toContain('onclick');
   });
 
+  it('strips the id attribute', () => {
+    // `id` is not in the sanitizer allowlist: it is a DOM clobbering primitive,
+    // and nothing in the markdown pipeline produces one.
+    const result = sanitizedMarked('a <span id="location">x</span> b');
+    expect(result).toContain('<span>x</span>');
+    expect(result).not.toContain('id=');
+  });
+
   it('preserves allowed markdown HTML', () => {
     // Bold, italic, code, links, images, lists, tables, blockquotes, headings
     expect(sanitizedMarked('**bold** *italic* `code`')).toBe(

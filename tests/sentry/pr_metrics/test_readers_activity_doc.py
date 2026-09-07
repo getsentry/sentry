@@ -83,7 +83,7 @@ def _group(**overrides: Any) -> dict[str, Any]:
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-activity")
+@with_feature(["organizations:pr-metrics"])
 class ActivityDocumentReadersTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -459,4 +459,4 @@ class ActivityDocumentReadersTest(TestCase):
             payload={"sender_login": "commenter", "sender_type": "User"},
         )
         _activity_derived_metrics(self.pr)
-        mock_metrics.incr.assert_any_call("pr_metrics.reducer_parity.match")
+        mock_metrics.incr.assert_any_call("pr_metrics.reducer_parity.match", sample_rate=1.0)

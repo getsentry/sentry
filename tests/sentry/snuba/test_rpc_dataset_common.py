@@ -238,6 +238,61 @@ def test_table_orderby_rejects_hidden_api_attribute() -> None:
         RPCBase.get_table_rpc_request(table_query)
 
 
+@django_db_all
+@pytest.mark.parametrize("orderby", ([""], ["-"], ["", "-count()"]))
+def test_table_empty_orderby_is_ignored(orderby: list[str]) -> None:
+    """An empty orderby means "no sort", not "sort by the column named ''".
+
+    Dashboard widgets default to an empty orderby, which reaches us as [""] rather than None.
+    """
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "", ["span.description", "count()"], orderby, 0, 1, "TestReferrer", None, resolver
+    )
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    # Only the non-empty entries survive, so [""] and ["-"] produce no ordering at all.
+    assert len(rpc_request.rpc_request.order_by) == len(
+        [entry for entry in orderby if entry.lstrip("-").strip()]
+    )
+
+
+@django_db_all
+def test_table_orderby_still_rejects_unselected_column() -> None:
+    """Dropping empty entries must not make genuinely-invalid orderbys pass."""
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.description", "count()"],
+        ["-sum(span.self_time)"],
+        0,
+        1,
+        "TestReferrer",
+        None,
+        resolver,
+    )
+
+    with pytest.raises(
+        InvalidSearchQuery, match="orderby must also be in the selected columns or groupby"
+    ):
+        RPCBase.get_table_rpc_request(table_query)
+
+
 def test_table_orderby_rejects_hidden_remapped_virtual_context_sort_attribute() -> None:
     organization = mock.Mock(id=1)
     project = mock.Mock(id=1, slug="project-slug", organization=organization)

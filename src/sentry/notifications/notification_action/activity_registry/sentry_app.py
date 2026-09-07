@@ -36,6 +36,7 @@ class ActivityAlertType(StrEnum):
     SEER_CODING_STARTED = "seer_coding_started"
     SEER_CODING_COMPLETED = "seer_coding_completed"
     SEER_PR_CREATED = "seer_pr_created"
+    SEER_PR_READY_FOR_REVIEW = "seer_pr_ready_for_review"
     SEER_ITERATION_STARTED = "seer_pr_iteration_started"
     SEER_ITERATION_COMPLETED = "seer_pr_iteration_completed"
     SET_RESOLVED = "status_resolved"
@@ -128,7 +129,7 @@ def _build_activity_data(activity: Activity) -> ActivityData:
         case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
             details["summary"] = summary
-        case ActivityAlertType.SEER_PR_CREATED:
+        case ActivityAlertType.SEER_PR_CREATED | ActivityAlertType.SEER_PR_READY_FOR_REVIEW:
             pull_requests_data = activity.data.get("pull_requests", [])
             pull_requests = [
                 {

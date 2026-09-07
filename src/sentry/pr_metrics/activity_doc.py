@@ -299,7 +299,7 @@ def _apply_entry(
             "pr_metrics.activity_doc.events_capped",
             extra={"event_type": event_type, "events_dropped": doc["events_dropped"]},
         )
-        metrics.incr("pr_metrics.activity_doc.events_capped")
+        metrics.incr("pr_metrics.activity_doc.events_capped", sample_rate=1.0)
         return
 
     doc["events"].append(
@@ -363,7 +363,7 @@ def _fold_sync_chain(
             "pr_metrics.activity_doc.sync_chain_capped",
             extra={"after_sha": after},
         )
-        metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
+        metrics.incr("pr_metrics.activity_doc.sync_chain_capped", sample_rate=1.0)
 
     chain.append(
         [
@@ -449,7 +449,7 @@ def _apply_check_run(
                     "check_name": name,
                 },
             )
-            metrics.incr("pr_metrics.activity_doc.check_runs_capped")
+            metrics.incr("pr_metrics.activity_doc.check_runs_capped", sample_rate=1.0)
             return
         runs[name] = {
             "conclusion": conclusion,
@@ -519,6 +519,8 @@ def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckG
             "pr_metrics.activity_doc.check_head_groups_capped",
             extra={"head_sha": head_sha, "app_slug": app_slug, "evicted_key": evicted_key},
         )
+        # Ambient rate: both group caps bite on every CI-heavy PR, so the trend is what
+        # matters and sampling resolves it. The forward-path caps below are the rare ones.
         metrics.incr("pr_metrics.activity_doc.check_head_groups_capped")
     elif len(checks) >= MAX_CHECK_GROUPS:
         evicted_key = min(checks, key=lambda existing: _forward_priority(checks[existing]))
@@ -1073,7 +1075,7 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
                     "dropped": len(head_groups) - MAX_FORWARDED_GROUPS_PER_HEAD,
                 },
             )
-            metrics.incr("pr_metrics.activity_doc.forward_head_groups_capped")
+            metrics.incr("pr_metrics.activity_doc.forward_head_groups_capped", sample_rate=1.0)
             head_groups = sorted(head_groups, key=_forward_priority)[
                 -MAX_FORWARDED_GROUPS_PER_HEAD:
             ]
@@ -1085,7 +1087,7 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
             "pr_metrics.activity_doc.forward_groups_capped",
             extra={"check_groups": len(groups), "dropped": dropped},
         )
-        metrics.incr("pr_metrics.activity_doc.forward_groups_capped")
+        metrics.incr("pr_metrics.activity_doc.forward_groups_capped", sample_rate=1.0)
         groups = sorted(groups, key=_forward_priority)[-MAX_FORWARDED_CHECK_GROUPS:]
 
     for group in groups:

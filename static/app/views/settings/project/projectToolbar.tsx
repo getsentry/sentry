@@ -10,6 +10,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
@@ -69,7 +70,12 @@ export default function ProjectToolbarSettings() {
             mutationOptions={{
               mutationFn: data =>
                 fetchMutation({
-                  url: `/projects/${organization.slug}/${project.slug}/`,
+                  url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                    path: {
+                      organizationIdOrSlug: organization.slug,
+                      projectIdOrSlug: project.slug,
+                    },
+                  }),
                   method: 'PUT',
                   data: {options: data},
                 }),

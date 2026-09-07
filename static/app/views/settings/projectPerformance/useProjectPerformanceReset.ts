@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useIsMutating, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -51,7 +52,10 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
   const thresholdSettingsReset = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         method: 'DELETE',
       }),
     onMutate: () => {
@@ -68,7 +72,10 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
   const detectorSettingsReset = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         method: 'DELETE',
       }),
     onMutate: () => {

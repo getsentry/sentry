@@ -1,7 +1,10 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+import {
+  defineSeerEmbed,
+  type EmbedOutput,
+} from 'sentry/components/seer/markdown/embeds/utils';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {CategoricalSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization';
@@ -47,90 +50,135 @@ function getSeriesLabel(series: {label: string} | {name: string}): string {
   return 'label' in series ? series.label : series.name;
 }
 
+export function ChartContent({
+  data: {title, subtitle, visualization, x_axis: xAxis, y_axis_unit: yAxisUnit, series},
+  showHeader = true,
+}: {
+  data: EmbedOutput<'chart'>;
+  showHeader?: boolean;
+}) {
+  const metadata = UNIT_METADATA[yAxisUnit];
+
+  const visualizationComponent =
+    xAxis === 'category' ? (
+      <CategoricalSeriesWidgetVisualization
+        plottables={series.map((item, index) => {
+          const categoricalSeries: CategoricalSeries = {
+            valueAxis: `seer-chart-series-${index}`,
+            meta: metadata,
+            values: item.data.map(point => ({
+              category: point.x,
+              value: normalizeValue(point.y, yAxisUnit),
+            })),
+          };
+          return new CategoricalBars(categoricalSeries, {
+            alias: getSeriesLabel(item),
+          });
+        })}
+      />
+    ) : (
+      <TimeSeriesWidgetVisualization
+        onZoom={() => {}}
+        pageFilters={{
+          datetime: {
+            start: new Date(
+              Math.min(
+                ...series.flatMap(item =>
+                  item.data.map(point => Date.parse(String(point.x)))
+                )
+              )
+            ).toISOString(),
+            end: new Date(
+              Math.max(
+                ...series.flatMap(item =>
+                  item.data.map(point => Date.parse(String(point.x)))
+                )
+              )
+            ).toISOString(),
+            period: null,
+            utc: true,
+          },
+          environments: [],
+          projects: [],
+        }}
+        plottables={series
+          .map((item, index) => {
+            const values = item.data
+              .map(point => ({
+                timestamp: Date.parse(String(point.x)),
+                value: normalizeValue(point.y, yAxisUnit),
+              }))
+              .toSorted((left, right) => left.timestamp - right.timestamp);
+            const timeSeries: TimeSeries = {
+              yAxis: `seer-chart-series-${index}`,
+              meta: {
+                ...metadata,
+                interval: getInterval(values.map(point => point.timestamp)),
+              },
+              values,
+            };
+            return createPlottableFromTimeSeries(
+              DISPLAY_TYPES[visualization],
+              timeSeries,
+              {
+                alias: getSeriesLabel(item),
+                name: `seer-chart-series-${index}`,
+              }
+            );
+          })
+          .filter((plottable): plottable is Plottable => plottable !== null)}
+        showReleaseAs="none"
+      />
+    );
+
+  return (
+    <Stack gap="0" width="100%">
+      {showHeader ? (
+        <Stack gap="2xs" paddingBottom="sm">
+          <Heading as="h3" size="md">
+            {title}
+          </Heading>
+          {subtitle ? (
+            <Text size="sm" variant="muted">
+              {subtitle}
+            </Text>
+          ) : null}
+        </Stack>
+      ) : null}
+      {/*
+        A multi-series chart renders a legend, and the legend lays its items out
+        at their natural width — each `flex-shrink: 0` and up to 180px — only
+        collapsing them into a "+N more" dropdown once it has measured the room
+        it actually has. That natural width becomes this box's min-content
+        width, which no ancestor can shrink below, so the surrounding embed ends
+        up wider than its container. `overflow` alone can't hold it back: a
+        non-visible overflow only zeroes the automatic minimum size of a *flex
+        item*, while a block's min-content width goes on depending on its
+        children regardless.
+
+        Inline-axis size containment is what detaches the two — this box's width
+        is computed as if it had no contents, so it takes its width from the
+        embed and the legend measures against that instead of dictating it,
+        which is also what lets the "+N more" collapse do its job. `overflow`
+        then clips a canvas that is briefly stale between a resize and ECharts'
+        own ResizeObserver catching up.
+      */}
+      <Container
+        containerType="inline-size"
+        data-test-id="seer-chart-content"
+        height="220px"
+        overflow="hidden"
+        width="100%"
+      >
+        {visualizationComponent}
+      </Container>
+    </Stack>
+  );
+}
+
 export const Chart = defineSeerEmbed({
   name: 'chart',
-  render({
-    title,
-    subtitle,
-    visualization,
-    x_axis: xAxis,
-    y_axis_unit: yAxisUnit,
-    series,
-  }) {
-    const metadata = UNIT_METADATA[yAxisUnit];
-
-    const visualizationComponent =
-      xAxis === 'category' ? (
-        <CategoricalSeriesWidgetVisualization
-          plottables={series.map((item, index) => {
-            const categoricalSeries: CategoricalSeries = {
-              valueAxis: `seer-chart-series-${index}`,
-              meta: metadata,
-              values: item.data.map(point => ({
-                category: point.x,
-                value: normalizeValue(point.y, yAxisUnit),
-              })),
-            };
-            return new CategoricalBars(categoricalSeries, {
-              alias: getSeriesLabel(item),
-            });
-          })}
-        />
-      ) : (
-        <TimeSeriesWidgetVisualization
-          onZoom={() => {}}
-          pageFilters={{
-            datetime: {
-              start: new Date(
-                Math.min(
-                  ...series.flatMap(item =>
-                    item.data.map(point => Date.parse(String(point.x)))
-                  )
-                )
-              ).toISOString(),
-              end: new Date(
-                Math.max(
-                  ...series.flatMap(item =>
-                    item.data.map(point => Date.parse(String(point.x)))
-                  )
-                )
-              ).toISOString(),
-              period: null,
-              utc: true,
-            },
-            environments: [],
-            projects: [],
-          }}
-          plottables={series
-            .map((item, index) => {
-              const values = item.data
-                .map(point => ({
-                  timestamp: Date.parse(String(point.x)),
-                  value: normalizeValue(point.y, yAxisUnit),
-                }))
-                .toSorted((left, right) => left.timestamp - right.timestamp);
-              const timeSeries: TimeSeries = {
-                yAxis: `seer-chart-series-${index}`,
-                meta: {
-                  ...metadata,
-                  interval: getInterval(values.map(point => point.timestamp)),
-                },
-                values,
-              };
-              return createPlottableFromTimeSeries(
-                DISPLAY_TYPES[visualization],
-                timeSeries,
-                {
-                  alias: getSeriesLabel(item),
-                  name: `seer-chart-series-${index}`,
-                }
-              );
-            })
-            .filter((plottable): plottable is Plottable => plottable !== null)}
-          showReleaseAs="none"
-        />
-      );
-
+  render(data) {
     return (
       <Container
         as="section"
@@ -141,17 +189,7 @@ export const Chart = defineSeerEmbed({
         padding="lg xl md"
         radius="md"
       >
-        <Stack gap="2xs" paddingBottom="sm">
-          <Heading as="h3" size="md">
-            {title}
-          </Heading>
-          {subtitle && (
-            <Text size="sm" variant="muted">
-              {subtitle}
-            </Text>
-          )}
-        </Stack>
-        <Container height="220px">{visualizationComponent}</Container>
+        <ChartContent data={data} />
       </Container>
     );
   },

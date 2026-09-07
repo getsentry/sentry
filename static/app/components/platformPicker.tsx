@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -26,11 +26,12 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {comparePlatformNames} from 'sentry/utils/platform';
 
 const PlatformList = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.md};
-  grid-template-columns: repeat(auto-fill, 112px);
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   margin-bottom: ${p => p.theme.space.xl};
 
   &.centered {
@@ -41,10 +42,6 @@ const PlatformList = styled('div')`
 const selectablePlatforms = platforms.filter(platform =>
   createablePlatforms.has(platform.id)
 );
-
-function startsWithPunctuation(name: string) {
-  return /^\p{P}/u.test(name);
-}
 
 export type Category = (typeof categoryList)[number]['id'];
 
@@ -59,7 +56,6 @@ interface PlatformPickerProps {
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
-  showOther?: boolean;
   source?: string;
   /**
    * For project-creation picker events, `source` identifies the flow and `variant`
@@ -82,7 +78,6 @@ export function PlatformPicker({
   variant,
   visibleSelection = true,
   loading = false,
-  showOther = true,
 }: PlatformPickerProps) {
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -123,7 +118,7 @@ export function PlatformPicker({
     // 'other' is not part of the createablePlatforms list, therefore it won't be included in the filtered list
     const filtered = availablePlatforms.filter(filter ? subsetMatch : categoryMatch);
 
-    if (showOther && filter.toLowerCase() === 'other') {
+    if (filter.toLowerCase() === 'other') {
       // We only show 'Other' if users click on the 'Other' suggestion rendered in the not found state or type this word in the search bar
       return [otherPlatform];
     }
@@ -137,16 +132,8 @@ export function PlatformPicker({
     }
 
     // We only want to sort the platforms alphabetically if users are not viewing the 'popular' tab category
-    return filtered.sort((a, b) => {
-      if (startsWithPunctuation(a.name) && !startsWithPunctuation(b.name)) {
-        return 1;
-      }
-      if (!startsWithPunctuation(a.name) && startsWithPunctuation(b.name)) {
-        return -1;
-      }
-      return a.name.localeCompare(b.name);
-    });
-  }, [filter, category, availablePlatforms, showOther]);
+    return filtered.sort((a, b) => comparePlatformNames(a.name, b.name));
+  }, [filter, category, availablePlatforms]);
 
   const latestValuesRef = useRef({
     filter,
@@ -208,8 +195,13 @@ export function PlatformPicker({
 
   return (
     <Fragment>
-      <NavContainer>
-        <Container marginBottom="xl">
+      <Grid
+        columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) minmax(0, 12rem)'}}
+        gap="xl"
+        align="start"
+        marginBottom="xl"
+      >
+        <Container minWidth="0">
           <Tabs
             value={category}
             onChange={val => {
@@ -230,16 +222,18 @@ export function PlatformPicker({
             </TabList>
           </Tabs>
         </Container>
-        <StyledSearchBar
-          size="sm"
-          query={filter}
-          placeholder={t('Filter Platforms')}
-          onChange={val => {
-            setFilter(val);
-            debounceSearch();
-          }}
-        />
-      </NavContainer>
+        <Container width="100%" justifySelf="end">
+          <SearchBar
+            size="sm"
+            query={filter}
+            placeholder={t('Filter Platforms')}
+            onChange={val => {
+              setFilter(val);
+              debounceSearch();
+            }}
+          />
+        </Container>
+      </Grid>
       <PlatformList>
         {platformList.map(item => {
           return (
@@ -295,29 +289,6 @@ export function PlatformPicker({
     </Fragment>
   );
 }
-
-const NavContainer = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  grid-template-columns: 1fr minmax(0, 200px);
-  align-items: start;
-
-  &.centered {
-    grid-template-columns: none;
-    justify-content: center;
-  }
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  min-width: 6rem;
-  max-width: 12rem;
-  margin-top: -${p => p.theme.space['2xs']};
-  margin-left: auto;
-  flex-shrink: 0;
-  flex-basis: 0;
-  flex-grow: 1;
-`;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${p => p.theme.space.xl};
