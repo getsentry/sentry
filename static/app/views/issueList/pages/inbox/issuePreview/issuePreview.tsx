@@ -1,7 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
@@ -24,9 +23,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -45,10 +44,14 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+import {
+  IssuePreviewActions,
+  OpenIssueButton,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
+  IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
@@ -118,21 +121,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
               <Placeholder width="80px" height="16px" shape="rect" />
             </Flex>
           ) : null}
-          {group && (
-            <LinkButton
-              to={issueDetailsLocation}
-              size="xs"
-              analyticsEventKey="issue_inbox.open_issue_clicked"
-              analyticsEventName="Issue Inbox: Open Issue Clicked"
-              analyticsParams={{
-                group_id: group.id,
-                progress: group.derivedData?.progress,
-                source: 'button',
-              }}
-            >
-              {t('Open Issue')}
-            </LinkButton>
-          )}
+          {group && <OpenIssueButton group={group} to={issueDetailsLocation} />}
         </Flex>
       </Container>
       <Container
@@ -147,7 +136,9 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
         {group && project && (
           <GroupDataContextProvider group={group} project={project}>
             <ErrorBoundary mini>
-              <IssuePreviewContent />
+              <IssuePreviewSeerProvider group={group} project={project}>
+                <IssuePreviewContent />
+              </IssuePreviewSeerProvider>
             </ErrorBoundary>
           </GroupDataContextProvider>
         )}
@@ -160,7 +151,7 @@ function IssuePreviewContent() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {group, project} = useGroupData();
-  const previewSeer = useIssuePreviewSeer(group, project);
+  const previewSeer = useIssuePreviewSeer();
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
@@ -168,6 +159,7 @@ function IssuePreviewContent() {
     ReprocessingStatus.REPROCESSING,
     ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
   ].includes(getGroupReprocessingStatus(group));
+  const shouldUseNewUI = useNewIssuePriorityAndAssigneeUI();
 
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
@@ -249,25 +241,14 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        {previewSeer.isLoading ? (
-          <Placeholder width="120px" height="32px" />
-        ) : previewSeer.shouldShowSeerActions ? (
-          <IssuePreviewActions
-            autofix={previewSeer.autofix}
-            group={group}
-            disabled={disableActions}
-            onContinueInSeer={() => openSeerDrawer()}
-            onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
-          />
-        ) : (
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={null}
-          />
-        )}
-        <Flex align="center" wrap="wrap" gap="lg">
+        <IssuePreviewActions
+          group={group}
+          project={project}
+          disabled={disableActions}
+          onContinueInSeer={() => openSeerDrawer()}
+          onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+        />
+        <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
           <GroupHeaderAssigneeSelector
             group={group}

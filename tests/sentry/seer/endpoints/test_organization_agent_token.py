@@ -1161,6 +1161,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         # A well-formed nonexistent identifier still exercises authentication, endpoint
         # scopes, URL conversion, and the outer resource permission boundary.
         opaque_values = {
+            "conversation_id": uuid4().hex,
             "external_issue_id": "1",
             "profile_id": uuid4().hex,
             "snapshot_id": "1",

@@ -605,6 +605,8 @@ def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
                 "code.filepath": "F" * (MAX_SPAN_DATA_VALUE_LENGTH * 2),
                 "code.lineno": 42,  # non-strings pass through untouched
                 "db.system": "postgresql",  # not in the allowlist
+                "sentry.group": "0123456789abcdef",
+                "sentry.category": "db",
                 # The span schema allows any attribute to be an array or an object, so an
                 # allowlisted key is not guaranteed to hold a scalar.
                 "url": ["U" * (MAX_SPAN_DATA_VALUE_LENGTH * 2)] * (MAX_EVIDENCE_LIST_ITEMS * 2),
@@ -619,6 +621,9 @@ def test_evidence_span_truncates_descriptions_and_data_separately() -> None:
     assert "db.system" not in span["data"]
     assert len(span["data"]["url"]) == MAX_EVIDENCE_LIST_ITEMS
     assert {len(v) for v in span["data"]["url"]} == {MAX_SPAN_DATA_VALUE_LENGTH}
+    assert span["data"]["sentry.group"] == "0123456789abcdef"
+    assert span["data"]["sentry.category"] == "db"
+    assert span["data"]["hash"] == "abcdef0123456789"
     assert span["trace_id"] == "t" * 32
     # Raw `attributes` forms the bulk of a span's size and must not reach the occurrence
     assert "attributes" not in span

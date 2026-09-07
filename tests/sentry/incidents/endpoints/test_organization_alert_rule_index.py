@@ -8,12 +8,11 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
-from httpx import HTTPError
 from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.exceptions import HTTPError, MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log

@@ -18,7 +18,7 @@ import {getToolsStringFromBlock} from 'sentry/views/seerExplorer/utils';
 
 import {AssistantBlock} from './assistant';
 import {MessagePlaceholder, hasValidContent} from './shared';
-import {CODE_MODE_TOOLS, ToolCallList} from './toolUse';
+import {CODE_MODE_TOOLS, ToolCallList, blockRendersToolContent} from './toolUse';
 
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
@@ -171,14 +171,21 @@ export function ResponseGroup({
     return (
       (showThinking && hasValidContent(block.message.thinking_content)) ||
       (!isAnswer && hasValidContent(block.message.content)) ||
-      Boolean(block.message.tool_calls?.length)
+      // Not `tool_calls.length`: a call that reported nothing renders no row, and counting it
+      // opens a reasoning box with an empty body.
+      blockRendersToolContent(block, blocks)
     );
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // Keep ThinkingBlock expanded if loading or awaiting user input (approval/question)
+  // Keep ThinkingBlock expanded while the response is still in progress — either a tool is
+  // running, or the LLM is between tool calls (loading without tool_calls yet). Without
+  // this, the block collapses and reopens on each poll cycle when the agent retries a
+  // failing tool call, causing a visible flash.
   const endTime =
-    active || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
+    (active && !answer) || pendingInput
+      ? undefined
+      : new Date(group[group.length - 1]!.timestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">

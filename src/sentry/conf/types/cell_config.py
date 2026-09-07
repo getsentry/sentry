@@ -14,7 +14,8 @@ class CellConfig(TypedDict):
 # Locality is a collection of cells
 class LocalityConfig(TypedDict):
     name: str
-    category: str
+    category: NotRequired[str]
+    """Deprecated and ignored. Visibility is defined via `visible`/`signup_visible`."""
     cells: list[str]
     new_org_cell: str
     visible: NotRequired[bool]

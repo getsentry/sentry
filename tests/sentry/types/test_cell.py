@@ -3,10 +3,12 @@ from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
 from django.db import router
 from django.test import RequestFactory, override_settings
 
 from sentry.conf.types.cell_config import CellConfig, LocalityConfig
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloLimit, SiloMode
@@ -23,6 +25,8 @@ from sentry.types.cell import (
     find_all_cell_names,
     find_all_multitenant_locality_names,
     find_all_signup_locality_names,
+    find_cells_for_org_mappings,
+    find_cells_for_orgs,
     find_cells_for_sentry_app,
     find_cells_for_user,
     get_cell_by_name,
@@ -201,7 +205,7 @@ class CellDirectoryTest(TestCase):
             cell.validate()
 
     def test_locality_to_url(self) -> None:
-        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
+        locality = Locality("us", frozenset(["us"]), new_org_cell="us")
         with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_LOCAL_CELL="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_LOCAL_CELL=""):
@@ -242,6 +246,26 @@ class CellDirectoryTest(TestCase):
             pytest.raises(SiloLimit.AvailabilityError),
         ):
             find_cells_for_user(user_id=user.id)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_find_cells_for_org_mappings(self) -> None:
+        with override_settings(SENTRY_FALLBACK_CELL="us"):
+            directory = load_from_config(self._INPUTS, [])
+        with self._in_global_state(directory):
+            organization = self.create_organization(name="test name", cell="us")
+            mappings = organization_mapping_service.get_many(organization_ids=[organization.id])
+
+            assert find_cells_for_org_mappings(mappings) == {"us"}
+            # The whole point: the same answer as the query it saves.
+            assert find_cells_for_org_mappings(mappings) == find_cells_for_orgs([organization.id])
+
+            # Pinned explicitly rather than read from settings, which the directory
+            # state above may set to a real cell and hide the difference asserted here.
+            with override_settings(
+                SILO_MODE=SiloMode.MONOLITH, SENTRY_FALLBACK_CELL="--monolith--"
+            ):
+                assert mappings[0].cell_name != settings.SENTRY_FALLBACK_CELL
+                assert find_cells_for_org_mappings(mappings) == {"--monolith--"}
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_cells_for_sentry_app(self) -> None:
@@ -345,14 +369,12 @@ class CellDirectoryTest(TestCase):
             Locality(
                 name="us",
                 cells=frozenset(["us", "us2"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="us2",
                 visible=True,
             ),
             Locality(
                 name="de",
                 cells=frozenset(["de1", "de2"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de2",
                 visible=True,
             ),
@@ -392,14 +414,12 @@ class CellDirectoryTest(TestCase):
             Locality(
                 name="us",
                 cells=frozenset(["us"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="us",
                 visible=True,
             ),
             Locality(
                 name="de",
                 cells=frozenset(["de"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de",
                 visible=True,
                 signup_visible=False,
@@ -407,7 +427,6 @@ class CellDirectoryTest(TestCase):
             Locality(
                 name="ja",
                 cells=frozenset(["ja"]),
-                category=RegionCategory.MULTI_TENANT,
                 new_org_cell="de",
                 visible=False,
                 signup_visible=True,

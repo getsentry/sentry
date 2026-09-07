@@ -39,6 +39,7 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import failed_tool_calls
+from sentry.seer.autofix.pr_iteration.emit import complete_pr_iteration_details
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -46,6 +47,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -165,6 +167,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
+    - No-op'ing when the run did not complete (errors / timeouts), so Seer can
+      invoke this hook with ``call_on_failure=True`` without advancing the pipeline
     """
 
     @classmethod
@@ -185,11 +189,27 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
+        if state.status != "completed":
+            logger.info(
+                "autofix.on_completion_hook.run_not_completed",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "status": state.status,
+                    "failure_reason": state.failure_reason,
+                },
+            )
+            metrics.incr(
+                "autofix.on_completion_hook.run_not_completed",
+                tags={"status": state.status},
+            )
+            return
+
         metadata = state.metadata or {}
         group_id = metadata.get("group_id")
-        run_referrer = None
+        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
         if group_id is None:
-            group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+            group_id = mirror_group_id
         if group_id is None:
             logger.warning(
                 "autofix.on_completion_hook.missing_group_id",
@@ -833,6 +853,21 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # the hook re-fire after the push doesn't loop.
         if current_step == AutofixStep.PR_ITERATION:
             log_ctx = cls._iteration_log_context(organization, group, state)
+
+            if state.status == "error":
+                paused = pause_pr_iteration(
+                    run_id=run_id,
+                    organization_id=organization.id,
+                    reason=PauseReason.RUN_ERRORED,
+                )
+                log_ctx.info(
+                    "autofix.pr_iteration.paused_on_error",
+                    run_status=state.status,
+                    paused=paused,
+                    failure_reason=state.failure_reason,
+                )
+                return
+
             pushed = cls._push_iteration_changes(
                 log_ctx,
                 group,
@@ -846,6 +881,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # we want to consume queued feedback _after_ we know changes have been pushed
                 # because some feedback in the queue could be filtered out
                 cls._consume_queued_feedback(log_ctx, organization, run_id)
+
+            complete_pr_iteration_details(
+                log_ctx=log_ctx,
+                run_state=state,
+                organization_id=organization.id,
+                pushed_changes=pushed,
+            )
             return
 
         if stopping_point is None or reached_stopping_point:

@@ -29,6 +29,7 @@ import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -90,6 +91,13 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
+// Persisted per-column widths. Only the widths are stored, keyed by column:
+// names are translated, and keying by column (rather than storing the whole
+// column array) keeps a stored layout usable when columns change.
+const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
+
+type ColumnWidths = Partial<Record<ColumnKey, number>>;
+
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
 
@@ -148,6 +156,31 @@ export function collapseToolsColumnWhenUnused(
   );
 }
 
+/**
+ * Reads the persisted column widths, dropping anything that isn't a width we
+ * would have written: unknown columns, and values below the grid's own resize
+ * floor (which includes a persisted COL_WIDTH_UNDEFINED). Dropped columns fall
+ * back to their default width.
+ */
+export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
+  if (typeof value !== 'object' || value === null) {
+    return {};
+  }
+  const stored = value as Record<string, unknown>;
+  const widths: ColumnWidths = {};
+  for (const key of COLUMN_ORDER) {
+    const width = stored[key];
+    if (
+      typeof width === 'number' &&
+      Number.isFinite(width) &&
+      width >= COL_WIDTH_MINIMUM
+    ) {
+      widths[key] = width;
+    }
+  }
+  return widths;
+}
+
 export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -157,21 +190,28 @@ export function ConversationsTable() {
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  const [columnOrder, setColumnOrder] = useState<Array<GridColumnOrder<ColumnKey>>>(() =>
-    COLUMN_ORDER.map(key => ({
-      key,
-      name: COLUMN_DEFAULTS[key].name,
-      width: COLUMN_DEFAULTS[key].width,
-    }))
+  const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
+    COLUMN_WIDTHS_STORAGE_KEY,
+    parseStoredColumnWidths
+  );
+
+  const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
+    () =>
+      COLUMN_ORDER.map(key => ({
+        key,
+        name: COLUMN_DEFAULTS[key].name,
+        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
+      })),
+    [storedWidths]
   );
 
   const handleResizeColumn = useCallback(
-    (columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
-      setColumnOrder(current =>
-        current.map((column, index) => (index === columnIndex ? nextColumn : column))
-      );
+    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      // Keyed by column rather than by index so a stored width survives a
+      // change to the column order.
+      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
     },
-    []
+    [setStoredWidths]
   );
 
   const hasNoTools = useMemo(

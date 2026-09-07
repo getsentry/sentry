@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -11,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Accordion} from 'sentry/components/container/accordion';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
@@ -260,9 +260,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
       <StyledWidgetContainer>
         <StyledHeaderContainer>
           {t('FAQ')}
-          <QuestionTooltip
+          <InfoTip
             size="xs"
-            isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
                 <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />

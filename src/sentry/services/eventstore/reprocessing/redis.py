@@ -149,7 +149,8 @@ class RedisReprocessingStore(ReprocessingStore):
         pipe.expire(name=sync_counter_key, time=settings.SENTRY_REPROCESSING_SYNC_TTL)
         pipe.decrby(name=sync_counter_key, amount=num_events)
         new_decremented_value = pipe.execute()[2]
-        return new_decremented_value == 0
+        # It can be that we overshoot and end up with a negative number here as such use `<=` rather than `==`.
+        return new_decremented_value <= 0
 
     def start_reprocessing(
         self, group_id: int, date_created: datetime, sync_count: int, event_count: int

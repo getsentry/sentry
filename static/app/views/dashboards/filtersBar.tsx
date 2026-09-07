@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -92,7 +92,7 @@ export function FiltersBar({
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const getSearchBarData = useDatasetSearchBarData();
+  const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
@@ -203,7 +203,19 @@ export function FiltersBar({
       marginBottom="0"
       padding="lg xl xl"
     >
-      <FiltersRow>
+      <Flex
+        css={css`
+          & button[aria-haspopup] {
+            height: 100%;
+            width: 100%;
+          }
+        `}
+        direction="row"
+        flex={{zero: '0 1 auto', xl: `1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px`}}
+        gap="lg"
+        minWidth={0}
+        wrap="wrap"
+      >
         <PageFilterBar condensed>
           <ProjectPageFilter
             disabled={isEditingDashboard}
@@ -283,6 +295,7 @@ export function FiltersBar({
         <AddFilter
           globalFilters={activeGlobalFilters}
           getSearchBarData={getSearchBarData}
+          onFilterKeySearch={onFilterKeySearch}
           onAddFilter={newFilter => {
             updateGlobalFilters([...activeGlobalFilters, newFilter]);
             trackAnalytics('dashboards2.global_filter.add', {
@@ -330,7 +343,7 @@ export function FiltersBar({
               </Button>
             </Grid>
           )}
-      </FiltersRow>
+      </Flex>
       <Grid flow="column" align="center" gap="md">
         <CompactSelect
           value={interval}
@@ -358,17 +371,3 @@ const parseReleaseSort = createParser({
 
 // Filters row starts wrapping siblings at this width.
 const FILTERS_ROW_FLEX_BASIS_PX = 480;
-
-const FiltersRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.lg};
-  flex-wrap: wrap;
-  flex: 1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px;
-  min-width: 0;
-
-  & button[aria-haspopup] {
-    height: 100%;
-    width: 100%;
-  }
-`;

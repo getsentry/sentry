@@ -11,12 +11,11 @@ import responses
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.test import override_settings
-from httpx import HTTPError
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
-from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.exceptions import HTTPError, MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry import audit_log

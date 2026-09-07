@@ -1,7 +1,6 @@
 from typing import Any, Literal, NotRequired, TypedDict
 
-from drf_spectacular.utils import extend_schema_serializer
-
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.search.eap.types import ColumnType
 
 
@@ -42,7 +41,11 @@ class TraceItemAttributeContext(TypedDict):
     replacementAttribute: NotRequired[str]
 
 
-@extend_schema_serializer(exclude_fields=["context"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "context": "The context shape it returns is still evolving.",
+    }
+)
 class TraceItemAttributeKey(TypedDict):
     key: str
     name: str

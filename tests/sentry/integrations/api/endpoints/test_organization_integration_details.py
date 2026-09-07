@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -6,8 +6,10 @@ from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.jira.integration import JiraIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -55,6 +57,8 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
+        assert response.data["configOrganization"]
+        assert response.data["configData"] == {"sync_status_forward": {}}
 
 
 @control_silo_test
@@ -248,16 +252,6 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         """Test the flow of choosing ticket creation on alert rule fire action
         then serializes the issue config correctly for Jira"""
 
-        # Mock the legacy projects response
-        responses.add(
-            responses.GET,
-            "https://example.atlassian.net/rest/api/2/project",
-            json=[
-                {"id": "10000", "key": "PROJ1", "name": "Project 1"},
-                {"id": "10001", "key": "PROJ2", "name": "Project 2"},
-            ],
-        )
-
         # Mock the paginated projects response
         responses.add(
             responses.GET,
@@ -300,14 +294,28 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
             },
         )
 
-        params = {"action": "create"}
-        installation = self.integration.get_installation(self.organization.id)
-        response = self.get_success_response(
-            self.organization.slug,
-            self.integration.id,
-            qs_params=params,
+        params = {"action": "create", "ignored": "Sprint"}
+        installation = MagicMock(
+            spec=JiraIntegration,
+            wraps=self.integration.get_installation(self.organization.id),
         )
+        with patch.object(RpcIntegration, "get_installation", return_value=installation):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.integration.id,
+                qs_params=params,
+            )
         data = response.data
+
+        installation.get_create_issue_config.assert_called_once()
+        installation.get_organization_config.assert_not_called()
+        installation.get_config_data.assert_not_called()
+        installation.get_dynamic_display_information.assert_not_called()
+
+        create_issue_call = installation.get_create_issue_config.call_args
+        assert create_issue_call.args[0] is None
+        assert create_issue_call.args[1].id == self.user.id
+        assert create_issue_call.kwargs["params"].dict() == params
 
         # Check we serialized the integration correctly
         assert data["id"] == str(self.integration.id)
@@ -330,13 +338,14 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert resp_provider["aspects"] == getattr(provider.metadata, "aspects", {})
 
         # Check we serialized the create issue config correctly
-        assert installation.get_create_issue_config(None, self.user) == data.get(
-            "createIssueConfig", {}
-        )
-        assert installation.get_organization_config() == data.get("configOrganization", {})
+        assert [field["name"] for field in data["createIssueConfig"]] == [
+            "project",
+            "issuetype",
+        ]
+        assert data["configOrganization"] == []
 
         # Check we serialized the other organization integration details correctly
-        assert data["configData"] == installation.get_config_data()
+        assert data["configData"] is None
         assert data["externalId"] == self.integration.external_id
         assert data["organizationId"] == self.organization.id
         assert (
@@ -344,3 +353,9 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
             == self.organization_integration.get_status_display()
         )
         assert data["gracePeriodEnd"] == self.organization_integration.grace_period_end
+
+        jira_request_urls = [call.request.url for call in responses.calls]
+        assert len(jira_request_urls) == 2
+        assert "/rest/api/2/project/search" in jira_request_urls[0]
+        assert "/rest/api/2/issue/createmeta" in jira_request_urls[1]
+        assert all("/rest/api/2/statuses/search" not in url for url in jira_request_urls)

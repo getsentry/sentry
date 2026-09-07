@@ -53,6 +53,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {LogsAggregateExportModalButton} from 'sentry/views/explore/logs/exports/logsAggregateExportModalButton';
 import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
+import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBysForAggregateMode';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -87,6 +88,7 @@ import {
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -268,6 +270,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
+  const setGroupBys = useSetQueryParamsGroupBys();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
@@ -394,7 +397,16 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     trackAnalytics('logs.explorer.table_tab_changed', {organization, tab});
     if (tab === 'aggregates') {
       setSidebarOpen(true);
-      setMode(Mode.AGGREGATE);
+      const aggregateGroupBys = getGroupBysForAggregateMode({
+        fields,
+        groupBys,
+        visualizes,
+      });
+      if (aggregateGroupBys) {
+        setGroupBys(aggregateGroupBys, Mode.AGGREGATE);
+      } else {
+        setMode(Mode.AGGREGATE);
+      }
     } else {
       setMode(Mode.SAMPLES);
     }

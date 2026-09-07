@@ -534,7 +534,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert _triggered_workflow_ids(result) == {self.error_workflow.id}
 
-    @override_options({"workflow_engine.all_projects_detectors_enabled": True})
+    @override_options({"workflow_engine.all_projects_detectors.rollout-rate": 1.0})
     def test_all_projects_workflow_via_process_workflows(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
