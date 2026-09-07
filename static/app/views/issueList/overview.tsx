@@ -83,7 +83,7 @@ import {
 
 const MAX_ITEMS = 25;
 // the default period for the graph in each issue row
-const DEFAULT_GRAPH_STATS_PERIOD = '24h';
+const DEFAULT_GRAPH_STATS_PERIOD = 'auto';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
