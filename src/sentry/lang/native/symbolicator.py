@@ -229,7 +229,7 @@ class Symbolicator:
     def process_minidump(
         self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
     ):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if minidump.stored_id:
@@ -273,7 +273,7 @@ class Symbolicator:
         return process_response(res)
 
     def process_applecrashreport(self, platform: str, report: CachedAttachment):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if report.stored_id:
@@ -329,7 +329,7 @@ class Symbolicator:
         :param signal: A numeric crash signal value. This is optional.
         :param apply_source_context: Whether to add source context to frames.
         """
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
         json = {
             "platform": platform,
