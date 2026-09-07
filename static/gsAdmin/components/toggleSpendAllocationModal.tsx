@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -57,7 +58,7 @@ function SpendAllocationModal({
   });
 
   return (
-    <>
+    <Fragment>
       <Header>Toggle Spend Allocations</Header>
       <Body>
         <Stack gap="md">
@@ -88,7 +89,7 @@ function SpendAllocationModal({
           </Button>
         </Flex>
       </Footer>
-    </>
+    </Fragment>
   );
 }
 
