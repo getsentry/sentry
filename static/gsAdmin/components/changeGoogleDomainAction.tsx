@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -81,55 +81,53 @@ function ChangeGoogleDomainModal({
   });
 
   return (
-    <Fragment>
-      <form.AppForm form={form}>
-        <Header>Change Google Domain</Header>
-        <Body>
-          <Stack gap="lg">
-            <form.AppField name="newDomain">
-              {field => (
-                <field.Layout.Stack label="New Domain" required>
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder="new domain"
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="append">
-              {field => (
-                <field.Layout.Stack label="Change Option" required>
-                  <field.Select
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    options={CHANGE_CHOICES}
-                    placeholder="Choose an option"
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            {dryRunInfo.length > 0 && (
-              <Stack gap="sm">
-                <Text bold>Test Run</Text>
-                {dryRunInfo.map(info => (
-                  <Text key={info} monospace wrap="pre-wrap">
-                    {info}
-                  </Text>
-                ))}
-              </Stack>
+    <form.AppForm form={form}>
+      <Header>Change Google Domain</Header>
+      <Body>
+        <Stack gap="lg">
+          <form.AppField name="newDomain">
+            {field => (
+              <field.Layout.Stack label="New Domain" required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder="new domain"
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
             )}
-          </Stack>
-        </Body>
-        <Footer>
-          <form.SubmitButton>
-            {dryRun ? 'Do Dry Run' : 'Update Google Domain(s)'}
-          </form.SubmitButton>
-        </Footer>
-      </form.AppForm>
-    </Fragment>
+          </form.AppField>
+          <form.AppField name="append">
+            {field => (
+              <field.Layout.Stack label="Change Option" required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={CHANGE_CHOICES}
+                  placeholder="Choose an option"
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          {dryRunInfo.length > 0 && (
+            <Stack gap="sm">
+              <Text bold>Test Run</Text>
+              {dryRunInfo.map(info => (
+                <Text key={info} monospace wrap="pre-wrap">
+                  {info}
+                </Text>
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      </Body>
+      <Footer>
+        <form.SubmitButton>
+          {dryRun ? 'Do Dry Run' : 'Update Google Domain(s)'}
+        </form.SubmitButton>
+      </Footer>
+    </form.AppForm>
   );
 }
 

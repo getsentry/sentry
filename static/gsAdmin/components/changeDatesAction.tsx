@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -109,47 +108,45 @@ function ChangeDatesModal({
   ];
 
   return (
-    <Fragment>
-      <form.AppForm form={form}>
-        <Header closeButton>
-          <Heading as="h3">Change Contract and Current On-Demand Period Dates</Heading>
-        </Header>
-        <Body>
-          <Stack gap="lg">
-            <Alert.Container>
-              <Alert variant="info" showIcon={false}>
-                This overrides the current contract and on-demand period dates so the
-                subscription may fall into a weird state.
-              </Alert>
-            </Alert.Container>
-            <Text>
-              To end the contract period immediately, use the "End Billing Period
-              Immediately" action.
-            </Text>
-            {dateFields.map(({name, label, hintText}) => (
-              <form.AppField key={name} name={name}>
-                {field => (
-                  <field.Layout.Stack label={label} hintText={hintText}>
-                    <field.Input
-                      type="date"
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      disabled={mutation.isPending}
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-            ))}
-          </Stack>
-        </Body>
-        <Footer>
-          <Flex gap="md" justify="end">
-            <Button onClick={closeModal}>Cancel</Button>
-            <form.SubmitButton>Submit</form.SubmitButton>
-          </Flex>
-        </Footer>
-      </form.AppForm>
-    </Fragment>
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <Heading as="h3">Change Contract and Current On-Demand Period Dates</Heading>
+      </Header>
+      <Body>
+        <Stack gap="lg">
+          <Alert.Container>
+            <Alert variant="info" showIcon={false}>
+              This overrides the current contract and on-demand period dates so the
+              subscription may fall into a weird state.
+            </Alert>
+          </Alert.Container>
+          <Text>
+            To end the contract period immediately, use the "End Billing Period
+            Immediately" action.
+          </Text>
+          {dateFields.map(({name, label, hintText}) => (
+            <form.AppField key={name} name={name}>
+              {field => (
+                <field.Layout.Stack label={label} hintText={hintText}>
+                  <field.Input
+                    type="date"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    disabled={mutation.isPending}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+          ))}
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Submit</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 

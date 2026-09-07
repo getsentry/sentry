@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -95,54 +94,52 @@ export function SentryAppUpdateModal(props: Props) {
   }));
 
   return (
-    <Fragment>
-      <form.AppForm form={form}>
-        <Header>Update Sentry App</Header>
-        <Body>
-          <Stack gap="lg">
-            <form.AppField name="popularity">
-              {field => (
-                <field.Layout.Stack
-                  label="New popularity"
-                  hintText={`Higher values will be more prominent on the integration directory. Only values between ${POPULARITY_MIN} and ${POPULARITY_MAX} are permitted.`}
-                  required
-                >
-                  <field.Number
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    min={POPULARITY_MIN}
-                    max={POPULARITY_MAX}
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="features">
-              {field => (
-                <field.Layout.Stack
-                  label="Features"
-                  hintText="What features does this integration have?"
-                  required
-                >
-                  <field.Select
-                    multiple
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    options={options}
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </Stack>
-        </Body>
-        <Footer>
-          <Flex gap="md" justify="end">
-            <Button onClick={closeModal}>Cancel</Button>
-            <form.SubmitButton>Save</form.SubmitButton>
-          </Flex>
-        </Footer>
-      </form.AppForm>
-    </Fragment>
+    <form.AppForm form={form}>
+      <Header>Update Sentry App</Header>
+      <Body>
+        <Stack gap="lg">
+          <form.AppField name="popularity">
+            {field => (
+              <field.Layout.Stack
+                label="New popularity"
+                hintText={`Higher values will be more prominent on the integration directory. Only values between ${POPULARITY_MIN} and ${POPULARITY_MAX} are permitted.`}
+                required
+              >
+                <field.Number
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  min={POPULARITY_MIN}
+                  max={POPULARITY_MAX}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="features">
+            {field => (
+              <field.Layout.Stack
+                label="Features"
+                hintText="What features does this integration have?"
+                required
+              >
+                <field.Select
+                  multiple
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={options}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Save</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }

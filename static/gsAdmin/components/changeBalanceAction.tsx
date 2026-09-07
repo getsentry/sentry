@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -83,66 +82,64 @@ function ChangeBalanceModal({
   });
 
   return (
-    <Fragment>
-      <form.AppForm form={form}>
-        <Header>
-          <Heading as="h2">Add or Remove Credit</Heading>
-        </Header>
-        <Body>
-          <Stack gap="lg">
-            <Text>
-              <Text bold>Current Balance: </Text>
-              {formatBalance(subscription.accountBalance)}
-            </Text>
-            <form.AppField name="creditAmount">
-              {field => (
-                <field.Layout.Stack
-                  label="Credit Amount"
-                  hintText="Add or remove credit, in dollars"
-                  required
-                >
-                  <field.Number
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="ticketUrl">
-              {field => (
-                <field.Layout.Stack label="Ticket URL">
-                  <field.Input
-                    type="url"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-            <form.AppField name="notes">
-              {field => (
-                <field.Layout.Stack label="Notes">
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    maxLength={500}
-                    disabled={mutation.isPending}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </Stack>
-        </Body>
-        <Footer>
-          <Flex gap="md" justify="end">
-            <Button onClick={closeModal}>Cancel</Button>
-            <form.SubmitButton>Submit</form.SubmitButton>
-          </Flex>
-        </Footer>
-      </form.AppForm>
-    </Fragment>
+    <form.AppForm form={form}>
+      <Header>
+        <Heading as="h2">Add or Remove Credit</Heading>
+      </Header>
+      <Body>
+        <Stack gap="lg">
+          <Text>
+            <Text bold>Current Balance: </Text>
+            {formatBalance(subscription.accountBalance)}
+          </Text>
+          <form.AppField name="creditAmount">
+            {field => (
+              <field.Layout.Stack
+                label="Credit Amount"
+                hintText="Add or remove credit, in dollars"
+                required
+              >
+                <field.Number
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="ticketUrl">
+            {field => (
+              <field.Layout.Stack label="Ticket URL">
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+          <form.AppField name="notes">
+            {field => (
+              <field.Layout.Stack label="Notes">
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  maxLength={500}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Submit</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 
