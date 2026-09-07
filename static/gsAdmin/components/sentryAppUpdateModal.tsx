@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -95,7 +96,9 @@ export function SentryAppUpdateModal(props: Props) {
 
   return (
     <form.AppForm form={form}>
-      <Header>Update Sentry App</Header>
+      <Header>
+        <Heading as="h2">Update Sentry App</Heading>
+      </Header>
       <Body>
         <Stack gap="lg">
           <form.AppField name="popularity">

@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -83,7 +83,9 @@ function ChangeGoogleDomainModal({
 
   return (
     <form.AppForm form={form}>
-      <Header>Change Google Domain</Header>
+      <Header>
+        <Heading as="h2">Change Google Domain</Heading>
+      </Header>
       <Body>
         <Stack gap="lg">
           <form.AppField name="newDomain">

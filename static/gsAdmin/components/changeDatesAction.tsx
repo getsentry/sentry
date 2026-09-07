@@ -105,7 +105,7 @@ function ChangeDatesModal({
   return (
     <form.AppForm form={form}>
       <Header closeButton>
-        <Heading as="h3">Change Contract and Current On-Demand Period Dates</Heading>
+        <Heading as="h2">Change Contract and Current On-Demand Period Dates</Heading>
       </Header>
       <Body>
         <Stack gap="lg">
