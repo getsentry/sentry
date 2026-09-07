@@ -2628,16 +2628,6 @@ register(
     default=4,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Remove the rows a claim-bounded drain finishes with — delivered, attempts
-# exhausted, or stale — in batches instead of one DELETE per row. Such a drain
-# stays inside a claim reserved for its whole run, so deferring deletes cannot
-# hand rows to a concurrent drain; a crashed worker reprocesses at most one
-# unflushed batch, which redelivers the delivered rows and re-discards the rest.
-register(
-    "hybridcloud.webhookpayload.drain_batch_deletes",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Providers whose mailbox drains skip a failed message and keep going instead of
 # aborting. Also gates concurrent delivery: only these providers' claims deliver
 # on `worker_threads` threads, and only they dispatch from the due head. Only safe for
@@ -2663,14 +2653,6 @@ register(
 register(
     "hybridcloud.webhookpayload.max_chain_depth",
     default=1,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Dispatch skip-on-failure providers' mailboxes from their oldest due record
-# instead of gating on the absolute head, so one record in retry backoff cannot
-# hide every due record behind it. Strict-ordering providers keep the gate.
-register(
-    "hybridcloud.webhookpayload.dispatch_from_due_head",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass for inbound webhook floods. Matching webhooks are dropped with a
