@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useEffectEvent} from 'react';
+import {useEffect, useEffectEvent} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -213,5 +213,5 @@ export function SpansTabCrossEventSearchBars() {
     );
   });
 
-  return <Fragment>{crossEventRows}</Fragment>;
+  return crossEventRows;
 }
