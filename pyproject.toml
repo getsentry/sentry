@@ -1260,7 +1260,6 @@ module = [
     "sentry.seer.assisted_query.*",
     "sentry.seer.autofix.*",
     "sentry.seer.breakpoints",
-    "sentry.seer.constants",
     "sentry.seer.endpoints.*",
     "sentry.seer.entrypoints.*",
     "sentry.seer.explorer.*",
