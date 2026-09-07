@@ -47,6 +47,7 @@ function ChangeDatesModal({
           path: {organizationIdOrSlug: orgId},
         }),
         method: 'PUT',
+        // A blank field means "keep the current date", so omit it from the update.
         data: Object.fromEntries(
           Object.entries(data).filter(([, value]) => value !== '')
         ),
