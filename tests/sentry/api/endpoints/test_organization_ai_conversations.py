@@ -134,7 +134,8 @@ class TestConversationSortSerializer:
     @pytest.mark.parametrize(
         "sort",
         [
-            "-timestamp",
+            "age",
+            "-age",
             "-max(timestamp)",
             "totalCost",
             "-total_cost",
@@ -153,7 +154,9 @@ class TestConversationSortSerializer:
         "sorts",
         [
             [],
-            ["-timestamp", "totalCost"],
+            ["-age", "totalCost"],
+            ["timestamp"],
+            ["-timestamp"],
             ["sum(span.duration)"],
             [""],
             ["startTimestamp"],
@@ -176,7 +179,7 @@ class TestConversationSortSerializer:
             data={}, context={"sorting_enabled": True}
         )
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["sort"] == ["-timestamp"]
+        assert serializer.validated_data["sort"] == ["-age"]
 
 
 @patch("sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query")
@@ -187,7 +190,7 @@ def test_candidate_query_accepts_multiple_sorts(run_table_query: MagicMock) -> N
         offset=0,
         limit=10,
         sampling_mode="HIGHEST_ACCURACY",
-        sorts=["-totalCost", "timestamp", "-conversationId"],
+        sorts=["-totalCost", "age", "-conversationId"],
     )
 
     query = run_table_query.call_args.kwargs
@@ -343,7 +346,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_sorting_disabled_preserves_legacy_query(self, run_table_query: MagicMock) -> None:
         with self.feature({"organizations:gen-ai-conversations-querying-enhancements": False}):
             response = self.do_request(
-                {"project": [self.project.id], "sort": ["-totalCost", "timestamp"]}
+                {"project": [self.project.id], "sort": ["-totalCost", "age"]}
             )
 
         assert response.status_code == 200, response.data
@@ -355,7 +358,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     def test_sorting_rejects_multiple_fields(self) -> None:
         with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
             response = self.do_request(
-                {"project": [self.project.id], "sort": ["-totalCost", "timestamp"]}
+                {"project": [self.project.id], "sort": ["-totalCost", "age"]}
             )
 
         assert response.status_code == 400, response.data
@@ -371,6 +374,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 tokens=10,
             )
         for sort in [
+            "age",
             "-max(timestamp)",
             "duration",
             "generationDuration",

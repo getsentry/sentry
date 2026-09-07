@@ -2,7 +2,7 @@ from sentry.search.events.fields import get_function_alias
 
 _AI_CONVERSATIONS_ALIAS_DEFINITIONS = {
     "conversationId": ("gen_ai.conversation.id", "gen_ai.conversation.id"),
-    "timestamp": ("max(timestamp)", "max(timestamp)"),
+    "age": ("max(timestamp)", "max(timestamp)"),
     "duration": (
         "sum_if(`has:gen_ai.operation.type`,span.duration)",
         "duration",
