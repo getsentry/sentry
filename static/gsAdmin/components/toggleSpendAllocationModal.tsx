@@ -1,16 +1,15 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {withApi} from 'sentry/utils/withApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
-  api: Client;
   onUpdated: (data: any) => void;
   orgId: string;
   spendAllocationEnabled: boolean;
@@ -23,45 +22,42 @@ function SpendAllocationModal({
   Footer,
   Header,
   closeModal,
-  api,
   onUpdated,
   orgId,
   spendAllocationEnabled: isCurrentlyEnabled,
 }: ModalProps) {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {},
-    onSubmit: async () => {
+  const mutation = useMutation({
+    mutationFn: async () => {
       const shouldEnableAllocations = !isCurrentlyEnabled;
       const method = shouldEnableAllocations ? 'POST' : 'DELETE';
-      try {
-        await api.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
-            path: {organizationIdOrSlug: orgId},
-          }),
-          {
-            method,
-          }
-        );
-        // Create root allocations
-        await api.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
-            path: {organizationIdOrSlug: orgId},
-          }),
-          {
-            method,
-          }
-        );
-        onUpdated({spendAllocationEnabled: shouldEnableAllocations});
-      } catch (error) {
-        onUpdated({error});
-      }
+      await fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method,
+      });
+      // Create root allocations
+      await fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method,
+      });
+      return shouldEnableAllocations;
+    },
+    onSuccess: spendAllocationEnabled => {
+      onUpdated({spendAllocationEnabled});
+    },
+    onError: error => {
+      onUpdated({error});
+    },
+    onSettled: () => {
       closeModal();
     },
   });
 
   return (
-    <form.AppForm form={form}>
+    <>
       <Header>Toggle Spend Allocations</Header>
       <Body>
         <Stack gap="md">
@@ -79,16 +75,23 @@ function SpendAllocationModal({
         </Stack>
       </Body>
       <Footer>
-        <Button onClick={closeModal}>Cancel</Button>
-        <form.SubmitButton>{isCurrentlyEnabled ? 'Disable' : 'Enable'}</form.SubmitButton>
+        <Button onClick={closeModal} disabled={mutation.isPending}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={() => mutation.mutate()}
+          busy={mutation.isPending}
+          disabled={mutation.isPending}
+        >
+          {isCurrentlyEnabled ? 'Disable' : 'Enable'}
+        </Button>
       </Footer>
-    </form.AppForm>
+    </>
   );
 }
-
-const Modal = withApi(SpendAllocationModal);
 
 type Options = Pick<Props, 'orgId' | 'spendAllocationEnabled' | 'onUpdated'>;
 
 export const toggleSpendAllocationModal = (opts: Options) =>
-  openModal(deps => <Modal {...deps} {...opts} />);
+  openModal(deps => <SpendAllocationModal {...deps} {...opts} />);
