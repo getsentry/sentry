@@ -2,11 +2,9 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
-import {
-  NativeFrameVariables,
-  type NativeFrameVariable,
-} from 'sentry/components/stackTrace/frame/nativeFrameVariables';
+import {NativeFrameVariables} from 'sentry/components/stackTrace/frame/nativeFrameVariables';
 import * as Storybook from 'sentry/stories';
+import type {NativeFrameVariable} from 'sentry/types/event';
 
 const position = [
   {name: 'x', type: 'float', kind: 'number', value: '1.5'},

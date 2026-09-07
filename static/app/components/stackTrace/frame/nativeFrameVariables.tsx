@@ -7,17 +7,7 @@ import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
-
-/** Presentation model for the native variables preview, independent of frame.vars. */
-export type NativeFrameVariable = {
-  name: string;
-  type: string;
-} & (
-  | {children: readonly NativeFrameVariable[]; kind: 'object'}
-  | {kind: 'number' | 'string' | 'enum' | 'pointer'; value: string}
-  | {kind: 'null'}
-  | {kind: 'unavailable'}
-);
+import type {NativeFrameVariable} from 'sentry/types/event';
 
 interface Props {
   variables: readonly NativeFrameVariable[];
