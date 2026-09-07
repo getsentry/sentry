@@ -82,7 +82,6 @@ function SpendAllocationModal({
           variant="primary"
           onClick={() => mutation.mutate()}
           busy={mutation.isPending}
-          disabled={mutation.isPending}
         >
           {isCurrentlyEnabled ? 'Disable' : 'Enable'}
         </Button>
