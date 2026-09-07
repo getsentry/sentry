@@ -1,8 +1,8 @@
-import {Fragment, useEffect, useEffectEvent} from 'react';
+import {useEffect, useEffectEvent} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -30,13 +30,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const EMPTY_CROSS_EVENTS: CrossEvent[] = [];
 
-interface SpansTabCrossEventSearchBarsProps {
-  hasIndependentDateColumn?: boolean;
-}
-
-export function SpansTabCrossEventSearchBars({
-  hasIndependentDateColumn = false,
-}: SpansTabCrossEventSearchBarsProps) {
+export function SpansTabCrossEventSearchBars() {
   const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents() ?? EMPTY_CROSS_EVENTS;
   const setCrossEvents = useSetQueryParamsCrossEvents();
@@ -88,8 +82,28 @@ export function SpansTabCrossEventSearchBars({
     const maxCrossEventQueriesReached = visibleIndex >= MAX_CROSS_EVENT_QUERIES;
 
     return (
-      <Fragment key={`${crossEvent.type}-${index}`}>
-        <Container justifySelf="end" width={{xl: '100%', '3xl': 'min-content'}}>
+      <Grid
+        key={`${crossEvent.type}-${index}`}
+        areas={{
+          zero: `
+            "dataset"
+            "search"
+            "delete"
+          `,
+          md: `
+            "dataset delete"
+            "search search"
+          `,
+          xl: '"dataset search delete"',
+        }}
+        columns={{
+          zero: '1fr',
+          md: 'max-content 1fr',
+          xl: 'max-content minmax(0, 1fr) min-content',
+        }}
+        gap="md"
+      >
+        <Container area="dataset" justifySelf="end" width="100%">
           {props => (
             <CompactSelect
               {...props}
@@ -124,82 +138,79 @@ export function SpansTabCrossEventSearchBars({
             />
           )}
         </Container>
-        {maxCrossEventQueriesReached ? (
-          <SearchQueryBuilderProvider
-            filterKeys={{}}
-            getTagValues={() => Promise.resolve([])}
-            initialQuery=""
-            searchSource="explore"
-          >
-            <TraceItemSearchQueryBuilder
-              disabled
-              itemType={traceItemType}
-              initialQuery={crossEvent.query}
-              booleanAttributes={{}}
-              numberAttributes={{}}
-              stringAttributes={{}}
-              booleanSecondaryAliases={{}}
-              numberSecondaryAliases={{}}
-              stringSecondaryAliases={{}}
+        <Container area="search" minWidth="0">
+          {maxCrossEventQueriesReached ? (
+            <SearchQueryBuilderProvider
+              filterKeys={{}}
+              getTagValues={() => Promise.resolve([])}
+              initialQuery=""
               searchSource="explore"
-              getFilterTokenWarning={() => {}}
-              supportedAggregates={[]}
-              onSearch={() => {}}
-              onChange={() => {
-                return;
+            >
+              <TraceItemSearchQueryBuilder
+                disabled
+                itemType={traceItemType}
+                initialQuery={crossEvent.query}
+                booleanAttributes={{}}
+                numberAttributes={{}}
+                stringAttributes={{}}
+                booleanSecondaryAliases={{}}
+                numberSecondaryAliases={{}}
+                stringSecondaryAliases={{}}
+                searchSource="explore"
+                getFilterTokenWarning={() => {}}
+                supportedAggregates={[]}
+                onSearch={() => {}}
+                onChange={() => {
+                  return;
+                }}
+              />
+            </SearchQueryBuilderProvider>
+          ) : crossEvent.type === 'metrics' ? (
+            <SpansTabCrossEventMetricsSearchBar
+              index={index}
+              query={crossEvent.query}
+              metric={crossEvent.metric}
+            />
+          ) : (
+            <SpansTabCrossEventSearchBar
+              index={index}
+              query={crossEvent.query}
+              type={crossEvent.type}
+            />
+          )}
+        </Container>
+        <Container
+          area="delete"
+          justifySelf={{zero: 'stretch', md: 'end'}}
+          width={{zero: '100%', md: 'auto'}}
+        >
+          {props => (
+            <Button
+              {...props}
+              icon={<IconDelete />}
+              aria-label={t('Remove cross event search for %s', crossEvent.type)}
+              onClick={() => {
+                // we add 1 here to the max because the current cross event is being removed
+                if (crossEvents.length > MAX_CROSS_EVENT_QUERIES + 1) {
+                  addErrorMessage(
+                    t(
+                      'You can add up to a maximum of %s cross event queries.',
+                      MAX_CROSS_EVENT_QUERIES
+                    )
+                  );
+                }
+                trackAnalytics('trace.explorer.cross_event_removed', {
+                  organization,
+                  type: crossEvent.type,
+                });
+                setCrossEvents(crossEvents.filter((_, i) => i !== index));
               }}
             />
-          </SearchQueryBuilderProvider>
-        ) : crossEvent.type === 'metrics' ? (
-          <SpansTabCrossEventMetricsSearchBar
-            index={index}
-            query={crossEvent.query}
-            metric={crossEvent.metric}
-          />
-        ) : (
-          <SpansTabCrossEventSearchBar
-            index={index}
-            query={crossEvent.query}
-            type={crossEvent.type}
-          />
-        )}
-        <Button
-          icon={<IconDelete />}
-          aria-label={t('Remove cross event search for %s', crossEvent.type)}
-          onClick={() => {
-            // we add 1 here to the max because the current cross event is being removed
-            if (crossEvents.length > MAX_CROSS_EVENT_QUERIES + 1) {
-              addErrorMessage(
-                t(
-                  'You can add up to a maximum of %s cross event queries.',
-                  MAX_CROSS_EVENT_QUERIES
-                )
-              );
-            }
-            trackAnalytics('trace.explorer.cross_event_removed', {
-              organization,
-              type: crossEvent.type,
-            });
-            setCrossEvents(crossEvents.filter((_, i) => i !== index));
-          }}
-        />
-      </Fragment>
+          )}
+        </Container>
+      </Grid>
     );
   });
 
-  if (!hasIndependentDateColumn) {
-    return <Fragment>{crossEventRows}</Fragment>;
-  }
-
-  return (
-    <Grid
-      gap="md"
-      columns={{
-        'screen:sm': '1fr',
-        'screen:md': 'minmax(300px, max-content) 1fr min-content',
-      }}
-    >
-      {crossEventRows}
-    </Grid>
-  );
+  return <Stack gap="md">{crossEventRows}</Stack>;
 }
