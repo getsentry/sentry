@@ -409,12 +409,6 @@ export class TraceItemFieldSelector {
       }
     }
 
-    Sentry.captureException(
-      new Error(
-        `Failed to get field from selector: ${this.selector}, dataset: ${this.dataset}`
-      )
-    );
-
     return null;
   }
 
