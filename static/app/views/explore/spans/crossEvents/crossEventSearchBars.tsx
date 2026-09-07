@@ -1,8 +1,8 @@
-import {useEffect, useEffectEvent} from 'react';
+import {Fragment, useEffect, useEffectEvent} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -84,26 +84,27 @@ export function SpansTabCrossEventSearchBars() {
     return (
       <Grid
         key={`${crossEvent.type}-${index}`}
+        column="1 / -1"
         areas={{
           zero: `
             "dataset"
             "search"
             "delete"
           `,
-          md: `
-            "dataset delete"
-            "search search"
-          `,
-          xl: '"dataset search delete"',
+          md: '"dataset search delete"',
         }}
         columns={{
           zero: '1fr',
-          md: 'max-content 1fr',
-          xl: 'max-content minmax(0, 1fr) min-content',
+          md: 'max-content minmax(0, 1fr) min-content',
+          '3xl': 'subgrid',
         }}
         gap="md"
       >
-        <Container area="dataset" justifySelf="end" width="100%">
+        <Container
+          area="dataset"
+          justifySelf={{zero: 'stretch', md: 'end'}}
+          width={{zero: '100%', md: 'min-content'}}
+        >
           {props => (
             <CompactSelect
               {...props}
@@ -212,5 +213,5 @@ export function SpansTabCrossEventSearchBars() {
     );
   });
 
-  return <Stack gap="md">{crossEventRows}</Stack>;
+  return <Fragment>{crossEventRows}</Fragment>;
 }

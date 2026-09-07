@@ -156,8 +156,16 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
         >
           {tourProps => (
             <div {...tourProps}>
-              <Grid gap="md">
+              <Grid
+                columns={{
+                  zero: '100%',
+                  xl: '1fr auto',
+                  '3xl': 'minmax(300px, auto) 1fr min-content',
+                }}
+                gap="md"
+              >
                 <Grid
+                  column="1 / -1"
                   areas={{
                     zero: `
                       "filters"
@@ -173,7 +181,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
                   columns={{
                     zero: '100%',
                     xl: '1fr auto',
-                    '3xl': 'minmax(300px, auto) 1fr min-content',
+                    '3xl': 'subgrid',
                   }}
                   gap="md"
                   width="100%"
