@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import mimetypes
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -16,6 +17,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from objectstore_client import TimeToLive
 
+from sentry import eventstore
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
@@ -36,6 +38,9 @@ CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
 
 V1_PREFIX = "eventattachments/v1/"
 V2_PREFIX = "v2/"
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_crashreport_key(group_id: int) -> str:
@@ -362,6 +367,19 @@ class PendingEventAttachment(EventAttachmentBase):
             rv = super().delete(*args, **kwargs)
 
         if is_owner:
+            # Verify once more that no event exists:
+            event = eventstore.backend.get_event_by_id(self.project_id, self.event_id)
+            if event is not None:
+                # NOTE: If this actually happens, we should guard against it by promoting the pending attachment just-in-time.
+                logger.warning(
+                    "attachments.pending.premature_deletion",
+                    extra={
+                        "project_id": self.project_id,
+                        "event_id": self.event_id,
+                        "attachment_id": self.id,
+                    },
+                )
+
             self.delete_blob()
         return rv
 
