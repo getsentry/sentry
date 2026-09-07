@@ -138,9 +138,7 @@ function ChangeBalanceModal({
         <Footer>
           <Flex gap="md" justify="end">
             <Button onClick={closeModal}>Cancel</Button>
-            <form.SubmitButton>
-              {mutation.isPending ? 'Submitting...' : 'Submit'}
-            </form.SubmitButton>
+            <form.SubmitButton>Submit</form.SubmitButton>
           </Flex>
         </Footer>
       </form.AppForm>

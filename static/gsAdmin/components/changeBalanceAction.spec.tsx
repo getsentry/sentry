@@ -164,8 +164,7 @@ describe('BalanceChangeAction', () => {
     const submitButton = screen.getByRole('button', {name: 'Submit'});
     await userEvent.click(submitButton);
 
-    // During submission, button should show "Submitting...", be disabled, and fields should be disabled
-    expect(submitButton).toHaveTextContent('Submitting...');
+    expect(submitButton).toHaveAttribute('aria-busy', 'true');
     expect(submitButton).toBeDisabled();
     expect(creditInput).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Ticket URL'})).toBeDisabled();

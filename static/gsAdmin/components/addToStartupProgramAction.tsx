@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -111,9 +111,7 @@ function AddToStartupProgramModal({
   return (
     <Fragment>
       <form.AppForm form={form}>
-        <Header>
-          <Heading as="h2">Add to Startup Program</Heading>
-        </Header>
+        <Header>Add to Startup Program</Header>
         <Body>
           <Stack gap="lg">
             <Text>
