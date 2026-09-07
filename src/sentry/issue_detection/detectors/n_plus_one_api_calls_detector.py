@@ -284,5 +284,5 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     def _spans_are_similar(self, span_a: Span, span_b: Span) -> bool:
         return (
             self._get_parameterized_url(span_a) == self._get_parameterized_url(span_b)
-            and span_a["parent_span_id"] == span_b["parent_span_id"]
+            and span_a.get("parent_span_id") == span_b.get("parent_span_id")
         )
