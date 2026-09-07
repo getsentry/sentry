@@ -128,10 +128,7 @@ function ResultsHeaderBase({
   // dataset selector tabs so i'm injecting some styles fix it. This should be removed
   // when the dataset selector tabs are removed.
   const deprecationHeaderStyles: ContainerProps<'header'> = {
-    padding: {
-      xl: '0',
-      '3xl': '0',
-    },
+    padding: '0',
     borderBottom: {
       '2xs': 'none',
       xs: 'none',
