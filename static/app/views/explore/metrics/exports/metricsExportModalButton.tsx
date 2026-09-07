@@ -111,6 +111,7 @@ export function MetricsExportModalButton({
       isDataEmpty={!tableData.length}
       isDataError={isError}
       isDataLoading={isLoading}
+      size="md"
       onOpen={() =>
         trackAnalytics('metrics.export_modal', {organization, action: 'open'})
       }

@@ -3,10 +3,7 @@ import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
-import {
-  StyledTabPanels,
-  TabListWrapper,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
+import {StyledTabPanels} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import {SamplesTab} from 'sentry/views/explore/metrics/metricInfoTabs/samplesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -42,8 +39,8 @@ export function MetricInfoTabs({
     >
       <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
         {visualize.visible ? (
-          <Flex direction="row" justify="between" align="center">
-            <TabListWrapper>
+          <Flex direction="row" gap="md" justify="between" align="center">
+            <Container flex="1 1 auto" minWidth="0">
               <TabList variant="floating">
                 <TabList.Item
                   key={Mode.SAMPLES}
@@ -58,7 +55,7 @@ export function MetricInfoTabs({
                 </TabList.Item>
                 <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
               </TabList>
-            </TabListWrapper>
+            </Container>
             {additionalActions}
           </Flex>
         ) : null}
