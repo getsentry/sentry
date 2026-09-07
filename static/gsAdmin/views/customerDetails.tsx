@@ -137,6 +137,24 @@ export function CustomerDetails() {
     isPending: isPendingBillingConfig,
   } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
 
+  const handleCustomerUpdateError = (error: RequestError) => {
+    if (error.status === 400 || error.status === 402) {
+      const errors = Object.values(error.responseJSON || {});
+      const err = errors.length && errors[0];
+
+      const message =
+        typeof err === 'string'
+          ? err
+          : Array.isArray(err) && err.length && err[0]
+            ? err[0]
+            : DEFAULT_ERROR_MESSAGE;
+
+      addErrorMessage(message);
+    } else {
+      addErrorMessage(DEFAULT_ERROR_MESSAGE);
+    }
+  };
+
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       api.requestPromise(`/customers/${orgId}/`, {
@@ -151,23 +169,60 @@ export function CustomerDetails() {
       );
       setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },
-    onError: (error: RequestError) => {
-      if (error.status === 400 || error.status === 402) {
-        const errors = Object.values(error.responseJSON || {});
-        const err = errors.length && errors[0];
+    onError: handleCustomerUpdateError,
+  });
 
-        const message =
-          typeof err === 'string'
-            ? err
-            : Array.isArray(err) && err.length && err[0]
-              ? err[0]
-              : DEFAULT_ERROR_MESSAGE;
-
-        addErrorMessage(message);
-      } else {
-        addErrorMessage(DEFAULT_ERROR_MESSAGE);
-      }
+  const onClearPendingChangesMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/clear-pending-changes/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onSuccess: (data, variables) => {
+      addSuccessMessage(
+        (data as {message?: string}).message ??
+          `Customer account has been updated with ${JSON.stringify(variables)}.`
+      );
+      setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
     },
+    onError: handleCustomerUpdateError,
+  });
+
+  const onGiftUnitsMutation = useMutation({
+    mutationFn: (params: Record<string, any>) => {
+      const giftKey = Object.keys(params).find(key => key.startsWith('addFree'));
+      if (!giftKey) {
+        throw new Error('Missing gift category amount');
+      }
+      const titleCaseCategory = giftKey.slice('addFree'.length);
+      const category =
+        titleCaseCategory.charAt(0).toLowerCase() + titleCaseCategory.slice(1);
+      return fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/gift-units/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'POST',
+        data: {
+          category,
+          amount: params[giftKey],
+          ticketURL: params.ticketURL,
+          notes: params.notes,
+        },
+      });
+    },
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onSuccess: (data, variables) => {
+      addSuccessMessage(
+        (data as {message?: string}).message ??
+          `Customer account has been updated with ${JSON.stringify(variables)}.`
+      );
+      setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
+    },
+    onError: handleCustomerUpdateError,
   });
 
   const onGenerateSpikeProjectionsMutation = useMutation({
@@ -452,8 +507,7 @@ export function CustomerDetails() {
             name: 'Clear Pending Changes',
             help: 'Remove pending subscription changes.',
             visible: !!subscription.pendingChanges,
-            onAction: params =>
-              onUpdateMutation.mutate({...params, clearPendingChanges: true}),
+            onAction: params => onClearPendingChangesMutation.mutate(params),
           },
           {
             key: 'changeBalance',
@@ -787,7 +841,7 @@ export function CustomerDetails() {
                   />
                 ),
               },
-              onAction: params => onUpdateMutation.mutate({...params}),
+              onAction: params => onGiftUnitsMutation.mutate(params),
             })
           ),
           {

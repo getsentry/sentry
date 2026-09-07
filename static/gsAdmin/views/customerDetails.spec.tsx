@@ -30,7 +30,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import {getFreeEventsKey} from 'admin/components/addGiftEventsAction';
 import type {StatsGroup} from 'admin/components/customers/customerStats';
 import {populateChartData, useSeries} from 'admin/components/customers/customerStats';
 import {CustomerDetails} from 'admin/views/customerDetails';
@@ -1200,6 +1199,37 @@ describe('Customer Details', () => {
 
       expect(screen.getByText('Clear Pending Changes')).toBeInTheDocument();
     });
+
+    it('posts to the dedicated clear-pending-changes endpoint', async () => {
+      setUpMocks(pendingChangesOrg, {pendingChanges: true});
+      const clearMock = MockApiClient.addMockResponse({
+        url: `/_admin/customers/${pendingChangesOrg.slug}/clear-pending-changes/`,
+        method: 'POST',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingChangesOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingChangesOrg,
+      });
+      renderGlobalModal();
+
+      await openCustomerActions();
+      await userEvent.click(screen.getByText('Clear Pending Changes'));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() =>
+        expect(clearMock).toHaveBeenCalledWith(
+          `/_admin/customers/${pendingChangesOrg.slug}/clear-pending-changes/`,
+          expect.objectContaining({
+            method: 'POST',
+          })
+        )
+      );
+    });
   });
 
   describe('allow trial', () => {
@@ -2188,11 +2218,10 @@ describe('Customer Details', () => {
       for (const dataCategory of [DataCategory.ERRORS, DataCategory.TRANSACTIONS]) {
         await openCustomerActions();
 
-        const freeEventsKey = getFreeEventsKey(dataCategory);
         const updateMock = MockApiClient.addMockResponse({
-          url: `/customers/${organization.slug}/`,
-          method: 'PUT',
-          body: {...subscription, [freeEventsKey]: 26000},
+          url: `/_admin/customers/${organization.slug}/gift-units/`,
+          method: 'POST',
+          body: subscription,
         });
 
         await userEvent.click(screen.getByTestId(`gift-${dataCategory}`));
@@ -2208,10 +2237,10 @@ describe('Customer Details', () => {
 
         await waitFor(() =>
           expect(updateMock).toHaveBeenCalledWith(
-            `/customers/${organization.slug}/`,
+            `/_admin/customers/${organization.slug}/gift-units/`,
             expect.objectContaining({
-              method: 'PUT',
-              data: {[freeEventsKey]: 26000},
+              method: 'POST',
+              data: {category: dataCategory, amount: 26000},
             })
           )
         );
@@ -2241,11 +2270,10 @@ describe('Customer Details', () => {
       })[0]!
     );
 
-    const freeEventsKey = getFreeEventsKey(DataCategory.REPLAYS);
     const updateMock = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, [freeEventsKey]: 50},
+      url: `/_admin/customers/${organization.slug}/gift-units/`,
+      method: 'POST',
+      body: {...organization},
     });
 
     await userEvent.click(screen.getByTestId(`gift-${DataCategory.REPLAYS}`));
@@ -2265,11 +2293,12 @@ describe('Customer Details', () => {
 
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith(
-        `/customers/${organization.slug}/`,
+        `/_admin/customers/${organization.slug}/gift-units/`,
         expect.objectContaining({
-          method: 'PUT',
+          method: 'POST',
           data: {
-            [freeEventsKey]: 50,
+            category: DataCategory.REPLAYS,
+            amount: 50,
           },
         })
       )
@@ -2298,11 +2327,10 @@ describe('Customer Details', () => {
       })[0]!
     );
 
-    const freeEventsKey = getFreeEventsKey(DataCategory.SPANS);
     const updateMock = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, [freeEventsKey]: 50},
+      url: `/_admin/customers/${organization.slug}/gift-units/`,
+      method: 'POST',
+      body: {...organization},
     });
 
     await userEvent.click(screen.getByTestId(`gift-${DataCategory.SPANS}`));
@@ -2322,11 +2350,12 @@ describe('Customer Details', () => {
 
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith(
-        `/customers/${organization.slug}/`,
+        `/_admin/customers/${organization.slug}/gift-units/`,
         expect.objectContaining({
-          method: 'PUT',
+          method: 'POST',
           data: {
-            [freeEventsKey]: 5_000_000,
+            category: DataCategory.SPANS,
+            amount: 5_000_000,
           },
         })
       )
@@ -2380,11 +2409,10 @@ describe('Customer Details', () => {
       })[0]!
     );
 
-    const freeEventsKey = getFreeEventsKey(DataCategory.MONITOR_SEATS);
     const updateMock = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      method: 'PUT',
-      body: {...organization, [freeEventsKey]: 50},
+      url: `/_admin/customers/${organization.slug}/gift-units/`,
+      method: 'POST',
+      body: {...organization},
     });
 
     await userEvent.click(screen.getByTestId(`gift-${DataCategory.MONITOR_SEATS}`));
@@ -2404,11 +2432,12 @@ describe('Customer Details', () => {
 
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith(
-        `/customers/${organization.slug}/`,
+        `/_admin/customers/${organization.slug}/gift-units/`,
         expect.objectContaining({
-          method: 'PUT',
+          method: 'POST',
           data: {
-            [freeEventsKey]: 50,
+            category: DataCategory.MONITOR_SEATS,
+            amount: 50,
           },
         })
       )
