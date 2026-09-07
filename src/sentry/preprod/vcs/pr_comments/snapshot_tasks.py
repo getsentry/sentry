@@ -310,9 +310,18 @@ def post_snapshot_pr_comment_task(
                     "organization_id": organization_id,
                     "error_type": type(e).__name__,
                 }
+                is_retriable = True
                 if isinstance(e, ApiError):
                     extra["status_code"] = e.code
-                logger.exception("preprod.snapshot_pr_comments.post.failed", extra=extra)
+                    # Terminal 4xx errors (except 429) are not retried
+                    is_retriable = not (e.code and 400 <= e.code < 500 and e.code != 429)
+                if is_retriable:
+                    logger.warning(
+                        "preprod.snapshot_pr_comments.post.failed",
+                        extra={**extra, "will_retry": True},
+                    )
+                else:
+                    logger.exception("preprod.snapshot_pr_comments.post.failed", extra=extra)
                 api_error = e
 
             if api_error is not None:
