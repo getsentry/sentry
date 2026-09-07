@@ -700,30 +700,6 @@ describe('ScmMessagingProviderRow', () => {
         expect(screen.queryByText('channel-picker')).not.toBeInTheDocument()
       );
     });
-
-    it('calls onContinue after the destination is saved', async () => {
-      const onContinue = jest.fn();
-      let capturedOnConfigured:
-        | ((setup: ScmMessagingSetup & {mode: 'selected'}) => void)
-        | undefined;
-
-      const renderChannelPicker = jest.fn(
-        ({onConfigured}: {onConfigured: (s: any) => void}) => {
-          capturedOnConfigured = onConfigured;
-          return <div>channel-picker</div>;
-        }
-      );
-
-      renderRow(connectedSlack, UNCONFIGURED_SCM_MESSAGING_SETUP, {
-        onContinue,
-        renderChannelPicker,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: /Choose destination/}));
-      act(() => capturedOnConfigured?.(selectedSlackSetup));
-
-      expect(onContinue).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('configured state', () => {

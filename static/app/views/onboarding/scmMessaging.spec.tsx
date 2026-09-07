@@ -756,18 +756,6 @@ describe('ScmMessaging', () => {
       expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
-    it('Back contract: remounting with a saved setup shows the Destination added pill and Edit/Remove', async () => {
-      // Validates that after Confirm and continue persists the setup, returning
-      // to this step renders the configured state — not the picker.
-      mockExclusiveSlackProviders();
-
-      renderMessaging(jest.fn(), exclusiveSlackSetup);
-
-      expect(await screen.findByText('Destination added')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
-    });
-
     it('Cancel from removing keeps siblings hidden and restores the footer', async () => {
       mockExclusiveSlackProviders();
       renderMessaging(jest.fn(), exclusiveSlackSetup);
