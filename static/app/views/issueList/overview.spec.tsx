@@ -350,6 +350,7 @@ describe('IssueList', () => {
           project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -368,6 +369,7 @@ describe('IssueList', () => {
           project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -382,6 +384,7 @@ describe('IssueList', () => {
           project: '3559',
           query: DEFAULT_QUERY,
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
@@ -515,6 +518,7 @@ describe('IssueList', () => {
           project: project.id.toString(),
           query: 'is:ignored',
           statsPeriod: '14d',
+          groupStatsPeriod: 'auto',
           referrer: 'issue-list',
         });
       });
