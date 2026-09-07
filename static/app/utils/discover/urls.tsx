@@ -119,7 +119,7 @@ export function eventDetailsRouteWithEventView({
 
   return {
     pathname,
-    query: {...eventView.generateQueryStringObject()},
+    query: eventView.generateQueryStringObject(),
   };
 }
 
