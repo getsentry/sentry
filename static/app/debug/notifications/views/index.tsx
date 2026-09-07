@@ -56,7 +56,7 @@ export default function DebugNotificationsIndex() {
                   </Flex>
                 </Heading>
                 <Grid
-                  columns={{'screen:md': '1fr', 'screen:lg': '1fr auto'}}
+                  columns={{zero: '1fr', '4xl': '1fr auto'}}
                   gap="2xl"
                   position="relative"
                 >
@@ -107,7 +107,7 @@ const ExampleContainer = styled('div')`
   position: sticky;
   top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
   align-self: flex-start;
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+  @container (min-width: ${p => p.theme.container['4xl']}) {
     max-width: 450px;
   }
 `;

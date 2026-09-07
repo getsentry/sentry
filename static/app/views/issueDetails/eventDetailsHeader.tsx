@@ -121,13 +121,13 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           >
             {tp => (
               <div {...tp}>
-                <Flex direction={{'screen:xs': 'column', 'screen:md': 'row'}} gap="sm">
+                <Flex direction={{zero: 'column', '3xl': 'row'}} gap="sm">
                   <Grid
                     width="100%"
                     gap="sm"
                     columns={{
-                      'screen:xs': '1fr',
-                      'screen:md': 'auto minmax(100px, 1fr) auto',
+                      zero: '1fr',
+                      '3xl': 'auto minmax(100px, 1fr) auto',
                     }}
                     rows={`minmax(${theme.form.md.height}, auto)`}
                   >

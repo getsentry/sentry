@@ -256,7 +256,7 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{'screen:md': '100%', 'screen:lg': '70%'}}>
+          <Container width={{zero: '100%', '4xl': '70%'}}>
             <Container
               background="secondary"
               border="muted"
