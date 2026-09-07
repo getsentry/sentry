@@ -374,7 +374,6 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   return (
     <Container
       position="relative"
-      flex="1 1 auto"
       minWidth="0"
       style={outerWrapStyles}
       ref={outerWrapRef}
