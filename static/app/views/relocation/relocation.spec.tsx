@@ -137,11 +137,15 @@ describe('Relocation', () => {
       );
     });
 
-    it('should prevent user from going to the next step if no org slugs or region are entered', async () => {
-      await waitForRenderSuccess('get-started');
+    it('should show validation errors and prevent navigation without org slugs or region', async () => {
+      const {router} = await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(screen.getByLabelText('org-slugs')).toBeInvalid();
+      expect(screen.getByLabelText('region')).toBeInvalid();
+      expect(router.location.pathname).toBe('/relocation/get-started/');
     });
 
     it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async () => {

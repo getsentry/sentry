@@ -58,7 +58,7 @@ export function tooltipFormatterUsingAggregateOutputType(
     case 'number':
       return value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, 2);
+      return formatPercentage(value);
     case 'duration': {
       const durationUnitString = unit ?? undefined;
       const durationMultiplier = isADurationUnit(durationUnitString)

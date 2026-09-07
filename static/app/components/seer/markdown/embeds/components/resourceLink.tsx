@@ -2,8 +2,59 @@ import type {ComponentType, ReactNode} from 'react';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
+import {
+  IconChat,
+  IconCode,
+  IconCompass,
+  IconDashboard,
+  IconDocs,
+  IconFire,
+  IconIssues,
+  IconList,
+  IconPlay,
+  IconProfiling,
+  IconSiren,
+  IconSpan,
+  IconTable,
+} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {isSafeHref} from 'sentry/utils/marked/marked';
+
+/**
+ * Every data type Seer surfaces as a resource link
+ */
+export type ResourceKind =
+  | 'conversation'
+  | 'log'
+  | 'trace'
+  | 'profiling'
+  | 'span'
+  | 'error'
+  | 'issue'
+  | 'query'
+  | 'metrics'
+  | 'monitor'
+  | 'replay'
+  | 'docs'
+  | 'code'
+  | 'dashboard';
+
+export const RESOURCE_KIND_ICON: Record<ResourceKind, ComponentType<SVGIconProps>> = {
+  conversation: IconChat,
+  log: IconList,
+  trace: IconSpan,
+  profiling: IconProfiling,
+  span: IconSpan,
+  error: IconFire,
+  issue: IconIssues,
+  query: IconCompass,
+  metrics: IconTable,
+  monitor: IconSiren,
+  replay: IconPlay,
+  docs: IconDocs,
+  code: IconCode,
+  dashboard: IconDashboard,
+};
 
 export function ResourceLink({
   icon: Icon,

@@ -58,6 +58,9 @@ class GroupEventsError(Exception):
     pass
 
 
+FULL_PAYLOAD_MAX_PER_PAGE = 10
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint):
@@ -65,6 +68,14 @@ class GroupEventsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
+
+    def get_per_page(
+        self, request: Request, default_per_page: int | None = None, max_per_page: int | None = None
+    ) -> int:
+        per_page = super().get_per_page(request, default_per_page, max_per_page)
+        if request.GET.get("full") in ("1", "true"):
+            return min(per_page, FULL_PAYLOAD_MAX_PER_PAGE)
+        return per_page
 
     @extend_schema(
         operation_id="listOrganizationIssueEvents",

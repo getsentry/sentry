@@ -203,6 +203,32 @@ class JiraServerRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
+    def test_changelog_drop_skips_the_organization_lookups(self) -> None:
+        """The changelog check reads only the body, so it settles before the org and
+        cell lookups a dropped payload never needs."""
+        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
+        request = self.factory.post(route, data=no_changelog, content_type="application/json")
+        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
+
+        with (
+            mock.patch(
+                "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
+            ) as mock_get_token,
+            mock.patch.object(
+                JiraServerRequestParser, "get_organizations_from_integration"
+            ) as mock_get_organizations,
+        ):
+            mock_get_token.return_value = self.integration
+            response = parser.get_response()
+
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_get_organizations.call_count == 0
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
     def test_drop_request_without_changelog(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
         request = self.factory.post(route, data=no_changelog, content_type="application/json")

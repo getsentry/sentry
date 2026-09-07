@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -18,9 +19,19 @@ const DEFAULT_POLL_INTERVAL = 5000;
  * Or in the case of transactions & replay the value will be set to true.
  * The `group.id` value is used to generate links directly into the event.
  */
-type FirstEvent = null | boolean | Group;
+type EventWaiterResult = null | boolean | Group;
+
+type ProjectEventValue = string | boolean | null;
 
 type EventType = 'error' | 'transaction' | 'replay' | 'profile' | 'log';
+
+const EVENT_FIELDS = {
+  error: 'firstEvent',
+  transaction: 'firstTransactionEvent',
+  replay: 'hasReplays',
+  profile: 'hasProfiles',
+  log: 'hasLogs',
+} as const satisfies Record<EventType, keyof Project>;
 
 interface UseEventWaiterOptions {
   eventType: EventType;
@@ -30,27 +41,30 @@ interface UseEventWaiterOptions {
   pollInterval?: number;
 }
 
-function getFirstEvent(eventType: EventType, resp: Project) {
-  switch (eventType) {
-    case 'error':
-      return resp.firstEvent;
-    case 'transaction':
-      return resp.firstTransactionEvent;
-    case 'replay':
-      return resp.hasReplays;
-    case 'profile':
-      return resp.hasProfiles;
-    case 'log':
-      return resp.hasLogs;
-    default:
-      return null;
+function getProjectEventValue(eventType: EventType, project: Project): ProjectEventValue {
+  return project[EVENT_FIELDS[eventType]];
+}
+
+/**
+ * If we observed an update, write it to ProjectsStore to notify downstream
+ * listeners.
+ */
+function maybeUpdateProjectsStore(eventType: EventType, projectData: Project): void {
+  const storedProject = ProjectsStore.getById(projectData.id);
+  const field = EVENT_FIELDS[eventType];
+  const value = projectData[field];
+
+  if (!storedProject || storedProject[field] || !value) {
+    return;
   }
+
+  ProjectsStore.onUpdateSuccess({id: projectData.id, [field]: value});
 }
 
 /**
  * Hook that polls for the first event of a project.
  * Returns null until the first event is detected, then returns the
- * resolved FirstEvent (a Group for errors, or true for other event types).
+ * resolved event (a Group for errors, or true for other event types).
  * Once resolved, polling stops automatically.
  */
 export function useEventWaiter({
@@ -59,7 +73,7 @@ export function useEventWaiter({
   project,
   disabled,
   pollInterval = DEFAULT_POLL_INTERVAL,
-}: UseEventWaiterOptions): FirstEvent {
+}: UseEventWaiterOptions): EventWaiterResult {
   const shouldPoll = !disabled && !!organization && !!project;
 
   const issuesUrl = getApiUrl(
@@ -84,7 +98,7 @@ export function useEventWaiter({
       }
       // Stop polling once the first event has been detected
       const projectData = query.state.data?.json;
-      if (projectData && getFirstEvent(eventType, projectData)) {
+      if (projectData && getProjectEventValue(eventType, projectData)) {
         return false;
       }
       return pollInterval;
@@ -102,15 +116,24 @@ export function useEventWaiter({
     },
   });
 
-  const firstEvent = projectQuery.data
-    ? getFirstEvent(eventType, projectQuery.data)
+  const projectData = projectQuery.data;
+  const projectEventValue = projectData
+    ? getProjectEventValue(eventType, projectData)
     : null;
 
-  // For errors, fetch the first issue group once we know the firstEvent exists
+  // For errors, fetch the first issue group once we know the first event exists
   const issuesQuery = useApiQuery<Group[]>([issuesUrl], {
-    enabled: eventType === 'error' && !!firstEvent,
+    enabled: eventType === 'error' && !!projectEventValue,
     staleTime: 0,
   });
+
+  useEffect(() => {
+    if (!projectData) {
+      return;
+    }
+
+    maybeUpdateProjectsStore(eventType, projectData);
+  }, [eventType, projectData]);
 
   // Report errors to Sentry (matching original behavior)
   useEffect(() => {
@@ -135,7 +158,7 @@ export function useEventWaiter({
     );
   }, [projectQuery.error, eventType]);
 
-  if (firstEvent === null || firstEvent === false) {
+  if (projectEventValue === null || projectEventValue === false) {
     return null;
   }
 
@@ -144,11 +167,13 @@ export function useEventWaiter({
       return null;
     }
     // The event may have expired, default to true
-    return (
-      issuesQuery.data.find((issue: Group) => issue.firstSeen === firstEvent) || true
-    );
+    const group =
+      typeof projectEventValue === 'string'
+        ? issuesQuery.data.find((issue: Group) => issue.firstSeen === projectEventValue)
+        : undefined;
+    return group || true;
   }
 
   // transaction, replay, profile, log
-  return Boolean(firstEvent);
+  return Boolean(projectEventValue);
 }

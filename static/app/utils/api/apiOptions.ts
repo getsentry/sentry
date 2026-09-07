@@ -74,6 +74,7 @@ function _apiOptions<
 }
 
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return ({headers}: ApiResponse<TQueryFnData>) => {
     const parsed = parseLinkHeader(headers.Link ?? null);
     return parsed[dir]?.results ? parsed[dir] : null;

@@ -13,6 +13,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -193,7 +194,7 @@ class GroupNotesDetailsTest(APITestCase):
             "text": f"hi **@{self.user.username}**",
         }
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_returns_gale(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -221,7 +222,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.data["data"]["text"] == "updated text"
         assert response.data["data"]["comment_id"] == activity_id
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_put_writes_comment_edit_entry(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -252,7 +253,7 @@ class GroupNotesDetailsTest(APITestCase):
         original_entry.refresh_from_db()
         assert original_entry.data["text"] == "original"
 
-    @with_feature(["projects:issue-action-log-write-to-db", "projects:issue-action-log-activity"])
+    @action_log_activity_enabled()
     def test_delete_writes_comment_delete_entry(self) -> None:
         self.login_as(user=self.user)
         group = self.group
@@ -279,13 +280,11 @@ class GroupNotesDetailsTest(APITestCase):
         # same way COMMENT_EDIT entries do, so it can be joined to the COMMENT row
         assert delete_entry.data["comment_id"] == original_entry.id
 
-    @with_feature("projects:issue-action-log-activity")
+    @action_log_activity_enabled()
     def test_put_returns_404_without_gale_entry(self) -> None:
-        # activity flag on: GALE is authoritative for existence, so a missing
+        # backfilled project, so GALE is authoritative for existence: a missing
         # entry means the note is already gone and we 404 instead of editing
-        # the Activity. (In production the activity flag is only turned on for
-        # projects where write-to-db is already on, so there should always be
-        # a mirror GALE for any Activity note.)
+        # the Activity.
         del self.activity.data["external_id"]
         self.activity.save()
         self.login_as(user=self.user)

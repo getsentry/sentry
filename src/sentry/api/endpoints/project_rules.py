@@ -891,11 +891,12 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
-    @deprecated(
-        ALERTS_API_DEPRECATION_DATE,
-        suggested_api="sentry-api-0-organization-workflow-index",
-        key=ALERTS_API_DEPRECATION_KEY,
-    )
+    # Temporarily disabled until project issue creation uses the new workflow endpoints.
+    # @deprecated(
+    #     ALERTS_API_DEPRECATION_DATE,
+    #     suggested_api="sentry-api-0-organization-workflow-index",
+    #     key=ALERTS_API_DEPRECATION_KEY,
+    # )
     def post(self, request: Request, project) -> Response:
         """
         ## Deprecated

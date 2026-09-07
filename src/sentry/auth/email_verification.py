@@ -10,7 +10,9 @@ from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.urls import reverse
 
-from sentry import options
+from sentry import analytics, options
+from sentry import ratelimits as ratelimiter
+from sentry.analytics.events.signup_email_verification import SignupEmailVerificationSentEvent
 from sentry.utils.dates import format_duration
 from sentry.utils.email import MessageBuilder
 from sentry.utils.hashlib import sha256_text
@@ -46,10 +48,23 @@ def is_email_verified_by_trusted_provider(provider_key: str, identity: Mapping[s
     )
 
 
+def is_verification_send_rate_limited(email: str, email_hash: str | None = None) -> bool:
+    """Throttle verification email sends per email address, across all signup methods.
+
+    Pass email_hash if the caller has already hashed the email, to avoid re-hashing it.
+    """
+    email_hash = email_hash or hash_email(email)
+    return ratelimiter.backend.is_limited(
+        f"signup-verify-send:email:{email_hash}", limit=5, window=300
+    )
+
+
 def send_signup_verification_email(
     email: str,
     url_name: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
+    record_analytics: bool = True,
+    email_hash: str | None = None,
 ) -> None:
     """
     Send a verification email for signup flows.
@@ -60,6 +75,10 @@ def send_signup_verification_email(
 
     url_name controls which verification endpoint the link points to,
     allowing different signup methods to have their own completion logic.
+
+    The record_analytics arg is temporary, only needed while we run the email+pword experiment.
+
+    Pass email_hash if the caller has already hashed the email, to avoid re-hashing it.
     """
     payload = {
         "email": email,
@@ -85,13 +104,18 @@ def send_signup_verification_email(
     )
     msg.send_async([email])
 
+    email_hash = email_hash or hash_email(email)
     logger.info(
         "signup_verification.sent",
         extra={
-            "email_hash": hash_email(email),
+            "email_hash": email_hash,
             "signup_method": url_name,
         },
     )
+    if record_analytics:
+        analytics.record(
+            SignupEmailVerificationSentEvent(email_hash=email_hash, signup_method=url_name)
+        )
 
 
 def verify_signup_link(signed_data: str) -> dict[str, Any]:

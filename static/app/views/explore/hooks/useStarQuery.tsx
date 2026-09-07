@@ -1,5 +1,6 @@
 import {useCallback} from 'react';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -16,7 +17,9 @@ export function useStarQuery() {
   const starQuery = useCallback(
     async (id: number, starred: boolean) => {
       await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${id}/starred/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/starred/', {
+          path: {organizationIdOrSlug: organization.slug, id},
+        }),
         {
           method: 'POST',
           data: {

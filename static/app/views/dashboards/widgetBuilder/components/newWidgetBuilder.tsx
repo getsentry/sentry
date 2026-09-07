@@ -103,8 +103,8 @@ export function WidgetBuilderV2({
     }
 
     const navigationElement = document.querySelector(
-      'nav[aria-label="Primary Navigation"]'
-    )?.parentElement;
+      '[data-navigation-component="navigation-layout"]'
+    );
     if (navigationElement) {
       navigationElementRef.current = navigationElement as HTMLDivElement;
     }
@@ -170,6 +170,7 @@ export function WidgetBuilderV2({
           <Backdrop zIndex="widgetBuilderDrawer" />
           <WidgetBuilderProvider>
             <ContainerWithoutSidebar
+              data-test-id="widget-builder-container"
               style={
                 navigationElementRef.current
                   ? isMediumScreen

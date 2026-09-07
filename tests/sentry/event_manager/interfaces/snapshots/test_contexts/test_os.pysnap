@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_contexts.py
+source: tests/sentry/event_manager/interfaces/test_contexts.py::test_os
 ---
 errors: null
 tags:
@@ -16,3 +16,8 @@ to_json:
     rooted: true
     type: os
     version: '95'
+  trace:
+    span_id: d718bb6c40be4ac9
+    status: unknown
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
+    type: trace

@@ -28,10 +28,12 @@ import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 export function fetchDashboards(
   api: Client,
   orgSlug: string,
-  query?: {filter?: DashboardFilter; sort?: string}
+  query?: {filter?: DashboardFilter}
 ) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'GET',
       query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
@@ -62,7 +64,9 @@ export function createDashboard(
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'POST',
       data: {
@@ -139,7 +143,9 @@ export function updateDashboardVisit(
   dashboardId: string | string[]
 ): Promise<void> {
   const promise = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/visit/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: String(dashboardId)},
+    }),
     {
       method: 'POST',
     }
@@ -157,7 +163,15 @@ export async function updateDashboardFavorite(
 ): Promise<void> {
   try {
     await api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/${dashboardId}/favorite/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            dashboardId: String(dashboardId),
+          },
+        }
+      ),
       {
         method: 'PUT',
         data: {
@@ -190,7 +204,9 @@ export function fetchDashboard(
   dashboardId: string
 ): Promise<DashboardDetails> {
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
     {
       method: 'GET',
     }
@@ -209,6 +225,17 @@ export function fetchDashboard(
   });
   return promise;
 }
+
+// The backend rejects a save whose payload references widgets or queries that
+// are no longer on the dashboard. This happens when the dashboard changed after
+// this page loaded — a save from another tab, a Seer edit, or a restored
+// revision deletes the existing rows and recreates them with new ids, leaving
+// this page holding ids that no longer exist. The raw messages read like a
+// permissions problem and don't tell the user that reloading fixes it.
+const STALE_DASHBOARD_ERRORS = [
+  'You cannot update widgets that are not part of this dashboard.',
+  'You cannot use a query not owned by this widget',
+];
 
 export function updateDashboard(
   orgId: string,
@@ -237,7 +264,9 @@ export function updateDashboard(
   }
 
   const promise = fetchMutation<DashboardDetails>({
-    url: `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     method: 'PUT',
     data,
     options: {
@@ -257,7 +286,14 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      const error = errors[Object.keys(errors)[0]!] as string;
+      addErrorMessage(
+        STALE_DASHBOARD_ERRORS.includes(error)
+          ? t(
+              'This dashboard may have been updated somewhere else. Refresh the page and try again.'
+            )
+          : error
+      );
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -273,7 +309,9 @@ export function deleteDashboard(
   organization: Organization
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: organization.slug, dashboardId},
+    }),
     {
       method: 'DELETE',
     }
@@ -333,7 +371,9 @@ export function updateDashboardPermissions(
     permissions,
   };
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     {
       method: 'PUT',
       data,

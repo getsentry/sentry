@@ -73,7 +73,7 @@ describe('PermissionsObserver', () => {
     ).not.toBeChecked();
   });
 
-  it('renders the permissions panel statically by default', () => {
+  it('renders static panels by default', () => {
     render(
       <PermissionsObserver
         scopes={[]}
@@ -91,23 +91,36 @@ describe('PermissionsObserver', () => {
     expect(screen.queryByRole('button', {name: 'Webhooks'})).not.toBeInTheDocument();
   });
 
-  it('can render the permissions panel collapsed', async () => {
+  it('renders both panels collapsed when enabled', async () => {
     render(
       <PermissionsObserver
         scopes={['project:read']}
-        events={[]}
+        events={['issue.created']}
         newApp={false}
-        collapsePermissions
+        collapsePanels
         onScopesChange={noop}
         onEventsChange={noop}
       />
     );
 
+    expect(screen.getByRole('button', {name: 'Permissions'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.getByRole('button', {name: 'Webhooks'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
     expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: 'issue'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Permissions'}));
 
     expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Webhooks'}));
+
+    expect(screen.getByRole('checkbox', {name: 'issue'})).toBeInTheDocument();
   });
 
   it.each([
@@ -126,7 +139,7 @@ describe('PermissionsObserver', () => {
       scopes: ['project:read'],
       events: [],
       newApp: false,
-      collapsePermissions: true,
+      collapsePanels: true,
       onScopesChange: noop,
       onEventsChange: noop,
     };

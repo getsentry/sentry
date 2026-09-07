@@ -1,17 +1,8 @@
-"""
-Trigger an Autofix PR iteration from a top-level GitHub PR comment mention.
-
-When a user comments ``@sentry iterate <feedback>`` on a pull request that
-Autofix created, we kick off a ``PR_ITERATION`` run that revises the existing
-PR using the comment as feedback. The commenter must have write access to the
-repository so that random GitHub users can't drive Autofix runs (which cost
-quota and rewrite the PR).
-
-This covers only top-level PR comments (``issue_comment``). Inline review
-comments arrive via the ``pull_request_review`` SCM listener (see
-``listeners/review.py``),
-which acts on the whole submitted review without requiring an ``@sentry`` command
-but still gates human review authors on repo write access.
+"""Start or stop an Autofix PR iteration from a top-level GitHub PR comment.
+``@sentry <feedback>`` starts an iteration on an Autofix pull request.
+``@sentry stop iterating`` stops iteration for that Autofix run.
+The commenter must have write access to the repository.
+Inline review comments arrive through ``listeners/review.py`` instead.
 """
 
 from __future__ import annotations
@@ -31,7 +22,11 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
 )
-from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_comment
+from sentry.seer.webhooks import SentryStopCommand, sentry_command
+from sentry.tasks.seer.pr_iteration import (
+    pause_pr_iteration_from_comment,
+    trigger_pr_iteration_from_comment,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,27 +59,26 @@ def _created_comment_context(
     return CreatedCommentContext(comment=comment, log_extra=log_extra)
 
 
-def _dispatch_autofix_iteration_from_comment(
+class CommentDispatchTarget(NamedTuple):
+    integration: RpcIntegration
+    pr_number: int
+
+
+def _resolve_comment_dispatch(
     *,
     comment: Mapping[str, Any],
     pr_number: int | None,
     organization: Organization,
-    repo: Repository,
     integration: RpcIntegration | None,
     log_extra: Mapping[str, Any],
-) -> None:
-    try:
-        feedback = Feedback(
-            source=GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
-        )
-    except ValidationError:
-        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
-        return None
+    command: str,
+) -> CommentDispatchTarget | None:
+    """Run the gates that every ``@sentry`` command on a pull request shares.
 
-    log_extra = {**log_extra, "pr_number": pr_number}
-    # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
-    # log at info to make any silent drop debuggable.
-    logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
+    These logs are shared, so each caller names itself with a ``command`` tag
+    rather than a message of its own.
+    """
+    log_extra = {**log_extra, "command": command}
 
     if not features.has("organizations:autofix-pr-iteration-manual", organization):
         logger.info("autofix.pr_iteration.comment_trigger.feature_disabled", extra=log_extra)
@@ -112,13 +106,88 @@ def _dispatch_autofix_iteration_from_comment(
     if not comment.get("html_url"):
         raise ValueError("GitHub PR comment is missing html_url")
 
+    return CommentDispatchTarget(integration=integration, pr_number=pr_number)
+
+
+def _dispatch_autofix_iteration_from_comment(
+    *,
+    comment: Mapping[str, Any],
+    pr_number: int | None,
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None,
+    log_extra: Mapping[str, Any],
+) -> None:
+    try:
+        feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(comment=comment, repo_name=repo.name)
+        )
+    except ValidationError:
+        logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
+        return None
+
+    log_extra = {**log_extra, "pr_number": pr_number}
+    # From here the comment is a real ``@sentry`` iterate command on a pull request.
+    logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
+
+    target = _resolve_comment_dispatch(
+        comment=comment,
+        pr_number=pr_number,
+        organization=organization,
+        integration=integration,
+        log_extra=log_extra,
+        command="iterate",
+    )
+    if target is None:
+        return None
+
     logger.info("autofix.pr_iteration.comment_trigger.scheduled", extra=log_extra)
     trigger_pr_iteration_from_comment.delay(
         organization_id=organization.id,
         repo_id=repo.id,
-        integration_id=integration.id,
-        pr_number=pr_number,
+        integration_id=target.integration.id,
+        pr_number=target.pr_number,
         feedback=feedback.json(),
+    )
+    return None
+
+
+def _dispatch_pause_from_comment(
+    *,
+    comment: Mapping[str, Any],
+    pr_number: int | None,
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None,
+    log_extra: Mapping[str, Any],
+) -> None:
+    log_extra = {**log_extra, "pr_number": pr_number}
+    logger.info("autofix.pr_iteration.stop_command.received", extra=log_extra)
+
+    target = _resolve_comment_dispatch(
+        comment=comment,
+        pr_number=pr_number,
+        organization=organization,
+        integration=integration,
+        log_extra=log_extra,
+        command="stop",
+    )
+    if target is None:
+        return None
+
+    github_username = (comment.get("user") or {}).get("login")
+    if not github_username:
+        logger.info("autofix.pr_iteration.stop_command.no_github_username", extra=log_extra)
+        return None
+
+    logger.info("autofix.pr_iteration.stop_command.scheduled", extra=log_extra)
+    pause_pr_iteration_from_comment.delay(
+        organization_id=organization.id,
+        repo_id=repo.id,
+        integration_id=target.integration.id,
+        pr_number=target.pr_number,
+        comment_id=comment.get("id"),
+        github_username=github_username,
     )
     return None
 
@@ -132,8 +201,8 @@ def handle_issue_comment_for_autofix_iteration(
     **kwargs: Any,
 ) -> None:
     """
-    Webhook processor for ``issue_comment`` events that triggers an Autofix PR
-    iteration when a user comments ``@sentry``.
+    Webhook processor for ``issue_comment`` events that starts or stops an
+    Autofix PR iteration when a user comments ``@sentry``.
     """
     context = _created_comment_context(event=event, organization=organization)
     if context is None:
@@ -144,6 +213,17 @@ def handle_issue_comment_for_autofix_iteration(
     issue = event.get("issue", {})
     if not issue.get("pull_request"):
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_pr", extra=context.log_extra)
+        return None
+
+    if isinstance(sentry_command(context.comment.get("body")), SentryStopCommand):
+        _dispatch_pause_from_comment(
+            comment=context.comment,
+            pr_number=issue.get("number"),
+            organization=organization,
+            repo=repo,
+            integration=integration,
+            log_extra=context.log_extra,
+        )
         return None
 
     _dispatch_autofix_iteration_from_comment(

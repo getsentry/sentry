@@ -67,6 +67,7 @@ class RedisRuleStore:
             p.delete(key)
             if len(rules) > 0:
                 p.hmset(name=key, mapping=rules)
+                p.expire(key, TRANSACTION_NAME_RULE_TTL_SECS)
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -79,7 +80,10 @@ class RedisRuleStore:
         # There is no atomic "overwrite if exists" for hashes, so fetch keys first:
         existing_rules = client.hkeys(key)
         if rule in existing_rules:
-            client.hset(key, rule, last_used)
+            with client.pipeline() as p:
+                p.hset(key, rule, last_used)
+                p.expire(key, TRANSACTION_NAME_RULE_TTL_SECS)
+                p.execute()
 
 
 class ProjectOptionRuleStore:

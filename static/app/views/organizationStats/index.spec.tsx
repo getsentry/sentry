@@ -619,7 +619,10 @@ describe('OrganizationStats', () => {
     const newOrg = OrganizationFixture({
       openMembership: false,
     });
-    act(() => ProjectsStore.loadInitialData([ProjectFixture({isMember: false})]));
+    // Without open membership, the API reports no access for a non-member.
+    act(() =>
+      ProjectsStore.loadInitialData([ProjectFixture({hasAccess: false, isMember: false})])
+    );
 
     render(<OrganizationStats />, {
       organization: newOrg,

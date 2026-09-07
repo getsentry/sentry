@@ -19,7 +19,7 @@ export function IntegrationItem({integration, requiresUpgrade}: Props) {
   return (
     <Flex align="center">
       <div>
-        <IntegrationIcon size={32} integration={integration} />
+        <IntegrationIcon integration={integration} />
       </div>
       <Stack align={undefined} justify="center" paddingLeft="md" minWidth={0}>
         <Flex align="center" gap="xs">

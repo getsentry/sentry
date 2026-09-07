@@ -46,7 +46,6 @@ interface InputSectionProps {
   canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
-  isTimedOut?: boolean;
   questionActions?: QuestionActions;
 }
 
@@ -56,7 +55,6 @@ export function InputSection({
   inputValue,
   canSendMessage = true,
   interruptState = 'disabled',
-  isTimedOut = false,
   onCreatePR,
   onInputChange,
   onInputClick,
@@ -257,9 +255,7 @@ export function InputSection({
   return (
     <InputBlock>
       <InputRow>
-        <StyledInputGroup
-          isWarningPlaceholder={interruptState === 'completed' || isTimedOut}
-        >
+        <StyledInputGroup isWarningPlaceholder={interruptState === 'completed'}>
           <InputGroup.TextArea
             ref={textAreaRef}
             value={inputValue}
@@ -267,11 +263,9 @@ export function InputSection({
             onKeyDown={onKeyDown}
             onClick={onInputClick}
             placeholder={
-              isTimedOut
-                ? t('Response timed out. Please try again.')
-                : interruptState === 'completed'
-                  ? t('Interrupted. What should Seer do instead?')
-                  : t('Ask Seer a question, or press / for commands.')
+              interruptState === 'completed'
+                ? t('Interrupted. What should Seer do instead?')
+                : t('Ask Seer a question, or press / for commands.')
             }
             rows={1}
             maxRows={5}

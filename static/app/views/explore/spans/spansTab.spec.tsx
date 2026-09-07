@@ -151,16 +151,56 @@ describe('SpansTabContent', () => {
   });
 
   it('should fire analytics once per change', async () => {
-    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+      }
+    );
 
     await screen.findByText(/No spans found/);
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
       expect.objectContaining({result_mode: 'span samples'})
+    );
+
+    const tableResponse = Promise.withResolvers<void>();
+    const tableRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({query: 'span.op:http'}),
+        (_url, options) => options.query?.field?.includes('id'),
+      ],
+      asyncDelay: tableResponse.promise,
+      body: {
+        data: [{id: 'aaaaaaaaaaaaaaaa', timestamp: '2024-01-01T00:00:00+00:00'}],
+        meta: {dataScanned: 'full', fields: {id: 'string'}},
+      },
+    });
+
+    jest.mocked(trackAnalytics).mockClear();
+    router.navigate(
+      `/organizations/${organization.slug}/explore/traces/?query=span.op%3Ahttp`
+    );
+    await waitFor(() => expect(tableRequest).toHaveBeenCalledTimes(1));
+    const getMetadataCalls = () =>
+      jest
+        .mocked(trackAnalytics)
+        .mock.calls.filter(([eventKey]) => eventKey === 'trace.explorer.metadata');
+    expect(getMetadataCalls()).toHaveLength(0);
+
+    tableResponse.resolve();
+    await waitFor(() => expect(getMetadataCalls()).toHaveLength(1));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'trace.explorer.metadata',
+      expect.objectContaining({
+        dataScanned: 'full',
+        result_length: 1,
+        result_mode: 'span samples',
+      })
     );
 
     jest.mocked(trackAnalytics).mockClear();
@@ -209,6 +249,11 @@ describe('SpansTabContent', () => {
       const data = node?.data as Record<string, unknown>;
       expect(data.activeTab).toBe('aggregate');
       expect(data.sortBys).toEqual(['-count(span.duration)']);
+      expect(data.projectIds).toEqual(expect.any(Array));
+      expect(data.projectSlugs).toEqual(expect.any(Array));
+      expect(data.isAllProjects).toEqual(expect.any(Boolean));
+      expect(data.projectSelectionMode).toEqual(expect.any(String));
+      expect(data.projectSelectionInstruction).toEqual(expect.any(String));
     });
   });
 

@@ -7,8 +7,8 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -17,7 +17,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {ProjectBadge, ProjectBadgeContainer} from './styles';
+import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 interface StatusCounts {
@@ -176,41 +176,55 @@ export function TeamIssuesBreakdown({
       <CollapsePanel items={sortedProjectIds.length}>
         {({isExpanded, showMoreButton}) => (
           <Fragment>
-            <StyledPanelTable
+            <StyledSimpleTable
               numActions={statuses.length}
-              headers={[
-                t('Project'),
-                ...statuses
-                  .map(action => action.replace('ignore', 'archive'))
-                  .map(action => <AlignRight key={action}>{action}</AlignRight>),
-                <AlignRight key="total">
-                  {t('total')} <IconArrow direction="down" size="xs" variant="muted" />
-                </AlignRight>,
-              ]}
-              isLoading={isPending}
-            >
-              {sortedProjectIds.map(({projectId}, idx) => {
-                const project = projects.find(p => p.id === projectId);
-
-                if (idx >= COLLAPSE_COUNT && !isExpanded) {
-                  return null;
-                }
-
-                return (
-                  <Fragment key={projectId}>
-                    <ProjectBadgeContainer>
-                      {project && <ProjectBadge avatarSize={18} project={project} />}
-                    </ProjectBadgeContainer>
-                    {statuses.map(action => (
-                      <AlignRight key={action}>
-                        {projectTotals[projectId]![action]}
-                      </AlignRight>
+              header={
+                <SimpleTable.HeaderRow>
+                  <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
+                  {statuses
+                    .map(action => action.replace('ignore', 'archive'))
+                    .map(action => (
+                      <SimpleTable.HeaderCell key={action}>
+                        <AlignRight>{action}</AlignRight>
+                      </SimpleTable.HeaderCell>
                     ))}
-                    <AlignRight>{projectTotals[projectId]!.total}</AlignRight>
-                  </Fragment>
-                );
-              })}
-            </StyledPanelTable>
+                  <SimpleTable.HeaderCell>
+                    <AlignRight>
+                      {t('total')}{' '}
+                      <IconArrow direction="down" size="xs" variant="muted" />
+                    </AlignRight>
+                  </SimpleTable.HeaderCell>
+                </SimpleTable.HeaderRow>
+              }
+            >
+              {isPending && <SimpleTable.Loading />}
+              {!isPending &&
+                sortedProjectIds.map(({projectId}, idx) => {
+                  const project = projects.find(p => p.id === projectId);
+
+                  if (idx >= COLLAPSE_COUNT && !isExpanded) {
+                    return null;
+                  }
+
+                  return (
+                    <SimpleTable.Row key={projectId}>
+                      <SimpleTable.RowCell>
+                        <ProjectBadgeContainer>
+                          {project && <ProjectBadge avatarSize={18} project={project} />}
+                        </ProjectBadgeContainer>
+                      </SimpleTable.RowCell>
+                      {statuses.map(action => (
+                        <SimpleTable.RowCell key={action} justify="end">
+                          {projectTotals[projectId]![action]}
+                        </SimpleTable.RowCell>
+                      ))}
+                      <SimpleTable.RowCell justify="end">
+                        {projectTotals[projectId]!.total}
+                      </SimpleTable.RowCell>
+                    </SimpleTable.Row>
+                  );
+                })}
+            </StyledSimpleTable>
             {!isPending && showMoreButton}
           </Fragment>
         )}
@@ -227,17 +241,10 @@ const IssuesChartWrapper = styled(ChartWrapper)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{numActions: number}>`
+const StyledSimpleTable = styled(TeamInsightsTable, {
+  shouldForwardProp: prop => prop !== 'numActions',
+})<{numActions: number}>`
   grid-template-columns: 1fr ${p => ' 0.2fr'.repeat(p.numActions)} 0.2fr;
-  font-size: ${p => p.theme.font.size.md};
-  white-space: nowrap;
-  margin-bottom: 0;
-  border: 0;
-  box-shadow: unset;
-
-  & > div {
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  }
 `;
 
 const AlignRight = styled('div')`

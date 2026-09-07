@@ -89,6 +89,34 @@ describe('useConversation', () => {
     expect(result.current.title).toBeNull();
   });
 
+  it('stops loading after reaching the pagination cap', async () => {
+    const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
+    const requests = Array.from({length: 10}, (_, index) =>
+      MockApiClient.addMockResponse({
+        url,
+        match: [MockApiClient.matchQuery({cursor: index === 0 ? undefined : `${index}`})],
+        body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
+        headers: {
+          Link: `<${url}?cursor=${index + 1}>; rel="next"; results="true"; cursor="${index + 1}"`,
+        },
+      })
+    );
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(requests.map(request => request.mock.calls.length)).toEqual(
+        Array.from({length: 10}, () => 1)
+      );
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.nodes).toHaveLength(10);
+  });
+
   it('maps gen_ai.input.messages to node attributes', async () => {
     const inputMessages = JSON.stringify([{role: 'user', content: 'Hello from input'}]);
 

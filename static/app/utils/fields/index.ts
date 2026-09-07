@@ -1,7 +1,11 @@
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions';
 
 import {t, td} from 'sentry/locale';
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {
+  CONDITIONS_ARGUMENTS,
+  EQUALITY_CONDITIONS_ARGUMENTS,
+  WEB_VITALS_QUALITY,
+} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
@@ -397,6 +401,7 @@ export enum AggregationKey {
   P100 = 'p100',
   PERCENTILE = 'percentile',
   AVG = 'avg',
+  AVG_IF = 'avg_if',
   APDEX = 'apdex',
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
@@ -1000,6 +1005,47 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.AVG_IF]: {
+    desc: t('Returns averages for a selected field, for events matching a condition'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'transaction',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '/',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
@@ -1109,6 +1155,7 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
 
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.AVG_IF,
   AggregationKey.COUNT_IF,
   AggregationKey.APDEX,
   AggregationKey.USER_MISERY,
@@ -1424,6 +1471,46 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG_IF],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'db',
         required: true,
       },
     ],
@@ -2208,7 +2295,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[FieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3238,12 +3325,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[ReplayFieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[ReplayFieldKey.BROWSER_VERSION]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3552,7 +3639,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[FeedbackFieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3785,6 +3872,24 @@ export function classifyTagKey(key: string): FieldKind {
   }
 
   return FieldKind.TAG;
+}
+
+/**
+ * The trace item attribute type a {@link FieldKind} corresponds to. Inverse of
+ * `fieldKindFromFieldType`.
+ */
+export function attributeTypeFromKind(
+  kind: FieldKind | undefined
+): 'string' | 'number' | 'boolean' {
+  if (kind === FieldKind.MEASUREMENT) {
+    return 'number';
+  }
+
+  if (kind === FieldKind.BOOLEAN) {
+    return 'boolean';
+  }
+
+  return 'string';
 }
 
 export function prettifyTagKey(key: string): string {

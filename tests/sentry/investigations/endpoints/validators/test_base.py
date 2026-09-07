@@ -48,13 +48,11 @@ class TestStrictCamelSnakeValidator:
         assert data["nested"] == {"promptCollapsed": True, "xAxis": "time"}
 
     def test_converts_multi_word_error_keys_to_camel_case(self) -> None:
-        validator = InvestigationCreateValidator(
-            data={"templateKey": "breached_metric", "templateVersion": 1}
-        )
+        validator = InvestigationCreateValidator(data={"templateKey": "breached_metric"})
 
         assert not validator.is_valid()
-        assert "sourceRef" in validator.errors
-        assert "sourceref" not in validator.errors
+        assert "templateKey" in validator.errors
+        assert "templatekey" not in validator.errors
 
     def test_rejects_colliding_camel_and_snake_keys(self) -> None:
         with pytest.raises(serializers.ValidationError):

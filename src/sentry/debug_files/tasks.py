@@ -3,16 +3,6 @@ from sentry.taskworker.namespaces import attachments_tasks
 
 
 @instrumented_task(
-    name="sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
-    namespace=attachments_tasks,
-)
-def refresh_artifact_bundles_in_use() -> None:
-    from .artifact_bundles import refresh_artifact_bundles_in_use as do_refresh
-
-    do_refresh()
-
-
-@instrumented_task(
     name="sentry.debug_files.tasks.backfill_artifact_bundle_db_indexing",
     namespace=attachments_tasks,
 )

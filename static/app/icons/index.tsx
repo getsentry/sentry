@@ -22,6 +22,7 @@ export {IconCheckmark} from './iconCheckmark';
 export {IconChevron} from './iconChevron';
 export {IconCircle} from './iconCircle';
 export {IconCircleCheckmark} from './iconCircleCheckmark';
+export {IconCircleDashed} from './iconCircleDashed';
 export {IconCircleFill} from './iconCircleFill';
 export {IconClock} from './iconClock';
 export {IconClose} from './iconClose';

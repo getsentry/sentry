@@ -6,13 +6,14 @@ import debounce from 'lodash/debounce';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {NotificationActionManager} from 'sentry/components/notificationActions/notificationActionManager';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -20,6 +21,7 @@ import type {
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,6 +46,8 @@ import {AccordionRow} from './components/accordionRow';
 interface Props {
   subscription: Subscription;
 }
+
+const PROJECT_COLUMNS: TableColumnConfig[] = [{key: 'project', width: 'auto'}];
 
 function SpikeProtectionProjects({subscription}: Props) {
   const [projects, setProjects] = useState([] as ProjectSummaryWithOptions[]);
@@ -77,7 +81,9 @@ function SpikeProtectionProjects({subscription}: Props) {
       }
       setIsFetchingProjects(true);
       const [data, _, resp] = await api.requestPromise(
-        `/organizations/${organization.slug}/projects/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           includeAllArgs: true,
           query: {
@@ -106,7 +112,9 @@ function SpikeProtectionProjects({subscription}: Props) {
 
   const fetchAvailableNotificationActions = useCallback(async () => {
     const data = await api.requestPromise(
-      `/organizations/${organization.slug}/notifications/available-actions/`
+      getApiUrl('/organizations/$organizationIdOrSlug/notifications/available-actions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
     );
     setAvailableNotificationActions(data.actions);
   }, [api, organization]);
@@ -128,7 +136,9 @@ function SpikeProtectionProjects({subscription}: Props) {
   ) => {
     const projectId = project.id;
     const data = await api.requestPromise(
-      `/organizations/${organization.slug}/notifications/actions/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/notifications/actions/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {triggerType, project: projectId}}
     );
 
@@ -146,8 +156,13 @@ function SpikeProtectionProjects({subscription}: Props) {
   const updateAllProjects = async (isEnabling: boolean) => {
     try {
       await api.requestPromise(
-        `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
-        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
+        `${getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })}?projectSlug=$all`,
+        {
+          method: isEnabling ? 'POST' : 'DELETE',
+          data: {projects: []},
+        }
       );
       const newProjects = projects.map(p => ({
         ...p,
@@ -270,18 +285,20 @@ function SpikeProtectionProjects({subscription}: Props) {
           {AllProjectsAction(true)}
         </ButtonBar>
       </Flex>
-      <StyledPanelTable
-        disablePadding={
-          organization.features.includes('notification-actions') ? true : false
+      <StyledSimpleTable
+        columns={PROJECT_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>
+              <Text variant="muted">{t('Projects')}</Text>
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
         }
-        isEmpty={!projects.length}
-        headers={[
-          <Text variant="muted" key={0}>
-            {t('Projects')}
-          </Text>,
-        ]}
-        isLoading={isLoading || isFetchingProjects}
       >
+        {(isLoading || isFetchingProjects) && <SimpleTable.Loading />}
+        {!isLoading && !isFetchingProjects && !projects.length && (
+          <SimpleTable.Empty>There are no items to display</SimpleTable.Empty>
+        )}
         {projects?.map(project => {
           const hasProjectWrite = project.access.includes('project:write');
           const accordionTitle = renderAccordionTitle(project);
@@ -289,10 +306,11 @@ function SpikeProtectionProjects({subscription}: Props) {
           const isAccordionDisabled = !isSpikeProtectionEnabled(project);
 
           return (
-            <Fragment key={project.id}>
-              <Flex
+            <SimpleTable.Row key={project.id}>
+              <SimpleTable.RowCell
                 gap="xl"
                 padding="xl"
+                overflow="visible"
                 data-test-id={`${project.slug}-accordion-row${
                   isAccordionDisabled ? '-disabled' : ''
                 }`}
@@ -312,11 +330,11 @@ function SpikeProtectionProjects({subscription}: Props) {
                     fetchProjectNotificationActions(project, notificationActionsById)
                   }
                 />
-              </Flex>
-            </Fragment>
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
           );
         })}
-      </StyledPanelTable>
+      </StyledSimpleTable>
       {pageLinks && <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />}
     </Fragment>
   );
@@ -328,7 +346,7 @@ const StyledSearch = styled(SearchBar)`
   flex: 1;
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   align-items: center;
   overflow: visible;
 `;

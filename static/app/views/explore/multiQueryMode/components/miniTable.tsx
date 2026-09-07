@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Table as ExploreTable} from 'sentry/views/explore/components/table';
+import {DataTable} from 'sentry/components/tables/dataTable';
 
 /**
  * @deprecated Use `Table` from `@sentry/scraps/table`.
  */
-export const Table = styled(ExploreTable)`
+export const Table = styled(DataTable)`
   overflow-x: hidden;
   margin: 0;
 

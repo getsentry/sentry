@@ -7,9 +7,9 @@ import type {DistributedOmit} from 'type-fest';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {AlertVariant} from 'sentry/utils/theme';
@@ -194,6 +194,7 @@ export function Alert({
   variant,
   ...props
 }: AlertProps) {
+  const {t} = useTranslation();
   const showExpand = defined(expand);
   const [isExpanded, setIsExpanded] = useState(!!props.defaultExpanded);
 

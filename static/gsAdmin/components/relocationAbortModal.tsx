@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -28,7 +29,9 @@ export function RelocationAbortModal({
     mutationFn: () =>
       fetchMutation<Relocation>({
         method: 'PUT',
-        url: `/relocations/${relocation.uuid}/abort/`,
+        url: getApiUrl('/relocations/$relocationUuid/abort/', {
+          path: {relocationUuid: relocation.uuid},
+        }),
         options: {host: relocation.region.url},
       }),
     onSuccess: rawRelocation => {

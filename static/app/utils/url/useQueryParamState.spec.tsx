@@ -166,7 +166,7 @@ describe('useQueryParamState', () => {
     );
 
     const {result, rerender} = renderHook(
-      () => useQueryParamState({fieldName: 'testField', syncStateWithUrl: false}),
+      () => useQueryParamState({fieldName: 'testField'}),
       {
         wrapper: UrlParamBatchProvider,
       }

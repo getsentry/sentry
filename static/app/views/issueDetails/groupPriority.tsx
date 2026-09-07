@@ -115,7 +115,7 @@ export function GroupPriorityCommandPaletteAction({
       }}
     >
       <CMDKAction
-        display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+        display={{label: t('High'), icon: <IconCellSignal />}}
         onAction={() => onChangePriority(PriorityLevel.HIGH)}
       />
       <CMDKAction

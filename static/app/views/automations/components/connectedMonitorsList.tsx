@@ -5,9 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {getPaginationCaption, Pagination} from '@sentry/scraps/pagination';
+import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
@@ -90,6 +89,7 @@ export function ConnectedMonitorsList({
   workflowId,
   ...props
 }: Props) {
+  const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
   const emptySelection = defined(detectorIds) && detectorIds.length === 0;
@@ -125,20 +125,23 @@ export function ConnectedMonitorsList({
 
   return (
     <Container containerType="inline-size" {...props}>
-      <SimpleTableWithColumns>
-        <SimpleTable.Header>
-          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="type">
-            {t('Type')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="last-issue">
-            {t('Last Issue')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="owner">
-            {t('Assignee')}
-          </SimpleTable.HeaderCell>
-          {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
-        </SimpleTable.Header>
+      <SimpleTableWithColumns
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="type">
+              {t('Type')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="last-issue">
+              {t('Last Issue')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell data-column-name="owner">
+              {t('Assignee')}
+            </SimpleTable.HeaderCell>
+            {canEdit && <SimpleTable.HeaderCell data-column-name="connected" />}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {isLoading && (
           <Skeletons
             canEdit={canEdit}
@@ -149,11 +152,7 @@ export function ConnectedMonitorsList({
             }
           />
         )}
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error />}
         {((isSuccess && detectors?.length === 0) || emptySelection) && (
           <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
         )}

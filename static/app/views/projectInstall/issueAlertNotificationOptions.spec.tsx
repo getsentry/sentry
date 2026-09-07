@@ -115,6 +115,21 @@ describe('useCreateNotificationAction', () => {
     },
   });
 
+  const msteamsIntegration = OrganizationIntegrationsFixture({
+    id: '2',
+    name: 'my-team',
+    status: 'active',
+    provider: {
+      key: 'msteams',
+      slug: 'msteams',
+      name: 'Microsoft Teams',
+      canAdd: true,
+      canDisable: false,
+      features: [],
+      aspects: {},
+    },
+  });
+
   function addIntegrationsResponse(body: OrganizationIntegration[]) {
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
@@ -182,6 +197,33 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.provider).toBe('slack');
     expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
     expect(result.current.notificationProps.channel?.value).toBe('#alerts');
+  });
+
+  it('builds a Microsoft Teams action with the selected channel name', async () => {
+    addIntegrationsResponse([msteamsIntegration]);
+
+    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
+      organization,
+    });
+
+    await waitFor(() =>
+      expect(result.current.notificationProps.provider).toBe('msteams')
+    );
+
+    act(() => {
+      result.current.notificationProps.setActions([MultipleCheckboxOptions.INTEGRATION]);
+      result.current.notificationProps.setChannel({
+        channelName: 'incidents',
+        label: 'incidents (19:channel-id@thread.tacv2)',
+        value: '19:channel-id@thread.tacv2',
+      });
+    });
+
+    expect(result.current.getIntegrationAction({shouldCreateRule: true})).toEqual({
+      id: IssueAlertActionType.MS_TEAMS,
+      team: msteamsIntegration.id,
+      channel: 'incidents',
+    });
   });
 
   it('auto-selects provider/integration after connect when initial query had no integrations', async () => {
@@ -261,12 +303,17 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
   });
 
-  it('resolves provider, integration, and actions from defaultActions on mount', async () => {
+  it('restores an integration action from a combined workflow on mount', async () => {
     addIntegrationsResponse([slackIntegration]);
 
     // Stable reference: the init effect depends on `defaultActions`, so an
     // inline array (new ref each render) would cause repeated re-runs.
     const defaultActions = [
+      {
+        id: IssueAlertActionType.NOTIFY_EMAIL,
+        targetType: 'IssueOwners',
+        fallthroughType: 'ActiveMembers',
+      },
       {
         id: IssueAlertActionType.SLACK,
         workspace: slackIntegration.id,

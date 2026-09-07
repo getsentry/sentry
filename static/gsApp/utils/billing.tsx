@@ -213,7 +213,7 @@ export function formatUsageWithUnits(
         });
   }
   return options.isAbbreviated
-    ? displayNumber(usageQuantity, 0)
+    ? displayNumber(usageQuantity)
     : usageQuantity.toLocaleString();
 }
 

@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
@@ -30,17 +29,6 @@ export function AuthLayoutContent({children}: {children: React.ReactNode}) {
         </AuthPanel>
       </AuthContainer>
     </div>
-  );
-}
-
-/**
- * Route component version that renders children via Outlet.
- */
-export function AuthLayoutRoute() {
-  return (
-    <AuthLayoutContent>
-      <Outlet />
-    </AuthLayoutContent>
   );
 }
 

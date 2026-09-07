@@ -3,6 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -28,7 +29,10 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/organizations/${organization.slug}/preprodartifacts/${artifactId}/delete/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/preprodartifacts/$headArtifactId/delete/',
+          {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
+        ),
         method: 'DELETE',
       });
     },
@@ -48,7 +52,7 @@ export function useBuildDetailsActions({
   const {mutate: rerunAnalysis} = useMutation<void, RequestError>({
     mutationFn: () => {
       return fetchMutation({
-        url: '/internal/preprod-artifact/rerun-analysis/',
+        url: getApiUrl('/internal/preprod-artifact/rerun-analysis/'),
         method: 'POST',
         data: {
           preprod_artifact_id: artifactId,
@@ -86,7 +90,10 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/organizations/${organization.slug}/preprod-artifact/rerun-status-checks/${artifactId}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-status-checks/$headArtifactId/',
+          {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
+        ),
         method: 'POST',
         data: {
           check_types: ['size'],

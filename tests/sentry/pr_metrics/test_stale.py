@@ -295,7 +295,7 @@ class EmitAbandonedPrMetricsRowTest(TestCase):
 
 
 @cell_silo_test
-@with_feature("organizations:pr-metrics-emit")
+@with_feature(["organizations:pr-metrics"])
 class DetectStalePullRequestsTaskTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -337,7 +337,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             detect_stale_pull_requests_task()
@@ -351,7 +350,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         pr = self._make_tracked_stale_pr()
         self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             detect_stale_pull_requests_task()
@@ -364,7 +362,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
     def test_claims_verdict_and_emits_for_stale_pr(self) -> None:
         pr = self._make_tracked_stale_pr()
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             mock_emit.return_value = True
@@ -378,7 +375,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
     def test_tags_stale_emission_with_no_reviewer_engagement(self) -> None:
         self._make_tracked_stale_pr()
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             mock_emit.return_value = True
@@ -396,7 +392,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         old_activity.date_added = _ago(4) - timedelta(days=1)
         old_activity.save(update_fields=["date_added"])
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             mock_emit.return_value = True
@@ -404,9 +399,9 @@ class DetectStalePullRequestsTaskTest(TestCase):
 
         mock_emit.assert_called_once()
 
-    def test_skips_pr_without_emit_feature(self) -> None:
+    def test_skips_pr_without_pr_metrics_feature(self) -> None:
         self._make_tracked_stale_pr()
-        with self.feature({"organizations:pr-metrics-emit": False}):
+        with self.feature({"organizations:pr-metrics": False}):
             with patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit:
                 detect_stale_pull_requests_task()
         mock_emit.assert_not_called()
@@ -414,7 +409,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
     def test_does_not_double_emit_on_second_run(self) -> None:
         self._make_tracked_stale_pr()
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             mock_emit.return_value = True
@@ -430,13 +424,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         )
         with patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit:
             detect_stale_pull_requests_task()
-        mock_emit.assert_not_called()
-
-    def test_skips_when_activity_tracking_disabled(self) -> None:
-        self._make_tracked_stale_pr()
-        with patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit:
-            detect_stale_pull_requests_task()
-
         mock_emit.assert_not_called()
 
     def test_continues_when_org_not_found(self) -> None:
@@ -461,7 +448,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         ghost_org.delete()
 
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
             mock_emit.return_value = True
@@ -476,7 +462,6 @@ class DetectStalePullRequestsTaskTest(TestCase):
         good_pr = self._make_tracked_stale_pr()
 
         with (
-            self.feature({"organizations:pr-metrics-activity": True}),
             patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
         ):
 

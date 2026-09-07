@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.seer.models.workflow import SeerWorkflowStrategy
+
+
+class SeerNightShiftRunErrorType(StrEnum):
+    NO_QUOTA = "no_quota"
+    ELIGIBLE_PROJECTS_FAILED = "eligible_projects_failed"
+    NO_SEER_ACCESS = "no_seer_access"
+    INVALID_SHARD_PLAN = "invalid_shard_plan"
+    SHARD_DISPATCH_FAILED = "shard_dispatch_failed"
+    SHARD_DELIVERY_FAILED = "shard_delivery_failed"
+    UNKNOWN = "unknown"
 
 
 @cell_silo_model

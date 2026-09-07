@@ -9,17 +9,25 @@ import {
 const TS_START = 1531094400000; // 2018 July 9, 12am UTC
 const TS_END = 1531180800000; // 2018 July 10, 12am UTC
 
+let configState: ReturnType<typeof ConfigStore.getState>;
+
 // Tests that format sub-daily dates in local time expect America/New_York (-04:00 EDT).
 // We explicitly set this via ConfigStore so the output is environment-independent
 // (previously these tests relied on the CI runner's system timezone).
 beforeEach(() => {
+  configState = ConfigStore.getState();
   ConfigStore.set('user', {
     ...ConfigStore.get('user'),
     options: {
       ...ConfigStore.get('user')?.options,
+      clock24Hours: false,
       timezone: 'America/New_York',
     },
   });
+});
+
+afterEach(() => {
+  ConfigStore.loadInitialData(configState);
 });
 
 describe('getDateFromMoment', () => {
@@ -52,15 +60,16 @@ describe('getDateFromMoment', () => {
   });
 
   it('shows the date and time in 24 hour format if 24 hour format is enabled', () => {
-    expect(getDateFromMoment(start, '6h', false, true)).toBe(
-      'Jul 8 20:00 - 02:00 (-04:00)'
-    );
-    expect(getDateFromMoment(start, '1h', false, true)).toBe(
-      'Jul 8 20:00 - 21:00 (-04:00)'
-    );
-    expect(getDateFromMoment(start, '5m', false, true)).toBe(
-      'Jul 8 20:00 - 20:05 (-04:00)'
-    );
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user')?.options,
+        clock24Hours: true,
+      },
+    });
+    expect(getDateFromMoment(start, '6h')).toBe('Jul 8 20:00 - 02:00 (-04:00)');
+    expect(getDateFromMoment(start, '1h')).toBe('Jul 8 20:00 - 21:00 (-04:00)');
+    expect(getDateFromMoment(start, '5m')).toBe('Jul 8 20:00 - 20:05 (-04:00)');
   });
 });
 

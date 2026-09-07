@@ -11,6 +11,7 @@ import {InputField} from 'sentry/components/forms/fields/inputField';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form, type FormProps} from 'sentry/components/forms/form';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -55,7 +56,9 @@ function ChangeBalanceModal({
     mutationFn: ({creditAmount, ticketUrl, notes}) =>
       fetchMutation({
         method: 'POST',
-        url: `/_admin/customers/${orgId}/balance-changes/`,
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/balance-changes/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
         data: {
           ticketUrl,
           notes,

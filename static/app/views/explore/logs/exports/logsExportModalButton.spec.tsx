@@ -37,6 +37,7 @@ describe('LogsExportModalButton', () => {
     field: ['message'],
     project: [1],
     query: '',
+    sampling: 'HIGHEST_ACCURACY',
     sort: ['-timestamp'],
   };
 
@@ -53,6 +54,7 @@ describe('LogsExportModalButton', () => {
         isLoading={false}
         queryInfo={queryInfo}
         supportsAllColumns
+        supportsLocalDownload={false}
         tableData={tableData}
         title="Logs Export"
       />,

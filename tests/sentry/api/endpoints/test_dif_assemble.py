@@ -521,6 +521,5 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             source_fileobj,
             content_type=source_dif.get_content_type(),
             filename="11111111-1111-1111-1111-111111111111.txt",
-            compression="none",
         )
         objectstore_session.delete.assert_called_once_with("cloned-storage-path")

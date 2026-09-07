@@ -398,6 +398,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             SUCCESS_LINKED_MESSAGE,
             SUCCESS_LINKED_TITLE,
             SelectTeamForm,
+            build_team_linked_message,
         )
 
         user = serialize_generic_user(request.user)
@@ -513,11 +514,7 @@ class LinkTeamView(TeamLinkageView, ABC):
             types=[NotificationSettingEnum.ISSUE_ALERTS],
         )
 
-        message = SUCCESS_LINKED_MESSAGE.format(
-            slug=team.slug,
-            workflow_addon="",
-            channel_name=channel_name,
-        )
+        message = build_team_linked_message(team=team, channel_id=channel_id)
         self.notify_on_success(channel_id, integration, message)
 
         self.capture_metric("success")
@@ -527,7 +524,11 @@ class LinkTeamView(TeamLinkageView, ABC):
             request=request,
             context={
                 "heading_text": SUCCESS_LINKED_TITLE,
-                "body_text": message,
+                # Web confirmation page stays plain text; Slack markup is only for chat.
+                "body_text": SUCCESS_LINKED_MESSAGE.format(
+                    team=team.slug,
+                    channel=channel_name,
+                ),
                 "channel_id": channel_id,
                 "team_id": integration.external_id,
             },
