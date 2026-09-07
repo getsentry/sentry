@@ -2615,7 +2615,7 @@ register(
 
 # Webhook processing controls
 # Most threads a skip-on-failure claim delivers on, bounded by the records it
-# claimed. Strict providers deliver on one thread whatever this says.
+# claimed.
 register(
     "hybridcloud.webhookpayload.worker_threads",
     default=16,
