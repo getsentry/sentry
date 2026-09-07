@@ -372,7 +372,13 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
+    <Container
+      position="relative"
+      flex="1 1 auto"
+      minWidth="0"
+      style={outerWrapStyles}
+      ref={outerWrapRef}
+    >
       <TabListWrap
         {...tabListProps}
         disableOverflow={disableOverflow}
