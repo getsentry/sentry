@@ -116,7 +116,7 @@ function AddToStartupProgramModal({
         </Header>
         <Body>
           <Stack gap="lg">
-            <Text data-test-id="balance">
+            <Text>
               <Text bold>Current Balance: </Text>
               {formatBalance(subscription.accountBalance)}
             </Text>
@@ -182,9 +182,7 @@ function AddToStartupProgramModal({
         <Footer>
           <Flex gap="md" justify="end">
             <Button onClick={closeModal}>Cancel</Button>
-            <form.SubmitButton>
-              {mutation.isPending ? 'Submitting...' : 'Submit'}
-            </form.SubmitButton>
+            <form.SubmitButton>Submit</form.SubmitButton>
           </Flex>
         </Footer>
       </form.AppForm>

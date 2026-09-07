@@ -90,7 +90,7 @@ function ChangeBalanceModal({
         </Header>
         <Body>
           <Stack gap="lg">
-            <Text data-test-id="balance">
+            <Text>
               <Text bold>Current Balance: </Text>
               {formatBalance(subscription.accountBalance)}
             </Text>

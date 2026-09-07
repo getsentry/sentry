@@ -33,7 +33,6 @@ describe('SentryAppUpdateModal', () => {
     openModal(deps => (
       <SentryAppUpdateModal
         {...deps}
-        onAction={jest.fn()}
         sentryAppData={{
           slug: 'example-app',
           popularity: 10,

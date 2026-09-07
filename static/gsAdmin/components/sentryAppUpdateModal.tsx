@@ -17,7 +17,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 type Props = ModalRenderProps & {
-  onAction: (data: any) => void;
   sentryAppData: any;
 };
 
