@@ -412,11 +412,8 @@ function DynamicSamplingRulesTable({
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>{row.formattedRateType}</SimpleTable.RowCell>
             <SimpleTable.RowCell justify="end" paddingRight="3xl" gap="md">
-              <Tooltip isHoverable title={row.samplingValue.value}>
-                {row.formattedRateValue}
-              </Tooltip>
+              <Tooltip title={row.samplingValue.value}>{row.formattedRateValue}</Tooltip>
               <Tooltip
-                isHoverable
                 title={`This rule ${
                   row.impact > 0 ? 'increases' : 'decreases'
                 } sample rate of matching events`}

@@ -62,7 +62,6 @@ export function AssigneeBadge({
   if (assignedTo) {
     return (
       <Tooltip
-        isHoverable
         maxWidth={ASSIGNED_TOOLTIP_MAX_WIDTH}
         title={
           <AssignedTooltip
@@ -88,7 +87,7 @@ export function AssigneeBadge({
   }
 
   return (
-    <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
+    <Tooltip title={<UnassignedTooltip />} skipWrapper>
       <UnassignedTag
         icon={
           <UnassignedIcon showLabel={showLabel} chevronDirection={chevronDirection} />
