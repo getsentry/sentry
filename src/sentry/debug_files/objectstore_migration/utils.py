@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 
 def migrate_debug_file(
     debug_file: ProjectDebugFile,
-    *,
     delete_corrupt: bool = False,
 ) -> None:
     """Migrate one File-backed DIF, or drop the legacy File from a dual-written DIF."""
@@ -102,18 +101,20 @@ class FilestoreIntegrityError(Exception):
 
 def _handle_filestore_integrity_error(
     dif_id: int,
-    *,
     source_file_id: int,
     error: FilestoreIntegrityError,
     delete_corrupt: bool,
 ) -> None:
-    deleted = delete_corrupt and delete_corrupt_debug_file(
-        dif_id,
-        source_file_id=source_file_id,
-    )
+    deleted = False
+    if delete_corrupt:
+        deleted = delete_corrupt_debug_file(
+            dif_id,
+            source_file_id=source_file_id,
+        )
+
     logger.warning(
         (
-            "debug_files.objectstore_migration.filestore_integrity_mismatch_deleted"
+            "debug_files.objectstore_migration.filestore_integrity_mismatch.deleted"
             if deleted
             else "debug_files.objectstore_migration.filestore_integrity_mismatch"
         ),
