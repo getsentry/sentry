@@ -10,7 +10,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     GithubCheckSuiteEvent,
 )
 from sentry.seer.autofix.pr_iteration.constants import CAP_ASSIGN_FLAG
-from sentry.seer.autofix.pr_iteration.pause import pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
@@ -158,7 +158,11 @@ class AssignUserForExhaustedCapTest(TestCase):
 
     @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
     def test_skips_paused_run(self, mock_actions: MagicMock, _mock_cap: MagicMock) -> None:
-        pause_pr_iteration(run_id=RUN_ID, organization_id=self.organization.id)
+        pause_pr_iteration(
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            reason=PauseReason.USER_STOP,
+        )
 
         with self.feature(FLAG), patch(f"{PAUSE_PATH}.metrics") as mock_metrics:
             assign_user_for_exhausted_cap(_event(), self._resolved())

@@ -141,6 +141,30 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     @responses.activate
+    def test_forwarding_reads_the_integration_once(self) -> None:
+        """GitLab used to keep its own lookup cache; the base memo replaces it, and a
+        query count is the only thing that notices if it stops covering this."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = self.run_parser(request)
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert (
+            len([q for q in queries.captured_queries if 'FROM "sentry_integration"' in q["sql"]])
+            == 1
+        )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
     def test_routing_webhook_properly_with_cells(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(

@@ -204,7 +204,7 @@ class GithubRequestParser(BaseRequestParser):
             return shed_response
 
         try:
-            integration = self.get_integration_from_request()
+            integration = self.integration_for_request()
             if not integration:
                 return self.get_default_missing_integration_response()
 
@@ -229,7 +229,7 @@ class GithubRequestParser(BaseRequestParser):
 
         response = self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, event),
+            mailbox=self.get_mailbox(integration, event),
             integration_id=integration.id,
         )
 

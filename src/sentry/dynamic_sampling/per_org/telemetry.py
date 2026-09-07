@@ -101,23 +101,6 @@ def emit_status(
     )
 
 
-def emit_count(metric: str, amount: int) -> None:
-    metrics.incr(
-        metric,
-        amount=amount,
-        sample_rate=metrics_sample_rate(),
-    )
-
-
-def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = None) -> None:
-    metrics.gauge(
-        metric,
-        value,
-        sample_rate=metrics_sample_rate(),
-        tags=dict(tags) if tags else None,
-    )
-
-
 def _get_status_from_result(result: object) -> DynamicSamplingStatus:
     if isinstance(result, DynamicSamplingStatus):
         return result

@@ -590,7 +590,13 @@ def check_fresh_derived_data_batch(
     )
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.check import CheckInvalidated, CheckTimeout, check_derived_data
+    from sentry import options
+    from sentry.issues.derived.check import (
+        CheckInvalidated,
+        CheckTimeout,
+        check_derived_data,
+        record_batch_status_consistency,
+    )
     from sentry.issues.derived.processing import PIPELINE
     from sentry.issues.derived.tasks_util import _record_check_result, _resume_check_id
     from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -618,14 +624,20 @@ def check_fresh_derived_data_batch(
         resume_pipeline_hash,
     )
 
+    status_check_enabled = options.get("issues.derived.status-consistency-check-enabled")
+    project_should_check: dict[int, bool] = {}
     derived_rows = GroupDerivedData.objects.filter(
         pipeline_hash=PIPELINE.pipeline_hash,
         group_id__gte=group_id_start,
         group_id__lt=group_id_end,
     ).order_by("group_id")
+    if status_check_enabled:
+        derived_rows = derived_rows.select_related("group")
     start = time.monotonic()
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     for derived in derived_rows.iterator():
+        if status_check_enabled:
+            record_batch_status_consistency(derived, derived.group, project_should_check)
         remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             result = check_derived_data(

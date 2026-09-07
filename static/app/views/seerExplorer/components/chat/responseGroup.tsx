@@ -163,12 +163,6 @@ export function ResponseGroup({
 }: ResponseGroupProps) {
   const answer = finalAnswer(group);
   const active = group.some(block => block.loading);
-  // Only a running tool keeps the box live. Loading with no tool calls is seer's LLM-wait
-  // placeholder (`is_global_loading`), which announces itself below; letting it drive the box
-  // animated a settled tool row and charged the model's wait to it.
-  const toolActive = group.some(block =>
-    Boolean(block.loading && block.message.tool_calls?.length)
-  );
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
   // `showThinking` toggle), any intermediate narration, and the tool calls.
@@ -184,9 +178,14 @@ export function ResponseGroup({
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // Keep ThinkingBlock expanded while a tool runs or we await user input (approval/question)
+  // Keep ThinkingBlock expanded while the response is still in progress — either a tool is
+  // running, or the LLM is between tool calls (loading without tool_calls yet). Without
+  // this, the block collapses and reopens on each poll cycle when the agent retries a
+  // failing tool call, causing a visible flash.
   const endTime =
-    toolActive || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
+    (active && !answer) || pendingInput
+      ? undefined
+      : new Date(group[group.length - 1]!.timestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">

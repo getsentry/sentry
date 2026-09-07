@@ -449,11 +449,9 @@ const PanelHeaderRight = styled('div')`
 `;
 
 const BaseSampleRateWrapper = styled(Alert)`
-  padding: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   font-weight: 600;
-  width: max-content;
   flex-basis: 50%;
 `;
 

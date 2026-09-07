@@ -807,8 +807,10 @@ function InboxIssueCard({
               <SuggestedAvatarStack
                 size={18}
                 owners={suggestedAssignees}
-                tooltip={t(
-                  'Suggested assignees: %s',
+                tooltip={tn(
+                  'Suggested assignee: %2$s',
+                  'Suggested assignees: %2$s',
+                  suggestedAssignees.length,
                   suggestedAssignees.map(getActorLabel).join(', ')
                 )}
               />

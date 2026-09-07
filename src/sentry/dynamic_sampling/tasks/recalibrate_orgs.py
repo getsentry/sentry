@@ -16,7 +16,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     fetch_projects_with_total_root_transaction_count_and_rates,
 )
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgsVolumes, OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.constants import MAX_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR
+from sentry.dynamic_sampling.tasks.constants import bounded_rebalance_factor
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     compute_adjusted_factor,
     delete_adjusted_factor,
@@ -141,14 +141,15 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
         )
         return
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+    bounded_factor = bounded_rebalance_factor(adjusted_factor)
+    if bounded_factor is None:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_factor(org_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_factor(org_id, adjusted_factor)
+    set_guarded_adjusted_factor(org_id, bounded_factor)
 
 
 @instrumented_task(
@@ -199,11 +200,12 @@ def recalibrate_project(
         )
         return
 
-    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+    bounded_factor = bounded_rebalance_factor(adjusted_factor)
+    if bounded_factor is None:
         # In case the new factor would result into too much recalibration, we want to remove it from cache,
         # effectively removing the generated rule.
         delete_adjusted_project_factor(project_id)
         return
 
     # At the end we set the adjusted factor.
-    set_guarded_adjusted_project_factor(project_id, adjusted_factor)
+    set_guarded_adjusted_project_factor(project_id, bounded_factor)

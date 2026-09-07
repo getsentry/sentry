@@ -3338,8 +3338,6 @@ if SILO_DEVSERVER:
     SENTRY_LOCALITIES = [
         {
             "name": "us",
-            # TODO(cells): Deprecate category
-            "category": "MULTI_TENANT",
             "cells": ["us"],
             "new_org_cell": "us",
         }

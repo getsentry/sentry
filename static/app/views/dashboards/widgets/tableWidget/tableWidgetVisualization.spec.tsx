@@ -80,6 +80,22 @@ describe('TableWidgetVisualization', () => {
       expect($headers[0]!.querySelector('svg')).toBeInTheDocument();
     });
 
+    it('Sizes the is_starred_transaction column to its content', () => {
+      const starredTableData: TabularData = {
+        data: [{is_starred_transaction: true, transaction: '/api/foo'}],
+        meta: {
+          fields: {is_starred_transaction: 'boolean', transaction: 'string'},
+          units: {is_starred_transaction: null, transaction: null},
+        },
+      };
+
+      render(<TableWidgetVisualization tableData={starredTableData} />);
+
+      expect(screen.getByRole('table')).toHaveStyle({
+        gridTemplateColumns: 'max-content minmax(90px, auto)',
+      });
+    });
+
     it('Renders alias text instead of star icon when alias is provided', () => {
       const starredTableData: TabularData = {
         data: [{is_starred_transaction: true, transaction: '/api/foo'}],
