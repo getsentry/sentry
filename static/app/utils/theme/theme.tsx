@@ -879,7 +879,7 @@ declare module '@emotion/react' {
 }
 
 export type StrictCSSObject = {
-  // eslint-disable-next-line no-restricted-syntax
+  // eslint-disable-next-line eslint-js/no-restricted-syntax
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors

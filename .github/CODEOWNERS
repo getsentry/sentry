@@ -170,7 +170,7 @@ vercel.json                                              @getsentry/owners-js-bu
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
-eslint.config.ts                                         @getsentry/owners-js-build
+oxlint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
@@ -849,7 +849,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/.cursor/BUGBOT.md                             @getsentry/design-engineering
 /static/CLAUDE.md                                     @getsentry/design-engineering
 /static/AGENTS.md                                     @getsentry/design-engineering
-/static/eslint/                                       @getsentry/design-engineering
+/static/oxlint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
 /.agents/skills/design-system/                         @getsentry/design-engineering
 /.agents/skills/migrate-frontend-forms/                @getsentry/design-engineering

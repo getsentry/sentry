@@ -166,7 +166,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
     configView: Rect,
     overrides?: {
       width: {max?: number; min?: number};
-      height?: {max?: number; min?: number};
     }
   ) {
     this.configView = computeClampedConfigView(configView, {
@@ -178,7 +177,6 @@ export class CanvasView<T extends {configSpace: Rect}> {
       height: {
         min: this.minHeight,
         max: this.configSpace.height,
-        ...overrides?.height,
       },
     });
   }

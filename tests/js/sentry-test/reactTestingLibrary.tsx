@@ -7,7 +7,7 @@ import {
   type RouteObject,
   type To,
 } from 'react-router-dom';
-import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
+import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
   createMemoryHistory,

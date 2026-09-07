@@ -1925,9 +1925,9 @@ function Section(props: CategorySectionProps) {
       </Container>
       <Grid
         columns={{
-          'screen:xs': 'repeat(2, 1fr)',
-          'screen:sm': 'repeat(3, 1fr)',
-          'screen:lg': 'repeat(4, 1fr)',
+          zero: 'repeat(2, 1fr)',
+          sm: 'repeat(3, 1fr)',
+          xl: 'repeat(4, 1fr)',
         }}
         align="center"
         gap="md"

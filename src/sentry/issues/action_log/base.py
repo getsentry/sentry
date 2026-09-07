@@ -10,11 +10,14 @@ from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActi
 from sentry.middleware import is_frontend_request
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils.http import KNOWN_MCP_CLIENT_FAMILIES, get_mcp_client_family, is_mcp_request
+from sentry.utils.http import (
+    KNOWN_MCP_CLIENT_FAMILIES,
+    SEER_REFERRER_HEADER,
+    get_mcp_client_family,
+    is_mcp_request,
+)
 
 logger = logging.getLogger(__name__)
-
-SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
 
 def resolve_action_source(request: Request) -> str:
