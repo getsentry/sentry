@@ -145,10 +145,7 @@ def migrate_shard(
                 return
 
             for debug_file in to_migrate:
-                if delete_corrupt:
-                    migrate_debug_file(debug_file, delete_corrupt=True)
-                else:
-                    migrate_debug_file(debug_file)
+                migrate_debug_file(debug_file, delete_corrupt=delete_corrupt)
 
             lowest_id = to_migrate[-1].id
             duration_seconds = monotonic() - shard_started_at
