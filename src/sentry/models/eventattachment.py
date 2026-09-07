@@ -147,8 +147,8 @@ class EventAttachmentBase(Model):
             # During cleanup, V2 objectstore blobs expire via TTL — skip the
             # explicit delete to avoid unnecessary load on the objectstore service.
             #
-            # We want to special-case pending attachments in a follow-up. See INGEST-1176.
-            if not os.environ.get("_SENTRY_CLEANUP"):
+            # Pending attachments are always deleted, because they get cleaned up long before their objectstore TTL expires.
+            if not (self.__class__ is EventAttachment and os.environ.get("_SENTRY_CLEANUP")):
                 organization_id = _get_organization(self.project_id)
                 get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
                     self.blob_path.removeprefix(V2_PREFIX)
