@@ -78,16 +78,27 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 "gitlab.repository.has_existing_webhook": bool(repo.config.get("webhook_id")),
             },
         )
-        if repo.config.get("webhook_id"):
-            logger.info(
-                "gitlab.repository.webhook_creation_skipped",
-                extra={**log_extra, "gitlab.repository.webhook_id": repo.config.get("webhook_id")},
-            )
+        project_id = repo.config.get("project_id")
+        if not project_id:
+            logger.info("gitlab.repository.missing_project_id", extra=log_extra)
             return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
+        existing_webhook_id = repo.config.get("webhook_id")
+        if existing_webhook_id:
+            # The stored hook may be gone, disabled, or carrying a rotated token, so replace
+            # it. Swallowing anything but a 404 here would leave a duplicate hook behind.
+            try:
+                client.delete_project_webhook(project_id, existing_webhook_id)
+            except ApiError as e:
+                if e.code != 404:
+                    raise installation.raise_error(e)
+                logger.info(
+                    "gitlab.repository.webhook_already_gone",
+                    extra={**log_extra, "gitlab.repository.webhook_id": existing_webhook_id},
+                )
         try:
-            hook_id = client.create_project_webhook(repo.config["project_id"])
+            hook_id = client.create_project_webhook(project_id)
         except Exception as e:
             raise installation.raise_error(e)
         repo.config["webhook_id"] = hook_id
@@ -99,10 +110,16 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
 
     def on_delete_repository(self, repo):
         """Clean up the attached webhook"""
+        project_id = repo.config.get("project_id")
+        webhook_id = repo.config.get("webhook_id")
+        # Legacy rows can lack either key. There is no hook to clean up then, and raising
+        # would only stop the user from deleting the repository.
+        if not project_id or not webhook_id:
+            return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
-            client.delete_project_webhook(repo.config["project_id"], repo.config["webhook_id"])
+            client.delete_project_webhook(project_id, webhook_id)
         except ApiError as e:
             if e.code == 404:
                 return

@@ -6,8 +6,10 @@ import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
+from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
@@ -125,6 +127,80 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         response = self.create_repository(self.default_repository_config, self.integration.id)
         assert response.status_code == 201
         self.assert_repository(self.default_repository_config)
+
+    @assume_test_silo_mode(SiloMode.CELL)
+    def relink_repository(self, repo: Repository) -> None:
+        """Replay what the repo sync does when it reattaches an already-linked repository."""
+        self.provider.on_create_repository(
+            serialize_repository(repo), serialize_rpc_organization(self.organization)
+        )
+
+    def add_webhook_recreate_responses(self, delete_status: int) -> None:
+        responses.add(
+            responses.DELETE,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks/99" % self.gitlab_id,
+            status=delete_status,
+        )
+        responses.add(
+            responses.POST,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            json={"id": 100},
+        )
+
+    @responses.activate
+    def test_on_create_repository_relink_recreates_webhook(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_webhook_recreate_responses(delete_status=204)
+
+        repo = self.get_repository(pk=response.data["id"])
+        self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["DELETE", "POST"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
+
+    @responses.activate
+    def test_on_create_repository_relink_when_webhook_already_gone(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_webhook_recreate_responses(delete_status=404)
+
+        repo = self.get_repository(pk=response.data["id"])
+        self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["DELETE", "POST"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 100
+
+    @responses.activate
+    def test_on_create_repository_relink_delete_failure_creates_no_duplicate(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_webhook_recreate_responses(delete_status=403)
+
+        repo = self.get_repository(pk=response.data["id"])
+        with pytest.raises(IntegrationError):
+            self.relink_repository(repo)
+
+        assert [call.request.method for call in responses.calls] == ["DELETE"]
+        assert self.get_repository(pk=repo.id).config["webhook_id"] == 99
+
+    @responses.activate
+    def test_repository_without_project_id(self) -> None:
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        responses.reset()
+        self.add_webhook_recreate_responses(delete_status=204)
+
+        repo = self.get_repository(pk=response.data["id"])
+        with assume_test_silo_mode(SiloMode.CELL):
+            del repo.config["project_id"]
+            repo.save()
+
+        with self.assertLogs("sentry.integrations.gitlab", level="INFO") as logs:
+            self.relink_repository(repo)
+        self.provider.on_delete_repository(repo)
+
+        assert "gitlab.repository.missing_project_id" in "\n".join(logs.output)
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_create_repository_request_invalid_url(self) -> None:
