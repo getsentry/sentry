@@ -126,12 +126,10 @@ that a crash strands at most this many rows until the claim horizon passes.
 # Define priorities for different webhook providers
 # Lower number means higher priority
 #
-# Deliberately unbacked by an index. A matching expression index was tried and went
-# unused: the discovery query below must aggregate every mailbox to find the heads
+# Applied in Python: discovery aggregates every mailbox to find the heads
 # regardless, and sorting that small result beats scanning the table in priority
-# order by orders of magnitude. Such an index also silently stops matching the
-# moment this dict gains an entry, since the two expressions must be textually
-# identical for Postgres to use it.
+# order by orders of magnitude. An expression index for the SQL ordering this
+# replaced was tried and went unused.
 PROVIDER_PRIORITY = {
     "stripe": 1,
 }
@@ -245,6 +243,11 @@ def _is_due(schedule_for: datetime.datetime) -> bool:
     return schedule_for <= timezone.now()
 
 
+def _skip_on_failure_providers() -> frozenset[str]:
+    """Providers whose drains skip a failed record instead of stopping at it."""
+    return frozenset(options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ())
+
+
 def _dispatches_from_due_head(mailbox_name: str) -> bool:
     """
     Whether this mailbox dispatches from its oldest due record instead of gating
@@ -252,8 +255,7 @@ def _dispatches_from_due_head(mailbox_name: str) -> bool:
     already deliver past failed records, so the head gate only parks every due
     record behind one failure's backoff.
     """
-    provider = _provider_from_mailbox(mailbox_name)
-    return provider in (options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ())
+    return _provider_from_mailbox(mailbox_name) in _skip_on_failure_providers()
 
 
 class Dispatcher(enum.StrEnum):
@@ -290,8 +292,7 @@ class _MailboxClaim:
     @property
     def skip_on_failure(self) -> bool:
         """Whether this provider may skip a failed record rather than stop."""
-        allowlist = options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
-        return self.provider in allowlist
+        return self.provider in _skip_on_failure_providers()
 
     @property
     def log_context(self) -> dict[str, Any]:
@@ -662,9 +663,7 @@ def _due_mailbox_heads() -> list[dict[str, Any]]:
         due_count=Count("id", filter=Q(schedule_for__lte=now)),
         in_flight_count=Count("id", filter=Q(schedule_for__gt=now)),
     )
-    skip_on_failure_providers = frozenset(
-        options.get("hybridcloud.webhookpayload.skip_on_failure_providers") or ()
-    )
+    skip_on_failure_providers = _skip_on_failure_providers()
     due_rows: defaultdict[str, int] = defaultdict(int)
     in_flight_rows: defaultdict[str, int] = defaultdict(int)
     heads = []

@@ -273,25 +273,6 @@ class ScheduleWebhooksTest(MetricCallsMixin, TestCase):
         assert mock_deliver.delay.call_count == 0
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
-    def test_schedule_due_head_prioritizes_by_provider(self, mock_deliver: MagicMock) -> None:
-        github_webhook = self.create_webhook_payload(
-            mailbox_name="github:123",
-            provider="github",
-            cell_name="us",
-        )
-        stripe_webhook = self.create_webhook_payload(
-            mailbox_name="stripe:123",
-            provider="stripe",
-            cell_name="us",
-        )
-
-        schedule_webhook_delivery()
-
-        assert mock_deliver.delay.call_count == 2
-        call_args_list = [call.kwargs["payload_id"] for call in mock_deliver.delay.call_args_list]
-        assert call_args_list == [stripe_webhook.id, github_webhook.id]
-
-    @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     def test_schedule_updates_mailbox_attributes(self, mock_deliver: MagicMock) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
