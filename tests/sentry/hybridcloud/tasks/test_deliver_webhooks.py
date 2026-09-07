@@ -2649,8 +2649,16 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
     @override_cells(cell_config)
     @override_options({"hybridcloud.webhookpayload.worker_threads": 2})
     def test_release_settles_in_flight_requests_before_covering_the_tail(self) -> None:
-        responses.add(
-            responses.POST, "http://us.testserver/extensions/github/webhook/", status=200, body=""
+        # Neither request answers until both have arrived, so "in flight" is a
+        # fact rather than a race against the second worker thread starting.
+        both_in_flight = threading.Barrier(2, timeout=5)
+
+        def answer(request: Any) -> tuple[int, dict[str, str], str]:
+            both_in_flight.wait()
+            return (200, {}, "")
+
+        responses.add_callback(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", callback=answer
         )
         valid_until = timezone.now() + BATCH_SCHEDULE_OFFSET
         records = create_payloads(4, "github:123", provider="github")
@@ -2658,8 +2666,8 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             schedule_for=valid_until
         )
 
-        # The deadline nears once the first two requests are in flight: both must
-        # settle — delivered and deleted — before the tail behind them is released.
+        # The deadline nears once both requests are in flight: both must settle —
+        # delivered and deleted — before the tail behind them is released.
         with patch.object(
             deliver_webhooks._MailboxClaim,
             "nearing_deadline",
