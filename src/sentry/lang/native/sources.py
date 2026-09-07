@@ -394,23 +394,36 @@ def is_internal_source_id(source_id: str):
     return source_id.startswith("sentry")
 
 
-def normalize_user_source(source):
+def normalize_user_source(source, project_id=None, event_id=None):
     """Sources supplied from the user frontend might not match the format that
     symbolicator expects.  For instance we currently do not permit headers to be
     configured in the UI, but we allow basic auth to be configured for HTTP.
     This means that we need to convert from username/password into the HTTP
     basic auth header.
+
+    Moreover, this inserts the project and event ID into the `x-sentry-project-id`
+    and `x-sentry-event-id` headers, respectively.
     """
     if source.get("type") == "http":
+        headers = {}
+
+        # Auth
         username = source.pop("username", None)
         password = source.pop("password", None)
         if username or password:
             auth = base64.b64encode(
                 ("{}:{}".format(username or "", password or "")).encode("utf-8")
             )
-            source["headers"] = {
-                "authorization": "Basic %s" % auth.decode("ascii"),
-            }
+            headers["authorization"] = "Basic %s" % auth.decode("ascii")
+
+        # Event & project ID
+        if project_id:
+            headers["x-sentry-project-id"] = project_id
+        if event_id:
+            headers["x-sentry-event-id"] = event_id
+
+        if headers:
+            source["headers"] = headers
     return source
 
 
@@ -531,7 +544,7 @@ def redact_source_secrets(config_sources: Any) -> Any:
     return redacted_sources
 
 
-def get_sources_for_project(project):
+def get_sources_for_project(project, event_id=None):
     """
     Returns a list of symbol sources for this project.
     """
@@ -555,7 +568,7 @@ def get_sources_for_project(project):
         try:
             custom_sources = parse_sources(sources_config, filter_appconnect=True)
             sources.extend(
-                normalize_user_source(source)
+                normalize_user_source(source, project.id, event_id)
                 for source in custom_sources
                 if source["type"] != "appStoreConnect"
             )
@@ -757,13 +770,13 @@ def redact_internal_sources_from_module(module):
         module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
-def sources_for_symbolication(project):
+def sources_for_symbolication(project, event_id=None):
     """
     Returns a list of symbol sources to attach to a native symbolication request,
     as well as a closure to post-process the resulting JSON response.
     """
 
-    sources = get_sources_for_project(project) or []
+    sources = get_sources_for_project(project, event_id) or []
 
     # Build some maps for use in _process_response()
     reverse_source_aliases = reverse_aliases_map(settings.SENTRY_BUILTIN_SOURCES)

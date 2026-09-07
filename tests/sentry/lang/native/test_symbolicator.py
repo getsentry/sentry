@@ -1,5 +1,6 @@
 import copy
 
+import orjson
 import pytest
 
 from sentry.lang.native.sources import (
@@ -74,6 +75,28 @@ def test_sources_custom(default_project) -> None:
     # The appStoreConnect source should be filtered out.
     source_ids = list(map(lambda s: s["id"], sources))
     assert source_ids == ["sentry:project", "custom"]
+
+
+@django_db_all
+def test_sources_custom_with_event_id(default_project) -> None:
+    features = {"organizations:custom-symbol-sources": True}
+
+    # Remove builtin sources explicitly to avoid defaults
+    default_project.update_option("sentry:builtin_symbol_sources", [])
+    default_project.update_option("sentry:symbol_sources", CUSTOM_SOURCE_CONFIG)
+
+    event_id = "a" * 32
+    with Feature(features):
+        sources = get_sources_for_project(default_project, event_id)
+
+    custom_source = sources[1]
+    headers = custom_source.pop("headers")
+    assert headers == {
+        "x-sentry-project-id": default_project.id,
+        "x-sentry-event-id": event_id,
+    }
+
+    assert custom_source == orjson.loads(CUSTOM_SOURCE_CONFIG)[0]
 
 
 # Test that previously saved custom sources are not returned if the feature for
