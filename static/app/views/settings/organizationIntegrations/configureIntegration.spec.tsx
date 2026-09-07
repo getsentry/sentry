@@ -188,6 +188,26 @@ describe('ConfigureIntegration settings tab', () => {
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
   });
+
+  it('does not throw when the integration has no provider field', async () => {
+    // Simulates a cached/placeholder integration payload where the provider
+    // field is absent at runtime (e.g. from a list endpoint that omits it).
+    const integration = {
+      ...OrganizationIntegrationsFixture({configOrganization: []}),
+      provider: undefined,
+    } as unknown as OrganizationIntegration;
+    mockRequests(integration);
+
+    // Should render without throwing; the component returns null when no
+    // matching provider is found, so the page content is empty.
+    renderConfigure();
+
+    // The loading indicator disappears once both queries resolve.
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
 });
 
 describe('ConfigureIntegration mapping removals', () => {

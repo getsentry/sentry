@@ -183,7 +183,7 @@ function ConfigureIntegration() {
     },
   });
 
-  const provider = config.providers.find(p => p.key === integration?.provider.key);
+  const provider = config.providers.find(p => p.key === integration?.provider?.key);
   const {projects} = useProjects();
 
   const [isVerifyingGcp, setIsVerifyingGcp] = useState(false);
