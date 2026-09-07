@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -75,16 +75,18 @@ function SpendAllocationModal({
         </Stack>
       </Body>
       <Footer>
-        <Button onClick={closeModal} disabled={mutation.isPending}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          onClick={() => mutation.mutate()}
-          busy={mutation.isPending}
-        >
-          {isCurrentlyEnabled ? 'Disable' : 'Enable'}
-        </Button>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal} disabled={mutation.isPending}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => mutation.mutate()}
+            busy={mutation.isPending}
+          >
+            {isCurrentlyEnabled ? 'Disable' : 'Enable'}
+          </Button>
+        </Flex>
       </Footer>
     </>
   );
