@@ -142,7 +142,12 @@ export function isDocIntegration(
  * canonical marker for source-code-management integrations (GitHub, GitLab,
  * Bitbucket, Azure DevOps, and their enterprise/server variants).
  */
-export function isScmProvider(provider: IntegrationProvider): boolean {
+export function isScmProvider(
+  provider: IntegrationProvider | null | undefined
+): boolean {
+  if (!provider) {
+    return false;
+  }
   return provider.metadata.features.some(f => f.featureGate.includes('commits'));
 }
 
@@ -285,6 +290,7 @@ export function getCodeOwnerIcon(
       return <IconSentry size={iconSize} />;
   }
 }
+
 /**
  * Whether a single integration installation is running an outdated app and
  * should surface an "Update Now" prompt. Checked per-workspace so that, e.g.,
