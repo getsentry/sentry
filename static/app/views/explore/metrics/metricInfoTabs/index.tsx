@@ -1,4 +1,4 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
@@ -39,25 +39,23 @@ export function MetricInfoTabs({
     >
       <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
         {visualize.visible ? (
-          <Flex direction="row" gap="md" justify="between" align="center">
-            <Container flex="1 1 auto" minWidth="0">
-              <TabList variant="floating">
-                <TabList.Item
-                  key={Mode.SAMPLES}
-                  disabled={isVisualizeEquation(visualize)}
-                  tooltip={{
-                    title: isVisualizeEquation(visualize)
-                      ? t('Samples are not available for equations')
-                      : undefined,
-                  }}
-                >
-                  {t('Samples')}
-                </TabList.Item>
-                <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-              </TabList>
-            </Container>
+          <Grid columns="minmax(0, 1fr) auto" gap="md" align="center">
+            <TabList variant="floating">
+              <TabList.Item
+                key={Mode.SAMPLES}
+                disabled={isVisualizeEquation(visualize)}
+                tooltip={{
+                  title: isVisualizeEquation(visualize)
+                    ? t('Samples are not available for equations')
+                    : undefined,
+                }}
+              >
+                {t('Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+            </TabList>
             {additionalActions}
-          </Flex>
+          </Grid>
         ) : null}
         {visualize.visible ? (
           <Container height="312px">
