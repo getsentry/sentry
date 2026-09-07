@@ -429,6 +429,24 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
 
+  it('keeps all horizontal tabs visible when overflow is disabled', () => {
+    containerWidth = 260;
+    render(
+      <Tabs disableOverflow>
+        <TabList>
+          {TABS.map(tab => (
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+          ))}
+        </TabList>
+      </Tabs>
+    );
+
+    for (const tab of TABS) {
+      expect(screen.getByRole('tab', {name: tab.label})).toBeVisible();
+    }
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+  });
+
   it('recomputes overflow when tabs are reordered without a resize', async () => {
     // Fits the first three tabs (budget = 380 - 48 = 332 >= 3 * 100).
     containerWidth = 380;

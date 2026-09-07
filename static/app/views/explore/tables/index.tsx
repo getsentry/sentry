@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -104,38 +104,40 @@ export function ExploreTables(props: ExploreTablesProps) {
   return (
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
-        <Tabs
-          value={tab}
-          onChange={newTab => setTab(newTab, 'click')}
-          size="sm"
-          disableOverflow
-        >
-          <TabList variant="floating">
-            <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
-            <TabList.Item
-              key={Tab.TRACE}
-              disabled={hasCrossEvents}
-              tooltip={{
-                title: hasCrossEvents
-                  ? t(
-                      'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
-                    )
-                  : undefined,
-              }}
-            >
-              {t('Trace Samples')}
-            </TabList.Item>
-            <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-            <TabList.Item
-              key={Tab.ATTRIBUTE_BREAKDOWNS}
-              textValue={t('Attribute Breakdowns')}
-              disabled={hasCrossEvents}
-            >
-              {t('Attribute Breakdowns')}
-              <FeatureBadge type="beta" />
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <Container flex="1 1 0" minWidth="0">
+          <Tabs
+            value={tab}
+            onChange={newTab => setTab(newTab, 'click')}
+            size="sm"
+            disableOverflow
+          >
+            <TabList variant="floating">
+              <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
+              <TabList.Item
+                key={Tab.TRACE}
+                disabled={hasCrossEvents}
+                tooltip={{
+                  title: hasCrossEvents
+                    ? t(
+                        'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
+                      )
+                    : undefined,
+                }}
+              >
+                {t('Trace Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+              <TabList.Item
+                key={Tab.ATTRIBUTE_BREAKDOWNS}
+                textValue={t('Attribute Breakdowns')}
+                disabled={hasCrossEvents}
+              >
+                {t('Attribute Breakdowns')}
+                <FeatureBadge type="beta" />
+              </TabList.Item>
+            </TabList>
+          </Tabs>
+        </Container>
         {tab === Tab.SPAN ? (
           <Button
             disabled={isValidatingColumns}
