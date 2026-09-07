@@ -121,6 +121,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.models.group import Group
@@ -1444,6 +1445,24 @@ class Factories:
                 )
 
         return group
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_event_attachment(
+        project: Project,
+        group: Group | None = None,
+        event_id: str | None = None,
+        **kwargs: Any,
+    ) -> EventAttachment:
+        kwargs.setdefault("type", "event.attachment")
+        kwargs.setdefault("name", "attachment.txt")
+        kwargs.setdefault("content_type", "text/plain")
+        return EventAttachment.objects.create(
+            project_id=project.id,
+            group_id=group.id if group else None,
+            event_id=event_id or uuid.uuid4().hex,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

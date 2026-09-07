@@ -644,6 +644,71 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(group_without_seer.id),
         }
 
+    def test_has_attachments_search(self) -> None:
+        event_with_attachment = self.store_event(
+            data={
+                "fingerprint": ["group-with-attachment"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.create_event_attachment(
+            project=self.project,
+            group=event_with_attachment.group,
+            event_id=event_with_attachment.event_id,
+        )
+
+        event_without_attachment = self.store_event(
+            data={
+                "fingerprint": ["group-without-attachment"],
+                "timestamp": before_now(seconds=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        event_with_unresolved_attachment = self.store_event(
+            data={
+                "fingerprint": ["group-with-unresolved-attachment"],
+                "timestamp": before_now(seconds=3).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.create_event_attachment(
+            project=self.project,
+            event_id=event_with_unresolved_attachment.event_id,
+        )
+
+        other_project = self.create_project(organization=self.organization)
+        self.create_event_attachment(
+            project=other_project,
+            group=event_without_attachment.group,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            query="has_attachments:true", project=[self.project.id]
+        )
+        assert {row["id"] for row in response.data} == {str(event_with_attachment.group.id)}
+
+        response = self.get_success_response(query="has:has_attachments", project=[self.project.id])
+        assert {row["id"] for row in response.data} == {str(event_with_attachment.group.id)}
+
+        response = self.get_success_response(
+            query="has_attachments:false", project=[self.project.id]
+        )
+        assert {row["id"] for row in response.data} == {
+            str(event_without_attachment.group.id),
+            str(event_with_unresolved_attachment.group.id),
+        }
+
+        response = self.get_success_response(
+            query="!has:has_attachments", project=[self.project.id]
+        )
+        assert {row["id"] for row in response.data} == {
+            str(event_without_attachment.group.id),
+            str(event_with_unresolved_attachment.group.id),
+        }
+
     def test_lookup_by_event_id(self) -> None:
         event_id = "c" * 32
         event = self.store_event(
