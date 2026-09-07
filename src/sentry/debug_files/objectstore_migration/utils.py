@@ -43,7 +43,16 @@ def migrate_debug_file(
             drop_legacy_file(debug_file.id, source_file_id=source_file_id)
             return
 
-        metadata = upload_and_verify(debug_file, delete_corrupt=delete_corrupt)
+        try:
+            metadata = upload_and_verify(debug_file)
+        except FilestoreIntegrityError as error:
+            _handle_filestore_integrity_error(
+                debug_file.id,
+                source_file_id=source_file_id,
+                error=error,
+                delete_corrupt=delete_corrupt,
+            )
+            return
         if metadata is None:
             return
         commit(debug_file.id, metadata, source_file_id=source_file_id)
@@ -89,6 +98,34 @@ class FilestoreIntegrityError(Exception):
             f"(checksum={checksum!r} expected={expected_checksum!r}, "
             f"size={size} expected={expected_size})"
         )
+
+
+def _handle_filestore_integrity_error(
+    dif_id: int,
+    *,
+    source_file_id: int,
+    error: FilestoreIntegrityError,
+    delete_corrupt: bool,
+) -> None:
+    deleted = delete_corrupt and delete_corrupt_debug_file(
+        dif_id,
+        source_file_id=source_file_id,
+    )
+    logger.warning(
+        (
+            "debug_files.objectstore_migration.filestore_integrity_mismatch_deleted"
+            if deleted
+            else "debug_files.objectstore_migration.filestore_integrity_mismatch"
+        ),
+        extra={
+            "debug_file_id": dif_id,
+            "file_id": source_file_id,
+            "checksum": error.checksum,
+            "expected_checksum": error.expected_checksum,
+            "size": error.size,
+            "expected_size": error.expected_size,
+        },
+    )
 
 
 def _sha1_stream(stream: IO[bytes]) -> tuple[str, int]:
@@ -178,17 +215,14 @@ def _get_object_with_retry(session: Session, storage_path: str) -> GetResponse:
     return policy(get_object)
 
 
-def upload_and_verify(
-    debug_file: ProjectDebugFile,
-    *,
-    delete_corrupt: bool = False,
-) -> PostMigrationMetadata | None:
+def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | None:
     """Read the File, write it to Objectstore, and verify the stored object.
 
     Returns:
         Metadata to commit, or ``None`` to skip.
 
     Raises:
+        FilestoreIntegrityError: Downloaded filestore payload mismatch.
         ObjectstoreIntegrityError: Objectstore payload mismatch.
         Exception: I/O, network, or other failures during spool/upload/verify.
     """
@@ -225,33 +259,11 @@ def upload_and_verify(
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    try:
-        tmp, local_checksum, local_size = _spool_and_validate_with_retry(
-            file,
-            expected_checksum=recorded_checksum,
-            expected_size=recorded_size,
-        )
-    except FilestoreIntegrityError as error:
-        deleted = delete_corrupt and delete_corrupt_debug_file(
-            debug_file.id,
-            source_file_id=file.id,
-        )
-        logger.warning(
-            (
-                "debug_files.objectstore_migration.filestore_integrity_mismatch_deleted"
-                if deleted
-                else "debug_files.objectstore_migration.filestore_integrity_mismatch"
-            ),
-            extra={
-                "debug_file_id": debug_file.id,
-                "file_id": file.id,
-                "checksum": error.checksum,
-                "expected_checksum": error.expected_checksum,
-                "size": error.size,
-                "expected_size": error.expected_size,
-            },
-        )
-        return None
+    tmp, local_checksum, local_size = _spool_and_validate_with_retry(
+        file,
+        expected_checksum=recorded_checksum,
+        expected_size=recorded_size,
+    )
 
     try:
         expected_checksum = recorded_checksum if recorded_checksum is not None else local_checksum
