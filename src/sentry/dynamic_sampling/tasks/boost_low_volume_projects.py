@@ -54,7 +54,7 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
-    legacy_dynamic_sampling_job,
+    legacy_pipeline_killswitched,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
@@ -104,11 +104,13 @@ def _without_project_mode_orgs(org_ids: list[int]) -> list[int]:
     silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
-@legacy_dynamic_sampling_job
 def boost_low_volume_projects() -> None:
     """
     Task to adjusts the sample rates of all projects in all active organizations.
     """
+    if legacy_pipeline_killswitched("boost_low_volume_projects"):
+        return
+
     for orgs in GetActiveOrgs(
         max_projects=MAX_PROJECTS_PER_QUERY,
         granularity=Granularity(60),

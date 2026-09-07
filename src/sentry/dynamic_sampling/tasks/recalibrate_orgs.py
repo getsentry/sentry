@@ -28,7 +28,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
 from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
-    legacy_dynamic_sampling_job,
+    legacy_pipeline_killswitched,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
@@ -49,8 +49,10 @@ from sentry.utils import metrics
     silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
-@legacy_dynamic_sampling_job
 def recalibrate_orgs() -> None:
+    if legacy_pipeline_killswitched("recalibrate_orgs"):
+        return
+
     for segment_volumes in GetActiveOrgsVolumes(measure=SamplingMeasure.SEGMENTS):
         _process_orgs_volumes(segment_volumes)
 

@@ -44,17 +44,12 @@ def dynamic_sampling_task(func: Callable[..., Any]) -> Callable[..., Any]:
     return _wrapper
 
 
-def legacy_dynamic_sampling_job(func: Callable[..., Any]) -> Callable[..., Any]:
+def legacy_pipeline_killswitched(task_name: str) -> bool:
     """
-    Decorator for the scheduled entry points of the legacy dynamic sampling pipeline.
-    While the legacy killswitch option is engaged, the job returns before it does any work.
+    Reports whether the legacy dynamic sampling pipeline is switched off.
+    Scheduled legacy jobs call this first and return before they do any work when it is True.
     """
-
-    @wraps(func)
-    def _wrapper(*args: Any, **kwargs: Any) -> Any:
-        if options.get(LEGACY_KILLSWITCH_OPTION):
-            metrics.incr(f"{_compute_task_name(func.__name__)}.killswitched", sample_rate=1.0)
-            return None
-        return func(*args, **kwargs)
-
-    return _wrapper
+    if not options.get(LEGACY_KILLSWITCH_OPTION):
+        return False
+    metrics.incr(f"{_compute_task_name(task_name)}.killswitched", sample_rate=1.0)
+    return True
