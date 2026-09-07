@@ -239,15 +239,17 @@ function IssueListOverviewInner({
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
-    const currentPeriod = decodeScalar(
-      location.query?.groupStatsPeriod,
-      DEFAULT_GRAPH_STATS_PERIOD
-    );
+    const pagePeriod = selection.datetime.period;
+    const fallback =
+      pagePeriod && pagePeriod !== DEFAULT_GRAPH_STATS_PERIOD
+        ? 'auto'
+        : DEFAULT_GRAPH_STATS_PERIOD;
+    const currentPeriod = decodeScalar(location.query?.groupStatsPeriod, fallback);
 
     return DYNAMIC_COUNTS_STATS_PERIODS.has(currentPeriod)
       ? currentPeriod
-      : DEFAULT_GRAPH_STATS_PERIOD;
-  }, [location]);
+      : fallback;
+  }, [location, selection.datetime.period]);
 
   const getEndpointParams = useCallback((): EndpointParams => {
     const params: EndpointParams = {
