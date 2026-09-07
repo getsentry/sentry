@@ -8,7 +8,10 @@ from django.db.models import F, Q
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
-from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
+from sentry.db.models.fields.bounded import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -84,9 +87,10 @@ class InvestigationBlock(DefaultFieldsModel):
     # The owning investigation identifies the one-to-one orchestration run.
     report_revision = BoundedPositiveIntegerField(null=True)
     stable_agent_key = models.CharField(max_length=128, null=True)
-    producing_seer_run = FlexibleForeignKey(
-        "seer.SeerRun", null=True, on_delete=models.SET_NULL, related_name="+"
-    )
+    # Seer's own run id for the run that authored this block. Not a foreign key:
+    # a block can be produced by a per-hypothesis investigator run that Seer
+    # spawns itself, which Sentry never initiates and so never mirrors.
+    producing_seer_run_id = BoundedBigIntegerField(null=True)
 
     # Blocks are hidden rather than hard-deleted so execution history remains
     # inspectable and stale references retain a stable target.

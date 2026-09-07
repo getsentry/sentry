@@ -38,7 +38,7 @@ export function getReadableArtifactTypeTooltip(
 
   switch (artifactType) {
     case BuildDetailsArtifactType.XCARCHIVE:
-      return t('XCode application archive');
+      return t('Xcode application archive');
     case BuildDetailsArtifactType.AAB:
       return t('Android app bundle');
     case BuildDetailsArtifactType.APK:

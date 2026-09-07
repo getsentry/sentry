@@ -412,15 +412,7 @@ class OutboxBase(Model):
         if limit is not None:
             base_depth_query = base_depth_query[0:limit]
 
-        aggregated_shard_information = list()
-        for shard_row in base_depth_query:
-            shard_information = {
-                shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
-            }
-            shard_information["depth"] = shard_row["depth"]
-            aggregated_shard_information.append(shard_information)
-
-        return aggregated_shard_information
+        return list(base_depth_query)
 
     @classmethod
     def get_total_outbox_count(cls) -> int:

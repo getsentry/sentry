@@ -228,7 +228,12 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="Agent names to filter conversations by.",
     )
-    query = ListField(child=QuerySerializer(), required=True, min_length=1)
+    query = ListField(
+        child=QuerySerializer(),
+        required=True,
+        min_length=1,
+        help_text="The Explore query definitions to save.",
+    )
 
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids

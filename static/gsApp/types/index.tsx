@@ -530,7 +530,6 @@ export type Invoice = InvoiceBase & {
     address: string[];
     name: string;
   };
-  stripeInvoiceID: string | null;
 };
 
 type BaseInvoiceItem = {

@@ -216,12 +216,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         // Mirror `useSeerExplorerDrawer`'s option handling so deep links
         // (runId), the command palette (initialQuery), and session switching
         // behave the same in sidebar mode as in the drawer.
-        const {
-          runId: openRunId,
-          startNewRun,
-          initialQuery,
-          appendToOpenRun,
-        } = drawerOptions ?? {};
+        const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
         if (initialQuery) {
           // A forwarded query starts a fresh session unless the caller asked to
           // add to the open run. Bump the nonce either way so re-forwarding the
@@ -234,8 +229,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           return;
         } else if (openRunId !== undefined) {
           dispatch({type: 'set run id', payload: openRunId});
-        } else if (startNewRun) {
-          dispatch({type: 'set run id', payload: null});
         }
         setSidebarInitialQuery(initialQuery);
         setSidebarAppendInitialQuery(!!appendToOpenRun);

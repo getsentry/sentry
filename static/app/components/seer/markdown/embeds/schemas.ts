@@ -519,14 +519,23 @@ export const SEER_EMBED_SCHEMAS = {
   },
   errorsQuery: {
     description:
-      'Link to an errors (Discover) query results page. ' +
-      'Use this for tabular error exploration across events. ' +
-      '`query` uses event search syntax and `fields` are the table columns. ' +
-      'Provide `yAxes` to chart aggregates alongside the table.',
+      'Preview an errors (Discover) query. ' +
+      'Use mode "samples" to show individual error events and "aggregate" to ' +
+      'group and chart them. ' +
+      '`query` uses event search syntax. In samples mode `fields` are ' +
+      'non-aggregate table columns; in aggregate mode `fields` must include the ' +
+      'group-by columns and at least one aggregate function, such as "count()" ' +
+      'or "count_unique(user)". ' +
+      'Inline renders a link; block renders the first five matching rows beneath ' +
+      'a timeseries chart of the total across the period — the chart is never ' +
+      'broken out per group. When aggregate mode names only aggregates and no ' +
+      'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
+      'which aggregate is charted; samples mode charts the event count.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
       query: z.string().default(''),
+      mode: z.enum(['samples', 'aggregate']).default('samples'),
       fields: z.array(z.string()).optional(),
       yAxes: z.array(z.string()).optional(),
       sort: z.string().optional(),
@@ -534,12 +543,37 @@ export const SEER_EMBED_SCHEMAS = {
     }),
     examples: [
       {
-        label: 'Errors by URL',
+        label: 'Recent errors',
         data: {
           query: 'event.type:error',
-          fields: ['title', 'count()', 'url'],
+          mode: 'samples',
+          fields: ['title', 'project', 'user.display', 'timestamp'],
           statsPeriod: '24h',
-          title: 'Checkout errors',
+          title: 'Recent errors',
+        },
+      },
+      {
+        label: 'Errors by title',
+        data: {
+          query: '',
+          mode: 'aggregate',
+          fields: ['title', 'project', 'count_unique(user)'],
+          sort: '-count_unique_user',
+          statsPeriod: '1h',
+          yAxes: ['count()'],
+          title: 'Errors by title',
+        },
+      },
+      {
+        // No group-by columns, so there is only ever one row to show and the
+        // chart stands in for the table.
+        label: 'Total errors',
+        data: {
+          query: 'event.type:error',
+          mode: 'aggregate',
+          fields: ['count()'],
+          statsPeriod: '24h',
+          title: 'Total errors',
         },
       },
     ],
