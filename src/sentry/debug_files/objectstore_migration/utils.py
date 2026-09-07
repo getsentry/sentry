@@ -113,11 +113,7 @@ def _handle_filestore_integrity_error(
         )
 
     logger.warning(
-        (
-            "debug_files.objectstore_migration.filestore_integrity_mismatch.deleted"
-            if deleted
-            else "debug_files.objectstore_migration.filestore_integrity_mismatch"
-        ),
+        "debug_files.objectstore_migration.filestore_integrity_mismatch",
         extra={
             "debug_file_id": dif_id,
             "file_id": source_file_id,
@@ -125,6 +121,7 @@ def _handle_filestore_integrity_error(
             "expected_checksum": error.expected_checksum,
             "size": error.size,
             "expected_size": error.expected_size,
+            "deleted": deleted,
         },
     )
 
