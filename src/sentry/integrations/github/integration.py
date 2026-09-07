@@ -839,6 +839,7 @@ class GitHubPipelineError(Exception):
 class GitHubOAuthLoginResult:
     authenticated_user: str
     installation_info: list[GithubInstallationInfo]
+    access_token: str
 
 
 def _get_owner_github_organizations(client: GithubSetupApiClient) -> list[str]:
@@ -928,6 +929,7 @@ def exchange_github_oauth(
     return GitHubOAuthLoginResult(
         authenticated_user=authenticated_user_info["login"],
         installation_info=installation_info,
+        access_token=payload["access_token"],
     )
 
 
@@ -957,59 +959,19 @@ def _build_installation_info_with_counts(
     ]
 
 
-def validate_org_installation_choice(
-    chosen_installation_id: str,
-    pipeline: IntegrationPipeline,
-) -> None:
-    """
-    Validates a chosen GitHub installation can be linked to this Sentry org.
-    Checks multi-org feature flag, install count, org consistency, and that the
-    installation belongs to the user. Binds chosen_installation to pipeline state.
-
-    Raises GitHubPipelineError on validation failure.
-    """
-    installation_info: list[GithubInstallationInfo] = (
-        pipeline.fetch_state("existing_installation_info") or []
-    )
-
-    has_scm_multi_org = features.has(
-        "organizations:integrations-scm-multi-org",
-        organization=pipeline.organization,
-    )
-    install_count = OrganizationIntegration.objects.filter(
-        integration__provider=GitHubIntegrationProvider.key,
-        integration__external_id=chosen_installation_id,
-    ).count()
-    if not ((install_count == 0) or has_scm_multi_org):
-        raise GitHubPipelineError(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
-
-    installing_org_slug = pipeline.fetch_state("installing_organization_slug")
-    if not (installing_org_slug is not None and installing_org_slug == pipeline.organization.slug):
-        raise GitHubPipelineError(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
-
-    valid_ids = [i["installation_id"] for i in installation_info]
-    if chosen_installation_id not in valid_ids:
-        raise GitHubPipelineError(GitHubInstallationError.MISSING_OWNER_PRIVILEGES)
-
-    pipeline.bind_state("chosen_installation", chosen_installation_id)
-
-
 def validate_github_installation(
     pipeline: IntegrationPipeline,
 ) -> str | None:
     """
-    Resolves the installation_id from pipeline state (handling chosen_installation),
-    checks for pending deletion and user mismatch against existing integrations.
+    Resolves the installation_id from pipeline state and checks pending deletion.
+    Checks multi-org feature flag, install count, org consistency, and that the
+    installation belongs to the user with current owner privileges.
 
     Returns the resolved installation_id, or None if the user needs to install the
     GitHub App first (caller should redirect).
 
     Raises GitHubPipelineError on validation failure.
     """
-    chosen_installation_id = pipeline.fetch_state("chosen_installation")
-    if chosen_installation_id is not None:
-        pipeline.bind_state("installation_id", chosen_installation_id)
-
     installation_id = pipeline.fetch_state("installation_id")
     if installation_id is None:
         return None
@@ -1022,27 +984,44 @@ def validate_github_installation(
     if pending_deletion:
         raise GitHubPipelineError(GitHubInstallationError.PENDING_DELETION)
 
-    try:
-        integration = Integration.objects.get(
-            external_id=installation_id, status=ObjectStatus.ACTIVE
-        )
-    except Integration.DoesNotExist:
-        # The installation.created webhook from GitHub normally creates the
-        # Integration record (with sender metadata) before the user reaches
-        # this point. If it doesn't exist yet, the webhook likely hasn't
-        # been processed. We proceed without the sender validation that the
-        # existing-integration path provides below. In theory an attacker
-        # could race the webhook to link an installation they don't own,
-        # but the window is extremely narrow (they'd need to predict the
-        # installation_id before the webhook arrives).
-        return installation_id
+    access_token = pipeline.fetch_state("github_access_token")
+    if not access_token:
+        raise GitHubPipelineError(GitHubInstallationError.MISSING_TOKEN)
 
-    if (
-        chosen_installation_id is None
-        and pipeline.fetch_state("github_authenticated_user")
-        != integration.metadata["sender"]["login"]
-    ):
-        raise GitHubPipelineError(GitHubInstallationError.USER_MISMATCH)
+    # The installation.created webhook from GitHub normally creates the
+    # Integration record (with sender metadata) before the user reaches
+    # this point. If it doesn't exist yet, the webhook likely hasn't
+    # been processed. Verify current access through the user token regardless
+    # of whether the row exists or the historical sender matches.
+    # Refresh because the installation may have been created, or the user's
+    # authority revoked, since the OAuth step.
+    client = GithubSetupApiClient(access_token=access_token)
+    try:
+        owner_orgs = _get_owner_github_organizations(client)
+        installation_info = _get_eligible_multi_org_installations(client, owner_orgs)
+    except ApiError as e:
+        raise GitHubPipelineError(GitHubInstallationError.INVALID_INSTALLATION) from e
+
+    pipeline.bind_state("existing_installation_info", installation_info)
+
+    has_scm_multi_org = features.has(
+        "organizations:integrations-scm-multi-org",
+        organization=pipeline.organization,
+    )
+    install_count = OrganizationIntegration.objects.filter(
+        integration__provider=GitHubIntegrationProvider.key,
+        integration__external_id=installation_id,
+    ).count()
+    if not ((install_count == 0) or has_scm_multi_org):
+        raise GitHubPipelineError(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+
+    installing_org_slug = pipeline.fetch_state("installing_organization_slug")
+    if not (installing_org_slug is not None and installing_org_slug == pipeline.organization.slug):
+        raise GitHubPipelineError(GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+
+    valid_ids = [i["installation_id"] for i in installation_info]
+    if installation_id not in valid_ids:
+        raise GitHubPipelineError(GitHubInstallationError.MISSING_OWNER_PRIVILEGES)
 
     return installation_id
 
@@ -1128,9 +1107,12 @@ class OAuthLoginApiStep:
                 lifecycle.record_failure(e.message)
                 return PipelineStepResult.error(e.message)
 
-            if result.installation_info:
-                pipeline.bind_state("existing_installation_info", result.installation_info)
+            pipeline.bind_state("existing_installation_info", result.installation_info)
             pipeline.bind_state("github_authenticated_user", result.authenticated_user)
+            pipeline.bind_state("github_access_token", result.access_token)
+            # Bind the installing org slug so we can validate it hasn't changed when
+            # the user submits their choice.
+            pipeline.bind_state("installing_organization_slug", pipeline.organization.slug)
             return PipelineStepResult.advance()
 
 
@@ -1172,7 +1154,7 @@ class GithubOrganizationSelectionApiStep:
       3. The installation_id is already in pipeline state from the user
          clicking "Install" on github.com and being redirected into this flow.
 
-    Cases 2 and 3 both go through validate_github_installation. If no
+    All cases go through validate_github_installation. If no
     installation_id is available yet, returns a stay result prompting the
     user to install the app.
     """
@@ -1189,10 +1171,6 @@ class GithubOrganizationSelectionApiStep:
         )
         if not installation_info:
             return {"installationInfo": [], "installAppUrl": install_app_url}
-
-        # Bind the installing org slug so we can validate it hasn't changed when
-        # the user submits their choice (same logic as the template flow).
-        pipeline.bind_state("installing_organization_slug", pipeline.organization.slug)
 
         enriched = _build_installation_info_with_counts(installation_info)
         return {
@@ -1227,19 +1205,14 @@ class GithubOrganizationSelectionApiStep:
             if post_installation_id := validated_data.get("installation_id"):
                 pipeline.bind_state("installation_id", post_installation_id)
 
-            # If the user selected a GitHub app installation from the list
-            # validate their choice and bind the installation_id.
+            # If the user selected a GitHub app installation from the list,
+            # bind the installation_id and validate their choice below.
             chosen_installation_id = validated_data.get("chosen_installation_id")
             if chosen_installation_id:
-                try:
-                    validate_org_installation_choice(chosen_installation_id, pipeline)
-                except GitHubPipelineError as e:
-                    lifecycle.record_failure(e.message)
-                    return PipelineStepResult.error(e.message)
                 pipeline.bind_state("installation_id", chosen_installation_id)
 
             # Validate whatever installation_id is in pipeline state — handles
-            # pending deletion check and user mismatch against existing integrations.
+            # pending deletion, current GitHub authority, and multi-org eligibility.
             try:
                 installation_id = validate_github_installation(pipeline)
             except GitHubPipelineError as e:

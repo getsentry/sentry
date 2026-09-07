@@ -2140,6 +2140,73 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         assert resp.data["status"] == "complete"
 
     @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_direct_installation_rejects_former_installer(self) -> None:
+        source_organization = self.create_organization(owner=self.create_user())
+        integration = self.create_integration(
+            organization=source_organization,
+            provider="github",
+            external_id=self.installation_id,
+            metadata={"sender": {"login": "octocat"}},
+        )
+        # The historical installer can still authenticate, but no longer has
+        # access to the GitHub organization or its installation.
+        responses.replace(
+            responses.GET,
+            f"{self.base_url}/user/memberships/orgs",
+            json=[],
+        )
+        self._stub_user_installations(installations=[])
+
+        resp = self._initialize_pipeline()
+        pipeline_signature = self._get_pipeline_signature(resp)
+        resp = self._complete_oauth_step(pipeline_signature)
+        assert resp.data["status"] == "advance"
+        assert resp.data["step"] == "org_selection"
+        assert resp.data["data"]["installationInfo"] == []
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+
+        assert not OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert GitHubInstallationError.MISSING_OWNER_PRIVILEGES in resp.data["data"]["detail"]
+
+    @responses.activate
+    def test_direct_installation_without_webhook_requires_access(self) -> None:
+        resp = self._initialize_pipeline()
+        self._stub_user_installations(installations=[])
+        self._complete_oauth_step(self._get_pipeline_signature(resp))
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+
+        assert resp.status_code == 400
+        assert GitHubInstallationError.MISSING_OWNER_PRIVILEGES in resp.data["data"]["detail"]
+        assert not Integration.objects.filter(provider="github").exists()
+
+    @responses.activate
+    @with_feature({"organizations:integrations-scm-multi-org": False})
+    def test_direct_installation_requires_multi_org_feature(self) -> None:
+        self.create_integration(
+            organization=self.create_organization(owner=self.create_user()),
+            provider="github",
+            external_id=self.installation_id,
+            metadata={"sender": {"login": "octocat"}},
+        )
+        self._advance_to_org_selection()
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+
+        assert resp.status_code == 400
+        assert GitHubInstallationError.FEATURE_NOT_AVAILABLE in resp.data["data"]["detail"]
+        assert not OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+        ).exists()
+
+    @responses.activate
     def test_full_api_pipeline_flow_new_installation(self) -> None:
         """End-to-end: initialize -> OAuth -> skip org selection -> complete."""
         resp = self._initialize_pipeline()
@@ -2154,6 +2221,8 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         assert resp.data["status"] == "advance"
         assert resp.data["step"] == "org_selection"
 
+        # Installing the app after OAuth makes it available to the user token.
+        self._stub_user_installations()
         resp = self._advance_step({"installation_id": self.installation_id})
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"

@@ -174,13 +174,29 @@ class ScmCreateProjectTest(AcceptanceTestCase):
                 return_value=GitHubOAuthLoginResult(
                     authenticated_user="testuser",
                     installation_info=[],
+                    access_token="github-user-token",
                 ),
             ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegrationProvider.get_installation_info",
                 return_value=mock_installation_response,
             ),
+            mock.patch(
+                "sentry.integrations.github.integration.GithubSetupApiClient",
+            ) as mock_setup_client,
         ):
+            setup_client = mock_setup_client.return_value
+            setup_client.get_organization_memberships_for_user.return_value = [
+                {
+                    "state": "active",
+                    "role": "admin",
+                    "organization": mock_installation_response["account"],
+                }
+            ]
+            setup_client.get_user_info_installations.return_value = {
+                "installations": [mock_installation_response]
+            }
+
             self.load_project_creation_page()
             self.browser.driver.execute_script(
                 """
