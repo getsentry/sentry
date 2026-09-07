@@ -768,7 +768,6 @@ module = [
     "sentry.ingest.inbound_filters",
     "sentry.ingest.transaction_clusterer.*",
     "sentry.ingest.types",
-    "sentry.ingest.userreport",
     "sentry.insights",
     "sentry.insights.endpoints.*",
     "sentry.insights.models",
