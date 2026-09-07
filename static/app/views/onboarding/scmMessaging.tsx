@@ -211,6 +211,7 @@ export function ScmMessaging({
                     activeRow={validatedActiveRow}
                     onActiveRowChange={setActiveRow}
                     isRefetchingIntegrations={isRefetchingIntegrations}
+                    onContinue={handleContinue}
                   />
                 ))}
               </MotionStack>

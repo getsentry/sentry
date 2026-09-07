@@ -220,7 +220,7 @@ export function ScmMessagingChannelPicker({
           disabled={!channel || !!channelError || isChannelLoading}
           onClick={handleSave}
         >
-          {t('Add destination')}
+          {t('Confirm and continue')}
         </Button>
       </Flex>
     </Stack>

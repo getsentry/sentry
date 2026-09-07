@@ -713,7 +713,7 @@ describe('ScmMessaging', () => {
       ).not.toBeInTheDocument();
 
       await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
-      await userEvent.click(screen.getByRole('button', {name: 'Add destination'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
       // activeRow clears after save; selected setup keeps siblings hidden and
       // brings the footer back.
@@ -723,6 +723,49 @@ describe('ScmMessaging', () => {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
       );
+    });
+
+    it('Confirm and continue in the picker calls onComplete without a second click', async () => {
+      mockExclusiveSlackProviders();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/slack-1/channels/',
+        body: {
+          results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'channel'}],
+        },
+      });
+      const onComplete = jest.fn();
+
+      render(
+        <ScmMessaging
+          messagingSetup={{mode: 'unconfigured'}}
+          onMessagingSetupChange={jest.fn()}
+          selectedPlatform={selectedPlatform}
+          onComplete={onComplete}
+        />
+      );
+
+      // Wait for provider rows to load before interacting.
+      expect(await screen.findByText('discord')).toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: /Choose destination for slack/})
+      );
+      await selectEvent.select(screen.getByLabelText('channel'), '#alerts');
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
+
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    it('Back contract: remounting with a saved setup shows the Destination added pill and Edit/Remove', async () => {
+      // Validates that after Confirm and continue persists the setup, returning
+      // to this step renders the configured state — not the picker.
+      mockExclusiveSlackProviders();
+
+      renderMessaging(jest.fn(), exclusiveSlackSetup);
+
+      expect(await screen.findByText('Destination added')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Edit/})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Remove/})).toBeInTheDocument();
     });
 
     it('Cancel from removing keeps siblings hidden and restores the footer', async () => {

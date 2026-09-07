@@ -136,6 +136,7 @@ export interface ScmMessagingProviderRowProps {
    * integration surfaced, preventing an infinite spin.
    */
   isRefetchingIntegrations?: boolean;
+  onContinue: () => void;
   /**
    * Render prop for the inline channel picker.
    *
@@ -161,6 +162,7 @@ export function ScmMessagingProviderRow({
   onActiveRowChange,
   renderChannelPicker,
   isRefetchingIntegrations = false,
+  onContinue,
 }: ScmMessagingProviderRowProps) {
   const organization = useOrganization();
   const {startFlow, state: installState} = useAddIntegration();
@@ -230,8 +232,9 @@ export function ScmMessagingProviderRow({
     (setup: ScmMessagingSetup & {mode: 'selected'}) => {
       onMessagingSetupChange(setup);
       onActiveRowChange(null);
+      onContinue();
     },
-    [onMessagingSetupChange, onActiveRowChange]
+    [onMessagingSetupChange, onActiveRowChange, onContinue]
   );
 
   const errorMessage = getInstallErrorMessage(installState);
