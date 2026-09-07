@@ -8,6 +8,7 @@ import redis
 from django.conf import settings
 
 from sentry.utils.dates import to_datetime
+from sentry.utils.query import TaskBulkQueryState
 from sentry.utils.redis import redis_clusters
 
 from .base import ReprocessingInfo, ReprocessingStore
@@ -193,7 +194,7 @@ class RedisReprocessingStore(ReprocessingStore):
         project_id: int,
         group_id: int,
         new_group_id: int,
-        state: Mapping[str, str] | None,
+        state: TaskBulkQueryState | None,
         claimant: str,
     ) -> bool:
         timestamp = state["timestamp"] if state is not None else "start"

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sentry.services.eventstore.reprocessing.redis import RedisReprocessingStore
 from sentry.testutils.helpers.redis import use_redis_cluster
+from sentry.utils.query import TaskBulkQueryState
 
 
 @use_redis_cluster()
@@ -28,7 +29,7 @@ def test_try_claim_page() -> None:
     project_id = 1
     group_id = 2
     new_group_id = 3
-    state = {"timestamp": "2026-08-04T06:10:59+00:00", "event_id": "42"}
+    state: TaskBulkQueryState = {"timestamp": "2026-08-04T06:10:59+00:00", "event_id": "42"}
 
     # First claim is ok, and reclaiming from same claimant is a NOOP.
     assert store.try_claim_page(project_id, group_id, new_group_id, state, claimant="A")

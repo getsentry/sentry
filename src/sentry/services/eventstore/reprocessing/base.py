@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
 
+from sentry.utils.query import TaskBulkQueryState
 from sentry.utils.services import Service
 
 
@@ -89,7 +90,7 @@ class ReprocessingStore(Service):
         project_id: int,
         group_id: int,
         new_group_id: int,
-        state: Mapping[str, str] | None,
+        state: TaskBulkQueryState | None,
         claimant: str,
     ) -> bool:
         raise NotImplementedError()
