@@ -5,7 +5,10 @@ from typing import Any
 
 import sentry_sdk
 
+from sentry import options
 from sentry.utils import metrics
+
+LEGACY_KILLSWITCH_OPTION = "dynamic-sampling.legacy.killswitch"
 
 
 def sample_function(function: Callable[..., Any], _sample_rate: float = 1.0, **kwargs: Any) -> None:
@@ -37,5 +40,21 @@ def dynamic_sampling_task(func: Callable[..., Any]) -> Callable[..., Any]:
             except Exception as e:
                 sentry_sdk.capture_exception(e)
                 raise
+
+    return _wrapper
+
+
+def legacy_dynamic_sampling_job(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Decorator for the scheduled entry points of the legacy dynamic sampling pipeline.
+    While the legacy killswitch option is engaged, the job returns before it does any work.
+    """
+
+    @wraps(func)
+    def _wrapper(*args: Any, **kwargs: Any) -> Any:
+        if options.get(LEGACY_KILLSWITCH_OPTION):
+            metrics.incr(f"{_compute_task_name(func.__name__)}.killswitched", sample_rate=1.0)
+            return None
+        return func(*args, **kwargs)
 
     return _wrapper
