@@ -80,7 +80,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         return "{}#{}".format(data["repo"], data["key"])
 
     def get_issue_url(self, key: str) -> str:
-        domain_name, user = self.model.metadata["domain_name"].split("/")
+        domain_name, user = self.model.metadata.get("domain_name", "github.com/github").split("/")
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
