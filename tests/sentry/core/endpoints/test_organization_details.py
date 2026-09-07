@@ -43,8 +43,13 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import SpanMRI
-from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    BaseMetricsLayerTestCase,
+    SpanTestCase,
+    TwoFactorAPITestCase,
+)
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -95,7 +100,7 @@ cells = create_test_cells("us", "de")
 
 
 @cell_silo_test(cells=cells, include_monolith_run=True)
-class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
+class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase, SpanTestCase):
     @property
     def now(self):
         return datetime.now().replace(microsecond=0)
@@ -583,21 +588,17 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         )
         self.login_as(user=member_user)
 
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"is_segment": "true", "decision": "keep"},
-            minutes_before_now=60 * 24 * 12,
-            value=1,
-            project_id=project_1.id,
-            org_id=self.organization.id,
-        )
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"is_segment": "true", "decision": "keep"},
-            minutes_before_now=60 * 24 * 12,
-            value=1,
-            project_id=project_2.id,
-            org_id=self.organization.id,
+        self.organization.update_option("sentry:target_sample_rate", 0.5)
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True, "sentry_tags": {"dsc.project_id": str(project.id)}},
+                    organization=self.organization,
+                    project=project,
+                    start_ts=before_now(days=12),
+                )
+                for project in (project_1, project_2)
+            ]
         )
 
         project_2.delete()

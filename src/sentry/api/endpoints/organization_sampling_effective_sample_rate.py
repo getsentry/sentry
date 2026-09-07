@@ -16,12 +16,19 @@ from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
-from sentry.dynamic_sampling.tasks.common import get_effective_sample_rate, get_organization_volume
+from sentry.dynamic_sampling.per_org.queries import (
+    get_eap_organization_volume,
+    get_generic_metrics_organization_volume,
+)
+from sentry.dynamic_sampling.types import OrganizationDataVolume
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 SAMPLE_RATE_WINDOW = timedelta(hours=24)
+
+
+def _effective_sample_rate(volume: OrganizationDataVolume | None) -> float | None:
+    return None if volume is None else volume.effective_sample_rate
 
 
 class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
@@ -75,14 +82,14 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
         eap_volume = get_eap_organization_volume(
             organization, projects, time_interval=SAMPLE_RATE_WINDOW
         )
-        generic_metrics_volume = get_organization_volume(
+        generic_metrics_volume = get_generic_metrics_organization_volume(
             organization.id, time_interval=SAMPLE_RATE_WINDOW
         )
 
         return Response(
             status=200,
             data={
-                "effectiveSampleRate": get_effective_sample_rate(generic_metrics_volume),
-                "eapEffectiveSampleRate": get_effective_sample_rate(eap_volume),
+                "effectiveSampleRate": _effective_sample_rate(generic_metrics_volume),
+                "eapEffectiveSampleRate": _effective_sample_rate(eap_volume),
             },
         )

@@ -16,6 +16,7 @@ from sentry.dynamic_sampling import (
     RuleType,
     get_redis_client_for_ds,
 )
+from sentry.dynamic_sampling.per_org.cache import generate_recalibrate_orgs_cache_key
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.ingest.inbound_filters import CUSTOM_INBOUND_FILTER_ID_PREFIX
 from sentry.models.project import Project
@@ -348,7 +349,7 @@ def test_project_config_with_all_biases_enabled(
     # Set factor
     default_factor = 0.5
     redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
+        generate_recalibrate_orgs_cache_key(default_project.organization.id),
         default_factor,
     )
 

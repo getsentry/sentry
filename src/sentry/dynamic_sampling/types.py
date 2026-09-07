@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 
 from django.db import models
@@ -23,3 +24,24 @@ class SamplingMeasure(Enum):
 
     SPANS = "spans"
     SEGMENTS = "segments"
+
+
+@dataclass(frozen=True)
+class OrganizationDataVolume:
+    """
+    The number of segments an organization received in a time window, and how many of them
+    were stored. ``indexed`` is None when the source of the volume does not know it.
+    """
+
+    org_id: int
+    total: int
+    indexed: int | None
+
+    def is_valid_for_recalibration(self) -> bool:
+        return self.total > 0 and self.indexed is not None and self.indexed > 0
+
+    @property
+    def effective_sample_rate(self) -> float | None:
+        if self.indexed is None or self.total <= 0:
+            return None
+        return self.indexed / self.total

@@ -18,12 +18,10 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.per_org.results import TransactionSampleRates
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.types import OrganizationDataVolume
 
 if TYPE_CHECKING:
     from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-
-REBALANCE_INTENSITY = 0.8
 
 
 def calculate_recalibration_factor(
@@ -63,9 +61,8 @@ def run_project_balancing(
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
 
-    # Mirror the legacy serving path (get_guarded_project_sample_rate): a 100% org sample
-    # rate means every project is sampled at 100% and the balanced ("boost low volume
-    # projects") rate is never applied. Reproduced intentionally to match the legacy pipeline.
+    # Rule generation serves a 100% org sample rate as-is (get_guarded_project_sample_rate),
+    # so every project is sampled in full and a balanced rate would never apply.
     if sample_rate == 1.0:
         return [
             RebalancedItem(
@@ -77,13 +74,13 @@ def run_project_balancing(
         ]
 
     # When no project has any volume there is nothing to rebalance, and the model would
-    # divide by zero on all-zero counts. Matches the legacy pipeline, which returns early.
+    # divide by zero on all-zero counts.
     if not counts_by_project:
         return []
 
     # Include every project, defaulting those without volume to a count of 0. The model
-    # assigns zero-count projects a 100% sample rate, and their presence keeps the
-    # per-project ideal budget identical to the legacy calculation.
+    # assigns zero-count projects a 100% sample rate, and their presence counts them into
+    # the per-project ideal budget.
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[
@@ -125,6 +122,7 @@ def run_transaction_balancing(
 ) -> TransactionSampleRates:
     sample_rates = config.get_project_sample_rates()
     min_sample_rate = options.get("dynamic-sampling.prioritise_transactions.min_sample_rate")
+    intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity")
     result: TransactionSampleRates = {}
     project_volume_by_id = {
         project_volume.project_id: project_volume for project_volume in project_volumes
@@ -145,10 +143,8 @@ def run_transaction_balancing(
                 "its transactions"
             )
             continue
-        # Mirror the legacy pipeline (boost_low_volume_transactions_of_project): at a 100%
-        # project rate every transaction is kept anyway, so the legacy task skips the model
-        # and writes no cache entry. Skipping here keeps parity and avoids comparison log
-        # lines that would only ever hit cache misses.
+        # At a 100% project rate every transaction is kept anyway, so there is nothing to
+        # balance and no cache entry to write.
         if sample_rate == 1.0:
             continue
         named_rates, implicit_rate = TransactionsRebalancingModel().run(
@@ -160,7 +156,7 @@ def run_transaction_balancing(
                 sample_rate=sample_rate,
                 total_num_classes=project_volume.num_distinct_transactions,
                 total=project_volume.total,
-                intensity=REBALANCE_INTENSITY,  # this should use the option like in the old pipeline
+                intensity=intensity,
                 min_sample_rate=min_sample_rate,
             )
         )

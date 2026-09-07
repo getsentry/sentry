@@ -15,7 +15,7 @@ from sentry.dynamic_sampling.per_org.calculations import (
     run_transaction_balancing,
 )
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.types import OrganizationDataVolume
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
@@ -83,8 +83,8 @@ class ProjectBalancingCalculationsTest(TestCase):
                 ],
             )
 
-        # Mirrors legacy serving: a 100% org rate gives every project 100% and the balancing
-        # model never runs.
+        # Rule generation serves a 100% org rate as-is, so every project gets 100% and the
+        # balancing model never runs.
         mocks[PROJECTS_MODEL_RUN].assert_not_called()
         assert {int(item.id): item.new_sample_rate for item in result} == {
             busy.id: 1.0,

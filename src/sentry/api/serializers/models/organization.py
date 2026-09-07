@@ -59,7 +59,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
-from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
+from sentry.dynamic_sampling.per_org.serving import get_organization_sample_rate
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     has_dynamic_sampling,
@@ -921,7 +921,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         if is_project_mode_sampling(obj):
             desired_sample_rate = None
         else:
-            desired_sample_rate, _ = get_org_sample_rate(
+            desired_sample_rate, _ = get_organization_sample_rate(
                 org_id=obj.id, default_sample_rate=sample_rate
             )
 

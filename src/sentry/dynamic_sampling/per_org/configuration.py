@@ -17,12 +17,15 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.tasks.common import (
-    OrganizationDataVolume,
+from sentry.dynamic_sampling.sliding_window import (
+    SLIDING_WINDOW_HOURS,
     compute_sliding_window_sample_rate,
 )
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import (
+    DynamicSamplingMode,
+    OrganizationDataVolume,
+    SamplingMeasure,
+)
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
@@ -167,20 +170,16 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate is not None
 
     def get_sample_rate(self) -> TargetSampleRate:
-        # The usage-based rate. It mirrors the legacy *cache* (boost_low_volume_projects, via
-        # get_org_sample_rate), which is what project balancing and the comparison logging run
-        # against. The blended-100% gate is intentionally NOT applied here: the legacy cache is
-        # ungated too, so applying it would make the logged rates diverge for orgs under their
-        # reserved quota. That gate lives in get_serving_sample_rate, matching legacy serving.
+        # The usage-based rate that project balancing runs against. The blended-100% gate
+        # of get_serving_sample_rate is not applied here, so that the projects of an
+        # organization under its reserved quota are still balanced against its usage.
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
 
     def get_serving_sample_rate(self) -> TargetSampleRate:
-        # Serving-time parity with the legacy path (get_guarded_project_sample_rate): a blended
-        # (reserved-based) rate of 100% serves at 100%, bypassing the usage-based sliding-window
-        # rate. Kept out of get_sample_rate so the gate does not leak into the balancing and
-        # comparison path, which must stay aligned with the (ungated) legacy cache.
+        # A blended (reserved-based) rate of 100% serves at 100%, bypassing the usage-based
+        # sliding-window rate. Rule generation applies the same gate.
         if self.sample_rate == 1.0:
             return self.sample_rate
         return self.get_sample_rate()
@@ -193,17 +192,16 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         if not self.projects:
             return None
 
-        org_volume_24h = get_outcomes_organization_volume(
-            self, time_interval=timedelta(hours=FALLBACK_SLIDING_WINDOW_SIZE)
+        org_volume = get_outcomes_organization_volume(
+            self, time_interval=timedelta(hours=SLIDING_WINDOW_HOURS)
         )
-        if org_volume_24h is None:
+        if org_volume is None:
             return None
 
         return compute_sliding_window_sample_rate(
             org_id=self.organization.id,
-            project_id=None,
-            total_root_count=org_volume_24h.total,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+            total_root_count=org_volume.total,
+            window_size=SLIDING_WINDOW_HOURS,
         )
 
 

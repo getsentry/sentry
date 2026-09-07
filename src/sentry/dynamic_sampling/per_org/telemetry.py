@@ -1,20 +1,27 @@
 from __future__ import annotations
 
 import functools
+import logging
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from enum import StrEnum
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 import sentry_sdk
 
 from sentry.dynamic_sampling.per_org.gate import (
     is_killswitch_engaged,
+    is_org_in_sample_rates_summary_log_rollout,
     is_rollout_enabled,
     metrics_sample_rate,
 )
 from sentry.utils import metrics
 from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
+
+if TYPE_CHECKING:
+    from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
+
+logger = logging.getLogger(__name__)
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -32,24 +39,23 @@ class ServedValue(StrEnum):
 
     PROJECT_SAMPLE_RATE = "project_sample_rate"
     TRANSACTION_SAMPLE_RATES = "transaction_sample_rates"
-    RECALIBRATION_FACTOR = "recalibration_factor"
 
 
 class ServingSource(StrEnum):
-    """Which pipeline supplied a value that rule generation served."""
+    """Where a value that rule generation served came from."""
 
-    # The organization is not in the serving rollout.
-    LEGACY = "legacy"
+    # The value a pass stored.
     PER_ORG = "per_org"
+    # The organization has no stored project rates, so the fallback rate is served.
     PER_ORG_FALLBACK = "per_org_fallback"
+    # Nothing is stored for this project.
     PER_ORG_NO_DATA = "per_org_no_data"
 
 
 def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
-    """Record which pipeline supplied a value that rule generation served.
+    """Record where a value that rule generation served came from.
 
-    Sampled like the rest of the per-org metrics: this runs on every rule generation, and
-    the legacy-to-per-org ratio survives sampling because both sides are sampled alike.
+    Sampled like the rest of the per-org metrics, since this runs on every rule generation.
     """
     metrics.incr(
         SERVING_SOURCE_METRIC,
@@ -158,3 +164,36 @@ def track_dynamic_sampling(func: F) -> F:
         return result
 
     return wrapper  # type: ignore[return-value]
+
+
+def log_sample_rates_summary(config: BaseDynamicSamplingConfiguration) -> None:
+    """Log every sample rate a pass computed for an organization, for debugging."""
+    if not is_org_in_sample_rates_summary_log_rollout(config.organization.id):
+        return
+
+    try:
+        results = config.results
+        project_sample_rates = config.get_project_sample_rates()
+        projects_summary = {}
+        for project in config.projects:
+            named_rates, implicit_rate = results.rebalanced_transactions.get(project.id, ([], None))
+            projects_summary[str(project.id)] = {
+                "eap_sample_rate": project_sample_rates.get(project.id),
+                "eap_transaction_implicit_sample_rate": implicit_rate,
+                "eap_transaction_sample_rates": {
+                    str(item.id): item.new_sample_rate for item in named_rates
+                },
+            }
+
+        logger.info(
+            "dynamic_sampling.per_org.sample_rates_summary",
+            extra={
+                "org_id": config.organization.id,
+                "eap_org_sample_rate": config.get_sample_rate(),
+                "eap_org_serving_sample_rate": config.get_serving_sample_rate(),
+                "recalibration_factor": results.recalibration_factor,
+                "projects": projects_summary,
+            },
+        )
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)

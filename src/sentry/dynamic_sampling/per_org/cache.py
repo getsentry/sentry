@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING
@@ -7,46 +8,86 @@ from typing import TYPE_CHECKING
 import orjson
 import sentry_sdk
 
+from sentry import options
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.gate import is_org_in_serving_rollout
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.common import are_equal_with_epsilon, sample_rate_to_float
-from sentry.dynamic_sampling.tasks.constants import (
-    DEFAULT_REDIS_CACHE_KEY_TTL,
-    adjusted_factor_ttl_ms,
-    bounded_rebalance_factor,
-)
-from sentry.dynamic_sampling.tasks.helpers import (
-    recalibrate_orgs as legacy_recalibration_cache,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 
+PER_ORG_ORGANIZATION_SAMPLE_RATE_CACHE_KEY = "ds::per_org:o:{org_id}:organization_sample_rate"
 PER_ORG_RECALIBRATION_FACTOR_CACHE_KEY = "ds::per_org:o:{org_id}:recalibration_factor"
 PER_ORG_PROJECT_SAMPLE_RATES_CACHE_KEY = "ds::per_org:o:{org_id}:project_sample_rates"
 PER_ORG_TRANSACTION_SAMPLE_RATES_CACHE_KEY = (
     "ds::per_org:o:{org_id}:p:{project_id}:transaction_sample_rates"
 )
 
+# TTL in milliseconds of the sample rates a pass stores.
+DEFAULT_REDIS_CACHE_KEY_TTL = 24 * 60 * 60 * 1000
+
+ADJUSTED_FACTOR_TTL_MINUTES_OPTION = "dynamic-sampling.recalibration.factor-ttl-minutes"
+CLAMP_REBALANCE_FACTOR_OPTION = "dynamic-sampling.recalibration.clamp-factor"
+
+# Bounds of the recalibration factor, so that one pass cannot move an organization's
+# sampling too far from its target.
+MIN_REBALANCE_FACTOR = 0.1
+MAX_REBALANCE_FACTOR = 10
+
 # Each pass applies its correction on top of the stored factor, so a second pass within
 # one scheduler cycle compounds it. A factor younger than this is left alone.
 MIN_RECALIBRATION_FACTOR_AGE = timedelta(minutes=9)
 
-CachedTransactionSampleRates = dict[int, tuple[dict[str, float], float] | None]
+
+def adjusted_factor_ttl_ms() -> int:
+    return int(options.get(ADJUSTED_FACTOR_TTL_MINUTES_OPTION)) * 60 * 1000
+
+
+def bounded_rebalance_factor(factor: float) -> float | None:
+    """The factor bounded to [MIN_REBALANCE_FACTOR, MAX_REBALANCE_FACTOR].
+
+    An out-of-range factor is clamped to the nearest bound when the clamp option
+    is on, and discarded (None) otherwise. A discarded factor tells the caller
+    to delete the stored factor.
+    """
+    if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
+        return factor
+    if options.get(CLAMP_REBALANCE_FACTOR_OPTION):
+        metrics.incr("dynamic_sampling.recalibration.factor_clamped")
+        return min(max(factor, MIN_REBALANCE_FACTOR), MAX_REBALANCE_FACTOR)
+    return None
+
+
+def sample_rate_to_float(sample_rate: str | None) -> float | None:
+    """
+    Converts a sample rate to a float or returns None in case the conversion failed.
+    """
+    if sample_rate is None:
+        return None
+
+    try:
+        return float(sample_rate)
+    except (TypeError, ValueError):
+        return None
+
+
+def are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
+    """
+    Checks if two floating point numbers are equal within an error boundary.
+    """
+    if a is None and b is None:
+        return True
+
+    if a is None or b is None:
+        return False
+
+    return math.isclose(a, b)
 
 
 def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
     org_id = config.organization.id
+    set_organization_sample_rate(org_id, config.get_sample_rate())
     wrote_recalibration_factor = write_recalibration_factor(
         org_id, config.results.recalibration_factor
     )
@@ -55,9 +96,6 @@ def write_caches(config: BaseDynamicSamplingConfiguration) -> None:
         org_id, config.results.rebalanced_transactions
     )
     if not (wrote_recalibration_factor or wrote_project_rates or wrote_transaction_rates):
-        return
-
-    if not is_org_in_serving_rollout(org_id):
         return
 
     schedule_invalidate_project_config(organization_id=org_id, trigger="dynamic_sampling_per_org")
@@ -80,6 +118,10 @@ def write_recalibration_factor(org_id: int, factor: float | None) -> bool:
     return True
 
 
+def generate_organization_sample_rate_cache_key(org_id: int) -> str:
+    return PER_ORG_ORGANIZATION_SAMPLE_RATE_CACHE_KEY.format(org_id=org_id)
+
+
 def generate_recalibrate_orgs_cache_key(org_id: int) -> str:
     return PER_ORG_RECALIBRATION_FACTOR_CACHE_KEY.format(org_id=org_id)
 
@@ -90,6 +132,31 @@ def generate_project_sample_rates_cache_key(org_id: int) -> str:
 
 def generate_transaction_sample_rates_cache_key(org_id: int, project_id: int) -> str:
     return PER_ORG_TRANSACTION_SAMPLE_RATES_CACHE_KEY.format(org_id=org_id, project_id=project_id)
+
+
+def set_organization_sample_rate(org_id: int, sample_rate: float | None) -> None:
+    """Store the sample rate a pass balanced an organization's projects against.
+
+    It is what the organization reports as its desired sample rate. A pass without one
+    leaves the stored rate alone, so that a transient failure does not drop it.
+    """
+    if sample_rate is None:
+        return
+
+    redis_client = get_redis_client_for_ds()
+    cache_key = generate_organization_sample_rate_cache_key(org_id)
+    with redis_client.pipeline(transaction=False) as pipeline:
+        pipeline.set(cache_key, sample_rate)
+        pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
+        pipeline.execute()
+
+
+def get_organization_sample_rate(org_id: int) -> float | None:
+    """The stored sample rate of an organization, or None when no pass has stored one."""
+    redis_client = get_redis_client_for_ds()
+    return sample_rate_to_float(
+        redis_client.get(generate_organization_sample_rate_cache_key(org_id))
+    )
 
 
 def set_adjusted_factor(org_id: int, adjusted_factor: float) -> None:
@@ -150,59 +217,8 @@ def delete_adjusted_factor(org_id: int) -> None:
     metrics.incr("dynamic_sampling.per_org.recalibration.delete_adjusted_factor")
 
 
-def get_cached_organization_sample_rate(org_id: int) -> float | None:
-    sample_rate, _ = get_org_sample_rate(org_id=org_id, default_sample_rate=None)
-    return sample_rate
-
-
-def get_cached_rebalanced_project_sample_rates(org_id: int) -> dict[int, float | None]:
-    redis_client = get_redis_client_for_ds()
-    cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
-    return {
-        int(project_id): sample_rate_to_float(sample_rate)
-        for project_id, sample_rate in redis_client.hgetall(cache_key).items()
-    }
-
-
-def get_cached_rebalanced_transaction_sample_rates(
-    org_id: int, project_ids: Iterable[int]
-) -> CachedTransactionSampleRates:
-    redis_client = get_redis_client_for_ds()
-    ordered_project_ids = list(project_ids)
-    if not ordered_project_ids:
-        return {}
-
-    with redis_client.pipeline(transaction=False) as pipeline:
-        for project_id in ordered_project_ids:
-            pipeline.get(
-                generate_boost_low_volume_transactions_cache_key(org_id=org_id, proj_id=project_id)
-            )
-        serialized_values = pipeline.execute()
-
-    result: CachedTransactionSampleRates = {}
-    for project_id, serialized in zip(ordered_project_ids, serialized_values):
-        if serialized is None:
-            result[project_id] = None
-            continue
-        try:
-            named_rates, implicit_rate = orjson.loads(serialized)
-        except (TypeError, ValueError) as e:
-            sentry_sdk.capture_exception(e)
-            result[project_id] = None
-            continue
-        result[project_id] = (named_rates, float(implicit_rate))
-    return result
-
-
-def get_cached_recalibration_factor(org_id: int) -> float:
-    return legacy_recalibration_cache.get_adjusted_factor(org_id, source="per_org_comparison")
-
-
 def set_project_sample_rates(org_id: int, rebalanced_projects: Iterable[RebalancedItem]) -> bool:
     """Store the balanced per-project sample rates this pipeline computed.
-
-    Mirrors the layout of the legacy ``prioritise_projects`` hash, so that both pipelines
-    are readable the same way and one can replace the other for a single organization.
 
     Only rates that moved are written. Most projects keep the same rate from one pass to
     the next, and a project with no volume keeps it forever. The expiry is always renewed,
@@ -261,8 +277,8 @@ def set_transaction_sample_rates(
 ) -> bool:
     """Store the balanced per-transaction sample rates of an organization's projects.
 
-    Each stored value has the same shape as the legacy ``pri_tran`` entry: the named rates
-    followed by the rate that applies to every transaction without one.
+    Each stored value holds the named rates followed by the rate that applies to every
+    transaction without one.
 
     Returns whether anything was written, which is what makes the organization's rules
     worth republishing.
