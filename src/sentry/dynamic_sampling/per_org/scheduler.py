@@ -72,7 +72,10 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
         results = config.results
         org_volume_end = datetime.now(UTC).replace(second=0, microsecond=0)
         results.organization_volume = get_eap_organization_volume(
-            config, time_interval=RECALIBRATION_TIME_INTERVAL, end=org_volume_end
+            config.organization,
+            config.projects,
+            time_interval=RECALIBRATION_TIME_INTERVAL,
+            end=org_volume_end,
         )
         if results.organization_volume is None:
             return DynamicSamplingStatus.NO_ORG_VOLUME

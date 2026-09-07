@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 declare module '@sentry/jest-environment/jsdom' {
   import type {JestEnvironment} from '@jest/environment';
 

@@ -38,6 +38,7 @@ export function LogsDirectExportModalButton({
       isLoading={isLoading}
       queryInfo={queryInfo}
       supportsAllColumns
+      supportsLocalDownload={false}
       tableData={tableData}
       title={t('Logs Export')}
     />

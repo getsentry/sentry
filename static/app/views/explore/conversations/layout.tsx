@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
@@ -99,7 +100,12 @@ function ConversationsLandingHeader() {
   );
 
   if (!hasSavedQuery) {
-    return <TopBar.Slot name="title">{CONVERSATIONS_LANDING_TITLE}</TopBar.Slot>;
+    return (
+      <TopBar.Slot name="title">
+        {CONVERSATIONS_LANDING_TITLE}
+        <FeatureBadge type="new" />
+      </TopBar.Slot>
+    );
   }
 
   return (
@@ -117,6 +123,7 @@ function ConversationsLandingHeader() {
       </TopBar.Slot>
       <TopBar.Slot name="title">
         <BreadcrumbList.Title item={{type: 'page-title', label: savedQueryTitle}} />
+        <FeatureBadge type="new" />
       </TopBar.Slot>
     </Fragment>
   );

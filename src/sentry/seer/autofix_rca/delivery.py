@@ -20,6 +20,7 @@ def deliver_autofix_rca_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None,
     error: str | None,
+    prompt_version: str | None = None,
 ) -> None:
     logger.info(
         "autofix_rca.delivery.received",

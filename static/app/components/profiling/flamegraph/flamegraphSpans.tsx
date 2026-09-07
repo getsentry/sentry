@@ -1,8 +1,9 @@
-import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
+
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -548,7 +549,7 @@ export function FlamegraphSpans({
   );
 }
 
-const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
+const Canvas = styled('canvas')<{cursor?: CSS['cursor']}>`
   width: 100%;
   height: calc(100% - 20px);
   position: absolute;

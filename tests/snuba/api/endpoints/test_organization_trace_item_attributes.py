@@ -39,6 +39,8 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 
+TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
+
 
 class TestBuildAttributeContext:
     def test_lookup_by_public_name(self) -> None:
@@ -3219,10 +3221,6 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
             assert "error" in response.data["attributes"][key]
 
     def test_user_tags_in_storage(self):
-        # Existing and nonexistent tags are validated in separate requests because
-        # the local test Snuba (used in CI) returns empty results for an OrFilter
-        # containing multiple ExistsFilters when some reference nonexistent
-        # attributes, even though real Snuba handles it fine.
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -3238,22 +3236,47 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         )
 
         response = self.do_request(
-            payload={"attributes": ["my.custom.tag"]},
+            payload={"attributes": ["my.custom.tag", "nonexistent.tag"]},
             query_params={"itemType": "spans"},
         )
+
         assert response.status_code == 200
-        tag1 = response.data["attributes"]["my.custom.tag"]
-        assert tag1["valid"] is True
-        assert tag1["type"] == "string"
+        attrs = response.data["attributes"]
+        assert attrs["my.custom.tag"]["valid"] is True
+        assert attrs["my.custom.tag"]["type"] == "string"
+        assert attrs["nonexistent.tag"]["valid"] is False
+        assert "error" in attrs["nonexistent.tag"]
+
+    @mock.patch(
+        "sentry.search.eap.utils.ATTRIBUTE_NAME_LIMIT",
+        TRUNCATED_ATTRIBUTE_NAME_LIMIT,
+    )
+    def test_user_tag_beyond_the_attribute_name_limit(self):
+        tags = {f"my.tag.{i:03}": "hello" for i in range(TRUNCATED_ATTRIBUTE_NAME_LIMIT)}
+        tags["zz.custom.tag"] = "hello"
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags=tags,
+        )
 
         response = self.do_request(
-            payload={"attributes": ["nonexistent.tag"]},
+            payload={"attributes": ["zz.custom.tag"]},
             query_params={"itemType": "spans"},
         )
+
         assert response.status_code == 200
-        tag2 = response.data["attributes"]["nonexistent.tag"]
-        assert tag2["valid"] is False
-        assert "error" in tag2
+        attr = response.data["attributes"]["zz.custom.tag"]
+        assert attr["valid"] is True
+        assert attr["type"] == "string"
 
     def test_user_tags_same_name_different_types(self):
         self.store_segment(

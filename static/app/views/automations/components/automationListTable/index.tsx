@@ -56,7 +56,6 @@ function HeaderCell({
   children: React.ReactNode;
   sort: Sort | undefined;
   className?: string;
-  divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
@@ -152,14 +151,16 @@ export function AutomationListTable({
   return (
     <AutomationsSimpleTable
       header={
-        canEditAutomations && selected.size === 0 ? (
+        !canEditAutomations || selected.size === 0 ? (
           <SimpleTable.HeaderRow key="header">
             <HeaderCell sort={sort} sortKey="name">
               <Flex gap="md" align="center">
-                <SelectAllHeaderCheckbox
-                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                  onChange={checked => togglePageSelected(checked)}
-                />
+                {canEditAutomations && (
+                  <SelectAllHeaderCheckbox
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    onChange={checked => togglePageSelected(checked)}
+                  />
+                )}
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>

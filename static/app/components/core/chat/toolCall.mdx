@@ -1,6 +1,6 @@
 ---
 title: ToolCall
-description: A single agent tool call — its status, result, timing, and inputs.
+description: A single agent tool call — its status, result, and inputs.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
@@ -20,14 +20,13 @@ The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
 Unlike the collapsible `ThinkingBlock` it lives in, a tool call is **not** itself
 a disclosure — it has no chevron and its detail is always visible. A leading
 glyph communicates lifecycle `status` (a spinner while running, a semantic icon
-once settled — see `ToolCallIndicator`), an optional `reference` chip trails the
-title, and a `durationMs` reads right-aligned in the meta slot.
+once settled — see `ToolCallIndicator`), and an optional `reference` chip trails
+the title.
 
 ## Anatomy
 
-A tool call is a single title line: the status glyph, the `title`, an optional
-trailing `reference` chip pointing at the entity the call acted on, and the
-elapsed `durationMs`.
+A tool call is a single title line: the status glyph, the `title`, and an
+optional trailing `reference` chip pointing at the entity the call acted on.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -35,13 +34,11 @@ elapsed `durationMs`.
       title="Read trace waterfall"
       status="success"
       reference={{label: 'Trace', value: 'a3805648'}}
-      durationMs={6400}
     />
     <ToolCall
       title="Read trace with span details"
       status="success"
       reference={{label: 'Span', value: 'a469c305'}}
-      durationMs={6600}
     />
   </Container>
 </Storybook.Demo>
@@ -51,7 +48,6 @@ elapsed `durationMs`.
   title="Read trace waterfall"
   status="success"
   reference={{label: 'Trace', value: 'a3805648'}}
-  durationMs={6400}
 />
 ```
 
@@ -68,7 +64,6 @@ chips.
       title="Query spans"
       status="success"
       reference={{label: 'Trace', value: 'a3805648'}}
-      durationMs={9400}
       input={
         <Text size="sm" monospace>
           dataset:spans project:ml-service span.description:DSL
@@ -127,13 +122,8 @@ small glyph on the far left.
   <Container width="100%" background="secondary" radius="md" padding="lg">
     <ToolCall title="Running query" status="loading" />
     <ToolCall title="Awaiting approval" status="pending" />
-    <ToolCall title="Query succeeded" status="success" durationMs={9400} />
-    <ToolCall
-      title="Query failed"
-      status="failure"
-      failureLabel="502"
-      durationMs={9400}
-    />
+    <ToolCall title="Query succeeded" status="success" />
+    <ToolCall title="Query failed" status="failure" failureLabel="502" />
   </Container>
 </Storybook.Demo>
 

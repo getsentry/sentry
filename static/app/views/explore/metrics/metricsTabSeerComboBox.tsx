@@ -356,9 +356,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     ]
   );
 
-  const usePollingEndpoint =
-    organization.features.includes('gen-ai-search-agent-translate') &&
-    organization.features.includes('gen-ai-explore-metrics-search');
+  const usePollingEndpoint = organization.features.includes(
+    'gen-ai-search-agent-translate'
+  );
 
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>

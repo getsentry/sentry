@@ -42,12 +42,6 @@ interface Props extends Omit<
    */
   maxWidth?: InfoTextProps<'time'>['maxWidth'];
   /**
-   * Prefix before upcoming time (when the date is in the future)
-   *
-   * @default "in"
-   */
-  prefix?: string;
-  /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
    *
    * @default "ago"
@@ -91,7 +85,6 @@ export function TimeSince({
   variant = 'inherit',
   maxWidth,
   unitStyle,
-  prefix = t('in'),
   suffix = t('ago'),
   liveUpdateInterval = 'minute',
   ...props
@@ -101,8 +94,8 @@ export function TimeSince({
 
   const relative = useMemo(() => {
     void tick; // Ensure recomputation when tick changes
-    return getRelativeDate(date, suffix, prefix, unitStyle);
-  }, [date, suffix, prefix, unitStyle, tick]);
+    return getRelativeDate(date, suffix, t('in'), unitStyle);
+  }, [date, suffix, unitStyle, tick]);
 
   useEffect(() => {
     const interval =
@@ -137,7 +130,7 @@ export function TimeSince({
               <RelativeTime
                 date={date}
                 label={tooltipPrefix}
-                prefix={prefix}
+                prefix={t('in')}
                 suffix={suffix}
                 unitStyle={unitStyle}
                 showSeconds={tooltipShowSeconds}
