@@ -58,7 +58,7 @@ export default function DebugNotificationsIndex() {
                   </Flex>
                 </Heading>
                 <Grid
-                  columns={{zero: '1fr', '2xl': '1fr auto'}}
+                  columns={{zero: '1fr', lg: '1fr auto'}}
                   gap="2xl"
                   position="relative"
                 >
@@ -72,7 +72,7 @@ export default function DebugNotificationsIndex() {
                     position="sticky"
                     top={`calc(${HEADER_HEIGHT}px + ${theme.space.xl})`}
                     alignSelf="flex-start"
-                    maxWidth={{zero: 'none', '2xl': '450px'}}
+                    maxWidth={{zero: 'none', lg: '450px'}}
                   >
                     <DebugNotificationsExample registration={selectedRegistration} />
                   </Container>
