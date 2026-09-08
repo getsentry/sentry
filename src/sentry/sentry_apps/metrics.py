@@ -77,6 +77,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     APP_DISABLED = "app_disabled"
     INNER_TIMEOUT = "inner_timeout"
     MISSING_GROUP = "missing_group"
+    INVALID_HEADER = "invalid_header"
 
 
 class SentryAppExternalRequestFailureReason(StrEnum):

@@ -160,6 +160,25 @@ class WebhookCircuitBreakerTest(TestCase):
 
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_unicode_encode_error_is_swallowed(self, MockBreaker, mock_safe_urlopen):
+        """A stored header that can't be latin-1 encoded (e.g. from before write-time
+        validation existed) should be treated as invalid customer config and not raise or
+        retry."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_safe_urlopen.side_effect = UnicodeEncodeError(
+            "latin-1", "\u3000", 0, 1, "ordinal not in range(256)"
+        )
+
+        response = send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        assert isinstance(response, Response)
+        mock_breaker_instance.record_error.assert_not_called()
+        mock_breaker_instance.record_success.assert_not_called()
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_empty_webhook_url_skips_request(self, mock_safe_urlopen):
         """An empty string webhook_url (as opposed to None) must not reach
         safe_urlopen — otherwise requests raises MissingSchema."""

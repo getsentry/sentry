@@ -410,6 +410,16 @@ def send_and_save_webhook_request(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INNER_TIMEOUT}"
             )
             raise
+        except UnicodeEncodeError:
+            # The sentry-app has a non-latin-1 header value stored (e.g. a webhook secret or
+            # custom header containing non-ASCII characters). New sentry-apps are validated on
+            # write, but existing apps can still carry a bad stored header, and the underlying
+            # HTTP client cannot encode it. Treat this as invalid customer config rather than a
+            # Sentry-side failure, and don't retry - the header won't become valid on retry.
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.INVALID_HEADER}"
+            )
+            return Response()
         track_response_code(response.status_code, slug, event)
 
         project_id = (
