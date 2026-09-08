@@ -3981,6 +3981,15 @@ register(
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Fraction of expiring pending attachments that are checked for a matching event before
+# being deleted. Each check costs one nodestore read.
+register(
+    "attachments.pending.premature_deletion_check_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "sentry.send_onboarding_task_metrics",
