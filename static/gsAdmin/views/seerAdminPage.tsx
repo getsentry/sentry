@@ -150,7 +150,7 @@ export function SeerAdminPage() {
                     </field.Layout.Stack>
                   )}
                 </form.AppField>
-                <Container alignSelf="start">
+                <Container alignSelf="end">
                   <form.Subscribe selector={state => state.values.organizationId}>
                     {organizationId => (
                       <form.SubmitButton>
