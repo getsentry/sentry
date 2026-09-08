@@ -55,7 +55,7 @@ export function getLogsQueryFields(data: LogsQueryData): string[] {
  * Aggregates need no such care: their fields are `[...groupBy, ...yAxes]`, so
  * the trailing y-axis is always selected.
  */
-export function resolveLogsSort(data: LogsQueryData, fields: string[]): string {
+function resolveLogsSort(data: LogsQueryData, fields: string[]): string {
   const isSelected = (sort: string) => fields.includes(sort.replace(/^-/, ''));
 
   if (data.sort && isSelected(data.sort)) {
