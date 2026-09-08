@@ -234,6 +234,7 @@ def assert_get_organizations_by_ids_works(
             if member is None:
                 assert context.member is None
             else:
+                assert context.member is not None
                 assert_organization_member_equals(member, context.member)
 
 
