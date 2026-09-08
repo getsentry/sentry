@@ -105,3 +105,36 @@ class GetChannelIdTest(TestCase):
 
     def test_bad_user_not_selected(self) -> None:
         self.run_invalid_test("Prince Humperdinck")
+
+    @responses.activate
+    def test_api_error_returns_none(self) -> None:
+        """When MS Teams API returns 400 (e.g. bot lost access), return None instead of raising."""
+        responses.replace(
+            responses.GET,
+            "https://smba.trafficmanager.net/amer/v3/teams/3x73rna1-id/conversations",
+            json={"error": {"code": "BadRequest", "message": "Bot not in team"}},
+            status=400,
+        )
+        assert get_channel_id(self.organization, self.integration.id, "general") is None
+
+    @responses.activate
+    def test_api_unauthorized_returns_none(self) -> None:
+        """When MS Teams API returns 401, return None instead of raising."""
+        responses.replace(
+            responses.GET,
+            "https://smba.trafficmanager.net/amer/v3/teams/3x73rna1-id/conversations",
+            json={"error": {"code": "Unauthorized"}},
+            status=401,
+        )
+        assert get_channel_id(self.organization, self.integration.id, "general") is None
+
+    @responses.activate
+    def test_api_forbidden_returns_none(self) -> None:
+        """When MS Teams API returns 403, return None instead of raising."""
+        responses.replace(
+            responses.GET,
+            "https://smba.trafficmanager.net/amer/v3/teams/3x73rna1-id/conversations",
+            json={"error": {"code": "Forbidden"}},
+            status=403,
+        )
+        assert get_channel_id(self.organization, self.integration.id, "general") is None
