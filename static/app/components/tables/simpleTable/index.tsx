@@ -74,6 +74,14 @@ function HeaderCell({
 }: HTMLAttributes<HTMLTableCellElement> & {
   align?: ColumnAlign;
   children?: React.ReactNode;
+  /**
+   * Identifies the column this cell heads, which is what opts it into the
+   * resize handle `Table` renders on every column but the last. Pass whichever
+   * matches how the header is built: the `key` of an entry in `columns`, or the
+   * position for a header rendered from an ordered list.
+   */
+  column?: string;
+  columnIndex?: number;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
