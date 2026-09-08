@@ -171,6 +171,22 @@ class SnubaQueryValidatorTest(TestCase):
             == "count_if(http.response.status_code,equals,500)"
         )
 
+    def test_eap_conditional_percentile_aggregate(self) -> None:
+        # p50_if/p75_if/p90_if/p95_if/p99_if are conditional aggregates like
+        # count_if and hit the same unhashable-list crash if missing from
+        # EAP_FUNCTIONS.
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "p50_if(span.duration,equals,500)",
+            "timeWindow": 60,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["aggregate"] == "p50_if(span.duration,equals,500)"
+
     @with_feature(
         {
             "organizations:performance-view": True,
