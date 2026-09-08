@@ -1,7 +1,8 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {DebugNotificationsExample} from 'sentry/debug/notifications/components/debugNotificationsExample';
@@ -20,6 +21,7 @@ import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextP
 const HEADER_HEIGHT = 52;
 
 export default function DebugNotificationsIndex() {
+  const theme = useTheme();
   const {routeSource} = useRouteSource();
   const {data: registry = {}} = useRegistry();
   const registrations = Object.values(registry).flat();
@@ -66,9 +68,14 @@ export default function DebugNotificationsIndex() {
                     <DiscordPreview registration={selectedRegistration} />
                     <TeamsPreview registration={selectedRegistration} />
                   </Stack>
-                  <ExampleContainer>
+                  <Container
+                    position="sticky"
+                    top={`calc(${HEADER_HEIGHT}px + ${theme.space.xl})`}
+                    alignSelf="flex-start"
+                    maxWidth={{zero: 'none', '4xl': '450px'}}
+                  >
                     <DebugNotificationsExample registration={selectedRegistration} />
-                  </ExampleContainer>
+                  </Container>
                 </Grid>
               </Stack>
             ) : (
@@ -101,13 +108,4 @@ const SidebarContainer = styled('nav')`
   box-shadow: 1px 0 0 0 ${p => p.theme.tokens.border.primary};
   display: flex;
   flex-direction: column;
-`;
-
-const ExampleContainer = styled('div')`
-  position: sticky;
-  top: ${p => `calc(${HEADER_HEIGHT}px + ${p.theme.space.xl})`};
-  align-self: flex-start;
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    max-width: 450px;
-  }
 `;
