@@ -5,9 +5,11 @@ from unittest import mock
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
+from rest_framework.test import APIRequestFactory
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.api.client_kind import (
+    ATTRIBUTION_SPAN_OP,
     FEATURE_FLAG,
     ClientKind,
     get_client_host,
@@ -20,6 +22,10 @@ from sentry.auth.system import SystemToken
 from sentry.seer.agent_token import AGENT_TOKEN_KIND
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.testutils.cases import TestCase
+from sentry.utils.sdk import get_transaction_name_from_request
+
+EVENTS_PATH = "/api/0/organizations/my-org/events/"
+EVENTS_ROUTE = "/api/0/organizations/{organization_id_or_slug}/events/"
 
 
 def make_request(
@@ -29,8 +35,9 @@ def make_request(
     user_agent: str | None = None,
     headers: dict[str, str] | None = None,
     cookies: bool = True,
+    path: str = EVENTS_PATH,
 ) -> Request:
-    request = Request(RequestFactory().get("/", headers=headers or {}))
+    request = Request(RequestFactory().get(path, headers=headers or {}))
     if user_agent is not None:
         request.META["HTTP_USER_AGENT"] = user_agent
     if cookies:
@@ -255,10 +262,12 @@ class SetClientKindAttributesTest(TestCase):
         with (
             self.feature({FEATURE_FLAG: False}),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+            mock.patch("sentry.api.client_kind.start_span") as start_span,
         ):
             set_client_kind_attributes(request, self.organization)
         sdk.set_tag.assert_not_called()
         sdk.set_attribute.assert_not_called()
+        start_span.assert_not_called()
 
     def test_records_kind_and_user_agent(self) -> None:
         request = make_request(auth=api_token(), user_agent="curl/8.7.1")
@@ -300,7 +309,7 @@ class SetClientKindAttributesTest(TestCase):
         for call in sdk.set_attribute.call_args_list:
             assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL
 
-    def test_skips_requests_from_the_internal_api_client(self) -> None:
+    def test_skips_transaction_attributes_from_the_internal_api_client(self) -> None:
         # `ApiClient` dispatches in-process with a synthetic request carrying no user
         # agent, cookies or token. Recording its UNKNOWN would clobber the enclosing
         # transaction's own attribution, since these attributes are isolation-scoped.
@@ -309,7 +318,77 @@ class SetClientKindAttributesTest(TestCase):
         with (
             self.feature(FEATURE_FLAG),
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+            mock.patch("sentry.api.client_kind.start_span"),
         ):
             set_client_kind_attributes(request, self.organization)
         sdk.set_tag.assert_not_called()
         sdk.set_attribute.assert_not_called()
+
+
+class AttributionSpanTest(TestCase):
+    def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
+        with (
+            self.feature(FEATURE_FLAG),
+            mock.patch("sentry.api.client_kind.start_span") as start_span,
+            mock.patch("sentry.api.client_kind.set_span_data") as set_span_data,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        span = start_span.return_value.__enter__.return_value
+        return start_span, [
+            call.args[1:] for call in set_span_data.call_args_list if call.args[0] is span
+        ]
+
+    def test_pairs_the_route_with_the_caller(self) -> None:
+        start_span, attributes = self.record(
+            make_request(auth=api_token(), user_agent="curl/8.7.1")
+        )
+        assert start_span.call_args == mock.call(op=ATTRIBUTION_SPAN_OP, name=EVENTS_ROUTE)
+        assert attributes == [
+            (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE),
+            ("client_kind_test", "script"),
+            (ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
+        ]
+
+    def test_records_the_route_for_an_internal_api_client_dispatch(self) -> None:
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        mark_from_api_client(request)
+        start_span, attributes = self.record(request)
+        assert start_span.call_args == mock.call(op=ATTRIBUTION_SPAN_OP, name=EVENTS_ROUTE)
+        assert (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE) in attributes
+
+    def test_carries_the_mcp_client_host(self) -> None:
+        _, attributes = self.record(
+            make_request(
+                auth=api_token(),
+                user_agent="sentry-mcp/1.0",
+                headers={
+                    "X-Sentry-MCP-Version": "1.0",
+                    "X-Sentry-MCP-Client-Family": "Claude-Code",
+                },
+            )
+        )
+        assert ("client_host_test", "claude-code") in attributes
+
+    def test_omits_user_agent_when_absent(self) -> None:
+        _, attributes = self.record(make_request(auth=api_token()))
+        assert [key for key, _ in attributes] == [
+            ATTRIBUTE_NAMES.HTTP_ROUTE,
+            "client_kind_test",
+        ]
+
+
+class SpanRouteTest(TestCase):
+    """Pin the route resolution `_record_attribution_span` names its span with."""
+
+    def test_parameterizes_the_url(self) -> None:
+        assert get_transaction_name_from_request(make_request()) == EVENTS_ROUTE
+
+    def test_an_internal_dispatch_resolves_to_the_same_route(self) -> None:
+        mock_request = APIRequestFactory().get(EVENTS_PATH, {})
+        request = Request(mock_request)
+        request.user = AnonymousUser()
+        assert get_transaction_name_from_request(request) == EVENTS_ROUTE
+
+    def test_an_unmatched_path_collapses_onto_a_catch_all(self) -> None:
+        request = make_request(path="/api/0/definitely/not/a/route/")
+        assert get_transaction_name_from_request(request) == "/api/0/"
