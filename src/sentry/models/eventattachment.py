@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import mimetypes
-import os
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
@@ -124,6 +123,10 @@ class EventAttachmentBase(Model):
     class Meta:
         abstract = True
 
+    def final_expiry_date(self) -> datetime:
+        """The end of the retention window for this entry"""
+        raise NotImplementedError
+
     def delete_blob(self) -> None:
         """
         Delete this attachment's payload from its backing store.
@@ -145,11 +148,9 @@ class EventAttachmentBase(Model):
                 storage.delete(self.blob_path)
 
         elif self.blob_path.startswith(V2_PREFIX):
-            # During cleanup, V2 objectstore blobs expire via TTL — skip the
+            # V2 objectstore blobs expire via TTL — if TTL is imminent, skip the
             # explicit delete to avoid unnecessary load on the objectstore service.
-            #
-            # We want to special-case pending attachments in a follow-up. See INGEST-1176.
-            if not os.environ.get("_SENTRY_CLEANUP"):
+            if self.final_expiry_date() > (timezone.now() + timedelta(days=1)):
                 organization_id = _get_organization(self.project_id)
                 get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
                     self.blob_path.removeprefix(V2_PREFIX)
@@ -179,6 +180,9 @@ class EventAttachment(EventAttachmentBase):
         )
 
     __repr__ = sane_repr("event_id", "name")
+
+    def final_expiry_date(self) -> datetime:
+        return self.date_expires
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # Computed here rather than as a field default to avoid freezing a callable
@@ -342,6 +346,9 @@ class PendingEventAttachment(EventAttachmentBase):
         indexes = (models.Index(fields=("project_id", "event_id")),)
 
     __repr__ = sane_repr("event_id", "name")
+
+    def final_expiry_date(self) -> datetime:
+        return self.date_expires_retention
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         # A pending attachment that is deleted rather than promoted (its event never

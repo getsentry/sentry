@@ -2459,6 +2459,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for the legacy dynamic sampling pipeline. When set to True, the four
+# scheduled jobs (sliding_window_org, boost_low_volume_projects,
+# boost_low_volume_transactions, recalibrate_orgs) exit before they do any work.
+register(
+    "dynamic-sampling.legacy.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
 # organization id. A value of 0.0 disables the pipeline for every org; 1.0
 # enables it for every org. Intermediate values select a stable hash-based
