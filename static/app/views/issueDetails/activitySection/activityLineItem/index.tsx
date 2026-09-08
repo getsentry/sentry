@@ -6,6 +6,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
+import {getMcpActivitySourceName} from './activitySource';
 import {ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
@@ -50,7 +51,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
       <ActivityLineHeadline
         title={activityItem.title}
         details={activityItem.details}
-        source={activityItem.source}
+        source={activityItem.source ?? getMcpActivitySourceName(activity.source)}
         timestamp={timestamp}
       />
     </ActivityLineRow>
