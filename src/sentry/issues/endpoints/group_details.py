@@ -47,6 +47,12 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadEndpoint,
+    ActivityReadReason,
+    ActivityReadResult,
+    record_activity_read,
+)
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -342,15 +348,26 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 }
             )
 
-            if should_serve_action_log_activity(group.project, request.user):
+            if should_serve_action_log_activity(
+                group.project, request.user, endpoint=ActivityReadEndpoint.GROUP_DETAILS
+            ):
                 action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
+                    record_activity_read(
+                        ActivityReadEndpoint.GROUP_DETAILS,
+                        ActivityReadResult.GALE,
+                    )
                     # swap action log data in under the activity name
                     first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
                     data.update(
                         {"activity": [*serialize(action_log, request.user), first_seen_entry]}
                     )
                 else:
+                    record_activity_read(
+                        ActivityReadEndpoint.GROUP_DETAILS,
+                        ActivityReadResult.FELL_BACK,
+                        ActivityReadReason.EMPTY_LOG,
+                    )
                     logger.info(
                         "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}
                     )

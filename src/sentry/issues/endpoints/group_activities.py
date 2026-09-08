@@ -9,6 +9,12 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
 from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadEndpoint,
+    ActivityReadReason,
+    ActivityReadResult,
+    record_activity_read,
+)
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -33,9 +39,15 @@ class GroupActivitiesEndpoint(GroupEndpoint):
         """
         Retrieve all the Activities for a Group
         """
-        if should_serve_action_log_activity(group.project, request.user):
+        if should_serve_action_log_activity(
+            group.project, request.user, endpoint=ActivityReadEndpoint.GROUP_ACTIVITIES
+        ):
             action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
             if action_log:
+                record_activity_read(
+                    ActivityReadEndpoint.GROUP_ACTIVITIES,
+                    ActivityReadResult.GALE,
+                )
                 serialized = serialize(action_log, request.user)
                 serialized.append(serialize_first_seen_entry(group))
                 return Response(
@@ -43,6 +55,11 @@ class GroupActivitiesEndpoint(GroupEndpoint):
                         "activity": serialized,
                     }
                 )
+            record_activity_read(
+                ActivityReadEndpoint.GROUP_ACTIVITIES,
+                ActivityReadResult.FELL_BACK,
+                ActivityReadReason.EMPTY_LOG,
+            )
             logger.info(
                 "group_activities.groupactionlogentry.not_found", extra={"group_id": group.id}
             )

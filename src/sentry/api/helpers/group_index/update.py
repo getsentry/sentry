@@ -32,6 +32,12 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadEndpoint,
+    ActivityReadReason,
+    ActivityReadResult,
+    record_activity_read,
+)
 from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.grouptype import GroupCategory
@@ -784,16 +790,27 @@ def prepare_response(
         if len(group_list) == 1:
             if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
                 group = group_list[0]
-                if should_serve_action_log_activity(group.project, acting_user):
+                if should_serve_action_log_activity(
+                    group.project, acting_user, endpoint=ActivityReadEndpoint.GROUP_INDEX_UPDATE
+                ):
                     action_log = GroupActionLogEntry.objects.get_actions_for_group(
                         group, ACTIVITIES_COUNT - 1
                     )
                     if action_log:
+                        record_activity_read(
+                            ActivityReadEndpoint.GROUP_INDEX_UPDATE,
+                            ActivityReadResult.GALE,
+                        )
                         result["activity"] = [
                             *serialize(action_log, acting_user),
                             serialize_first_seen_entry(group),
                         ]
                     else:
+                        record_activity_read(
+                            ActivityReadEndpoint.GROUP_INDEX_UPDATE,
+                            ActivityReadResult.FELL_BACK,
+                            ActivityReadReason.EMPTY_LOG,
+                        )
                         logger.info(
                             "group_index.groupactionlogentry.not_found",
                             extra={"group_id": group.id},

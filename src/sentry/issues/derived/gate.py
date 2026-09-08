@@ -1,6 +1,12 @@
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features
+from sentry.issues.action_log.read_metrics import (
+    ActivityReadEndpoint,
+    ActivityReadReason,
+    ActivityReadResult,
+    record_activity_read,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.users.models.user import User
@@ -29,8 +35,18 @@ def derived_should_be_correct(project: Project) -> bool:
 def should_serve_action_log_activity(
     project: Project,
     actor: User | RpcUser | AnonymousUser | None = None,
+    *,
+    endpoint: ActivityReadEndpoint,
 ) -> bool:
     """Whether the action log can back this project's Activity-shaped responses."""
-    return features.has(
-        "projects:issue-action-log-activity", project, actor=actor
-    ) and derived_should_be_correct(project)
+    if not features.has("projects:issue-action-log-activity", project, actor=actor):
+        record_activity_read(endpoint, ActivityReadResult.FLAG_OFF)
+        return False
+
+    if not derived_should_be_correct(project):
+        record_activity_read(
+            endpoint, ActivityReadResult.FELL_BACK, ActivityReadReason.NOT_BACKFILLED
+        )
+        return False
+
+    return True
