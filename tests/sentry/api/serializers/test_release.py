@@ -1036,7 +1036,7 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
 
         users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
 
-        assert users[str(author.id)]["id"] == str(github_user.id)
+        assert users[str(author.id)].get("id") == str(github_user.id)
 
     def test_get_users_for_authors_by_external_actor_no_user_id(self) -> None:
         """CommitAuthor has an ExternalActor but it's a team mapping"""
