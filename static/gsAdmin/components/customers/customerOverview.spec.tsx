@@ -570,7 +570,7 @@ describe('CustomerOverview', () => {
     await userEvent.hover(spansButtons.startTrialButton);
     expect(
       await screen.findByText(
-        'Gift usage for this SKU instead. Starting per-product trials is disabled for enterprise plans.'
+        'Gift usage for this SKU instead. Starting per-product trials for this product is disabled for enterprise plans.'
       )
     ).toBeInTheDocument();
 
