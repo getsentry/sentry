@@ -3,10 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import click
-from django.conf import settings
 
 from sentry.runner.decorators import configuration
-from sentry.users.models.userpermission import UserPermission
 
 if TYPE_CHECKING:
     from django.db.models.fields import Field
@@ -51,6 +49,10 @@ def _get_superuser() -> bool:
 
 
 def _set_superadmin(user: User) -> None:
+    from django.conf import settings
+
+    from sentry.users.models.userpermission import UserPermission
+
     for permission in settings.SENTRY_USER_PERMISSIONS:
         UserPermission.objects.get_or_create(user=user, permission=permission)
 
