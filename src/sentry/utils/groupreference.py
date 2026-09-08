@@ -9,15 +9,17 @@ if TYPE_CHECKING:
 
 _markdown_strip_re = re.compile(r"\[([^]]+)\]\([^)]+\)", re.I)
 
+_fix_keywords = r"(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)"
+
 _fixes_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+([A-Za-z0-9_\-\s\,]+)\b",
+    rf"\b{_fix_keywords}:?\s+([A-Za-z0-9_\-\s\,]+)\b",
     re.I,
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
 
 # Matches fix keywords followed by a URL
 _fixes_url_re = re.compile(
-    r"\b(?:Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved):?\s+(https?://[^\s]+)",
+    rf"\b{_fix_keywords}:?\s+(https?://[^\s]+)",
     re.I,
 )
 # Extracts numeric group ID from /issues/{id} in URL path
@@ -102,3 +104,38 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
             results.add(group)
 
     return results
+
+
+def find_fix_statements(text: str | None, org_id: int) -> list[str]:
+    """Return the raw text of each "Fix/Fixes/.../Resolved ..." statement in
+    *text* that references a real Sentry issue in *org_id*.
+
+    Only the "keyword + short id/URL" span is returned, not _fixes_re's full
+    (loosely-bounded, whitespace-swallowing) match: that match is meant only
+    for feeding _short_id_re, and using it verbatim here would strip
+    unrelated trailing text out of the caller's description.
+    """
+    from sentry.models.group import Group
+
+    if not text:
+        return []
+
+    statements = []
+
+    for fmatch in _fixes_re.finditer(text):
+        for smatch in _short_id_re.finditer(fmatch.group(1)):
+            short_id = smatch.group(1)
+            try:
+                Group.objects.by_qualified_short_id(
+                    organization_id=org_id, short_id=short_id, project_ids=None
+                )
+            except Group.DoesNotExist:
+                continue
+            statement_end = fmatch.start(1) + smatch.end(1)
+            statements.append(text[fmatch.start() : statement_end])
+
+    for fmatch in _fixes_url_re.finditer(text):
+        if find_referenced_groups(fmatch.group(0), org_id):
+            statements.append(fmatch.group(0))
+
+    return statements
