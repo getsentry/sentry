@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -85,11 +85,11 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
 
   return (
     <Fragment>
-      <Actions>
+      <Flex justify="end" marginBottom="md">
         <Button variant="danger" onClick={resetIntegrations}>
           Reset Integrations
         </Button>
-      </Actions>
+      </Flex>
       <ResultGrid
         key={refreshKey}
         inPanel
@@ -189,12 +189,6 @@ export function CustomerIntegrationDebugDetails({orgId}: Props) {
     </Fragment>
   );
 }
-
-const Actions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${p => p.theme.space.md};
-`;
 
 const MetadataContent = styled('pre')`
   margin: 0;
