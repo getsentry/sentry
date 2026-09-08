@@ -3,6 +3,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
+from django.conf import settings
 from django.core import mail
 from django.db.models import F
 
@@ -204,6 +205,46 @@ def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[
 
     for user_context in itertools.chain([None], orm_users):
         assert_get_organization_by_id_works(user_context, orm_org)
+
+
+@assume_test_silo_mode(SiloMode.CELL)
+def assert_get_organizations_by_ids_works(
+    user_context: User | None, orgs: list[Organization]
+) -> None:
+    org_ids = [org.id for org in orgs]
+    contexts = organization_service.get_organizations_by_ids(
+        cell_name=settings.SENTRY_FALLBACK_CELL,
+        organization_ids=[*org_ids, -2],
+        user_id=user_context.id if user_context else None,
+    )
+    contexts_by_id = {context.organization.id: context for context in contexts}
+
+    assert set(contexts_by_id) == set(org_ids)
+    for org in orgs:
+        context = contexts_by_id[org.id]
+        assert_orgs_equal(org, context.organization)
+        if user_context is None:
+            assert context.user_id is None
+            assert context.member is None
+        else:
+            assert context.user_id == user_context.id
+            member = OrganizationMember.objects.filter(
+                user_id=user_context.id, organization_id=org.id
+            ).first()
+            if member is None:
+                assert context.member is None
+            else:
+                assert_organization_member_equals(member, context.member)
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_get_organizations_by_ids() -> None:
+    org_1, users_1 = basic_filled_out_org()
+    org_2, _ = basic_filled_out_org()
+
+    for user_context in itertools.chain([None], users_1):
+        assert_get_organizations_by_ids_works(user_context, [org_1, org_2])
 
 
 @assume_test_silo_mode(SiloMode.CELL)
