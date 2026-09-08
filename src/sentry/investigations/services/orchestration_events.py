@@ -420,11 +420,15 @@ def _upsert_report_block(
     revision = payload["reportRevision"]
     key = payload["stableAgentKey"]
     kind = payload["kind"]
-    block = InvestigationBlock.objects.filter(
-        investigation=investigation,
-        report_revision=revision,
-        stable_agent_key=key,
-    ).first()
+    block = (
+        InvestigationBlock.objects.filter(
+            investigation=investigation,
+            report_revision=revision,
+            stable_agent_key=key,
+        )
+        .select_related("current_execution")
+        .first()
+    )
     if block is None:
         # Optional on the schema because an update may reuse the stored position,
         # but a block being created has none to fall back on.
