@@ -104,7 +104,6 @@ const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
   display: flex;
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
   flex-grow: 1;
-  min-width: 0;
 
   ${p =>
     p.orientation === 'vertical' &&

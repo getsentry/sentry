@@ -38,9 +38,9 @@ const StyledTabListWrap = styled('ul', {
 })<{
   orientation: Orientation;
   variant: TabProps['variant'];
-  disableOverflow?: boolean;
 }>`
   position: relative;
+  display: grid;
   padding: 0;
   margin: 0;
   list-style-type: none;
@@ -49,19 +49,11 @@ const StyledTabListWrap = styled('ul', {
 
   ${p =>
     p.orientation === 'horizontal'
-      ? p.disableOverflow
-        ? css`
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: flex-start;
-          `
-        : css`
-            display: grid;
-            grid-auto-flow: column;
-            justify-content: start;
-          `
+      ? css`
+          grid-auto-flow: column;
+          justify-content: start;
+        `
       : css`
-          display: grid;
           height: 100%;
           grid-auto-flow: row;
           align-content: start;
@@ -372,15 +364,9 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   }, [state.collection, overflowTabs]);
 
   return (
-    <Container
-      position="relative"
-      minWidth="0"
-      style={outerWrapStyles}
-      ref={outerWrapRef}
-    >
+    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
       <TabListWrap
         {...tabListProps}
-        disableOverflow={disableOverflow}
         orientation={orientation}
         ref={tabListRef}
         variant={variant}
