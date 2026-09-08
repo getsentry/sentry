@@ -126,10 +126,21 @@ function GcpSaGenerationStep({
 const gcpCustomerConfigSchema = z.object({
   customerSaEmail: z.email(t('Must be a valid email address')),
   projects: z
-    .array(z.string().regex(GCP_PROJECT_ID_RE, t('Invalid project ID')))
+    .array(z.string())
     .min(1, t('At least one project ID is required'))
-    .max(MAX_PROJECTS, t('You can connect up to %s GCP projects', MAX_PROJECTS)),
+    .max(MAX_PROJECTS, t('You can connect up to %s GCP projects', MAX_PROJECTS))
+    .refine(
+      ids => ids.every(id => GCP_PROJECT_ID_RE.test(id)),
+      t(
+        'Project IDs must be 6-30 characters using lowercase letters, digits, and hyphens, and must start with a letter.'
+      )
+    ),
 });
+
+const emptyGcpCustomerConfig: z.infer<typeof gcpCustomerConfigSchema> = {
+  customerSaEmail: '',
+  projects: [],
+};
 
 function GcpCustomerConfigStep({
   advance,
@@ -142,7 +153,7 @@ function GcpCustomerConfigStep({
 >) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {customerSaEmail: '', projects: [] as string[]},
+    defaultValues: emptyGcpCustomerConfig,
     validators: {onDynamic: gcpCustomerConfigSchema},
     onSubmit: ({value}) => {
       advance({

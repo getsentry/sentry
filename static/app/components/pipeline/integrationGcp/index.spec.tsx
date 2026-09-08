@@ -107,6 +107,26 @@ describe('GcpCustomerConfigStep', () => {
     });
   });
 
+  it('shows an error for an invalid project ID', async () => {
+    render(<GcpCustomerConfigStep {...makeCustomerConfigStepProps({stepData: {}})} />);
+
+    await userEvent.type(
+      screen.getByLabelText('Service Account Email'),
+      'gcp-sentry@my-project.iam.gserviceaccount.com'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'GCP Project IDs'}),
+      'INVALID{Enter}'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    expect(
+      await screen.findByText(
+        'Project IDs must be 6-30 characters using lowercase letters, digits, and hyphens, and must start with a letter.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('shows busy state when isAdvancing', () => {
     render(
       <GcpCustomerConfigStep
