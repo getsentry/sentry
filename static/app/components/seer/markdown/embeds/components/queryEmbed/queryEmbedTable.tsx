@@ -77,10 +77,11 @@ interface QueryEmbedTableProps<Row> {
 }
 
 /**
- * The preview table every query embed shares: fixed column widths, ellipsised
+ * The preview table every query embed shares: resizable columns, ellipsised
  * cells, and the three async states. Rows are read-only by construction —
- * cells render values, never controls, so an interaction here can't reach the
- * host page (see the embeds README).
+ * cells render values, never controls — and the column widths a reader drags
+ * stay inside the embed, so neither can reach the host page (see the embeds
+ * README).
  */
 export function QueryEmbedTable<Row>({
   columns,
@@ -91,8 +92,13 @@ export function QueryEmbedTable<Row>({
   rowKey,
   rows,
 }: QueryEmbedTableProps<Row>) {
+  // The widths here are only a default; the split a query actually needs is
+  // something only the reader knows. `SimpleTable` makes its columns
+  // unresizable by default, so opt each one back in and name it from its head
+  // cell, which is what carries the handle.
   const columnConfig = columns.map((column, index) => ({
     key: column.key,
+    resizable: true,
     width: column.width ?? (index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)'),
   }));
 
@@ -102,7 +108,7 @@ export function QueryEmbedTable<Row>({
       header={
         <SimpleTable.HeaderRow>
           {columns.map(column => (
-            <SimpleTable.HeaderCell key={column.key}>
+            <SimpleTable.HeaderCell columnKey={column.key} key={column.key}>
               <Text ellipsis>{column.label ?? column.key}</Text>
             </SimpleTable.HeaderCell>
           ))}
