@@ -5,7 +5,12 @@ from datetime import datetime, timedelta
 from typing import Any, NamedTuple, TypedDict
 from uuid import uuid4
 
-from sentry.issues.derived.features import STATUS, IssueStatus
+from sentry.issues.derived.features import (
+    FIRST_NO_CHANGE_RECONCILE_ID,
+    FIRST_SUPERSEDED_RECONCILE_ID,
+    STATUS,
+    IssueStatus,
+)
 from sentry.issues.derived.framework import Feature, Pipeline
 from sentry.issues.derived.gate import derived_should_be_correct
 from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
@@ -243,6 +248,24 @@ def _entries_through_target_cursor(
     )
 
 
+def _log_redundant_reconciles(target: GroupDerivedData) -> None:
+    """Log when a GDD records a no-change or superseded reconcile, for coverage."""
+    data = target.data or {}
+    no_change_id = data.get(FIRST_NO_CHANGE_RECONCILE_ID.name)
+    superseded_id = data.get(FIRST_SUPERSEDED_RECONCILE_ID.name)
+    if no_change_id is None and superseded_id is None:
+        return
+    logger.info(
+        "check_derived_data.redundant_reconcile",
+        extra={
+            "group_id": target.group_id,
+            "pipeline_hash": target.pipeline_hash,
+            "first_no_change_reconcile_id": no_change_id,
+            "first_superseded_reconcile_id": superseded_id,
+        },
+    )
+
+
 def check_derived_data(
     target: GroupDerivedData,
     pipeline: Pipeline[GroupActionLogEntry],
@@ -261,6 +284,8 @@ def check_derived_data(
             return CheckInvalidated()
     else:
         check_id = CheckId.new_for_derived_data(target)
+
+    _log_redundant_reconciles(target)
 
     replayed_derived = _check_cache.get(check_id)
     if replayed_derived is None:

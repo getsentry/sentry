@@ -22,6 +22,8 @@ from sentry.issues.action_log.types import (
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_NO_CHANGE_RECONCILE_ID,
+    FIRST_SUPERSEDED_RECONCILE_ID,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
@@ -66,6 +68,7 @@ class FakeEntry:
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
     original_group_id: int | None = None
+    id: int = 0
 
     @property
     def action(self) -> GroupAction:
@@ -85,12 +88,18 @@ def _resolved_pr_data(pr_id: int) -> dict[str, object]:
     return {"pull_request": pr_id}
 
 
-def _reconcile_entry(status: IssueStatus, *, original_group_id: int | None = None) -> FakeEntry:
+def _reconcile_entry(
+    status: IssueStatus,
+    *,
+    id: int = 0,
+    original_group_id: int | None = None,
+) -> FakeEntry:
     action = ReconcileStatusAction(status=status.value)
     return FakeEntry(
         type=GroupActionType.RECONCILE_STATUS,
         data=action.dict(),
         original_group_id=original_group_id,
+        id=id,
     )
 
 
@@ -417,6 +426,162 @@ class TestReconcileStatus:
         )
         assert state[STATUS] == IssueStatus.OPEN
         assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+
+
+# ---------------------------------------------------------------------------
+# FIRST_NO_CHANGE_RECONCILE_ID / FIRST_SUPERSEDED_RECONCILE_ID
+# ---------------------------------------------------------------------------
+
+
+class TestNoChangeReconcile:
+    def test_same_status_records_id(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_NO_CHANGE_RECONCILE_ID,
+                [_reconcile_entry(IssueStatus.OPEN, id=7)],
+            )
+            == 7
+        )
+
+    def test_different_status_does_not_record(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_NO_CHANGE_RECONCILE_ID,
+                [_reconcile_entry(IssueStatus.CLOSED, id=7)],
+            )
+            is None
+        )
+
+    def test_first_write_wins(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_NO_CHANGE_RECONCILE_ID,
+                [
+                    _reconcile_entry(IssueStatus.OPEN, id=7),
+                    _reconcile_entry(IssueStatus.OPEN, id=8),
+                ],
+            )
+            == 7
+        )
+
+    def test_after_close(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_NO_CHANGE_RECONCILE_ID,
+                [
+                    FakeEntry(type=GroupActionType.RESOLVE, id=1),
+                    _reconcile_entry(IssueStatus.CLOSED, id=9),
+                ],
+            )
+            == 9
+        )
+
+    def test_merged_source_ignored(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_NO_CHANGE_RECONCILE_ID,
+                [_reconcile_entry(IssueStatus.OPEN, id=7, original_group_id=123)],
+            )
+            is None
+        )
+
+
+class TestSupersededReconcile:
+    def test_reconcile_then_natural_close(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_SUPERSEDED_RECONCILE_ID,
+                [
+                    _reconcile_entry(IssueStatus.CLOSED, id=10),
+                    FakeEntry(type=GroupActionType.RESOLVE, id=11),
+                ],
+            )
+            == 10
+        )
+
+    def test_reconcile_then_unresolve_converges(self) -> None:
+        # Reconcile OPEN->CLOSED; unresolve brings true status back to OPEN,
+        # matching the counterfactual that never closed.
+        assert (
+            _run_for_feature(
+                FIRST_SUPERSEDED_RECONCILE_ID,
+                [
+                    _reconcile_entry(IssueStatus.CLOSED, id=10),
+                    FakeEntry(type=GroupActionType.UNRESOLVE, id=11),
+                ],
+            )
+            == 10
+        )
+
+    def test_no_later_event_leaves_none(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_SUPERSEDED_RECONCILE_ID,
+                [_reconcile_entry(IssueStatus.CLOSED, id=10)],
+            )
+            is None
+        )
+
+    def test_later_reconcile_invalidates_and_starts_new_watch(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_SUPERSEDED_RECONCILE_ID,
+                [
+                    _reconcile_entry(IssueStatus.CLOSED, id=10),
+                    _reconcile_entry(IssueStatus.OPEN, id=11),
+                    FakeEntry(type=GroupActionType.RESOLVE, id=12),
+                ],
+            )
+            == 11
+        )
+
+    def test_no_change_reconcile_does_not_set_superseded(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_SUPERSEDED_RECONCILE_ID,
+                [_reconcile_entry(IssueStatus.OPEN, id=7)],
+            )
+            is None
+        )
+
+    def test_first_write_wins(self) -> None:
+        p = _pipeline(targets=(FIRST_SUPERSEDED_RECONCILE_ID,))
+        state = p.run(
+            [
+                _reconcile_entry(IssueStatus.CLOSED, id=10),
+                FakeEntry(type=GroupActionType.RESOLVE, id=11),
+                # Another status-changing reconcile + natural close would also
+                # supersede, but first-write-wins keeps the earlier id.
+                FakeEntry(type=GroupActionType.UNRESOLVE, id=12),
+                _reconcile_entry(IssueStatus.CLOSED, id=13),
+                FakeEntry(type=GroupActionType.RESOLVE, id=14),
+            ]
+        )
+        assert state[FIRST_SUPERSEDED_RECONCILE_ID] == 10
+
+    def test_merged_source_ignored(self) -> None:
+        assert (
+            _run_for_feature(
+                FIRST_SUPERSEDED_RECONCILE_ID,
+                [
+                    _reconcile_entry(IssueStatus.CLOSED, id=10, original_group_id=123),
+                    FakeEntry(type=GroupActionType.RESOLVE, id=11),
+                ],
+            )
+            is None
+        )
+
+    def test_status_and_no_change_together(self) -> None:
+        p = _pipeline(targets=(STATUS, FIRST_NO_CHANGE_RECONCILE_ID, FIRST_SUPERSEDED_RECONCILE_ID))
+        state = p.run(
+            [
+                FakeEntry(type=GroupActionType.RESOLVE, id=1),
+                _reconcile_entry(IssueStatus.CLOSED, id=2),
+            ]
+        )
+        assert state[STATUS] == IssueStatus.CLOSED
+        assert state[FIRST_NO_CHANGE_RECONCILE_ID] == 2
+        assert state[FIRST_SUPERSEDED_RECONCILE_ID] is None
 
 
 # ---------------------------------------------------------------------------
