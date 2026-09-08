@@ -423,6 +423,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
 
     custom_filter = factories.create_project_custom_inbound_filter(
         default_project,
+        data_type="error",
         conditions=[
             {"type": "error_message", "value": ["*ConnectionError*", "Timeout*"]},
             {"type": "release", "value": ["1.*"]},
@@ -506,6 +507,7 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     # data than the user configured.
     factories.create_project_custom_inbound_filter(
         default_project,
+        data_type="error",
         conditions=[
             {"type": "error_message", "value": ["*Error*"]},
             {"type": "unknown_type", "value": ["nope"]},
@@ -537,6 +539,7 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     # A log carries no exception type, so a filter mixing data types matches nothing.
     factories.create_project_custom_inbound_filter(
         default_project,
+        data_type="error",
         conditions=[
             {"type": "error_type", "value": ["TypeError"]},
             {"type": "log_message", "value": ["*DEBUG*"]},
