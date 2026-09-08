@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest import mock
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
@@ -10,6 +11,7 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry.api.client_kind import (
     FEATURE_FLAG,
     ClientKind,
+    client_kind_scope,
     get_client_host,
     get_client_kind,
     get_user_agent,
@@ -206,3 +208,61 @@ class SetClientKindAttributesTest(TestCase):
             set_client_kind_attributes(request, self.organization)
         for call in sdk.set_attribute.call_args_list:
             assert call.args[0] != ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL
+
+
+class ClientKindScopeTest(TestCase):
+    def classify(self, request: Request) -> ClientKind | None:
+        with self.feature(FEATURE_FLAG):
+            return get_client_kind(request, self.organization)
+
+    def test_declared_kind_wins_over_a_signal_less_request(self) -> None:
+        # The shape `ApiClient` dispatches on: no token, no cookies, no user agent.
+        request = make_request(cookies=False)
+        assert self.classify(request) == ClientKind.UNKNOWN
+        with client_kind_scope(ClientKind.SEER):
+            assert self.classify(request) == ClientKind.SEER
+
+    def test_declared_kind_wins_over_a_derived_one(self) -> None:
+        # A nested dispatch inherits the entrypoint's caller, not the synthetic
+        # credentials `ApiClient` stitched onto the request it built.
+        request = make_request(auth=api_token(), user_agent="curl/8.7.1")
+        assert self.classify(request) == ClientKind.SCRIPT
+        with client_kind_scope(ClientKind.SEER):
+            assert self.classify(request) == ClientKind.SEER
+
+    def test_scope_is_restored_on_exit(self) -> None:
+        request = make_request(cookies=False)
+        with client_kind_scope(ClientKind.SEER):
+            pass
+        assert self.classify(request) == ClientKind.UNKNOWN
+
+    def test_scope_is_restored_when_the_block_raises(self) -> None:
+        request = make_request(cookies=False)
+        with pytest.raises(ValueError):
+            with client_kind_scope(ClientKind.SEER):
+                raise ValueError
+        assert self.classify(request) == ClientKind.UNKNOWN
+
+    def test_nested_scopes_restore_the_outer_kind(self) -> None:
+        request = make_request(cookies=False)
+        with client_kind_scope(ClientKind.SEER):
+            with client_kind_scope(ClientKind.MCP):
+                assert self.classify(request) == ClientKind.MCP
+            assert self.classify(request) == ClientKind.SEER
+
+    def test_org_opt_in_still_governs(self) -> None:
+        # A declared kind is not a way around the feature check.
+        with client_kind_scope(ClientKind.SEER):
+            with self.feature({FEATURE_FLAG: False}):
+                assert get_client_kind(make_request(), self.organization) is None
+
+    def test_declared_kind_is_recorded(self) -> None:
+        request = make_request(cookies=False)
+        with (
+            self.feature(FEATURE_FLAG),
+            client_kind_scope(ClientKind.SEER),
+            mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
+        ):
+            set_client_kind_attributes(request, self.organization)
+        assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "seer")]
+        assert mock.call("client_kind_test", "seer") in sdk.set_attribute.call_args_list
