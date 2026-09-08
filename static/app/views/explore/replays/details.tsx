@@ -108,17 +108,14 @@ function ReplayDetailsContent() {
   const pageContent = (
     <Fragment>
       <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      <Flex
-        justify="between"
-        align="center"
-        gap="md"
-        wrap="wrap"
-        padding={{zero: 'md lg', '3xl': 'md xl'}}
-        borderBottom="secondary"
-      >
-        <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
-      </Flex>
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Flex justify="between" align="center" gap="md" wrap="wrap">
+            <ReplayDetailsUserBadge readerResult={readerResult} />
+            <ReplayDetailsMetadata readerResult={readerResult} />
+          </Flex>
+        </Layout.HeaderContent>
+      </Layout.Header>
       <Layout.Body noRowGap minHeight="0" overflow="hidden" alignContent="stretch">
         <Layout.Main width="full" display="flex" minHeight="0" overflow="hidden">
           <ReplayDetailsPage readerResult={readerResult} />
