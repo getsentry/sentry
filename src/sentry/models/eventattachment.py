@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import logging
 import mimetypes
-import os
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
@@ -17,6 +17,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from objectstore_client import TimeToLive
 
+from sentry import eventstore
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
@@ -37,6 +38,9 @@ CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
 
 V1_PREFIX = "eventattachments/v1/"
 V2_PREFIX = "v2/"
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_crashreport_key(group_id: int) -> str:
@@ -123,6 +127,10 @@ class EventAttachmentBase(Model):
     class Meta:
         abstract = True
 
+    def final_expiry_date(self) -> datetime:
+        """The end of the retention window for this entry"""
+        raise NotImplementedError
+
     def delete_blob(self) -> None:
         """
         Delete this attachment's payload from its backing store.
@@ -144,11 +152,9 @@ class EventAttachmentBase(Model):
                 storage.delete(self.blob_path)
 
         elif self.blob_path.startswith(V2_PREFIX):
-            # During cleanup, V2 objectstore blobs expire via TTL — skip the
+            # V2 objectstore blobs expire via TTL — if TTL is imminent, skip the
             # explicit delete to avoid unnecessary load on the objectstore service.
-            #
-            # We want to special-case pending attachments in a follow-up. See INGEST-1176.
-            if not os.environ.get("_SENTRY_CLEANUP"):
+            if self.final_expiry_date() > (timezone.now() + timedelta(days=1)):
                 organization_id = _get_organization(self.project_id)
                 get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
                     self.blob_path.removeprefix(V2_PREFIX)
@@ -178,6 +184,9 @@ class EventAttachment(EventAttachmentBase):
         )
 
     __repr__ = sane_repr("event_id", "name")
+
+    def final_expiry_date(self) -> datetime:
+        return self.date_expires
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         # Computed here rather than as a field default to avoid freezing a callable
@@ -342,6 +351,9 @@ class PendingEventAttachment(EventAttachmentBase):
 
     __repr__ = sane_repr("event_id", "name")
 
+    def final_expiry_date(self) -> datetime:
+        return self.date_expires_retention
+
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         # A pending attachment that is deleted rather than promoted (its event never
         # arrived, so `cleanup` reaped it once `date_expires` passed) still owns its blob.
@@ -355,6 +367,22 @@ class PendingEventAttachment(EventAttachmentBase):
             rv = super().delete(*args, **kwargs)
 
         if is_owner:
+            # Verify once more that no event exists.
+            try:
+                if in_random_rollout("attachments.pending.premature_deletion_check_rate"):
+                    event = eventstore.backend.get_event_by_id(self.project_id, self.event_id)
+                    if event is not None:
+                        # NOTE: If this actually happens, we should guard against it by promoting the pending attachment just-in-time.
+                        logger.warning(
+                            "attachments.pending.premature_deletion",
+                            extra={
+                                "project_id": self.project_id,
+                                "event_id": self.event_id,
+                            },
+                        )
+            except Exception as e:
+                logger.exception(e)
+
             self.delete_blob()
         return rv
 

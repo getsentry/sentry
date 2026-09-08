@@ -184,6 +184,21 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
     @with_feature("organizations:dynamic-sampling")
+    @override_options({"dynamic-sampling.legacy.killswitch": True})
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_boost_low_volume_projects_killswitch(self, get_blended_sample_rate: MagicMock) -> None:
+        get_blended_sample_rate.return_value = 0.25
+        test_org = self.create_old_organization(name="sample-org")
+        self.create_project_and_add_metrics("a", 9, test_org)
+        self.create_project_and_add_metrics("b", 1, test_org)
+
+        with self.tasks():
+            boost_low_volume_projects()
+
+        redis_client = get_redis_client_for_ds()
+        assert redis_client.hgetall(generate_boost_low_volume_projects_cache_key(test_org.id)) == {}
+
+    @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_projects_simple_with_empty_project(
         self,
@@ -450,6 +465,24 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
                 assert global_rate == BLENDED_RATE
 
     @with_feature("organizations:dynamic-sampling")
+    @override_options({"dynamic-sampling.legacy.killswitch": True})
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_boost_low_volume_transactions_killswitch(
+        self, get_blended_sample_rate: MagicMock
+    ) -> None:
+        get_blended_sample_rate.return_value = 0.25
+
+        with self.tasks():
+            boost_low_volume_transactions()
+
+        for org in self.orgs_info:
+            for proj_id in org["project_ids"]:
+                tran_rate, _ = get_transactions_resampling_rates(
+                    org_id=org["org_id"], proj_id=proj_id, default_rate=0.1
+                )
+                assert tran_rate == {}
+
+    @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_sliding_window_org(
         self, get_blended_sample_rate: MagicMock
@@ -713,6 +746,20 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # we sampled at 40% twice as much as we wanted we already have a factor of 0.5
                 # half it again to 0.25
                 assert float(val) == 0.25
+
+    @with_feature("organizations:dynamic-sampling")
+    @override_options({"dynamic-sampling.legacy.killswitch": True})
+    @patch("sentry.quotas.backend.get_blended_sample_rate")
+    def test_recalibrate_orgs_killswitch(self, get_blended_sample_rate: MagicMock) -> None:
+        get_blended_sample_rate.return_value = 0.1
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+
+        with self.tasks():
+            recalibrate_orgs()
+
+        redis_client = get_redis_client_for_ds()
+        for org in self.orgs:
+            assert redis_client.get(generate_recalibrate_orgs_cache_key(org.id)) is None
 
     @with_feature("organizations:dynamic-sampling")
     @override_options({"dynamic-sampling.per_org.serving-rollout-rate": 1.0})
@@ -990,3 +1037,22 @@ class TestSlidingWindowOrgTask(TasksTestCase):
             cache_key = generate_sliding_window_org_cache_key(org.id)
             val = redis_client.get(cache_key)
             assert val is not None, f"Org {org.id} should have sliding window cache entry"
+
+    @with_feature("organizations:dynamic-sampling")
+    @override_options({"dynamic-sampling.legacy.killswitch": True})
+    @patch("sentry.dynamic_sampling.tasks.common.extrapolate_monthly_volume")
+    @patch("sentry.quotas.backend.get_transaction_sampling_tier_for_volume")
+    def test_sliding_window_org_killswitch(
+        self,
+        get_transaction_sampling_tier_for_volume: MagicMock,
+        extrapolate_monthly_volume: MagicMock,
+    ) -> None:
+        extrapolate_monthly_volume.side_effect = lambda volume, hours: volume
+        get_transaction_sampling_tier_for_volume.return_value = (1000, 0.25)
+        redis_client = get_redis_client_for_ds()
+
+        with self.tasks():
+            sliding_window_org()
+
+        for org in self.orgs:
+            assert redis_client.get(generate_sliding_window_org_cache_key(org.id)) is None
