@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
   AutofixArtifact,
   AutofixSection,
@@ -22,7 +22,9 @@ import type {
 } from 'sentry/views/seerExplorer/types';
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
-  FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
+  FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
+    <div data-expanded={defaultExpanded} data-test-id="file-diff-viewer" />
+  ),
 }));
 
 const prIterationOrganization = OrganizationFixture({
@@ -440,6 +442,55 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('3 files changed in 2 repos')).toBeInTheDocument();
+    });
+
+    it('expands small multi-file changes by default', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py'), makePatch('org/repo', 'src/utils.py')],
+          ])}
+        />
+      );
+
+      const diffViewers = screen.getAllByTestId('file-diff-viewer');
+      expect(diffViewers[0]).toHaveAttribute('data-expanded', 'true');
+      expect(diffViewers[1]).toHaveAttribute('data-expanded', 'true');
+    });
+
+    it('collapses large changes by default', () => {
+      const patch = makePatch('org/repo', 'src/app.py');
+      patch.patch.hunks = [
+        {
+          lines: Array.from({length: 31}, (_, index) => ({
+            diff_line_no: index,
+            line_type: DiffLineType.CONTEXT,
+            source_line_no: index,
+            target_line_no: index,
+            value: `line ${index}`,
+          })),
+          section_header: '',
+          source_length: 31,
+          source_start: 1,
+          target_length: 31,
+          target_start: 1,
+        },
+      ];
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [[patch]])}
+        />
+      );
+
+      expect(screen.getByTestId('file-diff-viewer')).toHaveAttribute(
+        'data-expanded',
+        'false'
+      );
     });
 
     it('renders repository name labels', () => {

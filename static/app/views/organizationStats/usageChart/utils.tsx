@@ -25,8 +25,7 @@ export const FORMAT_DATETIME_HOURLY_24H = 'MMM D HH:mm';
 export function getDateFromMoment(
   m: moment.Moment,
   interval: IntervalPeriod = '1d',
-  useUtc = false,
-  use24Hours = shouldUse24Hours()
+  useUtc = false
 ) {
   // Convert interval to days
   const days = parsePeriodToHours(interval) / 24;
@@ -43,6 +42,7 @@ export function getDateFromMoment(
     ? moment(m).utc()
     : moment(m).tz(getUserTimezone() ?? moment.tz.guess());
 
+  const use24Hours = shouldUse24Hours();
   const intervalFormat = use24Hours ? FORMAT_DATETIME_HOURLY_24H : FORMAT_DATETIME_HOURLY;
 
   return parsedInterval

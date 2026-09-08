@@ -68,4 +68,5 @@ export type GridData<
     dataRow?: DataRow,
     rowIndex?: number
   ) => React.ReactNode[];
+  staticColumnWidths?: Record<string, number | string>;
 };

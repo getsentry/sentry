@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   AuthV2CookieState,
   getAuthV2CookieState,
@@ -24,12 +25,22 @@ export function useAuthV2Rollout() {
         authV2RolloutOrganization === organization.slug
       ) {
         setAuthV2CookieState(AuthV2CookieState.UNSET);
+        trackAnalytics('auth_v2.rollout.changed', {
+          organization,
+          source: 'feature_flag',
+          state: 'unset',
+        });
       }
       return;
     }
 
     if (authV2CookieState === AuthV2CookieState.UNSET) {
       setAuthV2CookieState(AuthV2CookieState.ENABLED, organization.slug);
+      trackAnalytics('auth_v2.rollout.changed', {
+        organization,
+        source: 'feature_flag',
+        state: 'enabled',
+      });
     }
   }, [authV2RolloutOrganization, loading, organization, setAuthV2CookieState]);
 }

@@ -67,7 +67,11 @@ logger = logging.getLogger(__name__)
     processing_deadline_duration=60 * 15,
 )
 def process_artifact(
-    artifact_id: str, project_id: str, organization_id: str, **kwargs: Any
+    artifact_id: str,
+    project_id: str,
+    organization_id: str,
+    organization_slug: str | None = None,
+    **kwargs: Any,
 ) -> None:
     pass
 
@@ -167,7 +171,9 @@ def assemble_preprod_artifact(
         except Exception:
             pass
 
-    taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
+    taskbroker_dispatched = dispatch_taskbroker(
+        project_id, org_id, artifact_id, organization_slug=organization.slug
+    )
     if not taskbroker_dispatched:
         return
 
@@ -1017,7 +1023,9 @@ def detect_expired_preprod_artifacts(**kwargs: Any) -> None:
     )
 
 
-def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
+def dispatch_taskbroker(
+    project_id: int, org_id: int, artifact_id: int, organization_slug: str | None = None
+) -> bool:
     try:
         logger.info(
             "preprod.dispatch_taskbroker",
@@ -1032,6 +1040,7 @@ def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
             artifact_id=str(artifact_id),
             project_id=str(project_id),
             organization_id=str(org_id),
+            organization_slug=organization_slug,
         )
         return True
     except Exception:

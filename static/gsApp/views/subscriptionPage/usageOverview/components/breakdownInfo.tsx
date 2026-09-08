@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
@@ -72,7 +72,7 @@ function UsageBreakdownField({
         <Text variant="muted" bold uppercase size="sm">
           {field}
         </Text>
-        {help && <QuestionTooltip title={help} size="xs" />}
+        {help && <InfoTip title={help} size="xs" />}
       </Flex>
       <Text size="lg">{value}</Text>
     </Stack>

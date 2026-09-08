@@ -10,7 +10,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
-  IconBot,
   IconCircle,
   IconCircleCheckmark,
   IconCircleDashed,
@@ -281,7 +280,7 @@ export function AgenticProgressList({
   );
 }
 
-function AgenticProgressHeader({
+function AgenticProgressMeta({
   onboardingCode,
   updatedAt,
 }: {
@@ -289,42 +288,27 @@ function AgenticProgressHeader({
   updatedAt: string;
 }) {
   return (
-    <Stack gap="md">
+    <Flex align="center" justify="between" gap="md">
       <Flex align="center" gap="sm">
-        <IconBot size="md" variant="secondary" />
-        <Text variant="muted" size="sm" bold uppercase>
-          {t('Agent Connected')}
+        <StatusIndicator variant="accent" />
+        <Text size="sm" variant="muted">
+          {tct('Last update [time]', {
+            time: (
+              <TimeSince
+                date={updatedAt}
+                disabledAbsoluteTooltip
+                liveUpdateInterval="second"
+              />
+            ),
+          })}
         </Text>
       </Flex>
-      <Text variant="muted" density="comfortable">
-        {t(
-          'Your agent is setting up Sentry in your application. For now, you’re off the hook. Sit back and let it do the work.'
-        )}
-      </Text>
-      <Flex align="center" justify="between" gap="md" marginTop="sm">
-        <Flex align="center" gap="sm">
-          <Flex width="16px" align="center" justify="center" flexShrink={0}>
-            <StatusIndicator variant="accent" />
-          </Flex>
-          <Text size="sm" variant="muted">
-            {tct('Last update [time]', {
-              time: (
-                <TimeSince
-                  date={updatedAt}
-                  disabledAbsoluteTooltip
-                  liveUpdateInterval="second"
-                />
-              ),
-            })}
-          </Text>
-        </Flex>
-        {onboardingCode ? (
-          <RunId size="sm" variant="muted" monospace>
-            {t('ID:%s', onboardingCode)}
-          </RunId>
-        ) : null}
-      </Flex>
-    </Stack>
+      {onboardingCode ? (
+        <RunId size="sm" variant="muted" monospace>
+          {t('ID:%s', onboardingCode)}
+        </RunId>
+      ) : null}
+    </Flex>
   );
 }
 
@@ -354,19 +338,16 @@ export function AgenticProgress({
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
 
   return (
-    <AgenticProgressList
-      header={
-        <AgenticProgressHeader
-          onboardingCode={onboardingCode}
-          updatedAt={run.updatedAt}
-        />
-      }
-      stages={run.stages}
-      extraContentByStage={
-        projectSlugs.length
-          ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}
-          : undefined
-      }
-    />
+    <Stack width="100%" gap="md">
+      <AgenticProgressList
+        stages={run.stages}
+        extraContentByStage={
+          projectSlugs.length
+            ? {create_project: <CreatedProjects projectSlugs={projectSlugs} />}
+            : undefined
+        }
+      />
+      <AgenticProgressMeta onboardingCode={onboardingCode} updatedAt={run.updatedAt} />
+    </Stack>
   );
 }

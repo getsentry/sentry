@@ -1,9 +1,10 @@
 from unittest import mock
 
 import responses
-from django.db import router, transaction
+from django.db import connections, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from rest_framework import status
 
@@ -11,6 +12,7 @@ from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOK
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.gitlab.webhook_types import GITLAB_EVENT_KINDS
 from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint
+from sentry.integrations.middleware.hybrid_cloud.parser import SHED_INBOUND_KILLSWITCH
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.classifications import IntegrationClassification
@@ -18,6 +20,7 @@ from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
@@ -73,6 +76,29 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
+    @override_options({SHED_INBOUND_KILLSWITCH: [{"provider": "gitlab"}]})
+    def test_provider_wide_shed_skips_the_routing_lookups(self) -> None:
+        """A condition naming no integration_id matches on the provider alone, so the
+        shed settles before the lookups — but below the token check, so an invalid
+        request is still rejected without consulting the killswitch."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = self.run_parser(request)
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert not [q for q in queries.captured_queries if 'FROM "sentry_integration"' in q["sql"]]
+        assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
     def test_invalid_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
@@ -111,6 +137,30 @@ class GitlabRequestParserTest(TestCase):
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    @responses.activate
+    def test_forwarding_reads_the_integration_once(self) -> None:
+        """GitLab used to keep its own lookup cache; the base memo replaces it, and a
+        query count is the only thing that notices if it stops covering this."""
+        self.get_integration()
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+
+        with CaptureQueriesContext(connections[router.db_for_read(Integration)]) as queries:
+            response = self.run_parser(request)
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert (
+            len([q for q in queries.captured_queries if 'FROM "sentry_integration"' in q["sql"]])
+            == 1
+        )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)

@@ -33,6 +33,7 @@ from sentry.issues.action_log import (
     resolve_action_source,
 )
 from sentry.issues.action_log.types import MergeIntoOtherAction
+from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -783,9 +784,7 @@ def prepare_response(
         if len(group_list) == 1:
             if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
                 group = group_list[0]
-                if features.has(
-                    "projects:issue-action-log-activity", group.project, actor=acting_user
-                ):
+                if should_serve_action_log_activity(group.project, acting_user):
                     action_log = GroupActionLogEntry.objects.get_actions_for_group(
                         group, ACTIVITIES_COUNT - 1
                     )

@@ -66,6 +66,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
 from sentry.workflow_engine.endpoints.utils.permissions import (
+    can_edit_workflows,
     enforce_workflow_creation_permissions,
 )
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
@@ -108,8 +109,8 @@ class OrganizationWorkflowPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
         "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
-        "DELETE": ["org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
     }
 
 
@@ -230,9 +231,18 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
         # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        accessible_workflows = Q(detectorworkflow__detector__project__in=projects) | Q(
-            detectorworkflow__isnull=True
+        accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
+        # Detached workflows are organization-level and do not match a specific
+        # project filter. ID filters take precedence over project filters, and the
+        # all-project sentinels are equivalent to no project filter.
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        has_specific_project_filter = (
+            not request.GET.getlist("id")
+            and requested_projects.has_values
+            and not requested_projects.has_all_projects_sentinel
         )
+        if not has_specific_project_filter:
+            accessible_workflows |= Q(detectorworkflow__isnull=True)
         all_projects_detector = get_all_projects_detector(organization.id)
         if all_projects_detector:
             all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
@@ -243,6 +253,26 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset
+
+    def _get_workflows_for_mutation(
+        self, request: Request, organization: Organization
+    ) -> tuple[QuerySet[Workflow], list[Workflow]]:
+        """Return the complete set of workflows that the request is allowed to mutate."""
+        queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
+
+        if not workflows:
+            return queryset, workflows
+
+        if raw_idlist := request.GET.getlist("id"):
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            if requested_ids != {workflow.id for workflow in workflows}:
+                raise PermissionDenied
+
+        if not can_edit_workflows(workflows, request):
+            raise PermissionDenied
+
+        return queryset, workflows
 
     @extend_schema(
         operation_id="listOrganizationWorkflows",
@@ -408,8 +438,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk enable or disable alerts for a given Organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -425,9 +456,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
-        queryset = self.filter_workflows(request, organization)
+        queryset, workflows = self._get_workflows_for_mutation(request, organization)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
@@ -435,7 +466,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(Workflow)):
             # We update workflows individually to ensure post_save signals are called
-            for workflow in queryset:
+            for workflow in workflows:
                 workflow.update(enabled=enabled)
 
         return self.paginate(
@@ -470,8 +501,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk delete alerts for a given organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -483,15 +515,15 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        queryset = self.filter_workflows(request, organization)
+        _, workflows = self._get_workflows_for_mutation(request, organization)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
 
-        for workflow in queryset:
+        for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):
                 CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(

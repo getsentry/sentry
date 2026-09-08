@@ -14,9 +14,6 @@ import {EventInsightDiff} from 'sentry/components/events/eventInsightDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
-import {EventBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import {EventComparison} from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -271,19 +268,6 @@ export function EventDetailsContent({
         <ErrorBoundary mini>
           <EventRegressionSummary event={event} group={group} />
         </ErrorBoundary>
-      )}
-      {issueTypeConfig.performanceDurationRegression.enabled && (
-        <Fragment>
-          <ErrorBoundary mini>
-            <EventBreakpointChart event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <AggregateSpanDiff event={event} project={project} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventComparison event={event} project={project} />
-          </ErrorBoundary>
-        </Fragment>
       )}
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>

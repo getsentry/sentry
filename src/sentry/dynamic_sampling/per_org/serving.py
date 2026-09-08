@@ -19,11 +19,9 @@ from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import 
 
 
 def _serving_source(org_id: int) -> ServingSource:
-    if not is_org_in_serving_rollout(org_id):
-        return ServingSource.LEGACY
-    if not cache.has_project_rates(org_id):
-        return ServingSource.PER_ORG_FALLBACK
-    return ServingSource.PER_ORG
+    if is_org_in_serving_rollout(org_id):
+        return ServingSource.PER_ORG
+    return ServingSource.LEGACY
 
 
 def get_project_sample_rate(
@@ -61,10 +59,6 @@ def get_transaction_sample_rates(
         org_id=org_id, proj_id=project_id, default_rate=default_rate
     )
     return named_rates, implicit_rate
-
-
-def is_recalibration_factor_served_per_org(org_id: int) -> bool:
-    return _serving_source(org_id) is ServingSource.PER_ORG
 
 
 # Tags the read of the factor an organization was served by the other pipeline.
