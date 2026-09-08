@@ -29,12 +29,12 @@ describe('express onboarding docs', () => {
     });
   });
 
-  it('includes error handler', () => {
+  it('does not include the deprecated express error handler', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.setupExpressErrorHandler\(app\)/))
-    ).toBeInTheDocument();
+      screen.queryByText(textWithMarkupMatcher(/Sentry\.setupExpressErrorHandler/))
+    ).not.toBeInTheDocument();
   });
 
   it('displays sample rates by default', () => {

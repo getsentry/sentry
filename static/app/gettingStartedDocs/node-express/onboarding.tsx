@@ -29,17 +29,6 @@ app.get("/", function rootHandler(req, res) {
   res.end("Hello world!");
 });
 
-// The error handler must be registered before any other error middleware and after all controllers
-Sentry.setupExpressErrorHandler(app);
-
-// Optional fallthrough error handler
-app.use(function onError(err, req, res, next) {
-  // The error id is attached to \`res.sentry\` to be returned
-  // and optionally displayed to the user for support.
-  res.statusCode = 500;
-  res.end(res.sentry + "\\n");
-});
-
 app.listen(3000);
 `;
 
@@ -94,7 +83,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            "Make sure to import [code:instrument.js/mjs] at the top of your file. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
               code: <code />,
               docs: (
@@ -113,6 +102,13 @@ export const onboarding: OnboardingConfig = {
               code: getSdkSetupSnippet(),
             },
           ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'The [code:expressIntegration] captures errors from your route handlers automatically. You do not have to add an error handler.',
+            {code: <code />}
+          ),
         },
       ],
     },
