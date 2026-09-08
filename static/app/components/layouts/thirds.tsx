@@ -103,7 +103,7 @@ export function Body({noRowGap, ...props}: BodyProps) {
       alignContent="start"
       gap={noRowGap ? '0 2xl' : '2xl'}
       background="primary"
-      padding="lg xl"
+      padding={{'screen:sm': 'lg', 'screen:md': 'lg xl'}}
       {...props}
     />
   );
