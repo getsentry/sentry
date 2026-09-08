@@ -1797,6 +1797,15 @@ EAP_COLUMNS = [
     "http.response_content_length",
     "http.response_transfer_size",
 ]
+# Functions in this list skip legacy column validation entirely for EAP
+# aggregates (see the `allow_eap` short-circuit in `get_column_from_aggregate`
+# and `check_aggregate_column_support` below) rather than being resolved to a
+# real column, so it's safe to add a function here without it being validated.
+# Conditional aggregates (e.g. `count_if(column,op,value)`) must be listed
+# here: the legacy `resolve_field` path they'd otherwise fall through to
+# returns the compiled SnQL condition (a list) instead of a column string,
+# which crashes the `column in ...` membership checks with a
+# TypeError (unhashable list). See SENTRY-5T8N.
 EAP_FUNCTIONS = [
     "count",
     "count_unique",
@@ -1816,6 +1825,13 @@ EAP_FUNCTIONS = [
     "eps",
     "apdex",
     "user_misery",
+    "avg_if",
+    "count_if",
+    "sum_if",
+    "failure_count_if",
+    "failure_rate_if",
+    "division_if",
+    "count_op",
 ]
 
 
