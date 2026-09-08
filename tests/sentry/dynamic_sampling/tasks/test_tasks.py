@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
-from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_cache
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
@@ -762,7 +761,6 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             assert redis_client.get(generate_recalibrate_orgs_cache_key(org.id)) is None
 
     @with_feature("organizations:dynamic-sampling")
-    @override_options({"dynamic-sampling.per_org.serving-rollout-rate": 1.0})
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_recalibrate_orgs_skips_orgs_served_the_per_org_factor(
         self, get_blended_sample_rate: MagicMock
@@ -776,14 +774,12 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         self.set_sliding_window_org_sample_rate_for_all(0.2)
 
         served_org = self.orgs[0]
-        per_org_cache.set_project_sample_rates(
-            served_org.id,
-            [RebalancedItem(id=self.orgs_info[0]["project_ids"][0], count=10, new_sample_rate=0.2)],
-        )
-
         redis_client = get_redis_client_for_ds()
 
-        with self.tasks():
+        with (
+            override_options({"dynamic-sampling.per_org.serving-org-ids": [served_org.id]}),
+            self.tasks(),
+        ):
             recalibrate_orgs()
 
         # The served org sampled at 10% against a 20% target, so the legacy task would have
