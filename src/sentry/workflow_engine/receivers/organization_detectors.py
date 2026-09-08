@@ -15,22 +15,22 @@ logger = logging.getLogger(__name__)
 
 
 def create_organization_detectors(organization: Organization, **kwargs: Any) -> dict[str, Detector]:
-    logging_name = "organization_created.create_organization_detectors"
-    logging_extra = {"organization_id": organization.id}
-    logging.info(f"{logging_name}.start", extra=logging_extra)
+    log_name = "organization_created.create_organization_detectors"
+    log_extra = {"organization_id": organization.id}
+    logger.info(f"{log_name}.start", extra=log_extra)
     try:
         results = ensure_default_organization_detectors(organization)
-        logging.info(
-            f"{logging_name}.success",
+        logger.info(
+            f"{log_name}.success",
             extra={
-                **logging_extra,
+                **log_extra,
                 "detector_ids": [detector.id for detector in results.values()],
             },
         )
         return results
     except (UnableToAcquireLockApiError, Detector.MultipleObjectsReturned) as e:
         sentry_sdk.capture_exception(e)
-        logging.info(f"{logging_name}.failure", extra=logging_extra, exc_info=e)
+        logger.info(f"{log_name}.failure", extra=log_extra, exc_info=e)
     return {}
 
 
