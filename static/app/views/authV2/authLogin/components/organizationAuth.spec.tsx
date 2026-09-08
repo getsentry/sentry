@@ -29,9 +29,7 @@ describe('OrganizationAuth', () => {
     render(<OrganizationAuth authOrganization={authOrganization} onClear={onClear} />);
 
     expect(screen.getByText('Acme')).toBeInTheDocument();
-    expect(screen.getByText('Requires').parentElement).toHaveTextContent(
-      'Requires sign in with SAML'
-    );
+    expect(screen.getByText('Members sign in with SAML')).toBeInTheDocument();
     const ssoButton = screen.getByRole('button', {name: 'SSO'});
     const ssoForm = ssoButton.closest('form')!;
     expect(ssoButton).toBeInTheDocument();
@@ -87,17 +85,5 @@ describe('OrganizationAuth', () => {
     expect(
       screen.queryByRole('button', {name: 'Request to join'})
     ).not.toBeInTheDocument();
-  });
-
-  it('describes optional SSO for members', () => {
-    render(
-      <OrganizationAuth
-        authOrganization={{...authOrganization, ssoRequired: false}}
-        onClear={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText('Members sign in with SAML')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'SSO'})).toBeEnabled();
   });
 });

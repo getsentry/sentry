@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # We can only scope safely when both hold: tools that select work from the changed file
 # set seed on source files and can't trace the impact of global config or dependency
-# changes (eslint.config.ts, package.json, etc.), so any non-static change forces a full
+# changes (oxlint.config.ts, package.json, etc.), so any non-static change forces a full
 # run. Non-PR events and missing history also fall back to full via git-merge-base.sh.
 #
 # The output format is consumable two ways: append it to $GITHUB_OUTPUT from an inline

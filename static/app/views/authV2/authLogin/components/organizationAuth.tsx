@@ -29,7 +29,7 @@ export function OrganizationAuth({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const theme = useTheme();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-  const {organization, provider, joinRequestUrl, ssoRequired} = authOrganization;
+  const {organization, provider, joinRequestUrl} = authOrganization;
   const avatarProps = organization.avatarUrl
     ? ({
         type: 'upload',
@@ -43,20 +43,10 @@ export function OrganizationAuth({
         name: organization.name,
       } as const);
   const description = provider
-    ? ssoRequired
-      ? tct('[requires:Requires] sign in with [icon] [provider]', {
-          requires: (
-            <Text as="span" bold>
-              {null}
-            </Text>
-          ),
-          icon: <InlineIdentityIcon providerId={provider.key} />,
-          provider: provider.name,
-        })
-      : tct('Members sign in with [icon] [provider]', {
-          icon: <InlineIdentityIcon providerId={provider.key} />,
-          provider: provider.name,
-        })
+    ? tct('Members sign in with [icon] [provider]', {
+        icon: <InlineIdentityIcon providerId={provider.key} />,
+        provider: provider.name,
+      })
     : t('Members sign in with email and password');
   const orgBadge = (
     <Flex align="center" gap="md" flex="1" minWidth="0">

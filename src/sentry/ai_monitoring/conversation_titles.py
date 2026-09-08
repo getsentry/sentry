@@ -130,7 +130,8 @@ def _extract_first_user_message(messages: Any) -> str | None:
     parsed = normalize_to_messages(messages, "user")
     if not parsed:
         return None
-    for msg in parsed:
+    # Clients often prepend context as user messages, so the last user message is usually relevant.
+    for msg in reversed(parsed):
         if msg.get("role") != "user":
             continue
         content = stringify_message_content(msg.get("content"))
