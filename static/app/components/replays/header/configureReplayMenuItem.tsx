@@ -52,6 +52,9 @@ function getPath(sdkName: string | null | undefined) {
     case 'sentry.javascript.react-native':
     case 'sentry.java.android.react-native':
       return 'react-native'; // https://docs.sentry.io/platforms/react-native/session-replay/
+    case null:
+    case undefined:
+      return null;
     default:
       Sentry.captureMessage(`Unknown mobile platform in configure card: ${sdkName}`);
       return null;
