@@ -84,3 +84,11 @@ class CommitAuthor(Model):
             if self.external_id and ":" in self.external_id
             else None
         )
+
+    def get_provider_from_external_id(self) -> str | None:
+        """The provider that issued the login in ``external_id`` (``github:login`` -> ``github``)."""
+        return (
+            self.external_id.split(":", 1)[0]
+            if self.external_id and ":" in self.external_id
+            else None
+        )
