@@ -630,7 +630,7 @@ def _custom_filter_condition(
     since every condition narrows the match, dropping only the broken condition would
     filter more data than configured.
     """
-    if not conditions:
+    if not conditions or data_type is None:
         return None
 
     try:
