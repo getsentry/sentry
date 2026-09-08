@@ -17,13 +17,13 @@ const getSdkSetupSnippet = () => `
 ${getImport('@sentry/node', 'esm-only').join('\n')}
 import Fastify from "fastify";
 
-const app = Fastify();
+const fastify = Fastify();
 
-app.get("/", function rootHandler(req, res) {
+fastify.get("/", function rootHandler(req, res) {
   res.send("Hello world!");
 });
 
-app.listen({ port: 3000 });
+fastify.listen({ port: 3000 });
 `;
 
 export const onboarding: OnboardingConfig = {
@@ -134,7 +134,7 @@ export const onboarding: OnboardingConfig = {
           type: 'code',
           language: 'javascript',
           code: `
-app.get("/debug-sentry", function mainHandler(req, res) {${
+fastify.get("/debug-sentry", function mainHandler(req, res) {${
             params.isLogsSelected
               ? `
   // Send a log before throwing the error
