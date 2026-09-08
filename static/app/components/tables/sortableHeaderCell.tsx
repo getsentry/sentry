@@ -25,17 +25,18 @@ export function getAriaSort(
   }
 }
 
-export type ColumnAlign = 'left' | 'right';
+export type ColumnAlign = 'left' | 'center' | 'right';
 
-/**
- * How a header cell lays its label out, in `Flex`'s `justify` vocabulary.
- */
-export type HeaderCellJustify = Exclude<FlexJustify, 'around' | 'between' | 'evenly'>;
+export const COLUMN_ALIGN_JUSTIFY = {
+  center: 'center',
+  left: 'start',
+  right: 'end',
+} as const satisfies Record<ColumnAlign, FlexJustify>;
 
 interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
+  align?: ColumnAlign;
   children?: ReactNode;
   direction?: SortDirection;
-  justify?: HeaderCellJustify;
   onSort?: (event: MouseEvent) => void;
   overlays?: ReactNode;
   /**
@@ -49,9 +50,9 @@ interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function SortableHeaderCell({
+  align,
   children,
   direction,
-  justify,
   onSort,
   overlays,
   replace,
@@ -61,7 +62,7 @@ export function SortableHeaderCell({
   return (
     <HeaderCellContent
       {...props}
-      justify={justify}
+      align={align}
       as={to ? Link : onSort ? 'button' : 'div'}
       onClick={onSort}
       replace={to ? replace : undefined}
@@ -91,9 +92,9 @@ const Label = styled('div')`
 
 export const HeaderCellContent = styled('div', {
   shouldForwardProp: prop =>
-    prop !== 'justify' && (prop === 'to' || prop === 'replace' || isPropValid(prop)),
+    prop !== 'align' && (prop === 'to' || prop === 'replace' || isPropValid(prop)),
 })<{
-  justify?: HeaderCellJustify;
+  align?: ColumnAlign;
   replace?: boolean;
   to?: LocationDescriptor;
   type?: 'button';
@@ -114,9 +115,9 @@ export const HeaderCellContent = styled('div', {
   text-transform: inherit;
 
   ${p =>
-    p.justify &&
+    p.align &&
     css`
-      justify-content: ${FLEX_JUSTIFY_CONTENT[p.justify]};
+      justify-content: ${FLEX_JUSTIFY_CONTENT[COLUMN_ALIGN_JUSTIFY[p.align]]};
     `}
 
   &:hover,

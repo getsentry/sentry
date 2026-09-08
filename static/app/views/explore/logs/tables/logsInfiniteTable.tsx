@@ -763,7 +763,7 @@ function LogsTableHeader({
   return (
     <DataTable.Head>
       <LogTableRow>
-        <FirstTableHeadCell isFirst justify="left" />
+        <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -787,7 +787,7 @@ function LogsTableHeader({
           }
           return (
             <LogTableHeadCell
-              justify={index === 0 ? 'left' : align}
+              align={index === 0 ? 'left' : align}
               columnIndex={index}
               key={index}
               isFirst={index === 0}

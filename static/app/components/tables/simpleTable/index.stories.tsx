@@ -267,11 +267,11 @@ export default Storybook.story('SimpleTable', story => {
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell justify="center">
+              <SimpleTable.HeaderCell align="center">
                 {t('Monitors')}
               </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell justify="end">{t('Action')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell justify="end">
+              <SimpleTable.HeaderCell align="right">{t('Action')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell align="right">
                 {t('Last Triggered')}
               </SimpleTable.HeaderCell>
             </SimpleTable.HeaderRow>

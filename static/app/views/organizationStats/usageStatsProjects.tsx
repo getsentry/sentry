@@ -430,7 +430,7 @@ export function UsageStatsProjects({
           return (
             <Cell key={h.key}>
               <SortableHeaderCell
-                justify={h.align as ColumnAlign}
+                align={h.align as ColumnAlign}
                 direction={h.direction}
                 to={h.onClick()}
               >

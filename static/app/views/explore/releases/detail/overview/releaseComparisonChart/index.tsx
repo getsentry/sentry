@@ -971,19 +971,19 @@ export function ReleaseComparisonChart({
       <SimpleTable.HeaderCell key="description">
         <DescriptionCell>{t('Description')}</DescriptionCell>
       </SimpleTable.HeaderCell>,
-      <SimpleTable.HeaderCell justify="end" key="releases">
+      <SimpleTable.HeaderCell align="right" key="releases">
         <Cell>{t('All Releases')}</Cell>
       </SimpleTable.HeaderCell>,
-      <SimpleTable.HeaderCell justify="end" key="release">
+      <SimpleTable.HeaderCell align="right" key="release">
         <Cell>{t('This Release')}</Cell>
       </SimpleTable.HeaderCell>,
-      <SimpleTable.HeaderCell justify="end" key="change">
+      <SimpleTable.HeaderCell align="right" key="change">
         <Cell>{t('Change')}</Cell>
       </SimpleTable.HeaderCell>,
     ];
     if (withExpanders) {
       headers.push(
-        <SimpleTable.HeaderCell justify="end" key="expanders">
+        <SimpleTable.HeaderCell align="right" key="expanders">
           <Cell />
         </SimpleTable.HeaderCell>
       );

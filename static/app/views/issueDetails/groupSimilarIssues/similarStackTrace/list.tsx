@@ -104,14 +104,12 @@ export function List({
                 </Button>
               </Confirm>
             </MergeHeaderCell>
-            <SimpleTable.HeaderCell justify="center">
-              {t('Events')}
-            </SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell justify="center">
+            <SimpleTable.HeaderCell align="center">{t('Events')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="center">
               {t('Exception')}
             </SimpleTable.HeaderCell>
             {!hasSimilarityEmbeddingsFeature && (
-              <SimpleTable.HeaderCell justify="center">
+              <SimpleTable.HeaderCell align="center">
                 {t('Message')}
               </SimpleTable.HeaderCell>
             )}

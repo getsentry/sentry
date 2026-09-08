@@ -199,16 +199,16 @@ export function GroupTombstones({project}: GroupTombstonesProps) {
               header={
                 <SimpleTable.HeaderRow>
                   <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell justify="end">
+                  <SimpleTable.HeaderCell align="right">
                     {t('Date Discarded')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell justify="end">
+                  <SimpleTable.HeaderCell align="right">
                     {t('Last Seen')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell justify="end">
+                  <SimpleTable.HeaderCell align="right">
                     {t('Events')}
                   </SimpleTable.HeaderCell>
-                  <SimpleTable.HeaderCell justify="center">
+                  <SimpleTable.HeaderCell align="center">
                     {t('Member')}
                   </SimpleTable.HeaderCell>
                   <SimpleTable.HeaderCell />

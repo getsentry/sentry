@@ -17,8 +17,8 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
+  type ColumnAlign,
   HeaderCellContent,
-  type HeaderCellJustify,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {defined} from 'sentry/utils/defined';
@@ -63,8 +63,8 @@ function HeaderRow({
 }
 
 function HeaderCell({
+  align,
   children,
-  justify,
   sort,
   handleSortClick,
   to,
@@ -72,10 +72,10 @@ function HeaderCell({
   divider = defined(children) ? true : false,
   ...props
 }: HTMLAttributes<HTMLTableCellElement> & {
+  align?: ColumnAlign;
   children?: React.ReactNode;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
-  justify?: HeaderCellJustify;
   sort?: SortDirection;
   to?: LocationDescriptor;
   variant?: HeaderCellVariant;
@@ -83,7 +83,7 @@ function HeaderCell({
   return (
     <ColumnHeaderCell
       {...props}
-      justify={justify}
+      align={align}
       onSort={handleSortClick}
       overlays={
         <Fragment>
@@ -179,7 +179,7 @@ const HeaderDivider = styled('div')`
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
   shouldForwardProp: prop => prop !== 'variant',
-})<{variant: HeaderCellVariant; justify?: HeaderCellJustify}>`
+})<{variant: HeaderCellVariant; align?: ColumnAlign}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -199,7 +199,7 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   }
 
   ${p =>
-    !p.justify &&
+    !p.align &&
     css`
       ${HeaderCellContent} {
         justify-content: space-between;

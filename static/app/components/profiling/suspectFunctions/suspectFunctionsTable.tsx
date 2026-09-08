@@ -238,7 +238,7 @@ export function SuspectFunctionsTable({
                 <DataTable.HeadCell
                   key={i}
                   isFirst={i === 0}
-                  justify={
+                  align={
                     column.value === 'package' || column.value === 'name'
                       ? 'left'
                       : 'right'
