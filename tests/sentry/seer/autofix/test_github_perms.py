@@ -165,8 +165,8 @@ class GetMissingPermissionsByRepoTest(TestCase):
             assert get_missing_permissions_by_repo(organization, [repo_name]) == {}
 
         assert len(logs.records) == 1
-        assert logs.records[0].reason == reason
-        assert logs.records[0].organization_id == organization.id
+        assert logs.records[0].__dict__["reason"] == reason
+        assert logs.records[0].__dict__["organization_id"] == organization.id
 
     @override_options({"github-app.required-permissions": {"contents": "write"}})
     def test_warns_without_a_repository_row(self) -> None:

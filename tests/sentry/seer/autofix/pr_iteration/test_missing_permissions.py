@@ -255,8 +255,8 @@ class PostMissingPermissionsCommentTest(TestCase):
         client.create_comment.assert_called_once()
         assert len(logs.records) == 1
         assert logs.records[0].msg == "autofix.pr_iteration.missing_permissions.repository_changed"
-        assert logs.records[0].queued_repository_id == 456
-        assert logs.records[0].repository_id == 123
+        assert logs.records[0].__dict__["queued_repository_id"] == 456
+        assert logs.records[0].__dict__["repository_id"] == 123
 
     def test_stays_silent_when_nothing_is_missing(self, mock_get_perms) -> None:
         mock_get_perms.return_value = {}
