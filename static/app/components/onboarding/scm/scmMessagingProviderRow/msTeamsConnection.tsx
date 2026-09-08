@@ -9,10 +9,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {useScmMessagingIntegrationsQuery} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
-import {
-  isEligibleForIssueAlerts,
-  isIntegrationActive,
-} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
+import {isIntegrationActive} from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
@@ -36,24 +33,20 @@ function MsTeamsConnection({
   const [isWaiting, setIsWaiting] = useState(false);
 
   const {data: integrations} = useScmMessagingIntegrationsQuery();
-  const hasEligible = (integrations ?? []).some(
-    i =>
-      i.provider.key === 'msteams' &&
-      isIntegrationActive(i) &&
-      isEligibleForIssueAlerts(i)
+  const hasMsteams = (integrations ?? []).some(
+    i => i.provider.key === 'msteams' && isIntegrationActive(i)
   );
 
-  // Close and notify once the user has installed a non-tenant MS Teams workspace.
-  // Uses the modal's own closeModal (from ModalRenderProps) so it is scoped to
-  // this modal instance; the global closeModal() would close whatever modal happens
-  // to be open at the time.
+  // Close and notify once any MS Teams workspace appears in the integrations list —
+  // tenant or team. The row will show the correct state (connected / permission-limited)
+  // once the query updates in the parent.
   useEffect(() => {
-    if (!isWaiting || !hasEligible) {
+    if (!isWaiting || !hasMsteams) {
       return;
     }
     onConnected();
     closeModal();
-  }, [isWaiting, hasEligible, onConnected, closeModal]);
+  }, [isWaiting, hasMsteams, onConnected, closeModal]);
 
   return (
     <Fragment>

@@ -1,7 +1,12 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {GlobalModal} from '@sentry/scraps/modal';
 
 import {openMsTeamsConnectionModal} from './msTeamsConnection';
 
@@ -33,6 +38,23 @@ const provider = makeMsteamsProvider({
 });
 const providerWithoutExternalInstall = makeMsteamsProvider(undefined);
 
+function msteamsIntegration(installationType: string) {
+  return OrganizationIntegrationsFixture({
+    provider: {
+      key: 'msteams',
+      slug: 'msteams',
+      name: 'Microsoft Teams',
+      canAdd: false,
+      canDisable: false,
+      features: [],
+      aspects: {},
+    },
+    configData: {installationType},
+    status: 'active',
+    organizationIntegrationStatus: 'active',
+  });
+}
+
 describe('MsTeamsConnection modal', () => {
   const organization = OrganizationFixture();
 
@@ -41,14 +63,27 @@ describe('MsTeamsConnection modal', () => {
       url: '/organizations/org-slug/integrations/',
       body: [],
     });
+    jest.spyOn(window, 'open').mockReturnValue(null as any);
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
   });
 
+  function renderModal() {
+    const queryClient = makeTestQueryClient();
+    render(<GlobalModal />, {
+      organization,
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    return queryClient;
+  }
+
   it('renders the title, info alert, and marketplace button', () => {
-    renderGlobalModal({organization});
+    renderModal();
     act(() => openMsTeamsConnectionModal(provider, jest.fn()));
 
     expect(
@@ -63,7 +98,7 @@ describe('MsTeamsConnection modal', () => {
   });
 
   it('omits the marketplace button when externalInstall is absent', () => {
-    renderGlobalModal({organization});
+    renderModal();
     act(() => openMsTeamsConnectionModal(providerWithoutExternalInstall, jest.fn()));
 
     expect(
@@ -74,5 +109,26 @@ describe('MsTeamsConnection modal', () => {
     expect(
       screen.queryByRole('button', {name: 'Teams Marketplace'})
     ).not.toBeInTheDocument();
+  });
+
+  it('closes and calls onConnected when an eligible workspace appears', async () => {
+    const onConnected = jest.fn();
+    const queryClient = renderModal();
+    act(() => openMsTeamsConnectionModal(provider, onConnected));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Teams Marketplace'}));
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [msteamsIntegration('born_as_bot')],
+    });
+    await queryClient.refetchQueries();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Installing Microsoft Teams Integration')
+      ).not.toBeInTheDocument();
+    });
+    expect(onConnected).toHaveBeenCalledTimes(1);
   });
 });
