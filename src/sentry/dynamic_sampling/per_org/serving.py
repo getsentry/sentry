@@ -8,6 +8,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     ServedValue,
     ServingSource,
     emit_serving_source,
+    log_serving_fallback,
 )
 from sentry.dynamic_sampling.tasks.helpers import recalibrate_orgs as legacy_cache
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
@@ -45,6 +46,10 @@ def get_project_sample_rate(
         project_id=project_id,
         error_sample_rate_fallback=error_sample_rate_fallback,
     )
+    if source is ServingSource.PER_ORG_FALLBACK:
+        log_serving_fallback(
+            ServedValue.PROJECT_SAMPLE_RATE, org_id, project_id, sample_rate=legacy_sample_rate
+        )
     return legacy_sample_rate
 
 
@@ -60,6 +65,14 @@ def get_transaction_sample_rates(
     named_rates, implicit_rate = get_transactions_resampling_rates(
         org_id=org_id, proj_id=project_id, default_rate=default_rate
     )
+    if source is ServingSource.PER_ORG_FALLBACK:
+        log_serving_fallback(
+            ServedValue.TRANSACTION_SAMPLE_RATES,
+            org_id,
+            project_id,
+            named_rates=named_rates,
+            implicit_rate=implicit_rate,
+        )
     return named_rates, implicit_rate
 
 
@@ -94,7 +107,10 @@ def _recalibration_factor(org_id: int, source: ServingSource, *, read_by: str) -
 def get_recalibration_factor(org_id: int) -> float:
     source = _serving_source(org_id)
     emit_serving_source(ServedValue.RECALIBRATION_FACTOR, source)
-    return _recalibration_factor(org_id, source, read_by="serving")
+    factor = _recalibration_factor(org_id, source, read_by="serving")
+    if source is ServingSource.PER_ORG_FALLBACK:
+        log_serving_fallback(ServedValue.RECALIBRATION_FACTOR, org_id, factor=factor)
+    return factor
 
 
 def get_previous_recalibration_factor(org_id: int) -> float:
