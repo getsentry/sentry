@@ -518,8 +518,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
-    def test_diverged_closed_logs_and_skips_action(
-        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.delay")
+    def test_diverged_closed_logs_and_dispatches_reconcile(
+        self,
+        mock_delay: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
     ) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         self.create_group_derived_data(group=group, data={"status": "open"})
@@ -528,6 +532,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_delay.assert_called_once_with(group.id)
         mock_logger.info.assert_called_once_with(
             "issues.status_reconciliation.diverged",
             extra={
@@ -552,8 +557,12 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
-    def test_diverged_open_logs_and_skips_action(
-        self, mock_logger: mock.MagicMock, mock_metrics: mock.MagicMock
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.delay")
+    def test_diverged_open_logs_and_dispatches_reconcile(
+        self,
+        mock_delay: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
     ) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         self.create_group_derived_data(group=group, data={"status": "closed"})
@@ -562,6 +571,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_delay.assert_called_once_with(group.id)
         mock_logger.info.assert_called_once_with(
             "issues.status_reconciliation.diverged",
             extra={
@@ -585,7 +595,10 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
     @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
-    def test_aligned_status_skips(self, mock_metrics: mock.MagicMock) -> None:
+    @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.delay")
+    def test_aligned_status_skips(
+        self, mock_delay: mock.MagicMock, mock_metrics: mock.MagicMock
+    ) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
         self.create_group_derived_data(group=group, data={"status": "closed"})
 
@@ -593,6 +606,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             self._get(group)
 
         log.assert_not_logged(ReconcileStatusAction)
+        mock_delay.assert_not_called()
         mock_metrics.incr.assert_any_call(
             "issues.status_reconciliation.checked",
             sample_rate=1.0,
