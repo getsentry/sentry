@@ -1,8 +1,10 @@
 import {useEffect, useId, useRef, useState} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, useReducedMotion} from 'framer-motion';
 
 const OUTLINE_ANIMATION_DURATION_MS = 400;
+const OUTLINE_REVEAL_DELAY_MS = 500;
 const ARTWORK_REVEAL_DURATION_SECONDS = 1;
 const ARTWORK_REVEAL_EASING = [0.4, 0, 0.2, 1] as const;
 
@@ -77,7 +79,9 @@ function InteractiveIllustrationContent({
 }: InteractiveIllustrationProps) {
   const [loadedFullArtworkSrc, setLoadedFullArtworkSrc] = useState<string>();
   const [loadedOutlineSrc, setLoadedOutlineSrc] = useState<string>();
+  const [finishedOutlineSrc, setFinishedOutlineSrc] = useState<string>();
   const [animatedOutlineSrc, setAnimatedOutlineSrc] = useState<string>();
+  const [revealedArtworkSrc, setRevealedArtworkSrc] = useState<string>();
   const [isInteractionVisible, setIsInteractionVisible] = useState(false);
   const bubblePaths = useRef<SVGGElement>(null);
   const interactionSurface = useRef<HTMLDivElement>(null);
@@ -91,25 +95,25 @@ function InteractiveIllustrationContent({
   const bubbleRevealMaskId = `${maskId}-reveal`;
   const bubbleHideMaskId = `${maskId}-hide`;
   const neopanFilterId = `${maskId}-neopan`;
-  const grainFilterId = `${maskId}-grain`;
   const isFullArtworkLoaded = loadedFullArtworkSrc === src;
   const isOutlineLoaded = loadedOutlineSrc === outlineSrc;
   const isOutlineAnimationComplete = animatedOutlineSrc === outlineSrc;
   const isArtworkReadyToReveal =
     isFullArtworkLoaded && (prefersReducedMotion || isOutlineAnimationComplete);
+  const isArtworkRevealComplete = prefersReducedMotion || revealedArtworkSrc === src;
 
   useEffect(() => {
-    if (!isOutlineLoaded || prefersReducedMotion) {
+    if (finishedOutlineSrc !== outlineSrc) {
       return;
     }
 
     const timeout = window.setTimeout(
       () => setAnimatedOutlineSrc(outlineSrc),
-      OUTLINE_ANIMATION_DURATION_MS
+      OUTLINE_REVEAL_DELAY_MS
     );
 
     return () => window.clearTimeout(timeout);
-  }, [isOutlineLoaded, outlineSrc, prefersReducedMotion]);
+  }, [finishedOutlineSrc, outlineSrc]);
 
   useEffect(() => {
     const surface = interactionSurface.current;
@@ -138,7 +142,7 @@ function InteractiveIllustrationContent({
     const paths = bubblePaths.current;
 
     if (
-      !isArtworkReadyToReveal ||
+      !isArtworkRevealComplete ||
       !isInteractionVisible ||
       prefersReducedMotion ||
       !surface ||
@@ -292,7 +296,7 @@ function InteractiveIllustrationContent({
       pointerActive.current = false;
       activeBubbles.forEach(bubble => bubble.element.remove());
     };
-  }, [isArtworkReadyToReveal, isInteractionVisible, prefersReducedMotion]);
+  }, [isArtworkRevealComplete, isInteractionVisible, prefersReducedMotion]);
 
   return (
     <Illustration>
@@ -307,6 +311,11 @@ function InteractiveIllustrationContent({
           delay: 0,
           duration: prefersReducedMotion ? 0 : ARTWORK_REVEAL_DURATION_SECONDS,
           ease: ARTWORK_REVEAL_EASING,
+        }}
+        onAnimationComplete={() => {
+          if (isArtworkReadyToReveal) {
+            setRevealedArtworkSrc(src);
+          }
         }}
       >
         <MaskDefinitions aria-hidden="true">
@@ -373,22 +382,10 @@ function InteractiveIllustrationContent({
                 draggable={false}
                 $filterId={neopanFilterId}
               />
-              <NoiseTexture aria-hidden="true">
-                <filter id={grainFilterId}>
-                  <feTurbulence
-                    type="fractalNoise"
-                    baseFrequency="0.9"
-                    numOctaves="4"
-                    seed="7"
-                    stitchTiles="stitch"
-                  />
-                  <feColorMatrix type="saturate" values="0" />
-                </filter>
-                <rect width="100%" height="100%" filter={`url(#${grainFilterId})`} />
-              </NoiseTexture>
             </DistressedArtworkLayer>
             <BubbleMaskLayer $maskId={bubbleRevealMaskId}>
               <OutlineArtwork
+                key={outlineSrc}
                 src={outlineSrc}
                 alt=""
                 aria-hidden="true"
@@ -430,14 +427,19 @@ function InteractiveIllustrationContent({
           ease: ARTWORK_REVEAL_EASING,
         }}
       >
-        <OutlineArtwork
-          key={outlineSrc}
-          src={outlineSrc}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          onLoad={() => setLoadedOutlineSrc(outlineSrc)}
-        />
+        {!prefersReducedMotion && (
+          <AnimatedOutlineArtwork
+            key={outlineSrc}
+            src={outlineSrc}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            fetchPriority="high"
+            $isPlaying={isOutlineLoaded}
+            onLoad={() => setLoadedOutlineSrc(outlineSrc)}
+            onAnimationEnd={() => setFinishedOutlineSrc(outlineSrc)}
+          />
+        )}
       </OutlineHideMask>
     </Illustration>
   );
@@ -616,6 +618,16 @@ const OutlineArtwork = styled(ArtworkImage)`
   opacity: 0.6;
 `;
 
+const outlinePlayback = keyframes`
+  from { opacity: 0.6; }
+  to { opacity: 0.6; }
+`;
+
+const AnimatedOutlineArtwork = styled(OutlineArtwork)<{$isPlaying: boolean}>`
+  animation: ${outlinePlayback} ${OUTLINE_ANIMATION_DURATION_MS}ms linear;
+  animation-play-state: ${p => (p.$isPlaying ? 'running' : 'paused')};
+`;
+
 const ArtworkRevealMask = styled(motion.div)`
   position: absolute;
   user-select: none;
@@ -675,17 +687,6 @@ const ArtworkEffectClip = styled('div')<{$artworkSrc: string}>`
   mask-size: 100% 100%;
   mask-repeat: no-repeat;
   mask-composite: add;
-`;
-
-const NoiseTexture = styled('svg')`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.32;
-  mix-blend-mode: hard-light;
-  filter: contrast(240%) brightness(115%);
-  pointer-events: none;
 `;
 
 const InteractionSurface = styled('div')<{$enabled: boolean}>`

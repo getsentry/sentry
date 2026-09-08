@@ -79,13 +79,13 @@ class GitlabRequestParser(BaseRequestParser):
 
         return self.get_response_from_webhookpayload(
             cells=cells,
-            identifier=self.get_mailbox_identifier(integration, self.get_request_body()),
+            mailbox=self.get_mailbox(integration, self.get_request_body()),
             integration_id=integration.id,
         )
 
     def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
         """
-        Used by get_mailbox_identifier to find the project.id a payload is for.
+        Used by get_mailbox to find the project.id a payload is for.
         In high volume gitlab instances we shard messages by project for greater
         delivery throughput.
         """

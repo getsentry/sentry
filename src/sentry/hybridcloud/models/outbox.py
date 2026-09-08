@@ -147,6 +147,12 @@ class OutboxBase(Model):
             else:
                 raise
 
+    def _silo_and_type_tags(self) -> dict[str, str]:
+        return {
+            "silo": SiloMode.get_current_mode().value.lower(),
+            "type": type(self).__name__,
+        }
+
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
@@ -205,7 +211,7 @@ class OutboxBase(Model):
                 self._drain_shard_with_metrics, using=router.db_for_write(type(self))
             )
 
-        tags = {"category": OutboxCategory(self.category).name}
+        tags = {"category": OutboxCategory(self.category).name, **self._silo_and_type_tags()}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(*args, **kwargs)
 
@@ -247,7 +253,11 @@ class OutboxBase(Model):
     ) -> Generator[OutboxBase | None]:
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         first_coalesced: OutboxBase | None = self.select_coalesced_messages().first() or coalesced
-        tags: dict[str, int | str] = {"category": "None", "synchronous": int(is_synchronous_flush)}
+        tags: dict[str, int | str] = {
+            "category": "None",
+            "synchronous": int(is_synchronous_flush),
+            **self._silo_and_type_tags(),
+        }
 
         if coalesced is not None:
             tags["category"] = OutboxCategory(self.category).name
@@ -319,6 +329,7 @@ class OutboxBase(Model):
                         tags={
                             "category": OutboxCategory(coalesced.category).name,
                             "synchronous": int(is_synchronous_flush),
+                            **coalesced._silo_and_type_tags(),
                         },
                     ),
                     start_span(op="outbox.process", name="outbox.process") as span,
@@ -413,6 +424,49 @@ class OutboxBase(Model):
             base_depth_query = base_depth_query[0:limit]
 
         return list(base_depth_query)
+
+    @classmethod
+    def get_shard_category_breakdown(
+        cls, shard_key: Mapping[str, int | str]
+    ) -> list[dict[str, int]]:
+        """
+        For a single shard (identified by its sharding column values), returns
+        depth broken down by category, ordered by depth descending. Intended
+        for enriching logging about a shard already known to be deep -- a
+        shard's sharding columns combined with category is too high
+        cardinality for a metric tag.
+
+        :param shard_key: A mapping of sharding column name to value, as
+        returned by get_shard_depths_descending.
+        :return: A list of dictionaries with "category" and "depth" keys,
+        ordered by depth descending.
+        """
+        missing_columns = set(cls.sharding_columns) - shard_key.keys()
+        assert not missing_columns, (
+            f"shard_key must include all sharding columns to avoid an unbounded query, "
+            f"missing: {missing_columns}"
+        )
+        rows = (
+            cls.objects.filter(**shard_key)
+            .values("category")
+            .annotate(depth=Count("*"))
+            .order_by("-depth")
+        )
+        return [{"category": row["category"], "depth": row["depth"]} for row in rows]
+
+    @classmethod
+    def get_category_depths(cls) -> dict[int, int]:
+        """
+        Queries all outbox shards for their total depth, summed across all
+        shards and grouped only by category. Unlike get_shard_depths_descending,
+        this collapses the shard dimension entirely, so it's suitable for
+        SLO/backlog metrics where a shard-identifier tag would blow up
+        cardinality.
+
+        :return: A mapping of category value to total depth across all shards.
+        """
+        rows = cls.objects.values("category").annotate(depth=Count("*"))
+        return {row["category"]: row["depth"] for row in rows}
 
     @classmethod
     def get_total_outbox_count(cls) -> int:

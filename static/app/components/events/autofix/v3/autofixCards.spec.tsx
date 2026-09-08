@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {CodingAgentProvider, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
   AutofixArtifact,
   AutofixSection,
@@ -22,7 +22,9 @@ import type {
 } from 'sentry/views/seerExplorer/types';
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
-  FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
+  FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
+    <div data-expanded={defaultExpanded} data-test-id="file-diff-viewer" />
+  ),
 }));
 
 const prIterationOrganization = OrganizationFixture({
@@ -440,6 +442,55 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('3 files changed in 2 repos')).toBeInTheDocument();
+    });
+
+    it('expands small multi-file changes by default', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py'), makePatch('org/repo', 'src/utils.py')],
+          ])}
+        />
+      );
+
+      const diffViewers = screen.getAllByTestId('file-diff-viewer');
+      expect(diffViewers[0]).toHaveAttribute('data-expanded', 'true');
+      expect(diffViewers[1]).toHaveAttribute('data-expanded', 'true');
+    });
+
+    it('collapses large changes by default', () => {
+      const patch = makePatch('org/repo', 'src/app.py');
+      patch.patch.hunks = [
+        {
+          lines: Array.from({length: 31}, (_, index) => ({
+            diff_line_no: index,
+            line_type: DiffLineType.CONTEXT,
+            source_line_no: index,
+            target_line_no: index,
+            value: `line ${index}`,
+          })),
+          section_header: '',
+          source_length: 31,
+          source_start: 1,
+          target_length: 31,
+          target_start: 1,
+        },
+      ];
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [[patch]])}
+        />
+      );
+
+      expect(screen.getByTestId('file-diff-viewer')).toHaveAttribute(
+        'data-expanded',
+        'false'
+      );
     });
 
     it('renders repository name labels', () => {
@@ -1066,6 +1117,116 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Please handle the null value.')).toBeInTheDocument();
       const feedbackLink = screen.getByRole('link', {name: 'Open in GitHub'});
       expect(feedbackLink).toHaveAttribute('href', commentUrl);
+    });
+
+    it('strips markup and markdown syntax from bot comments', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              // Shaped like a real Bugbot comment.
+              text: '<!-- BUGBOT_REVIEW -->\n### Bugbot found <a href="https://cursor.com/open?link=eyJ2ZXJzaW9u">1 issue</a>. **Medium Severity**',
+              source: {
+                type: 'github-pr-comment',
+                comment: {
+                  html_url: 'https://github.com/org/repo/pull/42#issuecomment-1',
+                  user: {login: 'cursor'},
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(
+        screen.getByText('Bugbot found 1 issue. Medium Severity')
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/BUGBOT_REVIEW/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/eyJ2ZXJzaW9u/)).not.toBeInTheDocument();
+    });
+
+    it('collapses a long comment into a disclosure', async () => {
+      const longText = `Timeouts abort the upload batch. ${'x'.repeat(400)} End of comment.`;
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: longText, source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      // Twice over: the summary's clipped preview, plus the still-mounted body.
+      const collapsed = screen.getAllByText(/End of comment\./);
+      expect(collapsed).toHaveLength(2);
+      const preview = collapsed.find(el => el.closest('summary'))!;
+      const body = collapsed.find(el => !el.closest('summary'))!;
+      const details = body.closest('details');
+      expect(details).not.toHaveAttribute('open');
+      expect(body).not.toBeVisible();
+
+      await userEvent.click(preview);
+
+      expect(details).toHaveAttribute('open');
+      expect(body).toBeVisible();
+      expect(screen.getAllByText(/End of comment\./)).toHaveLength(1);
+    });
+
+    it('does not collapse a short comment', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue', source: {type: 'user-ui'}}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const comment = screen.getByText('Make the button blue');
+      expect(comment).toBeVisible();
+      expect(comment.closest('details')).toBeNull();
     });
 
     it('groups a review body with its inline comments under a state header', () => {
