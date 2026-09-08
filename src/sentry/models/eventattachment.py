@@ -363,9 +363,6 @@ class PendingEventAttachment(EventAttachmentBase):
     def track_dropped_outcome(self) -> None:
         """
         Record the outcome for an attachment that is dropped instead of promoted.
-
-        Promotion is the only place an accepted outcome is emitted, so a pending
-        attachment that expires has no outcome at all unless it gets one here.
         """
         from sentry.models.project import Project
         from sentry.utils.outcomes import Outcome, track_outcome
@@ -377,20 +374,25 @@ class PendingEventAttachment(EventAttachmentBase):
             # left to report the drop to.
             return
 
-        track_outcome(
+        kwargs = dict(
             org_id=organization_id,
             project_id=self.project_id,
-            # NOTE: the standalone attachment consumer does not know the DSN that was used,
-            # so pending attachments are never attributed to a key.
-            key_id=None,
+            key_id=None,  # DSN is unknown at this point
             outcome=Outcome.INVALID,
             reason="missing_event",
-            # Report the drop at the time the attachment was ingested, matching the
-            # accepted outcome that promotion would have emitted for the same row.
-            timestamp=self.date_added,
+            timestamp=self.date_added,  # matches accepted outcome
             event_id=self.event_id,
+        )
+
+        track_outcome(
+            **kwargs,
             category=DataCategory.ATTACHMENT,
             quantity=self.size or 1,
+        )
+        track_outcome(
+            **kwargs,
+            category=DataCategory.ATTACHMENT_ITEM,
+            quantity=1,
         )
 
 

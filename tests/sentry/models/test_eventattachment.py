@@ -119,16 +119,34 @@ class PendingEventAttachmentDeleteTest(TestCase):
 
         pending.delete()
 
-        kwargs = mock_track_outcome.mock_calls[0].kwargs
-        assert kwargs["org_id"] == self.project.organization_id
-        assert kwargs["project_id"] == self.project.id
-        assert kwargs["key_id"] is None
-        assert kwargs["outcome"] == Outcome.INVALID
-        assert kwargs["reason"] == "missing_event"
-        assert kwargs["timestamp"] == pending.date_added
-        assert kwargs["event_id"] == pending.event_id
-        assert kwargs["category"] == DataCategory.ATTACHMENT
-        assert kwargs["quantity"] == 42
+        assert len(mock_track_outcome.mock_calls) == 2
+
+        outcomes_by_category = {
+            call.kwargs.pop("category"): call.kwargs for call in mock_track_outcome.mock_calls
+        }
+
+        assert outcomes_by_category == {
+            DataCategory.ATTACHMENT: {
+                "event_id": pending.event_id,
+                "key_id": None,
+                "org_id": self.organization.id,
+                "outcome": Outcome.INVALID,
+                "project_id": self.project.id,
+                "quantity": 42,
+                "reason": "missing_event",
+                "timestamp": pending.date_added,
+            },
+            DataCategory.ATTACHMENT_ITEM: {
+                "event_id": pending.event_id,
+                "key_id": None,
+                "org_id": self.organization.id,
+                "outcome": Outcome.INVALID,
+                "project_id": self.project.id,
+                "quantity": 1,
+                "reason": "missing_event",
+                "timestamp": pending.date_added,
+            },
+        }
 
     @mock.patch("sentry.models.eventattachment.get_storage")
     @mock.patch("sentry.utils.outcomes.track_outcome")
