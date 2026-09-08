@@ -36,8 +36,8 @@ class CustomInboundFilter(DefaultFieldsModel):
     data_type = models.CharField(
         max_length=32,
         choices=[(data_type, data_type) for data_type in CustomInboundFilterDataType],
-        default=CustomInboundFilterDataType.ERROR,
-        db_default=CustomInboundFilterDataType.ERROR.value,
+        default=CustomInboundFilterDataType.ALL,
+        db_default=CustomInboundFilterDataType.ALL.value,
     )
     conditions = models.JSONField(default=list)
 

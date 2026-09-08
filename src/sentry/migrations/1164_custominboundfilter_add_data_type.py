@@ -30,8 +30,8 @@ class Migration(CheckedMigration):
             model_name="custominboundfilter",
             name="data_type",
             field=models.CharField(
-                db_default="error",
-                default=sentry.models.custominboundfilter.CustomInboundFilterDataType["ERROR"],
+                db_default="all",
+                default=sentry.models.custominboundfilter.CustomInboundFilterDataType["ALL"],
                 max_length=32,
             ),
         ),
