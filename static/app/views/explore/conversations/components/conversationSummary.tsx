@@ -115,9 +115,9 @@ export function ConversationSummary({
 
   return (
     <Flex
-      direction={{zero: 'column', '3xl': 'row'}}
+      direction={{zero: 'column', xl: 'row'}}
       justify="between"
-      align={{zero: 'stretch', '3xl': 'center'}}
+      align={{zero: 'stretch', xl: 'center'}}
       gap="xl"
       flex={1}
       minWidth={0}
