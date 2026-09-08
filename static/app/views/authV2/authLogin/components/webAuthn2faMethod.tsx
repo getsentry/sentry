@@ -139,7 +139,18 @@ export function WebAuthn2FAMethod({
           </Text>
         )}
         {retry && (
-          <Button disabled={isProcessing} size="xs" variant="transparent" onClick={retry}>
+          <Button
+            analyticsEventKey="auth.login.retry_clicked"
+            analyticsEventName="Auth: Login Retry Clicked"
+            analyticsParams={{
+              stage: submissionFailed ? 'mfa_verify' : 'mfa_challenge',
+              method: 'u2f',
+            }}
+            disabled={isProcessing}
+            size="xs"
+            variant="transparent"
+            onClick={retry}
+          >
             {t('Try again')}
           </Button>
         )}

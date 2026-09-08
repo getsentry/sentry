@@ -12,6 +12,7 @@ def start_migration(
     *,
     num_shards: int,
     cursors: Mapping[int, int] | None = None,
+    delete_corrupt: bool = False,
 ) -> None:
     """Start the migration of debug files to Objectstore.
 
@@ -46,4 +47,5 @@ def start_migration(
             shard_id=shard_id,
             num_shards=num_shards,
             cursor=cursor,
+            delete_corrupt=delete_corrupt,
         )

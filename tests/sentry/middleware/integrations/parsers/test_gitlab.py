@@ -58,6 +58,23 @@ class GitlabRequestParserTest(TestCase):
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
         return parser.get_response()
 
+    def test_mailbox_bucket_id(self) -> None:
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+
+        assert parser.mailbox_bucket_id({"project": {"id": 15}}) == 15
+        assert parser.mailbox_bucket_id({"project": {"id": "15"}}) == 15
+        assert parser.mailbox_bucket_id({}) is None
+        assert parser.mailbox_bucket_id({"project": {}}) is None
+        assert parser.mailbox_bucket_id({"project": "sentry"}) is None
+        assert parser.mailbox_bucket_id({"project": {"id": "sentry"}}) is None
+
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
     def test_missing_x_gitlab_token(self) -> None:

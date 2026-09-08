@@ -1,5 +1,4 @@
 import type {ComponentProps} from 'react';
-import {lazy, Suspense} from 'react';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import type {OverrideName, Overrides} from 'sentry/types/overrides';
@@ -13,12 +12,6 @@ interface Params<H extends OverrideName> {
    * Component that will be shown if no hook is available
    */
   defaultComponent?: ReturnType<Overrides[H]> | (() => ReturnType<Overrides[H]>);
-  /**
-   * This is a function that returns a promise (more specifically a function
-   * that returns the result of a dynamic import using `import()`. This will
-   * use React.Suspense and React.lazy to render the component.
-   */
-  defaultComponentPromise?: () => Promise<ReturnType<Overrides[H]>>;
 }
 
 /**
@@ -40,25 +33,11 @@ interface Params<H extends OverrideName> {
 export function OverrideOrDefault<H extends OverrideName>({
   overrideName,
   defaultComponent,
-  defaultComponentPromise,
 }: Params<H>): React.FunctionComponent<ComponentProps<ReturnType<Overrides[H]>>> {
   type Props = ComponentProps<ReturnType<Overrides[H]>>;
 
   // Defining the props here is unnecessary and slow for typescript
   function getDefaultComponent(): React.ComponentType<any> | undefined {
-    if (defaultComponentPromise) {
-      // Lazy adds a complicated type that is not important
-      const DefaultComponent: React.ComponentType<any> = lazy(defaultComponentPromise);
-
-      return function (props: Props) {
-        return (
-          <Suspense fallback={null}>
-            <DefaultComponent {...props} />
-          </Suspense>
-        );
-      };
-    }
-
     return defaultComponent;
   }
 

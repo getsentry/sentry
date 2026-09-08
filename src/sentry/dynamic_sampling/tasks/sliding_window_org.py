@@ -17,7 +17,10 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     get_sliding_window_size,
     mark_sliding_window_org_executed,
 )
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    legacy_pipeline_killswitched,
+)
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -33,6 +36,9 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 )
 @dynamic_sampling_task
 def sliding_window_org() -> None:
+    if legacy_pipeline_killswitched("sliding_window_org"):
+        return
+
     window_size = get_sliding_window_size()
     # In case the size is None it means that we disabled the sliding window entirely.
     if window_size is None:

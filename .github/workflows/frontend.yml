@@ -65,10 +65,10 @@ jobs:
         id: tsc
         run: pnpm run typecheck
 
-  eslint:
+  oxlint:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: eslint
+    name: oxlint
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -78,12 +78,6 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      # Setup custom eslint matcher, see https://github.com/actions/setup-node/issues/97
-      - name: setup matchers
-        run: |
-          echo "::remove-matcher owner=masters::"
-          echo "::add-matcher::.github/eslint-stylish.json"
-
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
       # resolves and every changed file lives under static/, otherwise we lint everything —
@@ -92,8 +86,8 @@ jobs:
         id: strategy
         run: ./.github/workflows/scripts/frontend-changed-scope.sh >> "$GITHUB_OUTPUT"
 
-      - name: eslint (all files)
-        id: eslint
+      - name: oxlint (all files)
+        id: oxlint
         if: steps.strategy.outputs.scope == 'full'
         run: pnpm run lint:js
 
@@ -101,10 +95,10 @@ jobs:
       # HEAD^2 (the PR head) so we only seed on the PR's own changes. Diffing against the
       # working tree (the merge commit) would also pull in everything that landed on master
       # since the fork point.
-      - name: eslint (impacted files)
-        id: eslint-impacted
+      - name: oxlint (impacted files)
+        id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm exec run-on-changed --since "$MERGE_BASE..HEAD^2" -- eslint --concurrency=3 --no-warn-ignored
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- oxlint --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
@@ -118,12 +112,6 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: ./.github/actions/setup-node-pnpm
-
-      # Setup custom eslint matcher, see https://github.com/actions/setup-node/issues/97
-      - name: setup matchers
-        run: |
-          echo "::remove-matcher owner=masters::"
-          echo "::add-matcher::.github/eslint-stylish.json"
 
       - name: knip
         id: knip
@@ -300,7 +288,7 @@ jobs:
         jest-config,
         jest-tests,
         typescript,
-        eslint,
+        oxlint,
         knip,
         form-field-registry,
         embed-widgets,

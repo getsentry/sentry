@@ -2,10 +2,10 @@ import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
 import type {User} from 'sentry/types/user';
 
 import {CustomerContact} from 'admin/components/customerContact';
-import {ResultGrid} from 'admin/components/resultGrid';
 import type {PromoCode} from 'admin/types';
 
 type Props = {
@@ -62,7 +62,6 @@ export function PromoCodeClaimants({promoCode}: Props) {
       panelTitle="Claimants"
       path={`/_admin/promocodes/${promoCode.code}/claimants/`}
       endpoint={`/promocodes/${promoCode.code}/claimants/`}
-      method="GET"
       columns={[
         <th key="customer">Customer</th>,
         <th key="claimant">Claimant</th>,

@@ -36,10 +36,10 @@ type MessagingProviderList = ReturnType<typeof useScmMessagingProviders>['provid
 
 interface ScmMessagingProps {
   messagingSetup: ScmMessagingSetup;
+  onComplete: StepProps['onComplete'];
   onMessagingSetupChange: (messagingSetup: ScmMessagingSetup) => void;
   selectedPlatform: OnboardingSelectedSDK;
   genBackButton?: StepProps['genBackButton'];
-  onComplete?: StepProps['onComplete'];
 }
 
 export function ScmMessaging({
@@ -74,11 +74,11 @@ export function ScmMessaging({
   const canContinue = validation.isValid;
   const showContinue = messagingSetup.mode === 'selected';
 
-  const handleContinue = () => onComplete?.();
+  const handleContinue = () => onComplete();
 
   const handleSetupLater = () => {
     onMessagingSetupChange({mode: 'skipped'});
-    onComplete?.();
+    onComplete();
   };
 
   const handleInstallComplete = async (providerKey: ScmMessagingProviderKey) => {
@@ -211,6 +211,7 @@ export function ScmMessaging({
                     activeRow={validatedActiveRow}
                     onActiveRowChange={setActiveRow}
                     isRefetchingIntegrations={isRefetchingIntegrations}
+                    onContinue={handleContinue}
                   />
                 ))}
               </MotionStack>
