@@ -1,3 +1,57 @@
+"""Declaring the input parameters a public endpoint accepts.
+
+Generated SDKs are built from the OpenAPI schema, so a parameter the schema does
+not document does not exist for any client: the API accepts it, no SDK can send
+it. The property the linters check is that every parameter a PUBLIC handler reads
+is declared, or deliberately omitted with a written reason (see
+sentry.apidocs.omissions). Path parameters are exempt -- the framework passes
+them as typed method arguments, so they cannot be read without being declared.
+
+Request bodies are already sound by construction: drf-spectacular derives
+`requestBody` from the same serializer fields the handler validates against. The
+query string has no such derivation, which is what these checks cover.
+
+Each PUBLIC method is classified into exactly one pattern, matched most specific
+first, and every diagnostic names it so the inventory can be read one shape at a
+time:
+
+    F-prime  validates the query string with a serializer it does not declare
+    F        declares that serializer in parameters= and validates with it
+    E        reads at least one non-literal key
+    D        hands the whole QueryDict to a callable
+    B        declares a parameter through a factory call
+    A        literal keys throughout, every declaration statically resolvable
+
+The checks are split across the two supported linting mechanisms by what each
+needs to see. Facts contained in one file -- a validator built from the query
+string, an inline OpenApiParameter with no description, a non-literal key -- are
+S025-S027 on the flake8 visitor in tools/flake8_plugin.py. Coverage is not
+containable: `parameters=[ReplayValidator]` declares fields defined in another
+module, and a parameter read by OrganizationEventsEndpointBase belongs to a class
+defined in another module. Resolving a name defined elsewhere is what the mypy
+plugin is for, so the coverage half lives in tools/mypy_helpers/plugin.py. No
+third mechanism is added; see S024.
+
+A declaration the linter cannot resolve to a name suppresses that method's
+coverage violations instead of producing them. A false positive on a correct
+endpoint teaches reviewers to ignore the tool, while a missed parameter is caught
+by the next pass; the unresolved count is reported so the blind spot stays
+visible.
+
+Enforcement ratchets on pattern, not on a list of files. `ENFORCED` in
+tools/flake8_plugin.py holds the patterns whose diagnostics are fatal, and it is
+empty today: everything is recorded and nothing gates. Adding a pattern to it is
+a one-line, revertable diff that gates every endpoint of that shape at once,
+including ones written afterwards, with no baseline to maintain.
+
+To collect the inventory -- a single worker and a cold cache, because mypy drops
+a class body when it serializes a TypeInfo, which it does both to the incremental
+cache and between workers:
+
+    SENTRY_INPUT_PARAM_INVENTORY=/tmp/inv.jsonl mypy -n 1 --no-incremental
+    python -m tools.mypy_helpers.plugin /tmp/inv.jsonl [pattern]
+"""
+
 from typing import Any
 
 from drf_spectacular.plumbing import build_array_type, build_basic_type

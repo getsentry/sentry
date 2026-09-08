@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ast
+import json
+import os
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any
@@ -153,6 +155,60 @@ S024_stale_msg = (
 S024_safelist = frozenset(("tools/migrations/squash.py",))
 
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
+
+
+# --- S025-S027: endpoint input parameters versus the OpenAPI schema ---
+# Every analyzed method gets exactly one pattern, matched most specific first.
+# The pattern rides in each diagnostic so the inventory reads a shape at a time.
+INPUT_PATTERNS = ("F-prime", "F", "E", "D", "B", "A")
+
+# Patterns whose diagnostics gate. Empty here: this change publishes the
+# inventory without blocking anyone. Growing this set is the ratchet -- adding a
+# pattern makes every diagnostic on that shape fatal, with no list to maintain.
+ENFORCED: frozenset[str] = frozenset()
+
+# Set to a path to collect the inventory; shared with the mypy host, which
+# records the coverage half. Unset in a normal run, and an unenforced diagnostic
+# is simply dropped, so nothing this change adds can fail a build.
+INVENTORY_ENV = "SENTRY_INPUT_PARAM_INVENTORY"
+
+# Helpers that consume a whole QueryDict, mapped to the parameters they read.
+# A QueryDict handed to anything else leaves the method unanalyzable.
+KNOWN_QUERY_HELPERS = {
+    "get_date_range_from_params": frozenset(
+        (
+            "timeframe",
+            "timeframeStart",
+            "timeframeEnd",
+            "statsPeriod",
+            "statsPeriodStart",
+            "statsPeriodEnd",
+            "start",
+            "end",
+        )
+    ),
+    "get_date_range_from_stats_period": frozenset(
+        ("statsPeriod", "statsPeriodStart", "statsPeriodEnd", "start", "end")
+    ),
+}
+
+S025_msg = (
+    "S025 [{}] {} validates the query string but is not declared in "
+    "@extend_schema(parameters=...), so the parameters it defines are absent from "
+    "the schema. Add it to parameters=."
+)
+S026_inline_msg = (
+    "S026 [{}] query parameter {!r} has no description, so a generated client "
+    "surfaces it undocumented."
+)
+S026_field_msg = (
+    "S026 [{}] query parameter {!r} on {} has no help_text, so a generated client "
+    "surfaces it undocumented."
+)
+S027_msg = (
+    "S027 [{}] query parameter read with the non-literal key {}; the schema cannot "
+    "document a key that is not statically known."
+)
 
 
 def _s015_msg() -> str:
@@ -517,6 +573,139 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+_QUERY_ATTRS = frozenset(("GET", "query_params"))
+_QUERY_READ_METHODS = frozenset(("get", "getlist"))
+_QUERY_COPY_METHODS = frozenset(("copy", "dict"))
+_PATH_LOCATIONS = frozenset(("path", "PATH"))
+
+
+def _unwrap_query_copy(node: ast.expr) -> ast.expr:
+    """Strip `.copy()` / `.dict()` so `request.GET.copy()` still reads as the query dict."""
+    while (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in _QUERY_COPY_METHODS
+    ):
+        node = node.func.value
+    return node
+
+
+def _literal_key(node: ast.expr) -> str | None:
+    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else None
+
+
+def _declaration_kind(node: ast.expr) -> str:
+    """One element of `parameters=[...]` as 'inline', 'factory' or 'static'."""
+    if isinstance(node, ast.Call):
+        fn = node.func
+        inline = (isinstance(fn, ast.Name) and fn.id == "OpenApiParameter") or (
+            isinstance(fn, ast.Attribute) and fn.attr == "OpenApiParameter"
+        )
+        return "inline" if inline else "factory"
+    return "static"
+
+
+def _parameters_elements(decorators: list[ast.expr]) -> list[ast.expr]:
+    """Elements of every `@extend_schema(parameters=[...])` in `decorators`."""
+    out: list[ast.expr] = []
+    for value in extend_schema_kwarg(decorators, "parameters"):
+        if isinstance(value, (ast.List, ast.Tuple)):
+            out.extend(value.elts)
+    return out
+
+
+def _is_path_parameter(call: ast.Call) -> bool:
+    """True when an inline OpenApiParameter declares location=path."""
+    for kw in call.keywords:
+        if kw.arg != "location":
+            continue
+        if _literal_key(kw.value) in _PATH_LOCATIONS:
+            return True
+        if isinstance(kw.value, ast.Attribute) and kw.value.attr in _PATH_LOCATIONS:
+            return True
+    return False
+
+
+def _kwarg(call: ast.Call, name: str) -> ast.expr | None:
+    for kw in call.keywords:
+        if kw.arg == name:
+            return kw.value
+    return None
+
+
+def _serializer_field_help(cls: ast.ClassDef) -> list[tuple[str, int, int, bool]]:
+    """`(field, line, col, has_help_text)` for each field assigned in a serializer body."""
+    out = []
+    for stmt in cls.body:
+        target = None
+        if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+            target = stmt.targets[0]
+        elif isinstance(stmt, ast.AnnAssign):
+            target = stmt.target
+        if not isinstance(target, ast.Name) or not isinstance(stmt.value, ast.Call):
+            continue
+        out.append(
+            (target.id, stmt.lineno, stmt.col_offset, _kwarg(stmt.value, "help_text") is not None)
+        )
+    return out
+
+
+class _InputCtx:
+    """Facts about one PUBLIC method's input reads, filled during the single traversal."""
+
+    def __init__(self, declared: list[ast.expr]) -> None:
+        self.declared_serializers: set[str] = set()
+        self.inline_params: list[ast.Call] = []
+        self.has_factory = False
+        for element in declared:
+            kind = _declaration_kind(element)
+            if kind == "inline":
+                assert isinstance(element, ast.Call)
+                self.inline_params.append(element)
+            elif kind == "factory":
+                self.has_factory = True
+            else:
+                name = _name_of(element).rsplit(".", 1)[-1]
+                self.declared_serializers.add(name)
+        self.query_locals: set[str] = set()
+        self.literal_reads: set[str] = set()
+        self.dynamic_reads: list[tuple[int, int, str]] = []
+        self.validators: list[tuple[int, int, str]] = []
+        self.query_sinks: list[tuple[int, int, str, bool]] = []
+
+    def record_key(self, node: ast.expr, line: int, col: int) -> None:
+        """Record one query read; a non-literal key makes the method unanalyzable."""
+        key = _literal_key(node)
+        if key is None:
+            self.dynamic_reads.append((line, col, ast.unparse(node)))
+        else:
+            self.literal_reads.add(key)
+
+    def is_query(self, node: ast.expr) -> bool:
+        node = _unwrap_query_copy(node)
+        if isinstance(node, ast.Name):
+            return node.id in self.query_locals
+        return isinstance(node, ast.Attribute) and node.attr in _QUERY_ATTRS
+
+    @property
+    def undeclared_validators(self) -> list[tuple[int, int, str]]:
+        return [v for v in self.validators if v[2] not in self.declared_serializers]
+
+    def pattern(self) -> str:
+        """The method's single pattern, most specific trait first."""
+        if self.undeclared_validators:
+            return "F-prime"
+        if self.validators:
+            return "F"
+        if self.dynamic_reads:
+            return "E"
+        if self.query_sinks:
+            return "D"
+        if self.has_factory:
+            return "B"
+        return "A"
+
+
 class SentryVisitor(ast.NodeVisitor):
     def __init__(
         self,
@@ -541,6 +730,12 @@ class SentryVisitor(ast.NodeVisitor):
         self._module_classes: dict[str, ast.ClassDef] = {}
         # publish_status of the enclosing module-level class, for S022.
         self._publish_status: dict[str, str] | None = None
+        # S025-S027: per-method input analysis, innermost last.
+        self._input_stack: list[_InputCtx] = []
+        self._class_declared: list[ast.expr] = []
+        # Serializers already reported for S026, so two methods declaring the
+        # same serializer report its undescribed fields once.
+        self._s026_reported: set[str] = set()
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
 
@@ -679,17 +874,21 @@ class SentryVisitor(ast.NodeVisitor):
             self._check_S023(node)
         outer_publish_status = self._publish_status
         self._publish_status = publish_status(node) if top_level else None
+        outer_declared = self._class_declared
+        self._class_declared = _parameters_elements(node.decorator_list) if top_level else []
         self._class_stack.append(node.name)
         try:
             self.generic_visit(node)
         finally:
             self._class_stack.pop()
             self._publish_status = outer_publish_status
+            self._class_declared = outer_declared
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+        entered = self._enter_input_ctx(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         try:
@@ -697,11 +896,14 @@ class SentryVisitor(ast.NodeVisitor):
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
+            if entered:
+                self._exit_input_ctx()
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         if len(self._class_stack) == 1 and self._function_depth == 0:
             self._check_S021(node)
             self._check_S022(node)
+        entered = self._enter_input_ctx(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         try:
@@ -709,6 +911,8 @@ class SentryVisitor(ast.NodeVisitor):
         finally:
             self._function_stack.pop()
             self._function_depth -= 1
+            if entered:
+                self._exit_input_ctx()
 
     def visit_Lambda(self, node: ast.Lambda) -> None:
         self._function_depth += 1
@@ -718,6 +922,10 @@ class SentryVisitor(ast.NodeVisitor):
             self._function_depth -= 1
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        if self._input_stack and self._input_stack[-1].is_query(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self._input_stack[-1].query_locals.add(target.id)
         if (
             _is_tests_path(self.filename)
             and self._function_depth == 0
@@ -823,8 +1031,105 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        if self._input_stack:
+            ctx = self._input_stack[-1]
+            if ctx.is_query(node.value):
+                ctx.record_key(node.slice, node.lineno, node.col_offset)
+        self.generic_visit(node)
+
+    def _enter_input_ctx(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """Push an accumulator when `node` is a PUBLIC HTTP method on an endpoint class."""
+        if len(self._class_stack) != 1 or self._function_depth != 0:
+            return False
+        if not self._publish_status or node.name not in HTTP_METHODS:
+            return False
+        if self._publish_status.get(node.name.upper()) != "PUBLIC":
+            return False
+        self._input_stack.append(
+            _InputCtx(self._class_declared + _parameters_elements(node.decorator_list))
+        )
+        return True
+
+    def _record_input_call(self, node: ast.Call) -> None:
+        """Query reads, query validators and QueryDict hand-offs inside a PUBLIC method."""
+        ctx = self._input_stack[-1]
+        func = node.func
+        if (
+            isinstance(func, ast.Attribute)
+            and func.attr in _QUERY_READ_METHODS
+            and ctx.is_query(func.value)
+            and node.args
+        ):
+            ctx.record_key(node.args[0], node.lineno, node.col_offset)
+            return
+        data = _kwarg(node, "data")
+        if data is not None and ctx.is_query(data):
+            name = _name_of(func).rsplit(".", 1)[-1]
+            ctx.validators.append((node.lineno, node.col_offset, name))
+            return
+        for arg in node.args:
+            if not ctx.is_query(arg):
+                continue
+            name = _name_of(func).rsplit(".", 1)[-1]
+            known = name in KNOWN_QUERY_HELPERS
+            ctx.query_sinks.append((node.lineno, node.col_offset, name, known))
+            if known:
+                ctx.literal_reads.update(KNOWN_QUERY_HELPERS[name])
+            return
+
+    def _report_input(self, line: int, col: int, msg: str, pattern: str) -> None:
+        """Fatal for an enforced pattern; otherwise recorded for the inventory."""
+        if pattern in ENFORCED:
+            self.errors.append((line, col, msg))
+            return
+        destination = os.environ.get(INVENTORY_ENV)
+        if not destination:
+            return
+        record = {
+            "kind": "single_file",
+            "path": self.filename,
+            "cls": self._class_stack[-1] if self._class_stack else "",
+            "method": self._function_stack[-1] if self._function_stack else "",
+            "pattern": pattern,
+            "line": line,
+            "message": msg,
+        }
+        with open(destination, "a") as fh:
+            fh.write(json.dumps(record) + "\n")
+
+    def _exit_input_ctx(self) -> None:
+        """Emit S025-S027 for the method just finished, each tagged with its pattern."""
+        ctx = self._input_stack.pop()
+        pattern = ctx.pattern()
+        for line, col, name in ctx.undeclared_validators:
+            self._report_input(line, col, S025_msg.format(pattern, name), pattern)
+        for line, col, key in ctx.dynamic_reads:
+            self._report_input(line, col, S027_msg.format(pattern, key), pattern)
+        for call in ctx.inline_params:
+            if _is_path_parameter(call) or _kwarg(call, "description") is not None:
+                continue
+            name_node = _kwarg(call, "name") or (call.args[0] if call.args else None)
+            name = _literal_key(name_node) if name_node is not None else None
+            if name is not None:
+                self._report_input(
+                    call.lineno, call.col_offset, S026_inline_msg.format(pattern, name), pattern
+                )
+        for serializer in sorted(ctx.declared_serializers):
+            cls = self._module_classes.get(serializer)
+            if cls is None or serializer in self._s026_reported:
+                continue
+            self._s026_reported.add(serializer)
+            for field, line, col, has_help in _serializer_field_help(cls):
+                if not has_help:
+                    self._report_input(
+                        line, col, S026_field_msg.format(pattern, field, serializer), pattern
+                    )
+
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        if self._input_stack:
+            self._record_input_call(node)
         if _is_tests_path(self.filename):
             if (
                 isinstance(node.func, ast.Name)

@@ -1212,3 +1212,232 @@ class S(serializers.Serializer):
         model = something
         exclude = ["nope"]
 """) == ["1:S023"]
+
+
+def _run_input(
+    src: str, enforced: frozenset[str] = frozenset({"A", "B", "D", "E", "F", "F-prime"})
+) -> list[str]:
+    """Run S025-S027 with patterns enforced, so the rules emit instead of recording."""
+    import tools.flake8_plugin as plugin
+
+    original = plugin.ENFORCED
+    plugin.ENFORCED = enforced
+    try:
+        return [e for e in _run(src, filename="src/sentry/api/endpoints/t.py") if "S02" in e]
+    finally:
+        plugin.ENFORCED = original
+
+
+PUBLIC_GET = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+%s
+"""
+
+
+def test_S025_query_validator_not_declared_is_reported() -> None:
+    errors = _run_input(PUBLIC_GET % "        MyQuerySerializer(data=request.GET)")
+    assert errors == [
+        "t.py:5:8: S025 [F-prime] MyQuerySerializer validates the query string but is not "
+        "declared in @extend_schema(parameters=...), so the parameters it defines are absent "
+        "from the schema. Add it to parameters=."
+    ]
+
+
+def test_S025_query_validator_declared_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[ReplayValidator])
+    def get(self, request) -> Response[X]:
+        ReplayValidator(data=request.query_params)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_declared_on_the_class_counts() -> None:
+    src = """\
+@extend_schema(parameters=[ReplayValidator])
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        ReplayValidator(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_body_validator_is_not_a_query_validator() -> None:
+    assert _run_input(PUBLIC_GET % "        MySerializer(data=request.data)") == []
+
+
+def test_S025_private_method_is_skipped() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+
+    def get(self, request) -> Response[X]:
+        MyQuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_mixed_publish_status_analyzes_only_the_public_method() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE}
+
+    def get(self, request) -> Response[X]:
+        AQuerySerializer(data=request.GET)
+
+    def post(self, request) -> Response[X]:
+        BQuerySerializer(data=request.GET)
+"""
+    errors = _run_input(src)
+    assert len(errors) == 1
+    assert "AQuerySerializer" in errors[0]
+
+
+def test_S026_inline_parameter_without_description_is_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[OpenApiParameter(name="debug", type=bool, location="query")])
+    def get(self, request) -> Response[X]:
+        return request.GET.get("debug")
+"""
+    errors = _run_input(src)
+    assert errors == [
+        "t.py:4:31: S026 [A] query parameter 'debug' has no description, so a generated "
+        "client surfaces it undocumented."
+    ]
+
+
+def test_S026_inline_parameter_with_description_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[OpenApiParameter(name="debug", description="Why.")])
+    def get(self, request) -> Response[X]:
+        return request.GET.get("debug")
+"""
+    assert _run_input(src) == []
+
+
+def test_S026_path_parameter_is_exempt() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[OpenApiParameter(name="org", location=OpenApiParameter.PATH)])
+    def get(self, request) -> Response[X]:
+        return 1
+"""
+    assert _run_input(src) == []
+
+
+def test_S026_serializer_field_without_help_text_is_reported() -> None:
+    src = """\
+class Q(serializers.Serializer):
+    statsPeriod = serializers.CharField(help_text="Period.")
+    debug = serializers.BooleanField()
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[Q])
+    def get(self, request) -> Response[X]:
+        return 1
+"""
+    errors = _run_input(src)
+    assert errors == [
+        # Declared but never used to validate, so the method is pattern A, not F.
+        "t.py:3:4: S026 [A] query parameter 'debug' on Q has no help_text, so a generated "
+        "client surfaces it undocumented."
+    ]
+
+
+def test_S026_reports_a_serializer_once_across_two_methods() -> None:
+    src = """\
+class Q(serializers.Serializer):
+    debug = serializers.BooleanField()
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[Q])
+    def get(self, request) -> Response[X]:
+        return 1
+
+    @extend_schema(parameters=[Q])
+    def post(self, request) -> Response[X]:
+        return 1
+"""
+    assert len(_run_input(src)) == 1
+
+
+def test_S027_non_literal_query_key_is_reported() -> None:
+    errors = _run_input(PUBLIC_GET % "        return request.GET.get(some_var)")
+    assert errors == [
+        "t.py:5:15: S027 [E] query parameter read with the non-literal key some_var; the "
+        "schema cannot document a key that is not statically known."
+    ]
+
+
+def test_S027_read_through_a_local_alias_is_seen() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        qp = request.query_params
+        return qp[key_var]
+"""
+    errors = _run_input(src)
+    assert len(errors) == 1
+    assert "S027 [E]" in errors[0] and "key_var" in errors[0]
+
+
+def test_S027_literal_key_is_silent() -> None:
+    assert _run_input(PUBLIC_GET % '        return request.GET.get("statsPeriod")') == []
+
+
+def test_input_pattern_precedence_prefers_the_more_specific_shape() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        Q(data=request.GET)
+        return request.GET.get(some_var)
+"""
+    errors = _run_input(src)
+    # F-prime outranks E, so both diagnostics carry F-prime.
+    assert all("[F-prime]" in e for e in errors), errors
+
+
+def test_input_rules_record_instead_of_gating_when_unenforced() -> None:
+    assert _run_input(PUBLIC_GET % "        MyQuerySerializer(data=request.GET)", frozenset()) == []
+
+
+def test_input_rules_gate_only_the_enforced_pattern() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return request.GET.get(some_var)
+
+    def post(self, request) -> Response[X]:
+        Q(data=request.GET)
+"""
+    errors = _run_input(src, frozenset({"E"}))
+    assert len(errors) == 1
+    assert "[E]" in errors[0]
