@@ -481,9 +481,9 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
 function FeedbackStatusTag({status}: {status: FeedbackStatus | undefined}) {
   switch (status) {
     case 'in_progress':
-      return <Tag variant="promotion">{t('Seer is working on this failure')}</Tag>;
+      return <Tag variant="promotion">{t('Processing')}</Tag>;
     case 'no_changes':
-      return <Tag variant="warning">{t('Seer cannot fix this failure')}</Tag>;
+      return <Tag variant="warning">{t('No changes')}</Tag>;
     default:
       return null;
   }
