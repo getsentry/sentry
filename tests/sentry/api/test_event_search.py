@@ -115,6 +115,15 @@ def result_transformer(result):
         if token["type"] == "keyExplicitBooleanTag":
             return SearchKey(name=f"tags[{token['key']['value']},boolean]")
 
+        if token["type"] == "keyExplicitArrayTag":
+            return SearchKey(name=f"tags[{token['key']['value']},array]")
+
+        if token["type"] == "keyArrayIncludes":
+            # The `[*]` membership suffix carries the operation, not the key
+            # name, so the backend key drops it and resolves to the inner
+            # (array tag or simple) key, matching visit_array_includes_key.
+            return node_visitor(token["key"])
+
         if token["type"] == "keyExplicitFlag":
             return SearchKey(name=f"flags[{token['key']['value']}]")
 
