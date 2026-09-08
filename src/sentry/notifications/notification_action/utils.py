@@ -116,12 +116,16 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
         handler = metric_alert_handler_registry.get(invocation.action.type)
         handler.invoke_legacy_registry(invocation)
     except NoRegistrationExistsError:
-        logger.exception(
-            "No notification handler found for action type: %s",
+        # Ticketing actions (GitHub, GitHub Enterprise, Jira, Jira Server, Azure DevOps) are
+        # never registered here: metric issues are not supported for ticketing actions, and
+        # the UI already tells users that this action is incompatible with metric alerts.
+        # No-op instead of raising so this known, expected gap doesn't surface as an error.
+        logger.info(
+            "No metric alert handler registered for action type: %s; no-op",
             invocation.action.type,
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
-        raise
+        return
     except Exception:
         logger.exception(
             "Error executing via metric alert handler in legacy registry",

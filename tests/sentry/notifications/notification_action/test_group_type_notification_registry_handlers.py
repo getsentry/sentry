@@ -11,7 +11,10 @@ from sentry.notifications.notification_action.group_type_notification_registry.h
     MetricAlertRegistryHandler,
 )
 from sentry.notifications.notification_action.grouptype import SendTestNotification
-from sentry.notifications.notification_action.utils import execute_via_group_type_registry
+from sentry.notifications.notification_action.utils import (
+    execute_via_group_type_registry,
+    execute_via_metric_alert_handler,
+)
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
@@ -121,6 +124,34 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         )
         execute_via_group_type_registry(invocation)
         mock_execute_metric_alert_handler.assert_called_once_with(invocation)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
+    )
+    def test_metric_issue_resolution_ticketing_action_is_noop(
+        self, mock_registry_get: mock.MagicMock
+    ) -> None:
+        """Ticketing actions (e.g. GitHub, Jira) have no metric alert registration.
+        This is a known, UI-communicated gap, so it should no-op instead of raising."""
+        mock_registry_get.side_effect = NoRegistrationExistsError()
+
+        group = self.create_group(type=MetricIssue.type_id)
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+        event_data = WorkflowEventData(event=activity, group=group)
+
+        invocation = ActionInvocation(
+            event_data=event_data,
+            action=Action(type=Action.Type.GITHUB),
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+        # Should not raise.
+        execute_via_metric_alert_handler(invocation)
 
 
 class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
