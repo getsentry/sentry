@@ -21,7 +21,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsHeaderActions} from 'sentry/views/explore/replays/detail/header/replayDetailsHeaderActions';
 import {ReplayDetailsMetadata} from 'sentry/views/explore/replays/detail/header/replayDetailsMetadata';
 import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
@@ -109,7 +108,6 @@ function ReplayDetailsContent() {
   const pageContent = (
     <Fragment>
       <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      <ReplayDetailsHeaderActions readerResult={readerResult} />
       <Flex
         justify="between"
         align="center"

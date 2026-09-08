@@ -207,7 +207,7 @@ describe('Tooltip', () => {
 
     render(
       <button type="button" onClick={handleAncestorClick}>
-        <Tooltip title={<span>Copy</span>} isHoverable forceVisible>
+        <Tooltip title={<span>Copy</span>} forceVisible>
           <div>Trigger</div>
         </Tooltip>
       </button>

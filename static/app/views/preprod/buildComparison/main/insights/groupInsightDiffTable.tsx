@@ -201,7 +201,6 @@ export function GroupInsightItemDiffTable({
                       ) : null
                     }
                     disabled={!groupDiffItem.path}
-                    isHoverable
                     maxWidth={420}
                   >
                     <TextOverflow
