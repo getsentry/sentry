@@ -129,6 +129,7 @@ def _fields_section(model: EventObject, limits: object) -> Section | None:
 def _repeating_section(model: EventObject, limits: object) -> Section | None:
     return Section(
         title="Exception",
+        repeating=True,
         groups=(
             Group(items=(Text("ValueError: a"),)),
             Group(items=(Text("KeyError: b"),)),
@@ -138,14 +139,18 @@ def _repeating_section(model: EventObject, limits: object) -> Section | None:
 
 def test_json_renders_a_section_as_an_object() -> None:
     out = JsonFormatter().render(EventObject(title="t"), [_fields_section], LIMITS_DEFAULT)
-    assert json.loads(out) == {"http_request": {"method": "GET", "text": "GET /x", "code": "body"}}
+    assert json.loads(out) == {
+        "http_request": {"method": "GET", "text": ["GET /x"], "code": ["body"]}
+    }
 
 
 def test_json_renders_repeating_groups_as_a_list() -> None:
     # the shape a consumer keys off has to be visible, not implied by blank lines the way it is
     # in the text formats
     out = JsonFormatter().render(EventObject(title="t"), [_repeating_section], LIMITS_DEFAULT)
-    assert json.loads(out) == {"exception": [{"text": "ValueError: a"}, {"text": "KeyError: b"}]}
+    assert json.loads(out) == {
+        "exception": [{"text": ["ValueError: a"]}, {"text": ["KeyError: b"]}]
+    }
 
 
 def test_json_merges_sections_into_one_object() -> None:
@@ -160,7 +165,7 @@ def test_json_skips_empty_and_failing_sections() -> None:
     out = JsonFormatter().render(
         EventObject(title="t"), [empty_section, boom_section, title_section], LIMITS_DEFAULT
     )
-    assert json.loads(out) == {"title": {"text": "t"}}
+    assert json.loads(out) == {"title": {"text": ["t"]}}
 
 
 def test_json_output_is_always_parseable() -> None:
@@ -254,3 +259,46 @@ def test_unicode_costs_the_same_against_the_cap_as_ascii() -> None:
         json.loads(JsonFormatter().render(event, [section("é")], LIMITS_DEFAULT))["evidence"]
     )
     assert ascii_kept == accented_kept
+
+
+def _one_context(model: EventObject, limits: object) -> Section | None:
+    return Section(title="Contexts", repeating=True, groups=(Group(items=(Text("browser"),)),))
+
+
+def _two_contexts(model: EventObject, limits: object) -> Section | None:
+    return Section(
+        title="Contexts",
+        repeating=True,
+        groups=(Group(items=(Text("browser"),)), Group(items=(Text("os"),))),
+    )
+
+
+def test_json_types_do_not_depend_on_how_many_items_an_event_has() -> None:
+    # a consumer cannot read a field whose type changes with the count. Seen in production:
+    # span_evidence.text was a string on one issue and a list on another, and contexts was an
+    # object on one and a list on another.
+    event = EventObject(title="t")
+    one = json.loads(JsonFormatter().render(event, [_one_context], LIMITS_DEFAULT))
+    two = json.loads(JsonFormatter().render(event, [_two_contexts], LIMITS_DEFAULT))
+
+    assert isinstance(one["contexts"], list)
+    assert isinstance(two["contexts"], list)
+    assert isinstance(one["contexts"][0]["text"], list)
+    assert isinstance(two["contexts"][0]["text"], list)
+
+
+def _multi_group_body(model: EventObject, limits: object) -> Section | None:
+    # what autofix builds: several groups that are parts of one body, not repetitions
+    return Section(
+        title="Root Cause",
+        groups=(
+            Group(items=(Text("the description"),)),
+            Group(items=(Text("1. why"),)),
+            Group(items=(Text("- step"),)),
+        ),
+    )
+
+
+def test_json_merges_a_non_repeating_section_rather_than_dropping_groups() -> None:
+    out = JsonFormatter().render(EventObject(title="t"), [_multi_group_body], LIMITS_DEFAULT)
+    assert json.loads(out) == {"root_cause": {"text": ["the description", "1. why", "- step"]}}

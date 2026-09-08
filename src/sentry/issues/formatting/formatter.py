@@ -84,6 +84,18 @@ def _keep_within(items: Sequence[Any], costs: Sequence[int], max_chars: int | No
     return kept
 
 
+def _merge_groups(groups: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Flatten a non-repeating section's groups into one object, concatenating the lists."""
+    merged: dict[str, Any] = {}
+    for group in groups:
+        for key, value in group.items():
+            if isinstance(value, list) and isinstance(merged.get(key), list):
+                merged[key] = merged[key] + value
+            else:
+                merged.setdefault(key, value)
+    return merged
+
+
 @dataclass(frozen=True)
 class Field:
     """A key/value pair. ``**Key:** value`` in markdown, ``<key>value</key>`` in xml."""
@@ -133,6 +145,10 @@ class Section:
 
     title: str
     groups: tuple[Group, ...] = ()
+    # whether groups are repetitions of one kind of thing (exceptions, threads) rather than
+    # different parts of one body. Only json cares: it emits a list for a repeating section and
+    # an object otherwise, so a consumer's field type does not change with the item count.
+    repeating: bool = False
     max_chars: int | None = None  # cut the joined body here
     max_group_chars: int | None = None  # drop whole groups instead
 
@@ -272,7 +288,10 @@ class JsonFormatter(Formatter):
         if not groups:
             return ""
 
-        payload: Any = groups[0] if len(groups) == 1 else groups
+        # a repeating section is always a list; a non-repeating one is always a single object,
+        # merging its groups rather than dropping them (autofix builds a root cause out of
+        # several)
+        payload: Any = groups if section.repeating else _merge_groups(groups)
         return _ENCODER.encode({slug(section.title): payload})
 
     def render_group_object(self, group: Group) -> dict[str, Any]:
@@ -294,11 +313,13 @@ class JsonFormatter(Formatter):
             else:
                 text.append(item.text)
 
+        # always lists, for the same reason: reading one breadcrumb and reading ten should not
+        # differ in shape
         obj: dict[str, Any] = dict(fields)
         if text:
-            obj["text"] = text[0] if len(text) == 1 else text
+            obj["text"] = text
         if code:
-            obj["code"] = code[0] if len(code) == 1 else code
+            obj["code"] = code
         return obj
 
 
