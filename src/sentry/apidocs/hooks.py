@@ -198,16 +198,18 @@ def _validate_request_body(
     for body_param, param_data in schema["properties"].items():
         # Ensure body parameters have a description. Our API docs don't
         # display body params without a description, so it's easy to miss them.
-        # We should be explicitly excluding them as better practice however.
 
         # There is an edge case where a body param might be reference that we should ignore for now
         if "description" not in param_data and "$ref" not in param_data:
             raise SentryApiBuildError(
-                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}. You can either:
-            1. Add a 'help_text' kwarg to the serializer field
-            2. Remove the field if you're using an inline_serializer
-            3. For a DRF serializer, you must explicitly exclude this field by decorating the request serializer with
-            @extend_schema_serializer(exclude_fields=[{body_param}])."""
+                f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
+
+            Add a 'help_text' kwarg to the serializer field, or remove the field if you're
+            using an inline_serializer.
+
+            Withholding it instead -- @sentry_schema_serializer(omit_from_public_schema=
+            {{"{body_param}": "<why>"}}) -- drops it from the schema and every generated SDK.
+            Only do that if the field should not be public at all, never to fix this error."""
             )
 
     # Required params are stored in a list and not in the param itself

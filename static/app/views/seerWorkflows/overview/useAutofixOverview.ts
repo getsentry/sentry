@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -158,9 +158,11 @@ function overlayIssueStats(
 export function useAutofixOverview({
   organization,
   selection,
+  datetime,
   sort,
   enabled,
 }: {
+  datetime: PageFilterDatetime;
   enabled: boolean;
   organization: Organization;
   selection: PageFilters;
@@ -177,7 +179,7 @@ export function useAutofixOverview({
         path: {organizationIdOrSlug: organization.slug},
         query: {
           project: selection.projects,
-          ...normalizeDateTimeParams(selection.datetime),
+          ...normalizeDateTimeParams(datetime),
           // 'seer' is the backend's default order, so it needs no sort param.
           ...(sort === 'seer' ? {} : {sort}),
           ...query,
@@ -283,7 +285,7 @@ export function useAutofixOverview({
 
   // A scope change (sort/project/date) remounts the cards; clear the SCM caches
   // so the reshown cards re-window instead of being deduped against the old scope.
-  const scopeKey = JSON.stringify([selection.projects, selection.datetime, sort]);
+  const scopeKey = JSON.stringify([selection.projects, datetime, sort]);
   useEffect(() => {
     scopeGenerationRef.current += 1;
     requestedRunIdsRef.current.clear();

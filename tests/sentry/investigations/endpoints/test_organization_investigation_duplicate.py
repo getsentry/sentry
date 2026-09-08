@@ -60,14 +60,14 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
         )
         second.current_execution = execution
         second.save(update_fields=["current_execution"])
-        seer_run = self.create_seer_run(organization=self.organization)
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=4815)
         self.create_investigation_orchestration_run(
             investigation=source, seer_run=seer_run, source={"type": "manual"}
         )
         first.update(
             report_revision=1,
             stable_agent_key="summary",
-            producing_seer_run=seer_run,
+            producing_seer_run_id=seer_run.seer_run_state_id,
         )
         duplicate_url = reverse(
             "sentry-api-0-organization-investigation-duplicate",

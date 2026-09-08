@@ -30,6 +30,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.pause import (
+    PauseReason,
+    get_pause_reason,
+    is_pr_iteration_paused,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
@@ -347,6 +352,27 @@ class TestStoppingPointFromRun(TestCase):
             source="night_shift",
         )
         assert _group_and_referrer_from_run(self.organization, 123) == (None, None)
+
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_referrer_falls_back_to_the_mirror_when_state_carries_a_group_id(
+        self, mock_trigger, mock_fetch_run_status
+    ) -> None:
+        self._create_run(
+            123,
+            extras={
+                "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+        mock_fetch_run_status.return_value = run_state(
+            blocks=[root_cause_memory_block()],
+            metadata={"group_id": self.group.id},
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
@@ -748,6 +774,36 @@ class TestPrIterationCompletionHook(TestCase):
 
         mock_consume.assert_called_once()
         assert mock_consume.call_args.args[1:] == (self.organization, 123)
+
+    @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_errored_iteration_pauses_instead_of_pushing(self, mock_push, mock_consume):
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=123, user_id=self.user.id
+        )
+        state = self._unsynced()
+        state.status = "error"
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push.assert_not_called()
+        mock_consume.assert_not_called()
+        assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is True
+        assert (
+            get_pause_reason(run_id=123, organization_id=self.organization.id)
+            == PauseReason.RUN_ERRORED
+        )
+
+    @patch(f"{HOOK_PATH}.AutofixOnCompletionHook._consume_queued_feedback")
+    @patch(f"{HOOK_PATH}.trigger_push_changes")
+    def test_an_errored_iteration_without_a_run_row_still_stops(self, mock_push, mock_consume):
+        state = self._unsynced()
+        state.status = "error"
+
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+
+        mock_push.assert_not_called()
+        mock_consume.assert_not_called()
 
     @patch(f"{HOOK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_the_hand_back_to_the_queue_schedules_the_drain(self, mock_apply):
@@ -1171,11 +1227,10 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 class AutofixOnCompletionHookTest(TestCase):
     """Test the AutofixOnCompletionHook behavior."""
 
-    @patch("sentry.seer.autofix.on_completion_hook._group_and_referrer_from_run")
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_next_step_not_triggered_when_coding_disabled(
-        self, mock_trigger_autofix, mock_fetch_run_status, mock_run_context
+        self, mock_trigger_autofix, mock_fetch_run_status
     ):
         """Test that next step is not triggered if next step is CODE_CHANGES and sentry:enable_seer_coding is disabled."""
         self.organization.update_option("sentry:enable_seer_coding", False)
@@ -1193,8 +1248,6 @@ class AutofixOnCompletionHookTest(TestCase):
 
         # Execute the hook
         AutofixOnCompletionHook.execute(self.organization, 123)
-
-        mock_run_context.assert_not_called()
 
         # Verify: trigger_autofix_agent was NOT called (next step blocked)
         mock_trigger_autofix.assert_not_called()

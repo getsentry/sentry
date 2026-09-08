@@ -60,6 +60,7 @@ export function GcpConnectionStatus({
   });
 
   const isPending = isRetesting || isVerifying;
+  const shownErrorDetails = isPending ? [] : errorDetails;
 
   return (
     <FieldGroup title={t('Connection Status')}>
@@ -78,7 +79,7 @@ export function GcpConnectionStatus({
           </Text>
         </Flex>
 
-        {errorDetails.map(detail => (
+        {shownErrorDetails.map(detail => (
           <Text key={detail} variant="muted" size="sm">
             {detail}
           </Text>
@@ -86,9 +87,11 @@ export function GcpConnectionStatus({
 
         <Flex gap="md" align="center" justify="between">
           <Text variant="muted" size="sm">
-            {typeof lastVerifiedAt === 'string'
-              ? tct('Last checked [when]', {when: <TimeSince date={lastVerifiedAt} />})
-              : t('Never checked')}
+            {isPending
+              ? null
+              : typeof lastVerifiedAt === 'string'
+                ? tct('Last checked [when]', {when: <TimeSince date={lastVerifiedAt} />})
+                : t('Never checked')}
           </Text>
           <Button
             size="sm"

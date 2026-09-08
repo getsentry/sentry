@@ -337,6 +337,7 @@ class TestWorkflowValidatorCreate(TestCase):
         self.context = {
             "organization": self.organization,
             "request": self.make_request(user=self.user),
+            "access": SystemAccess(),
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -696,9 +697,11 @@ class TestWorkflowValidatorCreate(TestCase):
 )
 class TestWorkflowValidatorUpdate(TestCase):
     def setUp(self) -> None:
+        request = self.make_request()
+        request.access = SystemAccess()
         self.context = {
             "organization": self.organization,
-            "request": self.make_request(),
+            "request": request,
         }
 
         self.integration, self.org_integration = self.create_provider_integration_for(

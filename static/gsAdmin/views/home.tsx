@@ -27,6 +27,11 @@ type ProjectSearchResult = Pick<Project, 'id' | 'slug'> & {
   organization: Pick<OrganizationSummary, 'slug'>;
 };
 
+function normalizeProjectIdQuery(query: string): string | null {
+  const match = query.match(/^(?:id:)?\s*(\d+)$/);
+  return match?.[1] ?? null;
+}
+
 function renderOrganizationResult(organization: OrganizationSearchResult) {
   return (
     <Text as="span">
@@ -221,13 +226,17 @@ export function HomePage() {
               project.organization.slug,
             ]}
             onSelectResult={projSelect}
-            queryOptions={query =>
-              apiOptions.as<ProjectSearchResult[]>()('/projects/', {
-                query: {query: `id:${query}`, per_page: 10, show: 'all'},
-                host: localityUrl,
-                staleTime: 30_000,
-              })
-            }
+            queryOptions={query => {
+              const projectId = normalizeProjectIdQuery(query);
+              return {
+                ...apiOptions.as<ProjectSearchResult[]>()('/projects/', {
+                  query: {query: `id:${projectId}`, per_page: 10, show: 'all'},
+                  host: localityUrl,
+                  staleTime: 30_000,
+                }),
+                enabled: projectId !== null,
+              };
+            }}
             renderResult={renderProjectResult}
           />
         </Container>

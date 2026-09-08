@@ -56,7 +56,6 @@ from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_fro
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
-    PrIterationNotEnabledException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
@@ -92,6 +91,7 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
     post_missing_permissions_comment,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
+    PauseReason,
     is_pr_iteration_paused,
     pause_pr_iteration,
     record_pause_blocked,
@@ -290,6 +290,7 @@ def comment_on_missing_permissions(
     pr_number: int,
     pr_id: int | None,
     integration_id: int,
+    repository_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -299,6 +300,10 @@ def comment_on_missing_permissions(
     GitHub call never runs inside a webhook task's deadline or the synchronous
     autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
     the lock, so a losing activation requeues rather than parking a worker.
+
+    ``repository_id`` is what the gate resolved and defaults to None so
+    activations queued by an older deploy still run; the comment path resolves
+    the repo again and only uses this to notice a change in between.
     """
     organization = _organization_for_gate(run_id, organization_id)
     if organization is None:
@@ -324,6 +329,7 @@ def comment_on_missing_permissions(
         pr_number=pr_number,
         pr_id=pr_id,
         integration_id=integration_id,
+        queued_repository_id=repository_id,
         log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
     )
 
@@ -462,11 +468,11 @@ def _drain_queued_autofix_feedback(
         log_ctx.error("autofix.pr_iteration.consume_feedback.group_not_found", exc_info=False)
         return
 
-    if state.status == "processing":
+    if state.status in ("processing", "error"):
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.drain",
             outcome="skipped",
-            reason="run_processing",
+            reason="run_processing" if state.status == "processing" else "run_errored",
             run_status=state.status,
             trigger_id=trigger_id,
             trigger_source=trigger_source,
@@ -476,7 +482,10 @@ def _drain_queued_autofix_feedback(
 
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
     iteration_id = trigger_pr_iteration_details(
-        log_ctx=log_ctx, run_id=run_id, organization_id=organization_id
+        log_ctx=log_ctx,
+        run_id=run_id,
+        organization_id=organization_id,
+        trigger_source=trigger_source,
     )
 
     queued_items = pop_queued_autofix_feedback(run_id)
@@ -589,11 +598,7 @@ def _drain_queued_autofix_feedback(
             commit_author=commit_author_for_feedback(feedback_items, organization_id),
             iteration_id=iteration_id,
         )
-    except (
-        PrIterationNoPullRequestException,
-        PrIterationNotEnabledException,
-        SeerPermissionError,
-    ) as error:
+    except (PrIterationNoPullRequestException, SeerPermissionError) as error:
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.trigger_agent",
             outcome="skipped",
@@ -1282,6 +1287,7 @@ def pause_pr_iteration_from_comment(
     paused = pause_pr_iteration(
         run_id=run_id,
         organization_id=organization_id,
+        reason=PauseReason.USER_STOP,
         actor_user_id=resolved.actor_user.id if resolved.actor_user else None,
     )
     reaction: Reaction = "+1"

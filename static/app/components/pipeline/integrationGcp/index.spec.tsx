@@ -21,8 +21,20 @@ describe('GcpSaGenerationStep', () => {
     );
 
     expect(screen.getByDisplayValue(sentrySaEmail)).toBeInTheDocument();
-    expect(screen.getByText('Setup Instructions')).toBeInTheDocument();
+    expect(screen.getByText('Set up in Google Cloud')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
+  });
+
+  it('names every role the connection needs', () => {
+    render(
+      <GcpSaGenerationStep {...makeSaGenerationStepProps({stepData: {sentrySaEmail}})} />
+    );
+
+    expect(screen.getByText('roles/mcp.toolUser')).toBeInTheDocument();
+    expect(screen.getByText('roles/logging.viewer')).toBeInTheDocument();
+    expect(screen.getByText('roles/monitoring.viewer')).toBeInTheDocument();
+    expect(screen.getByText('roles/cloudtrace.user')).toBeInTheDocument();
+    expect(screen.getByText('roles/iam.serviceAccountTokenCreator')).toBeInTheDocument();
   });
 
   it('calls advance on continue click', async () => {

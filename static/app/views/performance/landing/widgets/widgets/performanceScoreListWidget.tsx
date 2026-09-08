@@ -121,7 +121,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </ExternalLink>
                   </span>
                 }
-                isHoverable
               >
                 <PerformanceBadge score={listItem.totalScore} />
               </Tooltip>
@@ -141,7 +140,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                     </ExternalLink>
                   </span>
                 }
-                isHoverable
                 showUnderline
                 skipWrapper
               >

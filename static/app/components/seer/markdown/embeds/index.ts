@@ -1,5 +1,5 @@
 import {AgentWriteApprovalEmbed} from './components/agentWriteApproval';
-import {Alert} from './components/alert';
+import {Alert} from './components/alert/alert';
 import {Autofix, AutofixRef} from './components/autofix';
 import {Chart} from './components/chart';
 import {Dashboard} from './components/dashboard';
@@ -10,7 +10,7 @@ import {Issue, Issues} from './components/issue';
 import {IssuesQuery} from './components/issuesQuery';
 import {LogsQuery} from './components/logsQuery';
 import {MetricsQuery} from './components/metricsQuery';
-import {Monitor} from './components/monitor';
+import {Monitor} from './components/monitor/monitor';
 import {Profile} from './components/profile';
 import {Release} from './components/release';
 import {Replay} from './components/replay';

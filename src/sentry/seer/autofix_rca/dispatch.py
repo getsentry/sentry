@@ -53,7 +53,7 @@ def trigger_autofix_rca_feature(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
-        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook),
+        on_completion_hook=extract_hook_definition(AutofixOnCompletionHook, call_on_failure=True),
         tweaks=AutofixRCATweaks(
             intelligence_level=intelligence_level,
             reasoning_effort=reasoning_effort,

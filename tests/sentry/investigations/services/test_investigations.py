@@ -1,20 +1,24 @@
 from __future__ import annotations
 
+import threading
 from unittest import mock
+from uuid import UUID, uuid4
 
 import pytest
-from django.db import IntegrityError
+from django.db import IntegrityError, close_old_connections
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlockDependency,
+    InvestigationOrchestrationCommand,
     InvestigationOrchestrationRun,
     InvestigationProject,
     InvestigationSourceType,
 )
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
+    InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
     create_block,
@@ -28,9 +32,11 @@ from sentry.investigations.services.investigations import (
     update_investigation,
 )
 from sentry.investigations.services.orchestration import (
+    accept_orchestration_command,
     create_agentic_manual_investigation,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 TEMPLATE_KWARGS = {
     "organization": mock.sentinel.organization,
@@ -386,3 +392,75 @@ class OrchestrationControlServiceTest(TestCase):
         assert Investigation.objects.count() == investigation_count
         assert InvestigationProject.objects.count() == project_link_count
         assert not InvestigationOrchestrationRun.objects.exists()
+
+    def test_command_acceptance_rolls_back_command_and_version_together(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        with (
+            mock.patch.object(InvestigationOrchestrationRun, "save", side_effect=RuntimeError),
+            pytest.raises(RuntimeError),
+        ):
+            accept_orchestration_command(
+                investigation=investigation,
+                request_id=uuid4(),
+                expected_workflow_version=1,
+                command_type="cancel",
+                payload={},
+                actor_id=self.user.id,
+            )
+
+        run.refresh_from_db()
+        assert run.workflow_version == 1
+        assert not InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).exists()
+
+
+class OrchestrationCommandConcurrencyTest(TransactionTestCase):
+    def test_only_one_command_is_accepted_for_a_workflow_version(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        barrier = threading.Barrier(2, timeout=10)
+
+        def submit(request_id: UUID, reason: str) -> str:
+            close_old_connections()
+            barrier.wait()
+            try:
+                accept_orchestration_command(
+                    investigation=investigation,
+                    request_id=request_id,
+                    expected_workflow_version=1,
+                    command_type="cancel",
+                    payload={"reason": reason},
+                    actor_id=self.user.id,
+                )
+                return "accepted"
+            except InvestigationConflictError:
+                return "conflict"
+            finally:
+                close_old_connections()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+            outcomes = [
+                future.result(timeout=15)
+                for future in (
+                    executor.submit(submit, uuid4(), "first"),
+                    executor.submit(submit, uuid4(), "second"),
+                )
+            ]
+
+        run.refresh_from_db()
+        assert sorted(outcomes) == ["accepted", "conflict"]
+        assert run.workflow_version == 2
+        assert InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).count() == 1

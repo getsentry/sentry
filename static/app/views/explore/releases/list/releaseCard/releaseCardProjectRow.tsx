@@ -126,7 +126,7 @@ export function ReleaseCardProjectRow({
         {showReleaseAdoptionStages && (
           <AdoptionStageColumn>
             {adoptionStageLabel ? (
-              <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+              <Tooltip title={adoptionStageLabel.tooltipTitle}>
                 <Link
                   to={{
                     pathname: makeReleasesPathname({
