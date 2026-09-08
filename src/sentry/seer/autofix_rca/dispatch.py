@@ -58,6 +58,7 @@ def trigger_autofix_rca_feature(
 
     payload = AutofixRCAPayload(
         group_id=group.id,
+        project_id=group.project_id,
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
