@@ -73,6 +73,60 @@ describe('BackendJsonAutoSaveForm', () => {
     expect(screen.getByText('Medium')).toBeInTheDocument();
   });
 
+  it('renders a multiple select with its selected values', () => {
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'regions',
+          type: 'select',
+          label: 'Regions',
+          multiple: true,
+          choices: [
+            ['us', 'US'],
+            ['eu', 'EU'],
+          ],
+        }}
+        initialValue={['us', 'eu']}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    expect(screen.getByText('US')).toBeInTheDocument();
+    expect(screen.getByText('EU')).toBeInTheDocument();
+  });
+
+  it('accepts a value outside the choices when creatable', async () => {
+    const mutationFn = jest.fn().mockResolvedValue({});
+
+    render(
+      <BackendJsonAutoSaveForm
+        field={{
+          name: 'projects',
+          type: 'select',
+          label: 'Projects',
+          multiple: true,
+          creatable: true,
+          choices: [['suggested', 'Suggested project']],
+        }}
+        initialValue={[]}
+        mutationOptions={{mutationFn}}
+      />,
+      {organization: org}
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), 'my-own-project');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() =>
+      expect(mutationFn).toHaveBeenCalledWith(
+        {projects: ['my-own-project']},
+        expect.anything()
+      )
+    );
+  });
+
   it('renders table field with add button', () => {
     render(
       <BackendJsonAutoSaveForm
