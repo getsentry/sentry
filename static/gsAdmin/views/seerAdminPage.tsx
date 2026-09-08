@@ -84,83 +84,85 @@ export function SeerAdminPage() {
           actions.
         </Text>
 
-        <form.AppForm form={form}>
-          <Container background="secondary" border="primary" radius="md" padding="lg">
-            <Stack gap="md" align="start">
-              <Heading as="h3">Trigger Night Shift Run</Heading>
-              <Text as="p" variant="muted">
-                Dispatch a night shift run. Provide an organization ID to scope the run to
-                a single org, or leave it blank to trigger the full scheduler across every
-                eligible org in the selected region.
-              </Text>
-              <Alert.Container>
-                <Alert variant="warning">
-                  Be careful — this dispatches real Celery tasks that call Seer and can
-                  trigger autofix runs. Leaving the organization ID blank fans out to{' '}
-                  <strong>every Seer-enabled org in the region</strong>, which will incur
-                  Seer cost and worker load. Prefer dry run when iterating, and don't fire
-                  repeatedly.
-                </Alert>
-              </Alert.Container>
-              <form.AppField name="locality">
-                {field => (
-                  <field.Layout.Stack label="Region" required>
-                    <field.Select
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      options={localities.map((locality: Region) => ({
-                        label: locality.name,
-                        value: locality.url,
-                      }))}
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-              <form.AppField name="organizationId">
-                {field => (
-                  <field.Layout.Stack label="Organization ID (blank = all orgs)">
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder="Leave blank to trigger every eligible org"
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-              <form.AppField name="maxCandidates">
-                {field => (
-                  <field.Layout.Stack label="Max candidates (optional)">
-                    <field.Number
-                      min={1}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      placeholder="Leave blank to use default"
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-              <form.AppField name="dryRun">
-                {field => (
-                  <field.Layout.Stack label="Dry run (triage only, no autofix triggered)">
-                    <field.Switch
-                      checked={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Stack>
-                )}
-              </form.AppField>
-              <form.Subscribe selector={state => state.values.organizationId}>
-                {organizationId => (
-                  <form.SubmitButton>
-                    {organizationId.trim()
-                      ? 'Trigger Night Shift'
-                      : 'Trigger Night Shift (all orgs)'}
-                  </form.SubmitButton>
-                )}
-              </form.Subscribe>
-            </Stack>
-          </Container>
-        </form.AppForm>
+        <Container width={{'screen:xs': '100%', 'screen:md': '50%'}}>
+          <form.AppForm form={form}>
+            <Container background="secondary" border="primary" radius="md" padding="lg">
+              <Stack gap="md" align="start">
+                <Heading as="h3">Trigger Night Shift Run</Heading>
+                <Text as="p" variant="muted">
+                  Dispatch a night shift run. Provide an organization ID to scope the run
+                  to a single org, or leave it blank to trigger the full scheduler across
+                  every eligible org in the selected region.
+                </Text>
+                <Alert.Container>
+                  <Alert variant="warning">
+                    Be careful — this dispatches real Celery tasks that call Seer and can
+                    trigger autofix runs. Leaving the organization ID blank fans out to{' '}
+                    <strong>every Seer-enabled org in the region</strong>, which will
+                    incur Seer cost and worker load. Prefer dry run when iterating, and
+                    don't fire repeatedly.
+                  </Alert>
+                </Alert.Container>
+                <form.AppField name="locality">
+                  {field => (
+                    <field.Layout.Stack label="Region" required>
+                      <field.Select
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        options={localities.map((locality: Region) => ({
+                          label: locality.name,
+                          value: locality.url,
+                        }))}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+                <form.AppField name="organizationId">
+                  {field => (
+                    <field.Layout.Stack label="Organization ID (blank = all orgs)">
+                      <field.Input
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        placeholder="Leave blank to trigger every eligible org"
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+                <form.AppField name="maxCandidates">
+                  {field => (
+                    <field.Layout.Stack label="Max candidates (optional)">
+                      <field.Number
+                        min={1}
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        placeholder="Leave blank to use default"
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+                <form.AppField name="dryRun">
+                  {field => (
+                    <field.Layout.Stack label="Dry run (triage only, no autofix triggered)">
+                      <field.Switch
+                        checked={field.state.value}
+                        onChange={field.handleChange}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+                <form.Subscribe selector={state => state.values.organizationId}>
+                  {organizationId => (
+                    <form.SubmitButton>
+                      {organizationId.trim()
+                        ? 'Trigger Night Shift'
+                        : 'Trigger Night Shift (all orgs)'}
+                    </form.SubmitButton>
+                  )}
+                </form.Subscribe>
+              </Stack>
+            </Container>
+          </form.AppForm>
+        </Container>
       </Stack>
     </div>
   );
