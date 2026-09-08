@@ -13,7 +13,7 @@ export function getFieldDefinitionFromAttributeSearchMetadata(
   key: string
 ): FieldDefinition | null {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!metadata) {
+  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
     return null;
   }
 

@@ -18,7 +18,7 @@ function isTemplateAttributeSearchKey(key: string): boolean {
  */
 export function getAttributeSearchDeprecationAliases(key: string): string[] {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!metadata) {
+  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
     return [];
   }
 
@@ -34,7 +34,7 @@ export function getAttributeSearchDeprecationAliases(key: string): string[] {
  */
 export function getPreferredAttributeSearchKey(key: string): string | undefined {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!metadata) {
+  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
     return undefined;
   }
   return metadata.deprecationChain.find(candidate =>

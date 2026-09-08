@@ -9,6 +9,17 @@ import {
 import {SpanFields} from 'sentry/views/insights/types';
 
 describe('getFieldDefinition attribute search metadata', () => {
+  it.each(['constructor', 'toString', '__proto__'])(
+    'treats %s as a custom attribute rather than convention metadata',
+    key => {
+      expect(getFieldDefinition(key, 'span')).toBeNull();
+      expect(getFieldDefinition(key, 'span', FieldKind.TAG)).toEqual({
+        kind: FieldKind.FIELD,
+        valueType: FieldValueType.STRING,
+      });
+    }
+  );
+
   it.each([
     ['replay', 'A url visited within the replay'],
     ['feedback', 'URL of the page that the feedback is triggered on'],

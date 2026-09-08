@@ -20,7 +20,7 @@ export function mergeAttributeSearchMetadata(
   {keepLocalDescription = false}: {keepLocalDescription?: boolean} = {}
 ): FieldDefinition {
   const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!metadata) {
+  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
     return definition;
   }
 
