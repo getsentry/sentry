@@ -90,17 +90,14 @@ def reorder_starred_queries(
     starred query the user has, not just those of one product.
 
     Raises:
-        ValueError: if ``refs`` is not exactly the set of the user's starred rows, or
-            contains a duplicate.
+        ValueError: if ``refs`` is not exactly the set of the user's starred rows
     """
     requested = list(refs)
-    if len(requested) != len(set(requested)):
-        raise ValueError("Single query cannot take up multiple positions.")
 
     # grab all starred queries in both tables, and map based on SavedQueryRef.
     discover_starred_queries = DiscoverSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__isnull=False
-    ).filter(organization=organization, user_id=user_id, position__isnull=False, starred=True)
+        organization=organization, user_id=user_id, position__isnull=False, starred=True
+    )
 
     explore_starred_queries = ExploreSavedQueryStarred.objects.filter(
         organization=organization, user_id=user_id, position__isnull=False, starred=True
@@ -123,17 +120,19 @@ def reorder_starred_queries(
         raise ValueError("Mismatch between existing and provided starred queries.")
 
     # normalize positions to 1...N, then assign them in order of the ref sequence provided
-    slots = range(1, len(requested) + 1)
+    position_map = {ref: position for position, ref in enumerate(requested, start=1)}
 
     discover_updates: list[DiscoverSavedQueryStarred] = []
     explore_updates: list[ExploreSavedQueryStarred] = []
-    for ref, new_position in zip(requested, slots):
-        row = combined_starred_queries_map[ref]
-        row.position = new_position
-        if isinstance(row, ExploreSavedQueryStarred):
-            explore_updates.append(row)
-        else:
-            discover_updates.append(row)
+    for row in discover_starred_queries:
+        ref = SavedQueryRef(SavedQueryType.DISCOVER, row.discover_saved_query_id)
+        row.position = position_map[ref]
+        discover_updates.append(row)
+
+    for row in explore_starred_queries:
+        ref = SavedQueryRef(SavedQueryType.EXPLORE, row.explore_saved_query_id)
+        row.position = position_map[ref]
+        explore_updates.append(row)
 
     ExploreSavedQueryStarred.objects.bulk_update(explore_updates, ["position"])
     DiscoverSavedQueryStarred.objects.bulk_update(discover_updates, ["position"])
