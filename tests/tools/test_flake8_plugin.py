@@ -1212,3 +1212,71 @@ class S(serializers.Serializer):
         model = something
         exclude = ["nope"]
 """) == ["1:S023"]
+
+
+S025_prelude = """\
+from sentry.models.repository import Repository as RepositoryModel
+from sentry.users.models.identity import Identity
+"""
+
+
+def _s025(body: str, filename: str = "src/sentry/t.py") -> list[str]:
+    return [e.split(" ", 1)[1].split(";")[0] for e in _run(S025_prelude + body, filename)]
+
+
+def test_S025_flags_external_id_without_provider() -> None:
+    assert _s025('RepositoryModel.objects.get(organization_id=1, external_id="1")') == [
+        "S025 Repository.external_id is only unique together with provider"
+    ]
+
+
+def test_S025_provider_or_substitute_satisfies() -> None:
+    assert _s025('RepositoryModel.objects.filter(external_id="1", provider="x")') == []
+    assert _s025('RepositoryModel.objects.filter(external_id="1", integration_id=1)') == []
+    assert _s025('RepositoryModel.objects.filter(external_id__in=["1"], provider__in=["x"])') == []
+
+
+def test_S025_primary_key_satisfies() -> None:
+    assert _s025('RepositoryModel.objects.filter(id__in=[1], external_id="1")') == []
+
+
+def test_S025_chained_calls_compose() -> None:
+    assert (
+        _s025('RepositoryModel.objects.exclude(status=1).filter(external_id="1", integration_id=1)')
+        == []
+    )
+    assert _s025('RepositoryModel.objects.filter(external_id="1").exclude(status=1).first()') == [
+        "S025 Repository.external_id is only unique together with provider"
+    ]
+
+
+def test_S025_null_test_is_not_a_lookup() -> None:
+    assert _s025("RepositoryModel.objects.filter(external_id__isnull=False)") == []
+
+
+def test_S025_relation_path_substitute() -> None:
+    assert _s025('Identity.objects.filter(external_id="u", idp__type="slack")') == []
+    assert _s025('Identity.objects.filter(external_id="u", idp_id=1)') == []
+    assert _s025('Identity.objects.filter(external_id="u", user_id=1)') == [
+        "S025 Identity.external_id is only unique together with idp"
+    ]
+
+
+def test_S025_skips_tests_and_unknown_receivers() -> None:
+    assert _s025('RepositoryModel.objects.get(external_id="1")', "tests/sentry/t.py") == []
+    assert _s025('qs.filter(external_id="1")') == []
+    assert _s025('Other.objects.filter(external_id="1")') == []
+
+
+def test_S025_positional_q_expressions() -> None:
+    both = 'Q(provider="x") | Q(provider="integrations:x")'
+    assert _s025(f'RepositoryModel.objects.filter({both}, external_id="1")') == []
+    assert (
+        _s025('RepositoryModel.objects.filter(Q(external_id="1") | Q(name="n"), provider="x")')
+        == []
+    )
+    assert _s025('RepositoryModel.objects.filter(Q(external_id="1") | Q(provider="x"))') == [
+        "S025 Repository.external_id is only unique together with provider"
+    ]
+    # A helper returning a Q is opaque here; the runtime guard owns that case.
+    assert _s025('RepositoryModel.objects.filter(provider_match("x"), external_id="1")') == []

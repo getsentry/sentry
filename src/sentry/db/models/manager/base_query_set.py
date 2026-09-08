@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any, Self
 
 from django.core import exceptions
@@ -9,6 +10,7 @@ from django.db.models import QuerySet, sql
 from django.db.models.expressions import Combinable
 
 from sentry.db.models.manager.types import M, R
+from sentry.db.models.scoped_lookups import enforce as enforce_scoped_lookups
 from sentry.signals import post_update
 
 
@@ -16,6 +18,7 @@ class BaseQuerySet(QuerySet[M, R]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._with_post_update_signal = False
+        self._unscoped_lookup = False
 
     def with_post_update_signal(self, enable: bool) -> Self:
         """
@@ -30,7 +33,50 @@ class BaseQuerySet(QuerySet[M, R]):
     def _clone(self) -> Self:
         qs = super()._clone()  # type: ignore[misc]
         qs._with_post_update_signal = self._with_post_update_signal
+        qs._unscoped_lookup = self._unscoped_lookup
         return qs
+
+    def unscoped_lookup(self, *, reason: str) -> Self:
+        """Skip the scoped-lookup guard: this query deliberately spans namespaces.
+
+        ``reason`` documents why for the reader at the call site; it is required but not
+        stored. See ``sentry.db.models.scoped_lookups``.
+        """
+        if not reason:
+            raise ValueError("unscoped_lookup() needs a reason")
+        qs = self.all()
+        qs._unscoped_lookup = True
+        return qs
+
+    def _enforce_scoped_lookups(self) -> None:
+        if not self._unscoped_lookup:
+            enforce_scoped_lookups(self.query)
+
+    # Every path that executes the query passes through one of these.
+    def _fetch_all(self) -> None:
+        if self._result_cache is None:
+            self._enforce_scoped_lookups()
+        super()._fetch_all()
+
+    def iterator(self, chunk_size: int | None = None) -> Iterator[R]:
+        self._enforce_scoped_lookups()
+        return super().iterator(chunk_size)
+
+    def count(self) -> int:
+        self._enforce_scoped_lookups()
+        return super().count()
+
+    def exists(self) -> bool:
+        self._enforce_scoped_lookups()
+        return super().exists()
+
+    def aggregate(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        self._enforce_scoped_lookups()
+        return super().aggregate(*args, **kwargs)
+
+    def delete(self) -> tuple[int, dict[str, int]]:
+        self._enforce_scoped_lookups()
+        return super().delete()
 
     def update_with_returning(
         self, returned_fields: list[str], **kwargs: Any
@@ -38,6 +84,7 @@ class BaseQuerySet(QuerySet[M, R]):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
+        self._enforce_scoped_lookups()
         self._not_support_combined_queries("update")  # type: ignore[attr-defined]
         if self.query.is_sliced:
             raise TypeError("Cannot update a query once a slice has been taken.")
@@ -81,6 +128,7 @@ class BaseQuerySet(QuerySet[M, R]):
     update_with_returning.alters_data = True  # type: ignore[attr-defined]
 
     def update(self, **kwargs: Any) -> int:
+        self._enforce_scoped_lookups()
         if self._with_post_update_signal:
             pk = self.model._meta.pk.name
             ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]

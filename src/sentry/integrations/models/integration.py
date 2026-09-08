@@ -15,6 +15,7 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.db.models.scoped_lookups import ScopedLookup
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -43,6 +44,9 @@ class Integration(DefaultFieldsModelExisting):
     """
 
     __relocation_scope__ = RelocationScope.Global
+    # external_id is the provider's installation or workspace id, unique only within the
+    # provider: a GitHub installation id and a Discord guild id can coincide.
+    __scoped_lookups__ = {"external_id": ScopedLookup(requires=("provider",))}
 
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=256)

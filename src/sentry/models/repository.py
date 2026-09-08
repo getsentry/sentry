@@ -20,6 +20,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.scoped_lookups import ScopedLookup
 from sentry.db.pending_deletion import (
     delete_pending_deletion_option,
     rename_on_pending_deletion,
@@ -70,6 +71,10 @@ class RepositoryManager(BaseManager["Repository"]):
         )
         if normalized_provider is not None:
             candidates = candidates.filter(self.provider_match(normalized_provider))
+        else:
+            candidates = candidates.unscoped_lookup(
+                reason="a cross-provider match is reported as ambiguous below, never returned"
+            )
 
         # Two is enough: we only need to know whether there is exactly one.
         matches = list(candidates.order_by("id")[:2])
@@ -112,6 +117,13 @@ class RepositoryManager(BaseManager["Repository"]):
 @cell_silo_model
 class Repository(Model):
     __relocation_scope__ = RelocationScope.Global
+    # external_id is the provider's own id for the repo, so it only identifies one together
+    # with the provider; an integration belongs to a single provider and pins it too.
+    __scoped_lookups__ = {
+        "external_id": ScopedLookup(
+            requires=("provider",), substitutes={"provider": ("integration_id",)}
+        )
+    }
 
     organization_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=REPOSITORY_NAME_LENGTH)
