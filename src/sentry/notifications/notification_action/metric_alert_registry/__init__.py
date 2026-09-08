@@ -21,4 +21,3 @@ from .handlers.slack_metric_alert_handler import (
     SlackStagingMetricAlertHandler,
 )
 from .handlers.unsupported_metric_alert_handler import UnsupportedMetricAlertHandler
-
