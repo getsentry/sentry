@@ -146,10 +146,22 @@ class MsTeamsClientTest(TestCase):
         assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
-    def test_invalid_request_records_halt(self) -> None:
+    def test_invalid_request_records_failure(self) -> None:
         lifecycle = mock.MagicMock()
 
         record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
+
+        lifecycle.record_failure.assert_called_once()
+        lifecycle.record_halt.assert_not_called()
+
+    @responses.activate
+    def test_bad_syntax_records_halt(self) -> None:
+        lifecycle = mock.MagicMock()
+        error = ApiInvalidRequestError(
+            '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
+        )
+
+        record_lifecycle_termination_level(lifecycle, error)
 
         lifecycle.record_halt.assert_called_once()
         lifecycle.record_failure.assert_not_called()

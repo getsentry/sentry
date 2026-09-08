@@ -1,7 +1,6 @@
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    ApiInvalidRequestError,
     ApiRateLimitedError,
     ApiUnauthorized,
     IntegrationConfigurationError,
@@ -11,6 +10,7 @@ from sentry.shared_integrations.exceptions import (
 # Generated based on the response from the MsTeams API
 # Example: {"error":{"code":"ConversationBlockedByUser","message":"User blocked the conversation with the bot."}}
 MSTEAMS_HALT_ERROR_CODES = [
+    "BadSyntax",
     "BotDisabledByAdmin",
     "ConversationBlockedByUser",
     "ConversationNotFound",
@@ -29,7 +29,7 @@ def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiErro
 
 
 def translate_msteams_api_error(error: ApiError) -> None:
-    if isinstance(error, (ApiUnauthorized, ApiInvalidRequestError, ApiRateLimitedError)):
+    if isinstance(error, (ApiUnauthorized, ApiRateLimitedError)):
         # 401 Unauthorized means expired/invalid credentials — a configuration issue, not a failure.
         # TODO(ecosystem): We should batch rate-limiting on a per-organization basis
         raise IntegrationConfigurationError(error.text) from error
