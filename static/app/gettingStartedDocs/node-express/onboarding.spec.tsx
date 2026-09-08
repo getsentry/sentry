@@ -29,6 +29,16 @@ describe('express onboarding docs', () => {
     });
   });
 
+  it('starts the app with the --import flag', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/node --import \.\/instrument\.mjs index\.mjs/)
+      )
+    ).toBeInTheDocument();
+  });
+
   it('does not include the deprecated express error handler', () => {
     renderWithOnboardingLayout(docs);
 
@@ -115,7 +125,7 @@ describe('express onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
@@ -140,7 +150,7 @@ describe('express onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
