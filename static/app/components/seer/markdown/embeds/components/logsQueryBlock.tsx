@@ -15,6 +15,7 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
 import {t} from 'sentry/locale';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
@@ -28,7 +29,15 @@ import {
   type LogsQueryData,
 } from './logsQueryUtils';
 
-function LogsQueryChart({data, hasTable}: {data: LogsQueryData; hasTable: boolean}) {
+function LogsQueryChart({
+  data,
+  hasTable,
+  sort,
+}: {
+  data: LogsQueryData;
+  hasTable: boolean;
+  sort: Sort | undefined;
+}) {
   const groupBy = getLogsGroupBy(data);
 
   // Logs charts through `/events-timeseries/` like the Logs page itself, not
@@ -40,6 +49,10 @@ function LogsQueryChart({data, hasTable}: {data: LogsQueryData; hasTable: boolea
       query: data.query,
       groupBy: groupBy.length > 0 ? groupBy : undefined,
       topEvents: groupBy.length > 0 ? QUERY_EMBED_ROW_LIMIT : undefined,
+      // `topEvents` ranks the groups it keeps by this sort, so handing it the
+      // table's own sort is what makes the legend describe the rows below it.
+      // Without it the two rank differently and the series stop lining up.
+      sort: groupBy.length > 0 ? sort : undefined,
       pageFilters: toPageFilters(data),
     },
     'seer-logs-query-embed'
@@ -81,7 +94,7 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
       query={data.query}
       testId={`seer-logs-query-${data.mode}-embed`}
     >
-      <LogsQueryChart data={data} hasTable={!isChartOnly} />
+      <LogsQueryChart data={data} hasTable={!isChartOnly} sort={eventView.sorts[0]} />
       {isChartOnly ? null : (
         <QueryEmbedTable
           columns={eventColumns(getLogsQueryFields(data))}

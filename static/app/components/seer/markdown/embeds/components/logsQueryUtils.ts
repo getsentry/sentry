@@ -44,15 +44,38 @@ export function getLogsQueryFields(data: LogsQueryData): string[] {
   return Array.from(new Set([...getLogsGroupBy(data), ...resolveLogsYAxes(data)]));
 }
 
+/**
+ * The logs dataset rejects an `orderby` naming a column the query never
+ * selected — "orderby must also be in the selected columns or groupby" — which
+ * fails the whole table request rather than degrading. Seer can ask for a
+ * `sort` it left out of `fields`, and a samples list that omits `timestamp`
+ * makes even the default sort unselected, so fall back to a column the table
+ * actually has.
+ *
+ * Aggregates need no such care: their fields are `[...groupBy, ...yAxes]`, so
+ * the trailing y-axis is always selected.
+ */
+export function resolveLogsSort(data: LogsQueryData, fields: string[]): string {
+  const isSelected = (sort: string) => fields.includes(sort.replace(/^-/, ''));
+
+  if (data.sort && isSelected(data.sort)) {
+    return data.sort;
+  }
+
+  if (data.mode === 'samples' && isSelected('-timestamp')) {
+    return '-timestamp';
+  }
+
+  return `-${fields.at(-1)}`;
+}
+
 export function buildLogsEventView(data: LogsQueryData): EventView {
   const fields = getLogsQueryFields(data);
   const query: NewQuery = {
     id: undefined,
     name: data.title ?? 'Logs',
     fields,
-    orderby: [
-      data.sort ?? (data.mode === 'aggregate' ? `-${fields.at(-1)}` : '-timestamp'),
-    ],
+    orderby: [resolveLogsSort(data, fields)],
     query: data.query,
     version: 2,
     dataset: DiscoverDatasets.OURLOGS,

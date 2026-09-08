@@ -121,6 +121,127 @@ describe('logs query embed', () => {
     });
   });
 
+  it('ranks the chart groups by the sort the table uses', async () => {
+    const timeseries = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: TIME_SERIES},
+    });
+    const table = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{severity: 'error', 'count(message)': 42}]},
+    });
+
+    renderEmbed({
+      query: '',
+      mode: 'aggregate',
+      groupBy: ['severity'],
+      yAxes: ['count(message)'],
+      sort: 'severity',
+      statsPeriod: '7d',
+    });
+
+    expect(await screen.findByText('error')).toBeInTheDocument();
+
+    // `topEvents` keeps five groups; ranking them any other way than the table
+    // does would leave the legend describing rows that aren't shown.
+    await waitFor(() => {
+      expect(timeseries).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({query: expect.objectContaining({sort: 'severity'})})
+      );
+    });
+
+    await waitFor(() => {
+      expect(table).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.objectContaining({sort: 'severity'})})
+      );
+    });
+  });
+
+  it('leaves the chart unsorted when an aggregate has no groups to rank', async () => {
+    const timeseries = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: TIME_SERIES},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+
+    renderEmbed({query: 'severity:error', mode: 'samples', statsPeriod: '24h'});
+
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(timeseries).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({
+          query: expect.not.objectContaining({sort: expect.anything()}),
+        })
+      );
+    });
+  });
+
+  it('falls back to a selected column when samples fields omit the sort', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: TIME_SERIES},
+    });
+    const table = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{message: 'Connection refused'}]},
+    });
+
+    // The logs dataset rejects an orderby that names no selected column, so
+    // the default `-timestamp` cannot survive a field list without it.
+    renderEmbed({
+      query: 'severity:error',
+      mode: 'samples',
+      fields: ['message'],
+      statsPeriod: '24h',
+    });
+
+    expect(await screen.findByText('Connection refused')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(table).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          // A lone field serializes as a scalar rather than a one-item list.
+          query: expect.objectContaining({field: 'message', sort: '-message'}),
+        })
+      );
+    });
+  });
+
+  it('ignores a sort naming a column the query never selected', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: TIME_SERIES},
+    });
+    const table = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{timestamp: '2026-08-27T12:00:00Z', message: 'Retrying'}]},
+    });
+
+    renderEmbed({
+      query: '',
+      mode: 'samples',
+      sort: '-span.duration',
+      statsPeriod: '24h',
+    });
+
+    expect(await screen.findByText('Retrying')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(table).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.objectContaining({sort: '-timestamp'})})
+      );
+    });
+  });
+
   it('drops the table when an aggregate groups by nothing', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
