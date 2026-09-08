@@ -87,7 +87,7 @@ export function SeerAdminPage() {
         <Container width={{'screen:xs': '100%', 'screen:md': '50%'}}>
           <form.AppForm form={form}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Stack gap="md" align="start">
+              <Stack gap="md" align="stretch">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
                 <Text as="p" variant="muted">
                   Dispatch a night shift run. Provide an organization ID to scope the run
@@ -150,15 +150,17 @@ export function SeerAdminPage() {
                     </field.Layout.Stack>
                   )}
                 </form.AppField>
-                <form.Subscribe selector={state => state.values.organizationId}>
-                  {organizationId => (
-                    <form.SubmitButton>
-                      {organizationId.trim()
-                        ? 'Trigger Night Shift'
-                        : 'Trigger Night Shift (all orgs)'}
-                    </form.SubmitButton>
-                  )}
-                </form.Subscribe>
+                <Container alignSelf="start">
+                  <form.Subscribe selector={state => state.values.organizationId}>
+                    {organizationId => (
+                      <form.SubmitButton>
+                        {organizationId.trim()
+                          ? 'Trigger Night Shift'
+                          : 'Trigger Night Shift (all orgs)'}
+                      </form.SubmitButton>
+                    )}
+                  </form.Subscribe>
+                </Container>
               </Stack>
             </Container>
           </form.AppForm>
