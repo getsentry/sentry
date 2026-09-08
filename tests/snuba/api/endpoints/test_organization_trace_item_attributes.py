@@ -2039,13 +2039,6 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert "value2" in values
         assert all(item["key"] == "test1" for item in response.data)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Blocked on EAP, the attribute-values RPC "
-            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
-        ),
-    )
     def test_array_attribute_values(self) -> None:
         """Values endpoint against a string-array attribute.
 
@@ -2083,13 +2076,6 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
         assert {"title", "project"} <= string_values
         assert all(item["key"] == key for item in string_response.data)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Blocked on EAP, the attribute-values RPC "
-            "(snuba/web/rpc/v1/trace_item_attribute_values.py) rejects array types. Remove this marker then."
-        ),
-    )
     def test_array_attribute_values_numeric_returns_nothing(self) -> None:
         """Numeric arrays yield no value suggestions.
 
