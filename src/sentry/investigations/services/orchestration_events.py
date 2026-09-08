@@ -414,6 +414,7 @@ def _upsert_report_block(
     run: InvestigationOrchestrationRun,
     payload: dict[str, Any],
     complete: bool,
+    from_snapshot: bool = False,
 ) -> InvestigationBlock:
     investigation = run.investigation
     revision = payload["reportRevision"]
@@ -439,7 +440,7 @@ def _upsert_report_block(
         )
     elif block.kind != kind:
         previous_execution = block.current_execution
-        if (
+        if not from_snapshot and (
             previous_execution is None
             or previous_execution.input_snapshot.get("reportRevision", revision) >= revision
         ):
@@ -508,6 +509,16 @@ def _upsert_report_block(
         block.result_execution if kind == InvestigationBlockKind.QUERY else block.content_execution
     )
     if published_execution is None and complete and payload.get("useInvestigationProjectScope"):
+        published_execution = (
+            InvestigationBlockExecution.objects.filter(
+                block=block,
+                status=InvestigationBlockExecutionStatus.COMPLETED,
+                result=result,
+            )
+            .order_by("-id")
+            .first()
+        )
+    if published_execution is None and complete and payload.get("useInvestigationProjectScope"):
         previous_block = (
             InvestigationBlock.objects.filter(
                 investigation=investigation,
@@ -527,7 +538,7 @@ def _upsert_report_block(
             )
     scope_execution = execution
     if (
-        scope_execution is None
+        (scope_execution is None or from_snapshot)
         and complete
         and published_execution is not None
         and published_execution.result == result
@@ -552,7 +563,9 @@ def _upsert_report_block(
         project_ids = sorted(set(project_ids) | set(scoped_project_ids))
         if not project_ids:
             raise serializers.ValidationError({"payload": "Investigation project scope is empty."})
-    if execution is not None and execution.status == InvestigationBlockExecutionStatus.COMPLETED:
+    if execution is not None and (
+        from_snapshot or execution.status == InvestigationBlockExecutionStatus.COMPLETED
+    ):
         project_ids = sorted(
             set(project_ids)
             | set(execution.data_project_links.values_list("project_id", flat=True))
@@ -744,6 +757,7 @@ def _apply_snapshot(
             run=run,
             payload=block_payload,
             complete=True,
+            from_snapshot=True,
         )
     metadata = payload.get("metadata")
     if metadata is not None:
