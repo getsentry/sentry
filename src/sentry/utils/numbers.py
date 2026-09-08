@@ -30,7 +30,7 @@ def _decode(number: str, alphabet: str) -> int:
 
     if number[:1] == "-":
         inverse = True
-        number = number[:1]
+        number = number[1:]
 
     base = len(alphabet)
     for symbol in number:

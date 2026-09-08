@@ -278,6 +278,14 @@ def test_base32() -> None:
     assert [base32_decode(base32_encode(x)) for x in range(128)] == list(range(128))
 
 
+def test_base32_negative_round_trip() -> None:
+    for x in [-1, -31, -32, -123, -99999, -1000000]:
+        assert base32_decode(base32_encode(x)) == x
+
+    assert base32_encode(-1) == "-1"
+    assert base32_encode(0) == "0"
+
+
 def test_format_bytes() -> None:
     assert format_bytes(50) == "50 B"
     assert format_bytes(1024) == "1.00 KB"
