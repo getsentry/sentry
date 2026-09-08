@@ -29,12 +29,22 @@ describe('fastify onboarding docs', () => {
     });
   });
 
-  it('includes error handler', () => {
+  it('starts the app with the --import flag', () => {
     renderWithOnboardingLayout(docs);
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry\.setupFastifyErrorHandler\(app\)/))
+      screen.getByText(
+        textWithMarkupMatcher(/node --import \.\/instrument\.mjs index\.mjs/)
+      )
     ).toBeInTheDocument();
+  });
+
+  it('does not include the deprecated fastify error handler', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/Sentry\.setupFastifyErrorHandler/))
+    ).not.toBeInTheDocument();
   });
 
   it('displays sample rates by default', () => {
@@ -115,7 +125,7 @@ describe('fastify onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
@@ -141,7 +151,7 @@ describe('fastify onboarding docs', () => {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+          /import { nodeProfilingIntegration } from "@sentry\/profiling-node"/
         )
       )
     ).toBeInTheDocument();
