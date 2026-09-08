@@ -10,6 +10,7 @@ from requests import PreparedRequest
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models import Integration
+from sentry.integrations.msteams.metrics import MSTEAMS_INVALID_REQUEST_ERROR_CODES
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -96,7 +97,7 @@ class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
             return super().request(*args, **kwargs)
         except ApiError as error:
             error_code = (error.json or {}).get("error", {}).get("code")
-            if error_code in {"ConversationNotFound", "BadSyntax"}:
+            if error_code in MSTEAMS_INVALID_REQUEST_ERROR_CODES:
                 raise ApiInvalidRequestError(error.text, url=error.url) from error
             raise
 

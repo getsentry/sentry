@@ -9,14 +9,13 @@ from sentry.shared_integrations.exceptions import (
 
 # Generated based on the response from the MsTeams API
 # Example: {"error":{"code":"ConversationBlockedByUser","message":"User blocked the conversation with the bot."}}
-MSTEAMS_HALT_ERROR_CODES = [
-    "BadSyntax",
+MSTEAMS_INVALID_REQUEST_ERROR_CODES = {"BadSyntax", "ConversationNotFound"}
+MSTEAMS_HALT_ERROR_CODES = MSTEAMS_INVALID_REQUEST_ERROR_CODES | {
     "BotDisabledByAdmin",
     "ConversationBlockedByUser",
-    "ConversationNotFound",
     "TenantNoPermission",
     "CapabilityOverride",
-]
+}
 
 
 def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: ApiError) -> None:

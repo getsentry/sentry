@@ -149,12 +149,7 @@ class MsTeamsClientTest(TestCase):
     def test_invalid_request_records_failure(self) -> None:
         lifecycle = mock.MagicMock()
 
-        record_lifecycle_termination_level(
-            lifecycle,
-            ApiInvalidRequestError(
-                '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
-            ),
-        )
+        record_lifecycle_termination_level(lifecycle, ApiInvalidRequestError("Invalid request"))
 
         lifecycle.record_failure.assert_called_once()
         lifecycle.record_halt.assert_not_called()
