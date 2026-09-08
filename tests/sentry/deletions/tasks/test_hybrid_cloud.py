@@ -18,9 +18,11 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.watermark import CellDeletionWatermark, ControlDeletionWatermark
+from sentry.deletions.tasks import hybrid_cloud
 from sentry.deletions.tasks.hybrid_cloud import (
     ROW_WATERMARK,
     TOMBSTONE_WATERMARK,
+    WATERMARK_PREFIXES,
     WatermarkBatch,
     _process_hybrid_cloud_foreign_key_cascade,
     _read_postgres_watermark,
@@ -153,6 +155,29 @@ def record_watermark_writes(
         yield written
 
 
+@contextmanager
+def record_low_bound_reports(
+    field: HybridCloudForeignKey[int, int],
+) -> Generator[set[str]]:
+    """
+    Collect the watermark prefixes that reported their position for one field.
+    Reporting does not touch the row, so the row cannot show that it happened.
+    """
+    reported: set[str] = set()
+    real_report = hybrid_cloud._report_low_bound
+
+    def record(prefix: str, reported_field: Any, value: int) -> None:
+        if (
+            reported_field.model._meta.db_table == field.model._meta.db_table
+            and reported_field.name == field.name
+        ):
+            reported.add(prefix)
+        return real_report(prefix, reported_field, value)
+
+    with patch.object(hybrid_cloud, "_report_low_bound", record):
+        yield reported
+
+
 @django_db_all
 def test_no_work_is_no_op(
     task_runner: Callable[[], ContextManager[None]],
@@ -171,22 +196,25 @@ def test_no_work_is_no_op(
 
 
 @django_db_all
-def test_no_work_writes_no_watermark(
+def test_no_work_reports_both_watermarks_without_writing(
     task_runner: Callable[[], ContextManager[None]],
     project_bookmark_user_id_field: HybridCloudForeignKey[int, int],
 ) -> None:
     """
-    A caught up field writes its watermark rows only when it has work. The
-    every cycle rewrite existed to fill the Postgres tables during the
-    Redis to Postgres migration and is gone now.
+    A caught up field writes its watermark rows only when it has work, but it
+    still reports where both watermarks sit. The every cycle rewrite existed to
+    fill the Postgres tables during the Redis to Postgres migration and is gone
+    now, so the report is what keeps the position visible.
     """
     reset_watermarks()
 
     with record_watermark_writes(project_bookmark_user_id_field) as written:
-        with task_runner():
-            schedule_hybrid_cloud_foreign_key_jobs()
+        with record_low_bound_reports(project_bookmark_user_id_field) as reported:
+            with task_runner():
+                schedule_hybrid_cloud_foreign_key_jobs()
 
     assert written == set()
+    assert reported == set(WATERMARK_PREFIXES)
 
 
 @django_db_all

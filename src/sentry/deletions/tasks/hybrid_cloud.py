@@ -42,6 +42,7 @@ from sentry.utils import metrics
 
 TOMBSTONE_WATERMARK = "tombstone"
 ROW_WATERMARK = "row"
+WATERMARK_PREFIXES = (TOMBSTONE_WATERMARK, ROW_WATERMARK)
 
 
 @dataclass
@@ -68,6 +69,17 @@ def _watermark_model(
     return CellDeletionWatermark
 
 
+def _report_low_bound(prefix: str, field: HybridCloudForeignKey[Any, Any], value: int) -> None:
+    metrics.gauge(
+        "deletion.hybrid_cloud.low_bound",
+        value,
+        tags=dict(
+            field_name=f"{field.model._meta.db_table}.{field.name}",
+            watermark=prefix,
+        ),
+    )
+
+
 def _write_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, transaction_id: str
 ) -> None:
@@ -77,14 +89,7 @@ def _write_watermark(
         field_name=field.name,
         defaults={"low_bound": value, "transaction_id": transaction_id},
     )
-    metrics.gauge(
-        "deletion.hybrid_cloud.low_bound",
-        value,
-        tags=dict(
-            field_name=f"{field.model._meta.db_table}.{field.name}",
-            watermark=prefix,
-        ),
-    )
+    _report_low_bound(prefix, field, value)
 
 
 def _watermark_row_lookup(prefix: str, field: HybridCloudForeignKey[Any, Any]) -> dict[str, str]:
@@ -125,6 +130,12 @@ def set_watermark(
     prefix: str, field: HybridCloudForeignKey[Any, Any], value: int, prev_transaction_id: str
 ) -> None:
     _write_watermark(prefix, field, value, sha1(prev_transaction_id.encode("utf8")).hexdigest())
+
+
+def report_watermarks(field: HybridCloudForeignKey[Any, Any]) -> None:
+    for prefix in WATERMARK_PREFIXES:
+        low_bound, _ = get_watermark(prefix, field)
+        _report_low_bound(prefix, field, low_bound)
 
 
 def _chunk_watermark_batch(
@@ -277,6 +288,8 @@ def _process_hybrid_cloud_foreign_key_cascade(
 
         tombstone_cls = TombstoneBase.class_for_silo_mode(silo_mode)
         assert tombstone_cls, "A tombstone class is required"
+
+        report_watermarks(field)
 
         # We rely on the return value of _process_tombstone_reconciliation
         # to short circuit the second half of this `or` so that the terminal batch
