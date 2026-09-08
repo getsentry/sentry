@@ -40,14 +40,11 @@ from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
-from sentry.constants import ObjectStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
-from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
-    get_github_missing_permissions,
     get_missing_permissions_by_repo,
 )
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
@@ -178,19 +175,10 @@ def get_blocking_permissions(
 
 def _record_comment_posted(
     organization_id: int,
-    repo_name: str,
     integration_id: int,
+    repository_id: int,
     log_ctx: PrIterationLogContext,
 ) -> None:
-    repository_id = (
-        Repository.objects.filter(
-            organization_id=organization_id,
-            name=repo_name,
-            status=ObjectStatus.ACTIVE,
-        )
-        .values_list("id", flat=True)
-        .first()
-    )
     try:
         analytics.record(
             AiAutofixPrIterationMissingPermissionsEvent(
@@ -305,8 +293,8 @@ def post_missing_permissions_comment(
         _skip(log_ctx, "already_commented", **log_fields)
         return
 
-    info = get_github_missing_permissions(integration_id)
-    if info is None or not info.missing_scopes:
+    info = get_missing_permissions_by_repo(organization, [repo_name]).get(repo_name)
+    if info is None:
         # Accepted between the gate and this task: nothing left to ask for.
         _skip(log_ctx, "permissions_resolved", **log_fields)
         return
@@ -339,7 +327,7 @@ def post_missing_permissions_comment(
             pr_id=pr_id,
         )
 
-    _record_comment_posted(organization.id, repo_name, integration_id, log_ctx)
+    _record_comment_posted(organization.id, integration_id, info.repository_id, log_ctx)
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.commented",

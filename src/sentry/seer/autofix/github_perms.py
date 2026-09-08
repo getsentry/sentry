@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection, Iterable, Iterator
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sentry.constants import ObjectStatus
@@ -26,9 +26,9 @@ class MissingGithubPermissions:
     integration: RpcIntegration
     # Empty when the installation has every required permission.
     missing_scopes: list[str]
-    # Set when this was resolved from a Repository row, so callers can log an id
+    # The Repository row this was resolved for, so callers can log an id
     # instead of the repo's full name.
-    repository_id: int | None = None
+    repository_id: int
 
     @property
     def installation_id(self) -> str:
@@ -46,20 +46,6 @@ class MissingGithubPermissions:
             self.integration.metadata.get("account_type"),
             self.integration.name,
         )
-
-
-def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissions | None:
-    """Required GitHub App permissions the installation for `integration_id` is
-    missing. Returns None if the integration no longer exists."""
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
-        return None
-
-    missing = get_missing_github_app_permissions(integration.metadata)
-    return MissingGithubPermissions(
-        integration=integration,
-        missing_scopes=[permission["expected"]["scope"] for permission in (missing or [])],
-    )
 
 
 # Key set in a tool result's ToolLink.params when the tool call errored (mirrors
@@ -137,7 +123,6 @@ def get_missing_permissions_by_repo(
     if not repo_names:
         return {}
 
-    # Org-scoped so a run can only surface permissions for repos in its own org.
     repos = (
         Repository.objects.filter(
             organization_id=organization.id,
@@ -154,8 +139,15 @@ def get_missing_permissions_by_repo(
         if not isinstance(integration_id, int):
             continue
 
-        perms = get_github_missing_permissions(integration_id)
-        if perms is not None and perms.missing_scopes:
-            missing_by_repo[repo_name] = replace(perms, repository_id=repository_id)
+        integration = integration_service.get_integration(integration_id=integration_id)
+        if integration is None:
+            continue
+
+        missing = get_missing_github_app_permissions(integration.metadata)
+        missing_scopes = [permission["expected"]["scope"] for permission in (missing or [])]
+        if missing_scopes:
+            missing_by_repo[repo_name] = MissingGithubPermissions(
+                integration=integration, missing_scopes=missing_scopes, repository_id=repository_id
+            )
 
     return missing_by_repo
