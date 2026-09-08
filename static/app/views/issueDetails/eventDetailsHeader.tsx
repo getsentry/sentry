@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -233,9 +233,16 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           </TourElement>
         )}
         {issueTypeConfig.header.graph.enabled && (
-          <GraphSection
-            direction={{zero: 'column', sm: 'row'}}
-            gap={{zero: 'sm', sm: 'lg'}}
+          <Flex
+            direction={{zero: 'column', md: 'row'}}
+            gap={{zero: 'sm', md: 'lg'}}
+            css={cssTheme => css`
+              & > * {
+                background: ${cssTheme.tokens.background.primary};
+                border-radius: ${cssTheme.radius.md};
+                border: 1px solid ${cssTheme.tokens.border.primary};
+              }
+            `}
           >
             {issueTypeConfig.header.graph.type === 'discover-events' && (
               <EventGraph
@@ -261,7 +268,7 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                 project={project}
               />
             )}
-          </GraphSection>
+          </Flex>
         )}
         {issueTypeConfig.header.occurrenceSummary.enabled && (
           <OccurrenceSummarySection group={group} event={event} />
@@ -299,14 +306,6 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
 
   return <EnvironmentPageFilter triggerProps={{style}} />;
 }
-
-const GraphSection = styled(Flex)`
-  & > * {
-    background: ${p => p.theme.tokens.background.primary};
-    border-radius: ${p => p.theme.radius.md};
-    border: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
 
 const OccurrenceSummarySection = styled(OccurrenceSummary)`
   white-space: unset;
