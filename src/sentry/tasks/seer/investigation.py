@@ -33,6 +33,7 @@ from sentry.investigations.services import (
     mark_block_execution_dispatch_started,
 )
 from sentry.investigations.services.orchestration_events import (
+    InvestigationOrchestrationEventConflict,
     reconcile_orchestration_projection,
     synchronize_orchestration_projection,
 )
@@ -210,6 +211,7 @@ def _reconcile_command_version_conflict(
     command: InvestigationOrchestrationCommand,
     viewer_context: SeerViewerContext,
 ) -> None:
+    run.refresh_from_db()
     if run.seer_run_id is None:
         raise SeerApiError("Investigation orchestration run is missing", 502)
     response = get_investigation_orchestration_run(
@@ -218,11 +220,16 @@ def _reconcile_command_version_conflict(
     )
     response_run_id = response["runId"]
     projection = response["projection"]
-    reconcile_orchestration_projection(
-        orchestration_run_id=run.id,
-        seer_run_id=response_run_id,
-        projection=projection,
-    )
+    try:
+        reconcile_orchestration_projection(
+            orchestration_run_id=run.id,
+            seer_run_id=response_run_id,
+            projection=projection,
+            expected_last_event_sequence=run.last_event_sequence,
+            expected_workflow_version=run.workflow_version,
+        )
+    except InvestigationOrchestrationEventConflict as error:
+        raise SeerApiError("Investigation changed while reconciling", 502) from error
     _mark_command_version_conflicted(command.id)
 
 

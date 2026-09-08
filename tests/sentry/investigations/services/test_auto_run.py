@@ -18,6 +18,7 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.orchestration import accept_orchestration_command
+from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.tasks.seer.investigation import (
@@ -712,6 +713,83 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         command.refresh_from_db()
         assert command.status == InvestigationOrchestrationCommandStatus.FAILED
         schedule.assert_not_called()
+
+    @mock.patch("sentry.tasks.seer.investigation.current_task")
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_command_conflict_retries_after_a_callback_during_recovery(
+        self,
+        dispatch: mock.Mock,
+        get_run: mock.Mock,
+        current_task: mock.Mock,
+    ) -> None:
+        self.orchestration_run.update(
+            seer_run_id=self.seer_run_id,
+            workflow_version=2,
+            projection=self.projection(workflow_version=2),
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            request_id=uuid4(),
+            actor_id=self.user.id,
+            expected_workflow_version=1,
+            resulting_workflow_version=2,
+            type="add_hypothesis",
+            payload={"statement": "A release caused this"},
+        )
+        latest_projection = self.projection(
+            workflow_version=3, phase="completed", status="completed"
+        )
+
+        def get_with_callback(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            deliver_orchestration_event(
+                organization_id=self.organization.id,
+                event={
+                    "schema_version": 1,
+                    "event_id": uuid4(),
+                    "run_id": self.seer_run_id,
+                    "investigation_id": self.investigation.id,
+                    "sequence": 1,
+                    "generation": 1,
+                    "type": "workflow_updated",
+                    "payload": {"projection": latest_projection},
+                },
+            )
+            return {
+                "runId": self.seer_run_id,
+                "created": False,
+                "projection": self.projection(workflow_version=1),
+            }
+
+        dispatch.side_effect = SeerApiError("conflict", 409)
+        get_run.side_effect = get_with_callback
+        current_task.return_value = SimpleNamespace(retries_remaining=True)
+
+        with pytest.raises(SeerApiError, match="Investigation changed while reconciling"):
+            dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        assert self.orchestration_run.status == "completed"
+        assert self.orchestration_run.last_event_sequence == 1
+        assert command.status == InvestigationOrchestrationCommandStatus.DISPATCHED
+
+        get_run.side_effect = None
+        get_run.return_value = {
+            "runId": self.seer_run_id,
+            "created": False,
+            "projection": latest_projection,
+        }
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+
+        self.orchestration_run.refresh_from_db()
+        command.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        assert self.orchestration_run.status == "completed"
+        assert self.orchestration_run.last_event_sequence == 1
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error["reason"] == "workflow_version_conflict"
 
     @mock.patch("sentry.tasks.seer.investigation.current_task")
     @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
