@@ -367,18 +367,19 @@ class PendingEventAttachment(EventAttachmentBase):
             rv = super().delete(*args, **kwargs)
 
         if is_owner:
-            # Verify once more that no event exists:
-            event = eventstore.backend.get_event_by_id(self.project_id, self.event_id)
-            if event is not None:
-                # NOTE: If this actually happens, we should guard against it by promoting the pending attachment just-in-time.
-                logger.warning(
-                    "attachments.pending.premature_deletion",
-                    extra={
-                        "project_id": self.project_id,
-                        "event_id": self.event_id,
-                        "attachment_id": self.id,
-                    },
-                )
+            # Verify once more that no event exists.
+            if in_random_rollout("attachments.pending.premature_deletion_check_rate"):
+                event = eventstore.backend.get_event_by_id(self.project_id, self.event_id)
+                if event is not None:
+                    # NOTE: If this actually happens, we should guard against it by promoting the pending attachment just-in-time.
+                    logger.warning(
+                        "attachments.pending.premature_deletion",
+                        extra={
+                            "project_id": self.project_id,
+                            "event_id": self.event_id,
+                            "attachment_id": self.id,
+                        },
+                    )
 
             self.delete_blob()
         return rv
