@@ -78,12 +78,12 @@ backend_api_urls: &backend_api_urls
   - '**/urls.py'
 
 # `backend_src` filters on files that are backend changes excluding
-# changes to the tests/ directory and changes to typescript related config files.
+# changes to tests/, Python fixtures, and TypeScript-related config files.
 # If you want to filter on *all* backend files, use the `backend_all` filter.
 backend_src: &backend_src
   - *backend_build_changes
   - *backend_dependencies
-  - '!(tests)/**/*.py'
+  - '!(tests|fixtures)/**/*.py'
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
@@ -106,14 +106,16 @@ backend_all: &backend_all
   - '**/*.py'
   - '**/*.pyi'
 
-# Like backend_all, but excludes tests/acceptance/ since those have their own
-# dedicated workflow (acceptance.yml) and are already --ignored by test-python-ci.
+# Like backend_all, but excludes tests/acceptance/ and fixtures/page_objects/.
+# Those are covered by acceptance.yml and are not part of test-python-ci.
 # Used by backend.yml to avoid triggering the full backend suite unnecessarily.
 backend_all_without_acceptance: &backend_all_without_acceptance
   - *backend_common
   - 'tests/!(acceptance)/**/*.{py,pyi}'
   - 'tests/*.py'
-  - '!(tests)/**/*.pyi'
+  - '!(tests|fixtures)/**/*.pyi'
+  - 'fixtures/*.{py,pyi}'
+  - 'fixtures/!(page_objects)/**/*.{py,pyi}'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
