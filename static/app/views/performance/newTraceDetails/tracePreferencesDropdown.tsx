@@ -23,6 +23,13 @@ import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDet
 import {TraceShortcutsModal} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 
+// The settings trigger is the toolbar's last item and the search input beside it grows to
+// fill, so the trigger always sits flush right and the 300px menu can run past the edge of
+// whatever contains the waterfall. Keep the default `bottom-start` and let Popper fall back
+// to right-aligned only when that would actually overflow — `useOverlay` sets
+// `flipVariations: false`, so without a fallback nothing re-aligns on its own.
+const MENU_FLIP_OPTIONS = {fallbackPlacements: ['bottom-end' as const]};
+
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
   compressedTimeline: boolean;
@@ -156,10 +163,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       }
       onChange={onChange}
       menuWidth={300}
-      // The trigger sits flush against the toolbar's right edge, so the menu has
-      // to grow leftward. Popper is configured not to flip start/end variations,
-      // and embedded waterfalls clip the overlay at their own boundary.
-      position="bottom-end"
+      flipOptions={MENU_FLIP_OPTIONS}
     />
   );
 }
