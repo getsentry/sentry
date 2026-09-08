@@ -460,6 +460,42 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
             )
         ]
 
+    def test_anomaly_detection_mixed_with_static_condition(self) -> None:
+        data = {
+            **self.valid_data,
+            "conditionGroup": {
+                "id": self.data_condition_group.id,
+                "organizationId": self.organization.id,
+                "logicType": self.data_condition_group.logic_type,
+                "conditions": [
+                    {
+                        "type": Condition.ANOMALY_DETECTION,
+                        "comparison": {
+                            "sensitivity": AnomalyDetectionSensitivity.HIGH,
+                            "seasonality": AnomalyDetectionSeasonality.AUTO,
+                            "threshold_type": AnomalyDetectionThresholdType.ABOVE_AND_BELOW,
+                        },
+                        "conditionResult": DetectorPriorityLevel.HIGH,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                    {
+                        "type": Condition.LESS_OR_EQUAL,
+                        "comparison": 0,
+                        "conditionResult": DetectorPriorityLevel.OK,
+                        "conditionGroupId": self.data_condition_group.id,
+                    },
+                ],
+            },
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("conditionGroup", {}).get("conditions") == [
+            ErrorDetail(
+                string="Cannot combine anomaly detection conditions with other condition types.",
+                code="invalid",
+            )
+        ]
+
     def test_too_many_conditions(self) -> None:
         data = {
             **self.valid_data,
